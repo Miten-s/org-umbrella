@@ -1,0 +1,39 @@
+{
+  "name": "lims",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "prepare": "husky install",
+    "eslint": "eslint --cache \"src/**/*.{js,ts,tsx.}\" --config ./eslint.config.js",
+    "eslint:ci": "eslint \"src/**/*.{js,ts,tsx}\" --cache --quiet --config ./eslint.config.js",
+    "eslint:fix": "eslint --fix \"src/**/*.{js,ts,tsx}\" --config ./eslint.config.js",
+    "prettier": "prettier src --check",
+    "prettier:ci": "prettier src --check --loglevel error",
+    "prettier:fix": "prettier src --write"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.22.0",
+    "@types/node": "^22.15.3",
+    "@types/react": "^18.2.64",
+    "@types/react-dom": "^18.2.22",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.22.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
+    "globals": "^16.0.0",
+    "husky": "^8.0.0",
+    "prettier": "3.5.3",
+    "typescript": "~5.7.2",
+    "typescript-eslint": "^8.26.1",
+    "vite": "^6.3.1"
+  }
+}
