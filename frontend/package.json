@@ -8,10 +8,10 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "prepare": "husky install",
     "eslint": "eslint --cache \"src/**/*.{js,ts,tsx.}\" --config ./eslint.config.js",
     "eslint:ci": "eslint \"src/**/*.{js,ts,tsx}\" --cache --quiet --config ./eslint.config.js",
     "eslint:fix": "eslint --fix \"src/**/*.{js,ts,tsx}\" --config ./eslint.config.js",
+    "prettier-format": "prettier --config .prettierrc.js 'src/**/*.ts' --write",
     "prettier": "prettier src --check",
     "prettier:ci": "prettier src --check --loglevel error",
     "prettier:fix": "prettier src --write"

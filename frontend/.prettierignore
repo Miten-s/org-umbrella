@@ -3,3 +3,4 @@ node_modules
 package.json
 vite.config.ts
 dist
+*.lock
