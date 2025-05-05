@@ -17,4 +17,8 @@ const UserSchema: Schema = new Schema(
   { timestamps: true }
 );
 
+UserSchema.pre("save", async function () {
+  this.set("updatedAt", Date.now());
+});
+
 export const User = mongoose.model<IUser>("User", UserSchema);

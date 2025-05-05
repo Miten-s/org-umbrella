@@ -9,6 +9,6 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src"],
+  "include": ["src", "migrations/**/*", "migrate-mongo-config.js", "migrate-mongo-config.js"],
   "exclude": ["node_modules", "dist"]
 }
