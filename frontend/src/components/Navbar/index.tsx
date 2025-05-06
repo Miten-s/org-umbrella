@@ -20,7 +20,7 @@ const Navbar = ({ toggleSidebar }: { toggleSidebar: () => void }) => {
               onClick={toggleSidebar}
                 src={umbrellaLogo}
                 alt="Umbrella Logo"
-                className="aspect- w-40 h-40 object-cover"
+                className="aspect-auto w-64 h-48"
               />
               
             </div>
