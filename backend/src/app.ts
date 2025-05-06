@@ -6,6 +6,9 @@ dotenv.config();
 
 import { connectDB } from "./configs/db.config";
 import authRoutes from "./routes/auth.routes";
+import roleRoutes from "./routes/role.routes";
+import permissionRoutes from "./routes/permission.routes";
+
 import API_ROUTES from "./utils/routes";
 import cors from "cors";
 
@@ -33,7 +36,9 @@ app.get(API_ROUTES.HEALTH, (_req, res) => {
 });
 
 // Mount the authentication routes at /v1/auth
-app.use("/v1/" + API_ROUTES.AUTH, authRoutes);
 
-// Export the app
+app.use(API_ROUTES.VERSIONS.v1 + API_ROUTES.AUTH, authRoutes);
+app.use(API_ROUTES.VERSIONS.v1, roleRoutes);
+app.use(API_ROUTES.VERSIONS.v1, permissionRoutes);
+
 export default app;

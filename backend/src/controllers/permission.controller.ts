@@ -1,14 +1,14 @@
 import { Request, Response, NextFunction } from "express";
-import userService from "../services/user.service";
+import permissionService from "../services/permission.service";
 import { RESPONSE_MESSAGES } from "../utils/constants";
 
-export const createRole = async (
+export const createPermissions = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    await userService.createRole(req);
+    await permissionService.createPermission(req);
     res.status(201).json({
       success: true,
       message: RESPONSE_MESSAGES.ENTITY_CREATED.replace("{{ entity }}", "Role"),
@@ -18,28 +18,13 @@ export const createRole = async (
   }
 };
 
-// Define an asynchronous function called 'assignRole' that handles HTTP requests
-export const assignRole = async (
+export const updaetePermissions = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const user = await userService.assignRole(req);
-    res.status(201).json({ success: true, user });
-  } catch (error) {
-    // If an error occurs, pass the error to the next middleware function for handling
-    next(error);
-  }
-};
-
-export const updateRole = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    await userService.updaeteRole(req);
+    await permissionService.updaetePermission(req);
     res.status(201).json({
       success: true,
       message: RESPONSE_MESSAGES.ENTITY_CREATED.replace("{{ entity }}", "Role"),
@@ -49,13 +34,26 @@ export const updateRole = async (
   }
 };
 
-export const deleteRole = async (
+export const getPermissions = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    await userService.deleteRole(req);
+    const permissions = await permissionService.getPermissions();
+    res.status(200).json({ success: true, permissions });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deletePermissions = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    await permissionService.deletePermission(req);
     res.status(201).json({
       success: true,
       message: RESPONSE_MESSAGES.ENTITY_CREATED.replace("{{ entity }}", "Role"),

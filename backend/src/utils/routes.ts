@@ -1,12 +1,15 @@
 const API_ROUTES = {
+  VERSIONS: {
+    v1: "/v1/api",
+  },
   AUTH: "/auth",
   USER: "/user",
-  ROLE: "/role",
-  PERMISSION: "/permission",
+  ROLE: "/roles",
+  PERMISSION: "/permissions",
   REGISTER: "/register",
   LOGIN: "/sign-in",
   HEALTH: "/health",
-  ASSIGN_ROLE : "/assign-role",
-  PARAMS : "/:id"
+  ASSIGN_ROLE: "/assign-role",
+  PARAMS: "/:id",
 };
 export default API_ROUTES;
