@@ -1,5 +1,5 @@
 import { Bars3Icon, BellIcon } from '@heroicons/react/24/outline';
-import umbrellaLogo from '../../public/images/umbrella_logo.png';
+import umbrellaLogo from '../../public/images/logo.png';
 
 const Navbar = ({ toggleSidebar }: { toggleSidebar: () => void }) => {
   return (
@@ -20,7 +20,7 @@ const Navbar = ({ toggleSidebar }: { toggleSidebar: () => void }) => {
               onClick={toggleSidebar}
                 src={umbrellaLogo}
                 alt="Umbrella Logo"
-                className="w-52 h-w-52 object-contain"
+                className="w-48 h-16 object-contain"
               />
               
             </div>
