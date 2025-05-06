@@ -1,2 +1,4 @@
-# frontend
-Web-based frontend for a Laboratory Information Management System (LIMS). Built for managing samples, workflows, and lab operations with a modern, responsive UI.
+# Org Umbrella
+
+Org Umbrella is a full-stack web application designed to manage and streamline organizational operations. It features a React-based frontend and a Node.js (Express/NestJS) backend, with a clean and scalable architecture suitable for multi-tenant environments.
+
