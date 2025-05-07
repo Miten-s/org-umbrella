@@ -1,26 +1,26 @@
 import { useState } from 'react';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import CreateRoleModal from './CreateRoleModal';
+import { Modal } from '../../../components/ui/modal';
+import { useModal } from '../../../hooks/useModal';
 
 interface Role {
   id: string;
   name: string;
-  description: string;
   permissions: string[];
 }
 
 const RolesAndPermissions = () => {
   const [roles, setRoles] = useState<Role[]>([]);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const { isOpen, openModal, closeModal } = useModal();
 
-  const handleCreateRole = (roleData: { name: string; description: string; permissions: string[] }) => {
-    // Here you would typically make an API call to create the role
-    // For now, we'll just add it to the local state
+  const handleCreateRole = (roleData: { name: string;  permissions: string[] }) => {
     const newRole: Role = {
-      id: Date.now().toString(), // Temporary ID generation
+      id: Date.now().toString(),
       ...roleData
     };
     setRoles([...roles, newRole]);
+    closeModal()
   };
 
   return (
@@ -30,13 +30,21 @@ const RolesAndPermissions = () => {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">Roles & Permissions</h1>
           <button
-            onClick={() => setShowCreateModal(true)}
+            onClick={openModal}
             className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             <PlusIcon className="w-5 h-5 mr-2" />
             Create Role
           </button>
         </div>
+
+        {/* Create Role Modal */}
+        <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[1000px] max-h-[50rem]  m-4">
+        <CreateRoleModal
+            onClose={ closeModal}
+            onSubmit={handleCreateRole}
+          />
+        </Modal>
 
         {/* Roles Table */}
         <div className="bg-white rounded-lg shadow">
@@ -63,9 +71,7 @@ const RolesAndPermissions = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {role.name}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {role.description}
-                  </td>
+                 
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <div className="flex flex-wrap gap-2">
                       {role.permissions.map((permission) => (
@@ -79,12 +85,8 @@ const RolesAndPermissions = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <button className="text-blue-600 hover:text-blue-800 mr-3">
-                      Edit
-                    </button>
-                    <button className="text-red-600 hover:text-red-800">
-                      Delete
-                    </button>
+                    <button className="text-blue-600 hover:text-blue-800 mr-3">Edit</button>
+                    <button className="text-red-600 hover:text-red-800">Delete</button>
                   </td>
                 </tr>
               ))}
@@ -98,12 +100,6 @@ const RolesAndPermissions = () => {
             </tbody>
           </table>
         </div>
-
-        <CreateRoleModal
-          isOpen={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
-          onSubmit={handleCreateRole}
-        />
       </div>
     </div>
   );

@@ -1,28 +1,21 @@
-import { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import Sidebar from './components/Sidebar';
-import RolesAndPermissions from './Pages/AccessManagement/RolesAndPermissions';
-import './App.css';
+import { useState, Suspense } from 'react';
+import { BrowserRouter as Router } from 'react-router-dom';
+import RouteRenderer from './routes/RouteRenderer';
+import routes from './routes';
+import Layout from './components/Layout';
 
 function App() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true); // Start as open
 
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-console.log("App component rendered",sidebarOpen);
+  const toggleSidebar = () => setSidebarOpen(prev => !prev);
+
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
-        <Navbar toggleSidebar={toggleSidebar} />
-        <Sidebar isOpen={sidebarOpen} />
-        
-        <Routes>
-          <Route path="/access-management/roles" element={<RolesAndPermissions />} />
-          {/* Add more routes as needed */}
-        </Routes>
-      </div>
+      <Suspense fallback={<div>Loading...</div>}>
+        <Layout sidebarOpen={sidebarOpen} toggleSidebar={toggleSidebar}>
+          <RouteRenderer routes={routes} />
+        </Layout>
+      </Suspense>
     </Router>
   );
 }
