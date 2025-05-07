@@ -39,10 +39,10 @@ export const updateRole = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    await userService.updaeteRole(req);
+    await userService.updateRole(req);
     res.status(201).json({
       success: true,
-      message: RESPONSE_MESSAGES.ENTITY_CREATED.replace("{{ entity }}", "Role"),
+      message: RESPONSE_MESSAGES.ENTITY_UPDATED.replace("{{ entity }}", "Role"),
     });
   } catch (error) {
     next(error);
@@ -71,7 +71,7 @@ export const deleteRole = async (
     await userService.deleteRole(req);
     res.status(201).json({
       success: true,
-      message: RESPONSE_MESSAGES.ENTITY_CREATED.replace("{{ entity }}", "Role"),
+      message: RESPONSE_MESSAGES.ENTITY_DELETED.replace("{{ entity }}", "Role"),
     });
   } catch (error) {
     next(error);

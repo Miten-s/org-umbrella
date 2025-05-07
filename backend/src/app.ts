@@ -1,5 +1,6 @@
 import express, { Application } from "express";
 import dotenv from "dotenv";
+import rateLimit from "express-rate-limit";
 
 // Load environment variables from a .env file into process.env
 dotenv.config();
@@ -34,6 +35,24 @@ app.use(express.json());
 app.get(API_ROUTES.HEALTH, (_req, res) => {
   res.status(200).json({ message: "Permissions and roles services are LIVE!" });
 });
+
+
+// Rate limiter: 20 requests per 1 minute per user
+
+const userRateLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 50,
+  keyGenerator: (req, res) => {
+    return req.ip!;
+  },
+  handler: (_req, res) => {
+    return res
+      .status(429)
+      .json({ message: "Too many requests. Please try again later." });
+  },
+});
+
+app.use(userRateLimiter);
 
 // Mount the authentication routes at /v1/auth
 

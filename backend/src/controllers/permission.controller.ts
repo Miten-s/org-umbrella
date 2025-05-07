@@ -18,16 +18,16 @@ export const createPermissions = async (
   }
 };
 
-export const updaetePermissions = async (
+export const updatePermissions = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    await permissionService.updaetePermission(req);
+    await permissionService.updatePermission(req);
     res.status(201).json({
       success: true,
-      message: RESPONSE_MESSAGES.ENTITY_CREATED.replace("{{ entity }}", "Role"),
+      message: RESPONSE_MESSAGES.ENTITY_UPDATED.replace("{{ entity }}", "Role"),
     });
   } catch (error) {
     next(error);
@@ -56,7 +56,7 @@ export const deletePermissions = async (
     await permissionService.deletePermission(req);
     res.status(201).json({
       success: true,
-      message: RESPONSE_MESSAGES.ENTITY_CREATED.replace("{{ entity }}", "Role"),
+      message: RESPONSE_MESSAGES.ENTITY_DELETED.replace("{{ entity }}", "Role"),
     });
   } catch (error) {
     next(error);

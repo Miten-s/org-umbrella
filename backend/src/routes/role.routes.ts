@@ -26,11 +26,11 @@ router.post(API_ROUTES.USER + API_ROUTES.ASSIGN_ROLE, assignRole);
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
 
 // Define a Patch route for updating a role.
-router.post(API_ROUTES.ROLE + API_ROUTES.PARAMS, updateRole);
+router.patch((API_ROUTES.ROLE + API_ROUTES.PARAMS), updateRole);
 
 // ---------------------------------------------------------------------------------------- DELETE Requests ----------------------------------------------------------------------------------------
 
 // Define a Delete route for updating a role.
-router.delete(API_ROUTES.ROLE + API_ROUTES.PARAMS, deleteRole);
+router.delete((API_ROUTES.ROLE + API_ROUTES.PARAMS), deleteRole);
 
 export default router;

@@ -6,25 +6,32 @@ const assignRole = async (req: Request) => {
   // Attempt to find a user by their email and update their roles by adding a new role
   return await User.findOneAndUpdate(
     { email: req.body.email },
-    { $push: { roles: req.body.role } }, // Update operation: push a new role to the user's roles array
+    { $push: { roles: req.body.role } },
     { new: true }
   );
 };
 
 const createRole = async (req: Request) => {
-  return await Role.create(req.body);
+  const { name, permissions, organization } = req.body;
+  return await Role.create({ name, permissions, organization });
 };
 
-const updaeteRole = async (req: Request) => {
-  return await Role.updateOne({ id: req.params.id }, req.body);
+const updateRole = async (req: Request) => {
+  return await Role.updateOne(
+    { _id: req.params.id },
+    { $set: { ...req.body } }
+  );
 };
 
 const deleteRole = async (req: Request) => {
-  return await Role.deleteOne({ id: req.params.id });
+  return await Role.updateOne(
+    { _id: req.params.id },
+    { $set: { isDeleted: true, deletedAt: new Date() } }
+  );
 };
 
 const getRoles = async () => {
   return await Role.find().lean();
 };
 
-export default { assignRole, createRole, updaeteRole, deleteRole, getRoles };
+export default { assignRole, createRole, updateRole, deleteRole, getRoles };
