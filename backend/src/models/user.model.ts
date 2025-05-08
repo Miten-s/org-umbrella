@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from "mongoose";
+import bcrypt from "bcrypt";
 
 export interface IUser extends Document {
   username: string;
@@ -13,12 +14,22 @@ const UserSchema: Schema = new Schema(
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     roles: [{ type: Schema.Types.ObjectId, ref: "Role" }],
+    isDeleted: { type: Boolean, default: false },
+    deletedAt: { type: Date, default: null },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true }
 );
 
 UserSchema.pre("save", async function () {
+  if (this.isModified("password")) {
+    this.set("password", await bcrypt.hash(this.password as string, 10));
+  }
   this.set("updatedAt", Date.now());
+});
+
+UserSchema.pre(["find", "findOne", "findOneAndUpdate"], async function () {
+  this.where({ isDeleted: false, deletedAt: null });
 });
 
 export const User = mongoose.model<IUser>("User", UserSchema);

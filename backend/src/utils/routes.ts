@@ -3,7 +3,7 @@ const API_ROUTES = {
     v1: "/v1/api",
   },
   AUTH: "/auth",
-  USER: "/user",
+  USER: "/users",
   ROLE: "/roles",
   PERMISSION: "/permissions",
   REGISTER: "/register",
