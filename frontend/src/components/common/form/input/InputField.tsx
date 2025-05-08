@@ -1,22 +1,22 @@
-import type React from "react";
 import type { FC } from "react";
 
 interface InputProps {
-  type?: "text" | "number" | "email" | "password" | "date" | "time" | string;
+  type?: "text" | "number" | "email" | "password" | "date" | "time" | string ;
   id?: string;
   name?: string;
   placeholder?: string;
-  value?: string | number;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  value?: string | number | readonly string[] | undefined;
+  onChange?: (...event: any[]) => void;
   className?: string;
-  min?: string;
-  max?: string;
+  min?: string | number;
+  max?: string | number;
   step?: number;
   disabled?: boolean;
   success?: boolean;
   error?: boolean;
   hint?: string;
 }
+
 
 const Input: FC<InputProps> = ({
   type = "text",

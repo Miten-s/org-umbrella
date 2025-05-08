@@ -11,7 +11,14 @@ export default defineConfig(({ mode }) => {
   const port = Number(process.env.REACT_APP_PORT || 3000);
 
   return {
-    plugins: [react(), svgr(),tailwindcss()],
+    plugins: [react(), svgr({
+      svgrOptions: {
+        icon: true,
+        // This will transform your SVG to a React component
+        exportType: "named",
+        namedExport: "ReactComponent",
+      },
+    }),,tailwindcss()],
     server: {
       host,
       port,

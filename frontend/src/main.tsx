@@ -4,10 +4,13 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { GlobalContextProvider } from './context';
 import './index.css';
+import { ThemeProvider } from './context/ThemeContext';
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <GlobalContextProvider>
-      <App />
-    </GlobalContextProvider>
+    <ThemeProvider>
+      <GlobalContextProvider>
+        <App />
+      </GlobalContextProvider>
+    </ThemeProvider>
   </React.StrictMode>
 );
