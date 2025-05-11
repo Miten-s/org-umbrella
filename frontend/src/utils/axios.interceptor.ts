@@ -1,10 +1,11 @@
-import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { toast } from "@/lib/ToastProvider";
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 
-const BASE_URL = 'http://localhost:9000/v1/api';
+const BASE_URL = "http://localhost:9000/v1/api";
 
 const api = axios.create({
   baseURL: BASE_URL,
-  withCredentials: true,
+  withCredentials: true
 });
 
 // Track refresh state and queue
@@ -26,17 +27,16 @@ const processQueue = (error: AxiosError | null) => {
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+    const originalRequest = error.config as AxiosRequestConfig & {
+      _retry?: boolean;
+    };
 
-    if (
-      error.response?.status === 401 &&
-      !originalRequest._retry
-    ) {
+    if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({
             resolve: () => resolve(api(originalRequest)),
-            reject,
+            reject
           });
         });
       }
@@ -45,21 +45,24 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        await axios.get('https://your-api.com/auth/refresh', {
-          withCredentials: true,
-        });
+        // API Call for refreshing token will be here
 
         processQueue(null);
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError as AxiosError);
-        window.location.href = '/login';
+        window.location.href = "/login";
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
       }
     }
 
+    toast(
+      (error?.response?.data as { message?: string }).message ??
+        "Something went wrong",
+      "error"
+    );
     return Promise.reject(error);
   }
 );

@@ -45,7 +45,7 @@ export const toast = (
   type: ToastType = "success",
   options?: ToastOptions
 ) => {
-  const { position = "top-right", id, duration } = options || {};
+  const { position = "top-center", id, duration } = options || {};
 
   return hotToast[type](message, {
     id,

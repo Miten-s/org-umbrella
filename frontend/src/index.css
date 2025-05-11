@@ -761,6 +761,11 @@ span.flatpickr-weekday,
   border: none;
   color: black;
 }
+
+#_rht_toaster {
+  z-index: 999999 !important;
+}
+
 .fc.fc-media-screen {
   @apply min-h-screen;
 }

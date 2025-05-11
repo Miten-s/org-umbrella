@@ -21,7 +21,7 @@ const navItems: NavItem[] = [
   {
     icon: <GridIcon />,
     name: "Dashboard",
-    subItems: [{ name: "Ecommerce", path: "/dashboard", pro: false }],
+    subItems: [{ name: "All Services", path: "/dashboard", pro: false }],
   },
   {
     name: "Access Management",
@@ -221,18 +221,10 @@ const AppSidebar: React.FC = () => {
           {isExpanded || isHovered || isMobileOpen ? (
             <>
               <img
-                className="dark:hidde"
                 src={appLogo}
                 alt="Logo"
                 width={150}
                 height={30}
-              />
-              <img
-                className="hidden dark:block"
-                src="/images/logo/logo-dark.svg"
-                alt="Logo"
-                width={150}
-                height={40}
               />
             </>
           ) : (

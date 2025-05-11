@@ -1,3 +1,4 @@
+import { toast } from "@/lib/ToastProvider";
 import api from "../utils/axios.interceptor";
 
 export const API_ROUTES = {
@@ -8,18 +9,24 @@ export const API_ROUTES = {
 
 export const createUser = async (payload: Record<string, string>) => {
   const response = await api.post(API_ROUTES.users, payload);
+  toast(response.data.message, "success");
   return response["data"];
 };
 
-export const updateUser = async (id: string, payload: Record<string, string>) => {
+export const updateUser = async (
+  id: string,
+  payload: Record<string, string>
+) => {
   const response = await api.patch(API_ROUTES.users + "/" + id, payload);
+  toast(response.data.message, "success");
   return response["data"];
-}
+};
 
 export const deleteUser = async (id: string) => {
   const response = await api.delete(API_ROUTES.users + "/" + id);
+  toast(response.data.message, "success");
   return response["data"];
-}
+};
 
 export const getUsers = async () => {
   const response = await api.get(API_ROUTES.users);

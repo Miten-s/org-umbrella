@@ -12,7 +12,7 @@ const routes = [
     element: <AppLayout />,
     children: [
       {
-        path: '/dashboard',
+        path: 'dashboard',
         index: true, 
         element: <Dashboard />,
         title: 'Dashboard',
@@ -43,6 +43,10 @@ const routes = [
       },
     ],
   },
+  {
+    path: '*',
+    element: <div>404</div>,
+  }
 ];
 
 export default routes;

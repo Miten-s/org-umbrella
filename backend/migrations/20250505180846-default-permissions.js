@@ -15,6 +15,8 @@ module.exports = {
       { name: "READ:PERMISSION", description: "Read permission data" },
       { name: "UPDATE:PERMISSION", description: "Update permission details" },
       { name: "DELETE:PERMISSION", description: "Delete a permission" },
+      { name: "VIEW:DASHBOARD", description: "View the dashboard" },
+
     ];
 
     // Insert default permissions into the 'permissions' collection
@@ -45,6 +47,7 @@ module.exports = {
       "READ:PERMISSION",
       "UPDATE:PERMISSION",
       "DELETE:PERMISSION",
+      "VIEW:DASHBOARD"
     ];
 
     await db
