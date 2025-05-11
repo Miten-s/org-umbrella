@@ -4,7 +4,7 @@ import AppLayout from '../components/layout/AppLayout';
 
 const Dashboard = lazy(() => import('../pages/Dashboard'));
 const RolesAndPermissions = lazy(() => import('../pages/AccessManagement/RolesAndPermissions'));
-const AllAdmins = lazy(() => import('../pages/AccessManagement/AllAdmins'));
+const Admins = lazy(() => import('../pages/AccessManagement/AllAdmins'));
 
 const routes = [
   {
@@ -34,7 +34,7 @@ const routes = [
           },
           {
             path: 'admins',
-            element: <AllAdmins />,
+            element: <Admins />,
             title: 'All Admins',
             icon: <UsersIcon className="w-5 h-5" />,
             showInSidebar: true,

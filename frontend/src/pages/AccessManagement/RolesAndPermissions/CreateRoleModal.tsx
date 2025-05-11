@@ -6,66 +6,70 @@ import Checkbox from '../../../components/common/form/input/Checkbox';
 
 interface CreateRoleModalProps {
   onClose: () => void;
-  onSubmit: (data: { name: string; permissions: string[] }) => void;
+  onSubmit: (data: {
+    name: string;
+    permissions: string[]
+  }) => void;
+  permissions: string[];
+  activeRole?: {
+    name: string;
+    permissions: { name: string }[]
+  } | null;
 }
 
-const permissionGroups: Record<string, string[]> = {
-  Admin: ['create', 'read', 'update', 'delete'],
-  Dashboard: ['create', 'read', 'update', 'delete'],
-  Blog: ['create', 'read', 'update', 'delete'],
-  Profile: ['create', 'read', 'update', 'delete'],
-  Roles: ['create', 'read', 'update', 'delete'],
-  // Add more as needed...
+const groupPermissions = (permissions: string[]): Record<string, string[]> => {
+  const grouped: Record<string, string[]> = {};
+  permissions.forEach((perm) => {
+    const [action, entity] = perm.split(':');
+    if (!entity || !action) return;
+    if (!grouped[entity]) grouped[entity] = [];
+    if (!grouped[entity].includes(action)) grouped[entity].push(action);
+  });
+  return grouped;
 };
 
-const CreateRoleModal = ({ onClose, onSubmit }: CreateRoleModalProps) => {
+const CreateRoleModal = ({ onClose, onSubmit, permissions: allPermissions, activeRole }: CreateRoleModalProps) => {
   const { register, handleSubmit, watch, setValue } = useForm<{
     name: string;
+   
     permissions: string[];
   }>({
     defaultValues: {
-      name: '',
-      permissions: [],
+      name: activeRole?.name || '',
+      permissions: activeRole?.permissions.map(p => p.name) || [],
     },
   });
 
-  const permissions = watch('permissions');
+
+  const selectedPermissions = watch('permissions');
+  const groupedPermissions = groupPermissions(allPermissions);
 
   const togglePermission = (permission: string) => {
-    const newPermissions = permissions.includes(permission)
-      ? permissions.filter((p) => p !== permission)
-      : [...permissions, permission];
-    setValue('permissions', newPermissions);
+    const updated = selectedPermissions.includes(permission)
+      ? selectedPermissions.filter((p) => p !== permission)
+      : [...selectedPermissions, permission];
+    setValue('permissions', updated);
   };
 
-  const toggleAllForGroup = (group: string) => {
-    const groupPermissions = permissionGroups[group].map(
-      (action) => `${group.toLowerCase()}:${action}`
-    );
-    const hasAll = groupPermissions.every((p) => permissions.includes(p));
-
-    const updatedPermissions = hasAll
-      ? permissions.filter((p) => !groupPermissions.includes(p))
-      : [...permissions, ...groupPermissions.filter((p) => !permissions.includes(p))];
-
-    setValue('permissions', updatedPermissions);
+  const toggleAllForGroup = (entity: string) => {
+    const perms = groupedPermissions[entity].map((action) => `${action}:${entity}`);
+    const hasAll = perms.every((p) => selectedPermissions.includes(p));
+    const updated = hasAll
+      ? selectedPermissions.filter((p) => !perms.includes(p))
+      : [...selectedPermissions, ...perms.filter((p) => !selectedPermissions.includes(p))];
+    setValue('permissions', updated);
   };
 
   const toggleAllPermissions = () => {
-    const allPermissions = Object.entries(permissionGroups).flatMap(([group, actions]) =>
-      actions.map((action) => `${group.toLowerCase()}:${action}`)
-    );
-    const hasAll = allPermissions.every((p) => permissions.includes(p));
-
+    const hasAll = allPermissions.every((p) => selectedPermissions.includes(p));
     const updated = hasAll
-      ? permissions.filter((p) => !allPermissions.includes(p))
-      : [...permissions, ...allPermissions.filter((p) => !permissions.includes(p))];
-
+      ? selectedPermissions.filter((p) => !allPermissions.includes(p))
+      : [...selectedPermissions, ...allPermissions.filter((p) => !selectedPermissions.includes(p))];
     setValue('permissions', updated);
   };
 
   const onFormSubmit = (data: { name: string; permissions: string[] }) => {
-    onSubmit(data);
+    onSubmit({ ...data, name: data.name.trim() });
   };
 
   return (
@@ -75,38 +79,41 @@ const CreateRoleModal = ({ onClose, onSubmit }: CreateRoleModalProps) => {
         <div className="space-y-6">
           <div>
             <Label htmlFor="name">Role Name</Label>
-            <Input id="name" type="text" {...register('name', { required: true })} />
+            <Input
+              id="name"
+              type="text"
+              placeholder="e.g. Admin, Manager"
+              {...register('name', { required: true })}
+            />
           </div>
-
+          
           <div>
             <Label>Permissions</Label>
             <Checkbox
               label="Select All Permissions"
-              checked={Object.entries(permissionGroups)
-                .flatMap(([group, actions]) => actions.map((action) => `${group.toLowerCase()}:${action}`))
-                .every((perm) => permissions.includes(perm))}
+              checked={allPermissions.every((perm) => selectedPermissions.includes(perm))}
               onChange={toggleAllPermissions}
             />
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-2">
-              {Object.entries(permissionGroups).map(([group, actions]) => {
-                const groupPermissions = actions.map((a) => `${group.toLowerCase()}:${a}`);
-                const allSelected = groupPermissions.every((p) => permissions.includes(p));
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-4">
+              {Object.entries(groupedPermissions).map(([entity, actions]) => {
+                const groupPerms = actions.map((action) => `${action}:${entity}`);
+                const allSelected = groupPerms.every((p) => selectedPermissions.includes(p));
 
                 return (
-                  <div key={group} className="border rounded-md p-4 shadow-sm bg-gray-50 dark:bg-gray-900">
+                  <div key={entity} className="border rounded-md p-4 shadow-sm bg-gray-50 dark:bg-gray-900">
                     <Checkbox
-                      label={`All ${group}`}
+                      label={`All ${entity}`}
                       checked={allSelected}
-                      onChange={() => toggleAllForGroup(group)}
+                      onChange={() => toggleAllForGroup(entity)}
                     />
                     <div className="mt-2 space-y-2 ml-2">
                       {actions.map((action) => {
-                        const key = `${group.toLowerCase()}:${action}`;
+                        const key = `${action}:${entity}`;
                         return (
                           <Checkbox
                             key={key}
-                            label={action.charAt(0).toUpperCase() + action.slice(1)}
-                            checked={permissions.includes(key)}
+                            label={action.charAt(0).toUpperCase() + action.slice(1).toLowerCase()}
+                            checked={selectedPermissions.includes(key)}
                             onChange={() => togglePermission(key)}
                           />
                         );
@@ -120,7 +127,7 @@ const CreateRoleModal = ({ onClose, onSubmit }: CreateRoleModalProps) => {
         </div>
 
         <div className="mt-6 flex justify-end space-x-3">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} type="button">
             Cancel
           </Button>
           <Button type="submit" variant="primary">

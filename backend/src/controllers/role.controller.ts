@@ -14,7 +14,6 @@ export const createRole = async (
       message: RESPONSE_MESSAGES.ENTITY_CREATED.replace("{{ entity }}", "Role"),
     });
   } catch (error: any) {
-    console.log(error);
     res.status(400).json({
       success: false,
       message: error?.message ?? "Something went wrong",

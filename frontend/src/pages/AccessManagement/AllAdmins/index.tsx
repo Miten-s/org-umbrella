@@ -60,7 +60,6 @@ const AllAdmins = () => {
 
   const [users, setUsers] = useState<any>([]);
   const [roles, setRoles] = useState<any>([]);
-
   const fetchDetails = async () => {
     const { users: fetchedUsers } = await getUsers();
     const { roles: fetchedRoles } = await getRoles();

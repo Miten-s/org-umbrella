@@ -2,7 +2,8 @@ import api from "../utils/axios.interceptor";
 
 export const API_ROUTES = {
   users: "/auth/users",
-  roles: "/roles"
+  roles: "/roles",  
+   permissions: "/permissions"
 };
 
 export const createUser = async (payload: Record<string, string>) => {
@@ -29,3 +30,25 @@ export const getRoles = async () => {
   const response = await api.get(API_ROUTES.roles);
   return response["data"];
 };
+
+export const getPermissions = async () => {
+  const response = await api.get(API_ROUTES.permissions);
+  return response["data"];
+};
+
+export const createRole = async (payload: { name: string; permissions: string[] }) => {
+  const response = await api.post(API_ROUTES.roles, payload);
+  return response["data"];
+};
+
+export const updateRole = async (id: string, payload: { name: string; permissions: string[] }) => {
+  const response = await api.patch(API_ROUTES.roles + "/" + id, payload);
+  return response["data"];
+};
+
+
+export const deleteRole = async (id: string) => {
+  const response = await api.delete(API_ROUTES.roles + "/" + id);
+  return response["data"];};
+
+
