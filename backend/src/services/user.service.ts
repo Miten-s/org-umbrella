@@ -2,7 +2,7 @@ import { Request } from "express";
 import { User } from "../models/user.model";
 
 const getUsers = async () => {
-  return await User.find({}).lean();
+  return await User.find().populate("roles", ["name"]);
 };
 
 const createUser = async (req: Request) => {

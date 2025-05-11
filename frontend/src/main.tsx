@@ -1,16 +1,17 @@
 // main.tsx
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
-import { GlobalContextProvider } from './context';
-import './index.css';
-import { ThemeProvider } from './context/ThemeContext';
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <ThemeProvider>
+import ReactDOM from "react-dom/client";
+import App from "./App";
+import { GlobalContextProvider } from "./context";
+import "./index.css";
+import { ThemeProvider } from "./context/ThemeContext";
+import ToastProvider from "./lib/ToastProvider";
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <ThemeProvider>
+    <ToastProvider>
       <GlobalContextProvider>
         <App />
       </GlobalContextProvider>
-    </ThemeProvider>
-  </React.StrictMode>
+    </ToastProvider>
+  </ThemeProvider>
 );

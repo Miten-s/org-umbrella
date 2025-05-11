@@ -13,8 +13,12 @@ export const createRole = async (
       success: true,
       message: RESPONSE_MESSAGES.ENTITY_CREATED.replace("{{ entity }}", "Role"),
     });
-  } catch (error) {
-    next(error);
+  } catch (error: any) {
+    console.log(error);
+    res.status(400).json({
+      success: false,
+      message: error?.message ?? "Something went wrong",
+    });
   }
 };
 
@@ -27,9 +31,11 @@ export const assignRole = async (
   try {
     const user = await userService.assignRole(req);
     res.status(201).json({ success: true, user });
-  } catch (error) {
-    // If an error occurs, pass the error to the next middleware function for handling
-    next(error);
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error?.message ?? "Something went wrong",
+    });
   }
 };
 
@@ -44,8 +50,11 @@ export const updateRole = async (
       success: true,
       message: RESPONSE_MESSAGES.ENTITY_UPDATED.replace("{{ entity }}", "Role"),
     });
-  } catch (error) {
-    next(error);
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error?.message ?? "Something went wrong",
+    });
   }
 };
 
@@ -57,8 +66,11 @@ export const getRoles = async (
   try {
     const roles = await userService.getRoles();
     res.status(200).json({ success: true, roles });
-  } catch (error) {
-    next(error);
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error?.message ?? "Something went wrong",
+    });
   }
 };
 
@@ -73,7 +85,10 @@ export const deleteRole = async (
       success: true,
       message: RESPONSE_MESSAGES.ENTITY_DELETED.replace("{{ entity }}", "Role"),
     });
-  } catch (error) {
-    next(error);
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error?.message ?? "Something went wrong",
+    });
   }
 };

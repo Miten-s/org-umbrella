@@ -16,17 +16,16 @@ import cors from "cors";
 // Create an Express app
 const app: Application = express();
 
-// Connect to the database
-connectDB();
-
 // Enable CORS
 app.use(
   cors({
-    origin: "*",
-    methods: ["GET", "POST", "PATCH", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    origin: ["http://localhost:3000"],
+    credentials: true,
   })
 );
+
+// Connect to the database
+connectDB();
 
 // Enable JSON parsing of request bodies
 app.use(express.json());
@@ -35,7 +34,6 @@ app.use(express.json());
 app.get(API_ROUTES.HEALTH, (_req, res) => {
   res.status(200).json({ message: "Permissions and roles services are LIVE!" });
 });
-
 
 // Rate limiter: 20 requests per 1 minute per user
 

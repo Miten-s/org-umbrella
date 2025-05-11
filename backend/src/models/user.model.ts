@@ -2,16 +2,18 @@ import mongoose, { Schema, Document } from "mongoose";
 import bcrypt from "bcrypt";
 
 export interface IUser extends Document {
+  _id: string;
   username: string;
   email: string;
   password: string;
-  roles: mongoose.Types.ObjectId[];
+  roles: string[];
 }
 
 const UserSchema: Schema = new Schema(
   {
     username: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
+    name : { type: String, required: true },
     password: { type: String, required: true },
     roles: [{ type: Schema.Types.ObjectId, ref: "Role" }],
     isDeleted: { type: Boolean, default: false },
@@ -30,6 +32,7 @@ UserSchema.pre("save", async function () {
 
 UserSchema.pre(["find", "findOne", "findOneAndUpdate"], async function () {
   this.where({ isDeleted: false, deletedAt: null });
+  this.populate("createdBy", "username");
 });
 
 export const User = mongoose.model<IUser>("User", UserSchema);
