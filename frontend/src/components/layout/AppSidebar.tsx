@@ -9,6 +9,7 @@ import {
 } from "../../public/icons"
 import { useSidebar } from "../../context/SidebarContext";
 import { KeyIcon, } from "@heroicons/react/24/outline";
+import { PageUrl } from "@/types/utils.types";
 
 type NavItem = {
   name: string;
@@ -21,7 +22,7 @@ const navItems: NavItem[] = [
   {
     icon: <GridIcon />,
     name: "Dashboard",
-    subItems: [{ name: "All Services", path: "/dashboard", pro: false }],
+    subItems: [{ name: "All Services", path: PageUrl.Dashboard.path, pro: false }],
   },
   {
     name: "Access Management",
@@ -29,15 +30,16 @@ const navItems: NavItem[] = [
     subItems: [
       {
         name: "Roles & Permissions",
-        path: "/access-management/roles",
+        path: PageUrl.Roles.path,
       },
       {
         name: "All Admins",
-        path: "/access-management/admins",
+        path: PageUrl.Admins.path,
       },
     ],
   },
 ];
+
 
 
 const AppSidebar: React.FC = () => {
