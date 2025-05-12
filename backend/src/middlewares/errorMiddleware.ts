@@ -3,7 +3,7 @@ import {
   convertMongooseError,
   CUSTOM_MESSAGES,
   getMessage,
-} from "./common.util";
+} from "../utils/common.util";
 
 interface CustomError extends Error {
   statusCode?: number;

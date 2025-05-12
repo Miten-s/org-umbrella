@@ -1,12 +1,13 @@
 // In this file you can configure migrate-mongo
 import dotenv from "dotenv";
+import ENV from "../utils/environment";
 
 // Load environment variables from a .env file into process.env
 dotenv.config();
 
 const config = {
   mongodb: {
-    url: process.env.MONGO_URI!,
+    url: ENV.MONGO_URI!,
   },
 
   // The migrations dir, can be an relative or absolute path. Only edit this when really necessary.

@@ -12,6 +12,8 @@ import permissionRoutes from "./routes/permission.routes";
 
 import API_ROUTES from "./utils/routes";
 import cors from "cors";
+import ENV from "./utils/environment";
+import cookierParser from 'cookie-parser'
 
 // Create an Express app
 const app: Application = express();
@@ -19,10 +21,12 @@ const app: Application = express();
 // Enable CORS
 app.use(
   cors({
-    origin: ["http://localhost:3000"],
+    origin: ENV.CORS_ORIGINS?.split(","),
     credentials: true,
   })
 );
+
+app.use(cookierParser());
 
 // Connect to the database
 connectDB();

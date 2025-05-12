@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { loginService, registerService } from "../services/auth.service";
+import { loginService } from "../services/auth.service";
+import { CUSTOM_MESSAGES } from "../utils/common.util";
 
 export const login = async (
   req: Request,
@@ -8,20 +9,22 @@ export const login = async (
 ): Promise<void> => {
   try {
     const token = await loginService(req.body);
-    res.json({ success: true, token });
-  } catch (error) {
+    res.cookie("accessToken", token);
+    res.json({ success: true, message: CUSTOM_MESSAGES.LOGIN_SUCCESSFUL });
+  } catch (error : any) {
+    res.status(401).json({ message: error?.message ?? CUSTOM_MESSAGES.SOMETHING_WENT_WRONG });
     next(error);
   }
 };
 
-export const register = async (
-  req: Request,
+export const logout = async (
+  _req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const user = await registerService(req.body);
-    res.status(201).json({ success: true, user });
+    res.clearCookie("accessToken");
+    res.json({ success: true, message: CUSTOM_MESSAGES.LOGOUT_SUCCESSFUL });
   } catch (error) {
     next(error);
   }

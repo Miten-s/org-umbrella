@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import userService from "../services/user.service";
-import { RESPONSE_MESSAGES } from "../utils/constants";
+import { CUSTOM_MESSAGES } from "../utils/common.util";
 
 export const getUsers = async (
   req: Request,
@@ -15,6 +15,21 @@ export const getUsers = async (
   }
 };
 
+export const getUserDetail = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id: userId } = (req as unknown as { user: Record<string, string> })
+      .user;
+    const user = await userService.getUserDetail(userId);
+    res.status(200).json({ success: true, user });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const createUser = async (
   req: Request,
   res: Response,
@@ -24,7 +39,7 @@ export const createUser = async (
     await userService.createUser(req);
     res.status(201).json({
       success: true,
-      message: RESPONSE_MESSAGES.ENTITY_CREATED.replace("{{ entity }}", "User"),
+      message: CUSTOM_MESSAGES.ENTITY_CREATED.replace("{{ entity }}", "User"),
     });
   } catch (error) {
     next(error);
@@ -40,13 +55,12 @@ export const updateUser = async (
     await userService.updateUser(req);
     res.status(201).json({
       success: true,
-      message: RESPONSE_MESSAGES.ENTITY_UPDATED.replace("{{ entity }}", "User"),
+      message: CUSTOM_MESSAGES.ENTITY_UPDATED.replace("{{ entity }}", "User"),
     });
   } catch (error) {
     next(error);
   }
 };
-
 
 export const deleteUser = async (
   req: Request,
@@ -57,7 +71,7 @@ export const deleteUser = async (
     await userService.deleteUser(req);
     res.status(201).json({
       success: true,
-      message: RESPONSE_MESSAGES.ENTITY_DELETED.replace("{{ entity }}", "User"),
+      message: CUSTOM_MESSAGES.ENTITY_DELETED.replace("{{ entity }}", "User"),
     });
   } catch (error) {
     next(error);

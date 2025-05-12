@@ -4,8 +4,28 @@ import api from "../utils/axios.interceptor";
 export const API_ROUTES = {
   users: "/auth/users",
   roles: "/roles",  
-   permissions: "/permissions"
+  permissions: "/permissions",
+  login : "/auth/sign-in",
+  logout : "/auth/sign-out",
+  me : "/auth/me"
+
 };
+
+export const loginUser = async (payload: Record<string, string>) => {
+  const response = await api.post(API_ROUTES.login, payload);
+  toast(response.data.message, "success");
+  return response["data"];
+};
+
+export const getUserDetail = async () => {
+  const response = await api.get(API_ROUTES.me);
+  return response["data"];
+}
+
+export const logoutUser = async () => {
+  const response = await api.post(API_ROUTES.logout);
+  return response["data"];
+}
 
 export const createUser = async (payload: Record<string, string>) => {
   const response = await api.post(API_ROUTES.users, payload);

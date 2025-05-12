@@ -20,4 +20,8 @@ const deleteUser = async (req: Request) => {
   );
 };
 
-export default { getUsers, createUser, updateUser, deleteUser };
+const getUserDetail = async (id: string) => {
+  return await User.findById(id).populate("roles", ["name"]);
+};
+
+export default { getUsers, createUser, updateUser, deleteUser , getUserDetail };

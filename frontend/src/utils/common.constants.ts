@@ -1,8 +1,16 @@
+export const SYSTEM_ROUTES = {
+  HOME : "/",
+  LOGIN: "/sign-in",
+  DASHBOARD: "/dashboard"
+}
+
 export const MESSAGES = {
-  ERROR: {},
   SUCCESS: {
-    ENTITY_ADDED: "{{ entity }} added successfully",
-    ENTITY_UPDATED: "{{ entity }} updated successfully",
-    ENTITY_DELETED: "{{ entity }} deleted successfully"
+    ENTITY_ADDED: "Successfully added {{ entity }}",
+    ENTITY_UPDATED: "Successfully updated {{ entity }}",
+    ENTITY_DELETED: "Successfully deleted {{ entity }}",
+  },
+  ERROR: {
+    ENTITY_NOT_FOUND: "{{ entity }} not found",
   }
-};
+}

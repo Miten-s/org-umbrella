@@ -31,7 +31,12 @@ api.interceptors.response.use(
       _retry?: boolean;
     };
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (
+      error.response?.status === 401 &&
+      (error?.response?.data as { message?: string }).message ===
+        "Token Expired" &&
+      !originalRequest._retry
+    ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({
@@ -58,11 +63,13 @@ api.interceptors.response.use(
       }
     }
 
-    toast(
-      (error?.response?.data as { message?: string }).message ??
-        "Something went wrong",
-      "error"
-    );
+    if(error.response?.status !== 404 && (error?.response?.data as { message?: string }).message !== "Token not found") {
+      toast(
+        (error?.response?.data as { message?: string }).message ??
+          "Something went wrong",
+        "error"
+      );
+    }
     return Promise.reject(error);
   }
 );

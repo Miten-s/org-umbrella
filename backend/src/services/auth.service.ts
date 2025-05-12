@@ -1,18 +1,23 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { User, IUser } from "../models/user.model";
+import { User } from "../models/user.model";
+import ENV from "../utils/environment";
+import { CUSTOM_MESSAGES } from "../utils/common.util";
 
-export const loginService = async ({ email, password }: { email: string; password: string }): Promise<string> => {
+export const loginService = async ({
+  email,
+  password,
+}: {
+  email: string;
+  password: string;
+}): Promise<string> => {
   const user = await User.findOne({ email });
   if (!user || !(await bcrypt.compare(password, user.password))) {
-    throw new Error("Invalid credentials");
+    throw new Error(CUSTOM_MESSAGES.INVALID_EMAIL_PASSWORD);
   }
-  const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, { expiresIn: "1h" });
-  return token;
-};
 
-export const registerService = async ({ username, email, password }: { username: string; email: string; password: string }): Promise<IUser> => {
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const newUser = new User({ username, email, password: hashedPassword });
-  return await newUser.save();
+  // Generating Non Expiring Token
+  const token = jwt.sign({ id: user._id , username: user.username , email: user.email }, ENV.JWT_SECRET!);
+
+  return token;
 };

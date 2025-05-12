@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import userService from "../services/role.service";
-import { RESPONSE_MESSAGES } from "../utils/constants";
+import { CUSTOM_MESSAGES } from "../utils/common.util";
 
 export const createRole = async (
   req: Request,
@@ -11,7 +11,7 @@ export const createRole = async (
     await userService.createRole(req);
     res.status(201).json({
       success: true,
-      message: RESPONSE_MESSAGES.ENTITY_CREATED.replace("{{ entity }}", "Role"),
+      message: CUSTOM_MESSAGES.ENTITY_CREATED.replace("{{ entity }}", "Role"),
     });
   } catch (error: any) {
     res.status(400).json({
@@ -47,7 +47,7 @@ export const updateRole = async (
     await userService.updateRole(req);
     res.status(201).json({
       success: true,
-      message: RESPONSE_MESSAGES.ENTITY_UPDATED.replace("{{ entity }}", "Role"),
+      message: CUSTOM_MESSAGES.ENTITY_UPDATED.replace("{{ entity }}", "Role"),
     });
   } catch (error: any) {
     res.status(400).json({
@@ -82,7 +82,7 @@ export const deleteRole = async (
     await userService.deleteRole(req);
     res.status(201).json({
       success: true,
-      message: RESPONSE_MESSAGES.ENTITY_DELETED.replace("{{ entity }}", "Role"),
+      message: CUSTOM_MESSAGES.ENTITY_DELETED.replace("{{ entity }}", "Role"),
     });
   } catch (error: any) {
     res.status(400).json({

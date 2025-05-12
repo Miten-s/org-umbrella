@@ -1,51 +1,63 @@
-import { lazy } from 'react';
-import { HomeIcon, KeyIcon, ShieldCheckIcon, UsersIcon } from '@heroicons/react/24/outline';
-import AppLayout from '../components/layout/AppLayout';
+import { lazy } from "react";
+import {
+  HomeIcon,
+  KeyIcon,
+  ShieldCheckIcon,
+  UsersIcon
+} from "@heroicons/react/24/outline";
+import AppLayout from "../components/layout/AppLayout";
+import Login from "@/components/sign-in/Login";
 
-const Dashboard = lazy(() => import('../pages/Dashboard'));
-const RolesAndPermissions = lazy(() => import('../pages/AccessManagement/RolesAndPermissions'));
-const Admins = lazy(() => import('../pages/AccessManagement/AllAdmins'));
+const Dashboard = lazy(() => import("../pages/Dashboard"));
+const RolesAndPermissions = lazy(
+  () => import("../pages/AccessManagement/RolesAndPermissions")
+);
+const Admins = lazy(() => import("../pages/AccessManagement/AllAdmins"));
 
 const routes = [
   {
-    path: '/',
+    path: "/",
     element: <AppLayout />,
     children: [
       {
-        path: 'dashboard',
-        index: true, 
+        path: "dashboard",
+        index: true,
         element: <Dashboard />,
-        title: 'Dashboard',
+        title: "Dashboard",
         icon: <HomeIcon className="w-5 h-5" />,
-        showInSidebar: true,
+        showInSidebar: true
       },
       {
-        path: 'access-management',
-        title: 'Access Management',
+        path: "access-management",
+        title: "Access Management",
         icon: <KeyIcon className="w-5 h-5" />,
         showInSidebar: true,
         children: [
           {
-            path: 'roles',
+            path: "roles",
             element: <RolesAndPermissions />,
-            title: 'Roles & Permissions',
+            title: "Roles & Permissions",
             icon: <ShieldCheckIcon className="w-5 h-5" />,
-            showInSidebar: true,
+            showInSidebar: true
           },
           {
-            path: 'admins',
+            path: "admins",
             element: <Admins />,
-            title: 'All Admins',
+            title: "All Admins",
             icon: <UsersIcon className="w-5 h-5" />,
-            showInSidebar: true,
-          },
-        ],
-      },
-    ],
+            showInSidebar: true
+          }
+        ]
+      }
+    ]
   },
   {
-    path: '*',
-    element: <div>404</div>,
+    path: "*",
+    element: <div>404</div>
+  },
+  {
+    path: "sign-in",
+    element: <Login />
   }
 ];
 

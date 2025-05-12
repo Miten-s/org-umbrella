@@ -1,27 +1,32 @@
 import { Router } from "express";
-import { login, register } from "../controllers/auth.controller";
+import { login, logout } from "../controllers/auth.controller";
 import API_ROUTES from "../utils/routes";
 import {
   createUser,
   deleteUser,
+  getUserDetail,
   getUsers,
   updateUser,
 } from "../controllers/user.controller";
+import { authenticate } from "../middlewares/auth.middleware";
 
 const router: Router = Router();
 
 // ---------------------------------------------------------------------------------------- GET Requests ----------------------------------------------------------------------------------------
 
+// Define a GET route for getting user detail.
+router.get(API_ROUTES.ME, authenticate , getUserDetail);
+
 // Define a GET route for getting users.
 router.get(API_ROUTES.USER, getUsers);
+
+// Define a GET route for user logout.
+router.post(API_ROUTES.LOGOUT, logout);
 
 // ---------------------------------------------------------------------------------------- POST Requests ----------------------------------------------------------------------------------------
 
 // Define a POST route for user login using the LOGIN route from API_ROUTES.
-router.post(API_ROUTES.LOGIN, login);
-
-// Define a POST route for user registration using the REGISTER route from API_ROUTES.
-router.post(API_ROUTES.REGISTER, register);
+router.post(API_ROUTES.LOGIN, login); 
 
 // Define a POST route for add users.
 router.post(API_ROUTES.USER, createUser);
