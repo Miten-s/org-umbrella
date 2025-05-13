@@ -83,7 +83,7 @@ const LanguageDropdown: React.FC<LanguageDropdownProps> = ({
                 >
                     <span className="absolute inline-flex w-full h-full rounded-full opacity-75 animate-ping"></span>
                 </span>
-                <LanguageIcon />
+                <LanguageIcon fontSize={24} opacity={0.8}/>
             </button>
             <Dropdown
                 isOpen={isOpen}
