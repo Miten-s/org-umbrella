@@ -1,0 +1,33 @@
+{
+  "localLanguages": {
+    "arabic": "Arabisch",
+    "chinese": "Chinees",
+    "dutch": "Nederlands",
+    "english": "Engels",
+    "french": "Frans",
+    "german": "Duits",
+    "hebrew": "Hebreeuws",
+    "italian": "Italiaans",
+    "japanese": "Japans",
+    "korean": "Koreaans",
+    "polish": "Pools",
+    "portuguese": "Portugees",
+    "spanish": "Spaans"
+  },
+  "languages": {
+    "arabic": "عربي",
+    "chinese": "中文",
+    "dutch": "Nederlands",
+    "english": "English",
+    "french": "Français",
+    "german": "Deutsch",
+    "hebrew": "עִברִית",
+    "italian": "Italiano",
+    "japanese": "日本語",
+    "korean": "한국인",
+    "polish": "Polski",
+    "portuguese": "Português",
+    "spanish": "Español"
+  },
+  "changeLanguage": "Taal wijzigen"
+}

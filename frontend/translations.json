@@ -1,0 +1,41 @@
+{
+  "en": {
+    "changeLanguage": "Change Language"
+  },
+  "ar": {
+    "changeLanguage": "تغيير اللغة"
+  },
+  "de": {
+    "changeLanguage": "Sprache ändern"
+  },
+  "es": {
+    "changeLanguage": "Cambiar idioma"
+  },
+  "fr": {
+    "changeLanguage": "Changer de langue"
+  },
+  "he": {
+    "changeLanguage": "שנה שפה"
+  },
+  "it": {
+    "changeLanguage": "Cambia lingua"
+  },
+  "ja": {
+    "changeLanguage": "言語を変更する"
+  },
+  "ko": {
+    "changeLanguage": "언어 변경"
+  },
+  "nl": {
+    "changeLanguage": "Taal wijzigen"
+  },
+  "pl": {
+    "changeLanguage": "Zmień język"
+  },
+  "pt": {
+    "changeLanguage": "Mudar idioma"
+  },
+  "zh": {
+    "changeLanguage": "更改语言"
+  }
+}

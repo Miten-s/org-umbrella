@@ -1,5 +1,7 @@
 // src/context/GlobalContext.tsx
-import { createContext, useContext, useMemo, useState, ReactNode } from 'react';
+import { SupportedLanguages } from '@/types/common.types';
+import { createContext, useContext, useMemo, useState, ReactNode, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface GlobalContextProps {
   loading: boolean;
@@ -14,6 +16,8 @@ interface GlobalContextProps {
   setCurrentDateFormat: (format: string) => void;
   reFetch: boolean;
   setReFetch: (val: boolean) => void;
+   setCurrentLanguage(message: string): void;
+  currentLanguage: string;
 }
 
 export const GlobalContext = createContext<GlobalContextProps | undefined>(undefined);
@@ -23,9 +27,31 @@ export const GlobalContextProvider = ({ children }: { children: ReactNode }) => 
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [alert, setAlert] = useState('');
-  const [reFetch , setReFetch] = useState(false);
+  const [reFetch, setReFetch] = useState(false);
   const [currentDateFormat, setCurrentDateFormat] = useState('MM/DD/YYYY');
+  const [currentLanguage, setCurrentLanguage] = useState<SupportedLanguages>(
+    SupportedLanguages['en'],
+  );
 
+
+  const { i18n } = useTranslation();
+
+  const changeLanguage = (language: SupportedLanguages) => {
+    setCurrentLanguage(language);
+    i18n.changeLanguage(language);
+  };
+
+  useEffect(() => {
+    // const language = i18n.resolvedLanguage;
+    // if (currentUser && currentUser.settings.preferredLanguage) {
+    //   if (language !== currentUser.settings.preferredLanguage) {
+    //     changeLanguage(currentUser.settings.preferredLanguage);
+    //   }
+    // }
+    setCurrentLanguage(SupportedLanguages['en']);
+
+  }, [])
+  // }, [currentUser]);
   // Optional: memoize if heavy values involved
   const value = useMemo(
     () => ({
@@ -40,9 +66,11 @@ export const GlobalContextProvider = ({ children }: { children: ReactNode }) => 
       currentDateFormat,
       setCurrentDateFormat,
       reFetch,
-      setReFetch
+      setReFetch,
+      setCurrentLanguage:changeLanguage,
+      currentLanguage,
     }),
-    [loading, success, error, alert, currentDateFormat , reFetch , setReFetch],
+    [loading, success, error, alert, currentDateFormat, reFetch, setReFetch],
   );
 
   return <GlobalContext.Provider value={value}>{children}</GlobalContext.Provider>;

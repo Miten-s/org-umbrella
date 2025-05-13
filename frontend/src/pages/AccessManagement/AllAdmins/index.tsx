@@ -14,7 +14,7 @@ import { useGlobalContext } from "@/context";
 
 const AllAdmins = () => {
   const { isOpen, openModal, closeModal } = useModal();
-  const { reFetch, setReFetch } = useGlobalContext();
+  const { reFetch, setReFetch, } = useGlobalContext();
   const [confirmationModal, setConfirmationModal] = useState(false);
   const [activeUser, setActiveUser] = useState<any>(null);
 
