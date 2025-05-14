@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import userService from "../services/role.service";
-import { CUSTOM_MESSAGES } from "../utils/common.util";
+import { CUSTOM_MESSAGES, isAppError } from "../utils/common.util";
 
 export const createRole = async (
   req: Request,
@@ -13,10 +13,11 @@ export const createRole = async (
       success: true,
       message: CUSTOM_MESSAGES.ENTITY_CREATED.replace("{{ entity }}", "Role"),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     res.status(400).json({
       success: false,
-      message: error?.message ?? "Something went wrong",
+      message:
+        (isAppError(error) ? error?.message : error) ?? "Something went wrong",
     });
   }
 };
@@ -30,10 +31,11 @@ export const assignRole = async (
   try {
     const user = await userService.assignRole(req);
     res.status(201).json({ success: true, user });
-  } catch (error: any) {
+  } catch (error: unknown) {
     res.status(400).json({
       success: false,
-      message: error?.message ?? "Something went wrong",
+      message:
+        (isAppError(error) ? error?.message : error) ?? "Something went wrong",
     });
   }
 };
@@ -49,26 +51,26 @@ export const updateRole = async (
       success: true,
       message: CUSTOM_MESSAGES.ENTITY_UPDATED.replace("{{ entity }}", "Role"),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     res.status(400).json({
       success: false,
-      message: error?.message ?? "Something went wrong",
+      message:
+        (isAppError(error) ? error?.message : error) ?? "Something went wrong",
     });
   }
 };
 
-export const getRoles = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
+export const getRoles = async (req: Request, res: Response): Promise<void> => {
   try {
-    const roles = await userService.getRoles();
+    const roles = await userService.getRoles(
+      req.user
+    );
     res.status(200).json({ success: true, roles });
-  } catch (error: any) {
+  } catch (error: unknown) {
     res.status(400).json({
       success: false,
-      message: error?.message ?? "Something went wrong",
+      message:
+        (isAppError(error) ? error?.message : error) ?? "Something went wrong",
     });
   }
 };
@@ -84,10 +86,11 @@ export const deleteRole = async (
       success: true,
       message: CUSTOM_MESSAGES.ENTITY_DELETED.replace("{{ entity }}", "Role"),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     res.status(400).json({
       success: false,
-      message: error?.message ?? "Something went wrong",
+      message:
+        (isAppError(error) ? error?.message : error) ?? "Something went wrong",
     });
   }
 };

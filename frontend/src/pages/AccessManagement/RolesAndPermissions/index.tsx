@@ -17,6 +17,7 @@ import { useGlobalContext } from "@/context";
 interface Role {
   _id: string;
   name: string;
+  type: string;
   permissions: { _id: string; name: string }[];
 }
 
@@ -165,21 +166,25 @@ const RolesAndPermissions = () => {
 
                   {/* Actions */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <button
-                      onClick={() => handleEdit(role)}
-                      className="text-blue-600 hover:text-blue-800 mr-3"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => {
-                        setActiveRole(role);
-                        setConfirmationModal(true);
-                      }}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      Delete
-                    </button>
+                    {role.type !== "Built_In" && (
+                      <>
+                        <button
+                          onClick={() => handleEdit(role)}
+                          className="text-blue-600 hover:text-blue-800 mr-3"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => {
+                            setActiveRole(role);
+                            setConfirmationModal(true);
+                          }}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))
@@ -205,7 +210,7 @@ const RolesAndPermissions = () => {
       >
         <div className="h-full p-5 flex flex-col justify-between">
           <div className="py-2">
-            Are you sure you want to delete the role{" "}
+            Are you sure you want to delete the role
             <strong>{activeRole?.name}</strong>?
           </div>
           <div className="flex justify-end gap-2 pt-4">

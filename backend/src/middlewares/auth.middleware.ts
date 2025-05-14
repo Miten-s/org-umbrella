@@ -1,16 +1,13 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import ENV from "../utils/environment";
-
-interface JwtPayload {
-  id: string;
-}
+import { IUser } from "../models/user.model";
 
 export const authenticate = (
   req: Request,
   res: Response,
   next: NextFunction
-): void => {  
+): void => {
   const token =
     req.cookies?.accessToken || req.headers?.authorization?.split(" ")[1];
 
@@ -20,9 +17,8 @@ export const authenticate = (
   }
 
   try {
-    const decoded = jwt.verify(token, ENV.JWT_SECRET!) as JwtPayload;
-    (req as Request & { user: Record<string, string> | JwtPayload }).user =
-      decoded;
+    const decoded = jwt.verify(token, ENV.JWT_SECRET!);
+    req.user = decoded as IUser;
 
     next();
   } catch (error) {

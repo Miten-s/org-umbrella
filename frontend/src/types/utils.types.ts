@@ -10,23 +10,23 @@ export type PageUrlType = {
 
 export const PageUrl: PageUrlType = {
   Dashboard: {
-    path: '/dashboard',
+    path: "/dashboard",
     matchPattern: /^\/dashboard$/i,
-    pageTitle: 'Dashboard',
+    pageTitle: "Dashboard"
   },
   Roles: {
-    path: '/access-management/roles',
+    path: "/access-management/roles",
     matchPattern: /^\/access-management\/roles$/i,
-    pageTitle: 'Roles & Permissions',
+    pageTitle: "Roles & Permissions"
   },
   Admins: {
-    path: '/access-management/admins',
+    path: "/access-management/admins",
     matchPattern: /^\/access-management\/admins$/i,
-    pageTitle: 'All Admins',
+    pageTitle: "All Admins"
   },
   SignIn: {
-  path: '/sign-in',
-  matchPattern: /^\/sign-in$/i,
-  pageTitle: 'Sign In',
-}
+    path: "/sign-in",
+    matchPattern: /^\/sign-in$/i,
+    pageTitle: "Sign In"
+  }
 };

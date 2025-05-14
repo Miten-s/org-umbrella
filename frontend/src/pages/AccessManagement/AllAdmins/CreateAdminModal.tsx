@@ -26,7 +26,7 @@ const CreateAdminModal = ({
   activeUser
 }: CreateAdminModalProps) => {
   const adminSchema = getAdminSchema(!!activeUser);
-
+  
   type CreateAdminForm = z.infer<typeof adminSchema>;
   const {
     register,
@@ -48,7 +48,7 @@ const CreateAdminModal = ({
 
   return (
     <div className="p-6 max-h-[90vh] overflow-y-auto">
-      <h2 className="text-xl font-semibold mb-4">Create New Admin</h2>
+      <h2 className="text-xl font-semibold mb-4">{!activeUser  ? 'Create New Admin' : 'Update Admin'}</h2>
       <form
         onSubmit={handleSubmit(onSubmit)}
         className="grid grid-cols-1 md:grid-cols-2 gap-4"

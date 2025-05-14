@@ -1,8 +1,14 @@
 import { Request } from "express";
-import { User } from "../models/user.model";
+import { IUser, User } from "../models/user.model";
+import { isSuperAdmin } from "../utils/common.util";
 
-const getUsers = async () => {
-  return await User.find().populate("roles", ["name"]);
+const getUsers = async (user?: IUser) => {  
+  let filter: {} = { username: { $nin: ["superadmin", user?.username] } };
+
+  if (isSuperAdmin(user)) {
+    filter = {};
+  }
+  return await User.find(filter).populate("roles", ["name"]);
 };
 
 const createUser = async (req: Request) => {
@@ -21,7 +27,11 @@ const deleteUser = async (req: Request) => {
 };
 
 const getUserDetail = async (id: string) => {
-  return await User.findById(id).populate("roles", ["name"]);
+  return await User.findOne(
+    { _id: id },
+    { password: 0, "roles.name": 0 },
+    { populate: { path: "roles", select: ["permissions"] } }
+  ).exec();
 };
 
-export default { getUsers, createUser, updateUser, deleteUser , getUserDetail };
+export default { getUsers, createUser, updateUser, deleteUser, getUserDetail };

@@ -10,9 +10,9 @@ import {
 import { useNavigate } from "react-router-dom";
 
 interface AuthContextType {
-  user: Record<string, string>;
+  user: Record<string, string | any>;
   isAuthenticated: boolean;
-  setIsAuthenticated : (val: boolean) => void
+  setIsAuthenticated : any
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const response = await getUserDetail();
       setUser(response.user);
-      navigate(SYSTEM_ROUTES.HOME);
+      // navigate(SYSTEM_ROUTES.HOME);
     } catch (error: any) {
       if (
         error?.response?.status === 404 &&
@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     fetchUser();
-  }, [isAuthenticated]);
+  }, [isAuthenticated , setIsAuthenticated]);
 
   const value = useMemo(
     () => ({ user, isAuthenticated, setIsAuthenticated }),

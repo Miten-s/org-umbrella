@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import userService from "../services/user.service";
 import { CUSTOM_MESSAGES } from "../utils/common.util";
+import { IUser } from "../models/user.model";
 
 export const getUsers = async (
   req: Request,
@@ -8,7 +9,7 @@ export const getUsers = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const users = await userService.getUsers();
+    const users = await userService.getUsers(req?.user);
     res.status(200).json({ success: true, users });
   } catch (error) {
     next(error);
@@ -21,8 +22,7 @@ export const getUserDetail = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { id: userId } = (req as unknown as { user: Record<string, string> })
-      .user;
+    const { id: userId } = req.user as IUser;
     const user = await userService.getUserDetail(userId);
     res.status(200).json({ success: true, user });
   } catch (error) {

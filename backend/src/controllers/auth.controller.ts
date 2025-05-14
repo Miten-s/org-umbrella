@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { loginService } from "../services/auth.service";
-import { CUSTOM_MESSAGES } from "../utils/common.util";
+import { CUSTOM_MESSAGES, isAppError } from "../utils/common.util";
 
 export const login = async (
   req: Request,
@@ -11,8 +11,12 @@ export const login = async (
     const token = await loginService(req.body);
     res.cookie("accessToken", token);
     res.json({ success: true, message: CUSTOM_MESSAGES.LOGIN_SUCCESSFUL });
-  } catch (error : any) {
-    res.status(401).json({ message: error?.message ?? CUSTOM_MESSAGES.SOMETHING_WENT_WRONG });
+  } catch (error: unknown) {
+    res.status(401).json({
+      message:
+        (isAppError(error) ? error?.message : error) ??
+        CUSTOM_MESSAGES.SOMETHING_WENT_WRONG,
+    });
     next(error);
   }
 };

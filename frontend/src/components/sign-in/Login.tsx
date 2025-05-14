@@ -26,7 +26,7 @@ const Login = () => {
   const onSubmit = async (data: LoginFormData) => {
     await loginUser(data);
     navigate(SYSTEM_ROUTES.HOME);
-    setIsAuthenticated(true);
+    setIsAuthenticated((prev : boolean) => !prev);
   };
 
   return (

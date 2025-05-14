@@ -7,13 +7,14 @@ import {
   getRoles,
   updateRole,
 } from "../controllers/role.controller";
+import { authenticate } from "../middlewares/auth.middleware";
 
 const router: Router = Router();
 
 // ---------------------------------------------------------------------------------------- GET Requests ----------------------------------------------------------------------------------------
 
 // Define a GET route for getting roles.
-router.get(API_ROUTES.ROLE, getRoles);
+router.get(API_ROUTES.ROLE, authenticate, getRoles);
 
 // ---------------------------------------------------------------------------------------- POST Requests ----------------------------------------------------------------------------------------
 

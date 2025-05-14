@@ -18,7 +18,7 @@ const router: Router = Router();
 router.get(API_ROUTES.ME, authenticate , getUserDetail);
 
 // Define a GET route for getting users.
-router.get(API_ROUTES.USER, getUsers);
+router.get(API_ROUTES.USER, authenticate, getUsers);
 
 // Define a GET route for user logout.
 router.post(API_ROUTES.LOGOUT, logout);

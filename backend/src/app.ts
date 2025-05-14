@@ -13,7 +13,8 @@ import permissionRoutes from "./routes/permission.routes";
 import API_ROUTES from "./utils/routes";
 import cors from "cors";
 import ENV from "./utils/environment";
-import cookierParser from 'cookie-parser'
+import cookierParser from "cookie-parser";
+import { errorHandler } from "./middlewares/errorMiddleware";
 
 // Create an Express app
 const app: Application = express();
@@ -61,5 +62,8 @@ app.use(userRateLimiter);
 app.use(API_ROUTES.VERSIONS.v1 + API_ROUTES.AUTH, authRoutes);
 app.use(API_ROUTES.VERSIONS.v1, roleRoutes);
 app.use(API_ROUTES.VERSIONS.v1, permissionRoutes);
+
+// Global error handler
+app.use(errorHandler);
 
 export default app;

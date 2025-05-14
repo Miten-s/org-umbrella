@@ -1,3 +1,6 @@
+import { IUser } from "../models/user.model";
+import { AppError } from "../types/common.types";
+
 export const CUSTOM_MESSAGES = {
   ENTITY_CREATED: "{{ entity }} created successfully",
   ENTITY_UPDATED: "{{ entity }} updated successfully",
@@ -42,4 +45,18 @@ export const convertMongooseError = (message: {
       message.entity.charAt(0).toUpperCase() + message.entity.slice(1)
     );
   }
+};
+
+export const isSuperAdmin = (user?: IUser) => {
+  if (!user) return false;
+  return user.username === "superadmin";
+};
+
+export const isAppError = (error: unknown): error is AppError => {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof error?.message === "string"
+  );
 };

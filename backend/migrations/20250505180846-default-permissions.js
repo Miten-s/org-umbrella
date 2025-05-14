@@ -1,11 +1,10 @@
 const { ObjectId } = require("mongoose").Types;
+const bcrypt = require("bcrypt");
 
 module.exports = {
   async up(db, client) {
-    // Assuming organizationId is provided as a constant or fetched from somewhere
-    const organization = new ObjectId("68190121bbd4203f51d97751"); // Todo : Replace with the actual organization ID
+    const organization = new ObjectId("68190121bbd4203f51d97751"); // Replace as needed
 
-    // Define default permissions for CRUD actions on User and Permission (Uppercase with colon)
     const permissions = [
       { name: "CREATE:USER", description: "Create a new user" },
       { name: "READ:USER", description: "Read user data" },
@@ -16,28 +15,75 @@ module.exports = {
       { name: "UPDATE:PERMISSION", description: "Update permission details" },
       { name: "DELETE:PERMISSION", description: "Delete a permission" },
       { name: "VIEW:DASHBOARD", description: "View the dashboard" },
-
+      { name: "OPERATE:ALL", description: "Operate on all resources" },
     ];
 
-    // Insert default permissions into the 'permissions' collection
-    await db
-      .collection("permissions")
-      .insertMany(
-        permissions.map((permission) => ({
-          ...permission,
-          organization,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          isDeleted: false,
-          deletedAt: null,
-        }))
-      );
+    // 1. Insert Permissions
+    const insertedPermissions = await db.collection("permissions").insertMany(
+      permissions.map((permission) => ({
+        ...permission,
+        organization,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isDeleted: false,
+        deletedAt: null,
+      }))
+    );
 
-    console.log("Default permissions have been added with organizationId");
+    console.log("Permissions inserted");
+
+    const operateAllPermissionId = Object.values(insertedPermissions.insertedIds).find(
+      (_id, index) => permissions[index].name === "OPERATE:ALL"
+    );
+
+    if (!operateAllPermissionId) {
+      throw new Error("OPERATE:ALL permission not found");
+    }
+
+    // 2. Create Super Admin Role
+    const roleInsertResult = await db.collection("roles").insertOne({
+      name: "Super Admin",
+      description: "Has full access to all operations",
+      type : "BUILT_IN",
+      permissions: [operateAllPermissionId],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isDeleted: false,
+      deletedAt: null,
+    });
+
+    const superAdminRoleId = roleInsertResult.insertedId;
+
+    console.log("Super Admin role created");
+
+    // 3. Create Super Admin User
+    const password = await bcrypt.hash("SuperAdmin@123", 10);
+
+    await db.collection("users").insertOne({
+      username: "superadmin",
+      email: "superadmin@example.com",
+      name: "Super Admin",
+      password,
+      roles: [superAdminRoleId],
+      organization,
+      isDeleted: false,
+      deletedAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      createdBy: null,
+    });
+
+    console.log("Super Admin user created");
   },
 
   async down(db, client) {
-    // Optionally, you can define a rollback process to remove these permissions
+    // Remove Super Admin User
+    await db.collection("users").deleteOne({ username: "superadmin" });
+
+    // Remove Super Admin Role
+    await db.collection("roles").deleteOne({ name: "Super Admin" });
+
+    // Remove Permissions
     const permissionNames = [
       "CREATE:USER",
       "READ:USER",
@@ -47,13 +93,14 @@ module.exports = {
       "READ:PERMISSION",
       "UPDATE:PERMISSION",
       "DELETE:PERMISSION",
-      "VIEW:DASHBOARD"
+      "VIEW:DASHBOARD",
+      "OPERATE:ALL",
     ];
 
     await db
       .collection("permissions")
       .deleteMany({ name: { $in: permissionNames } });
 
-    console.log("Default permissions have been removed");
+    console.log("Super Admin user, role, and permissions removed");
   },
 };

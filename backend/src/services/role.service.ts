@@ -1,9 +1,9 @@
 import { Request } from "express";
-import { User } from "../models/user.model";
-import { Role } from "../models/role.model";
+import { IUser, User } from "../models/user.model";
+import { Role, RoleType } from "../models/role.model";
+import { isSuperAdmin } from "../utils/common.util";
 
 const assignRole = async (req: Request) => {
-  // Attempt to find a user by their email and update their roles by adding a new role
   return await User.findOneAndUpdate(
     { email: req.body.email },
     { $push: { roles: req.body.role } },
@@ -13,7 +13,12 @@ const assignRole = async (req: Request) => {
 
 const createRole = async (req: Request) => {
   const { name, permissions, organization } = req.body;
-  return await Role.create({ name, permissions, organization });
+  return await Role.create({
+    name,
+    permissions,
+    organization,
+    type: RoleType.CUSTOM,
+  });
 };
 
 const updateRole = async (req: Request) => {
@@ -30,8 +35,14 @@ const deleteRole = async (req: Request) => {
   );
 };
 
-const getRoles = async () => {
-  return await Role.find().lean();
+const getRoles = async (user?: IUser) => {
+  let filter: {} = { type: RoleType.CUSTOM };
+
+  if (isSuperAdmin(user)) {
+    filter = { type: { $in: [RoleType.CUSTOM, RoleType.BUILT_IN] } };
+  }
+
+  return await Role.find(filter).lean();
 };
 
 export default { assignRole, createRole, updateRole, deleteRole, getRoles };

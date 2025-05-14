@@ -2,7 +2,7 @@ import { BrowserRouter as Router } from "react-router-dom";
 import { Suspense } from "react";
 import RouteRenderer from "./routes/RouteRenderer";
 import routes from "./routes";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider } from "@/context/AuthContext";
 
 function App() {
   return (
