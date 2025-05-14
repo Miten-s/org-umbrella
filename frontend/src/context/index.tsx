@@ -1,4 +1,4 @@
-// src/context/GlobalContext.tsx
+import { useCurrentUser } from '@/hooks/use-current-user';
 import { SupportedLanguages } from '@/types/common.types';
 import { createContext, useContext, useMemo, useState, ReactNode, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -32,6 +32,7 @@ export const GlobalContextProvider = ({ children }: { children: ReactNode }) => 
   const [currentLanguage, setCurrentLanguage] = useState<SupportedLanguages>(
     SupportedLanguages['en'],
   );
+  const currentUser = useCurrentUser();
 
 
   const { i18n } = useTranslation();
@@ -42,16 +43,14 @@ export const GlobalContextProvider = ({ children }: { children: ReactNode }) => 
   };
 
   useEffect(() => {
-    // const language = i18n.resolvedLanguage;
-    // if (currentUser && currentUser.settings.preferredLanguage) {
-    //   if (language !== currentUser.settings.preferredLanguage) {
-    //     changeLanguage(currentUser.settings.preferredLanguage);
-    //   }
-    // }
+    const language = i18n.resolvedLanguage;
+    if (currentUser && currentUser.currentLanguage) {
+      if (language !== currentUser.currentLanguage) {
+        changeLanguage(currentUser.currentLanguage);
+      }
+    }
     setCurrentLanguage(SupportedLanguages['en']);
-
-  }, [])
-  // }, [currentUser]);
+  }, [currentUser]);
   // Optional: memoize if heavy values involved
   const value = useMemo(
     () => ({

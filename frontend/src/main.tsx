@@ -6,13 +6,18 @@ import "./index.css";
 import { ThemeProvider } from "./context/ThemeContext";
 import ToastProvider from "./lib/ToastProvider";
 import './i18n';
+import { store } from "./redux/store";
+import { Provider } from "react-redux";
+
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <ThemeProvider>
-    <ToastProvider>
-      <GlobalContextProvider>
-        <App />
-      </GlobalContextProvider>
-    </ToastProvider>
-  </ThemeProvider>
+  <Provider store={store}>
+    <ThemeProvider>
+      <ToastProvider>
+        <GlobalContextProvider>
+          <App />
+        </GlobalContextProvider>
+      </ToastProvider>
+    </ThemeProvider>
+  </Provider>
 );

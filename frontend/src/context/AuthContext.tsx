@@ -7,6 +7,8 @@ import {
   useMemo,
   useState
 } from "react";
+import { useDispatch } from "react-redux";
+import { setCurrentUser } from "@/redux/slices/userSlice";
 import { useNavigate } from "react-router-dom";
 
 interface AuthContextType {
@@ -25,11 +27,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<Record<string, string>>({});
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
+const dispatch = useDispatch();
 
   const fetchUser = async () => {
     try {
       const response = await getUserDetail();
       setUser(response.user);
+      dispatch(setCurrentUser(response.user));
       // navigate(SYSTEM_ROUTES.HOME);
     } catch (error: any) {
       if (

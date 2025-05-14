@@ -7,6 +7,8 @@ import { SupportedLanguages } from '@/types/common.types';
 import { LanguageIcon } from '@/public/icons';
 import { Dropdown } from '../ui/dropdown/Dropdown';
 import { DropdownItem } from '../ui/dropdown/DropdownItem';
+import { useCurrentUser } from '@/hooks/use-current-user';
+import { updateUser } from '@/services/admin.service';
 
 interface LanguageDropdownProps {
     onChange?: (lng: string) => void;
@@ -18,33 +20,29 @@ const LanguageDropdown: React.FC<LanguageDropdownProps> = ({
     languagesFromProps,
 }) => {
     const { t } = useTranslation();
-    //   const currentUser = useCurrentUser();
-    //   const [updateUser] = useUpdateMeMutation();
+    const currentUser = useCurrentUser();
+    console.log('currentUser', currentUser);
     const { setCurrentLanguage } = useGlobalContext()
     const [isOpen, setIsOpen] = useState(false);
-    // function toggleDropdown() {
-    //     setIsOpen(!isOpen);
-    // }
 
     function closeDropdown() {
         setIsOpen(false);
     }
     const changeLanguage = async (lng: string) => {
-        console.log('changeLanguage', lng);
-        if (onChange) {
-            onChange(lng);
+        try {
             setCurrentLanguage(lng);
-            console.log('onChange', lng);
-        } else {
-            setCurrentLanguage(lng);
-            //   await updateUser({
-            //     data: {
-            //       settings: { preferredLanguage: lng as SupportedLanguages },
-            //     },
-            //   });
+            if (onChange) {
+                onChange(lng);
+            } else if (currentUser?._id) {
+                await updateUser(currentUser._id, { currentLanguage: lng });
+            }
+        } catch (error) {
+            console.error('Error updating language:', error);
+        } finally {
+            setIsOpen(false);
         }
-        setIsOpen(false);
     };
+
 
     const languageOptions = [
         { label: t('languages.english'), key: SupportedLanguages.en },
@@ -72,10 +70,8 @@ const LanguageDropdown: React.FC<LanguageDropdownProps> = ({
 
     return (
         <div className="relative inline-block text-left">
-
             <button
                 onClick={() => setIsOpen(!isOpen)}
-
                 className="relative flex items-center justify-center text-gray-500 transition-colors bg-white border border-gray-200 rounded-full dropdown-toggle hover:text-gray-700 h-11 w-11 hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
             >
                 <span
@@ -83,7 +79,7 @@ const LanguageDropdown: React.FC<LanguageDropdownProps> = ({
                 >
                     <span className="absolute inline-flex w-full h-full rounded-full opacity-75 animate-ping"></span>
                 </span>
-                <LanguageIcon fontSize={24} opacity={0.8}/>
+                <LanguageIcon fontSize={24} opacity={0.8} />
             </button>
             <Dropdown
                 isOpen={isOpen}
