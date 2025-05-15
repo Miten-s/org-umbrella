@@ -41,6 +41,8 @@
     "express": "^5.1.0",
     "express-async-handler": "^1.2.0",
     "express-rate-limit": "^7.5.0",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0"
   }
 }

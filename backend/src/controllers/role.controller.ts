@@ -62,9 +62,7 @@ export const updateRole = async (
 
 export const getRoles = async (req: Request, res: Response): Promise<void> => {
   try {
-    const roles = await userService.getRoles(
-      req.user
-    );
+    const roles = await userService.getRoles(req.user);
     res.status(200).json({ success: true, roles });
   } catch (error: unknown) {
     res.status(400).json({
