@@ -13,6 +13,7 @@ import {
 import { toast } from "@/lib/ToastProvider";
 import { MESSAGES } from "@/utils/common.constants";
 import { useGlobalContext } from "@/context";
+import { useTranslation } from "react-i18next";
 
 interface Role {
   _id: string;
@@ -33,7 +34,7 @@ const RolesAndPermissions = () => {
   const [activeRole, setActiveRole] = useState<Role | null>(null);
   const { reFetch, setReFetch } = useGlobalContext();
   const [confirmationModal, setConfirmationModal] = useState(false);
-
+  const { t } = useTranslation()
   const handleCreateRole = async (data: {
     name: string;
     permissions: string[];
@@ -93,7 +94,7 @@ const RolesAndPermissions = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold text-gray-900">
-          Roles & Permissions
+          {t('rolesAndPermissions')}
         </h1>
         <Button
           onClick={() => {
@@ -102,7 +103,7 @@ const RolesAndPermissions = () => {
           }}
           className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
-          Create Role
+          {t('create', { entity: t('role') })}
         </Button>
       </div>
 
@@ -126,13 +127,13 @@ const RolesAndPermissions = () => {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Role Name
+                {t('roleName')}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Permissions
+                {t('permissions')}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
+                {t('actions')}
               </th>
             </tr>
           </thead>
@@ -172,7 +173,7 @@ const RolesAndPermissions = () => {
                           onClick={() => handleEdit(role)}
                           className="text-blue-600 hover:text-blue-800 mr-3"
                         >
-                          Edit
+                           {t('edit')}
                         </button>
                         <button
                           onClick={() => {
@@ -181,7 +182,7 @@ const RolesAndPermissions = () => {
                           }}
                           className="text-red-600 hover:text-red-800"
                         >
-                          Delete
+                          {t('delete')}
                         </button>
                       </>
                     )}
@@ -194,7 +195,7 @@ const RolesAndPermissions = () => {
                   colSpan={4}
                   className="px-6 py-4 text-center text-sm text-gray-500"
                 >
-                  No roles found. Create a new role to get started.
+                  {t('noRolesFound')}
                 </td>
               </tr>
             )}
@@ -210,7 +211,7 @@ const RolesAndPermissions = () => {
       >
         <div className="h-full p-5 flex flex-col justify-between">
           <div className="py-2">
-            Are you sure you want to delete the role
+           {`${t('deleteRolePrompt')} ?`}
             <strong>{activeRole?.name}</strong>?
           </div>
           <div className="flex justify-end gap-2 pt-4">
@@ -219,7 +220,7 @@ const RolesAndPermissions = () => {
               onClick={() => setConfirmationModal(false)}
               className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               onClick={async () => {
@@ -243,7 +244,8 @@ const RolesAndPermissions = () => {
               }}
               className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
-              Confirm
+              {t('confirm')}
+
             </Button>
           </div>
         </div>

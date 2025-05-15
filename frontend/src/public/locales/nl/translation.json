@@ -29,5 +29,47 @@
     "portuguese": "Português",
     "spanish": "Español"
   },
-  "changeLanguage": "Taal wijzigen"
+  "changeLanguage": "Taal wijzigen",
+  "dashboard": "dashboard",
+  "messages": {
+    "success": {
+      "entityAdded": "{{ entity }} succesvol toegevoegd",
+      "entityUpdated": "{{ entity }} succesvol bijgewerkt",
+      "entityDeleted": "{{ entity }} succesvol verwijderd"
+    },
+    "error": {
+      "entityNotFound": "{{ entity }} niet gevonden"
+    }
+  },
+  "accessManagement": "Toegangsbeheer",
+  "rolesAndPermissions": "Rollen en machtigingen",
+  "allAdmins": "Alle beheerders",
+  "allServices": "Alle diensten",
+  "roleName": "Rolnaam",
+  "createNewRole": "Nieuwe rol maken",
+  "permissions": "Machtigingen",
+  "cancel": "Annuleren",
+  "userName": "Gebruikersnaam",
+  "name": "Naam",
+  "email": "E-mail",
+  "role": "Rol",
+  "createdBy": "Gemaakt door",
+  "actions": "Acties",
+  "edit": "Bewerken",
+  "delete": "Verwijderen",
+  "noRolesFound": "Geen rollen gevonden. Maak een nieuwe rol om te beginnen.",
+  "deleteAdminPrompt": "Wilt u deze beheerder verwijderen?",
+  "confirm": "Bevestigen",
+  "deleteRolePrompt": "Weet u zeker dat u deze rol wilt verwijderen?",
+  "searchOrType": "Zoek of typ een commando...",
+  "signOff": "Afmelden",
+  "create": "{{entity}} maken",
+  "noAdminsFound": "Geen beheerders gevonden. Maak een nieuwe beheerder om te beginnen.",
+  "createNewAdmin": "Nieuwe beheerder aanmaken",
+  "updateAdmin": "Beheerder bijwerken",
+  "adminName": "Beheerdersnaam",
+  "password": "Wachtwoord",
+  "confirmPassword": "Bevestig wachtwoord",
+  "assignRoles": "Rollen toewijzen",
+  "admin": "Beheerder"
 }

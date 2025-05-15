@@ -11,12 +11,14 @@ import {
   updateUser
 } from "@/services/admin.service";
 import { useGlobalContext } from "@/context";
+import { useTranslation } from "react-i18next";
 
 const AllAdmins = () => {
   const { isOpen, openModal, closeModal } = useModal();
   const { reFetch, setReFetch, } = useGlobalContext();
   const [confirmationModal, setConfirmationModal] = useState(false);
   const [activeUser, setActiveUser] = useState<any>(null);
+  const { t } = useTranslation()
 
   const handleCreateAdmin = async (data: any) => {
     let formattedPayload;
@@ -66,12 +68,12 @@ const AllAdmins = () => {
     <>
       <div className="flex flex-col gap-4">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900">All Admins</h1>
+          <h1 className="text-2xl font-semibold text-gray-900"> {t('allAdmins')}</h1>
           <Button
             onClick={openModal}
             className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            Create Admin
+            {t('create', { entity: t('admin') })}
           </Button>
         </div>
 
@@ -81,22 +83,22 @@ const AllAdmins = () => {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  User Name
+                  {t('userName')}
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
+                  {t('name')}
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Email
+                  {t('email')}
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Role
+                  {t('role')}
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  CreatedBy
+                  {t('createdBy')}
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
+                  {t('actions')}
                 </th>
               </tr>
             </thead>
@@ -145,7 +147,7 @@ const AllAdmins = () => {
                       }}
                       className="text-blue-600 hover:text-blue-800 mr-3"
                     >
-                      Edit
+                      {t('edit')}
                     </button>
                     <button
                       className="text-red-600 hover:text-red-800"
@@ -154,7 +156,8 @@ const AllAdmins = () => {
                         setConfirmationModal(true);
                       }}
                     >
-                      Delete
+                      {t('delete')}
+
                     </button>
                   </td>
                 </tr>
@@ -165,7 +168,7 @@ const AllAdmins = () => {
                     colSpan={4}
                     className="px-6 py-4 text-center text-sm text-gray-500"
                   >
-                    No roles found. Create a new role to get started.
+                    {t('noAdminsFound')}
                   </td>
                 </tr>
               )}
@@ -198,14 +201,14 @@ const AllAdmins = () => {
         showCloseButton={false}
       >
         <div className="h-full p-5 flex flex-col justify-between">
-          <div className="py-2">Are you want to delete this admin ?</div>
+          <div className="py-2">{`${t('deleteAdminPrompt')} ?`} </div>
           <div className="flex justify-end gap-2 pt-4">
             <Button
               variant="secondary"
               onClick={() => setConfirmationModal(!confirmationModal)}
               className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
-              Cancel
+              {t('cancel')}
             </Button>
             <Button
               onClick={async () => {
@@ -215,7 +218,7 @@ const AllAdmins = () => {
               }}
               className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
-              Confirm
+              {t('confirm')}
             </Button>
           </div>
         </div>

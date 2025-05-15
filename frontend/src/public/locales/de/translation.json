@@ -29,5 +29,47 @@
     "portuguese": "Português",
     "spanish": "Español"
   },
-  "changeLanguage": "Sprache ändern"
+  "changeLanguage": "Sprache ändern",
+  "dashboard": "dashboard",
+  "messages": {
+    "success": {
+      "entityAdded": "{{ entity }} erfolgreich hinzugefügt",
+      "entityUpdated": "{{ entity }} erfolgreich aktualisiert",
+      "entityDeleted": "{{ entity }} erfolgreich gelöscht"
+    },
+    "error": {
+      "entityNotFound": "{{ entity }} nicht gefunden"
+    }
+  },
+  "accessManagement": "Zugriffsverwaltung",
+  "rolesAndPermissions": "Rollen & Berechtigungen",
+  "allAdmins": "Alle Administratoren",
+  "allServices": "Alle Dienstleistungen",
+  "roleName": "Rollenname",
+  "createNewRole": "Neue Rolle erstellen",
+  "permissions": "Berechtigungen",
+  "cancel": "Abbrechen",
+  "userName": "Benutzername",
+  "name": "Name",
+  "email": "E-Mail",
+  "role": "Rolle",
+  "createdBy": "Erstellt von",
+  "actions": "Aktionen",
+  "edit": "Bearbeiten",
+  "delete": "Löschen",
+  "noRolesFound": "Keine Rollen gefunden. Erstellen Sie eine neue Rolle, um zu beginnen.",
+  "deleteAdminPrompt": "Möchten Sie diesen Administrator löschen?",
+  "confirm": "Bestätigen",
+  "deleteRolePrompt": "Sind Sie sicher, dass Sie diese Rolle löschen möchten?",
+  "searchOrType": "Suchen oder Befehl eingeben...",
+  "signOff": "Abmelden",
+  "create": "{{entity}} erstellen",
+  "noAdminsFound": "Keine Administratoren gefunden. Erstellen Sie einen neuen Administrator, um zu beginnen.",
+  "createNewAdmin": "Neuen Administrator erstellen",
+  "updateAdmin": "Administrator aktualisieren",
+  "adminName": "Administratorname",
+  "password": "Passwort",
+  "confirmPassword": "Passwort bestätigen",
+  "assignRoles": "Rollen zuweisen",
+  "admin": "Administrator"
 }

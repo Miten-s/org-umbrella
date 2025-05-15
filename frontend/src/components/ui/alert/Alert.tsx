@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { useTranslation } from "react-i18next";
 
 interface AlertProps {
   variant: "success" | "error" | "warning" | "info"; // Alert type
@@ -15,8 +16,10 @@ const Alert: React.FC<AlertProps> = ({
   message,
   showLink = false,
   linkHref = "#",
-  linkText = "Learn more",
+  linkText,
 }) => {
+  const { t } = useTranslation();
+  
   // Tailwind classes for each variant
   const variantClasses = {
     success: {
@@ -132,7 +135,7 @@ const Alert: React.FC<AlertProps> = ({
               to={linkHref}
               className="inline-block mt-3 text-sm font-medium text-gray-500 underline dark:text-gray-400"
             >
-              {linkText}
+              {linkText || t('form.learnMore')}
             </Link>
           )}
         </div>

@@ -1,41 +1,41 @@
 {
   "en": {
-    "changeLanguage": "Change Language"
+    "admin": "Admin"
   },
   "ar": {
-    "changeLanguage": "تغيير اللغة"
+    "admin": "مسؤول"
   },
   "de": {
-    "changeLanguage": "Sprache ändern"
+    "admin": "Administrator"
   },
   "es": {
-    "changeLanguage": "Cambiar idioma"
+    "admin": "Administrador"
   },
   "fr": {
-    "changeLanguage": "Changer de langue"
+    "admin": "Administrateur"
   },
   "he": {
-    "changeLanguage": "שנה שפה"
+    "admin": "מנהל"
   },
   "it": {
-    "changeLanguage": "Cambia lingua"
+    "admin": "Amministratore"
   },
   "ja": {
-    "changeLanguage": "言語を変更する"
+    "admin": "管理者"
   },
   "ko": {
-    "changeLanguage": "언어 변경"
+    "admin": "관리자"
   },
   "nl": {
-    "changeLanguage": "Taal wijzigen"
+    "admin": "Beheerder"
   },
   "pl": {
-    "changeLanguage": "Zmień język"
+    "admin": "Administrator"
   },
   "pt": {
-    "changeLanguage": "Mudar idioma"
+    "admin": "Administrador"
   },
   "zh": {
-    "changeLanguage": "更改语言"
+    "admin": "管理员"
   }
 }

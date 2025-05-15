@@ -29,5 +29,47 @@
     "portuguese": "Português",
     "spanish": "Español"
   },
-  "changeLanguage": "更改语言"
+  "changeLanguage": "更改语言",
+  "messages": {
+    "success": {
+      "entityAdded": "成功添加 {{ entity }}",
+      "entityUpdated": "成功更新 {{ entity }}",
+      "entityDeleted": "成功删除 {{ entity }}"
+    },
+    "error": {
+      "entityNotFound": "未找到 {{ entity }}"
+    }
+  },
+  "dashboard": "仪表板",
+  "accessManagement": "访问管理",
+  "rolesAndPermissions": "角色与权限",
+  "allAdmins": "所有管理员",
+  "allServices": "所有服务",
+  "roleName": "角色名称",
+  "createNewRole": "创建新角色",
+  "permissions": "权限",
+  "cancel": "取消",
+  "userName": "用户名",
+  "name": "姓名",
+  "email": "电子邮件",
+  "role": "角色",
+  "createdBy": "创建者",
+  "actions": "操作",
+  "edit": "编辑",
+  "delete": "删除",
+  "noRolesFound": "未找到任何角色。请创建一个新角色以开始。",
+  "deleteAdminPrompt": "你想删除这个管理员吗？",
+  "confirm": "确认",
+  "deleteRolePrompt": "你确定要删除这个角色吗？",
+  "searchOrType": "搜索或输入命令...",
+  "signOff": "退出登录",
+  "create": "创建 {{entity}}",
+  "noAdminsFound": "未找到任何管理员。请创建一个新管理员以开始。",
+  "createNewAdmin": "创建新管理员",
+  "updateAdmin": "更新管理员",
+  "adminName": "管理员名称",
+  "password": "密码",
+  "confirmPassword": "确认密码",
+  "assignRoles": "分配角色",
+  "admin": "管理员"
 }

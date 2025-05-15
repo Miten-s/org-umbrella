@@ -29,5 +29,47 @@
     "portuguese": "Português",
     "spanish": "Español"
   },
-  "changeLanguage": "Changer de langue"
+  "changeLanguage": "Changer de langue",
+  "messages": {
+    "success": {
+      "entityAdded": "{{ entity }} ajouté avec succès",
+      "entityUpdated": "{{ entity }} mis à jour avec succès",
+      "entityDeleted": "{{ entity }} supprimé avec succès"
+    },
+    "error": {
+      "entityNotFound": "{{ entity }} non trouvé"
+    }
+  },
+  "dashboard": "Tableau de bord",
+  "accessManagement": "Gestion des accès",
+  "rolesAndPermissions": "Rôles et autorisations",
+  "allAdmins": "Tous les administrateurs",
+  "allServices": "Tous les services",
+  "roleName": "Nom du rôle",
+  "createNewRole": "Créer un nouveau rôle",
+  "permissions": "Autorisations",
+  "cancel": "Annuler",
+  "userName": "Nom d'utilisateur",
+  "name": "Nom",
+  "email": "E-mail",
+  "role": "Rôle",
+  "createdBy": "Créé par",
+  "actions": "Actions",
+  "edit": "Modifier",
+  "delete": "Supprimer",
+  "noRolesFound": "Aucun rôle trouvé. Créez un nouveau rôle pour commencer.",
+  "deleteAdminPrompt": "Voulez-vous supprimer cet administrateur ?",
+  "confirm": "Confirmer",
+  "deleteRolePrompt": "Êtes-vous sûr de vouloir supprimer ce rôle ?",
+  "searchOrType": "Rechercher ou taper une commande...",
+  "signOff": "Se déconnecter",
+  "create": "Créer {{entity}}",
+  "noAdminsFound": "Aucun administrateur trouvé. Créez un nouvel administrateur pour commencer.",
+  "createNewAdmin": "Créer un nouvel administrateur",
+  "updateAdmin": "Mettre à jour l'administrateur",
+  "adminName": "Nom de l'administrateur",
+  "password": "Mot de passe",
+  "confirmPassword": "Confirmer le mot de passe",
+  "assignRoles": "Attribuer des rôles",
+  "admin": "Administrateur"
 }

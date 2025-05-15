@@ -29,5 +29,47 @@
     "portuguese": "Português",
     "spanish": "Español"
   },
-  "changeLanguage": "언어 변경"
+  "changeLanguage": "언어 변경",
+  "messages": {
+    "success": {
+      "entityAdded": "{{ entity }}가 성공적으로 추가되었습니다",
+      "entityUpdated": "{{ entity }}가 성공적으로 업데이트되었습니다",
+      "entityDeleted": "{{ entity }}가 성공적으로 삭제되었습니다"
+    },
+    "error": {
+      "entityNotFound": "{{ entity }}를 찾을 수 없습니다"
+    }
+  },
+  "dashboard": "대시보드",
+  "accessManagement": "접근 관리",
+  "rolesAndPermissions": "역할 및 권한",
+  "allAdmins": "모든 관리자",
+  "allServices": "모든 서비스",
+  "roleName": "역할 이름",
+  "createNewRole": "새 역할 만들기",
+  "permissions": "권한",
+  "cancel": "취소",
+  "userName": "사용자 이름",
+  "name": "이름",
+  "email": "이메일",
+  "role": "역할",
+  "createdBy": "작성자",
+  "actions": "작업",
+  "edit": "편집",
+  "delete": "삭제",
+  "noRolesFound": "역할을 찾을 수 없습니다. 새 역할을 만들어 시작하세요.",
+  "deleteAdminPrompt": "이 관리자를 삭제하시겠습니까?",
+  "confirm": "확인",
+  "deleteRolePrompt": "이 역할을 삭제하시겠습니까?",
+  "searchOrType": "검색하거나 명령어를 입력하세요...",
+  "signOff": "로그아웃",
+  "create": "{{entity}} 만들기",
+  "noAdminsFound": "관리자를 찾을 수 없습니다. 새 관리자를 만들어 시작하세요.",
+  "createNewAdmin": "새 관리자 생성",
+  "updateAdmin": "관리자 업데이트",
+  "adminName": "관리자 이름",
+  "password": "비밀번호",
+  "confirmPassword": "비밀번호 확인",
+  "assignRoles": "역할 할당",
+  "admin": "관리자"
 }

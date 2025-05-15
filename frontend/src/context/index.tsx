@@ -1,6 +1,6 @@
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { SupportedLanguages } from '@/types/common.types';
-import { createContext, useContext, useMemo, useState, ReactNode, useEffect } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface GlobalContextProps {
@@ -16,7 +16,7 @@ interface GlobalContextProps {
   setCurrentDateFormat: (format: string) => void;
   reFetch: boolean;
   setReFetch: (val: boolean) => void;
-   setCurrentLanguage(message: string): void;
+  setCurrentLanguage(message: string): void;
   currentLanguage: string;
 }
 
@@ -29,51 +29,52 @@ export const GlobalContextProvider = ({ children }: { children: ReactNode }) => 
   const [alert, setAlert] = useState('');
   const [reFetch, setReFetch] = useState(false);
   const [currentDateFormat, setCurrentDateFormat] = useState('MM/DD/YYYY');
-  const [currentLanguage, setCurrentLanguage] = useState<SupportedLanguages>(
-    SupportedLanguages['en'],
-  );
+  const { i18n } = useTranslation();
+
   const currentUser = useCurrentUser();
 
-
-  const { i18n } = useTranslation();
+  // Track the real i18n.language for consistency
+  const [currentLanguage, setCurrentLanguage] = useState<SupportedLanguages>(
+    i18n.language as SupportedLanguages
+  );
 
   const changeLanguage = (language: SupportedLanguages) => {
     setCurrentLanguage(language);
     i18n.changeLanguage(language);
   };
 
+  // Apply user language on load
   useEffect(() => {
-    const language = i18n.resolvedLanguage;
-    if (currentUser && currentUser.currentLanguage) {
-      if (language !== currentUser.currentLanguage) {
-        changeLanguage(currentUser.currentLanguage);
-      }
+    if (currentUser?.currentLanguage && i18n.language !== currentUser.currentLanguage) {
+      changeLanguage(currentUser.currentLanguage);
     }
-    setCurrentLanguage(SupportedLanguages['en']);
   }, [currentUser]);
-  // Optional: memoize if heavy values involved
-  const value = useMemo(
-    () => ({
-      loading,
-      toggleLoading,
-      success,
-      setSuccess,
-      error,
-      setError,
-      alert,
-      setAlert,
-      currentDateFormat,
-      setCurrentDateFormat,
-      reFetch,
-      setReFetch,
-      setCurrentLanguage:changeLanguage,
-      currentLanguage,
-    }),
-    [loading, success, error, alert, currentDateFormat, reFetch, setReFetch],
-  );
+
+  // Keep context state synced with i18n.language
+  useEffect(() => {
+    setCurrentLanguage(i18n.language as SupportedLanguages);
+  }, [i18n.language]);
+
+  const value: GlobalContextProps = {
+    loading,
+    toggleLoading,
+    success,
+    setSuccess,
+    error,
+    setError,
+    alert,
+    setAlert,
+    currentDateFormat,
+    setCurrentDateFormat,
+    reFetch,
+    setReFetch,
+    setCurrentLanguage: changeLanguage,
+    currentLanguage,
+  };
 
   return <GlobalContext.Provider value={value}>{children}</GlobalContext.Provider>;
 };
+
 
 // Optional helper hook
 export const useGlobalContext = () => {

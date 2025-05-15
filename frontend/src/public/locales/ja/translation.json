@@ -29,5 +29,47 @@
     "portuguese": "Português",
     "spanish": "Español"
   },
-  "changeLanguage": "言語を変更する"
+  "changeLanguage": "言語を変更する",
+  "dashboard": "ダッシュボード",
+  "messages": {
+    "success": {
+      "entityAdded": "{{ entity }}が正常に追加されました",
+      "entityUpdated": "{{ entity }}が正常に更新されました",
+      "entityDeleted": "{{ entity }}が正常に削除されました"
+    },
+    "error": {
+      "entityNotFound": "{{ entity }}が見つかりません"
+    }
+  },
+  "accessManagement": "アクセス管理",
+  "rolesAndPermissions": "役割と権限",
+  "allAdmins": "すべての管理者",
+  "allServices": "すべてのサービス",
+  "roleName": "ロール名",
+  "createNewRole": "新しいロールを作成",
+  "permissions": "権限",
+  "cancel": "キャンセル",
+  "userName": "ユーザー名",
+  "name": "名前",
+  "email": "メールアドレス",
+  "role": "ロール",
+  "createdBy": "作成者",
+  "actions": "アクション",
+  "edit": "編集",
+  "delete": "削除",
+  "noRolesFound": "ロールが見つかりません。新しいロールを作成して開始してください。",
+  "deleteAdminPrompt": "この管理者を削除しますか？",
+  "confirm": "確認",
+  "deleteRolePrompt": "このロールを削除してもよろしいですか？",
+  "searchOrType": "検索またはコマンドを入力...",
+  "signOff": "サインオフ",
+  "create": "{{entity}} を作成",
+  "noAdminsFound": "管理者が見つかりません。新しい管理者を作成して開始してください。",
+  "createNewAdmin": "新しい管理者を作成",
+  "updateAdmin": "管理者を更新",
+  "adminName": "管理者名",
+  "password": "パスワード",
+  "confirmPassword": "パスワードの確認",
+  "assignRoles": "役割を割り当てる",
+  "admin": "管理者"
 }

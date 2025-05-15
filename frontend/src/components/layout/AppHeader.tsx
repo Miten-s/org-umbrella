@@ -157,10 +157,10 @@ const AppHeader: React.FC = () => {
             <NotificationDropdown />
             {/* <!-- Notification Menu Area --> */}
           </div>
-          {/* <!-- User Area --> */}
-          <UserDropdown />
           {/* Language Dropdown Area */}
           <LanguageDropdown />
+          {/* <!-- User Area --> */}
+          <UserDropdown />
         </div>
       </div>
     </header>

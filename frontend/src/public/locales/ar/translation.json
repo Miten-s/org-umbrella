@@ -29,5 +29,47 @@
     "portuguese": "Português",
     "spanish": "Español"
   },
-  "changeLanguage": "تغيير اللغة"
+  "changeLanguage": "تغيير اللغة",
+  "dashboard": "لوحة التحكم",
+  "messages": {
+    "success": {
+      "entityAdded": "تمت إضافة {{ entity }} بنجاح",
+      "entityUpdated": "تم تحديث {{ entity }} بنجاح",
+      "entityDeleted": "تم حذف {{ entity }} بنجاح"
+    },
+    "error": {
+      "entityNotFound": "{{ entity }} غير موجود"
+    }
+  },
+  "accessManagement": "إدارة الوصول",
+  "rolesAndPermissions": "الأدوار والصلاحيات",
+  "allAdmins": "جميع المشرفين",
+  "allServices": "جميع الخدمات",
+  "roleName": "اسم الدور",
+  "createNewRole": "إنشاء دور جديد",
+  "permissions": "الصلاحيات",
+  "cancel": "إلغاء",
+  "userName": "اسم المستخدم",
+  "name": "الاسم",
+  "email": "البريد الإلكتروني",
+  "role": "الدور",
+  "createdBy": "أنشئ بواسطة",
+  "actions": "الإجراءات",
+  "edit": "تعديل",
+  "delete": "حذف",
+  "noRolesFound": "لم يتم العثور على أدوار. أنشئ دورًا جديدًا للبدء.",
+  "deleteAdminPrompt": "هل تريد حذف هذا المسؤول؟",
+  "confirm": "تأكيد",
+  "deleteRolePrompt": "هل أنت متأكد أنك تريد حذف هذا الدور؟",
+  "searchOrType": "ابحث أو اكتب الأمر...",
+  "signOff": "تسجيل الخروج",
+  "create": "إنشاء {{entity}}",
+  "noAdminsFound": "لم يتم العثور على مسؤولي النظام. أنشئ مسؤولًا جديدًا للبدء.",
+  "createNewAdmin": "إنشاء مسؤول جديد",
+  "updateAdmin": "تحديث المسؤول",
+  "adminName": "اسم المسؤول",
+  "password": "كلمة المرور",
+  "confirmPassword": "تأكيد كلمة المرور",
+  "assignRoles": "تعيين الأدوار",
+  "admin": "مسؤول"
 }

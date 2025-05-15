@@ -3,11 +3,11 @@ import api from "../utils/axios.interceptor";
 
 export const API_ROUTES = {
   users: "/auth/users",
-  roles: "/roles",  
+  roles: "/roles",
   permissions: "/permissions",
-  login : "/auth/sign-in",
-  logout : "/auth/sign-out",
-  me : "/auth/me"
+  login: "/auth/sign-in",
+  logout: "/auth/sign-out",
+  me: "/auth/me"
 
 };
 
@@ -76,6 +76,7 @@ export const updateRole = async (id: string, payload: { name: string; permission
 
 export const deleteRole = async (id: string) => {
   const response = await api.delete(API_ROUTES.roles + "/" + id);
-  return response["data"];};
+  return response["data"];
+};
 
 

@@ -3,6 +3,7 @@ import Label from '../../../components/common/form/Label';
 import Input from '../../../components/common/form/input/InputField';
 import Button from '../../../components/ui/button/Button';
 import Checkbox from '../../../components/common/form/input/Checkbox';
+import { useTranslation } from 'react-i18next';
 
 interface CreateRoleModalProps {
   onClose: () => void;
@@ -31,7 +32,7 @@ const groupPermissions = (permissions: string[]): Record<string, string[]> => {
 const CreateRoleModal = ({ onClose, onSubmit, permissions: allPermissions, activeRole }: CreateRoleModalProps) => {
   const { register, handleSubmit, watch, setValue } = useForm<{
     name: string;
-   
+
     permissions: string[];
   }>({
     defaultValues: {
@@ -43,6 +44,7 @@ const CreateRoleModal = ({ onClose, onSubmit, permissions: allPermissions, activ
 
   const selectedPermissions = watch('permissions');
   const groupedPermissions = groupPermissions(allPermissions);
+  const { t } = useTranslation()
 
   const togglePermission = (permission: string) => {
     const updated = selectedPermissions.includes(permission)
@@ -74,11 +76,11 @@ const CreateRoleModal = ({ onClose, onSubmit, permissions: allPermissions, activ
 
   return (
     <div className="p-6 max-h-[90vh] overflow-y-auto">
-      <h2 className="text-xl font-semibold mb-4">Create New Role</h2>
+      <h2 className="text-xl font-semibold mb-4"> {t('createNewRole')}</h2>
       <form onSubmit={handleSubmit(onFormSubmit)}>
         <div className="space-y-6">
           <div>
-            <Label htmlFor="name">Role Name</Label>
+            <Label htmlFor="name">{t('roleName')}</Label>
             <Input
               id="name"
               type="text"
@@ -86,9 +88,9 @@ const CreateRoleModal = ({ onClose, onSubmit, permissions: allPermissions, activ
               {...register('name', { required: true })}
             />
           </div>
-          
+
           <div>
-            <Label>Permissions</Label>
+            <Label> {t('permissions')}</Label>
             <Checkbox
               label="Select All Permissions"
               checked={allPermissions.every((perm) => selectedPermissions.includes(perm))}
@@ -128,10 +130,10 @@ const CreateRoleModal = ({ onClose, onSubmit, permissions: allPermissions, activ
 
         <div className="mt-6 flex justify-end space-x-3">
           <Button variant="outline" onClick={onClose} type="button">
-            Cancel
+            {t('cancel')}
           </Button>
           <Button type="submit" variant="primary">
-            Create Role
+            {t('create', { entity: t('role') })}
           </Button>
         </div>
       </form>

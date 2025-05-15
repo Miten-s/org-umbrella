@@ -29,5 +29,47 @@
     "portuguese": "Português",
     "spanish": "Español"
   },
-  "changeLanguage": "שנה שפה"
+  "changeLanguage": "שנה שפה",
+  "dashboard": "לוח בקרה",
+  "messages": {
+    "success": {
+      "entityAdded": "{{ entity }} נוסף בהצלחה",
+      "entityUpdated": "{{ entity }} עודכן בהצלחה",
+      "entityDeleted": "{{ entity }} נמחק בהצלחה"
+    },
+    "error": {
+      "entityNotFound": "{{ entity }} לא נמצא"
+    }
+  },
+  "accessManagement": "ניהול גישה",
+  "rolesAndPermissions": "תפקידים והרשאות",
+  "allAdmins": "כל המנהלים",
+  "allServices": "כל השירותים",
+  "roleName": "שם תפקיד",
+  "createNewRole": "צור תפקיד חדש",
+  "permissions": "הרשאות",
+  "cancel": "ביטול",
+  "userName": "שם משתמש",
+  "name": "שם",
+  "email": "אימייל",
+  "role": "תפקיד",
+  "createdBy": "נוצר על ידי",
+  "actions": "פעולות",
+  "edit": "ערוך",
+  "delete": "מחק",
+  "noRolesFound": "לא נמצאו תפקידים. צור תפקיד חדש כדי להתחיל.",
+  "deleteAdminPrompt": "האם אתה רוצה למחוק את המנהל הזה?",
+  "confirm": "אישור",
+  "deleteRolePrompt": "האם אתה בטוח שברצונך למחוק את התפקיד הזה?",
+  "searchOrType": "חפש או הקלד פקודה...",
+  "signOff": "התנתק",
+  "create": "צור {{entity}}",
+  "noAdminsFound": "לא נמצאו מנהלים. צור מנהל חדש כדי להתחיל.",
+  "createNewAdmin": "צור מנהל חדש",
+  "updateAdmin": "עדכן מנהל",
+  "adminName": "שם המנהל",
+  "password": "סיסמה",
+  "confirmPassword": "אשר סיסמה",
+  "assignRoles": "הקצה תפקידים",
+  "admin": "מנהל"
 }

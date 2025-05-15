@@ -18,9 +18,20 @@ i18n
     fallbackLng: "en",
     debug: false,
     load: "languageOnly",
-    lng: navigator.language,
+    lng: localStorage.getItem('i18nextLng') || navigator.language,
     interpolation: {
       escapeValue: false // React already escapes values
+    },
+    //i- added because language are not workig afteer 5 times changes
+    react: {
+      useSuspense: false,
+      bindI18n: 'languageChanged loaded',
+      bindI18nStore: 'added removed',
+      transEmptyNodeValue: '',
+    },
+    detection: {
+      order: ['localStorage', 'navigator'],
+      caches: ['localStorage']
     }
   });
 

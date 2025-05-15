@@ -50,7 +50,7 @@ async function updateTranslations() {
       }
     }
 
-    console.log('🎉 All translations updated successfully.');
+    console.log('>> All translations updated successfully.<<');
   } catch (err) {
     console.error(' Error updating translations:', err);
   }
