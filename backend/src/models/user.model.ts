@@ -1,12 +1,13 @@
 import mongoose, { Schema, Document } from "mongoose";
 import bcrypt from "bcrypt";
+import { IRole } from "./role.model";
 
 export interface IUser extends Document {
   _id: string;
   username: string;
   email: string;
   password: string;
-  roles: string[];
+  roles: IRole[];
 }
 
 const UserSchema: Schema = new Schema(

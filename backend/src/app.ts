@@ -14,7 +14,7 @@ import API_ROUTES from "./utils/routes";
 import cors from "cors";
 import ENV from "./utils/environment";
 import cookierParser from "cookie-parser";
-import { errorHandler } from "./middlewares/errorMiddleware";
+import { errorHandler } from "./middlewares/error.middleware";
 
 // Create an Express app
 const app: Application = express();

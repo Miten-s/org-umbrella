@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from "mongoose";
+import { IPermission } from "./permission.model";
 
 export enum RoleType {
   CUSTOM = 'Custom',
@@ -6,14 +7,12 @@ export enum RoleType {
 } 
 export interface IRole extends Document {
   _id : string,
-  organization: string;
   name: string;
-  permissions: string[];
+  permissions: IPermission[];
 }
 
 const RoleSchema = new Schema(
   {
-    organization: { type: mongoose.Schema.Types.ObjectId, ref: "Organization" },
     name: { type: String, required: true, unique: true },
     permissions: [{ type: mongoose.Schema.Types.ObjectId, ref: "Permission" }],
     isDeleted: { type: Boolean, default: false },

@@ -3,8 +3,6 @@ const bcrypt = require("bcrypt");
 
 module.exports = {
   async up(db, client) {
-    const organization = new ObjectId("68190121bbd4203f51d97751"); // Replace as needed
-
     const permissions = [
       { name: "CREATE:USER", description: "Create a new user" },
       { name: "READ:USER", description: "Read user data" },
@@ -22,7 +20,6 @@ module.exports = {
     const insertedPermissions = await db.collection("permissions").insertMany(
       permissions.map((permission) => ({
         ...permission,
-        organization,
         createdAt: new Date(),
         updatedAt: new Date(),
         isDeleted: false,
@@ -65,7 +62,6 @@ module.exports = {
       name: "Super Admin",
       password,
       roles: [superAdminRoleId],
-      organization,
       isDeleted: false,
       deletedAt: null,
       createdAt: new Date(),

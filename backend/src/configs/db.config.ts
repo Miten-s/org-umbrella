@@ -2,7 +2,6 @@ import mongoose from "mongoose";
 
 // Syncing models
 
-import '../models/organization.model';
 import '../models/role.model';
 import '../models/permission.model';
 

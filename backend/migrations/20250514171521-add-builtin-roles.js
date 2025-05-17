@@ -2,7 +2,6 @@ const { ObjectId } = require("mongoose").Types;
 
 module.exports = {
   async up(db, client) {
-    const organization = new ObjectId("68190121bbd4203f51d97751"); // Replace as needed
 
     const permissionNames = [
       "CREATE:USER",
@@ -19,7 +18,7 @@ module.exports = {
     // Fetch permission IDs by name
     const allPermissions = await db
       .collection("permissions")
-      .find({ name: { $in: permissionNames }, organization })
+      .find({ name: { $in: permissionNames } })
       .toArray();
 
     const permissionMap = new Map(allPermissions.map((perm) => [perm.name, perm._id]));
@@ -32,7 +31,6 @@ module.exports = {
       {
         name: "Admin",
         description: "Administrator with elevated privileges",
-        organization,
         type: "Built_In",
         permissions: adminPermissionIds,
         isDeleted: false,
@@ -43,7 +41,6 @@ module.exports = {
       {
         name: "User",
         description: "Regular user with limited access",
-        organization,
         type: "Built_In",
         permissions: userPermissionIds,
         isDeleted: false,
