@@ -1,0 +1,69 @@
+{
+  "localLanguages": {
+    "english": "इंग्रजी",
+    "arabic": "अरबी",
+    "german": "जर्मन",
+    "spanish": "स्पॅनिश",
+    "french": "फ्रेंच",
+    "hindi": "हिंदी",
+    "gujarati": "गुजराती",
+    "tamil": "तामिळ",
+    "telugu": "तेलुगू",
+    "marathi": "मराठी"
+  },
+  "languages": {
+    "english": "English",
+    "arabic": "العربية",
+    "german": "Deutsch",
+    "spanish": "Español",
+    "french": "Français",
+    "hindi": "हिन्दी",
+    "gujarati": "ગુજરાતી",
+    "tamil": "தமிழ்",
+    "telugu": "తెలుగు",
+    "marathi": "मराठी"
+  },
+  "changeLanguage": "भाषा बदला",
+  "dashboard": "डॅशबोर्ड",
+  "messages": {
+    "success": {
+      "entityAdded": "{{ entity }} यशस्वीरित्या जोडले गेले",
+      "entityUpdated": "{{ entity }} यशस्वीरित्या अद्यतनित केले गेले",
+      "entityDeleted": "{{ entity }} यशस्वीरित्या हटवले गेले"
+    },
+    "error": {
+      "entityNotFound": "{{ entity }} सापडले नाही"
+    }
+  },
+  "accessManagement": "प्रवेश व्यवस्थापन",
+  "rolesAndPermissions": "भूमिका आणि परवानग्या",
+  "allAdmins": "सर्व व्यवस्थापक",
+  "allServices": "सर्व सेवा",
+  "roleName": "भूमिकेचे नाव",
+  "createNewRole": "नवीन भूमिका तयार करा",
+  "permissions": "परवानग्या",
+  "cancel": "रद्द करा",
+  "userName": "वापरकर्त्याचे नाव",
+  "name": "नाव",
+  "email": "ईमेल",
+  "role": "भूमिका",
+  "createdBy": "द्वारे तयार",
+  "actions": "क्रिया",
+  "edit": "संपादित करा",
+  "delete": "हटवा",
+  "noRolesFound": "कोणतीही भूमिका सापडली नाही. सुरू करण्यासाठी नवीन तयार करा.",
+  "deleteAdminPrompt": "तुम्हाला हा व्यवस्थापक हटवायचा आहे का?",
+  "confirm": "पुष्टी करा",
+  "deleteRolePrompt": "तुम्हाला ही भूमिका नक्की हटवायची आहे का?",
+  "searchOrType": "शोधा किंवा आदेश लिहा...",
+  "signOff": "साइन ऑफ",
+  "create": "{{entity}} तयार करा",
+  "noAdminsFound": "कोणतेही व्यवस्थापक सापडले नाहीत. नवीन व्यवस्थापक तयार करा.",
+  "createNewAdmin": "नवीन व्यवस्थापक तयार करा",
+  "updateAdmin": "व्यवस्थापक अद्यतनित करा",
+  "adminName": "व्यवस्थापकाचे नाव",
+  "password": "पासवर्ड",
+  "confirmPassword": "पासवर्डची पुष्टी करा",
+  "assignRoles": "भूमिका नियुक्त करा",
+  "admin": "व्यवस्थापक"
+}

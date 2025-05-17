@@ -1,0 +1,69 @@
+{
+  "localLanguages": {
+    "english": "ఇంగ్లీష్",
+    "arabic": "అరబిక్",
+    "german": "జర్మన్",
+    "spanish": "స్పానిష్",
+    "french": "ఫ్రెంచ్",
+    "hindi": "హిందీ",
+    "gujarati": "గుజరాతీ",
+    "tamil": "తమిళ్",
+    "telugu": "తెలుగు",
+    "marathi": "మరాఠీ"
+  },
+  "languages": {
+    "english": "English",
+    "arabic": "العربية",
+    "german": "Deutsch",
+    "spanish": "Español",
+    "french": "Français",
+    "hindi": "हिन्दी",
+    "gujarati": "ગુજરાતી",
+    "tamil": "தமிழ்",
+    "telugu": "తెలుగు",
+    "marathi": "मराठी"
+  },
+  "changeLanguage": "భాషను మార్చు",
+  "dashboard": "డాష్‌బోర్డ్",
+  "messages": {
+    "success": {
+      "entityAdded": "{{ entity }} విజయవంతంగా జోడించబడింది",
+      "entityUpdated": "{{ entity }} విజయవంతంగా నవీకరించబడింది",
+      "entityDeleted": "{{ entity }} విజయవంతంగా తొలగించబడింది"
+    },
+    "error": {
+      "entityNotFound": "{{ entity }} కనబడలేదు"
+    }
+  },
+  "accessManagement": "ప్రవేశ నిర్వహణ",
+  "rolesAndPermissions": "పాత్రలు మరియు అనుమతులు",
+  "allAdmins": "అన్ని అడ్మిన్లు",
+  "allServices": "అన్ని సేవలు",
+  "roleName": "పాత్ర పేరు",
+  "createNewRole": "కొత్త పాత్ర సృష్టించండి",
+  "permissions": "అనుమతులు",
+  "cancel": "రద్దు",
+  "userName": "వాడుకరి పేరు",
+  "name": "పేరు",
+  "email": "ఇమెయిల్",
+  "role": "పాత్ర",
+  "createdBy": "సృష్టించినవాడు",
+  "actions": "చర్యలు",
+  "edit": "సవరించు",
+  "delete": "తొలగించు",
+  "noRolesFound": "పాత్రలు లభించలేదు. ప్రారంభించడానికి కొత్తది సృష్టించండి.",
+  "deleteAdminPrompt": "ఈ అడ్మిన్‌ని తొలగించాలనుకుంటున్నారా?",
+  "confirm": "నిర్ధారించు",
+  "deleteRolePrompt": "ఈ పాత్రను నిజంగా తొలగించాలా?",
+  "searchOrType": "శోధించండి లేదా ఆదేశాన్ని టైప్ చేయండి...",
+  "signOff": "సైన్ ఆఫ్",
+  "create": "{{entity}} సృష్టించు",
+  "noAdminsFound": "అడ్మిన్లు కనబడలేదు. ఒక కొత్త అడ్మిన్‌ను సృష్టించండి.",
+  "createNewAdmin": "కొత్త అడ్మిన్ సృష్టించండి",
+  "updateAdmin": "అడ్మిన్‌ను నవీకరించండి",
+  "adminName": "అడ్మిన్ పేరు",
+  "password": "పాస్‌వర్డ్",
+  "confirmPassword": "పాస్‌వర్డ్‌ను నిర్ధారించండి",
+  "assignRoles": "పాత్రలు కేటాయించండి",
+  "admin": "అడ్మిన్"
+}

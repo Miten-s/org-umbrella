@@ -1,0 +1,69 @@
+{
+  "localLanguages": {
+    "english": "ஆங்கிலம்",
+    "arabic": "அரபிக்",
+    "german": "ஜெர்மன்",
+    "spanish": "ஸ்பானிஷ்",
+    "french": "பிரஞ்சு",
+    "hindi": "ஹிந்தி",
+    "gujarati": "குஜராத்தி",
+    "tamil": "தமிழ்",
+    "telugu": "தெலுங்கு",
+    "marathi": "மராத்தி"
+  },
+  "languages": {
+    "english": "English",
+    "arabic": "العربية",
+    "german": "Deutsch",
+    "spanish": "Español",
+    "french": "Français",
+    "hindi": "हिन्दी",
+    "gujarati": "ગુજરાતી",
+    "tamil": "தமிழ்",
+    "telugu": "తెలుగు",
+    "marathi": "मराठी"
+  },
+  "changeLanguage": "மொழியை மாற்று",
+  "dashboard": "டாஷ்போர்டு",
+  "messages": {
+    "success": {
+      "entityAdded": "{{ entity }} வெற்றிகரமாக சேர்க்கப்பட்டது",
+      "entityUpdated": "{{ entity }} வெற்றிகரமாக புதுப்பிக்கப்பட்டது",
+      "entityDeleted": "{{ entity }} வெற்றிகரமாக நீக்கப்பட்டது"
+    },
+    "error": {
+      "entityNotFound": "{{ entity }} காணப்படவில்லை"
+    }
+  },
+  "accessManagement": "அணுகல் மேலாண்மை",
+  "rolesAndPermissions": "பாத்திரங்கள் மற்றும் அனுமதிகள்",
+  "allAdmins": "அனைத்து நிர்வாகிகள்",
+  "allServices": "அனைத்து சேவைகள்",
+  "roleName": "பாத்திரத்தின் பெயர்",
+  "createNewRole": "புதிய பாத்திரத்தை உருவாக்கவும்",
+  "permissions": "அனுமதிகள்",
+  "cancel": "ரத்து செய்",
+  "userName": "பயனர் பெயர்",
+  "name": "பெயர்",
+  "email": "மின்னஞ்சல்",
+  "role": "பங்கு",
+  "createdBy": "உருவாக்கியவர்",
+  "actions": "செயல்கள்",
+  "edit": "தொகு",
+  "delete": "நீக்கு",
+  "noRolesFound": "பாத்திரங்கள் கிடைக்கவில்லை. புதியதை உருவாக்கவும்.",
+  "deleteAdminPrompt": "இந்த நிர்வாகியை நீக்க விரும்புகிறீர்களா?",
+  "confirm": "உறுதிப்படுத்து",
+  "deleteRolePrompt": "இந்த பாத்திரத்தை நீக்க விரும்புகிறீர்களா?",
+  "searchOrType": "தேடவும் அல்லது கட்டளையை உள்ளிடவும்...",
+  "signOff": "வெளியேறு",
+  "create": "{{entity}} உருவாக்கு",
+  "noAdminsFound": "நிர்வாகிகள் இல்லை. ஒன்றை உருவாக்கவும்.",
+  "createNewAdmin": "புதிய நிர்வாகியை உருவாக்கவும்",
+  "updateAdmin": "நிர்வாகியை புதுப்பிக்கவும்",
+  "adminName": "நிர்வாகியின் பெயர்",
+  "password": "கடவுச்சொல்",
+  "confirmPassword": "கடவுச்சொல்லை உறுதிப்படுத்து",
+  "assignRoles": "பாத்திரங்களை ஒதுக்கவும்",
+  "admin": "நிர்வாகி"
+}

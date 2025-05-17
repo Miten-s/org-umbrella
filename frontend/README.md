@@ -57,11 +57,11 @@ export default tseslint.config({
 
 Use this text to ask openAI to generate with specific format then put into translations.json
 
-pls translate to en, ar, de, es, fr, he, it, ja, ko, nl, pl, pt, zh into format like below in 1 json
-{
-"en": {
-"newText": "New Value",
-},
-}
+  pls translate to en, ar, es, fr, hi gu, ta, te, mr, into format like below in 1 json
+  {
+  "en": {
+  "newText": "New Value",
+  },
+  }
 Copy result to translations.json
 then run "node updateTranslations.js" to update translation to respective translation files

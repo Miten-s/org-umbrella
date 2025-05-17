@@ -1,41 +1,407 @@
 {
   "en": {
+    "changeLanguage": "Change Language",
+    "dashboard": "Dashboard",
+    "messages": {
+      "success": {
+        "entityAdded": "Successfully added {{ entity }}",
+        "entityUpdated": "Successfully updated {{ entity }}",
+        "entityDeleted": "Successfully deleted {{ entity }}"
+      },
+      "error": {
+        "entityNotFound": "{{ entity }} not found"
+      }
+    },
+    "accessManagement": "Access Management",
+    "rolesAndPermissions": "Roles & Permissions",
+    "allAdmins": "All Admins",
+    "allServices": "All Services",
+    "roleName": "Role Name",
+    "createNewRole": "Create New Role",
+    "permissions": "Permissions",
+    "cancel": "Cancel",
+    "userName": "User Name",
+    "name": "Name",
+    "email": "Email",
+    "role": "Role",
+    "createdBy": "Created By",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete",
+    "noRolesFound": "No roles found. Create a new role to get started.",
+    "deleteAdminPrompt": "Are you want to delete this admin",
+    "confirm": "Confirm",
+    "deleteRolePrompt": "Are you sure you want to delete the role",
+    "searchOrType": "Search or type command...",
+    "signOff": "Sign off",
+    "create": "Create {{entity}}",
+    "noAdminsFound": "No admins found. Create a new admin to get started.",
+    "createNewAdmin": "Create New Admin",
+    "updateAdmin": "Update Admin",
+    "adminName": "Admin Name",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "assignRoles": "Assign Roles",
     "admin": "Admin"
   },
   "ar": {
+    "changeLanguage": "تغيير اللغة",
+    "dashboard": "لوحة القيادة",
+    "messages": {
+      "success": {
+        "entityAdded": "تمت إضافة {{ entity }} بنجاح",
+        "entityUpdated": "تم تحديث {{ entity }} بنجاح",
+        "entityDeleted": "تم حذف {{ entity }} بنجاح"
+      },
+      "error": {
+        "entityNotFound": "لم يتم العثور على {{ entity }}"
+      }
+    },
+    "accessManagement": "إدارة الوصول",
+    "rolesAndPermissions": "الأدوار والصلاحيات",
+    "allAdmins": "جميع المسؤولين",
+    "allServices": "جميع الخدمات",
+    "roleName": "اسم الدور",
+    "createNewRole": "إنشاء دور جديد",
+    "permissions": "الأذونات",
+    "cancel": "إلغاء",
+    "userName": "اسم المستخدم",
+    "name": "الاسم",
+    "email": "البريد الإلكتروني",
+    "role": "الدور",
+    "createdBy": "أنشأ من قبل",
+    "actions": "إجراءات",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "noRolesFound": "لم يتم العثور على أدوار. أنشئ دورًا جديدًا للبدء.",
+    "deleteAdminPrompt": "هل تريد حذف هذا المسؤول؟",
+    "confirm": "تأكيد",
+    "deleteRolePrompt": "هل أنت متأكد أنك تريد حذف هذا الدور؟",
+    "searchOrType": "ابحث أو اكتب أمرًا...",
+    "signOff": "تسجيل الخروج",
+    "create": "إنشاء {{entity}}",
+    "noAdminsFound": "لم يتم العثور على مسؤولين. أنشئ مسؤولًا جديدًا للبدء.",
+    "createNewAdmin": "إنشاء مسؤول جديد",
+    "updateAdmin": "تحديث المسؤول",
+    "adminName": "اسم المسؤول",
+    "password": "كلمة المرور",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "assignRoles": "تعيين الأدوار",
     "admin": "مسؤول"
   },
-  "de": {
-    "admin": "Administrator"
-  },
   "es": {
+    "changeLanguage": "Cambiar idioma",
+    "dashboard": "Tablero",
+    "messages": {
+      "success": {
+        "entityAdded": "{{ entity }} agregado con éxito",
+        "entityUpdated": "{{ entity }} actualizado con éxito",
+        "entityDeleted": "{{ entity }} eliminado con éxito"
+      },
+      "error": {
+        "entityNotFound": "{{ entity }} no encontrado"
+      }
+    },
+    "accessManagement": "Gestión de acceso",
+    "rolesAndPermissions": "Roles y permisos",
+    "allAdmins": "Todos los administradores",
+    "allServices": "Todos los servicios",
+    "roleName": "Nombre del rol",
+    "createNewRole": "Crear nuevo rol",
+    "permissions": "Permisos",
+    "cancel": "Cancelar",
+    "userName": "Nombre de usuario",
+    "name": "Nombre",
+    "email": "Correo electrónico",
+    "role": "Rol",
+    "createdBy": "Creado por",
+    "actions": "Acciones",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "noRolesFound": "No se encontraron roles. Cree uno nuevo para comenzar.",
+    "deleteAdminPrompt": "¿Desea eliminar a este administrador?",
+    "confirm": "Confirmar",
+    "deleteRolePrompt": "¿Está seguro de que desea eliminar el rol?",
+    "searchOrType": "Buscar o escribir comando...",
+    "signOff": "Cerrar sesión",
+    "create": "Crear {{entity}}",
+    "noAdminsFound": "No se encontraron administradores. Cree uno nuevo para comenzar.",
+    "createNewAdmin": "Crear nuevo administrador",
+    "updateAdmin": "Actualizar administrador",
+    "adminName": "Nombre del administrador",
+    "password": "Contraseña",
+    "confirmPassword": "Confirmar contraseña",
+    "assignRoles": "Asignar roles",
     "admin": "Administrador"
   },
   "fr": {
+    "changeLanguage": "Changer de langue",
+    "dashboard": "Tableau de bord",
+    "messages": {
+      "success": {
+        "entityAdded": "{{ entity }} ajouté avec succès",
+        "entityUpdated": "{{ entity }} mis à jour avec succès",
+        "entityDeleted": "{{ entity }} supprimé avec succès"
+      },
+      "error": {
+        "entityNotFound": "{{ entity }} introuvable"
+      }
+    },
+    "accessManagement": "Gestion des accès",
+    "rolesAndPermissions": "Rôles et autorisations",
+    "allAdmins": "Tous les administrateurs",
+    "allServices": "Tous les services",
+    "roleName": "Nom du rôle",
+    "createNewRole": "Créer un nouveau rôle",
+    "permissions": "Autorisations",
+    "cancel": "Annuler",
+    "userName": "Nom d'utilisateur",
+    "name": "Nom",
+    "email": "E-mail",
+    "role": "Rôle",
+    "createdBy": "Créé par",
+    "actions": "Actions",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "noRolesFound": "Aucun rôle trouvé. Créez un nouveau rôle pour commencer.",
+    "deleteAdminPrompt": "Voulez-vous supprimer cet administrateur ?",
+    "confirm": "Confirmer",
+    "deleteRolePrompt": "Êtes-vous sûr de vouloir supprimer ce rôle ?",
+    "searchOrType": "Rechercher ou taper une commande...",
+    "signOff": "Déconnexion",
+    "create": "Créer {{entity}}",
+    "noAdminsFound": "Aucun administrateur trouvé. Créez-en un pour commencer.",
+    "createNewAdmin": "Créer un nouvel administrateur",
+    "updateAdmin": "Mettre à jour l'administrateur",
+    "adminName": "Nom de l'administrateur",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "assignRoles": "Attribuer des rôles",
     "admin": "Administrateur"
   },
-  "he": {
-    "admin": "מנהל"
+  "hi": {
+    "changeLanguage": "भाषा बदलें",
+    "dashboard": "डैशबोर्ड",
+    "messages": {
+      "success": {
+        "entityAdded": "{{ entity }} सफलतापूर्वक जोड़ा गया",
+        "entityUpdated": "{{ entity }} सफलतापूर्वक अपडेट किया गया",
+        "entityDeleted": "{{ entity }} सफलतापूर्वक हटाया गया"
+      },
+      "error": {
+        "entityNotFound": "{{ entity }} नहीं मिला"
+      }
+    },
+    "accessManagement": "प्रवेश प्रबंधन",
+    "rolesAndPermissions": "भूमिकाएँ और अनुमतियाँ",
+    "allAdmins": "सभी व्यवस्थापक",
+    "allServices": "सभी सेवाएं",
+    "roleName": "भूमिका का नाम",
+    "createNewRole": "नई भूमिका बनाएँ",
+    "permissions": "अनुमतियाँ",
+    "cancel": "रद्द करें",
+    "userName": "उपयोगकर्ता नाम",
+    "name": "नाम",
+    "email": "ईमेल",
+    "role": "भूमिका",
+    "createdBy": "द्वारा निर्मित",
+    "actions": "क्रियाएँ",
+    "edit": "संपादित करें",
+    "delete": "हटाएं",
+    "noRolesFound": "कोई भूमिका नहीं मिली। आरंभ करने के लिए एक नई भूमिका बनाएँ।",
+    "deleteAdminPrompt": "क्या आप इस व्यवस्थापक को हटाना चाहते हैं?",
+    "confirm": "पुष्टि करें",
+    "deleteRolePrompt": "क्या आप वाकई इस भूमिका को हटाना चाहते हैं?",
+    "searchOrType": "खोजें या कमांड टाइप करें...",
+    "signOff": "साइन ऑफ करें",
+    "create": "{{entity}} बनाएँ",
+    "noAdminsFound": "कोई व्यवस्थापक नहीं मिला। आरंभ करने के लिए एक नया व्यवस्थापक बनाएँ।",
+    "createNewAdmin": "नया व्यवस्थापक बनाएँ",
+    "updateAdmin": "व्यवस्थापक अपडेट करें",
+    "adminName": "व्यवस्थापक का नाम",
+    "password": "पासवर्ड",
+    "confirmPassword": "पासवर्ड की पुष्टि करें",
+    "assignRoles": "भूमिकाएँ असाइन करें",
+    "admin": "व्यवस्थापक"
   },
-  "it": {
-    "admin": "Amministratore"
+  "gu": {
+    "changeLanguage": "ભાષા બદલો",
+    "dashboard": "ડેશબોર્ડ",
+    "messages": {
+      "success": {
+        "entityAdded": "{{ entity }} સફળતાપૂર્વક ઉમેરાયું",
+        "entityUpdated": "{{ entity }} સફળતાપૂર્વક અપડેટ થયું",
+        "entityDeleted": "{{ entity }} સફળતાપૂર્વક કાઢી નાખાયું"
+      },
+      "error": {
+        "entityNotFound": "{{ entity }} મળ્યું નહીં"
+      }
+    },
+    "accessManagement": "પ્રવેશ વ્યવસ્થાપન",
+    "rolesAndPermissions": "ભૂમિકા અને પરવાનગીઓ",
+    "allAdmins": "બધા એડમિન",
+    "allServices": "બધી સેવાઓ",
+    "roleName": "ભૂમિકાનું નામ",
+    "createNewRole": "નવી ભૂમિકા બનાવો",
+    "permissions": "પરવાનગીઓ",
+    "cancel": "રદ કરો",
+    "userName": "વપરાશકર્તા નામ",
+    "name": "નામ",
+    "email": "ઇમેઇલ",
+    "role": "ભૂમિકા",
+    "createdBy": "દ્વારા બનાવેલ",
+    "actions": "ક્રિયાઓ",
+    "edit": "સંપાદિત કરો",
+    "delete": "કાઢી નાખો",
+    "noRolesFound": "કોઈ ભૂમિકાઓ મળી નથી. શરૂ કરવા માટે નવી બનાવો.",
+    "deleteAdminPrompt": "શું તમે આ એડમિનને કાઢી નાખવા માંગો છો?",
+    "confirm": "ખાતરી કરો",
+    "deleteRolePrompt": "શું તમે ખરેખર આ ભૂમિકા કાઢી નાખવા માંગો છો?",
+    "searchOrType": "શોધો અથવા કમાન્ડ લખો...",
+    "signOff": "સાઇન ઑફ કરો",
+    "create": "{{entity}} બનાવો",
+    "noAdminsFound": "કોઈ એડમિન મળ્યો નથી. શરૂ કરવા માટે નવી બનાવો.",
+    "createNewAdmin": "નવો એડમિન બનાવો",
+    "updateAdmin": "એડમિન અપડેટ કરો",
+    "adminName": "એડમિન નામ",
+    "password": "પાસવર્ડ",
+    "confirmPassword": "પાસવર્ડની પુષ્ટિ કરો",
+    "assignRoles": "ભૂમિકાઓ સોંપો",
+    "admin": "એડમિન"
   },
-  "ja": {
-    "admin": "管理者"
+  "ta": {
+    "changeLanguage": "மொழியை மாற்று",
+    "dashboard": "டாஷ்போர்டு",
+    "messages": {
+      "success": {
+        "entityAdded": "{{ entity }} வெற்றிகரமாக சேர்க்கப்பட்டது",
+        "entityUpdated": "{{ entity }} வெற்றிகரமாக புதுப்பிக்கப்பட்டது",
+        "entityDeleted": "{{ entity }} வெற்றிகரமாக நீக்கப்பட்டது"
+      },
+      "error": {
+        "entityNotFound": "{{ entity }} காணப்படவில்லை"
+      }
+    },
+    "accessManagement": "அணுகல் மேலாண்மை",
+    "rolesAndPermissions": "பாத்திரங்கள் மற்றும் அனுமதிகள்",
+    "allAdmins": "அனைத்து நிர்வாகிகள்",
+    "allServices": "அனைத்து சேவைகள்",
+    "roleName": "பாத்திரத்தின் பெயர்",
+    "createNewRole": "புதிய பாத்திரத்தை உருவாக்கவும்",
+    "permissions": "அனுமதிகள்",
+    "cancel": "ரத்து செய்",
+    "userName": "பயனர் பெயர்",
+    "name": "பெயர்",
+    "email": "மின்னஞ்சல்",
+    "role": "பங்கு",
+    "createdBy": "உருவாக்கியவர்",
+    "actions": "செயல்கள்",
+    "edit": "தொகு",
+    "delete": "நீக்கு",
+    "noRolesFound": "பாத்திரங்கள் கிடைக்கவில்லை. புதியதை உருவாக்கவும்.",
+    "deleteAdminPrompt": "இந்த நிர்வாகியை நீக்க விரும்புகிறீர்களா?",
+    "confirm": "உறுதிப்படுத்து",
+    "deleteRolePrompt": "இந்த பாத்திரத்தை நீக்க விரும்புகிறீர்களா?",
+    "searchOrType": "தேடவும் அல்லது கட்டளையை உள்ளிடவும்...",
+    "signOff": "வெளியேறு",
+    "create": "{{entity}} உருவாக்கு",
+    "noAdminsFound": "நிர்வாகிகள் இல்லை. ஒன்றை உருவாக்கவும்.",
+    "createNewAdmin": "புதிய நிர்வாகியை உருவாக்கவும்",
+    "updateAdmin": "நிர்வாகியை புதுப்பிக்கவும்",
+    "adminName": "நிர்வாகியின் பெயர்",
+    "password": "கடவுச்சொல்",
+    "confirmPassword": "கடவுச்சொல்லை உறுதிப்படுத்து",
+    "assignRoles": "பாத்திரங்களை ஒதுக்கவும்",
+    "admin": "நிர்வாகி"
   },
-  "ko": {
-    "admin": "관리자"
+  "te": {
+    "changeLanguage": "భాషను మార్చు",
+    "dashboard": "డాష్‌బోర్డ్",
+    "messages": {
+      "success": {
+        "entityAdded": "{{ entity }} విజయవంతంగా జోడించబడింది",
+        "entityUpdated": "{{ entity }} విజయవంతంగా నవీకరించబడింది",
+        "entityDeleted": "{{ entity }} విజయవంతంగా తొలగించబడింది"
+      },
+      "error": {
+        "entityNotFound": "{{ entity }} కనబడలేదు"
+      }
+    },
+    "accessManagement": "ప్రవేశ నిర్వహణ",
+    "rolesAndPermissions": "పాత్రలు మరియు అనుమతులు",
+    "allAdmins": "అన్ని అడ్మిన్లు",
+    "allServices": "అన్ని సేవలు",
+    "roleName": "పాత్ర పేరు",
+    "createNewRole": "కొత్త పాత్ర సృష్టించండి",
+    "permissions": "అనుమతులు",
+    "cancel": "రద్దు",
+    "userName": "వాడుకరి పేరు",
+    "name": "పేరు",
+    "email": "ఇమెయిల్",
+    "role": "పాత్ర",
+    "createdBy": "సృష్టించినవాడు",
+    "actions": "చర్యలు",
+    "edit": "సవరించు",
+    "delete": "తొలగించు",
+    "noRolesFound": "పాత్రలు లభించలేదు. ప్రారంభించడానికి కొత్తది సృష్టించండి.",
+    "deleteAdminPrompt": "ఈ అడ్మిన్‌ని తొలగించాలనుకుంటున్నారా?",
+    "confirm": "నిర్ధారించు",
+    "deleteRolePrompt": "ఈ పాత్రను నిజంగా తొలగించాలా?",
+    "searchOrType": "శోధించండి లేదా ఆదేశాన్ని టైప్ చేయండి...",
+    "signOff": "సైన్ ఆఫ్",
+    "create": "{{entity}} సృష్టించు",
+    "noAdminsFound": "అడ్మిన్లు కనబడలేదు. ఒక కొత్త అడ్మిన్‌ను సృష్టించండి.",
+    "createNewAdmin": "కొత్త అడ్మిన్ సృష్టించండి",
+    "updateAdmin": "అడ్మిన్‌ను నవీకరించండి",
+    "adminName": "అడ్మిన్ పేరు",
+    "password": "పాస్‌వర్డ్",
+    "confirmPassword": "పాస్‌వర్డ్‌ను నిర్ధారించండి",
+    "assignRoles": "పాత్రలు కేటాయించండి",
+    "admin": "అడ్మిన్"
   },
-  "nl": {
-    "admin": "Beheerder"
-  },
-  "pl": {
-    "admin": "Administrator"
-  },
-  "pt": {
-    "admin": "Administrador"
-  },
-  "zh": {
-    "admin": "管理员"
+  "mr": {
+    "changeLanguage": "भाषा बदला",
+    "dashboard": "डॅशबोर्ड",
+    "messages": {
+      "success": {
+        "entityAdded": "{{ entity }} यशस्वीरित्या जोडले गेले",
+        "entityUpdated": "{{ entity }} यशस्वीरित्या अद्यतनित केले गेले",
+        "entityDeleted": "{{ entity }} यशस्वीरित्या हटवले गेले"
+      },
+      "error": {
+        "entityNotFound": "{{ entity }} सापडले नाही"
+      }
+    },
+    "accessManagement": "प्रवेश व्यवस्थापन",
+    "rolesAndPermissions": "भूमिका आणि परवानग्या",
+    "allAdmins": "सर्व व्यवस्थापक",
+    "allServices": "सर्व सेवा",
+    "roleName": "भूमिकेचे नाव",
+    "createNewRole": "नवीन भूमिका तयार करा",
+    "permissions": "परवानग्या",
+    "cancel": "रद्द करा",
+    "userName": "वापरकर्त्याचे नाव",
+    "name": "नाव",
+    "email": "ईमेल",
+    "role": "भूमिका",
+    "createdBy": "द्वारे तयार",
+    "actions": "क्रिया",
+    "edit": "संपादित करा",
+    "delete": "हटवा",
+    "noRolesFound": "कोणतीही भूमिका सापडली नाही. सुरू करण्यासाठी नवीन तयार करा.",
+    "deleteAdminPrompt": "तुम्हाला हा व्यवस्थापक हटवायचा आहे का?",
+    "confirm": "पुष्टी करा",
+    "deleteRolePrompt": "तुम्हाला ही भूमिका नक्की हटवायची आहे का?",
+    "searchOrType": "शोधा किंवा आदेश लिहा...",
+    "signOff": "साइन ऑफ",
+    "create": "{{entity}} तयार करा",
+    "noAdminsFound": "कोणतेही व्यवस्थापक सापडले नाहीत. नवीन व्यवस्थापक तयार करा.",
+    "createNewAdmin": "नवीन व्यवस्थापक तयार करा",
+    "updateAdmin": "व्यवस्थापक अद्यतनित करा",
+    "adminName": "व्यवस्थापकाचे नाव",
+    "password": "पासवर्ड",
+    "confirmPassword": "पासवर्डची पुष्टी करा",
+    "assignRoles": "भूमिका नियुक्त करा",
+    "admin": "व्यवस्थापक"
   }
 }

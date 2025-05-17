@@ -18,15 +18,15 @@ export type OptionalTranslations = {
 export enum SupportedLanguages {
   'en' = 'en',
   'ar' = 'ar',
-  'zh' = 'zh',
   'de' = 'de',
   'es' = 'es',
   'fr' = 'fr',
   'he' = 'he',
   'it' = 'it',
-  'ja' = 'ja',
-  'ko' = 'ko',
-  'nl' = 'nl',
-  'pl' = 'pl',
-  'pt' = 'pt',
+  'hi' = 'hi',   
+  'gu' = 'gu',   
+  'ta' = 'ta',   
+  'te' = 'te',   
+  'mr' = 'mr',   
 }
+

@@ -1,0 +1,69 @@
+{
+  "localLanguages": {
+    "english": "अंग्रेज़ी",
+    "arabic": "अरबी",
+    "german": "जर्मन",
+    "spanish": "स्पेनिश",
+    "french": "फ्रेंच",
+    "hindi": "हिन्दी",
+    "gujarati": "गुजराती",
+    "tamil": "तमिल",
+    "telugu": "तेलुगु",
+    "marathi": "मराठी"
+  },
+  "languages": {
+    "english": "English",
+    "arabic": "العربية",
+    "german": "Deutsch",
+    "spanish": "Español",
+    "french": "Français",
+    "hindi": "हिन्दी",
+    "gujarati": "ગુજરાતી",
+    "tamil": "தமிழ்",
+    "telugu": "తెలుగు",
+    "marathi": "मराठी"
+  },
+  "changeLanguage": "भाषा बदलें",
+  "dashboard": "डैशबोर्ड",
+  "messages": {
+    "success": {
+      "entityAdded": "{{ entity }} सफलतापूर्वक जोड़ा गया",
+      "entityUpdated": "{{ entity }} सफलतापूर्वक अपडेट किया गया",
+      "entityDeleted": "{{ entity }} सफलतापूर्वक हटाया गया"
+    },
+    "error": {
+      "entityNotFound": "{{ entity }} नहीं मिला"
+    }
+  },
+  "accessManagement": "प्रवेश प्रबंधन",
+  "rolesAndPermissions": "भूमिकाएँ और अनुमतियाँ",
+  "allAdmins": "सभी व्यवस्थापक",
+  "allServices": "सभी सेवाएं",
+  "roleName": "भूमिका का नाम",
+  "createNewRole": "नई भूमिका बनाएँ",
+  "permissions": "अनुमतियाँ",
+  "cancel": "रद्द करें",
+  "userName": "उपयोगकर्ता नाम",
+  "name": "नाम",
+  "email": "ईमेल",
+  "role": "भूमिका",
+  "createdBy": "द्वारा निर्मित",
+  "actions": "क्रियाएँ",
+  "edit": "संपादित करें",
+  "delete": "हटाएं",
+  "noRolesFound": "कोई भूमिका नहीं मिली। आरंभ करने के लिए एक नई भूमिका बनाएँ।",
+  "deleteAdminPrompt": "क्या आप इस व्यवस्थापक को हटाना चाहते हैं?",
+  "confirm": "पुष्टि करें",
+  "deleteRolePrompt": "क्या आप वाकई इस भूमिका को हटाना चाहते हैं?",
+  "searchOrType": "खोजें या कमांड टाइप करें...",
+  "signOff": "साइन ऑफ करें",
+  "create": "{{entity}} बनाएँ",
+  "noAdminsFound": "कोई व्यवस्थापक नहीं मिला। आरंभ करने के लिए एक नया व्यवस्थापक बनाएँ।",
+  "createNewAdmin": "नया व्यवस्थापक बनाएँ",
+  "updateAdmin": "व्यवस्थापक अपडेट करें",
+  "adminName": "व्यवस्थापक का नाम",
+  "password": "पासवर्ड",
+  "confirmPassword": "पासवर्ड की पुष्टि करें",
+  "assignRoles": "भूमिकाएँ असाइन करें",
+  "admin": "व्यवस्थापक"
+}

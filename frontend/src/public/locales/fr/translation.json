@@ -1,33 +1,25 @@
 {
   "localLanguages": {
     "arabic": "Arabe",
-    "chinese": "Chinois",
-    "dutch": "Néerlandais",
     "english": "Anglais",
     "french": "Français",
-    "german": "Allemand",
-    "hebrew": "Hébreu",
-    "italian": "Italien",
-    "japanese": "Japonais",
-    "korean": "Coréen",
-    "polish": "Polonais",
-    "portuguese": "Portugais",
-    "spanish": "Espagnol"
+    "spanish": "Espagnol",
+    "hindi": "Hindi",
+    "gujarati": "Gujarati",
+    "tamil": "Tamoul",
+    "telugu": "Télougou",
+    "marathi": "Marathi"
   },
   "languages": {
-    "arabic": "عربي",
-    "chinese": "中文",
-    "dutch": "Nederlands",
+    "arabic": "العربية",
     "english": "English",
     "french": "Français",
-    "german": "Deutsch",
-    "hebrew": "עִברִית",
-    "italian": "Italiano",
-    "japanese": "日本語",
-    "korean": "한국인",
-    "polish": "Polski",
-    "portuguese": "Português",
-    "spanish": "Español"
+    "spanish": "Español",
+    "hindi": "हिन्दी",
+    "gujarati": "ગુજરાતી",
+    "tamil": "தமிழ்",
+    "telugu": "తెలుగు",
+    "marathi": "मराठी"
   },
   "changeLanguage": "Changer de langue",
   "messages": {
@@ -37,7 +29,7 @@
       "entityDeleted": "{{ entity }} supprimé avec succès"
     },
     "error": {
-      "entityNotFound": "{{ entity }} non trouvé"
+      "entityNotFound": "{{ entity }} introuvable"
     }
   },
   "dashboard": "Tableau de bord",
@@ -62,9 +54,9 @@
   "confirm": "Confirmer",
   "deleteRolePrompt": "Êtes-vous sûr de vouloir supprimer ce rôle ?",
   "searchOrType": "Rechercher ou taper une commande...",
-  "signOff": "Se déconnecter",
+  "signOff": "Déconnexion",
   "create": "Créer {{entity}}",
-  "noAdminsFound": "Aucun administrateur trouvé. Créez un nouvel administrateur pour commencer.",
+  "noAdminsFound": "Aucun administrateur trouvé. Créez-en un pour commencer.",
   "createNewAdmin": "Créer un nouvel administrateur",
   "updateAdmin": "Mettre à jour l'administrateur",
   "adminName": "Nom de l'administrateur",

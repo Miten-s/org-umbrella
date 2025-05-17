@@ -34,7 +34,7 @@ const LanguageDropdown: React.FC<LanguageDropdownProps> = ({
             await i18n.changeLanguage(lng);
             localStorage.setItem('i18nextLng', lng);
             setCurrentLanguage(lng);
-            
+
             dispatch(
                 updateCurrentUser({
                     ...currentUser,
@@ -57,18 +57,15 @@ const LanguageDropdown: React.FC<LanguageDropdownProps> = ({
     const languageOptions = [
         { label: t('languages.english'), key: SupportedLanguages.en },
         { label: t('languages.arabic'), key: SupportedLanguages.ar },
-        { label: t('languages.chinese'), key: SupportedLanguages.zh },
-        { label: t('languages.german'), key: SupportedLanguages.de },
         { label: t('languages.spanish'), key: SupportedLanguages.es },
         { label: t('languages.french'), key: SupportedLanguages.fr },
-        { label: t('languages.hebrew'), key: SupportedLanguages.he },
-        { label: t('languages.italian'), key: SupportedLanguages.it },
-        { label: t('languages.japanese'), key: SupportedLanguages.ja },
-        { label: t('languages.korean'), key: SupportedLanguages.ko },
-        { label: t('languages.dutch'), key: SupportedLanguages.nl },
-        { label: t('languages.polish'), key: SupportedLanguages.pl },
-        { label: t('languages.portuguese'), key: SupportedLanguages.pt },
+        { label: t('languages.hindi'), key: SupportedLanguages.hi },
+        { label: t('languages.gujarati'), key: SupportedLanguages.gu },
+        { label: t('languages.tamil'), key: SupportedLanguages.ta },
+        { label: t('languages.telugu'), key: SupportedLanguages.te },
+        { label: t('languages.marathi'), key: SupportedLanguages.mr },
     ];
+
 
     const filteredLanguages = languageOptions.filter((lang) =>
         !languagesFromProps || languagesFromProps.length === 0

@@ -1,0 +1,69 @@
+{
+  "localLanguages": {
+    "english": "ઇંગલિશ",
+    "arabic": "અરબી",
+    "german": "જર્મન",
+    "spanish": "સ્પેનિશ",
+    "french": "ફ્રેન્ચ",
+    "hindi": "હિન્દી",
+    "gujarati": "ગુજરાતી",
+    "tamil": "તમિલ",
+    "telugu": "તેલગુ",
+    "marathi": "મરાઠી"
+  },
+  "languages": {
+    "english": "English",
+    "arabic": "العربية",
+    "german": "Deutsch",
+    "spanish": "Español",
+    "french": "Français",
+    "hindi": "हिन्दी",
+    "gujarati": "ગુજરાતી",
+    "tamil": "தமிழ்",
+    "telugu": "తెలుగు",
+    "marathi": "मराठी"
+  },
+  "changeLanguage": "ભાષા બદલો",
+  "dashboard": "ડેશબોર્ડ",
+  "messages": {
+    "success": {
+      "entityAdded": "{{ entity }} સફળતાપૂર્વક ઉમેરાયું",
+      "entityUpdated": "{{ entity }} સફળતાપૂર્વક અપડેટ થયું",
+      "entityDeleted": "{{ entity }} સફળતાપૂર્વક કાઢી નાખાયું"
+    },
+    "error": {
+      "entityNotFound": "{{ entity }} મળ્યું નહીં"
+    }
+  },
+  "accessManagement": "પ્રવેશ વ્યવસ્થાપન",
+  "rolesAndPermissions": "ભૂમિકા અને પરવાનગીઓ",
+  "allAdmins": "બધા એડમિન",
+  "allServices": "બધી સેવાઓ",
+  "roleName": "ભૂમિકાનું નામ",
+  "createNewRole": "નવી ભૂમિકા બનાવો",
+  "permissions": "પરવાનગીઓ",
+  "cancel": "રદ કરો",
+  "userName": "વપરાશકર્તા નામ",
+  "name": "નામ",
+  "email": "ઇમેઇલ",
+  "role": "ભૂમિકા",
+  "createdBy": "દ્વારા બનાવેલ",
+  "actions": "ક્રિયાઓ",
+  "edit": "સંપાદિત કરો",
+  "delete": "કાઢી નાખો",
+  "noRolesFound": "કોઈ ભૂમિકાઓ મળી નથી. શરૂ કરવા માટે નવી બનાવો.",
+  "deleteAdminPrompt": "શું તમે આ એડમિનને કાઢી નાખવા માંગો છો?",
+  "confirm": "ખાતરી કરો",
+  "deleteRolePrompt": "શું તમે ખરેખર આ ભૂમિકા કાઢી નાખવા માંગો છો?",
+  "searchOrType": "શોધો અથવા કમાન્ડ લખો...",
+  "signOff": "સાઇન ઑફ કરો",
+  "create": "{{entity}} બનાવો",
+  "noAdminsFound": "કોઈ એડમિન મળ્યો નથી. શરૂ કરવા માટે નવી બનાવો.",
+  "createNewAdmin": "નવો એડમિન બનાવો",
+  "updateAdmin": "એડમિન અપડેટ કરો",
+  "adminName": "એડમિન નામ",
+  "password": "પાસવર્ડ",
+  "confirmPassword": "પાસવર્ડની પુષ્ટિ કરો",
+  "assignRoles": "ભૂમિકાઓ સોંપો",
+  "admin": "એડમિન"
+}

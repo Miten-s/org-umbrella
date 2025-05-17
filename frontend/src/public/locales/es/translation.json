@@ -1,47 +1,38 @@
 {
   "localLanguages": {
     "arabic": "Árabe",
-    "chinese": "Chino",
-    "dutch": "Holandés",
     "english": "Inglés",
     "french": "Francés",
     "german": "Alemán",
-    "hebrew": "Hebreo",
-    "italian": "Italiano",
-    "japanese": "Japonés",
-    "korean": "Coreano",
-    "polish": "Polaco",
-    "portuguese": "Portugués",
-    "spanish": "Español"
+    "hindi": "Hindi",
+    "gujarati": "Gujarati",
+    "tamil": "Tamil",
+    "telugu": "Telugu",
+    "marathi": "Maratí"
   },
   "languages": {
-    "arabic": "عربي",
-    "chinese": "中文",
-    "dutch": "Nederlands",
+    "arabic": "العربية",
     "english": "English",
     "french": "Français",
-    "german": "Deutsch",
-    "hebrew": "עִברִית",
-    "italian": "Italiano",
-    "japanese": "日本語",
-    "korean": "한국인",
-    "polish": "Polski",
-    "portuguese": "Português",
-    "spanish": "Español"
+    "hindi": "हिन्दी",
+    "gujarati": "ગુજરાતી",
+    "tamil": "தமிழ்",
+    "telugu": "తెలుగు",
+    "marathi": "मराठी"
   },
   "changeLanguage": "Cambiar idioma",
-  "dashboard": "Panel de control",
+  "dashboard": "Tablero",
   "messages": {
     "success": {
-      "entityAdded": "{{ entity }} agregado exitosamente",
-      "entityUpdated": "{{ entity }} actualizado exitosamente",
-      "entityDeleted": "{{ entity }} eliminado exitosamente"
+      "entityAdded": "{{ entity }} agregado con éxito",
+      "entityUpdated": "{{ entity }} actualizado con éxito",
+      "entityDeleted": "{{ entity }} eliminado con éxito"
     },
     "error": {
       "entityNotFound": "{{ entity }} no encontrado"
     }
   },
-  "accessManagement": "Gestión de accesos",
+  "accessManagement": "Gestión de acceso",
   "rolesAndPermissions": "Roles y permisos",
   "allAdmins": "Todos los administradores",
   "allServices": "Todos los servicios",
@@ -60,11 +51,11 @@
   "noRolesFound": "No se encontraron roles. Cree uno nuevo para comenzar.",
   "deleteAdminPrompt": "¿Desea eliminar a este administrador?",
   "confirm": "Confirmar",
-  "deleteRolePrompt": "¿Está seguro de que desea eliminar este rol?",
+  "deleteRolePrompt": "¿Está seguro de que desea eliminar el rol?",
   "searchOrType": "Buscar o escribir comando...",
   "signOff": "Cerrar sesión",
   "create": "Crear {{entity}}",
-  "noAdminsFound": "No se encontraron administradores. Crea uno nuevo para comenzar.",
+  "noAdminsFound": "No se encontraron administradores. Cree uno nuevo para comenzar.",
   "createNewAdmin": "Crear nuevo administrador",
   "updateAdmin": "Actualizar administrador",
   "adminName": "Nombre del administrador",
