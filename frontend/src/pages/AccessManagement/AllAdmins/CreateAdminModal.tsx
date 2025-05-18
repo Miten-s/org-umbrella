@@ -1,10 +1,10 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { getAdminSchema } from "@/lib/schema";
-import Label from "../../../components/common/form/Label";
-import Input from "../../../components/common/form/input/InputField";
-import MultiSelect from "../../../components/common/form/MultiSelect";
-import Button from "../../../components/ui/button/Button";
+import Label from "@/components/common/form/Label";
+import Input from "@/components/common/form/input/InputField";
+import MultiSelect from "@/components/common/form/MultiSelect";
+import Button from "@/components/ui/button/Button";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
 

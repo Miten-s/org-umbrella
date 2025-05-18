@@ -1,6 +1,6 @@
 import Button from "@/components/ui/button/Button";
 import CreateAdminModal from "./CreateAdminModal";
-import { useModal } from "../../../hooks/useModal";
+import { useModal } from "@/hooks/useModal";
 import { Modal } from "@/components/ui/modal";
 import { useEffect, useState } from "react";
 import {
