@@ -7,6 +7,8 @@ import MultiSelect from "@/components/common/form/MultiSelect";
 import Button from "@/components/ui/button/Button";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
+import Checkbox from "@/components/common/form/input/Checkbox";
+import SignatureCanvas from "@/components/common/Signature";
 
 interface Option {
   value: string;
@@ -27,7 +29,6 @@ const CreateAdminModal = ({
   activeUser
 }: CreateAdminModalProps) => {
   const adminSchema = getAdminSchema(!!activeUser);
-
   type CreateAdminForm = z.infer<typeof adminSchema>;
   const {
     register,
@@ -41,21 +42,26 @@ const CreateAdminModal = ({
       email: activeUser ? activeUser?.email : "",
       password: "",
       confirmPassword: "",
+      phone: "",
+      group: "",
+      signature: "",
       assignRole: activeUser
         ? activeUser?.roles.map((role: { _id: string }) => role._id.toString())
         : []
     }
   });
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   return (
     <div className="p-6 max-h-[90vh] overflow-y-auto">
-      <h2 className="text-xl font-semibold mb-4">{!activeUser ? t('createNewAdmin') : t('updateAdmin')}</h2>
+      <h2 className="text-xl font-semibold mb-4">
+        {!activeUser ? t("createNewAdmin") : t("updateAdmin")}
+      </h2>
       <form
         onSubmit={handleSubmit(onSubmit)}
         className="grid grid-cols-1 md:grid-cols-2 gap-4"
       >
         <div>
-          <Label htmlFor="adminName">{t('adminName')}</Label>
+          <Label htmlFor="adminName">{t("adminName")}</Label>
           <Input
             id="adminName"
             {...register("name")}
@@ -65,7 +71,7 @@ const CreateAdminModal = ({
         </div>
 
         <div>
-          <Label htmlFor="email">{t('email')}</Label>
+          <Label htmlFor="email">{t("email")}</Label>
           <Input
             id="email"
             type="email"
@@ -77,7 +83,57 @@ const CreateAdminModal = ({
         </div>
 
         <div>
-          <Label htmlFor="password"> {t('password')}</Label>
+          <Label htmlFor="phone">{t("phone")}</Label>
+          <Input
+            id="phone"
+            type="tel"
+            {...register("phone")}
+            disabled={activeUser}
+            error={!!errors.email}
+            hint={errors.email?.message}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="group">{t("group")}</Label>
+          <Input
+            id="group"
+            type="text"
+            {...register("group")}
+            disabled={activeUser}
+            error={!!errors.email}
+            hint={errors.email?.message}
+          />
+        </div>
+
+        <div className="flex items-center gap-4">
+          <Checkbox
+            label={t("modifiable")}
+            checked={activeUser}
+            onChange={() => {}}
+          />
+          <Checkbox
+            label={t("training")}
+            checked={activeUser}
+            onChange={() => {}}
+          />
+        </div>
+
+        <div>
+          {/* <Label htmlFor="signature"> {t("signature")}</Label>
+          <Input
+            id="signature"
+            type="text"
+            disabled={activeUser}
+            {...register("signature")}
+            error={!!errors.password}
+            hint={errors.password?.message}
+          /> */}
+          <SignatureCanvas />
+        </div>
+
+        <div>
+          <Label htmlFor="password"> {t("password")}</Label>
           <Input
             id="password"
             type="password"
@@ -89,7 +145,7 @@ const CreateAdminModal = ({
         </div>
 
         <div>
-          <Label htmlFor="confirmPassword">{t('confirmPassword')}</Label>
+          <Label htmlFor="confirmPassword">{t("confirmPassword")}</Label>
           <Input
             id="confirmPassword"
             type="password"
@@ -101,7 +157,7 @@ const CreateAdminModal = ({
         </div>
 
         <div className="md:col-span-2">
-          <Label htmlFor="assignRole"> {t('assignRoles')} </Label>
+          <Label htmlFor="assignRole"> {t("assignRoles")} </Label>
           <MultiSelect
             label="Multiple Select Options"
             options={roles}
@@ -121,9 +177,13 @@ const CreateAdminModal = ({
 
         <div className="md:col-span-2 flex justify-end space-x-3 pt-4">
           <Button variant="outline" onClick={onClose}>
-            {t('cancel')}
+            {t("cancel")}
           </Button>
-          <Button type="submit">{!activeUser ? t('create', {entity: t('admin') }) :  t('updateAdmin')}</Button>
+          <Button type="submit">
+            {!activeUser
+              ? t("create", { entity: t("admin") })
+              : t("updateAdmin")}
+          </Button>
         </div>
       </form>
     </div>
