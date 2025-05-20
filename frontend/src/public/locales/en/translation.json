@@ -63,5 +63,7 @@
   "password": "Password",
   "confirmPassword": "Confirm Password",
   "assignRoles": "Assign Roles",
-  "admin": "Admin"
+  "admin": "Admin",
+  "welcomeTitle": "Welcome to the Dashboard",
+  "welcomeSubtitle": "This is your dashboard where you can manage everything."
 }

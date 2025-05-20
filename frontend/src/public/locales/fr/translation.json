@@ -63,5 +63,7 @@
   "password": "Mot de passe",
   "confirmPassword": "Confirmer le mot de passe",
   "assignRoles": "Attribuer des rôles",
-  "admin": "Administrateur"
+  "admin": "Administrateur",
+  "welcomeTitle": "Bienvenue sur le tableau de bord",
+  "welcomeSubtitle": "Voici votre tableau de bord où vous pouvez tout gérer."
 }

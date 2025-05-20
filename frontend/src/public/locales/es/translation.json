@@ -62,5 +62,7 @@
   "password": "Contraseña",
   "confirmPassword": "Confirmar contraseña",
   "assignRoles": "Asignar roles",
-  "admin": "Administrador"
+  "admin": "Administrador",
+  "welcomeTitle": "Bienvenido al panel de control",
+  "welcomeSubtitle": "Este es tu panel donde puedes gestionar todo."
 }
