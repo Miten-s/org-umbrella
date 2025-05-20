@@ -65,5 +65,13 @@
   "assignRoles": "Attribuer des rôles",
   "admin": "Administrateur",
   "welcomeTitle": "Bienvenue sur le tableau de bord",
-  "welcomeSubtitle": "Voici votre tableau de bord où vous pouvez tout gérer."
+  "welcomeSubtitle": "Voici votre tableau de bord où vous pouvez tout gérer.",
+  "mySpace": "Mon espace",
+  "systemITAdministration": "Administration informatique du système",
+  "profileInfo": "Informations du profil",
+  "systemSettings": "Paramètres du système",
+  "users": "Utilisateurs",
+  "departments": "Départements",
+  "designations": "Désignations",
+  "locationsGroups": "Lieux / Groupes"
 }

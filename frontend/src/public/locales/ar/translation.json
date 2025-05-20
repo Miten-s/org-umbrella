@@ -65,5 +65,13 @@
   "assignRoles": "تعيين الأدوار",
   "admin": "مسؤول",
   "welcomeTitle": "مرحبًا بك في لوحة التحكم",
-  "welcomeSubtitle": "هذه هي لوحة التحكم الخاصة بك حيث يمكنك إدارة كل شيء."
+  "welcomeSubtitle": "هذه هي لوحة التحكم الخاصة بك حيث يمكنك إدارة كل شيء.",
+  "mySpace": "مساحتي",
+  "systemITAdministration": "إدارة تكنولوجيا المعلومات للنظام",
+  "profileInfo": "معلومات الملف الشخصي",
+  "systemSettings": "إعدادات النظام",
+  "users": "المستخدمون",
+  "departments": "الأقسام",
+  "designations": "المسميات الوظيفية",
+  "locationsGroups": "المواقع / المجموعات"
 }

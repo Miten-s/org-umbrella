@@ -67,5 +67,13 @@
   "assignRoles": "भूमिकाएँ असाइन करें",
   "admin": "व्यवस्थापक",
   "welcomeTitle": "डैशबोर्ड में आपका स्वागत है",
-  "welcomeSubtitle": "यह आपका डैशबोर्ड है जहाँ आप सब कुछ प्रबंधित कर सकते हैं।"
+  "welcomeSubtitle": "यह आपका डैशबोर्ड है जहाँ आप सब कुछ प्रबंधित कर सकते हैं।",
+  "mySpace": "माई स्पेस",
+  "systemITAdministration": "सिस्टम आईटी प्रशासन",
+  "profileInfo": "प्रोफ़ाइल जानकारी",
+  "systemSettings": "सिस्टम सेटिंग्स",
+  "users": "उपयोगकर्ता",
+  "departments": "विभाग",
+  "designations": "पदनाम",
+  "locationsGroups": "स्थान / समूह"
 }

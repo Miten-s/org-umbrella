@@ -67,5 +67,13 @@
   "assignRoles": "भूमिका नियुक्त करा",
   "admin": "व्यवस्थापक",
   "welcomeTitle": "डॅशबोर्डमध्ये आपले स्वागत आहे",
-  "welcomeSubtitle": "हे तुमचे डॅशबोर्ड आहे जिथे तुम्ही सर्वकाही व्यवस्थापित करू शकता."
+  "welcomeSubtitle": "हे तुमचे डॅशबोर्ड आहे जिथे तुम्ही सर्वकाही व्यवस्थापित करू शकता.",
+  "mySpace": "माझी जागा",
+  "systemITAdministration": "सिस्टम आयटी प्रशासन",
+  "profileInfo": "प्रोफाइल माहिती",
+  "systemSettings": "सिस्टम सेटिंग्ज",
+  "users": "वापरकर्ते",
+  "departments": "विभाग",
+  "designations": "पदनामे",
+  "locationsGroups": "स्थान / गट"
 }

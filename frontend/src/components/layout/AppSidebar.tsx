@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import appLogo from "../../public/images/logo.png";
 import appSmLogo from "../../public/images/umbrella-clipart-cover.jpg";
-import { ChevronDownIcon, GridIcon, HorizontaLDots } from "../../public/icons";
+import { ChevronDownIcon, FolderIcon, GridIcon, HorizontaLDots, UserIcon } from "../../public/icons";
 import { useSidebar } from "../../context/SidebarContext";
-import { KeyIcon } from "@heroicons/react/24/outline";
+import { AccessIcon } from "../../public/icons";
 import { PageUrl } from "@/types/utils.types";
 import { useAuth } from "@/context/AuthContext";
 import { hasPermission } from "@/utils/permissions";
@@ -34,12 +34,32 @@ const AppSidebar: React.FC = () => {
       ]
     },
     {
+      //To-do why accessIcon not change color when we click on menu
+      icon: <AccessIcon />,
       name: t('accessManagement'),
-      icon: <KeyIcon className="w-5 h-5" />,
       permissions: ["READ:USER"],
       subItems: [
         { name: t('rolesAndPermissions'), path: PageUrl.Roles.path },
         { name: t('allAdmins'), path: PageUrl.Admins.path },
+      ]
+    },
+    {
+      icon: <UserIcon />,
+      name: t('mySpace'),
+      permissions: ["VIEW:DASHBOARD"],
+        subItems: [
+      { name: t('profileInfo'), path: PageUrl.ProfileInfo.path }
+    ]
+    },
+    {
+      icon: <FolderIcon />,
+      name: t('systemITAdministration'),
+      permissions: ["VIEW:DASHBOARD"],
+      subItems: [
+        { name: t('users'), path: PageUrl.Users.path },
+        { name: t('departments'), path: PageUrl.Departments.path },
+        { name: t('designations'), path: PageUrl.Designations.path },
+        { name: t('locationsGroups'), path: PageUrl.LocationsGroups.path }
       ]
     }
   ], [t, i18n.language]);

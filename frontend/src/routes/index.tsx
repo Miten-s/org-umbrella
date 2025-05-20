@@ -3,11 +3,19 @@ import AppLayout from "../components/layout/AppLayout";
 import { PageUrl } from "@/types/utils.types";
 import Login from "@/components/sign-in/Login";
 
-const Dashboard = lazy(() => import("../pages/Dashboard"));
-const RolesAndPermissions = lazy(
-  () => import("../pages/AccessManagement/RolesAndPermissions")
-);
-const Admins = lazy(() => import("@/pages/AccessManagement/AllAdmins"));
+// Dashboard & Access Management
+const Dashboard = lazy(() => import("../pages/dashboard"));
+const RolesAndPermissions = lazy(() => import("../pages/access-management/roles-and-permissions"));
+const Admins = lazy(() => import("../pages/access-management/all-admins"));
+
+// My Space
+const ProfileInfo = lazy(() => import("../pages/my-space/profile-info"));
+
+// System IT Admin
+const SysUsers = lazy(() => import("../pages/system-it-admin/users"));
+const SysDepartments = lazy(() => import("../pages/system-it-admin/departments"));
+const SysDesignations = lazy(() => import("../pages/system-it-admin/designations"));
+const SysLocations = lazy(() => import("../pages/system-it-admin/locations"));
 
 const routes = [
   {
@@ -31,7 +39,27 @@ const routes = [
             element: <Admins />
           }
         ]
+      },
+      // START REGION: My Space
+      {
+        path: "client/my-space",
+        children: [
+          { path: "profile-info", element: <ProfileInfo /> },
+        ]
+      },
+      // END REGION: My Space
+
+      // START REGION: System IT Administration
+      {
+        path: "client/system",
+        children: [
+          { path: "users", element: <SysUsers /> },
+          { path: "departments", element: <SysDepartments /> },
+          { path: "designations", element: <SysDesignations /> },
+          { path: "locations", element: <SysLocations /> }
+        ]
       }
+      // END REGION: System IT Administration
     ]
   },
   {

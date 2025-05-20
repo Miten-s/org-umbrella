@@ -65,5 +65,13 @@
   "assignRoles": "Assign Roles",
   "admin": "Admin",
   "welcomeTitle": "Welcome to the Dashboard",
-  "welcomeSubtitle": "This is your dashboard where you can manage everything."
+  "welcomeSubtitle": "This is your dashboard where you can manage everything.",
+  "mySpace": "My Space",
+  "systemITAdministration": "System IT Administration",
+  "profileInfo": "Profile Info",
+  "systemSettings": "System Settings",
+  "users": "Users",
+  "departments": "Departments",
+  "designations": "Designations",
+  "locationsGroups": "Locations / Groups"
 }

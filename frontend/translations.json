@@ -1,38 +1,92 @@
 {
   "en": {
-    "welcomeTitle": "Welcome to the Dashboard",
-    "welcomeSubtitle": "This is your dashboard where you can manage everything."
+    "mySpace": "My Space",
+    "systemITAdministration": "System IT Administration",
+    "profileInfo": "Profile Info",
+    "systemSettings": "System Settings",
+    "users": "Users",
+    "departments": "Departments",
+    "designations": "Designations",
+    "locationsGroups": "Locations / Groups"
   },
   "ar": {
-    "welcomeTitle": "مرحبًا بك في لوحة التحكم",
-    "welcomeSubtitle": "هذه هي لوحة التحكم الخاصة بك حيث يمكنك إدارة كل شيء."
+    "mySpace": "مساحتي",
+    "systemITAdministration": "إدارة تكنولوجيا المعلومات للنظام",
+    "profileInfo": "معلومات الملف الشخصي",
+    "systemSettings": "إعدادات النظام",
+    "users": "المستخدمون",
+    "departments": "الأقسام",
+    "designations": "المسميات الوظيفية",
+    "locationsGroups": "المواقع / المجموعات"
   },
   "es": {
-    "welcomeTitle": "Bienvenido al panel de control",
-    "welcomeSubtitle": "Este es tu panel donde puedes gestionar todo."
+    "mySpace": "Mi espacio",
+    "systemITAdministration": "Administración de TI del sistema",
+    "profileInfo": "Información de perfil",
+    "systemSettings": "Configuración del sistema",
+    "users": "Usuarios",
+    "departments": "Departamentos",
+    "designations": "Designaciones",
+    "locationsGroups": "Ubicaciones / Grupos"
   },
   "fr": {
-    "welcomeTitle": "Bienvenue sur le tableau de bord",
-    "welcomeSubtitle": "Voici votre tableau de bord où vous pouvez tout gérer."
+    "mySpace": "Mon espace",
+    "systemITAdministration": "Administration informatique du système",
+    "profileInfo": "Informations du profil",
+    "systemSettings": "Paramètres du système",
+    "users": "Utilisateurs",
+    "departments": "Départements",
+    "designations": "Désignations",
+    "locationsGroups": "Lieux / Groupes"
   },
   "hi": {
-    "welcomeTitle": "डैशबोर्ड में आपका स्वागत है",
-    "welcomeSubtitle": "यह आपका डैशबोर्ड है जहाँ आप सब कुछ प्रबंधित कर सकते हैं।"
+    "mySpace": "माई स्पेस",
+    "systemITAdministration": "सिस्टम आईटी प्रशासन",
+    "profileInfo": "प्रोफ़ाइल जानकारी",
+    "systemSettings": "सिस्टम सेटिंग्स",
+    "users": "उपयोगकर्ता",
+    "departments": "विभाग",
+    "designations": "पदनाम",
+    "locationsGroups": "स्थान / समूह"
   },
   "gu": {
-    "welcomeTitle": "ડેશબોર્ડમાં આપનું સ્વાગત છે",
-    "welcomeSubtitle": "આ તમારું ડેશબોર્ડ છે જ્યાં તમે બધું મેનેજ કરી શકો છો."
+    "mySpace": "મારું સ્થળ",
+    "systemITAdministration": "સિસ્ટમ આઈટી પ્રબંધન",
+    "profileInfo": "પ્રોફાઇલ માહિતી",
+    "systemSettings": "સિસ્ટમ સેટિંગ્સ",
+    "users": "વપરાશકર્તાઓ",
+    "departments": "વિભાગો",
+    "designations": "હોદ્દા",
+    "locationsGroups": "સ્થાનો / જૂથો"
   },
   "ta": {
-    "welcomeTitle": "டாஷ்போர்டிற்கு வரவேற்கிறோம்",
-    "welcomeSubtitle": "இது உங்கள் டாஷ்போர்டு, இதில் நீங்கள் அனைத்தையும் நிர்வகிக்கலாம்."
+    "mySpace": "என் இடம்",
+    "systemITAdministration": "கணினி நிர்வாகம்",
+    "profileInfo": "சுயவிவரத் தகவல்",
+    "systemSettings": "கணினி அமைப்புகள்",
+    "users": "பயனர்கள்",
+    "departments": "துறைகள்",
+    "designations": "பதவிகள்",
+    "locationsGroups": "இடங்கள் / குழுக்கள்"
   },
   "te": {
-    "welcomeTitle": "డాష్‌బోర్డ్‌కి స్వాగతం",
-    "welcomeSubtitle": "ఇది మీ డాష్‌బోర్డ్, ఇక్కడ మీరు అన్నింటినీ నిర్వహించవచ్చు."
+    "mySpace": "నా స్థలం",
+    "systemITAdministration": "సిస్టమ్ ఐటి నిర్వహణ",
+    "profileInfo": "ప్రొఫైల్ సమాచారం",
+    "systemSettings": "సిస్టమ్ సెట్టింగులు",
+    "users": "వినియోగదారులు",
+    "departments": "శాఖలు",
+    "designations": "హోదాలు",
+    "locationsGroups": "స్థానాలు / సమూహాలు"
   },
   "mr": {
-    "welcomeTitle": "डॅशबोर्डमध्ये आपले स्वागत आहे",
-    "welcomeSubtitle": "हे तुमचे डॅशबोर्ड आहे जिथे तुम्ही सर्वकाही व्यवस्थापित करू शकता."
+    "mySpace": "माझी जागा",
+    "systemITAdministration": "सिस्टम आयटी प्रशासन",
+    "profileInfo": "प्रोफाइल माहिती",
+    "systemSettings": "सिस्टम सेटिंग्ज",
+    "users": "वापरकर्ते",
+    "departments": "विभाग",
+    "designations": "पदनामे",
+    "locationsGroups": "स्थान / गट"
   }
 }

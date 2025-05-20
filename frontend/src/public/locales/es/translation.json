@@ -64,5 +64,13 @@
   "assignRoles": "Asignar roles",
   "admin": "Administrador",
   "welcomeTitle": "Bienvenido al panel de control",
-  "welcomeSubtitle": "Este es tu panel donde puedes gestionar todo."
+  "welcomeSubtitle": "Este es tu panel donde puedes gestionar todo.",
+  "mySpace": "Mi espacio",
+  "systemITAdministration": "Administración de TI del sistema",
+  "profileInfo": "Información de perfil",
+  "systemSettings": "Configuración del sistema",
+  "users": "Usuarios",
+  "departments": "Departamentos",
+  "designations": "Designaciones",
+  "locationsGroups": "Ubicaciones / Grupos"
 }

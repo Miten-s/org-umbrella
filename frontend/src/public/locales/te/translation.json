@@ -67,5 +67,13 @@
   "assignRoles": "పాత్రలు కేటాయించండి",
   "admin": "అడ్మిన్",
   "welcomeTitle": "డాష్‌బోర్డ్‌కి స్వాగతం",
-  "welcomeSubtitle": "ఇది మీ డాష్‌బోర్డ్, ఇక్కడ మీరు అన్నింటినీ నిర్వహించవచ్చు."
+  "welcomeSubtitle": "ఇది మీ డాష్‌బోర్డ్, ఇక్కడ మీరు అన్నింటినీ నిర్వహించవచ్చు.",
+  "mySpace": "నా స్థలం",
+  "systemITAdministration": "సిస్టమ్ ఐటి నిర్వహణ",
+  "profileInfo": "ప్రొఫైల్ సమాచారం",
+  "systemSettings": "సిస్టమ్ సెట్టింగులు",
+  "users": "వినియోగదారులు",
+  "departments": "శాఖలు",
+  "designations": "హోదాలు",
+  "locationsGroups": "స్థానాలు / సమూహాలు"
 }

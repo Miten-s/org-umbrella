@@ -67,5 +67,13 @@
   "assignRoles": "ભૂમિકાઓ સોંપો",
   "admin": "એડમિન",
   "welcomeTitle": "ડેશબોર્ડમાં આપનું સ્વાગત છે",
-  "welcomeSubtitle": "આ તમારું ડેશબોર્ડ છે જ્યાં તમે બધું મેનેજ કરી શકો છો."
+  "welcomeSubtitle": "આ તમારું ડેશબોર્ડ છે જ્યાં તમે બધું મેનેજ કરી શકો છો.",
+  "mySpace": "મારું સ્થળ",
+  "systemITAdministration": "સિસ્ટમ આઈટી પ્રબંધન",
+  "profileInfo": "પ્રોફાઇલ માહિતી",
+  "systemSettings": "સિસ્ટમ સેટિંગ્સ",
+  "users": "વપરાશકર્તાઓ",
+  "departments": "વિભાગો",
+  "designations": "હોદ્દા",
+  "locationsGroups": "સ્થાનો / જૂથો"
 }
