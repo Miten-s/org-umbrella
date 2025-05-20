@@ -40,15 +40,6 @@ const routes = [
           }
         ]
       },
-      // START REGION: My Space
-      {
-        path: "client/my-space",
-        children: [
-          { path: "profile-info", element: <ProfileInfo /> },
-        ]
-      },
-      // END REGION: My Space
-
       // START REGION: System IT Administration
       {
         path: "client/system",
@@ -58,8 +49,17 @@ const routes = [
           { path: "designations", element: <SysDesignations /> },
           { path: "locations", element: <SysLocations /> }
         ]
-      }
+      },
       // END REGION: System IT Administration
+      
+       // START REGION: My Space
+      {
+        path: "client/my-space",
+        children: [
+          { path: "profile-info", element: <ProfileInfo /> },
+        ]
+      },
+      // END REGION: My Space
     ]
   },
   {

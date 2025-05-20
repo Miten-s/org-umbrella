@@ -43,14 +43,7 @@ const AppSidebar: React.FC = () => {
         { name: t('allAdmins'), path: PageUrl.Admins.path },
       ]
     },
-    {
-      icon: <UserIcon />,
-      name: t('mySpace'),
-      permissions: ["VIEW:DASHBOARD"],
-        subItems: [
-      { name: t('profileInfo'), path: PageUrl.ProfileInfo.path }
-    ]
-    },
+
     {
       icon: <FolderIcon />,
       name: t('systemITAdministration'),
@@ -61,7 +54,15 @@ const AppSidebar: React.FC = () => {
         { name: t('designations'), path: PageUrl.Designations.path },
         { name: t('locationsGroups'), path: PageUrl.LocationsGroups.path }
       ]
-    }
+    }, 
+    {
+      icon: <UserIcon />,
+      name: t('mySpace'),
+      permissions: ["VIEW:DASHBOARD"],
+      subItems: [
+        { name: t('profileInfo'), path: PageUrl.ProfileInfo.path }
+      ]
+    },
   ], [t, i18n.language]);
 
   const restrictedFilteredNavItems = useMemo(() => {
