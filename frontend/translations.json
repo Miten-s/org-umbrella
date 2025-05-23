@@ -1,92 +1,29 @@
 {
   "en": {
-    "mySpace": "My Space",
-    "systemITAdministration": "System IT Administration",
-    "profileInfo": "Profile Info",
-    "systemSettings": "System Settings",
-    "users": "Users",
-    "departments": "Departments",
-    "designations": "Designations",
-    "locationsGroups": "Locations / Groups"
+    "location": "Location"
   },
   "ar": {
-    "mySpace": "مساحتي",
-    "systemITAdministration": "إدارة تكنولوجيا المعلومات للنظام",
-    "profileInfo": "معلومات الملف الشخصي",
-    "systemSettings": "إعدادات النظام",
-    "users": "المستخدمون",
-    "departments": "الأقسام",
-    "designations": "المسميات الوظيفية",
-    "locationsGroups": "المواقع / المجموعات"
+    "location": "الموقع"
   },
   "es": {
-    "mySpace": "Mi espacio",
-    "systemITAdministration": "Administración de TI del sistema",
-    "profileInfo": "Información de perfil",
-    "systemSettings": "Configuración del sistema",
-    "users": "Usuarios",
-    "departments": "Departamentos",
-    "designations": "Designaciones",
-    "locationsGroups": "Ubicaciones / Grupos"
+    "location": "Ubicación"
   },
   "fr": {
-    "mySpace": "Mon espace",
-    "systemITAdministration": "Administration informatique du système",
-    "profileInfo": "Informations du profil",
-    "systemSettings": "Paramètres du système",
-    "users": "Utilisateurs",
-    "departments": "Départements",
-    "designations": "Désignations",
-    "locationsGroups": "Lieux / Groupes"
+    "location": "Emplacement"
   },
   "hi": {
-    "mySpace": "माई स्पेस",
-    "systemITAdministration": "सिस्टम आईटी प्रशासन",
-    "profileInfo": "प्रोफ़ाइल जानकारी",
-    "systemSettings": "सिस्टम सेटिंग्स",
-    "users": "उपयोगकर्ता",
-    "departments": "विभाग",
-    "designations": "पदनाम",
-    "locationsGroups": "स्थान / समूह"
+    "location": "स्थान"
   },
   "gu": {
-    "mySpace": "મારું સ્થળ",
-    "systemITAdministration": "સિસ્ટમ આઈટી પ્રબંધન",
-    "profileInfo": "પ્રોફાઇલ માહિતી",
-    "systemSettings": "સિસ્ટમ સેટિંગ્સ",
-    "users": "વપરાશકર્તાઓ",
-    "departments": "વિભાગો",
-    "designations": "હોદ્દા",
-    "locationsGroups": "સ્થાનો / જૂથો"
+    "location": "સ્થળ"
   },
   "ta": {
-    "mySpace": "என் இடம்",
-    "systemITAdministration": "கணினி நிர்வாகம்",
-    "profileInfo": "சுயவிவரத் தகவல்",
-    "systemSettings": "கணினி அமைப்புகள்",
-    "users": "பயனர்கள்",
-    "departments": "துறைகள்",
-    "designations": "பதவிகள்",
-    "locationsGroups": "இடங்கள் / குழுக்கள்"
+    "location": "இடம்"
   },
   "te": {
-    "mySpace": "నా స్థలం",
-    "systemITAdministration": "సిస్టమ్ ఐటి నిర్వహణ",
-    "profileInfo": "ప్రొఫైల్ సమాచారం",
-    "systemSettings": "సిస్టమ్ సెట్టింగులు",
-    "users": "వినియోగదారులు",
-    "departments": "శాఖలు",
-    "designations": "హోదాలు",
-    "locationsGroups": "స్థానాలు / సమూహాలు"
+    "location": "స్థలం"
   },
   "mr": {
-    "mySpace": "माझी जागा",
-    "systemITAdministration": "सिस्टम आयटी प्रशासन",
-    "profileInfo": "प्रोफाइल माहिती",
-    "systemSettings": "सिस्टम सेटिंग्ज",
-    "users": "वापरकर्ते",
-    "departments": "विभाग",
-    "designations": "पदनामे",
-    "locationsGroups": "स्थान / गट"
+    "location": "स्थान"
   }
 }

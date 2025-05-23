@@ -6,14 +6,14 @@ import { useTranslation } from "react-i18next";
 import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { DropdownItem } from "@/components/ui/dropdown/DropdownItem";
 import { useState } from "react";
-import dayjs from "dayjs";
+import TextArea from "@/components/common/form/input/TextArea";
 
 interface CreateDepartmentModalProps {
   onClose: () => void;
 }
 
 const CreateDepartmentModal = ({ onClose }: CreateDepartmentModalProps) => {
-  const { register, handleSubmit, setValue } = useForm();
+  const { register, handleSubmit, setValue, watch } = useForm();
   const { t } = useTranslation();
   const [isManagerDropdownOpen, setIsManagerDropdownOpen] = useState(false);
   const [selectedManager, setSelectedManager] = useState<string>("");
@@ -41,31 +41,37 @@ const CreateDepartmentModal = ({ onClose }: CreateDepartmentModalProps) => {
   return (
     <div className="p-6 max-h-[90vh] overflow-y-auto">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <h2 className="text-xl font-semibold">{t("createDepartment")}</h2>
+        <h2 className="text-xl font-semibold">{t("create", { entity: t("department") })}</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label>Department ID</Label>
-            <Input {...register("departmentId", { maxLength: 20 })} />
-          </div>
-
-          <div>
-            <Label>Department Name</Label>
+            <Label>{t('departmentName')}</Label>
             <Input {...register("departmentName", { maxLength: 50 })} />
           </div>
 
+
+          <div>
+            <Label>{t("description")}</Label>
+            <TextArea
+              value={watch("description")}
+              onChange={(event) => setValue("description", event)}
+            />
+          </div>
           <div className="relative">
-            <Label>Department Manager</Label>
+            <Label>{t('departmentManager')}</Label>
             <button
               type="button"
               onClick={() => setIsManagerDropdownOpen((prev) => !prev)}
               className="input flex justify-between items-center"
             >
-              {selectedManager || t("selectManager")}
+              {selectedManager || t("select", { entity: t("departmentManager") })}
               <svg className="ml-2 h-4 w-4" viewBox="0 0 20 20">
                 <path d="M5.5 7l4.5 4.5L14.5 7z" />
               </svg>
             </button>
+
+
+
             <Dropdown
               isOpen={isManagerDropdownOpen}
               onClose={() => setIsManagerDropdownOpen(false)}
@@ -78,13 +84,13 @@ const CreateDepartmentModal = ({ onClose }: CreateDepartmentModalProps) => {
           </div>
 
           <div className="relative">
-            <Label>Location/Group</Label>
+            <Label>{t('locationGroup')}</Label>
             <button
               type="button"
               onClick={() => setIsLocationDropdownOpen((prev) => !prev)}
               className="input flex justify-between items-center"
             >
-              {selectedLocation || t("selectLocation")}
+              {selectedLocation || t("select", { entity: t("location") })}
               <svg className="ml-2 h-4 w-4" viewBox="0 0 20 20">
                 <path d="M5.5 7l4.5 4.5L14.5 7z" />
               </svg>
@@ -100,31 +106,7 @@ const CreateDepartmentModal = ({ onClose }: CreateDepartmentModalProps) => {
             </Dropdown>
           </div>
 
-          <div>
-            <Label>Description</Label>
-            <Input {...register("description", { maxLength: 100 })} />
-          </div>
 
-          {/* Metadata fields (disabled and auto-filled on save) */}
-          <div>
-            <Label>Created On</Label>
-            <Input disabled value={dayjs().format("YYYY-MM-DD HH:mm")} />
-          </div>
-
-          <div>
-            <Label>Created By</Label>
-            <Input disabled value="currentUser" />
-          </div>
-
-          <div>
-            <Label>Modified On</Label>
-            <Input disabled value={dayjs().format("YYYY-MM-DD HH:mm")} />
-          </div>
-
-          <div>
-            <Label>Modified By</Label>
-            <Input disabled value="currentUser" />
-          </div>
         </div>
 
         <div className="flex justify-end gap-2 mt-4">
