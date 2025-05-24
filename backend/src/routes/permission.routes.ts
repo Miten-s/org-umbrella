@@ -6,6 +6,8 @@ import {
   getPermissions,
   updatePermissions
 } from "../controllers/permission.controller";
+import { validateDto } from "../middlewares/validate-dto.middleware";
+import { IsValidParamsIdDto } from "../dtos/designation.dto";
 
 const router: Router = Router();
 
@@ -22,11 +24,19 @@ router.post(API_ROUTES.PERMISSION, createPermissions);
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
 
 // Define a Patch route for updating a role.
-router.patch(API_ROUTES.PERMISSION + API_ROUTES.PARAMS, updatePermissions);
+router.patch(
+  API_ROUTES.PERMISSION + API_ROUTES.PARAMS,
+  validateDto(IsValidParamsIdDto, "params"),
+  updatePermissions
+);
 
 // ---------------------------------------------------------------------------------------- DELETE Requests ----------------------------------------------------------------------------------------
 
 // Define a Delete route for updating a role.
-router.delete(API_ROUTES.PERMISSION + API_ROUTES.PARAMS, deletePermissions);
+router.delete(
+  API_ROUTES.PERMISSION + API_ROUTES.PARAMS,
+  validateDto(IsValidParamsIdDto, "params"),
+  deletePermissions
+);
 
 export default router;

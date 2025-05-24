@@ -19,7 +19,6 @@ export const authenticate = (
   try {
     const decoded = jwt.verify(token, ENV.JWT_SECRET!);
     req.user = decoded as IUser;
-
     next();
   } catch {
     res.status(401).json({ message: "Invalid token" });

@@ -32,7 +32,6 @@ export const errorHandler = (
       );
 
   res.status(statusCode).json({
-    success: false,
     message:
       message ??
       (statusCode === 500

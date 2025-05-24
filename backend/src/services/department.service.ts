@@ -35,20 +35,8 @@ const updateDepartment = async (
   );
 };
 
-const disableDepartment = async (id: string) => {
-  return await Department.findByIdAndUpdate(
-    id,
-    { status: "disabled" },
-    { new: true }
-  );
-};
-
-const enableDepartment = async (id: string) => {
-  return await Department.findByIdAndUpdate(
-    id,
-    { status: "active" },
-    { new: true }
-  );
+const deleteDepartment = async (id: string) => {
+  return await Department.findByIdAndDelete(id);
 };
 
 export {
@@ -56,6 +44,5 @@ export {
   getAllDepartments,
   getDepartmentById,
   updateDepartment,
-  disableDepartment,
-  enableDepartment
+  deleteDepartment
 };

@@ -1,7 +1,7 @@
 import { Designation } from "../models/designation.model";
 
 interface IDesignation {
-  designation_name: string;
+  designationName: string;
   description?: string;
 }
 
@@ -14,37 +14,27 @@ const getAllDesignations = async () => {
   return await Designation.find().exec();
 };
 
-const getDesignationByName = async (name: string) => {
-  return await Designation.findOne({ designation_name: name }).exec();
+const getDesignationById = async (_id: string) => {
+  return await Designation.findOne({ _id }).exec();
 };
 
-const updateDesignation = async (name: string, data: Partial<IDesignation>) => {
-  return await Designation.findOneAndUpdate({ designation_name: name }, data, {
+const updateDesignation = async (_id: string, data: Partial<IDesignation>) => {
+  return await Designation.findOneAndUpdate({ _id }, data, {
     new: true
   }).exec();
 };
 
-const disableDesignation = async (name: string) => {
+const deleteDesignation = async (_id: string) => {
   return await Designation.findOneAndUpdate(
-    { designation_name: name },
-    { status: "disabled" },
-    { new: true }
-  ).exec();
-};
-
-const enableDesignation = async (name: string) => {
-  return await Designation.findOneAndUpdate(
-    { designation_name: name },
-    { status: "active" },
-    { new: true }
+    { _id },
+    { deletedAt: new Date() }
   ).exec();
 };
 
 export {
   createDesignation,
   getAllDesignations,
-  getDesignationByName,
+  getDesignationById,
   updateDesignation,
-  disableDesignation,
-  enableDesignation
+  deleteDesignation
 };

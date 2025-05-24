@@ -1,27 +1,45 @@
 import { Router } from "express";
-import * as designationController from "../controllers/designation.controller";
+import {
+  createDesignation,
+  deleteDesignation,
+  getAllDesignations,
+  getDesignationByName,
+  updateDesignation
+} from "../controllers/designation.controller";
 import API_ROUTES from "../utils/routes";
+import { IsValidParamsIdDto } from "../dtos/designation.dto";
+import { validateDto } from "../middlewares/validate-dto.middleware";
 
 const router = Router();
 
-router.get(API_ROUTES.DESIGNATION, designationController.getAllDesignations);
+// ---------------------------------------------------------------------------------------- GET Requests ----------------------------------------------------------------------------------------
+
+router.get(API_ROUTES.DESIGNATION, getAllDesignations);
 
 router.get(
   API_ROUTES.DESIGNATION + API_ROUTES.PARAMS,
-  designationController.getDesignationByName
+  validateDto(IsValidParamsIdDto, "params"),
+  getDesignationByName
 );
 
-router.post(API_ROUTES.DESIGNATION, designationController.createDesignation);
+// ---------------------------------------------------------------------------------------- POST Requests ----------------------------------------------------------------------------------------
 
-router.patch(API_ROUTES.PARAMS, designationController.updateDesignation);
+router.post(API_ROUTES.DESIGNATION, createDesignation);
+
+// ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
 
 router.patch(
-  API_ROUTES.DESIGNATION + API_ROUTES.PARAMS + API_ROUTES.DISABLE,
-  designationController.disableDesignation
+  API_ROUTES.DESIGNATION + API_ROUTES.PARAMS,
+  validateDto(IsValidParamsIdDto, "params"),
+  updateDesignation
 );
-router.patch(
-  API_ROUTES.DESIGNATION + API_ROUTES.PARAMS + API_ROUTES.ENABLE,
-  designationController.enableDesignation
+
+// ---------------------------------------------------------------------------------------- DELETE Requests ----------------------------------------------------------------------------------------
+
+router.delete(
+  API_ROUTES.DESIGNATION + API_ROUTES.PARAMS,
+  validateDto(IsValidParamsIdDto, "params"),
+  deleteDesignation
 );
 
 export default router;

@@ -2,14 +2,14 @@ import mongoose from "mongoose";
 
 export interface IDepartment extends Document {
   _id: string;
-  department_name: string;
-  department_manager: string;
-  department_group_location: string;
+  departmentName: string;
+  departmentManager: string;
+  departmentGroupLocation: string;
   description?: string;
-  created_on?: Date;
-  created_by?: string;
-  modified_on?: Date;
-  modified_by?: string;
+  createdOn?: Date;
+  createdBy?: string;
+  modifiedOn?: Date;
+  modifiedBy?: string;
   status: "active" | "disabled";
 }
 

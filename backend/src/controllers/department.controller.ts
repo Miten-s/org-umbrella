@@ -41,18 +41,10 @@ export const updateDepartment = asyncHandler(
   }
 );
 
-export const disableDepartment = asyncHandler(
+export const deleteDepartment = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
-    const department = await departmentService.disableDepartment(req.params.id);
-    if (!department)
-      return res.status(404).json({ message: "Department not found" });
-    res.status(200).json(department);
-  }
-);
+    const department = await departmentService.deleteDepartment(req.params.id);
 
-export const enableDepartment = asyncHandler(
-  async (req: Request, res: Response): Promise<any> => {
-    const department = await departmentService.enableDepartment(req.params.id);
     if (!department)
       return res.status(404).json({ message: "Department not found" });
     res.status(200).json(department);

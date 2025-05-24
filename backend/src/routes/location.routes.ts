@@ -1,32 +1,43 @@
 import { Router } from "express";
 import {
   createLocation,
-  disableLocation,
-  enableLocation,
   getAllLocations,
-  getLocationByName,
-  updateLocation
+  getLocationById,
+  updateLocation,
+  deleteLocation
 } from "../controllers/location.controller";
 import API_ROUTES from "../utils/routes";
+import { validateDto } from "../middlewares/validate-dto.middleware";
+import { IsValidParamsIdDto } from "../dtos/designation.dto";
 
 const router = Router();
+// ---------------------------------------------------------------------------------------- GET Requests ----------------------------------------------------------------------------------------
 
 router.get(API_ROUTES.LOCATIONS, getAllLocations);
 
-router.get(API_ROUTES.LOCATIONS + API_ROUTES.PARAMS, getLocationByName);
+router.get(
+  API_ROUTES.LOCATIONS + API_ROUTES.PARAMS,
+  validateDto(IsValidParamsIdDto, "params"),
+  getLocationById
+);
+
+// ---------------------------------------------------------------------------------------- POST Requests ----------------------------------------------------------------------------------------
 
 router.post(API_ROUTES.LOCATIONS, createLocation);
 
-router.patch(API_ROUTES.LOCATIONS + API_ROUTES.PARAMS, updateLocation);
+// ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
 
 router.patch(
-  API_ROUTES.LOCATIONS + API_ROUTES.PARAMS + API_ROUTES.DISABLE,
-  disableLocation
+  API_ROUTES.LOCATIONS + API_ROUTES.PARAMS,
+  validateDto(IsValidParamsIdDto, "params"),
+  updateLocation
 );
 
-router.patch(
-  API_ROUTES.LOCATIONS + API_ROUTES.PARAMS + API_ROUTES.ENABLE,
-  enableLocation
-);
+// ---------------------------------------------------------------------------------------- DELETE Requests ----------------------------------------------------------------------------------------
 
+router.delete(
+  API_ROUTES.LOCATIONS + API_ROUTES.PARAMS,
+  validateDto(IsValidParamsIdDto, "params"),
+  deleteLocation
+);
 export default router;
