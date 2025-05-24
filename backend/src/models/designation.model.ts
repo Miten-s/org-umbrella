@@ -5,6 +5,7 @@ interface IDesignation extends Document {
   designationName: string;
   description?: string;
   status: "active" | "disabled";
+  deletedAt: Date;
 }
 
 const DesignationSchema = new Schema<IDesignation>(
@@ -22,7 +23,8 @@ const DesignationSchema = new Schema<IDesignation>(
       type: String,
       enum: ["active", "disabled"],
       default: "active"
-    }
+    },
+    deletedAt: { type: Date, default: null }
   },
   { timestamps: true }
 );

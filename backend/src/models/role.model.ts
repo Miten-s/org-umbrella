@@ -27,7 +27,11 @@ RoleSchema.pre("save", async function () {
 });
 
 RoleSchema.pre(["find", "findOne", "findOneAndUpdate"], async function () {
-  this.where({ isDeleted: false, deletedAt: null });
+  this.where({
+    isDeleted: false,
+    deletedAt: null,
+    name: { $not: "Super Admin" }
+  });
   this.populate("permissions", "name description");
 });
 

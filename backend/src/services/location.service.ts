@@ -9,43 +9,23 @@ const getAllLocations = async () => {
   return await Location.find().exec();
 };
 
-const getLocationByName = async (name: string) => {
-  return await Location.findOne({ location_group_name: name }).exec();
+const getLocationById = async (_id: string) => {
+  return await Location.findOne({ _id }).exec();
 };
 
-const updateLocation = async (name: string, data: Partial<ILocation>) => {
-  return await Location.findOneAndUpdate({ location_group_name: name }, data, {
+const updateLocation = async (_id: string, data: Partial<ILocation>) => {
+  return await Location.findOneAndUpdate({ _id }, data, {
     new: true
   }).exec();
 };
 
-const disableLocation = async ({
-  name,
-  comments
-}: {
-  name: string;
-  comments: string;
-}) => {
-  return await Location.findOneAndUpdate(
-    { locationName: name },
-    { status: "disabled", comments },
-    { new: true }
-  ).exec();
+const deleteLocation = async (id: string) => {
+  return await Location.findByIdAndDelete(id).exec();
 };
-
-const enableLocation = async (name: string) => {
-  return await Location.findOneAndUpdate(
-    { locationName: name },
-    { status: "active" },
-    { new: true }
-  ).exec();
-};
-
 export {
   createLocation,
   getAllLocations,
-  getLocationByName,
+  getLocationById,
   updateLocation,
-  disableLocation,
-  enableLocation
+  deleteLocation
 };

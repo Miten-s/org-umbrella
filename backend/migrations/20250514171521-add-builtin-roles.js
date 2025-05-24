@@ -11,7 +11,7 @@ module.exports = {
       "READ:PERMISSION",
       "UPDATE:PERMISSION",
       "DELETE:PERMISSION",
-      "VIEW:DASHBOARD",
+      "VIEW:DASHBOARD"
     ];
 
     // Fetch permission IDs by name
@@ -40,7 +40,7 @@ module.exports = {
         isDeleted: false,
         deletedAt: null,
         createdAt: new Date(),
-        updatedAt: new Date(),
+        updatedAt: new Date()
       },
       {
         name: "User",
@@ -49,8 +49,8 @@ module.exports = {
         isDeleted: false,
         deletedAt: null,
         createdAt: new Date(),
-        updatedAt: new Date(),
-      },
+        updatedAt: new Date()
+      }
     ];
 
     await db.collection("roles").insertMany(roles);
@@ -60,9 +60,9 @@ module.exports = {
   async down(db, client) {
     await db.collection("roles").deleteMany({
       name: { $in: ["Admin", "User"] },
-      type: "Built_In",
+      type: "Built_In"
     });
 
     console.log("Built-in Admin and User roles removed");
-  },
+  }
 };

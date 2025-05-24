@@ -12,7 +12,7 @@ module.exports = {
       { name: "UPDATE:PERMISSION", description: "Update permission details" },
       { name: "DELETE:PERMISSION", description: "Delete a permission" },
       { name: "VIEW:DASHBOARD", description: "View the dashboard" },
-      { name: "OPERATE:ALL", description: "Operate on all resources" },
+      { name: "OPERATE:ALL", description: "Operate on all resources" }
     ];
 
     // 1. Insert Permissions
@@ -22,15 +22,15 @@ module.exports = {
         createdAt: new Date(),
         updatedAt: new Date(),
         isDeleted: false,
-        deletedAt: null,
+        deletedAt: null
       }))
     );
 
     console.log("Permissions inserted");
 
-    const operateAllPermissionId = Object.values(insertedPermissions.insertedIds).find(
-      (_id, index) => permissions[index].name === "OPERATE:ALL"
-    );
+    const operateAllPermissionId = Object.values(
+      insertedPermissions.insertedIds
+    ).find((_id, index) => permissions[index].name === "OPERATE:ALL");
 
     if (!operateAllPermissionId) {
       throw new Error("OPERATE:ALL permission not found");
@@ -39,13 +39,12 @@ module.exports = {
     // 2. Create Super Admin Role
     const roleInsertResult = await db.collection("roles").insertOne({
       name: "Super Admin",
-      description: "Has full access to all operations",
-      type : "BUILT_IN",
+      type: "BUILT_IN",
       permissions: [operateAllPermissionId],
       createdAt: new Date(),
       updatedAt: new Date(),
       isDeleted: false,
-      deletedAt: null,
+      deletedAt: null
     });
 
     const superAdminRoleId = roleInsertResult.insertedId;
@@ -65,7 +64,7 @@ module.exports = {
       deletedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
-      createdBy: null,
+      createdBy: null
     });
 
     console.log("Super Admin user created");
@@ -89,7 +88,7 @@ module.exports = {
       "UPDATE:PERMISSION",
       "DELETE:PERMISSION",
       "VIEW:DASHBOARD",
-      "OPERATE:ALL",
+      "OPERATE:ALL"
     ];
 
     await db
@@ -97,5 +96,5 @@ module.exports = {
       .deleteMany({ name: { $in: permissionNames } });
 
     console.log("Super Admin user, role, and permissions removed");
-  },
+  }
 };

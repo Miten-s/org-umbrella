@@ -1,71 +1,63 @@
 import { Request, Response } from "express";
 import * as designationService from "../services/designation.service";
 import asyncHandler from "../middlewares/error.middleware";
+import { CUSTOM_MESSAGES } from "../utils/common.util";
 
-const createDesignation = asyncHandler(
+export const createDesignation = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
-    const designation = await designationService.createDesignation(req.body);
-    res.status(201).json(designation);
+    await designationService.createDesignation(req.body);
+    res.status(201).json({
+      message: CUSTOM_MESSAGES.ENTITY_CREATED.replace(
+        "{{ entity }}",
+        "Designation"
+      )
+    });
   }
 );
 
-const getAllDesignations = asyncHandler(
+export const getAllDesignations = asyncHandler(
   async (_req: Request, res: Response): Promise<any> => {
     const designations = await designationService.getAllDesignations();
-    res.status(200).json(designations);
+    res.status(200).json({ designations });
   }
 );
 
-const getDesignationByName = asyncHandler(
+export const getDesignationByName = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
-    const designation = await designationService.getDesignationByName(
-      req.params.name
+    const designation = await designationService.getDesignationById(
+      req.params.id
     );
     if (!designation)
       return res.status(404).json({ message: "Designation not found" });
-    res.status(200).json(designation);
+    res.status(200).json({ designation });
   }
 );
 
-const updateDesignation = asyncHandler(
+export const updateDesignation = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
     const designation = await designationService.updateDesignation(
-      req.params.name,
+      req.params.id,
       req.body
     );
     if (!designation)
       return res.status(404).json({ message: "Designation not found" });
-    res.status(200).json(designation);
+    res.status(200).json({ designation });
   }
 );
 
-const disableDesignation = asyncHandler(
+export const deleteDesignation = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
-    const designation = await designationService.disableDesignation(
-      req.params.name
+    const designation = await designationService.deleteDesignation(
+      req.params.id
     );
     if (!designation)
       return res.status(404).json({ message: "Designation not found" });
-    res.status(200).json(designation);
+
+    res.status(200).json({
+      message: CUSTOM_MESSAGES.ENTITY_DELETED.replace(
+        "{{ entity }}",
+        "Designation"
+      )
+    });
   }
 );
-
-const enableDesignation = asyncHandler(
-  async (req: Request, res: Response): Promise<any> => {
-    const designation = await designationService.enableDesignation(
-      req.params.name
-    );
-    if (!designation)
-      return res.status(404).json({ message: "Designation not found" });
-    res.status(200).json(designation);
-  }
-);
-
-export {
-  createDesignation,
-  getAllDesignations,
-  getDesignationByName,
-  updateDesignation,
-  disableDesignation,
-  enableDesignation
-};

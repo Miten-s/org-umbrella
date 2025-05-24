@@ -11,7 +11,7 @@ export const login = async (
   try {
     const token = await loginService(req.body);
     res.cookie("accessToken", token);
-    res.json({ success: true, message: CUSTOM_MESSAGES.LOGIN_SUCCESSFUL });
+    res.json({ message: CUSTOM_MESSAGES.LOGIN_SUCCESSFUL });
     logInfo(CUSTOM_MESSAGES.LOGIN_SUCCESSFUL, null, "auth.controller/login");
   } catch (error: unknown) {
     logError(
@@ -36,7 +36,7 @@ export const logout = async (
   try {
     res.clearCookie("accessToken");
     logInfo(CUSTOM_MESSAGES.LOGOUT_SUCCESSFUL, null, "auth.controller/logout");
-    res.json({ success: true, message: CUSTOM_MESSAGES.LOGOUT_SUCCESSFUL });
+    res.json({ message: CUSTOM_MESSAGES.LOGOUT_SUCCESSFUL });
   } catch (error) {
     logError(
       CUSTOM_MESSAGES.SOMETHING_WENT_WRONG,

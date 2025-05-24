@@ -1,79 +1,45 @@
-import { NextFunction, Request, Response } from "express";
+import { Request, Response } from "express";
 import userService from "../services/user.service";
 import { CUSTOM_MESSAGES } from "../utils/common.util";
 import { IUser } from "../models/user.model";
+import asyncHandler from "../middlewares/error.middleware";
 
-export const getUsers = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    const users = await userService.getUsers(req?.user);
-    res.status(200).json({ success: true, users });
-  } catch (error) {
-    next(error);
-  }
+export const getUsers = async (req: Request, res: Response): Promise<void> => {
+  const users = await userService.getUsers(req?.user);
+  res.status(200).json({ users });
 };
 
-export const getUserDetail = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
+export const getUserDetail = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
     const { id: userId } = req.user as IUser;
     const user = await userService.getUserDetail(userId);
-    res.status(200).json({ success: true, user });
-  } catch (error) {
-    next(error);
+    res.status(200).json({ user });
   }
-};
+);
 
-export const createUser = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
+export const createUser = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
     await userService.createUser(req);
     res.status(201).json({
-      success: true,
       message: CUSTOM_MESSAGES.ENTITY_CREATED.replace("{{ entity }}", "User")
     });
-  } catch (error) {
-    next(error);
   }
-};
+);
 
-export const updateUser = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
+export const updateUser = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
     await userService.updateUser(req);
     res.status(201).json({
-      success: true,
       message: CUSTOM_MESSAGES.ENTITY_UPDATED.replace("{{ entity }}", "User")
     });
-  } catch (error) {
-    next(error);
   }
-};
+);
 
-export const deleteUser = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
+export const deleteUser = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
     await userService.deleteUser(req);
     res.status(201).json({
-      success: true,
       message: CUSTOM_MESSAGES.ENTITY_DELETED.replace("{{ entity }}", "User")
     });
-  } catch (error) {
-    next(error);
   }
-};
+);
