@@ -50,7 +50,7 @@
   "createdBy": "દ્વારા બનાવેલ",
   "actions": "ક્રિયાઓ",
   "edit": "સંપાદિત કરો",
-  "delete": "{{entity}} કાઢી નાખો",
+  "deleteEntity": "{{entity}} કાઢી નાખો",
   "noRolesFound": "કોઈ ભૂમિકાઓ મળી નથી. શરૂ કરવા માટે નવી બનાવો.",
   "deleteAdminPrompt": "શું તમે આ એડમિનને કાઢી નાખવા માંગો છો?",
   "confirm": "ખાતરી કરો",
@@ -106,5 +106,7 @@
   "departmentName": "વિભાગનું નામ",
   "departmentManager": "વિભાગ મેનેજર",
   "select": "{{entity}} પસંદ કરો",
-  "location": "સ્થળ"
+  "location": "સ્થળ",
+  "enterEntity": "{{entity}} દાખલ કરો",
+  "delete": "કાઢી નાંખો"
 }

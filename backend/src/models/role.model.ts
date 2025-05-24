@@ -26,11 +26,13 @@ RoleSchema.pre("save", async function () {
   this.set("updatedAt", Date.now());
 });
 
+// Question 1  : why you have not fetched role & permission if we have name supplier admin
+// (resone) : for me i can't able to fetch roles and that's why i m faching issue in frontend (when i try to login with super admin) 
 RoleSchema.pre(["find", "findOne", "findOneAndUpdate"], async function () {
   this.where({
     isDeleted: false,
     deletedAt: null,
-    name: { $not: "Super Admin" }
+    // name: { $not: "Super Admin" }
   });
   this.populate("permissions", "name description");
 });

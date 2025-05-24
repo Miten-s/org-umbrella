@@ -48,7 +48,7 @@
   "createdBy": "أنشأ من قبل",
   "actions": "إجراءات",
   "edit": "تعديل",
-  "delete": "حذف {{entity}}",
+  "deleteEntity": "حذف {{entity}}",
   "noRolesFound": "لم يتم العثور على أدوار. أنشئ دورًا جديدًا للبدء.",
   "deleteAdminPrompt": "هل تريد حذف هذا المسؤول؟",
   "confirm": "تأكيد",
@@ -104,5 +104,7 @@
   "departmentName": "اسم القسم",
   "departmentManager": "مدير القسم",
   "select": "اختر {{entity}}",
-  "location": "الموقع"
+  "location": "الموقع",
+  "enterEntity": "أدخل {{entity}}",
+  "delete": "حذف"
 }

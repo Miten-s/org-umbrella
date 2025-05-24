@@ -52,7 +52,7 @@ const CreateLocationModal = ({ onClose, defaultValues }: CreateLocationModalProp
             <Label required>{t("locationName")}</Label>
             <Input
               {...register("locationName")}
-              placeholder={t("enterLocationName")}
+              placeholder={t("enterEntity", { entity: t("locationName") })}
               error={!!errors.locationName}
               hint={errors.locationName?.message}
             />

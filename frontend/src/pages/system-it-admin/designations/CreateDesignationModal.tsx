@@ -10,11 +10,13 @@ import { getDesignationSchema } from "@/lib/schema";
 
 interface CreateDesignationModalProps {
   onClose: () => void;
+  onSubmit: (data: CreateDesignationForm) => void;
+  initialData?: Partial<CreateDesignationForm>;
 }
 
 type CreateDesignationForm = z.infer<typeof getDesignationSchema>;
 
-const CreateDesignationModal = ({ onClose }: CreateDesignationModalProps) => {
+const CreateDesignationModal = ({ onClose,initialData,onSubmit }: CreateDesignationModalProps) => {
   const { t } = useTranslation();
 
   const {
@@ -26,15 +28,12 @@ const CreateDesignationModal = ({ onClose }: CreateDesignationModalProps) => {
   } = useForm<CreateDesignationForm>({
     resolver: zodResolver(getDesignationSchema),
     defaultValues: {
-      designationName: "",
-      description: "",
+      designationName: initialData?.designationName || "",
+      description: initialData?.description || "",
     },
   });
 
-  const onSubmit = async (data: CreateDesignationForm) => {
-    console.log("Designation data:", data);
-    onClose();
-  };
+
 
   return (
     <div className="p-6 max-h-[90vh] overflow-y-auto">

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
-import appLogo from "../../public/images/logo.png";
+import appLogo from "../../public/images/logo-transparant.png";
 import appSmLogo from "../../public/images/umbrella-clipart-cover.jpg";
 import { ChevronDownIcon, FolderIcon, GridIcon, HorizontaLDots, UserIcon } from "../../public/icons";
 import { useSidebar } from "../../context/SidebarContext";

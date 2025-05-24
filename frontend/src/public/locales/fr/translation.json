@@ -48,7 +48,7 @@
   "createdBy": "Créé par",
   "actions": "Actions",
   "edit": "Modifier",
-  "delete": "Supprimer {{entity}}",
+  "deleteEntity": "Supprimer {{entity}}",
   "noRolesFound": "Aucun rôle trouvé. Créez un nouveau rôle pour commencer.",
   "deleteAdminPrompt": "Voulez-vous supprimer cet administrateur ?",
   "confirm": "Confirmer",
@@ -104,5 +104,7 @@
   "departmentName": "Nom du département",
   "departmentManager": "Responsable du département",
   "select": "Sélectionner {{entity}}",
-  "location": "Emplacement"
+  "location": "Emplacement",
+  "enterEntity": "Entrez {{entity}}",
+  "delete": "Supprimer"
 }

@@ -1,29 +1,29 @@
 {
   "en": {
-    "location": "Location"
+    "delete": "Delete"
   },
   "ar": {
-    "location": "الموقع"
+    "delete": "حذف"
   },
   "es": {
-    "location": "Ubicación"
+    "delete": "Eliminar"
   },
   "fr": {
-    "location": "Emplacement"
+    "delete": "Supprimer"
   },
   "hi": {
-    "location": "स्थान"
+    "delete": "हटाएं"
   },
   "gu": {
-    "location": "સ્થળ"
+    "delete": "કાઢી નાંખો"
   },
   "ta": {
-    "location": "இடம்"
+    "delete": "அழிக்கவும்"
   },
   "te": {
-    "location": "స్థలం"
+    "delete": "తొలగించండి"
   },
   "mr": {
-    "location": "स्थान"
+    "delete": "हटवा"
   }
 }

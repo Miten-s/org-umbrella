@@ -50,7 +50,7 @@
   "createdBy": "द्वारे तयार",
   "actions": "क्रिया",
   "edit": "संपादित करा",
-  "delete": "{{entity}} हटवा",
+  "deleteEntity": "{{entity}} हटवा",
   "noRolesFound": "कोणतीही भूमिका सापडली नाही. सुरू करण्यासाठी नवीन तयार करा.",
   "deleteAdminPrompt": "तुम्हाला हा व्यवस्थापक हटवायचा आहे का?",
   "confirm": "पुष्टी करा",
@@ -106,5 +106,7 @@
   "departmentName": "विभागाचे नाव",
   "departmentManager": "विभाग प्रमुख",
   "select": "{{entity}} निवडा",
-  "location": "स्थान"
+  "location": "स्थान",
+  "enterEntity": "{{entity}} प्रविष्ट करा",
+  "delete": "हटवा"
 }

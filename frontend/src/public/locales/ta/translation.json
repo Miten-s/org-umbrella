@@ -50,7 +50,7 @@
   "createdBy": "உருவாக்கியவர்",
   "actions": "செயல்கள்",
   "edit": "தொகு",
-  "delete": "{{entity}} நீக்கவும்",
+  "deleteEntity": "{{entity}} நீக்கவும்",
   "noRolesFound": "பாத்திரங்கள் கிடைக்கவில்லை. புதியதை உருவாக்கவும்.",
   "deleteAdminPrompt": "இந்த நிர்வாகியை நீக்க விரும்புகிறீர்களா?",
   "confirm": "உறுதிப்படுத்து",
@@ -106,5 +106,7 @@
   "departmentName": "துறை பெயர்",
   "departmentManager": "துறை மேலாளர்",
   "select": "{{entity}} தேர்ந்தெடுக்கவும்",
-  "location": "இடம்"
+  "location": "இடம்",
+  "enterEntity": "{{entity}} உள்ளிடவும்",
+  "delete": "அழிக்கவும்"
 }

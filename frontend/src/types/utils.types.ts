@@ -9,7 +9,7 @@ export type PageUrlType = {
 };
 
 export const PageUrl: PageUrlType = {
-  // #region Dashboard & Access Management
+  // #region Dashboard & Role
   Dashboard: {
     path: "/dashboard",
     matchPattern: /^\/dashboard$/i,
@@ -35,7 +35,7 @@ export const PageUrl: PageUrlType = {
   },
   // #endregion
 
-  // #region My Space (Client Scoped)
+  // #region My Space
   MySpace: {
     path: "/client/my-space",
     matchPattern: /^\/client\/my-space$/i,
@@ -48,7 +48,7 @@ export const PageUrl: PageUrlType = {
   },
   // #endregion
 
-  // #region System IT Administration (Client Scoped)
+  // #region System IT Admin
   SystemSettings: {
     path: "/client/system/settings",
     matchPattern: /^\/client\/system\/settings$/i,

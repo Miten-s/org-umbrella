@@ -13,9 +13,9 @@ const Location = () => {
   return (
     <>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">{t("locations")}</h1>
+        <h1 className="text-2xl font-semibold">{t("locationsGroups")}</h1>
         <Button onClick={openModal}>
-          {t("create", { entity: t("location") })}
+          {t("create", { entity: t("locationsGroups") })}
         </Button>
       </div>
 
