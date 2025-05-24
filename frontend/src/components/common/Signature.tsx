@@ -35,8 +35,8 @@ const SignatureCanvas = () => {
     <div className="flex gap-4">
       <canvas
         ref={canvasRef}
-        className="flex-1"
-        height={20}
+        className="flex-1 rounded-2xl"
+        height={60}
         style={{ border: "1px solid #ccc" }}
       />
       <button onClick={saveSignature}>Save Signature</button>

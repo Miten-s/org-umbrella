@@ -6,7 +6,7 @@ import {
   deleteUser,
   getUserDetail,
   getUsers,
-  updateUser,
+  updateUser
 } from "../controllers/user.controller";
 import { authenticate } from "../middlewares/auth.middleware";
 
@@ -15,30 +15,33 @@ const router: Router = Router();
 // ---------------------------------------------------------------------------------------- GET Requests ----------------------------------------------------------------------------------------
 
 // Define a GET route for getting user detail.
-router.get(API_ROUTES.ME, authenticate , getUserDetail);
+router.get(API_ROUTES.AUTH + API_ROUTES.ME, authenticate, getUserDetail);
 
 // Define a GET route for getting users.
-router.get(API_ROUTES.USER, authenticate, getUsers);
+router.get(API_ROUTES.AUTH + API_ROUTES.USER, authenticate, getUsers);
 
 // Define a GET route for user logout.
-router.post(API_ROUTES.LOGOUT, logout);
+router.post(API_ROUTES.AUTH + API_ROUTES.LOGOUT, logout);
 
 // ---------------------------------------------------------------------------------------- POST Requests ----------------------------------------------------------------------------------------
 
 // Define a POST route for user login using the LOGIN route from API_ROUTES.
-router.post(API_ROUTES.LOGIN, login); 
+router.post(API_ROUTES.AUTH + API_ROUTES.LOGIN, login);
 
 // Define a POST route for add users.
-router.post(API_ROUTES.USER, createUser);
+router.post(API_ROUTES.AUTH + API_ROUTES.USER, createUser);
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
 
 // Define a PATCH route for add users.
-router.patch(API_ROUTES.USER + API_ROUTES.PARAMS, updateUser);
+router.patch(API_ROUTES.AUTH + API_ROUTES.USER + API_ROUTES.PARAMS, updateUser);
 
 // ---------------------------------------------------------------------------------------- DELETE Requests ----------------------------------------------------------------------------------------
 
 // Define a DELETE route for add users.
-router.delete(API_ROUTES.USER + API_ROUTES.PARAMS, deleteUser);
+router.delete(
+  API_ROUTES.AUTH + API_ROUTES.USER + API_ROUTES.PARAMS,
+  deleteUser
+);
 
 export default router;

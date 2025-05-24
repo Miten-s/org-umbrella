@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import {
   convertMongooseError,
   CUSTOM_MESSAGES,
-  getMessage,
+  getMessage
 } from "../utils/common.util";
 
 interface CustomError extends Error {
@@ -21,14 +21,11 @@ export const errorHandler = (
     return next(err); // If response is already sent, do nothing
   }
 
-  console.log("Handler Error >>>", err);
-
   const statusCode = err.statusCode ?? 500;
-
   const message = err?.errorResponse
     ? convertMongooseError({
         code: err?.errorResponse?.code,
-        entity: Object.keys(err?.errorResponse?.keyValue)[0],
+        entity: Object.keys(err?.errorResponse?.keyValue)[0]
       })
     : getMessage(
         err.response?.data?.message ?? CUSTOM_MESSAGES.SOMETHING_WENT_WRONG
@@ -40,7 +37,7 @@ export const errorHandler = (
       message ??
       (statusCode === 500
         ? CUSTOM_MESSAGES.INTERNAL_SERVER_ERROR
-        : CUSTOM_MESSAGES.SOMETHING_WENT_WRONG),
+        : CUSTOM_MESSAGES.SOMETHING_WENT_WRONG)
   });
 };
 
@@ -50,8 +47,8 @@ export const errorHandler = (
  */
 const asyncHandler =
   (fn: (req: Request, res: Response, next: NextFunction) => Promise<any>) =>
-  (req: Request, res: Response, next: NextFunction) => {
-    Promise.resolve(fn(req, res, next)).catch(next); // Forward error to next(error)
+  async (req: Request, res: Response, next: NextFunction) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
   };
 
 export default asyncHandler;

@@ -25,7 +25,7 @@ export const CUSTOM_MESSAGES = {
   CANNOT_FORGOT_SSO_USER: "SSO user cannot change password",
   TOKEN_MALFORMED: "Token is malformed",
   ROLE_ASSIGNED: "Role assigned successfully",
-  ROLE_FETCHED: "Roles fetched successfully",
+  ROLE_FETCHED: "Roles fetched successfully"
 };
 
 export const getMessage = (message: string, entity?: string) => {

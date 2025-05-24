@@ -11,7 +11,7 @@ const PermissionSchema = new Schema(
     name: { type: String, required: true },
     description: { type: String },
     isDeleted: { type: Boolean, default: false },
-    deletedAt: { type: Date, default: null },
+    deletedAt: { type: Date, default: null }
   },
   { timestamps: true }
 );

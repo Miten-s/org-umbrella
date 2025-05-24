@@ -21,7 +21,7 @@ export const authenticate = (
     req.user = decoded as IUser;
 
     next();
-  } catch (error) {
+  } catch {
     res.status(401).json({ message: "Invalid token" });
   }
 };

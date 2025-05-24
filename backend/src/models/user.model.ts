@@ -18,13 +18,27 @@ const UserSchema: Schema = new Schema(
     password: { type: String, required: true },
     currentLanguage: {
       type: String,
-      enum: ['en', 'ar', 'zh', 'de', 'es', 'fr', 'he', 'it', 'ja', 'ko', 'nl', 'pl', 'pt'],
-      default: 'en'
+      enum: [
+        "en",
+        "ar",
+        "zh",
+        "de",
+        "es",
+        "fr",
+        "he",
+        "it",
+        "ja",
+        "ko",
+        "nl",
+        "pl",
+        "pt"
+      ],
+      default: "en"
     },
     roles: [{ type: Schema.Types.ObjectId, ref: "Role" }],
     isDeleted: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
-    createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User" }
   },
   { timestamps: true }
 );

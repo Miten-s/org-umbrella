@@ -11,7 +11,7 @@ export const createPermissions = async (
     await permissionService.createPermission(req);
     res.status(201).json({
       success: true,
-      message: CUSTOM_MESSAGES.ENTITY_CREATED.replace("{{ entity }}", "Role"),
+      message: CUSTOM_MESSAGES.ENTITY_CREATED.replace("{{ entity }}", "Role")
     });
   } catch (error) {
     next(error);
@@ -27,7 +27,7 @@ export const updatePermissions = async (
     await permissionService.updatePermission(req);
     res.status(201).json({
       success: true,
-      message: CUSTOM_MESSAGES.ENTITY_UPDATED.replace("{{ entity }}", "Role"),
+      message: CUSTOM_MESSAGES.ENTITY_UPDATED.replace("{{ entity }}", "Role")
     });
   } catch (error) {
     next(error);
@@ -56,7 +56,7 @@ export const deletePermissions = async (
     await permissionService.deletePermission(req);
     res.status(201).json({
       success: true,
-      message: CUSTOM_MESSAGES.ENTITY_DELETED.replace("{{ entity }}", "Role"),
+      message: CUSTOM_MESSAGES.ENTITY_DELETED.replace("{{ entity }}", "Role")
     });
   } catch (error) {
     next(error);

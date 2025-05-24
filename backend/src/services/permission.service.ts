@@ -18,12 +18,15 @@ const deletePermission = async (req: Request) => {
 };
 
 const getPermissions = async () => {
-  return await Permission.find({ isDeleted: false , name : { $not: /OPERATE:ALL/i } }).lean();
+  return await Permission.find({
+    isDeleted: false,
+    name: { $not: /OPERATE:ALL/i }
+  }).lean();
 };
 
 export default {
   createPermission,
   updatePermission,
   deletePermission,
-  getPermissions,
+  getPermissions
 };

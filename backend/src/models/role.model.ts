@@ -2,11 +2,11 @@ import mongoose, { Document, Schema } from "mongoose";
 import { IPermission } from "./permission.model";
 
 export enum RoleType {
-  CUSTOM = 'Custom',
-  BUILT_IN = 'Built_In'
-} 
+  CUSTOM = "Custom",
+  BUILT_IN = "Built_In"
+}
 export interface IRole extends Document {
-  _id : string,
+  _id: string;
   name: string;
   permissions: IPermission[];
 }
@@ -16,8 +16,8 @@ const RoleSchema = new Schema(
     name: { type: String, required: true, unique: true },
     permissions: [{ type: mongoose.Schema.Types.ObjectId, ref: "Permission" }],
     isDeleted: { type: Boolean, default: false },
-    type : { type: String , enum : RoleType , required: true },
-    deletedAt: { type: Date, default: null },
+    type: { type: String, enum: RoleType, required: true },
+    deletedAt: { type: Date, default: null }
   },
   { timestamps: true }
 );

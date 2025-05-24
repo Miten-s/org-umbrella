@@ -1,4 +1,3 @@
-const { ObjectId } = require("mongoose").Types;
 const bcrypt = require("bcrypt");
 
 module.exports = {

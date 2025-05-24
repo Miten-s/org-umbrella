@@ -120,15 +120,6 @@ const CreateAdminModal = ({
         </div>
 
         <div>
-          {/* <Label htmlFor="signature"> {t("signature")}</Label>
-          <Input
-            id="signature"
-            type="text"
-            disabled={activeUser}
-            {...register("signature")}
-            error={!!errors.password}
-            hint={errors.password?.message}
-          /> */}
           <SignatureCanvas />
         </div>
 

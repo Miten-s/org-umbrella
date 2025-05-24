@@ -6,7 +6,7 @@ import { CUSTOM_MESSAGES } from "../utils/common.util";
 
 export const loginService = async ({
   email,
-  password,
+  password
 }: {
   email: string;
   password: string;
@@ -17,7 +17,10 @@ export const loginService = async ({
   }
 
   // Generating Non Expiring Token
-  const token = jwt.sign({ id: user._id , username: user.username , email: user.email }, ENV.JWT_SECRET!);
+  const token = jwt.sign(
+    { id: user._id, username: user.username, email: user.email },
+    ENV.JWT_SECRET!
+  );
 
   return token;
 };

@@ -16,7 +16,7 @@ const createRole = async (req: Request) => {
   return await Role.create({
     name,
     permissions,
-    type: RoleType.CUSTOM,
+    type: RoleType.CUSTOM
   });
 };
 

@@ -2,7 +2,6 @@ const { ObjectId } = require("mongoose").Types;
 
 module.exports = {
   async up(db, client) {
-
     const permissionNames = [
       "CREATE:USER",
       "READ:USER",
@@ -21,16 +20,21 @@ module.exports = {
       .find({ name: { $in: permissionNames } })
       .toArray();
 
-    const permissionMap = new Map(allPermissions.map((perm) => [perm.name, perm._id]));
+    const permissionMap = new Map(
+      allPermissions.map((perm) => [perm.name, perm._id])
+    );
 
-    const adminPermissionIds = permissionNames.map((name) => permissionMap.get(name)).filter(Boolean);
-    const userPermissionIds = [permissionMap.get("VIEW:DASHBOARD")].filter(Boolean);
+    const adminPermissionIds = permissionNames
+      .map((name) => permissionMap.get(name))
+      .filter(Boolean);
+    const userPermissionIds = [permissionMap.get("VIEW:DASHBOARD")].filter(
+      Boolean
+    );
 
     // Insert Admin and User roles
     const roles = [
       {
         name: "Admin",
-        description: "Administrator with elevated privileges",
         type: "Built_In",
         permissions: adminPermissionIds,
         isDeleted: false,
@@ -40,7 +44,6 @@ module.exports = {
       },
       {
         name: "User",
-        description: "Regular user with limited access",
         type: "Built_In",
         permissions: userPermissionIds,
         isDeleted: false,

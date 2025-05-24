@@ -39,7 +39,7 @@ export const createUser = async (
     await userService.createUser(req);
     res.status(201).json({
       success: true,
-      message: CUSTOM_MESSAGES.ENTITY_CREATED.replace("{{ entity }}", "User"),
+      message: CUSTOM_MESSAGES.ENTITY_CREATED.replace("{{ entity }}", "User")
     });
   } catch (error) {
     next(error);
@@ -55,7 +55,7 @@ export const updateUser = async (
     await userService.updateUser(req);
     res.status(201).json({
       success: true,
-      message: CUSTOM_MESSAGES.ENTITY_UPDATED.replace("{{ entity }}", "User"),
+      message: CUSTOM_MESSAGES.ENTITY_UPDATED.replace("{{ entity }}", "User")
     });
   } catch (error) {
     next(error);
@@ -71,7 +71,7 @@ export const deleteUser = async (
     await userService.deleteUser(req);
     res.status(201).json({
       success: true,
-      message: CUSTOM_MESSAGES.ENTITY_DELETED.replace("{{ entity }}", "User"),
+      message: CUSTOM_MESSAGES.ENTITY_DELETED.replace("{{ entity }}", "User")
     });
   } catch (error) {
     next(error);

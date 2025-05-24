@@ -22,7 +22,7 @@ export const login = async (
     res.status(401).json({
       message:
         (isAppError(error) ? error?.message : error) ??
-        CUSTOM_MESSAGES.SOMETHING_WENT_WRONG,
+        CUSTOM_MESSAGES.SOMETHING_WENT_WRONG
     });
     next(error);
   }
@@ -46,7 +46,7 @@ export const logout = async (
     res.status(401).json({
       message:
         (isAppError(error) ? error?.message : error) ??
-        CUSTOM_MESSAGES.SOMETHING_WENT_WRONG,
+        CUSTOM_MESSAGES.SOMETHING_WENT_WRONG
     });
     next(error);
   }

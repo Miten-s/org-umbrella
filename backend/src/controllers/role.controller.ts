@@ -1,94 +1,49 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
 import userService from "../services/role.service";
-import { CUSTOM_MESSAGES, isAppError } from "../utils/common.util";
+import { CUSTOM_MESSAGES } from "../utils/common.util";
+import asyncHandler from "../middlewares/error.middleware";
 
-export const createRole = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
+export const createRole = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
     await userService.createRole(req);
     res.status(201).json({
       success: true,
-      message: CUSTOM_MESSAGES.ENTITY_CREATED.replace("{{ entity }}", "Role"),
-    });
-  } catch (error: unknown) {
-    res.status(400).json({
-      success: false,
-      message:
-        (isAppError(error) ? error?.message : error) ?? "Something went wrong",
+      message: CUSTOM_MESSAGES.ENTITY_CREATED.replace("{{ entity }}", "Role")
     });
   }
-};
+);
 
 // Define an asynchronous function called 'assignRole' that handles HTTP requests
-export const assignRole = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
+export const assignRole = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
     const user = await userService.assignRole(req);
     res.status(201).json({ success: true, user });
-  } catch (error: unknown) {
-    res.status(400).json({
-      success: false,
-      message:
-        (isAppError(error) ? error?.message : error) ?? "Something went wrong",
-    });
   }
-};
+);
 
-export const updateRole = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
+export const updateRole = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
     await userService.updateRole(req);
     res.status(201).json({
       success: true,
-      message: CUSTOM_MESSAGES.ENTITY_UPDATED.replace("{{ entity }}", "Role"),
-    });
-  } catch (error: unknown) {
-    res.status(400).json({
-      success: false,
-      message:
-        (isAppError(error) ? error?.message : error) ?? "Something went wrong",
+      message: CUSTOM_MESSAGES.ENTITY_UPDATED.replace("{{ entity }}", "Role")
     });
   }
-};
+);
 
-export const getRoles = async (req: Request, res: Response): Promise<void> => {
-  try {
+export const getRoles = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
     const roles = await userService.getRoles(req.user);
     res.status(200).json({ success: true, roles });
-  } catch (error: unknown) {
-    res.status(400).json({
-      success: false,
-      message:
-        (isAppError(error) ? error?.message : error) ?? "Something went wrong",
-    });
   }
-};
+);
 
-export const deleteRole = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
+export const deleteRole = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
     await userService.deleteRole(req);
     res.status(201).json({
       success: true,
-      message: CUSTOM_MESSAGES.ENTITY_DELETED.replace("{{ entity }}", "Role"),
-    });
-  } catch (error: unknown) {
-    res.status(400).json({
-      success: false,
-      message:
-        (isAppError(error) ? error?.message : error) ?? "Something went wrong",
+      message: CUSTOM_MESSAGES.ENTITY_DELETED.replace("{{ entity }}", "Role")
     });
   }
-};
+);

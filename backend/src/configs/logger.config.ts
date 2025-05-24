@@ -7,8 +7,8 @@ const logFormat = format.printf(({ level, message, timestamp, ...meta }) => {
     level,
     message,
     ...((meta.functionName as string) && { functionName: meta.functionName }),
-    ...(meta.fileName as string && { fileName: meta.fileName }),
-    ...((meta.context as object) && { context: meta.context }),
+    ...((meta.fileName as string) && { fileName: meta.fileName }),
+    ...((meta.context as object) && { context: meta.context })
   });
 });
 
@@ -25,7 +25,7 @@ const logger = createLogger({
       zippedArchive: true,
       maxSize: "20m",
       maxFiles: "14d",
-      level: "info",
+      level: "info"
     }),
 
     new DailyRotateFile({
@@ -35,9 +35,9 @@ const logger = createLogger({
       zippedArchive: true,
       maxSize: "20m",
       maxFiles: "30d",
-      level: "error",
-    }),
-  ],
+      level: "error"
+    })
+  ]
 });
 
 /**
