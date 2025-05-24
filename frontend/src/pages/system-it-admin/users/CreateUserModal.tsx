@@ -9,13 +9,21 @@ import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { DropdownItem } from "@/components/ui/dropdown/DropdownItem";
 import Checkbox from "@/components/common/form/input/Checkbox";
 import SignatureCanvas from "@/components/common/Signature";
+import TextArea from "@/components/common/form/input/TextArea";
+import MultiSelect from "@/components/common/form/MultiSelect";
 
+
+interface Option {
+  value: string;
+  text: string;
+}
 interface CreateUserModalProps {
   onClose: () => void;
+  roles: Option[];
 }
 
-const CreateUserModal = ({ onClose }: CreateUserModalProps) => {
-  const { register, handleSubmit, setValue, } = useForm();
+const CreateUserModal = ({ onClose, roles }: CreateUserModalProps) => {
+  const { register, handleSubmit, setValue, watch } = useForm();
   const { t } = useTranslation();
 
   const [isUserTypeDropdownOpen, setIsUserTypeDropdownOpen] = useState(false);
@@ -53,119 +61,127 @@ const CreateUserModal = ({ onClose }: CreateUserModalProps) => {
   return (
     <div className="p-6 max-h-[90vh] overflow-y-auto">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <h2 className="text-xl font-semibold">{t("createUser")}</h2>
+        <h2 className="text-xl font-semibold">{t("create", { entity: t("user") })}</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label>User ID</Label>
-            <Input {...register("userId", { maxLength: 10 })} />
-          </div>
-
-          <div>
-            <Label>Full Name</Label>
+            <Label>{t("fullName")}</Label>
             <Input {...register("fullName", { maxLength: 30 })} />
           </div>
 
           <div>
-            <Label>Description</Label>
-            <Input {...register("description", { maxLength: 50 })} />
+            <Label>{t("description")}</Label>
+            <TextArea
+              value={watch("description")}
+              onChange={(event) => setValue("description", event)}
+            />
           </div>
 
           <div className="relative">
-            <Label>User Type</Label>
+            <Label>{t("userType")}</Label>
             <button
               type="button"
               onClick={toggleDropdown}
               className="input flex justify-between items-center"
             >
-              {selectedUserType === "admin" ? "Admin User" : "Normal User"}
+              <span className="text-theme-sm dark:text-gray-400">
+                {selectedUserType === "admin"
+                  ? t("adminUser")
+                  : t("normalUser")}
+              </span>
+
               <svg className="ml-2 h-4 w-4" viewBox="0 0 20 20">
                 <path d="M5.5 7l4.5 4.5L14.5 7z" />
               </svg>
             </button>
-            <Dropdown isOpen={isUserTypeDropdownOpen} onClose={closeDropdown} className="absolute z-10 mt-1 w-full">
-              <DropdownItem onItemClick={() => handleUserTypeSelect("normal")}>Normal User</DropdownItem>
-              <DropdownItem onItemClick={() => handleUserTypeSelect("admin")}>Admin User</DropdownItem>
+            <Dropdown
+              isOpen={isUserTypeDropdownOpen}
+              onClose={closeDropdown}
+              className="absolute z-10 mt-1 w-full"
+            >
+              <DropdownItem onItemClick={() => handleUserTypeSelect("normal")}>
+                {t("normalUser")}
+              </DropdownItem>
+              <DropdownItem onItemClick={() => handleUserTypeSelect("admin")}>
+                {t("adminUser")}
+              </DropdownItem>
             </Dropdown>
           </div>
 
           <div>
-            <Label>Email</Label>
+            <Label>{t("email")}</Label>
             <Input type="email" {...register("email", { maxLength: 20 })} />
           </div>
 
           <div>
-            <Label>Mobile Number</Label>
+            <Label>{t("mobileNumber")}</Label>
             <Input {...register("mobileNumber", { maxLength: 15 })} />
           </div>
 
           <div>
-            <Label>Location / Group</Label>
+            <Label>{t("locationGroup")}</Label>
             <Input {...register("locationGroup")} />
           </div>
 
           <div>
-            <Label>Designation</Label>
+            <Label>{t("designation")}</Label>
             <Input {...register("designation")} />
           </div>
 
           <div>
-            <Label>Department</Label>
+            <Label>{t("department")}</Label>
             <Input {...register("department")} />
           </div>
 
           <div>
-            <Label>Manager</Label>
+            <Label>{t("manager")}</Label>
             <Input {...register("manager")} />
           </div>
 
-          <div>
-            <Label>Created On</Label>
-            <Input disabled value={dayjs().format("YYYY-MM-DD HH:mm:ss")} />
+          <div className="md:col-span-2">
+            <Label htmlFor="assignRole">{t("assignRoles")}</Label>
+            <MultiSelect
+              options={roles}
+              label="Multiple Select Options"
+              onChange={(selected) => setValue("assignRole", selected)}
+            />
           </div>
 
           <div>
-            <Label>Created By</Label>
-            <Input disabled value="currentUserId" />
+            <Label>{t("modifiable")}</Label>
+            <Checkbox checked={modifiable} onChange={setModifiable} label={t("yes")} />
           </div>
 
           <div>
-            <Label>Modified On</Label>
-            <Input disabled value={dayjs().format("YYYY-MM-DD HH:mm:ss")} />
+            <Label>{t("trainingCompleted")}</Label>
+            <Checkbox
+              checked={trainingCompleted}
+              onChange={setTrainingCompleted}
+              label={t("yes")}
+            />
           </div>
 
           <div>
-            <Label>Modified By</Label>
-            <Input disabled value="currentUserId" />
-          </div>
-
-          <div>
-            <Label>Modifiable</Label>
-            <Checkbox checked={modifiable} onChange={setModifiable} label="Yes" />
-          </div>
-
-          <div>
-            <Label>Training Completed</Label>
-            <Checkbox checked={trainingCompleted} onChange={setTrainingCompleted} label="Yes" />
-          </div>
-
-          <div>
-            <Label>Password</Label>
+            <Label>{t("password")}</Label>
             <Input type="password" {...register("password")} />
           </div>
 
           <div>
-            <Label>Confirm Password</Label>
+            <Label>{t("confirmPassword")}</Label>
             <Input type="password" {...register("confirmPassword")} />
           </div>
 
           <div>
-            <Label>Password Expiry Date</Label>
-            <Input type="date" defaultValue={dayjs().format("YYYY-MM-DD")} {...register("passwordExpiry")} />
+            <Label>{t("passwordExpiry")}</Label>
+            <Input
+              type="date"
+              defaultValue={dayjs().format("YYYY-MM-DD")}
+              {...register("passwordExpiry")}
+            />
           </div>
 
           <div className="md:col-span-2">
-            <Label>Signature</Label>
+            <Label>{t("signature")}</Label>
             <SignatureCanvas />
           </div>
         </div>
