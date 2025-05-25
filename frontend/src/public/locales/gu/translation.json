@@ -52,9 +52,7 @@
   "edit": "સંપાદિત કરો",
   "deleteEntity": "{{entity}} કાઢી નાખો",
   "noRolesFound": "કોઈ ભૂમિકાઓ મળી નથી. શરૂ કરવા માટે નવી બનાવો.",
-  "deleteAdminPrompt": "શું તમે આ એડમિનને કાઢી નાખવા માંગો છો?",
   "confirm": "ખાતરી કરો",
-  "deleteRolePrompt": "શું તમે ખરેખર આ ભૂમિકા કાઢી નાખવા માંગો છો?",
   "searchOrType": "શોધો અથવા કમાન્ડ લખો...",
   "signOff": "સાઇન ઑફ કરો",
   "create": "{{entity}} બનાવો",
@@ -114,5 +112,6 @@
   "companyName": "કંપનીનું નામ",
   "company": "કંપની",
   "upload": "{{entity}} અપલોડ કરો",
-  "logo": "લોગો"
+  "logo": "લોગો",
+  "deleteEntityPrompt": "શું તમે ખરેખર આ {{entityName}} ને કાઢી નાખવા માંગો છો?"
 }

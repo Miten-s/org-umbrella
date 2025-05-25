@@ -52,9 +52,7 @@
   "edit": "संपादित करा",
   "deleteEntity": "{{entity}} हटवा",
   "noRolesFound": "कोणतीही भूमिका सापडली नाही. सुरू करण्यासाठी नवीन तयार करा.",
-  "deleteAdminPrompt": "तुम्हाला हा व्यवस्थापक हटवायचा आहे का?",
   "confirm": "पुष्टी करा",
-  "deleteRolePrompt": "तुम्हाला ही भूमिका नक्की हटवायची आहे का?",
   "searchOrType": "शोधा किंवा आदेश लिहा...",
   "signOff": "साइन ऑफ",
   "create": "{{entity}} तयार करा",
@@ -114,5 +112,6 @@
   "companyName": "कंपनीचे नाव",
   "company": "कंपनी",
   "upload": "{{entity}} अपलोड करा",
-  "logo": "लोगो"
+  "logo": "लोगो",
+  "deleteEntityPrompt": "आपण खरोखर हे {{entityName}} हटवू इच्छिता?"
 }

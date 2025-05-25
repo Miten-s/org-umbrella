@@ -50,9 +50,7 @@
   "edit": "Edit",
   "deleteEntity": "Delete {{entity}}",
   "noRolesFound": "No roles found. Create a new role to get started.",
-  "deleteAdminPrompt": "Are you want to delete this admin",
   "confirm": "Confirm",
-  "deleteRolePrompt": "Are you sure you want to delete the role",
   "searchOrType": "Search or type command...",
   "signOff": "Sign off",
   "create": "Create {{entity}}",
@@ -112,5 +110,6 @@
   "companyName": "Company Name",
   "company": "Company",
   "upload": "Upload {{entity}}",
-  "logo": "Logo"
+  "logo": "Logo",
+  "deleteEntityPrompt": "Are you sure you want to delete this {{entityName}}?"
 }

@@ -71,7 +71,7 @@ export interface Department {
 
 export interface Company {
   _id: string;
-  companyName: string;
+  name: string;
   description?: string;
-  logoUrl?: string; 
+  logo?: string; 
 }

@@ -1,29 +1,29 @@
 {
   "en": {
-    "logo": "Logo"
+    "deleteEntityPrompt": "Are you sure you want to delete this {{entityName}}?"
   },
   "ar": {
-    "logo": "الشعار"
+    "deleteEntityPrompt": "هل أنت متأكد أنك تريد حذف {{entityName}}؟"
   },
   "es": {
-    "logo": "Logotipo"
+    "deleteEntityPrompt": "¿Estás seguro de que deseas eliminar este {{entityName}}?"
   },
   "fr": {
-    "logo": "Logo"
+    "deleteEntityPrompt": "Êtes-vous sûr de vouloir supprimer ce {{entityName}} ?"
   },
   "hi": {
-    "logo": "लोगो"
+    "deleteEntityPrompt": "क्या आप वाकई इस {{entityName}} को हटाना चाहते हैं?"
   },
   "gu": {
-    "logo": "લોગો"
+    "deleteEntityPrompt": "શું તમે ખરેખર આ {{entityName}} ને કાઢી નાખવા માંગો છો?"
   },
   "ta": {
-    "logo": "லோகோ"
+    "deleteEntityPrompt": "இந்த {{entityName}}-ஐ நிச்சயமாக நீக்க விரும்புகிறீர்களா?"
   },
   "te": {
-    "logo": "లోగో"
+    "deleteEntityPrompt": "మీరు నిజంగా ఈ {{entityName}} ను తొలగించాలనుకుంటున్నారా?"
   },
   "mr": {
-    "logo": "लोगो"
+    "deleteEntityPrompt": "आपण खरोखर हे {{entityName}} हटवू इच्छिता?"
   }
 }

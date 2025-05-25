@@ -50,9 +50,7 @@
   "edit": "تعديل",
   "deleteEntity": "حذف {{entity}}",
   "noRolesFound": "لم يتم العثور على أدوار. أنشئ دورًا جديدًا للبدء.",
-  "deleteAdminPrompt": "هل تريد حذف هذا المسؤول؟",
   "confirm": "تأكيد",
-  "deleteRolePrompt": "هل أنت متأكد أنك تريد حذف هذا الدور؟",
   "searchOrType": "ابحث أو اكتب أمرًا...",
   "signOff": "تسجيل الخروج",
   "create": "إنشاء {{entity}}",
@@ -112,5 +110,6 @@
   "companyName": "اسم الشركة",
   "company": "شركة",
   "upload": "تحميل {{entity}}",
-  "logo": "الشعار"
+  "logo": "الشعار",
+  "deleteEntityPrompt": "هل أنت متأكد أنك تريد حذف {{entityName}}؟"
 }

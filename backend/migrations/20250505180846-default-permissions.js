@@ -1,7 +1,7 @@
 const bcrypt = require("bcrypt");
 
 module.exports = {
-  async up(db, client) {
+  async up(db) {
     const permissions = [
       { name: "CREATE:USER", description: "Create a new user" },
       { name: "READ:USER", description: "Read user data" },
@@ -65,9 +65,19 @@ module.exports = {
     });
 
     console.log("Super Admin user created");
+
+    await db.collection("company").insertOne({
+      name: "Super Admin Company",
+      logo: null,
+      description: "Super Admin Company",
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+
+    console.log("Company created");
   },
 
-  async down(db, client) {
+  async down(db) {
     // Remove Super Admin User
     await db.collection("users").deleteOne({ username: "superadmin" });
 
@@ -91,6 +101,8 @@ module.exports = {
     await db
       .collection("permissions")
       .deleteMany({ name: { $in: permissionNames } });
+
+    await db.collection("company").deleteOne({ name: "Super Admin Company" });
 
     console.log("Super Admin user, role, and permissions removed");
   }

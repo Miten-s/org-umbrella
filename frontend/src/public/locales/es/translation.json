@@ -49,9 +49,7 @@
   "edit": "Editar",
   "deleteEntity": "Eliminar {{entity}}",
   "noRolesFound": "No se encontraron roles. Cree uno nuevo para comenzar.",
-  "deleteAdminPrompt": "¿Desea eliminar a este administrador?",
   "confirm": "Confirmar",
-  "deleteRolePrompt": "¿Está seguro de que desea eliminar el rol?",
   "searchOrType": "Buscar o escribir comando...",
   "signOff": "Cerrar sesión",
   "create": "Crear {{entity}}",
@@ -111,5 +109,6 @@
   "companyName": "Nombre de la empresa",
   "company": "Empresa",
   "upload": "Subir {{entity}}",
-  "logo": "Logotipo"
+  "logo": "Logotipo",
+  "deleteEntityPrompt": "¿Estás seguro de que deseas eliminar este {{entityName}}?"
 }

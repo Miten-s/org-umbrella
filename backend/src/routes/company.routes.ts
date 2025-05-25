@@ -1,7 +1,7 @@
 import { Router } from "express";
 import {
-  createCompany,
-  getAllCompanies
+  getAllCompanies,
+  updateCompany
 } from "../controllers/company.controller";
 import { upload } from "../middlewares/multer.middleware";
 import API_ROUTES from "../utils/routes";
@@ -12,6 +12,6 @@ const router = Router();
 router.get(API_ROUTES.COMPANY, getAllCompanies);
 
 // ---------------------------------------------------------------------------------------- POST Requests ----------------------------------------------------------------------------------------
-router.post(API_ROUTES.COMPANY, upload.single("logo"), createCompany);
+router.patch(API_ROUTES.COMPANY, upload.single("logo"), updateCompany);
 
 export default router;

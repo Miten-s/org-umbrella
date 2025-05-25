@@ -1,21 +1,19 @@
 import { Request } from "express";
 import { Company } from "../models/company.model";
 
-const createCompany = async (req: Request) => {
+const updateCompany = async (req: Request) => {
   const { name, description } = req.body;
+  const { id: _id } = req.params;
   const logoPath = req.file?.path;
-  if (!logoPath) throw new Error("Logo is required");
 
-  const newCompany = new Company({
-    name,
-    logo: logoPath.split("uploads")[1],
-    description
-  });
-  return await newCompany.save();
+  return await Company.findOneAndUpdate(
+    { _id },
+    { name, logo: logoPath?.split("uploads")[1], description }
+  ).exec();
 };
 
 const getCompany = async () => {
   return await Company.findOne().exec();
 };
 
-export { createCompany, getCompany };
+export { updateCompany, getCompany };

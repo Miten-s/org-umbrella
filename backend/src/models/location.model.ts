@@ -34,10 +34,6 @@ const LocationSchema = new Schema<ILocation>(
   { timestamps: true }
 );
 
-LocationSchema.pre("save", async function () {
-  this.set("updatedAt", Date.now());
-});
-
 LocationSchema.pre(["find", "findOne", "findOneAndUpdate"], async function () {
   this.where({ deletedAt: null });
 });

@@ -1,11 +1,14 @@
 import { Request, Response } from "express";
 import asyncHandler from "../middlewares/error.middleware";
 import * as companyService from "../services/company.service";
+import { CUSTOM_MESSAGES } from "../utils/common.util";
 
-export const createCompany = asyncHandler(
+export const updateCompany = asyncHandler(
   async (req: Request, res: Response) => {
-    const newCompany = await companyService.createCompany(req);
-    res.status(201).json({ company: newCompany });
+    await companyService.updateCompany(req);
+    res.status(201).json({
+      message: CUSTOM_MESSAGES.ENTITY_UPDATED.replace("{{ entity }}", "Company")
+    });
   }
 );
 

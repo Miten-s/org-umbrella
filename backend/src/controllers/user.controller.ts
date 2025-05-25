@@ -12,9 +12,7 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
 export const getUserDetail = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const { id: userId } = req.user as IUser;
-    console.log('userId', userId);
     const user = await userService.getUserDetail(userId);
-    console.log('user', user);
     res.status(200).json({ user });
   }
 );

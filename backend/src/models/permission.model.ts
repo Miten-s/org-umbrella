@@ -15,10 +15,6 @@ const PermissionSchema = new Schema(
   { timestamps: true }
 );
 
-PermissionSchema.pre("save", async function () {
-  this.set("updatedAt", Date.now());
-});
-
 PermissionSchema.pre(
   ["find", "findOne", "findOneAndUpdate"],
   async function () {
