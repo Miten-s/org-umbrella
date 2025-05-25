@@ -46,7 +46,6 @@ UserSchema.pre("save", async function () {
   if (this.isModified("password")) {
     this.set("password", await bcrypt.hash(this.password as string, 10));
   }
-  this.set("updatedAt", Date.now());
 });
 
 UserSchema.pre(["find", "findOne", "findOneAndUpdate"], async function () {

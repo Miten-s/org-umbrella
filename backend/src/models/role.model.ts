@@ -21,10 +21,6 @@ const RoleSchema = new Schema(
   { timestamps: true }
 );
 
-RoleSchema.pre("save", async function () {
-  this.set("updatedAt", Date.now());
-});
-
 RoleSchema.pre(["find", "findOne", "findOneAndUpdate"], async function () {
   this.where({
     deletedAt: null

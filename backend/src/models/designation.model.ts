@@ -29,10 +29,6 @@ const DesignationSchema = new Schema<IDesignation>(
   { timestamps: true }
 );
 
-DesignationSchema.pre("save", async function () {
-  this.set("updatedAt", Date.now());
-});
-
 DesignationSchema.pre(
   ["find", "findOne", "findOneAndUpdate"],
   async function () {

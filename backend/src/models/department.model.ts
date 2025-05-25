@@ -56,10 +56,6 @@ const DepartmentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-DepartmentSchema.pre("save", async function () {
-  this.set("updatedAt", Date.now());
-});
-
 DepartmentSchema.pre(
   ["find", "findOne", "findOneAndUpdate"],
   async function () {
