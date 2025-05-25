@@ -15,7 +15,6 @@ const RoleSchema = new Schema(
   {
     name: { type: String, required: true, unique: true },
     permissions: [{ type: mongoose.Schema.Types.ObjectId, ref: "Permission" }],
-    isDeleted: { type: Boolean, default: false },
     type: { type: String, enum: RoleType, required: true },
     deletedAt: { type: Date, default: null }
   },
@@ -28,7 +27,6 @@ RoleSchema.pre("save", async function () {
 
 RoleSchema.pre(["find", "findOne", "findOneAndUpdate"], async function () {
   this.where({
-    isDeleted: false,
     deletedAt: null
   });
   this.populate("permissions", "name description");

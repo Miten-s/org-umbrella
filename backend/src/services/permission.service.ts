@@ -13,13 +13,13 @@ const updatePermission = async (req: Request) => {
 const deletePermission = async (req: Request) => {
   return await Permission.updateOne(
     { _id: new ObjectId(req.params.id) },
-    { $set: { isDeleted: true, deletedAt: new Date() } }
+    { $set: { deletedAt: new Date() } }
   );
 };
 
 const getPermissions = async () => {
   return await Permission.find({
-    isDeleted: false,
+    deletedAt: { $not: null },
     name: { $not: /OPERATE:ALL/i }
   }).lean();
 };

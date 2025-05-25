@@ -21,7 +21,6 @@ module.exports = {
         ...permission,
         createdAt: new Date(),
         updatedAt: new Date(),
-        isDeleted: false,
         deletedAt: null
       }))
     );
@@ -43,7 +42,6 @@ module.exports = {
       permissions: [operateAllPermissionId],
       createdAt: new Date(),
       updatedAt: new Date(),
-      isDeleted: false,
       deletedAt: null
     });
 
@@ -60,7 +58,6 @@ module.exports = {
       name: "Super Admin",
       password,
       roles: [superAdminRoleId],
-      isDeleted: false,
       deletedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),

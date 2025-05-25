@@ -36,7 +36,6 @@ const UserSchema: Schema = new Schema(
       default: "en"
     },
     roles: [{ type: Schema.Types.ObjectId, ref: "Role" }],
-    isDeleted: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
     createdBy: { type: Schema.Types.ObjectId, ref: "User" }
   },
@@ -51,7 +50,7 @@ UserSchema.pre("save", async function () {
 });
 
 UserSchema.pre(["find", "findOne", "findOneAndUpdate"], async function () {
-  this.where({ isDeleted: false, deletedAt: null });
+  this.where({ deletedAt: null });
   this.populate("createdBy", "username");
 });
 

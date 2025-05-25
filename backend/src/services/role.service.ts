@@ -30,7 +30,7 @@ const updateRole = async (req: Request) => {
 const deleteRole = async (req: Request) => {
   return await Role.updateOne(
     { _id: req.params.id },
-    { $set: { isDeleted: true, deletedAt: new Date() } }
+    { $set: { deletedAt: new Date() } }
   );
 };
 

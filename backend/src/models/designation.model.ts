@@ -29,6 +29,17 @@ const DesignationSchema = new Schema<IDesignation>(
   { timestamps: true }
 );
 
+DesignationSchema.pre("save", async function () {
+  this.set("updatedAt", Date.now());
+});
+
+DesignationSchema.pre(
+  ["find", "findOne", "findOneAndUpdate"],
+  async function () {
+    this.where({ deletedAt: null });
+  }
+);
+
 export const Designation = model<IDesignation>(
   "Designation",
   DesignationSchema

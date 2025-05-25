@@ -20,7 +20,7 @@ export const login = async (
       "auth.controller/login"
     );
     res.status(401).json({
-      message:
+      error:
         (isAppError(error) ? error?.message : error) ??
         CUSTOM_MESSAGES.SOMETHING_WENT_WRONG
     });
@@ -44,7 +44,7 @@ export const logout = async (
       "auth.controller/logout"
     );
     res.status(401).json({
-      message:
+      error:
         (isAppError(error) ? error?.message : error) ??
         CUSTOM_MESSAGES.SOMETHING_WENT_WRONG
     });

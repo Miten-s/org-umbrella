@@ -11,7 +11,7 @@ export const checkPermissions = (requiredPermissions = []) => {
       userPermissions.includes(p)
     );
 
-    if (!hasAll) return res.status(403).json({ message: "Unauthorized user" });
+    if (!hasAll) return res.status(403).json({ error: "Unauthorized user" });
 
     next(); // permission is OK, move on
   };

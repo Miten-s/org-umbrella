@@ -10,7 +10,7 @@ export const createCompany = asyncHandler(
 );
 
 export const getAllCompanies = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (_req: Request, res: Response) => {
     const company = await companyService.getCompany();
     res.status(200).json({ company });
   }

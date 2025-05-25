@@ -5,11 +5,13 @@ import { CUSTOM_MESSAGES } from "../utils/common.util";
 
 export const createDepartment = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
-    const department = await departmentService.createDepartment(
-      req.body,
-      req.user?.username
-    );
-    res.status(201).json({ department });
+    await departmentService.createDepartment(req.body, req.user?.username);
+    res.status(201).json({
+      message: CUSTOM_MESSAGES.ENTITY_CREATED.replace(
+        "{{ entity }}",
+        "Department"
+      )
+    });
   }
 );
 
@@ -24,7 +26,7 @@ export const getDepartmentById = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
     const department = await departmentService.getDepartmentById(req.params.id);
     if (!department)
-      return res.status(404).json({ message: "Department not found" });
+      return res.status(404).json({ error: "Department not found" });
     res.status(200).json({ department });
   }
 );
@@ -37,7 +39,7 @@ export const updateDepartment = asyncHandler(
       req.user?._id
     );
     if (!department)
-      return res.status(404).json({ message: "Department not found" });
+      return res.status(404).json({ error: "Department not found" });
     res.status(200).json({
       message: CUSTOM_MESSAGES.ENTITY_UPDATED.replace(
         "{{ entity }}",
@@ -52,7 +54,7 @@ export const deleteDepartment = asyncHandler(
     const department = await departmentService.deleteDepartment(req.params.id);
 
     if (!department)
-      return res.status(404).json({ message: "Department not found" });
+      return res.status(404).json({ error: "Department not found" });
     res.status(200).json({
       message: CUSTOM_MESSAGES.ENTITY_UPDATED.replace(
         "{{ entity }}",

@@ -12,7 +12,7 @@ export const authenticate = (
     req.cookies?.accessToken || req.headers?.authorization?.split(" ")[1];
 
   if (!token) {
-    res.status(404).json({ message: "Token not found" });
+    res.status(404).json({ error: "Token not found" });
     return;
   }
 
@@ -21,6 +21,6 @@ export const authenticate = (
     req.user = decoded as IUser;
     next();
   } catch {
-    res.status(401).json({ message: "Invalid token" });
+    res.status(401).json({ error: "Invalid token" });
   }
 };

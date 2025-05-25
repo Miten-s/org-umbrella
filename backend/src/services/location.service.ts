@@ -19,8 +19,11 @@ const updateLocation = async (_id: string, data: Partial<ILocation>) => {
   }).exec();
 };
 
-const deleteLocation = async (id: string) => {
-  return await Location.findByIdAndDelete(id).exec();
+const deleteLocation = async (_id: string) => {
+  return await Location.findOneAndUpdate(
+    { _id },
+    { deletedAt: new Date() }
+  ).exec();
 };
 export {
   createLocation,

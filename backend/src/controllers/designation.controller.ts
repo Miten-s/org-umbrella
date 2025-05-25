@@ -28,7 +28,7 @@ export const getDesignationByName = asyncHandler(
       req.params.id
     );
     if (!designation)
-      return res.status(404).json({ message: "Designation not found" });
+      return res.status(404).json({ error: "Designation not found" });
     res.status(200).json({ designation });
   }
 );
@@ -40,8 +40,13 @@ export const updateDesignation = asyncHandler(
       req.body
     );
     if (!designation)
-      return res.status(404).json({ message: "Designation not found" });
-    res.status(200).json({ designation });
+      return res.status(404).json({ error: "Designation not found" });
+    res.status(200).json({
+      message: CUSTOM_MESSAGES.ENTITY_UPDATED.replace(
+        "{{ entity }}",
+        "Designation"
+      )
+    });
   }
 );
 
@@ -51,7 +56,7 @@ export const deleteDesignation = asyncHandler(
       req.params.id
     );
     if (!designation)
-      return res.status(404).json({ message: "Designation not found" });
+      return res.status(404).json({ error: "Designation not found" });
 
     res.status(200).json({
       message: CUSTOM_MESSAGES.ENTITY_DELETED.replace(

@@ -11,6 +11,7 @@ export interface IDepartment extends Document {
   modifiedOn?: Date;
   modifiedBy?: string;
   status: "active" | "disabled";
+  deletedAt: Date;
 }
 
 const DepartmentSchema = new mongoose.Schema(
@@ -49,9 +50,21 @@ const DepartmentSchema = new mongoose.Schema(
       type: String,
       enum: ["active", "disabled"],
       default: "active"
-    }
+    },
+    deletedAt: { type: Date, default: null }
   },
   { timestamps: true }
+);
+
+DepartmentSchema.pre("save", async function () {
+  this.set("updatedAt", Date.now());
+});
+
+DepartmentSchema.pre(
+  ["find", "findOne", "findOneAndUpdate"],
+  async function () {
+    this.where({ deletedAt: null });
+  }
 );
 
 export const Department = mongoose.model("Department", DepartmentSchema);
