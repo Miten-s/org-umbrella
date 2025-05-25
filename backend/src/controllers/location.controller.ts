@@ -1,18 +1,19 @@
 import { Request, Response } from "express";
 import * as locationService from "../services/location.service";
 import asyncHandler from "../middlewares/error.middleware";
+import { CUSTOM_MESSAGES } from "../utils/common.util";
 
 export const createLocation = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
     const location = await locationService.createLocation(req.body);
-    res.status(201).json(location);
+    res.status(201).json({ location });
   }
 );
 
 export const getAllLocations = asyncHandler(
   async (_req: Request, res: Response): Promise<any> => {
     const locations = await locationService.getAllLocations();
-    res.status(200).json(locations);
+    res.status(200).json({ locations });
   }
 );
 
@@ -21,7 +22,7 @@ export const getLocationById = asyncHandler(
     const location = await locationService.getLocationById(req.params.id);
     if (!location)
       return res.status(404).json({ message: "Location/Group not found" });
-    res.status(200).json(location);
+    res.status(200).json({ location });
   }
 );
 
@@ -33,7 +34,12 @@ export const updateLocation = asyncHandler(
     );
     if (!location)
       return res.status(404).json({ message: "Location/Group not found" });
-    res.status(200).json(location);
+    res.status(200).json({
+      message: CUSTOM_MESSAGES.ENTITY_UPDATED.replace(
+        "{{ entity }}",
+        "Location/Group"
+      )
+    });
   }
 );
 
@@ -42,6 +48,11 @@ export const deleteLocation = asyncHandler(
     const location = await locationService.deleteLocation(req.params.id);
     if (!location)
       return res.status(404).json({ message: "Location/Group not found" });
-    res.status(200).json(location);
+    res.status(200).json({
+      message: CUSTOM_MESSAGES.ENTITY_DELETED.replace(
+        "{{ entity }}",
+        "Location/Group"
+      )
+    });
   }
 );

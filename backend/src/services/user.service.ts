@@ -1,13 +1,8 @@
 import { Request } from "express";
 import { IUser, User } from "../models/user.model";
-import { isSuperAdmin } from "../utils/common.util";
 
 const getUsers = async (user?: IUser) => {
   let filter: {} = { username: { $nin: ["superadmin", user?.username] } };
-
-  if (isSuperAdmin(user)) {
-    filter = {};
-  }
   return await User.find(filter).populate("roles", ["name"]);
 };
 

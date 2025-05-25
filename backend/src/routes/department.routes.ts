@@ -10,6 +10,7 @@ import API_ROUTES from "../utils/routes";
 import { validateDto } from "../middlewares/validate-dto.middleware";
 import { CreateDepartmentDto } from "../dtos/department.dto";
 import { IsValidParamsIdDto } from "../dtos/designation.dto";
+import { authenticate } from "../middlewares/auth.middleware";
 
 const router = express.Router();
 
@@ -27,6 +28,7 @@ router.get(
 
 router.post(
   API_ROUTES.DEPARTMENTS,
+  authenticate,
   validateDto(CreateDepartmentDto),
   createDepartment
 );
@@ -35,6 +37,7 @@ router.post(
 
 router.patch(
   API_ROUTES.DEPARTMENTS + API_ROUTES.PARAMS,
+  authenticate,
   validateDto(IsValidParamsIdDto, "params"),
   updateDepartment
 );

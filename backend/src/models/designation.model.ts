@@ -1,6 +1,6 @@
 import { Schema, model, Document } from "mongoose";
 
-interface IDesignation extends Document {
+export interface IDesignation extends Document {
   _id: string;
   designationName: string;
   description?: string;

@@ -1,9 +1,4 @@
-import { Designation } from "../models/designation.model";
-
-interface IDesignation {
-  designationName: string;
-  description?: string;
-}
+import { Designation, IDesignation } from "../models/designation.model";
 
 const createDesignation = async (data: IDesignation) => {
   const newDesignation = new Designation(data);

@@ -17,7 +17,8 @@ const DepartmentSchema = new mongoose.Schema(
   {
     departmentName: {
       type: String,
-      required: true
+      required: true,
+      unique: true
     },
     departmentManager: {
       type: mongoose.Schema.Types.ObjectId,
