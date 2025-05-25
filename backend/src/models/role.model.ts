@@ -15,7 +15,6 @@ const RoleSchema = new Schema(
   {
     name: { type: String, required: true, unique: true },
     permissions: [{ type: mongoose.Schema.Types.ObjectId, ref: "Permission" }],
-    isDeleted: { type: Boolean, default: false },
     type: { type: String, enum: RoleType, required: true },
     deletedAt: { type: Date, default: null }
   },
@@ -30,7 +29,6 @@ RoleSchema.pre("save", async function () {
 // (resone) : for me i can't able to fetch roles and that's why i m faching issue in frontend (when i try to login with super admin) 
 RoleSchema.pre(["find", "findOne", "findOneAndUpdate"], async function () {
   this.where({
-    isDeleted: false,
     deletedAt: null
   });
   this.populate("permissions", "name description");

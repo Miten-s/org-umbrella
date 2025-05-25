@@ -10,7 +10,6 @@ const PermissionSchema = new Schema(
   {
     name: { type: String, required: true },
     description: { type: String },
-    isDeleted: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null }
   },
   { timestamps: true }
@@ -23,7 +22,7 @@ PermissionSchema.pre("save", async function () {
 PermissionSchema.pre(
   ["find", "findOne", "findOneAndUpdate"],
   async function () {
-    this.where({ isDeleted: false, deletedAt: null });
+    this.where({ deletedAt: null });
   }
 );
 

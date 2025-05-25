@@ -43,7 +43,10 @@ const updateDepartment = async (
 };
 
 const deleteDepartment = async (id: string) => {
-  return await Department.findByIdAndDelete(id);
+  return await Department.findOneAndUpdate(
+    { _id: id },
+    { deletedAt: new Date() }
+  ).exec();
 };
 
 export {

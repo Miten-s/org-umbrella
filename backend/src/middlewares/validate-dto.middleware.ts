@@ -16,7 +16,7 @@ export const validateDto = (
       );
       return res
         .status(400)
-        .json({ message: "Validation failed", errors: errorMessages });
+        .json({ error: "Validation failed", errors: errorMessages });
     }
 
     req[type ?? "body"] = dtoObject;

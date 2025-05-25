@@ -5,8 +5,13 @@ import { CUSTOM_MESSAGES } from "../utils/common.util";
 
 export const createLocation = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
-    const location = await locationService.createLocation(req.body);
-    res.status(201).json({ location });
+    await locationService.createLocation(req.body);
+    res.status(201).json({
+      message: CUSTOM_MESSAGES.ENTITY_CREATED.replace(
+        "{{ entity }}",
+        "Location/Group"
+      )
+    });
   }
 );
 
@@ -21,7 +26,7 @@ export const getLocationById = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
     const location = await locationService.getLocationById(req.params.id);
     if (!location)
-      return res.status(404).json({ message: "Location/Group not found" });
+      return res.status(404).json({ error: "Location/Group not found" });
     res.status(200).json({ location });
   }
 );
@@ -33,7 +38,7 @@ export const updateLocation = asyncHandler(
       req.body
     );
     if (!location)
-      return res.status(404).json({ message: "Location/Group not found" });
+      return res.status(404).json({ error: "Location/Group not found" });
     res.status(200).json({
       message: CUSTOM_MESSAGES.ENTITY_UPDATED.replace(
         "{{ entity }}",
@@ -47,7 +52,7 @@ export const deleteLocation = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
     const location = await locationService.deleteLocation(req.params.id);
     if (!location)
-      return res.status(404).json({ message: "Location/Group not found" });
+      return res.status(404).json({ error: "Location/Group not found" });
     res.status(200).json({
       message: CUSTOM_MESSAGES.ENTITY_DELETED.replace(
         "{{ entity }}",

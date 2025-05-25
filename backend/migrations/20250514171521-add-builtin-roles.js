@@ -37,7 +37,6 @@ module.exports = {
         name: "Admin",
         type: "Built_In",
         permissions: adminPermissionIds,
-        isDeleted: false,
         deletedAt: null,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -46,7 +45,6 @@ module.exports = {
         name: "User",
         type: "Built_In",
         permissions: userPermissionIds,
-        isDeleted: false,
         deletedAt: null,
         createdAt: new Date(),
         updatedAt: new Date()

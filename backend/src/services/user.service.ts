@@ -17,7 +17,7 @@ const updateUser = async (req: Request) => {
 const deleteUser = async (req: Request) => {
   return await User.updateOne(
     { _id: req.params.id },
-    { $set: { isDeleted: true, deletedAt: new Date() } }
+    { $set: { deletedAt: new Date() } }
   );
 };
 
