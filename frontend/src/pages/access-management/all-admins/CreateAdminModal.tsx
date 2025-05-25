@@ -7,8 +7,6 @@ import MultiSelect from "@/components/common/form/MultiSelect";
 import Button from "@/components/ui/button/Button";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
-import Checkbox from "@/components/common/form/input/Checkbox";
-import SignatureCanvas from "@/components/common/Signature";
 
 interface Option {
   value: string;
@@ -42,9 +40,6 @@ const CreateAdminModal = ({
       email: activeUser ? activeUser?.email : "",
       password: "",
       confirmPassword: "",
-      phone: "",
-      group: "",
-      signature: "",
       assignRole: activeUser
         ? activeUser?.roles.map((role: { _id: string }) => role._id.toString())
         : []
@@ -81,48 +76,6 @@ const CreateAdminModal = ({
             hint={errors.email?.message}
           />
         </div>
-
-        <div>
-          <Label htmlFor="phone">{t("phone")}</Label>
-          <Input
-            id="phone"
-            type="tel"
-            {...register("phone")}
-            disabled={activeUser}
-            error={!!errors.email}
-            hint={errors.email?.message}
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="group">{t("group")}</Label>
-          <Input
-            id="group"
-            type="text"
-            {...register("group")}
-            disabled={activeUser}
-            error={!!errors.email}
-            hint={errors.email?.message}
-          />
-        </div>
-
-        <div className="flex items-center gap-4">
-          <Checkbox
-            label={t("modifiable")}
-            checked={activeUser}
-            onChange={() => {}}
-          />
-          <Checkbox
-            label={t("training")}
-            checked={activeUser}
-            onChange={() => {}}
-          />
-        </div>
-
-        <div>
-          <SignatureCanvas />
-        </div>
-
         <div>
           <Label htmlFor="password"> {t("password")}</Label>
           <Input

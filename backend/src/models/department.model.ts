@@ -27,7 +27,8 @@ const DepartmentSchema = new mongoose.Schema(
       required: true
     },
     departmentGroupLocation: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Location",
       required: true
     },
     description: {

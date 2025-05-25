@@ -7,7 +7,6 @@ import {
   getRoles,
   updateRole
 } from "../controllers/role.controller";
-import { authenticate } from "../middlewares/auth.middleware";
 import { validateDto } from "../middlewares/validate-dto.middleware";
 import { IsValidParamsIdDto } from "../dtos/designation.dto";
 
@@ -16,7 +15,7 @@ const router: Router = Router();
 // ---------------------------------------------------------------------------------------- GET Requests ----------------------------------------------------------------------------------------
 
 // Define a GET route for getting roles.
-router.get(API_ROUTES.ROLE, authenticate, getRoles);
+router.get(API_ROUTES.ROLE, getRoles);
 
 // ---------------------------------------------------------------------------------------- POST Requests ----------------------------------------------------------------------------------------
 

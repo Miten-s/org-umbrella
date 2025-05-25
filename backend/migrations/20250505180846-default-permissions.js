@@ -12,7 +12,19 @@ module.exports = {
       { name: "UPDATE:PERMISSION", description: "Update permission details" },
       { name: "DELETE:PERMISSION", description: "Delete a permission" },
       { name: "VIEW:DASHBOARD", description: "View the dashboard" },
-      { name: "OPERATE:ALL", description: "Operate on all resources" }
+      { name: "OPERATE:ALL", description: "Operate on all resources" },
+      { name: "CREATE:LOCATION", description: "Create a new location" },
+      { name: "READ:LOCATION", description: "Read location data" },
+      { name: "UPDATE:LOCATION", description: "Update location details" },
+      { name: "DELETE:LOCATION", description: "Delete a location" },
+      { name: "CREATE:DEPARTMENT", description: "Create a new department" },
+      { name: "READ:DEPARTMENT", description: "Read department data" },
+      { name: "UPDATE:DEPARTMENT", description: "Update department details" },
+      { name: "DELETE:DEPARTMENT", description: "Delete a department" },
+      { name: "CREATE:DESIGNATION", description: "Create a new designation" },
+      { name: "READ:DESIGNATION", description: "Read designation data" },
+      { name: "UPDATE:DESIGNATION", description: "Update designation details" },
+      { name: "DELETE:DESIGNATION", description: "Delete a designation" }
     ];
 
     // 1. Insert Permissions
@@ -95,7 +107,19 @@ module.exports = {
       "UPDATE:PERMISSION",
       "DELETE:PERMISSION",
       "VIEW:DASHBOARD",
-      "OPERATE:ALL"
+      "OPERATE:ALL",
+      "CREATE:LOCATION",
+      "READ:LOCATION",
+      "UPDATE:LOCATION",
+      "DELETE:LOCATION",
+      "CREATE:DEPARTMENT",
+      "READ:DEPARTMENT",
+      "UPDATE:DEPARTMENT",
+      "DELETE:DEPARTMENT",
+      "CREATE:DESIGNATION",
+      "READ:DESIGNATION",
+      "UPDATE:DESIGNATION",
+      "DELETE:DESIGNATION"
     ];
 
     await db
