@@ -12,9 +12,7 @@ export const updateCompany = asyncHandler(
   }
 );
 
-export const getAllCompanies = asyncHandler(
-  async (_req: Request, res: Response) => {
-    const company = await companyService.getCompany();
-    res.status(200).json({ company });
-  }
-);
+export const getCompany = asyncHandler(async (_req: Request, res: Response) => {
+  const company = await companyService.getCompany();
+  res.status(200).json({ company });
+});
