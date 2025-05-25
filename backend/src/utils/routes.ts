@@ -7,6 +7,7 @@ const API_ROUTES = {
   ME: "/me",
   USER: "/users",
   ROLE: "/roles",
+  COMPANY: "/company",
   PERMISSION: "/permissions",
   DESIGNATION: "/designations",
   DEPARTMENTS: "/departments",

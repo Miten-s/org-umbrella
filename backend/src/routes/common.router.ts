@@ -5,6 +5,7 @@ import permissionRoutes from "../routes/permission.routes";
 import locationRoutes from "../routes/location.routes";
 import departmentRoutes from "../routes/department.routes";
 import designationRouter from "../routes/designation.routes";
+import companyRouter from "../routes/company.routes";
 
 const commonRouter: Router = Router();
 
@@ -14,5 +15,6 @@ commonRouter.use(permissionRoutes);
 commonRouter.use(locationRoutes);
 commonRouter.use(departmentRoutes);
 commonRouter.use(designationRouter);
+commonRouter.use(companyRouter);
 
 export default commonRouter;
