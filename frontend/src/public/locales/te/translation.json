@@ -108,5 +108,11 @@
   "select": "{{entity}} ఎంచుకోండి",
   "location": "స్థలం",
   "enterEntity": "{{entity}} నమోదు చేయండి",
-  "delete": "తొలగించండి"
+  "delete": "తొలగించండి",
+  "companySetup": "కంపెనీ సెటప్",
+  "companyInfo": "కంపెనీ సమాచారం",
+  "companyName": "కంపెనీ పేరు",
+  "company": "కంపెనీ",
+  "upload": "{{entity}} అప్‌లోడ్ చేయండి",
+  "logo": "లోగో"
 }

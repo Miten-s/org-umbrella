@@ -108,5 +108,11 @@
   "select": "{{entity}} निवडा",
   "location": "स्थान",
   "enterEntity": "{{entity}} प्रविष्ट करा",
-  "delete": "हटवा"
+  "delete": "हटवा",
+  "companySetup": "कंपनी सेटअप",
+  "companyInfo": "कंपनीची माहिती",
+  "companyName": "कंपनीचे नाव",
+  "company": "कंपनी",
+  "upload": "{{entity}} अपलोड करा",
+  "logo": "लोगो"
 }

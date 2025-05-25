@@ -106,5 +106,11 @@
   "select": "اختر {{entity}}",
   "location": "الموقع",
   "enterEntity": "أدخل {{entity}}",
-  "delete": "حذف"
+  "delete": "حذف",
+  "companySetup": "إعداد الشركة",
+  "companyInfo": "معلومات الشركة",
+  "companyName": "اسم الشركة",
+  "company": "شركة",
+  "upload": "تحميل {{entity}}",
+  "logo": "الشعار"
 }

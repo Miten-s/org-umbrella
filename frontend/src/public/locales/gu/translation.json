@@ -108,5 +108,11 @@
   "select": "{{entity}} પસંદ કરો",
   "location": "સ્થળ",
   "enterEntity": "{{entity}} દાખલ કરો",
-  "delete": "કાઢી નાંખો"
+  "delete": "કાઢી નાંખો",
+  "companySetup": "કંપની સેટઅપ",
+  "companyInfo": "કંપની માહિતી",
+  "companyName": "કંપનીનું નામ",
+  "company": "કંપની",
+  "upload": "{{entity}} અપલોડ કરો",
+  "logo": "લોગો"
 }

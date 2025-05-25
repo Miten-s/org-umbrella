@@ -106,5 +106,11 @@
   "select": "Select {{entity}}",
   "location": "Location",
   "enterEntity": "Enter {{entity}}",
-  "delete": "Delete"
+  "delete": "Delete",
+  "companySetup": "Company Setup",
+  "companyInfo": "Company Info",
+  "companyName": "Company Name",
+  "company": "Company",
+  "upload": "Upload {{entity}}",
+  "logo": "Logo"
 }

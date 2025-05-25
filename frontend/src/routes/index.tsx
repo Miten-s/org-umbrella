@@ -1,7 +1,7 @@
 import { lazy } from "react";
 import AppLayout from "../components/layout/AppLayout";
-import { PageUrl } from "@/types/utils.types";
 import Login from "@/components/sign-in/Login";
+import { PageUrl } from "@/types/utils.types";
 
 // Dashboard & Access Management
 const Dashboard = lazy(() => import("../pages/dashboard"));
@@ -17,6 +17,9 @@ const SysDepartments = lazy(() => import("../pages/system-it-admin/departments")
 const SysDesignations = lazy(() => import("../pages/system-it-admin/designations"));
 const SysLocations = lazy(() => import("../pages/system-it-admin/locations"));
 
+// Company
+const CompanyManagement = lazy(() => import("../pages/company-management"));
+
 const routes = [
   {
     path: "/",
@@ -28,47 +31,72 @@ const routes = [
         element: <Dashboard />
       },
       {
-        path: "access-management",
+        path: PageUrl.AccessManagement.path,
         children: [
           {
-            path: PageUrl.Roles.path,
+            path: PageUrl.Roles.path.replace(`${PageUrl.AccessManagement.path}/`, ""),
             element: <RolesAndPermissions />
           },
           {
-            path: PageUrl.Admins.path,
+            path: PageUrl.Admins.path.replace(`${PageUrl.AccessManagement.path}/`, ""),
             element: <Admins />
           }
         ]
       },
-      // START REGION: System IT Administration
+
+      // My Space
       {
-        path: "client/system",
+        path: PageUrl.MySpace.path,
         children: [
-          { path: "users", element: <SysUsers /> },
-          { path: "departments", element: <SysDepartments /> },
-          { path: "designations", element: <SysDesignations /> },
-          { path: "locations", element: <SysLocations /> }
+          {
+            path: PageUrl.ProfileInfo.path.replace(`${PageUrl.MySpace.path}/`, ""),
+            element: <ProfileInfo />
+          }
         ]
       },
-      // END REGION: System IT Administration
-      
-       // START REGION: My Space
+
+      // System IT Admin
       {
-        path: "client/my-space",
+        path: PageUrl.System.path,
         children: [
-          { path: "profile-info", element: <ProfileInfo /> },
+          {
+            path: PageUrl.Users.path.replace(`${PageUrl.System.path}/`, ""),
+            element: <SysUsers />
+          },
+          {
+            path: PageUrl.Departments.path.replace(`${PageUrl.System.path}/`, ""),
+            element: <SysDepartments />
+          },
+          {
+            path: PageUrl.Designations.path.replace(`${PageUrl.System.path}/`, ""),
+            element: <SysDesignations />
+          },
+          {
+            path: PageUrl.LocationsGroups.path.replace(`${PageUrl.System.path}/`, ""),
+            element: <SysLocations />
+          }
         ]
       },
-      // END REGION: My Space
+
+      // Company
+      {
+        path: PageUrl.CompanySettings.path,
+        index: true,
+        element: <CompanyManagement />
+      }
     ]
   },
+
+  // Auth
+  {
+    path: PageUrl.SignIn.path,
+    element: <Login />
+  },
+
+  // Fallback
   {
     path: "*",
-    element: <div>404</div>
-  },
-  {
-    path: "sign-in",
-    element: <Login />
+    element: <div>404 - Not Found</div>
   }
 ];
 

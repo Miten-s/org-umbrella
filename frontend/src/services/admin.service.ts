@@ -13,6 +13,9 @@ export const API_ROUTES = {
   departments: "/departments",
   locations: "/locations",
   designations: "/designations",
+
+  companies: "/company",
+
 };
 
 // #region Auth
@@ -174,3 +177,30 @@ export const deleteDesignation = async (id: string) => {
 };
 
 // #endregion
+// #region Company
+
+export const getCompanies = async () => {
+  const response = await api.get(API_ROUTES.companies);
+  return response["data"];
+};
+
+export const createCompany = async (payload: Record<string, any>) => {
+  const response = await api.post(API_ROUTES.companies, payload);
+  toast(response.data.message, "success");
+  return response["data"];
+};
+
+export const updateCompany = async (id: string, payload: Record<string, any>) => {
+  const response = await api.patch(`${API_ROUTES.companies}/${id}`, payload);
+  toast(response.data.message, "success");
+  return response["data"];
+};
+
+export const deleteCompany = async (id: string) => {
+  const response = await api.delete(`${API_ROUTES.companies}/${id}`);
+  toast(response.data.message, "success");
+  return response["data"];
+};
+
+// #endregion
+

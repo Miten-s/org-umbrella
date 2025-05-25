@@ -106,5 +106,11 @@
   "select": "Sélectionner {{entity}}",
   "location": "Emplacement",
   "enterEntity": "Entrez {{entity}}",
-  "delete": "Supprimer"
+  "delete": "Supprimer",
+  "companySetup": "Configuration de l'entreprise",
+  "companyInfo": "Informations sur l'entreprise",
+  "companyName": "Nom de l'entreprise",
+  "company": "Entreprise",
+  "upload": "Téléverser {{entity}}",
+  "logo": "Logo"
 }

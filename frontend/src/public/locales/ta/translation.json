@@ -108,5 +108,11 @@
   "select": "{{entity}} தேர்ந்தெடுக்கவும்",
   "location": "இடம்",
   "enterEntity": "{{entity}} உள்ளிடவும்",
-  "delete": "அழிக்கவும்"
+  "delete": "அழிக்கவும்",
+  "companySetup": "நிறுவன அமைப்பு",
+  "companyInfo": "நிறுவன தகவல்",
+  "companyName": "நிறுவனத்தின் பெயர்",
+  "company": "நிறுவனம்",
+  "upload": "{{entity}} பதிவேற்றம்",
+  "logo": "லோகோ"
 }

@@ -1,29 +1,29 @@
 {
   "en": {
-    "delete": "Delete"
+    "logo": "Logo"
   },
   "ar": {
-    "delete": "حذف"
+    "logo": "الشعار"
   },
   "es": {
-    "delete": "Eliminar"
+    "logo": "Logotipo"
   },
   "fr": {
-    "delete": "Supprimer"
+    "logo": "Logo"
   },
   "hi": {
-    "delete": "हटाएं"
+    "logo": "लोगो"
   },
   "gu": {
-    "delete": "કાઢી નાંખો"
+    "logo": "લોગો"
   },
   "ta": {
-    "delete": "அழிக்கவும்"
+    "logo": "லோகோ"
   },
   "te": {
-    "delete": "తొలగించండి"
+    "logo": "లోగో"
   },
   "mr": {
-    "delete": "हटवा"
+    "logo": "लोगो"
   }
 }

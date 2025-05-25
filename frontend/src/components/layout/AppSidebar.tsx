@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import appLogo from "../../public/images/logo-transparant.png";
 import appSmLogo from "../../public/images/umbrella-clipart-cover.jpg";
-import { ChevronDownIcon, FolderIcon, GridIcon, HorizontaLDots, UserIcon } from "../../public/icons";
+import { ChevronDownIcon, UserManagement, GridIcon, HorizontaLDots, UserIcon,CompanyIcon } from "../../public/icons";
 import { useSidebar } from "../../context/SidebarContext";
 import { AccessIcon } from "../../public/icons";
 import { PageUrl } from "@/types/utils.types";
@@ -45,7 +45,7 @@ const AppSidebar: React.FC = () => {
     },
 
     {
-      icon: <FolderIcon />,
+      icon: <UserManagement />,
       name: t('systemITAdministration'),
       permissions: ["VIEW:DASHBOARD"],
       subItems: [
@@ -55,6 +55,14 @@ const AppSidebar: React.FC = () => {
         { name: t('locationsGroups'), path: PageUrl.LocationsGroups.path }
       ]
     }, 
+     {
+    icon: <CompanyIcon />, 
+    name: t('companySetup'), 
+    permissions: ["CREATE:COMPANY"],
+    subItems: [
+      { name: t('companyInfo'), path: PageUrl.CompanySettings.path }
+    ]
+  },
     {
       icon: <UserIcon />,
       name: t('mySpace'),
