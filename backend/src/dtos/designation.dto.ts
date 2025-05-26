@@ -1,11 +1,11 @@
-import { IsString, IsOptional, IsEnum, IsMongoId } from "class-validator";
+import { IsString, IsOptional, IsEnum } from "class-validator";
 
 export class CreateDesignationDto {
-  @IsString()
+  @IsString({ message: "Designation name is required and must be a string." })
   readonly designationName!: string;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: "Description must be a string." })
   readonly description?: string;
 
   @IsOptional()
@@ -16,18 +16,9 @@ export class CreateDesignationDto {
 export class UpdateDesignationDto {
   @IsOptional()
   @IsString()
-  readonly designationName?: string;
-
-  @IsOptional()
-  @IsString()
   readonly description?: string;
 
   @IsOptional()
   @IsEnum(["active", "disabled"])
   readonly status?: "active" | "disabled";
-}
-
-export class IsValidParamsIdDto {
-  @IsMongoId({ message: "Id must be valid" })
-  readonly id!: string;
 }

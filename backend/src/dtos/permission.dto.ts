@@ -1,7 +1,7 @@
 import { IsString, IsOptional } from "class-validator";
 
 export class CreatePermissionDto {
-  @IsString()
+  @IsString({ message: "Name is required and must be a string." })
   readonly name!: string;
 
   @IsOptional()
@@ -11,10 +11,6 @@ export class CreatePermissionDto {
 
 export class UpdatePermissionDto {
   @IsOptional()
-  @IsString()
-  readonly name!: string;
-
-  @IsOptional()
-  @IsString()
+  @IsString({ message: "Description must be a string." })
   readonly description?: string;
 }

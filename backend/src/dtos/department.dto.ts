@@ -8,17 +8,19 @@ import {
 
 // To Validate the Request Body While Creating a New Department
 export class CreateDepartmentDto {
-  @IsString()
+  @IsString({ message: "Location name is required and must be a string." })
   readonly departmentName!: string;
 
-  @IsMongoId()
+  @IsString({ message: "Location manager is required and must be a string." })
+  @IsMongoId({ message: "Id must be valid" })
   readonly departmentManager!: string;
 
-  @IsString()
+  @IsString({ message: "Location is required and must be a string." })
+  @IsMongoId({ message: "Id must be valid" })
   readonly departmentGroupLocation!: string;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: "Description must be a string." })
   readonly description?: string;
 
   @IsOptional()
@@ -45,15 +47,11 @@ export class CreateDepartmentDto {
 // To Validate the Request Body While Updating a New Department
 export class UpdateDepartmentDto {
   @IsOptional()
-  @IsString()
-  readonly departmentName?: string;
-
-  @IsOptional()
-  @IsMongoId()
+  @IsMongoId({ message: "Id must be valid" })
   readonly departmentManager?: string;
 
   @IsOptional()
-  @IsString()
+  @IsMongoId({ message: "Id must be valid" })
   readonly departmentGroupLocation?: string;
 
   @IsOptional()

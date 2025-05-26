@@ -8,8 +8,11 @@ import {
 } from "../controllers/department.controller";
 import API_ROUTES from "../utils/routes";
 import { validateDto } from "../middlewares/validate-dto.middleware";
-import { CreateDepartmentDto } from "../dtos/department.dto";
-import { IsValidParamsIdDto } from "../dtos/designation.dto";
+import {
+  CreateDepartmentDto,
+  UpdateDepartmentDto
+} from "../dtos/department.dto";
+import { IsValidParamsIdDto } from "../dtos/common.dto";
 import { authenticate } from "../middlewares/auth.middleware";
 
 const router = express.Router();
@@ -39,6 +42,7 @@ router.patch(
   API_ROUTES.DEPARTMENTS + API_ROUTES.PARAMS,
   authenticate,
   validateDto(IsValidParamsIdDto, "params"),
+  validateDto(UpdateDepartmentDto),
   updateDepartment
 );
 

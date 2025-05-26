@@ -8,7 +8,9 @@ import {
 } from "../controllers/location.controller";
 import API_ROUTES from "../utils/routes";
 import { validateDto } from "../middlewares/validate-dto.middleware";
-import { IsValidParamsIdDto } from "../dtos/designation.dto";
+import { IsValidParamsIdDto } from "../dtos/common.dto";
+import { UpdateLocationDto } from "../dtos/location.dto";
+import { CreateDesignationDto } from "../dtos/designation.dto";
 
 const router = Router();
 // ---------------------------------------------------------------------------------------- GET Requests ----------------------------------------------------------------------------------------
@@ -18,6 +20,7 @@ router.get(API_ROUTES.LOCATIONS, getAllLocations);
 router.get(
   API_ROUTES.LOCATIONS + API_ROUTES.PARAMS,
   validateDto(IsValidParamsIdDto, "params"),
+  validateDto(CreateDesignationDto),
   getLocationById
 );
 
@@ -30,6 +33,7 @@ router.post(API_ROUTES.LOCATIONS, createLocation);
 router.patch(
   API_ROUTES.LOCATIONS + API_ROUTES.PARAMS,
   validateDto(IsValidParamsIdDto, "params"),
+  validateDto(UpdateLocationDto),
   updateLocation
 );
 

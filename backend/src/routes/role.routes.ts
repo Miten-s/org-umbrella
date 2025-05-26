@@ -8,7 +8,7 @@ import {
   updateRole
 } from "../controllers/role.controller";
 import { validateDto } from "../middlewares/validate-dto.middleware";
-import { IsValidParamsIdDto } from "../dtos/designation.dto";
+import { IsValidParamsIdDto } from "../dtos/common.dto";
 
 const router: Router = Router();
 
