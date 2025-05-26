@@ -7,7 +7,9 @@ const getUsers = async (user?: IUser) => {
 };
 
 const createUser = async (req: Request) => {
-  return await User.create(req.body);
+  const payload = req.body;
+  payload["createdBy"] = req.user?.id;
+  return await User.create(payload);
 };
 
 const updateUser = async (req: Request) => {

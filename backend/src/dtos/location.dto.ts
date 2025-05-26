@@ -18,15 +18,10 @@ export class CreateLocationDto {
 
 export class UpdateLocationDto {
   @IsOptional()
-  @IsString()
-  readonly locationName!: string;
-
-  @IsOptional()
-  @IsString()
+  @IsString({ message: "Location name is required and must be a string." })
   readonly description?: string;
 
-  @IsOptional()
-  @IsString()
+  @IsString({ message: "Comments is required and must be a string." })
   readonly comments?: string;
 
   @IsOptional()

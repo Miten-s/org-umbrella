@@ -29,7 +29,7 @@ router.post(API_ROUTES.AUTH + API_ROUTES.LOGOUT, logout);
 router.post(API_ROUTES.AUTH + API_ROUTES.LOGIN, login);
 
 // Define a POST route for add users.
-router.post(API_ROUTES.AUTH + API_ROUTES.USER, createUser);
+router.post(API_ROUTES.AUTH + API_ROUTES.USER, authenticate, createUser);
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
 

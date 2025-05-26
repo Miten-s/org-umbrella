@@ -7,7 +7,7 @@ import {
   updateDesignation
 } from "../controllers/designation.controller";
 import API_ROUTES from "../utils/routes";
-import { IsValidParamsIdDto } from "../dtos/designation.dto";
+import { IsValidParamsIdDto } from "../dtos/common.dto";
 import { validateDto } from "../middlewares/validate-dto.middleware";
 
 const router = Router();

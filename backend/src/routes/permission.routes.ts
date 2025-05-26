@@ -7,7 +7,11 @@ import {
   updatePermissions
 } from "../controllers/permission.controller";
 import { validateDto } from "../middlewares/validate-dto.middleware";
-import { IsValidParamsIdDto } from "../dtos/designation.dto";
+import { IsValidParamsIdDto } from "../dtos/common.dto";
+import {
+  CreatePermissionDto,
+  UpdatePermissionDto
+} from "../dtos/permission.dto";
 
 const router: Router = Router();
 
@@ -27,6 +31,7 @@ router.post(API_ROUTES.PERMISSION, createPermissions);
 router.patch(
   API_ROUTES.PERMISSION + API_ROUTES.PARAMS,
   validateDto(IsValidParamsIdDto, "params"),
+  validateDto(CreatePermissionDto),
   updatePermissions
 );
 
@@ -36,6 +41,7 @@ router.patch(
 router.delete(
   API_ROUTES.PERMISSION + API_ROUTES.PARAMS,
   validateDto(IsValidParamsIdDto, "params"),
+  validateDto(UpdatePermissionDto),
   deletePermissions
 );
 
