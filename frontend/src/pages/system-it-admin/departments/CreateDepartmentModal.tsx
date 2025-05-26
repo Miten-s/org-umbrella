@@ -51,7 +51,7 @@ const CreateDepartmentModal = ({
       description: initialData?.description || "",
       departmentManager:
         typeof initialData?.departmentManager === "object"
-          ? initialData.departmentManager._id
+          ? initialData?.departmentManager?._id
           : initialData?.departmentManager || "",
       departmentGroupLocation: initialData?.departmentGroupLocation || "",
     },
