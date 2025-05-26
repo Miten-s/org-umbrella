@@ -123,10 +123,8 @@ const CreateAdminModal = ({
           <Button variant="outline" onClick={onClose}>
             {t("cancel")}
           </Button>
-          <Button type="submit">
-            {!activeUser
-              ? t("create", { entity: t("admin") })
-              : t("updateAdmin")}
+           <Button type="submit" variant="primary">
+            {t("save")}
           </Button>
         </div>
       </form>

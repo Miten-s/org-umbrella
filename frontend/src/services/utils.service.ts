@@ -21,3 +21,10 @@ export const getPageTitle = (
     return 'Unknown';
   }
 };
+
+export const getImageUrl = (path?: string | null): string | undefined => {
+  if (!path) return undefined;
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
+  const cleanPath = path.startsWith("/uploads") ? path : `/uploads${path}`;
+  return `${baseUrl}${cleanPath}`;
+};

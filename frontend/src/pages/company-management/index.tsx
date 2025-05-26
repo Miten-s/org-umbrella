@@ -3,7 +3,7 @@ import Button from "@/components/ui/button/Button";
 import { useModal } from "@/hooks/useModal";
 import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
-import { getCompanies, updateCompany } from "@/services/admin.service";
+import { getCompany, updateCompany } from "@/services/admin.service";
 import { Company } from "@/types/common.types";
 import CreateCompanyModal from "./CreateCompanyModal";
 
@@ -13,12 +13,10 @@ const CompanyManagement = () => {
 
   const [companies, setCompanies] = useState<Company>();
   const [activeCompany, setActiveCompany] = useState<Company | null>(null);
-  console.log('activeCompany', activeCompany);
   const [refresh, setRefresh] = useState(false);
 
   const fetchCompanies = async () => {
-    const res = await getCompanies();
-    console.log(res);
+    const res = await getCompany();
     setCompanies(res.company);
   };
 
@@ -26,7 +24,7 @@ const CompanyManagement = () => {
     fetchCompanies();
   }, [refresh]);
 
-  const handleSave = async (data: Partial<Company>) => {
+  const handleSave = async (data: any) => {
     if (activeCompany) {
       await updateCompany(activeCompany._id, data);
     }
@@ -39,35 +37,27 @@ const CompanyManagement = () => {
     <>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">{t("company")}</h1>
-        {/* <Button
-          onClick={() => {
-            setActiveCompany(null);
-            openModal();
-          }}
-        >
-          {t("update", { entity: t("company") })}
-        </Button> */}
       </div>
 
       <ul className="space-y-2">
-          <li  className="border p-2 rounded flex justify-between items-center">
-            <div>
-              <div className="font-medium">{companies?.name}</div>
-              <div className="text-sm text-gray-500">{companies?.description}</div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setActiveCompany(companies || null);
-                  openModal();
-                }}
-              >
-                {t("edit")}
-              </Button>
-              
-            </div>
-          </li>
+        <li className="border p-2 rounded flex justify-between items-center">
+          <div>
+            <div className="font-medium">{companies?.name}</div>
+            <div className="text-sm text-gray-500">{companies?.description}</div>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setActiveCompany(companies || null);
+                openModal();
+              }}
+            >
+              {t("edit")}
+            </Button>
+
+          </div>
+        </li>
       </ul>
 
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[900px] max-h-[90vh] m-4 overflow-y-auto">

@@ -52,16 +52,8 @@ const RolesAndPermissions = () => {
     try {
       if (activeRole) {
         await updateRole(activeRole._id, payload);
-        toast(
-          MESSAGES.SUCCESS.ENTITY_UPDATED.replace("{{ entity }}", "Role"),
-          "success"
-        );
       } else {
         await createRole(payload);
-        toast(
-          MESSAGES.SUCCESS.ENTITY_ADDED.replace("{{ entity }}", "Role"),
-          "success"
-        );
       }
 
       setActiveRole(null);

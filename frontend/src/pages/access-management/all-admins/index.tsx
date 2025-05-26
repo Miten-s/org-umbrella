@@ -201,7 +201,7 @@ const AllAdmins = () => {
         showCloseButton={false}
       >
         <div className="h-full p-5 flex flex-col justify-between">
-          <div className="py-2">{`${t('deleteEntityPrompt', { entity: activeUser?.name })} ?`} </div>
+          <div className="py-2">{`${t('deleteEntityPrompt', { entityName: activeUser?.name })} ?`} </div>
           <div className="flex justify-end gap-2 pt-4">
             <Button
               variant="secondary"

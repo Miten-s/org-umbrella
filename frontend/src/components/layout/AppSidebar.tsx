@@ -50,9 +50,9 @@ const AppSidebar: React.FC = () => {
       permissions: ["VIEW:DASHBOARD"],
       subItems: [
         { name: t('users'), path: PageUrl.Users.path },
-        { name: t('departments'), path: PageUrl.Departments.path },
         { name: t('designations'), path: PageUrl.Designations.path },
-        { name: t('locationsGroups'), path: PageUrl.LocationsGroups.path }
+        { name: t('locationsGroups'), path: PageUrl.LocationsGroups.path },
+        { name: t('departments'), path: PageUrl.Departments.path },
       ]
     }, 
      {
