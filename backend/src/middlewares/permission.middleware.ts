@@ -1,18 +1,20 @@
 import { Request, Response, NextFunction } from "express";
+import { isSuperAdmin } from "../utils/common.util";
 
-export const checkPermissions = (requiredPermissions = []) => {
+export const checkPermissions = (requiredPermissions: string[] = []): any => {
   return (req: Request, res: Response, next: NextFunction) => {
     const userPermissions =
-      req.user?.roles.flatMap((role) =>
-        role.permissions.map((permission) => permission.name)
+      (req.user?.roles ?? []).flatMap((role) =>
+        role.permissions?.map((permission) => permission.name)
       ) ?? [];
 
-    const hasAll = requiredPermissions.every((p) =>
+    const hasSome = requiredPermissions.some((p) =>
       userPermissions.includes(p)
     );
 
-    if (!hasAll) return res.status(403).json({ error: "Unauthorized user" });
+    if (!hasSome && !isSuperAdmin(req.user))
+      return res.status(403).json({ error: "Forbidden" });
 
-    next(); // permission is OK, move on
+    next();
   };
 };

@@ -8,6 +8,7 @@ import {
   getUsers,
   updateUser
 } from "../controllers/user.controller";
+import { checkPermissions } from "../middlewares/permission.middleware";
 import { authenticate } from "../middlewares/auth.middleware";
 
 const router: Router = Router();
@@ -18,7 +19,12 @@ const router: Router = Router();
 router.get(API_ROUTES.AUTH + API_ROUTES.ME, authenticate, getUserDetail);
 
 // Define a GET route for getting users.
-router.get(API_ROUTES.AUTH + API_ROUTES.USER, authenticate, getUsers);
+router.get(
+  API_ROUTES.AUTH + API_ROUTES.USER,
+  authenticate,
+  checkPermissions(["VIEW:USER"]),
+  getUsers
+);
 
 // Define a GET route for user logout.
 router.post(API_ROUTES.AUTH + API_ROUTES.LOGOUT, logout);
@@ -29,18 +35,30 @@ router.post(API_ROUTES.AUTH + API_ROUTES.LOGOUT, logout);
 router.post(API_ROUTES.AUTH + API_ROUTES.LOGIN, login);
 
 // Define a POST route for add users.
-router.post(API_ROUTES.AUTH + API_ROUTES.USER, authenticate, createUser);
+router.post(
+  API_ROUTES.AUTH + API_ROUTES.USER,
+  authenticate,
+  checkPermissions(["CREATE:USER"]),
+  createUser
+);
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
 
 // Define a PATCH route for add users.
-router.patch(API_ROUTES.AUTH + API_ROUTES.USER + API_ROUTES.PARAMS, updateUser);
+router.patch(
+  API_ROUTES.AUTH + API_ROUTES.USER + API_ROUTES.PARAMS,
+  authenticate,
+  checkPermissions(["UPDATE:USER"]),
+  updateUser
+);
 
 // ---------------------------------------------------------------------------------------- DELETE Requests ----------------------------------------------------------------------------------------
 
 // Define a DELETE route for add users.
 router.delete(
   API_ROUTES.AUTH + API_ROUTES.USER + API_ROUTES.PARAMS,
+  authenticate,
+  checkPermissions(["DELETE:USER"]),
   deleteUser
 );
 

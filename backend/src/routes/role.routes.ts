@@ -9,21 +9,26 @@ import {
 } from "../controllers/role.controller";
 import { validateDto } from "../middlewares/validate-dto.middleware";
 import { IsValidParamsIdDto } from "../dtos/common.dto";
+import { checkPermissions } from "../middlewares/permission.middleware";
 
 const router: Router = Router();
 
 // ---------------------------------------------------------------------------------------- GET Requests ----------------------------------------------------------------------------------------
 
 // Define a GET route for getting roles.
-router.get(API_ROUTES.ROLE, getRoles);
+router.get(API_ROUTES.ROLE, checkPermissions(["VIEW:ROLE"]), getRoles);
 
 // ---------------------------------------------------------------------------------------- POST Requests ----------------------------------------------------------------------------------------
 
 // Define a POST route for creating a role.
-router.post(API_ROUTES.ROLE, createRole);
+router.post(API_ROUTES.ROLE, checkPermissions(["CREATE:ROLE"]), createRole);
 
 // Define a POST route for assigning a role to a user.
-router.post(API_ROUTES.USER + API_ROUTES.ASSIGN_ROLE, assignRole);
+router.post(
+  API_ROUTES.USER + API_ROUTES.ASSIGN_ROLE,
+  checkPermissions(["CREATE:ROLE"]),
+  assignRole
+);
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
 
@@ -31,6 +36,7 @@ router.post(API_ROUTES.USER + API_ROUTES.ASSIGN_ROLE, assignRole);
 router.patch(
   API_ROUTES.ROLE + API_ROUTES.PARAMS,
   validateDto(IsValidParamsIdDto, "params"),
+  checkPermissions(["UPDATE:ROLE"]),
   updateRole
 );
 
@@ -39,6 +45,7 @@ router.patch(
 // Define a Delete route for updating a role.
 router.delete(
   API_ROUTES.ROLE + API_ROUTES.PARAMS,
+  checkPermissions(["DELETE:ROLE"]),
   validateDto(IsValidParamsIdDto, "params"),
   deleteRole
 );

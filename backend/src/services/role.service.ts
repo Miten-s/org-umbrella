@@ -36,7 +36,6 @@ const deleteRole = async (req: Request) => {
 
 const getRoles = async (user?: IUser) => {
   let filter: {} = { type: RoleType.CUSTOM };
-
   if (isSuperAdmin(user)) {
     filter = { type: { $in: [RoleType.CUSTOM, RoleType.BUILT_IN] } };
   }
