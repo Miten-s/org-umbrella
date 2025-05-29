@@ -1,5 +1,38 @@
 import { z } from "zod";
 
+export const getUserAdminSchema = (isUpdate: boolean) => {
+  const schema = z
+    .object({
+      fullName: z.string().min(1, "Full name is required"),
+      email: z.string().email("Invalid email"),
+      // userType: z.enum(['user', 'admin'], { required_error: "User type is required" }),
+      assignRole: z.array(z.string()).min(1, "Select at least one role"),
+      passwordExpiry: z.string().optional(), // Assuming date string or empty
+
+      // User-specific optional fields
+      mobileNumber: z.string().optional(),
+      locationGroup: z.string().optional(), // Assuming single string ID
+      designation: z.string().optional(), // Assuming single string ID
+      department: z.string().optional(), // Assuming single string ID
+      description: z.string().optional(),
+      modifiable: z.boolean().optional(),
+      trainingCompleted: z.boolean().optional(),
+
+      password: isUpdate
+        ? z.string().optional()
+        : z.string().min(6, "Password must be at least 6 characters"),
+      confirmPassword: isUpdate
+        ? z.string().optional()
+        : z.string().min(1, "Please confirm your password"),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      path: ["confirmPassword"],
+      message: "Passwords do not match"
+    })
+
+  return schema;
+};
+
 export const getAdminSchema = (isUpdate: boolean) => {
   return z
     .object({
@@ -25,8 +58,6 @@ export const loginSchema = z.object({
     .string()
     .min(6, { message: "Password must be at least 6 characters" })
 });
-
-
 
 export const getDepartmentSchema = z.object({
   departmentName: z
