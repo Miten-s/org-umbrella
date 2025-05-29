@@ -48,11 +48,9 @@
   "createdBy": "أنشأ من قبل",
   "actions": "إجراءات",
   "edit": "تعديل",
-  "delete": "حذف {{entity}}",
+  "deleteEntity": "حذف {{entity}}",
   "noRolesFound": "لم يتم العثور على أدوار. أنشئ دورًا جديدًا للبدء.",
-  "deleteAdminPrompt": "هل تريد حذف هذا المسؤول؟",
   "confirm": "تأكيد",
-  "deleteRolePrompt": "هل أنت متأكد أنك تريد حذف هذا الدور؟",
   "searchOrType": "ابحث أو اكتب أمرًا...",
   "signOff": "تسجيل الخروج",
   "create": "إنشاء {{entity}}",
@@ -104,5 +102,14 @@
   "departmentName": "اسم القسم",
   "departmentManager": "مدير القسم",
   "select": "اختر {{entity}}",
-  "location": "الموقع"
+  "location": "الموقع",
+  "enterEntity": "أدخل {{entity}}",
+  "delete": "حذف",
+  "companySetup": "إعداد الشركة",
+  "companyInfo": "معلومات الشركة",
+  "companyName": "اسم الشركة",
+  "company": "شركة",
+  "upload": "تحميل {{entity}}",
+  "logo": "الشعار",
+  "deleteEntityPrompt": "هل أنت متأكد أنك تريد حذف {{entityName}}؟"
 }

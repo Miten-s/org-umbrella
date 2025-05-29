@@ -50,11 +50,9 @@
   "createdBy": "દ્વારા બનાવેલ",
   "actions": "ક્રિયાઓ",
   "edit": "સંપાદિત કરો",
-  "delete": "{{entity}} કાઢી નાખો",
+  "deleteEntity": "{{entity}} કાઢી નાખો",
   "noRolesFound": "કોઈ ભૂમિકાઓ મળી નથી. શરૂ કરવા માટે નવી બનાવો.",
-  "deleteAdminPrompt": "શું તમે આ એડમિનને કાઢી નાખવા માંગો છો?",
   "confirm": "ખાતરી કરો",
-  "deleteRolePrompt": "શું તમે ખરેખર આ ભૂમિકા કાઢી નાખવા માંગો છો?",
   "searchOrType": "શોધો અથવા કમાન્ડ લખો...",
   "signOff": "સાઇન ઑફ કરો",
   "create": "{{entity}} બનાવો",
@@ -106,5 +104,14 @@
   "departmentName": "વિભાગનું નામ",
   "departmentManager": "વિભાગ મેનેજર",
   "select": "{{entity}} પસંદ કરો",
-  "location": "સ્થળ"
+  "location": "સ્થળ",
+  "enterEntity": "{{entity}} દાખલ કરો",
+  "delete": "કાઢી નાંખો",
+  "companySetup": "કંપની સેટઅપ",
+  "companyInfo": "કંપની માહિતી",
+  "companyName": "કંપનીનું નામ",
+  "company": "કંપની",
+  "upload": "{{entity}} અપલોડ કરો",
+  "logo": "લોગો",
+  "deleteEntityPrompt": "શું તમે ખરેખર આ {{entityName}} ને કાઢી નાખવા માંગો છો?"
 }

@@ -52,16 +52,8 @@ const RolesAndPermissions = () => {
     try {
       if (activeRole) {
         await updateRole(activeRole._id, payload);
-        toast(
-          MESSAGES.SUCCESS.ENTITY_UPDATED.replace("{{ entity }}", "Role"),
-          "success"
-        );
       } else {
         await createRole(payload);
-        toast(
-          MESSAGES.SUCCESS.ENTITY_ADDED.replace("{{ entity }}", "Role"),
-          "success"
-        );
       }
 
       setActiveRole(null);
@@ -211,7 +203,7 @@ const RolesAndPermissions = () => {
       >
         <div className="h-full p-5 flex flex-col justify-between">
           <div className="py-2">
-           {`${t('deleteRolePrompt')} ?`}
+           {`${t('deleteEntityPrompt', { entityName: t('role') })} ?`}
             <strong>{activeRole?.name}</strong>?
           </div>
           <div className="flex justify-end gap-2 pt-4">

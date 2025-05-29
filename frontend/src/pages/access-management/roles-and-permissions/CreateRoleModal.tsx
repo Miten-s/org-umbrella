@@ -132,8 +132,8 @@ const CreateRoleModal = ({ onClose, onSubmit, permissions: allPermissions, activ
           <Button variant="outline" onClick={onClose} type="button">
             {t('cancel')}
           </Button>
-          <Button type="submit" variant="primary">
-            {t('create', { entity: t('role') })}
+           <Button type="submit" variant="primary">
+            {t("save")}
           </Button>
         </div>
       </form>

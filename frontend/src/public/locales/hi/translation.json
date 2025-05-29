@@ -50,11 +50,9 @@
   "createdBy": "द्वारा निर्मित",
   "actions": "क्रियाएँ",
   "edit": "संपादित करें",
-  "delete": "{{entity}} हटाएं",
+  "deleteEntity": "{{entity}} हटाएं",
   "noRolesFound": "कोई भूमिका नहीं मिली। आरंभ करने के लिए एक नई भूमिका बनाएँ।",
-  "deleteAdminPrompt": "क्या आप इस व्यवस्थापक को हटाना चाहते हैं?",
   "confirm": "पुष्टि करें",
-  "deleteRolePrompt": "क्या आप वाकई इस भूमिका को हटाना चाहते हैं?",
   "searchOrType": "खोजें या कमांड टाइप करें...",
   "signOff": "साइन ऑफ करें",
   "create": "{{entity}} बनाएँ",
@@ -106,5 +104,14 @@
   "departmentName": "विभाग का नाम",
   "departmentManager": "विभाग प्रमुख",
   "select": "{{entity}} चुनें",
-  "location": "स्थान"
+  "location": "स्थान",
+  "enterEntity": "{{entity}} दर्ज करें",
+  "delete": "हटाएं",
+  "companySetup": "कंपनी सेटअप",
+  "companyInfo": "कंपनी की जानकारी",
+  "companyName": "कंपनी का नाम",
+  "company": "कंपनी",
+  "upload": "{{entity}} अपलोड करें",
+  "logo": "लोगो",
+  "deleteEntityPrompt": "क्या आप वाकई इस {{entityName}} को हटाना चाहते हैं?"
 }

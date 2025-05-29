@@ -29,3 +29,49 @@ export enum SupportedLanguages {
   'mr' = 'mr',   
 }
 
+export interface Designation {
+  _id: string;
+  designationName: string;
+  description?: string;
+  createdBy?: {
+    _id: string;
+    name: string;
+  };
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+
+export interface Location {
+  _id: string;
+  locationName: string;
+  description?: string;
+  createdBy?: string;
+  createdAt?: string;
+  updatedBy?: string;
+  updatedAt?: string;
+}
+
+
+
+export interface Department {
+  _id: string;
+  departmentId: string; 
+  departmentName: string;
+  locationId?: string; 
+  departmentManagerId?: string; 
+  description?: string;
+  createdBy?: string;
+  createdAt?: string;
+  updatedBy?: string;
+  updatedAt?: string;
+}
+
+
+
+export interface Company {
+  _id: string;
+  name: string;
+  description?: string;
+  logo?: string; 
+}

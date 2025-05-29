@@ -50,11 +50,9 @@
   "createdBy": "సృష్టించినవాడు",
   "actions": "చర్యలు",
   "edit": "సవరించు",
-  "delete": "{{entity}} తొలగించు",
+  "deleteEntity": "{{entity}} తొలగించు",
   "noRolesFound": "పాత్రలు లభించలేదు. ప్రారంభించడానికి కొత్తది సృష్టించండి.",
-  "deleteAdminPrompt": "ఈ అడ్మిన్‌ని తొలగించాలనుకుంటున్నారా?",
   "confirm": "నిర్ధారించు",
-  "deleteRolePrompt": "ఈ పాత్రను నిజంగా తొలగించాలా?",
   "searchOrType": "శోధించండి లేదా ఆదేశాన్ని టైప్ చేయండి...",
   "signOff": "సైన్ ఆఫ్",
   "create": "{{entity}} సృష్టించు",
@@ -106,5 +104,14 @@
   "departmentName": "శాఖ పేరు",
   "departmentManager": "శాఖ మేనేజర్",
   "select": "{{entity}} ఎంచుకోండి",
-  "location": "స్థలం"
+  "location": "స్థలం",
+  "enterEntity": "{{entity}} నమోదు చేయండి",
+  "delete": "తొలగించండి",
+  "companySetup": "కంపెనీ సెటప్",
+  "companyInfo": "కంపెనీ సమాచారం",
+  "companyName": "కంపెనీ పేరు",
+  "company": "కంపెనీ",
+  "upload": "{{entity}} అప్‌లోడ్ చేయండి",
+  "logo": "లోగో",
+  "deleteEntityPrompt": "మీరు నిజంగా ఈ {{entityName}} ను తొలగించాలనుకుంటున్నారా?"
 }

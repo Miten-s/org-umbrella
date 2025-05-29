@@ -48,11 +48,9 @@
   "createdBy": "Créé par",
   "actions": "Actions",
   "edit": "Modifier",
-  "delete": "Supprimer {{entity}}",
+  "deleteEntity": "Supprimer {{entity}}",
   "noRolesFound": "Aucun rôle trouvé. Créez un nouveau rôle pour commencer.",
-  "deleteAdminPrompt": "Voulez-vous supprimer cet administrateur ?",
   "confirm": "Confirmer",
-  "deleteRolePrompt": "Êtes-vous sûr de vouloir supprimer ce rôle ?",
   "searchOrType": "Rechercher ou taper une commande...",
   "signOff": "Déconnexion",
   "create": "Créer {{entity}}",
@@ -104,5 +102,14 @@
   "departmentName": "Nom du département",
   "departmentManager": "Responsable du département",
   "select": "Sélectionner {{entity}}",
-  "location": "Emplacement"
+  "location": "Emplacement",
+  "enterEntity": "Entrez {{entity}}",
+  "delete": "Supprimer",
+  "companySetup": "Configuration de l'entreprise",
+  "companyInfo": "Informations sur l'entreprise",
+  "companyName": "Nom de l'entreprise",
+  "company": "Entreprise",
+  "upload": "Téléverser {{entity}}",
+  "logo": "Logo",
+  "deleteEntityPrompt": "Êtes-vous sûr de vouloir supprimer ce {{entityName}} ?"
 }

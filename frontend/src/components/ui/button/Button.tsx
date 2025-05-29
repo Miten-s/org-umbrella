@@ -3,7 +3,7 @@ import { ReactNode } from "react";
 interface ButtonProps {
   children: ReactNode;
   size?: "sm" | "md";
-  variant?: "primary" | "outline" | "secondary";
+  variant?: "primary" | "outline" | "secondary" | "destructive";
   startIcon?: ReactNode;
   endIcon?: ReactNode;
   onClick?: () => void;
@@ -34,17 +34,18 @@ const Button: React.FC<ButtonProps> = ({
     outline:
       "bg-white text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03] dark:hover:text-gray-300",
     secondary:
-      "bg-gray-400 text-gray-800 ring-1 ring-inset ring-gray-30 hover:bg-gray-500 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-all duration-200"
+      "bg-gray-400 text-gray-800 ring-1 ring-inset ring-gray-30 hover:bg-gray-500 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-all duration-200",
+    destructive:
+      "bg-white text-red-600 ring-1 ring-inset ring-red-500 hover:bg-red-50 dark:bg-transparent dark:text-red-400 dark:ring-red-600 dark:hover:bg-red-900/10",
+
   };
 
   return (
     <button
       type={type}
-      className={`inline-flex items-center justify-center gap-2 rounded-lg transition ${className} ${
-        sizeClasses[size]
-      } ${variantClasses[variant]} ${
-        disabled ? "cursor-not-allowed opacity-50" : ""
-      }`}
+      className={`inline-flex items-center justify-center gap-2 rounded-lg transition ${className} ${sizeClasses[size]
+        } ${variantClasses[variant]} ${disabled ? "cursor-not-allowed opacity-50" : ""
+        }`}
       onClick={onClick}
       disabled={disabled}
     >

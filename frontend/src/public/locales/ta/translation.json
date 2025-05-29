@@ -50,11 +50,9 @@
   "createdBy": "உருவாக்கியவர்",
   "actions": "செயல்கள்",
   "edit": "தொகு",
-  "delete": "{{entity}} நீக்கவும்",
+  "deleteEntity": "{{entity}} நீக்கவும்",
   "noRolesFound": "பாத்திரங்கள் கிடைக்கவில்லை. புதியதை உருவாக்கவும்.",
-  "deleteAdminPrompt": "இந்த நிர்வாகியை நீக்க விரும்புகிறீர்களா?",
   "confirm": "உறுதிப்படுத்து",
-  "deleteRolePrompt": "இந்த பாத்திரத்தை நீக்க விரும்புகிறீர்களா?",
   "searchOrType": "தேடவும் அல்லது கட்டளையை உள்ளிடவும்...",
   "signOff": "வெளியேறு",
   "create": "{{entity}} உருவாக்கவும்",
@@ -106,5 +104,14 @@
   "departmentName": "துறை பெயர்",
   "departmentManager": "துறை மேலாளர்",
   "select": "{{entity}} தேர்ந்தெடுக்கவும்",
-  "location": "இடம்"
+  "location": "இடம்",
+  "enterEntity": "{{entity}} உள்ளிடவும்",
+  "delete": "அழிக்கவும்",
+  "companySetup": "நிறுவன அமைப்பு",
+  "companyInfo": "நிறுவன தகவல்",
+  "companyName": "நிறுவனத்தின் பெயர்",
+  "company": "நிறுவனம்",
+  "upload": "{{entity}} பதிவேற்றம்",
+  "logo": "லோகோ",
+  "deleteEntityPrompt": "இந்த {{entityName}}-ஐ நிச்சயமாக நீக்க விரும்புகிறீர்களா?"
 }

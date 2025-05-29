@@ -1,29 +1,29 @@
 {
   "en": {
-    "location": "Location"
+    "deleteEntityPrompt": "Are you sure you want to delete this {{entityName}}?"
   },
   "ar": {
-    "location": "الموقع"
+    "deleteEntityPrompt": "هل أنت متأكد أنك تريد حذف {{entityName}}؟"
   },
   "es": {
-    "location": "Ubicación"
+    "deleteEntityPrompt": "¿Estás seguro de que deseas eliminar este {{entityName}}?"
   },
   "fr": {
-    "location": "Emplacement"
+    "deleteEntityPrompt": "Êtes-vous sûr de vouloir supprimer ce {{entityName}} ?"
   },
   "hi": {
-    "location": "स्थान"
+    "deleteEntityPrompt": "क्या आप वाकई इस {{entityName}} को हटाना चाहते हैं?"
   },
   "gu": {
-    "location": "સ્થળ"
+    "deleteEntityPrompt": "શું તમે ખરેખર આ {{entityName}} ને કાઢી નાખવા માંગો છો?"
   },
   "ta": {
-    "location": "இடம்"
+    "deleteEntityPrompt": "இந்த {{entityName}}-ஐ நிச்சயமாக நீக்க விரும்புகிறீர்களா?"
   },
   "te": {
-    "location": "స్థలం"
+    "deleteEntityPrompt": "మీరు నిజంగా ఈ {{entityName}} ను తొలగించాలనుకుంటున్నారా?"
   },
   "mr": {
-    "location": "स्थान"
+    "deleteEntityPrompt": "आपण खरोखर हे {{entityName}} हटवू इच्छिता?"
   }
 }

@@ -54,6 +54,8 @@ import { ReactComponent as AlertHexaIcon } from "./alert-hexa.svg?react";
 import { ReactComponent as ErrorHexaIcon } from "./info-hexa.svg?react";
 import { ReactComponent as LanguageIcon } from "./language.svg?react";
 import { ReactComponent as AccessIcon } from "./access-svgrepo-com.svg?react";
+import { ReactComponent as CompanyIcon } from "./company.svg?react";
+import { ReactComponent as UserManagement } from "./employee-setting.svg?react";
 
 export {
   ErrorHexaIcon,
@@ -111,5 +113,7 @@ export {
   ChevronUpIcon,
   ChatIcon,
   LanguageIcon,
-  AccessIcon
+  AccessIcon,
+  CompanyIcon,
+  UserManagement
 };

@@ -9,11 +9,27 @@ export type PageUrlType = {
 };
 
 export const PageUrl: PageUrlType = {
-  // #region Dashboard & Access Management
+  // #region Auth
+  SignIn: {
+    path: "/sign-in",
+    matchPattern: /^\/sign-in$/i,
+    pageTitle: "Sign In"
+  },
+  // #endregion
+
+  // #region Dashboard
   Dashboard: {
     path: "/dashboard",
     matchPattern: /^\/dashboard$/i,
     pageTitle: "Dashboard"
+  },
+  // #endregion
+
+  // #region Access Management
+  AccessManagement: {
+    path: "/access-management",
+    matchPattern: /^\/access-management$/i,
+    pageTitle: "Access Management"
   },
   Roles: {
     path: "/access-management/roles",
@@ -27,15 +43,14 @@ export const PageUrl: PageUrlType = {
   },
   // #endregion
 
-  // #region Auth
-  SignIn: {
-    path: "/sign-in",
-    matchPattern: /^\/sign-in$/i,
-    pageTitle: "Sign In"
+  // #region Client
+  Client: {
+    path: "/client",
+    matchPattern: /^\/client$/i,
+    pageTitle: "Client"
   },
-  // #endregion
 
-  // #region My Space (Client Scoped)
+  // #region Client → My Space
   MySpace: {
     path: "/client/my-space",
     matchPattern: /^\/client\/my-space$/i,
@@ -48,7 +63,12 @@ export const PageUrl: PageUrlType = {
   },
   // #endregion
 
-  // #region System IT Administration (Client Scoped)
+  // #region Client → System
+  System: {
+    path: "/client/system",
+    matchPattern: /^\/client\/system$/i,
+    pageTitle: "System"
+  },
   SystemSettings: {
     path: "/client/system/settings",
     matchPattern: /^\/client\/system\/settings$/i,
@@ -73,6 +93,19 @@ export const PageUrl: PageUrlType = {
     path: "/client/system/locations",
     matchPattern: /^\/client\/system\/locations$/i,
     pageTitle: "Locations"
+  },
+  // #endregion
+
+  // #region Client → Company
+  Company: {
+    path: "/client/company",
+    matchPattern: /^\/client\/company$/i,
+    pageTitle: "Company"
+  },
+  CompanySettings: {
+    path: "/client/company/settings",
+    matchPattern: /^\/client\/company\/settings$/i,
+    pageTitle: "Company Settings"
   }
   // #endregion
 };
