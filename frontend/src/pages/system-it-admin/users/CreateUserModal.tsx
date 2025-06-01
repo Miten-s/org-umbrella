@@ -112,15 +112,15 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
           break;
         case 'location':
           setSelectedLocation(value);
-          setValue("locationGroup", value.value);
+          setValue("locationGroup", value.value, { shouldValidate: true });
           break;
         case 'department':
           setSelectedDepartment(value);
-          setValue("department", value.value);
+          setValue("department", value.value, { shouldValidate: true });
           break;
         case 'designation':
           setSelectedDesignation(value);
-          setValue("designation", value.value);
+          setValue("designation", value.value, { shouldValidate: true });
           break;
       }
     }
@@ -190,7 +190,7 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
         <h2 className="text-xl font-semibold">{t(activeUser ? "editUser" : "createUser")}</h2>
 
         <div className="relative">
-          <Label>{t("userType")}</Label>
+          <Label required>{t("userType")}</Label>
           <button
             type="button"
             onClick={() => handleDropdown('userType')}
@@ -222,12 +222,12 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label>{t("fullName")}</Label>
+            <Label required>{t("fullName")}</Label>
             <Input {...register("fullName")} error={!!errors.fullName} hint={errors.fullName?.message as string} />
           </div>
 
           <div>
-            <Label htmlFor="email">{t("email")}</Label>
+            <Label htmlFor="email" required>{t("email")}</Label>
             <Input
               id="email"
               type="email"
@@ -246,11 +246,11 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
               </div>
 
               <div className="relative md:col-span-1">
-                <Label>{t("locationGroup")}</Label>
+                <Label required>{t("locationGroup")}</Label>
                 <button
                   type="button"
                   onClick={() => handleDropdown('location')}
-                  className="input w-full flex justify-between items-center"
+                  className={`input w-full flex justify-between items-center ${!selectedLocation && errors.locationGroup ? 'border-red-500' : ''}`}
                 >
                   <span className="text-theme-sm dark:text-gray-400">
                     {selectedLocation ? selectedLocation.text : t("select", { entity: t("location") })}
@@ -277,11 +277,11 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
               </div>
 
               <div className="relative md:col-span-1">
-                <Label>{t("designation")}</Label>
+                <Label required>{t("designation")} </Label>
                 <button
                   type="button"
                   onClick={() => handleDropdown('designation')}
-                  className="input w-full flex justify-between items-center"
+                  className={`input w-full flex justify-between items-center ${!selectedDesignation && errors.designation ? 'border-red-500' : ''}`}
                 >
                   <span className="text-theme-sm dark:text-gray-400">
                     {selectedDesignation ? selectedDesignation.text : t("select", { entity: t("designation") })}
@@ -308,11 +308,11 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
               </div>
 
               <div className="relative md:col-span-1">
-                <Label htmlFor="department">{t("department")}</Label>
+                <Label htmlFor="department" required>{t("department")}</Label>
                 <button
                   type="button"
                   onClick={() => handleDropdown('department')}
-                  className="input w-full flex justify-between items-center"
+                  className={`input w-full flex justify-between items-center ${!selectedDepartment && errors.department ? 'border-red-500' : ''}`}
                 >
                   <span className="text-theme-sm dark:text-gray-400">
                     {selectedDepartment ? selectedDepartment.text : t("select", { entity: t("department") })}
@@ -341,7 +341,7 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
           )}
 
           <div className="md:col-span-2">
-            <Label htmlFor="assignRole">{t("assignRoles")}</Label>
+            <Label htmlFor="assignRole" required>{t("assignRoles")}</Label>
             <MultiSelect
               options={roles.filter(role => role.type !== 'Built_In')}
               label={t("selectRoles")}
@@ -391,7 +391,7 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
           )}
 
           <div>
-            <Label htmlFor="password">{t("password")}</Label>
+            <Label htmlFor="password" required>{t("password")}</Label>
             <Input
               id="password"
               type="password"
@@ -403,7 +403,7 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
           </div>
 
           <div>
-            <Label htmlFor="confirmPassword">{t("confirmPassword")}</Label>
+            <Label htmlFor="confirmPassword" required>{t("confirmPassword")}</Label>
             <Input
               id="confirmPassword"
               type="password"
@@ -415,7 +415,7 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
           </div>
 
           <div>
-            <Label>{t("passwordExpiry")}</Label>
+            <Label required>{t("passwordExpiry")}</Label>
             <Input
               type="date"
               defaultValue={dayjs().format("YYYY-MM-DD")}
