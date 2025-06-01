@@ -3,8 +3,9 @@ import Button from "@/components/ui/button/Button";
 import { useModal } from "@/hooks/useModal";
 import { useTranslation } from "react-i18next";
 import CreateUserModal from "./CreateUserModal";
-import { getRoles, getLocations, getDepartments, getDesignations, createUser, updateUser, getUsers } from "@/services/admin.service";
+import { getRoles, getLocations, getDepartments, getDesignations, createUser, updateUser, getUsers, deleteUser } from "@/services/admin.service";
 import { useEffect, useState } from "react";
+import { useGlobalContext } from "@/context";
 
 const Users = () => {
   const { isOpen, openModal, closeModal } = useModal();
@@ -15,7 +16,10 @@ const Users = () => {
   const [designations, setDesignations] = useState<any>([]);
   const [users, setUsers] = useState<any>([]);
   const [activeUser, setActiveUser] = useState<any>(null);
-console.log(users)
+  const [confirmationModal, setConfirmationModal] = useState(false);
+  const { reFetch, setReFetch, } = useGlobalContext();
+
+  console.log(users)
   const fetchDetails = async () => {
     try {
       const [
@@ -32,7 +36,7 @@ console.log(users)
         getUsers()
       ]);
 
-      setRoles(fetchedRoles.map((role: any) => ({ text: role.name, value: role._id , type: role.type})));
+      setRoles(fetchedRoles.map((role: any) => ({ text: role.name, value: role._id, type: role.type })));
       setLocations(fetchedLocations.map((loc: any) => ({ text: loc.locationName, value: loc._id })));
       setDepartments(fetchedDepartments.map((dept: any) => ({ text: dept.departmentName, value: dept._id })));
       setDesignations(fetchedDesignations.map((desig: any) => ({ text: desig.designationName, value: desig._id })));
@@ -44,7 +48,7 @@ console.log(users)
 
   useEffect(() => {
     fetchDetails();
-  }, []);
+  }, [reFetch]);
 
   const handleCreateUpdateUser = async (data: any) => {
     try {
@@ -62,6 +66,8 @@ console.log(users)
       fetchDetails();
       closeModal();
       setActiveUser(null);
+      setReFetch(!reFetch);
+
     } catch (error) {
       console.error('Error saving user:', error);
     }
@@ -83,10 +89,106 @@ console.log(users)
         <h1 className="text-2xl font-semibold">{t("users")}</h1>
         <Button onClick={handleOpenCreateModal}>{t("create", { entity: t("user") })}</Button>
       </div>
+      <div className="bg-white rounded-lg shadow overflow-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {t('userName')}
+              </th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {t('name')}
+              </th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {t('email')}
+              </th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {t('role')}
+              </th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {t('createdBy')}
+              </th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {t('actions')}
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {users.map((usr: any, index: number) => (
+              <tr key={index + 1}>
+                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900">
+                  {usr.username}
+                </td>
 
+                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900">
+                  {usr.name}
+                </td>
+
+                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900">
+                  {usr.email}
+                </td>
+
+                <td className="px-6 py-4 whitespace-nowrap mx-auto text-sm text-gray-500">
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {usr.roles.slice(0, 2).map((role: any, idx: number) => (
+                      <span
+                        key={idx}
+                        className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs"
+                      >
+                        {role.name}
+                      </span>
+                    ))}
+                    {usr.roles.length > 2 && (
+                      <span className="px-2 py-1 bg-gray-200 text-gray-800 rounded-full text-xs">
+                        + {usr.roles.length - 2}
+                      </span>
+                    )}
+                  </div>
+                </td>
+
+                <td className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {usr?.createdBy?.username ?? "-"}
+                </td>
+
+                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">
+                  <button
+                    onClick={() => {
+                      setActiveUser(usr);
+                      openModal();
+                    }}
+                    className="text-blue-600 hover:text-blue-800 mr-3"
+                  >
+                    {t('edit')}
+                  </button>
+                  <button
+                    className="text-red-600 hover:text-red-800"
+                    onClick={() => {
+                      setActiveUser(usr);
+                      setConfirmationModal(true);
+                    }}
+                  >
+                    {t('delete')}
+
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {users.length === 0 && (
+              <tr>
+                <td
+                  colSpan={4}
+                  className="px-6 py-4 text-center text-sm text-gray-500"
+                >
+                  {t('noAdminsFound')}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[1000px] max-h-[50rem] m-4">
-        <CreateUserModal 
-          onClose={closeModal} 
+        <CreateUserModal
+          onClose={closeModal}
           roles={roles}
           locations={locations}
           departments={departments}
@@ -94,6 +196,37 @@ console.log(users)
           onSubmit={handleCreateUpdateUser}
           activeUser={activeUser}
         />
+      </Modal>
+
+
+      <Modal
+        isOpen={confirmationModal}
+        onClose={() => setConfirmationModal(!confirmationModal)}
+        className="max-w-[600px] min-h-[150px] m-4"
+        showCloseButton={false}
+      >
+        <div className="h-full p-5 flex flex-col justify-between">
+          <div className="py-2">{`${t('deleteEntityPrompt', { entityName: activeUser?.name })} ?`} </div>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              variant="secondary"
+              onClick={() => setConfirmationModal(!confirmationModal)}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              {t('cancel')}
+            </Button>
+            <Button
+              onClick={async () => {
+                await deleteUser(activeUser?._id);
+                setReFetch(!reFetch);
+                setConfirmationModal(!confirmationModal);
+              }}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              {t('confirm')}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </>
   );

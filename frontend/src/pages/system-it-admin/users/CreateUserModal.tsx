@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { useEffect, useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import dayjs from "dayjs";
 import Input from "@/components/common/form/input/InputField";
 import Label from "@/components/common/form/Label";
@@ -32,8 +32,28 @@ interface CreateUserModalProps {
 }
 
 const CreateUserModal = ({ onClose, roles, locations, departments, designations, onSubmit, activeUser }: CreateUserModalProps) => {
+  const { t } = useTranslation();
+  const builtInRoles = useMemo(() => roles.filter(role => role.type === "Built_In"), [roles]);
+  
+  // State for dropdowns
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [selectedBuiltInRoleId, setSelectedBuiltInRoleId] = useState<string | null>(
+    activeUser?.roles?.find((role: any) => role.builtIn)?._id || (builtInRoles.length > 0 ? builtInRoles[0].value : null)
+  );
+  const [selectedLocation, setSelectedLocation] = useState<Option | null>(
+    locations.find(loc => loc.value === activeUser?.locationGroup) || null
+  );
+  const [selectedDepartment, setSelectedDepartment] = useState<Option | null>(
+    departments.find(dept => dept.value === activeUser?.department) || null
+  );
+  const [selectedDesignation, setSelectedDesignation] = useState<Option | null>(
+    designations.find(desig => desig.value === activeUser?.designation) || null
+  );
+  const [modifiable, setModifiable] = useState(activeUser?.modifiable ?? false);
+  const [trainingCompleted, setTrainingCompleted] = useState(activeUser?.trainingCompleted ?? false);
+
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm({
-    resolver: zodResolver(getUserAdminSchema(!!activeUser)), // Apply schema validation
+    resolver: zodResolver(getUserAdminSchema(!!activeUser)),
     defaultValues: {
       fullName: activeUser?.name || '',
       email: activeUser?.email || '',
@@ -41,180 +61,74 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
       locationGroup: activeUser?.locationGroup || '',
       designation: activeUser?.designation || '',
       department: activeUser?.department || '',
-      assignRole: activeUser?.roles?.map((role: any) => role._id) || [],
+      assignRole: activeUser?.roles?.filter((role: any) => role.type !== 'Built_In').map((role: any) => role._id) || [],
       description: activeUser?.description || '',
       password: '', 
       confirmPassword: '',
-      passwordExpiry: activeUser?.passwordExpiry ? dayjs(activeUser.passwordExpiry).format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD"),
+      passwordExpiry: activeUser?.passwordExpiryTime ? dayjs(activeUser.passwordExpiryTime).format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD"),
+      modifiable: activeUser?.modifiable ?? false,
+      trainingCompleted: activeUser?.trainingCompleted ?? false,
     }
   });
-  const { t } = useTranslation();
 
-  // Filter for built-in roles
-  const builtInRoles = useMemo(() => roles.filter(role => role.type === "Built_In"), [roles]);
-  const [isUserTypeDropdownOpen, setIsUserTypeDropdownOpen] = useState(false);
-  // Use the ID of the selected built-in role
-  const [selectedBuiltInRoleId, setSelectedBuiltInRoleId] = useState<string | null>(
-    activeUser?.roles?.find((role: any) => role.builtIn)?._id || (builtInRoles.length > 0 ? builtInRoles[0].value : null) // Default to first built-in role if creating and available
-  );
-
-  const [modifiable, setModifiable] = useState(activeUser?.modifiable ?? false);
-  const [trainingCompleted, setTrainingCompleted] = useState(activeUser?.trainingCompleted ?? false);
-
-  // State for single select dropdowns
-  const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState<Option | null>(
-    locations.find(loc => loc.value === activeUser?.locationGroup) || null
-  );
-  const [isDepartmentDropdownOpen, setIsDepartmentDropdownOpen] = useState(false);
-  const [selectedDepartment, setSelectedDepartment] = useState<Option | null>(
-    departments.find(dept => dept.value === activeUser?.department) || null
-  );
-  const [isDesignationDropdownOpen, setIsDesignationDropdownOpen] = useState(false);
-  const [selectedDesignation, setSelectedDesignation] = useState<Option | null>(
-    designations.find(desig => desig.value === activeUser?.designation) || null
-  );
-
-  const toggleUserTypeDropdown = () => setIsUserTypeDropdownOpen(prev => !prev);
-  const closeUserTypeDropdown = () => setIsUserTypeDropdownOpen(false);
-
-  const toggleLocationDropdown = () => setIsLocationDropdownOpen(prev => !prev);
-  const closeLocationDropdown = () => setIsLocationDropdownOpen(false);
-
-  const toggleDepartmentDropdown = () => setIsDepartmentDropdownOpen(prev => !prev);
-  const closeDepartmentDropdown = () => setIsDepartmentDropdownOpen(false);
-
-  const toggleDesignationDropdown = () => setIsDesignationDropdownOpen(prev => !prev);
-  const closeDesignationDropdown = () => setIsDesignationDropdownOpen(false);
-
-
-  const handleBuiltInRoleSelect = (roleId: string) => {
-    setSelectedBuiltInRoleId(roleId);
-    closeUserTypeDropdown();
-  };
-
-  const handleLocationSelect = (location: Option) => {
-    setSelectedLocation(location);
-    setValue("locationGroup", location.value);
-    closeLocationDropdown();
-  };
-
-  const handleDepartmentSelect = (department: Option) => {
-    setSelectedDepartment(department);
-    setValue("department", department.value);
-    closeDepartmentDropdown();
-  };
-
-  const handleDesignationSelect = (designation: Option) => {
-    setSelectedDesignation(designation);
-    setValue("designation", designation.value);
-    closeDesignationDropdown();
+  // Unified dropdown handler
+  const handleDropdown = (type: string, value?: any) => {
+    if (value) {
+      switch (type) {
+        case 'userType':
+          setSelectedBuiltInRoleId(value);
+          break;
+        case 'location':
+          setSelectedLocation(value);
+          setValue("locationGroup", value.value);
+          break;
+        case 'department':
+          setSelectedDepartment(value);
+          setValue("department", value.value);
+          break;
+        case 'designation':
+          setSelectedDesignation(value);
+          setValue("designation", value.value);
+          break;
+      }
+    }
+    setOpenDropdown(openDropdown === type ? null : type);
   };
 
   const handleFormSubmit = (data: any) => {
-    // Combine selected built-in role ID with multi-select roles
     const finalAssignRoles = selectedBuiltInRoleId
       ? [...(data.assignRole || []), selectedBuiltInRoleId]
       : (data.assignRole || []);
 
-    // Remove duplicate role IDs
     const uniqueAssignRoles = Array.from(new Set(finalAssignRoles));
+    const isAdmin = builtInRoles.find(role => role.value === selectedBuiltInRoleId)?.text.toLowerCase().includes('admin') || false;
 
     const payload: any = {
-      // Map frontend fields to backend schema field names
-      username: data.fullName, // Assuming username is derived from fullName or a separate field
+      username: data.fullName,
       name: data.fullName,
       email: data.email,
       roles: uniqueAssignRoles,
-      passwordExpiryTime: data.passwordExpiry || undefined, // Map passwordExpiry to passwordExpiryTime, use undefined if empty
+      passwordExpiryTime: data.passwordExpiry || undefined,
     };
 
-    // Include password fields only during creation if provided
     if (!activeUser && (data.password || data.confirmPassword)) {
-        payload.password = data.password;
-        // confirmPassword is for frontend validation only, not sent to backend
+      payload.password = data.password;
     }
 
-    // Include user-specific fields only if userType is 'user'
-    if (!isAdmin) { // isAdmin is derived from selectedBuiltInRoleId
+    if (!isAdmin) {
       payload.phone = data.mobileNumber;
-      payload.location = data.locationGroup; // Single ID for location
-      payload.designation = data.designation; // Single ID for designation
-      payload.department = data.department; // Single ID for department
+      payload.location = data.locationGroup;
+      payload.designation = data.designation;
+      payload.department = data.department;
       payload.description = data.description;
       payload.modifiable = data.modifiable;
       payload.trainingCompleted = data.trainingCompleted;
-      // Signature handling might require more complex logic
-      // payload.signature = data.signature; // Assuming signature is captured and needs to be sent
     }
 
     onSubmit(payload);
   };
 
-  // Infer userType for toggling fields based on selected built-in role
   const isAdmin = builtInRoles.find(role => role.value === selectedBuiltInRoleId)?.text.toLowerCase().includes('admin') || false;
-
-  // Effect to set initial selected built-in role based on activeUser
-  useEffect(() => {
-    if (activeUser) {
-      const userBuiltInRole = activeUser.roles?.find((role: any) => role.type === 'Built_In'); // Check for type Built_In
-      if (userBuiltInRole) {
-        setSelectedBuiltInRoleId(userBuiltInRole._id);
-      } else if (builtInRoles.length > 0) {
-         // If editing a user without a built-in role, default to the first built-in role option
-         setSelectedBuiltInRoleId(builtInRoles[0].value);
-      } else {
-         setSelectedBuiltInRoleId(null);
-      }
-
-       // Update other state values based on activeUser
-       setModifiable(activeUser.modifiable ?? false);
-       setTrainingCompleted(activeUser.trainingCompleted ?? false);
-       setSelectedLocation(locations.find(loc => loc.value === activeUser.locationGroup) || null);
-       setSelectedDepartment(departments.find(dept => dept.value === activeUser.department) || null);
-       setSelectedDesignation(designations.find(desig => desig.value === activeUser.designation) || null);
-
-       // Set initial value for assignRole MultiSelect, excluding the built-in role
-       const otherRoles = activeUser.roles?.filter((role: any) => role.type !== 'Built_In').map((role: any) => role._id) || [];
-       setValue("assignRole", otherRoles);
-
-       // Set initial values for other fields using setValue (some are handled by defaultValues)
-       setValue("fullName", activeUser.name);
-       setValue("email", activeUser.email);
-       setValue("mobileNumber", activeUser.phone); // Map activeUser.phone to mobileNumber
-       setValue("passwordExpiry", activeUser.passwordExpiryTime ? dayjs(activeUser.passwordExpiryTime).format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD")); // Map passwordExpiryTime
-       setValue("description", activeUser.description);
-       setValue("modifiable", activeUser.modifiable ?? false);
-       setValue("trainingCompleted", activeUser.trainingCompleted ?? false);
-
-    } else {
-       // Reset state values and form for creating a new user
-       setSelectedBuiltInRoleId(builtInRoles.length > 0 ? builtInRoles[0].value : null);
-       setModifiable(false);
-       setTrainingCompleted(false);
-       setSelectedLocation(null);
-       setSelectedDepartment(null);
-       setSelectedDesignation(null);
-       // Reset form values using setValue or reset (defaultValues handles initial empty state)
-       setValue("fullName", '');
-       setValue("email", '');
-       setValue("mobileNumber", '');
-       setValue("locationGroup", '');
-       setValue("designation", '');
-       setValue("department", '');
-       setValue("assignRole", []);
-       setValue("description", '');
-       setValue("password", '');
-       setValue("confirmPassword", '');
-       setValue("passwordExpiry", dayjs().format("YYYY-MM-DD"));
-
-    }
-
-  }, [activeUser, builtInRoles, locations, departments, designations, setValue]);
-
-  // Effect to update form values when activeUser changes (handled by defaultValues and the effect above)
-  // No need for a separate effect here for setValue based on activeUser.
-
 
   return (
     <div className="p-6 max-h-[90vh] overflow-y-auto">
@@ -225,9 +139,9 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
           <Label>{t("userType")}</Label>
           <button
             type="button"
-            onClick={toggleUserTypeDropdown}
+            onClick={() => handleDropdown('userType')}
             className="input flex justify-between items-center"
-            disabled={!!activeUser} // Disable user type change when editing
+            disabled={!!activeUser}
           >
             <span className="text-theme-sm dark:text-gray-400">
               {selectedBuiltInRoleId ? builtInRoles.find(role => role.value === selectedBuiltInRoleId)?.text : t("selectUserType")}
@@ -235,16 +149,16 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
             {!activeUser && <ChevronDownIcon className="ml-2 h-4 w-4" />}
           </button>
           <Dropdown
-            isOpen={isUserTypeDropdownOpen && !activeUser}
-            onClose={closeUserTypeDropdown}
+            isOpen={openDropdown === 'userType' && !activeUser}
+            onClose={() => setOpenDropdown(null)}
             className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-900"
           >
             {builtInRoles.map(role => (
-              <DropdownItem key={role.value} onItemClick={() => handleBuiltInRoleSelect(role.value)}>
+              <DropdownItem key={role.value} onItemClick={() => handleDropdown('userType', role.value)}>
                 {role.text}
               </DropdownItem>
             ))}
-             {builtInRoles.length === 0 && (
+            {builtInRoles.length === 0 && (
               <DropdownItem onItemClick={() => {}}>
                 {t('noBuiltInRolesAvailable')}
               </DropdownItem>
@@ -281,7 +195,7 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
                 <Label>{t("locationGroup")}</Label>
                 <button
                   type="button"
-                  onClick={toggleLocationDropdown}
+                  onClick={() => handleDropdown('location')}
                   className="input w-full flex justify-between items-center"
                 >
                   <span className="text-theme-sm dark:text-gray-400">
@@ -290,84 +204,84 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
                   <ChevronDownIcon className="ml-2 h-4 w-4" />
                 </button>
                 <Dropdown
-                  isOpen={isLocationDropdownOpen}
-                  onClose={closeLocationDropdown}
+                  isOpen={openDropdown === 'location'}
+                  onClose={() => setOpenDropdown(null)}
                   className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-900"
                 >
                   {locations.map(loc => (
-                    <DropdownItem key={loc.value} onItemClick={() => handleLocationSelect(loc)}>
+                    <DropdownItem key={loc.value} onItemClick={() => handleDropdown('location', loc)}>
                       {loc.text}
                     </DropdownItem>
                   ))}
-                   {locations.length === 0 && (
+                  {locations.length === 0 && (
                     <DropdownItem onItemClick={() => {}}>
                       {t('noLocationsAvailable')}
                     </DropdownItem>
                   )}
                 </Dropdown>
-                 {errors.locationGroup && <p className="text-red-500 text-xs mt-1">{errors.locationGroup.message as string}</p>}
+                {errors.locationGroup && <p className="text-red-500 text-xs mt-1">{errors.locationGroup.message as string}</p>}
               </div>
 
               <div className="relative md:col-span-1">
                 <Label>{t("designation")}</Label>
                 <button
                   type="button"
-                  onClick={toggleDesignationDropdown}
+                  onClick={() => handleDropdown('designation')}
                   className="input w-full flex justify-between items-center"
                 >
-                   <span className="text-theme-sm dark:text-gray-400">
+                  <span className="text-theme-sm dark:text-gray-400">
                     {selectedDesignation ? selectedDesignation.text : t("select", { entity: t("designation") })}
                   </span>
                   <ChevronDownIcon className="ml-2 h-4 w-4" />
                 </button>
                 <Dropdown
-                  isOpen={isDesignationDropdownOpen}
-                  onClose={closeDesignationDropdown}
+                  isOpen={openDropdown === 'designation'}
+                  onClose={() => setOpenDropdown(null)}
                   className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-900"
                 >
-                   {designations.map(desig => (
-                    <DropdownItem key={desig.value} onItemClick={() => handleDesignationSelect(desig)}>
+                  {designations.map(desig => (
+                    <DropdownItem key={desig.value} onItemClick={() => handleDropdown('designation', desig)}>
                       {desig.text}
                     </DropdownItem>
                   ))}
-                   {designations.length === 0 && (
+                  {designations.length === 0 && (
                     <DropdownItem onItemClick={() => {}}>
                       {t('noDesignationsAvailable')}
                     </DropdownItem>
                   )}
                 </Dropdown>
-                 {errors.designation && <p className="text-red-500 text-xs mt-1">{errors.designation.message as string}</p>}
+                {errors.designation && <p className="text-red-500 text-xs mt-1">{errors.designation.message as string}</p>}
               </div>
 
               <div className="relative md:col-span-1">
                 <Label htmlFor="department">{t("department")}</Label>
                 <button
                   type="button"
-                  onClick={toggleDepartmentDropdown}
+                  onClick={() => handleDropdown('department')}
                   className="input w-full flex justify-between items-center"
                 >
-                   <span className="text-theme-sm dark:text-gray-400">
+                  <span className="text-theme-sm dark:text-gray-400">
                     {selectedDepartment ? selectedDepartment.text : t("select", { entity: t("department") })}
                   </span>
                   <ChevronDownIcon className="ml-2 h-4 w-4" />
                 </button>
-                 <Dropdown
-                  isOpen={isDepartmentDropdownOpen}
-                  onClose={closeDepartmentDropdown}
+                <Dropdown
+                  isOpen={openDropdown === 'department'}
+                  onClose={() => setOpenDropdown(null)}
                   className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-900"
                 >
-                   {departments.map(dept => (
-                    <DropdownItem key={dept.value} onItemClick={() => handleDepartmentSelect(dept)}>
+                  {departments.map(dept => (
+                    <DropdownItem key={dept.value} onItemClick={() => handleDropdown('department', dept)}>
                       {dept.text}
                     </DropdownItem>
                   ))}
-                   {departments.length === 0 && (
+                  {departments.length === 0 && (
                     <DropdownItem onItemClick={() => {}}>
                       {t('noDepartmentsAvailable')}
                     </DropdownItem>
                   )}
                 </Dropdown>
-                 {errors.department && <p className="text-red-500 text-xs mt-1">{errors.department.message as string}</p>}
+                {errors.department && <p className="text-red-500 text-xs mt-1">{errors.department.message as string}</p>}
               </div>
             </>
           )}
@@ -375,12 +289,12 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
           <div className="md:col-span-2">
             <Label htmlFor="assignRole">{t("assignRoles")}</Label>
             <MultiSelect
-              options={roles} // Use all roles for multi-select
+              options={roles}
               label={t("selectRoles")}
               onChange={(selected) => setValue("assignRole", selected)}
               defaultSelected={activeUser?.roles?.map((role: any) => role._id) || []}
             />
-             {errors.assignRole && <p className="text-red-500 text-xs mt-1">{errors.assignRole.message as string}</p>}
+            {errors.assignRole && <p className="text-red-500 text-xs mt-1">{errors.assignRole.message as string}</p>}
           </div>
 
           {!isAdmin && (
@@ -391,13 +305,13 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
                   value={watch("description")}
                   onChange={(event) => setValue("description", event)}
                 />
-                 {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message as string}</p>}
+                {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message as string}</p>}
               </div>
               <div className="flex gap-10">
                 <div>
                   <Label>{t("modifiable")}</Label>
                   <Checkbox checked={modifiable} onChange={setModifiable} label={t("yes")} />
-                   {errors.modifiable && <p className="text-red-500 text-xs mt-1">{errors.modifiable.message as string}</p>}
+                  {errors.modifiable && <p className="text-red-500 text-xs mt-1">{errors.modifiable.message as string}</p>}
                 </div>
                 <div>
                   <Label>{t("trainingCompleted")}</Label>
@@ -407,14 +321,14 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
                     onChange={setTrainingCompleted}
                     label={t("yes")}
                   />
-                   {errors.trainingCompleted && <p className="text-red-500 text-xs mt-1">{errors.trainingCompleted.message as string}</p>}
+                  {errors.trainingCompleted && <p className="text-red-500 text-xs mt-1">{errors.trainingCompleted.message as string}</p>}
                 </div>
               </div>
             </>
           )}
 
           <div>
-            <Label htmlFor="password"> {t("password")}</Label>
+            <Label htmlFor="password">{t("password")}</Label>
             <Input
               id="password"
               type="password"
@@ -452,7 +366,6 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
             <div className="md:col-span-2">
               <Label>{t("signature")}</Label>
               <SignatureCanvas />
-              {/* Signature validation would need to be handled separately if required */}
             </div>
           )}
         </div>

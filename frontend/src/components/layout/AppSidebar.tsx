@@ -40,7 +40,7 @@ const AppSidebar: React.FC = () => {
       permissions: ["READ:USER"],
       subItems: [
         { name: t('rolesAndPermissions'), path: PageUrl.Roles.path },
-        { name: t('allAdmins'), path: PageUrl.Admins.path },
+        // { name: t('allAdmins'), path: PageUrl.Admins.path },
       ]
     },
 

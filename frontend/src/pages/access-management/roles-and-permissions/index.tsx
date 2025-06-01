@@ -203,8 +203,7 @@ const RolesAndPermissions = () => {
       >
         <div className="h-full p-5 flex flex-col justify-between">
           <div className="py-2">
-           {`${t('deleteEntityPrompt', { entityName: t('role') })} ?`}
-            <strong>{activeRole?.name}</strong>?
+           {`${t('deleteEntityPrompt', { entityName:  activeRole?.name})}`}
           </div>
           <div className="flex justify-end gap-2 pt-4">
             <Button
