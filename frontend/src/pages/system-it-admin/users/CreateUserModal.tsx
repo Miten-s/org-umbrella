@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import dayjs from "dayjs";
 import Input from "@/components/common/form/input/InputField";
 import Label from "@/components/common/form/Label";
@@ -18,7 +18,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 interface Option {
   value: string;
   text: string;
-  type?: string; 
+  type?: string;
+  name?: string;
 }
 
 interface CreateUserModalProps {
@@ -35,30 +36,61 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
   const { t } = useTranslation();
   const builtInRoles = useMemo(() => roles.filter(role => role.type === "Built_In"), [roles]);
   
+  // Find the built-in role from activeUser's roles
+  const activeUserBuiltInRole = useMemo(() => {
+    if (!activeUser?.roles) return null;
+    // First try to find Admin role
+    const adminRole = activeUser.roles.find((role: any) => role.name === 'Admin');
+    if (adminRole) return adminRole;
+    // Then try to find User role
+    const userRole = activeUser.roles.find((role: any) => role.name === 'User');
+    if (userRole) return userRole;
+    return null;
+  }, [activeUser]);
+
   // State for dropdowns
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-  const [selectedBuiltInRoleId, setSelectedBuiltInRoleId] = useState<string | null>(
-    activeUser?.roles?.find((role: any) => role.builtIn)?._id || (builtInRoles.length > 0 ? builtInRoles[0].value : null)
-  );
-  const [selectedLocation, setSelectedLocation] = useState<Option | null>(
-    locations.find(loc => loc.value === activeUser?.locationGroup) || null
-  );
-  const [selectedDepartment, setSelectedDepartment] = useState<Option | null>(
-    departments.find(dept => dept.value === activeUser?.department) || null
-  );
-  const [selectedDesignation, setSelectedDesignation] = useState<Option | null>(
-    designations.find(desig => desig.value === activeUser?.designation) || null
-  );
-  const [modifiable, setModifiable] = useState(activeUser?.modifiable ?? false);
-  const [trainingCompleted, setTrainingCompleted] = useState(activeUser?.trainingCompleted ?? false);
+  const [selectedBuiltInRoleId, setSelectedBuiltInRoleId] = useState<string | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<Option | null>(null);
+  const [selectedDepartment, setSelectedDepartment] = useState<Option | null>(null);
+  const [selectedDesignation, setSelectedDesignation] = useState<Option | null>(null);
+  const [modifiable, setModifiable] = useState(false);
+  const [trainingCompleted, setTrainingCompleted] = useState(false);
+
+  // Initialize form values when activeUser changes
+  useEffect(() => {
+    if (activeUser) {
+      // Set built-in role
+      if (activeUserBuiltInRole) {
+        setSelectedBuiltInRoleId(activeUserBuiltInRole._id);
+      }
+
+      // Set other dropdown values
+      setSelectedLocation(locations.find(loc => loc.value === activeUser.location) || null);
+      setSelectedDepartment(departments.find(dept => dept.value === activeUser.department) || null);
+      setSelectedDesignation(designations.find(desig => desig.value === activeUser.designation) || null);
+      
+      // Set checkbox values
+      setModifiable(activeUser.modifiable ?? false);
+      setTrainingCompleted(activeUser.trainingCompleted ?? false);
+    } else {
+      // Reset all values for new user
+      setSelectedBuiltInRoleId(builtInRoles.length > 0 ? builtInRoles[0].value : null);
+      setSelectedLocation(null);
+      setSelectedDepartment(null);
+      setSelectedDesignation(null);
+      setModifiable(false);
+      setTrainingCompleted(false);
+    }
+  }, [activeUser, activeUserBuiltInRole, builtInRoles, locations, departments, designations]);
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm({
     resolver: zodResolver(getUserAdminSchema(!!activeUser)),
     defaultValues: {
       fullName: activeUser?.name || '',
       email: activeUser?.email || '',
-      mobileNumber: activeUser?.mobileNumber || '',
-      locationGroup: activeUser?.locationGroup || '',
+      mobileNumber: activeUser?.phone || '',
+      locationGroup: activeUser?.location || '',
       designation: activeUser?.designation || '',
       department: activeUser?.department || '',
       assignRole: activeUser?.roles?.filter((role: any) => role.type !== 'Built_In').map((role: any) => role._id) || [],
@@ -121,14 +153,36 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
       payload.designation = data.designation;
       payload.department = data.department;
       payload.description = data.description;
-      payload.modifiable = data.modifiable;
-      payload.trainingCompleted = data.trainingCompleted;
+      payload.modifiable = modifiable;
+      payload.trainingCompleted = trainingCompleted;
     }
 
     onSubmit(payload);
   };
 
-  const isAdmin = builtInRoles.find(role => role.value === selectedBuiltInRoleId)?.text.toLowerCase().includes('admin') || false;
+  // Determine if current selection is admin
+  const isAdmin = useMemo(() => {
+    if (activeUser) {
+      return activeUser.roles?.some((role: any) => role.name === 'Admin') || false;
+    }
+    const selectedRole = builtInRoles.find(role => role.value === selectedBuiltInRoleId);
+    return selectedRole?.text.toLowerCase().includes('admin') || false;
+  }, [selectedBuiltInRoleId, builtInRoles, activeUser]);
+
+  // Get the current role text for display
+  const currentRoleText = useMemo(() => {
+    if (activeUser) {
+      if (activeUser.roles?.some((role: any) => role.name === 'Admin')) {
+        return 'Admin';
+      }
+      if (activeUser.roles?.some((role: any) => role.name === 'User')) {
+        return 'User';
+      }
+      return t("selectUserType");
+    }
+    const selectedRole = builtInRoles.find(role => role.value === selectedBuiltInRoleId);
+    return selectedRole?.text || t("selectUserType");
+  }, [activeUser, selectedBuiltInRoleId, builtInRoles, t]);
 
   return (
     <div className="p-6 max-h-[90vh] overflow-y-auto">
@@ -144,7 +198,7 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
             disabled={!!activeUser}
           >
             <span className="text-theme-sm dark:text-gray-400">
-              {selectedBuiltInRoleId ? builtInRoles.find(role => role.value === selectedBuiltInRoleId)?.text : t("selectUserType")}
+              {currentRoleText}
             </span>
             {!activeUser && <ChevronDownIcon className="ml-2 h-4 w-4" />}
           </button>
@@ -289,10 +343,10 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
           <div className="md:col-span-2">
             <Label htmlFor="assignRole">{t("assignRoles")}</Label>
             <MultiSelect
-              options={roles}
+              options={roles.filter(role => role.type !== 'Built_In')}
               label={t("selectRoles")}
               onChange={(selected) => setValue("assignRole", selected)}
-              defaultSelected={activeUser?.roles?.map((role: any) => role._id) || []}
+              defaultSelected={activeUser?.roles?.filter((role: any) => role.type !== 'Built_In').map((role: any) => role._id) || []}
             />
             {errors.assignRole && <p className="text-red-500 text-xs mt-1">{errors.assignRole.message as string}</p>}
           </div>
@@ -310,15 +364,24 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
               <div className="flex gap-10">
                 <div>
                   <Label>{t("modifiable")}</Label>
-                  <Checkbox checked={modifiable} onChange={setModifiable} label={t("yes")} />
+                  <Checkbox 
+                    checked={modifiable} 
+                    onChange={(checked) => {
+                      setModifiable(checked);
+                      setValue("modifiable", checked);
+                    }} 
+                    label={t("yes")} 
+                  />
                   {errors.modifiable && <p className="text-red-500 text-xs mt-1">{errors.modifiable.message as string}</p>}
                 </div>
                 <div>
                   <Label>{t("trainingCompleted")}</Label>
                   <Checkbox
                     checked={trainingCompleted}
-                    {...register('trainingCompleted')}
-                    onChange={setTrainingCompleted}
+                    onChange={(checked) => {
+                      setTrainingCompleted(checked);
+                      setValue("trainingCompleted", checked);
+                    }}
                     label={t("yes")}
                   />
                   {errors.trainingCompleted && <p className="text-red-500 text-xs mt-1">{errors.trainingCompleted.message as string}</p>}
