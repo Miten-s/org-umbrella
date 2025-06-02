@@ -6,6 +6,8 @@ export interface IDesignation extends Document {
   description?: string;
   status: "active" | "disabled";
   deletedAt: Date;
+  modifiedOn?: Date;
+  modifiedBy?: string;
 }
 
 const DesignationSchema = new Schema<IDesignation>(
@@ -24,6 +26,8 @@ const DesignationSchema = new Schema<IDesignation>(
       enum: ["active", "disabled"],
       default: "active"
     },
+    modifiedOn: { type: Date },
+    modifiedBy: { type: Schema.Types.ObjectId, ref: "User" },
     deletedAt: { type: Date, default: null }
   },
   { timestamps: true }
@@ -35,6 +39,10 @@ DesignationSchema.pre(
     this.where({ deletedAt: null });
   }
 );
+
+DesignationSchema.pre("save", async function () {
+  this.set("modifiedOn", new Date());
+});
 
 export const Designation = model<IDesignation>(
   "Designation",

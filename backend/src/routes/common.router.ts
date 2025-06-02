@@ -6,10 +6,15 @@ import locationRoutes from "../routes/location.routes";
 import departmentRoutes from "../routes/department.routes";
 import designationRouter from "../routes/designation.routes";
 import companyRouter from "../routes/company.routes";
+import { authenticate } from "../middlewares/auth.middleware";
 
 const commonRouter: Router = Router();
 
 commonRouter.use(authRoutes);
+
+// Apply the common middleware to all routes
+commonRouter.use(authenticate);
+
 commonRouter.use(roleRoutes);
 commonRouter.use(permissionRoutes);
 commonRouter.use(locationRoutes);

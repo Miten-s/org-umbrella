@@ -50,7 +50,7 @@ const userRateLimiter = rateLimit({
     return req.ip!;
   },
   handler: (_req, res) => {
-    return res.status(429).json({ error: CUSTOM_MESSAGES.TOO_MANY_REQUESTS });
+    return res.status(429).json({ message: CUSTOM_MESSAGES.TOO_MANY_REQUESTS });
   }
 });
 

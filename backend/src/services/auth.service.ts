@@ -22,5 +22,9 @@ export const loginService = async ({
     ENV.JWT_SECRET!
   );
 
+  // Saving Last Login
+  user.lastLogin = new Date();
+  await user.save();
+
   return token;
 };

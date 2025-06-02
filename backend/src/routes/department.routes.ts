@@ -13,7 +13,7 @@ import {
   UpdateDepartmentDto
 } from "../dtos/department.dto";
 import { IsValidParamsIdDto } from "../dtos/common.dto";
-import { authenticate } from "../middlewares/auth.middleware";
+import { checkPermissions } from "../middlewares/permission.middleware";
 
 const router = express.Router();
 
@@ -23,6 +23,7 @@ router.get(API_ROUTES.DEPARTMENTS, getAllDepartments);
 
 router.get(
   API_ROUTES.DEPARTMENTS + API_ROUTES.PARAMS,
+  checkPermissions(["VIEW:DEPARTMENT"]),
   validateDto(IsValidParamsIdDto, "params"),
   getDepartmentById
 );
@@ -31,7 +32,7 @@ router.get(
 
 router.post(
   API_ROUTES.DEPARTMENTS,
-  authenticate,
+  checkPermissions(["CREATE:DEPARTMENT"]),
   validateDto(CreateDepartmentDto),
   createDepartment
 );
@@ -40,7 +41,7 @@ router.post(
 
 router.patch(
   API_ROUTES.DEPARTMENTS + API_ROUTES.PARAMS,
-  authenticate,
+  checkPermissions(["UPDATE:DEPARTMENT"]),
   validateDto(IsValidParamsIdDto, "params"),
   validateDto(UpdateDepartmentDto),
   updateDepartment
@@ -50,6 +51,7 @@ router.patch(
 
 router.delete(
   API_ROUTES.DEPARTMENTS + API_ROUTES.PARAMS,
+  checkPermissions(["DELETE:DEPARTMENT"]),
   validateDto(IsValidParamsIdDto, "params"),
   deleteDepartment
 );
