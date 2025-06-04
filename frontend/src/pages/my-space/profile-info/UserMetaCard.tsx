@@ -2,15 +2,22 @@ import { useAuth } from "@/context/AuthContext";
 
 export default function UserMetaCard() {
   const { user } = useAuth()
-  const getRole = (roles: { permissions: { name: string }[] }[]) => {
-    const allPermissions = roles?.flatMap(role => role.permissions || []);
-    const permissionNames = allPermissions?.map(p => p.name);
-    if (permissionNames?.includes("OPERATE:ALL")) return "Super Admin";
-    if (permissionNames?.includes("Admin")) return "Admin";
-    if (permissionNames?.includes("User")) return "User";
+  console.log("UserMetaCard user", user);
+ const getRole = (roles: { name?: string; permissions: { name: string }[] }[]) => {
+  // Check for Super Admin via permissions
+  const allPermissions = roles?.flatMap(role => role.permissions || []);
+  const permissionNames = allPermissions?.map(p => p.name);
+  if (permissionNames?.includes("OPERATE:ALL")) return "Super Admin";
 
-    return "-";
-  };
+  // Check roles directly by name (case-sensitive)
+  const roleNames = roles?.map(role => role.name);
+
+  if (roleNames?.includes("Admin")) return "Admin";
+  if (roleNames?.includes("User")) return "User";
+
+  return "-";
+};
+
 
   return (
     <>
