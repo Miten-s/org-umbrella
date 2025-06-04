@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PencilIcon } from "@/public/icons";
-import { getCompany } from "@/services/admin.service";
+import { useAuth } from "@/context/AuthContext";
 
 const modules = [
   { id: "gxp", title: "GxP Services", description: "Manage compliance-related activities", route: "/gxp" },
@@ -14,43 +13,26 @@ const modules = [
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [company, setCompany] = useState<{
-    name: string;
-    description?: string;
-    logo?: string;
-  } | null>(null);
-
-  useEffect(() => {
-    const fetchCompany = async () => {
-      try {
-        const { company: fetchCompany } = await getCompany();
-        setCompany(fetchCompany);
-      } catch (err) {
-        console.error("Failed to fetch company", err);
-      }
-    };
-
-    fetchCompany();
-  }, []);
+  const { currentCompany } = useAuth()
 
   return (
-      <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4">
       <div className="mb-10">
         <div className="flex justify-between items-center flex-wrap gap-4">
-          <h1 className="text-2xl font-semibold text-gray-900">{company?.name || "..."}</h1>
-          {company?.logo && (
+          <h1 className="text-2xl font-semibold text-gray-900">{currentCompany?.name || "..."}</h1>
+          {currentCompany?.logo && (
             <img
-              src={`${import.meta.env.VITE_API_BASE_URL}/uploads/${company.logo}`}
+              src={`${import.meta.env.VITE_API_BASE_URL}/uploads/${currentCompany.logo}`}
               alt="Organization Logo"
               className="h-32 w-44 object-contain rounded-md shadow"
             />
           )}
         </div>
 
-        {company?.description && (
+        {currentCompany?.description && (
           <div className="relative overflow-hidden w-full mt-4 h-10 border-t-2 border-b-2 border-gray-200 pt-2">
             <div className="animate-marquee whitespace-nowrap text-lg text-gray-600">
-              {company.description}
+              {currentCompany.description}
             </div>
           </div>
         )}
