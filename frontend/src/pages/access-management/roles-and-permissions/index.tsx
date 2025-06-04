@@ -11,7 +11,6 @@ import {
   updateRole
 } from "@/services/admin.service";
 import { toast } from "@/lib/ToastProvider";
-import { MESSAGES } from "@/utils/common.constants";
 import { useGlobalContext } from "@/context";
 import { useTranslation } from "react-i18next";
 
@@ -218,13 +217,6 @@ const RolesAndPermissions = () => {
                 if (!activeRole) return;
                 try {
                   await deleteRole(activeRole._id);
-                  toast(
-                    MESSAGES.SUCCESS.ENTITY_DELETED.replace(
-                      "{{ entity }}",
-                      "Role"
-                    ),
-                    "success"
-                  );
                   setReFetch(!reFetch);
                 } catch {
                   toast("Failed to delete role. Please try again.", "error");

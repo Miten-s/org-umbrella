@@ -1,4 +1,4 @@
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useMemo, useState, useEffect } from "react";
 import dayjs from "dayjs";
@@ -14,6 +14,7 @@ import MultiSelect from "@/components/common/form/MultiSelect";
 import { ChevronDownIcon } from "@/public/icons";
 import { getUserAdminSchema } from "@/lib/schema";
 import { zodResolver } from '@hookform/resolvers/zod';
+import Switch from "@/components/common/form/switch/Switch";
 
 interface Option {
   value: string;
@@ -35,7 +36,7 @@ interface CreateUserModalProps {
 const CreateUserModal = ({ onClose, roles, locations, departments, designations, onSubmit, activeUser }: CreateUserModalProps) => {
   const { t } = useTranslation();
   const builtInRoles = useMemo(() => roles.filter(role => role.type === "Built_In"), [roles]);
-  
+
   // Find the built-in role from activeUser's roles
   const activeUserBuiltInRole = useMemo(() => {
     if (!activeUser?.roles) return null;
@@ -69,7 +70,7 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
       setSelectedLocation(locations.find(loc => loc.value === activeUser.location) || null);
       setSelectedDepartment(departments.find(dept => dept.value === activeUser.department) || null);
       setSelectedDesignation(designations.find(desig => desig.value === activeUser.designation) || null);
-      
+
       // Set checkbox values
       setModifiable(activeUser.modifiable ?? false);
       setTrainingCompleted(activeUser.trainingCompleted ?? false);
@@ -84,7 +85,8 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
     }
   }, [activeUser, activeUserBuiltInRole, builtInRoles, locations, departments, designations]);
 
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm({
+
+  const { register, handleSubmit, setValue, control, watch, formState: { errors } } = useForm({
     resolver: zodResolver(getUserAdminSchema(!!activeUser)),
     defaultValues: {
       fullName: activeUser?.name || '',
@@ -95,13 +97,15 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
       department: activeUser?.department || '',
       assignRole: activeUser?.roles?.filter((role: any) => role.type !== 'Built_In').map((role: any) => role._id) || [],
       description: activeUser?.description || '',
-      password: '', 
+      status: activeUser?.status == 'active' ? true : false,
+      password: '',
       confirmPassword: '',
       passwordExpiry: activeUser?.passwordExpiryTime ? dayjs(activeUser.passwordExpiryTime).format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD"),
       modifiable: activeUser?.modifiable ?? false,
       trainingCompleted: activeUser?.trainingCompleted ?? false,
     }
   });
+
 
   // Unified dropdown handler
   const handleDropdown = (type: string, value?: any) => {
@@ -129,7 +133,7 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
 
   const handleFormSubmit = (data: any) => {
     const finalAssignRoles = selectedBuiltInRoleId
-      ? [...(data.assignRole || []), selectedBuiltInRoleId]
+      ? [...(data?.assignRole || []), selectedBuiltInRoleId]
       : (data.assignRole || []);
 
     const uniqueAssignRoles = Array.from(new Set(finalAssignRoles));
@@ -155,6 +159,7 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
       payload.description = data.description;
       payload.modifiable = modifiable;
       payload.trainingCompleted = trainingCompleted;
+      payload.status = data.status ? "active" : "disabled";
     }
 
     onSubmit(payload);
@@ -213,7 +218,7 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
               </DropdownItem>
             ))}
             {builtInRoles.length === 0 && (
-              <DropdownItem onItemClick={() => {}}>
+              <DropdownItem onItemClick={() => { }}>
                 {t('noBuiltInRolesAvailable')}
               </DropdownItem>
             )}
@@ -268,7 +273,7 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
                     </DropdownItem>
                   ))}
                   {locations.length === 0 && (
-                    <DropdownItem onItemClick={() => {}}>
+                    <DropdownItem onItemClick={() => { }}>
                       {t('noLocationsAvailable')}
                     </DropdownItem>
                   )}
@@ -299,7 +304,7 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
                     </DropdownItem>
                   ))}
                   {designations.length === 0 && (
-                    <DropdownItem onItemClick={() => {}}>
+                    <DropdownItem onItemClick={() => { }}>
                       {t('noDesignationsAvailable')}
                     </DropdownItem>
                   )}
@@ -330,7 +335,7 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
                     </DropdownItem>
                   ))}
                   {departments.length === 0 && (
-                    <DropdownItem onItemClick={() => {}}>
+                    <DropdownItem onItemClick={() => { }}>
                       {t('noDepartmentsAvailable')}
                     </DropdownItem>
                   )}
@@ -341,7 +346,7 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
           )}
 
           <div className="md:col-span-2">
-            <Label htmlFor="assignRole" required>{t("assignRoles")}</Label>
+            <Label htmlFor="assignRole">{t("assignRoles")}</Label>
             <MultiSelect
               options={roles.filter(role => role.type !== 'Built_In')}
               label={t("selectRoles")}
@@ -364,13 +369,13 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
               <div className="flex gap-10">
                 <div>
                   <Label>{t("modifiable")}</Label>
-                  <Checkbox 
-                    checked={modifiable} 
+                  <Checkbox
+                    checked={modifiable}
                     onChange={(checked) => {
                       setModifiable(checked);
                       setValue("modifiable", checked);
-                    }} 
-                    label={t("yes")} 
+                    }}
+                    label={t("yes")}
                   />
                   {errors.modifiable && <p className="text-red-500 text-xs mt-1">{errors.modifiable.message as string}</p>}
                 </div>
@@ -385,6 +390,22 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
                     label={t("yes")}
                   />
                   {errors.trainingCompleted && <p className="text-red-500 text-xs mt-1">{errors.trainingCompleted.message as string}</p>}
+                </div>
+
+                <div>
+                  <Label htmlFor="status" className="whitespace-nowrap">Status</Label>
+                  <Controller
+                    name="status"
+                    control={control}
+                    defaultValue={true}
+                    render={({ field: { value, onChange } }) => (
+                      <Switch
+                        label=""
+                        checked={value}     
+                        onChange={onChange} 
+                      />
+                    )}
+                  />
                 </div>
               </div>
             </>
@@ -413,18 +434,6 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
               hint={errors.confirmPassword?.message as string}
             />
           </div>
-
-          <div>
-            <Label required>{t("passwordExpiry")}</Label>
-            <Input
-              type="date"
-              defaultValue={dayjs().format("YYYY-MM-DD")}
-              {...register("passwordExpiry")}
-              error={!!errors.passwordExpiry}
-              hint={errors.passwordExpiry?.message as string}
-            />
-          </div>
-
           {!isAdmin && (
             <div className="md:col-span-2">
               <Label>{t("signature")}</Label>

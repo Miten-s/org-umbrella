@@ -6,17 +6,18 @@ export const getUserAdminSchema = (isUpdate: boolean) => {
       fullName: z.string().min(1, "Full name is required"),
       email: z.string().email("Invalid email"),
       // userType: z.enum(['user', 'admin'], { required_error: "User type is required" }),
-      assignRole: z.array(z.string()).min(1, "Select at least one role"),
-      passwordExpiry: z.string().optional(), // Assuming date string or empty
+      assignRole: z.array(z.string()).optional(),
+      passwordExpiry: z.string().optional(), 
 
       // User-specific optional fields
       mobileNumber: z.string().optional(),
-      locationGroup: z.string().optional(), // Assuming single string ID
-      designation: z.string().optional(), // Assuming single string ID
-      department: z.string().optional(), // Assuming single string ID
+      locationGroup: z.string().optional(), 
+      designation: z.string().optional(), 
+      department: z.string().optional(), 
       description: z.string().optional(),
       modifiable: z.boolean().optional(),
       trainingCompleted: z.boolean().optional(),
+      status: z.boolean().optional(),
 
       password: isUpdate
         ? z.string().optional()

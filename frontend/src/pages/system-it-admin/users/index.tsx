@@ -19,7 +19,6 @@ const Users = () => {
   const [confirmationModal, setConfirmationModal] = useState(false);
   const { reFetch, setReFetch, } = useGlobalContext();
 
-  console.log(users)
   const fetchDetails = async () => {
     try {
       const [
@@ -148,6 +147,16 @@ const Users = () => {
 
                 <td className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {usr?.createdBy?.username ?? "-"}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs ${usr.status === 'active'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                      }`}
+                  >
+                    {usr.status?.toUpperCase() ?? '-'}
+                  </span>
                 </td>
 
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">

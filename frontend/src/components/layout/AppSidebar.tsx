@@ -24,6 +24,7 @@ const AppSidebar: React.FC = () => {
   const { user } = useAuth();
   const { t, i18n } = useTranslation();
 
+  //To-do need to add proper permission
   const navItems: NavItem[] = useMemo(() => [
     {
       icon: <GridIcon />,
@@ -37,7 +38,7 @@ const AppSidebar: React.FC = () => {
       //To-do why accessIcon not change color when we click on menu
       icon: <AccessIcon />,
       name: t('accessManagement'),
-      permissions: ["READ:USER"],
+      permissions: [ "CREATE:PERMISSION","READ:PERMISSION","UPDATE:PERMISSION","DELETE:PERMISSION",],
       subItems: [
         { name: t('rolesAndPermissions'), path: PageUrl.Roles.path },
         // { name: t('allAdmins'), path: PageUrl.Admins.path },
