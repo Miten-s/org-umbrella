@@ -186,13 +186,13 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
       return t("selectUserType");
     }
     const selectedRole = builtInRoles.find(role => role.value === selectedBuiltInRoleId);
-    return selectedRole?.text || t("selectUserType");
+    return selectedRole?.text || t("select", { entity: t("role") });
   }, [activeUser, selectedBuiltInRoleId, builtInRoles, t]);
 
   return (
     <div className="p-6 max-h-[90vh] overflow-y-auto">
       <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
-        <h2 className="text-xl font-semibold">{t(activeUser ? "editUser" : "createUser")}</h2>
+        <h2 className="text-xl font-semibold">{activeUser ?  t("update",{entity:t("user")}): t("create",{entity:t("user")})}</h2>
 
         <div className="relative">
           <Label required>{t("userType")}</Label>

@@ -113,5 +113,6 @@
   "company": "कंपनी",
   "upload": "{{entity}} अपलोड करा",
   "logo": "लोगो",
-  "deleteEntityPrompt": "आपण खरोखर हे {{entityName}} हटवू इच्छिता?"
+  "deleteEntityPrompt": "आपण खरोखर हे {{entityName}} हटवू इच्छिता?",
+  "noBuiltInRolesAvailable": "कोणतीही अंगभूत भूमिका उपलब्ध नाही"
 }

@@ -111,5 +111,6 @@
   "company": "شركة",
   "upload": "تحميل {{entity}}",
   "logo": "الشعار",
-  "deleteEntityPrompt": "هل أنت متأكد أنك تريد حذف {{entityName}}؟"
+  "deleteEntityPrompt": "هل أنت متأكد أنك تريد حذف {{entityName}}؟",
+  "noBuiltInRolesAvailable": "لا توجد أدوار مدمجة متاحة"
 }

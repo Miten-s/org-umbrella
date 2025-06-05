@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { SYSTEM_ROUTES } from "@/utils/common.constants";
 import { useAuth } from "@/context/AuthContext";
 import { useTranslation } from "react-i18next";
+import { PageUrl } from "@/types/utils.types";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -75,10 +76,9 @@ export default function UserDropdown() {
         <ul className="flex flex-col gap-1 pt-4 pb-3 border-b border-gray-200 dark:border-gray-800">
           <li>
             <DropdownItem
-              // onClick={navigate("/client/my-space/profile-info")}
               onItemClick={closeDropdown}
               tag="a"
-              to="/client/my-space/profile-info"
+              to={PageUrl.ProfileInfo.path}
               className="flex items-center gap-3 px-3 py-2 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
             >
               <svg

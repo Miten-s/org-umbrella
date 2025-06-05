@@ -217,7 +217,7 @@ const Info = ({ label, value }: { label: string; value: string }) => (
 const getRole = (
   roles: { name?: string; type?: string; permissions: { name: string }[] }[]
 ): string => {
-  const builtInRoles = roles?.filter(role => role.type === "BUILT_IN");
+  const builtInRoles = roles?.filter(role => role.type === "BUILT_In");
   const roleNames = builtInRoles?.map(role => role.name);
 
   if (roleNames?.includes("Super Admin")) return "Super Admin";

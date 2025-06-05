@@ -104,9 +104,11 @@ const Users = () => {
               <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                 {t('role')}
               </th>
+             
               <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('createdBy')}
+                {t('status')}
               </th>
+             
               <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                 {t('actions')}
               </th>
@@ -143,10 +145,6 @@ const Users = () => {
                       </span>
                     )}
                   </div>
-                </td>
-
-                <td className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {usr?.createdBy?.username ?? "-"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                   <span
