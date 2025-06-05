@@ -1,23 +1,7 @@
 import { useAuth } from "@/context/AuthContext";
 
 export default function UserMetaCard() {
-  const { user } = useAuth()
-  console.log("UserMetaCard user", user);
- const getRole = (roles: { name?: string; permissions: { name: string }[] }[]) => {
-  // Check for Super Admin via permissions
-  const allPermissions = roles?.flatMap(role => role.permissions || []);
-  const permissionNames = allPermissions?.map(p => p.name);
-  if (permissionNames?.includes("OPERATE:ALL")) return "Super Admin";
-
-  // Check roles directly by name (case-sensitive)
-  const roleNames = roles?.map(role => role.name);
-
-  if (roleNames?.includes("Admin")) return "Admin";
-  if (roleNames?.includes("User")) return "User";
-
-  return "-";
-};
-
+  const { user, currentUserRole } = useAuth()
 
   return (
     <>
@@ -34,7 +18,7 @@ export default function UserMetaCard() {
                 {user?.name}              </h4>
               <div className="flex flex-col items-center gap-1 text-center xl:flex-row xl:gap-3 xl:text-left">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {getRole(user?.roles)}                </p>
+                  {currentUserRole}                </p>
                 <div className="hidden h-3.5 w-px bg-gray-300 dark:bg-gray-700 xl:block"></div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   {user?.email}                </p>

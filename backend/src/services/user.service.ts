@@ -26,8 +26,8 @@ const deleteUser = async (req: Request) => {
 const getUserDetail = async (id: string) => {
   return await User.findOne(
     { _id: id },
-    { password: 0, "roles.name": 0 },
-    { populate: { path: "roles", select: ["permissions"] } }
+    { password: 0 },
+    { populate: { path: "roles", select: ["permissions","name","type"] } }
   ).exec();
 };
 

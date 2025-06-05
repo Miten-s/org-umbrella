@@ -4,23 +4,50 @@ import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { useAuth } from "@/context/AuthContext";
+import { updateUser } from "@/services/admin.service";
+import { useGlobalContext } from "@/context";
+import { useTranslation } from "react-i18next";
+import Input from "@/components/common/form/input/InputField";
+import Label from "@/components/common/form/Label";
+import { Controller } from "react-hook-form";
+import Switch from "@/components/common/form/switch/Switch";
 
 export default function UserInfoCard() {
   const { isOpen, openModal, closeModal } = useModal();
   const { user } = useAuth();
+  const { t } = useTranslation();
+  const { setReFetch, reFetch } = useGlobalContext();
 
-  const { register, handleSubmit, reset } = useForm({
+  const role = getRole(user.roles || []);
+
+  const { register, handleSubmit, reset, control } = useForm({
     defaultValues: {
       name: user.name || "",
-      currentLanguage: user.currentLanguage || "",
-      status: user.status || "",
+      status: user.status === "active",
+      phone: user.phone || "",
+      department: user.department || "",
+      designation: user.designation || "",
+      location: user.location || "",
+      modifiable: user.modifiable || false,
+      trainingCompleted: user.trainingCompleted || false,
     },
   });
 
-  const handleSave = (data: any) => {
-    console.log("Saving changes...", data);
-    closeModal();
+  const handleSave = async (data: any) => {
+    try {
+      const payload = {
+        ...data,
+        status: data.status ? "active" : "disabled",
+      };
+      await updateUser(user._id, payload);
+      setReFetch(!reFetch);
+      closeModal();
+    } catch (error) {
+      console.error('Error saving user:', error);
+    }
   };
+
+  const isAdmin = role === "Admin" || role === "Super Admin";
 
   return (
     <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
@@ -32,10 +59,23 @@ export default function UserInfoCard() {
           </h4>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
             <Info label="Name" value={user.name} />
+            <Info label="Username" value={user.username} />
+            <Info label="Email" value={user.email} />
+            <Info label="Role" value={role} />
             <Info label="Status" value={user.status} />
-            <Info label="Language" value={user.currentLanguage} />
             <Info label="Last Login" value={new Date(user.lastLogin).toLocaleString()} />
             <Info label="Created At" value={new Date(user.createdAt).toLocaleString()} />
+            
+            {!isAdmin && (
+              <>
+                <Info label="Phone" value={user.phone} />
+                <Info label="Department" value={user.department} />
+                <Info label="Designation" value={user.designation} />
+                <Info label="Location" value={user.location} />
+                <Info label="Modifiable" value={user.modifiable ? "Yes" : "No"} />
+                <Info label="Training Completed" value={user.trainingCompleted ? "Yes" : "No"} />
+              </>
+            )}
           </div>
         </div>
 
@@ -44,8 +84,13 @@ export default function UserInfoCard() {
           onClick={() => {
             reset({
               name: user.name || "",
-              currentLanguage: user.currentLanguage || "",
-              status: user.status || "",
+              status: user.status === "active",
+              phone: user.phone || "",
+              department: user.department || "",
+              designation: user.designation || "",
+              location: user.location || "",
+              modifiable: user.modifiable || false,
+              trainingCompleted: user.trainingCompleted || false,
             });
             openModal();
           }}
@@ -76,22 +121,74 @@ export default function UserInfoCard() {
           </div>
           <form className="flex flex-col" onSubmit={handleSubmit(handleSave)}>
             <div className="custom-scrollbar h-[450px] overflow-y-auto px-2 pb-3 flex flex-col gap-4">
-              <label className="flex flex-col gap-1 text-sm">
-                Name
-                <input {...register("name")} className="input" />
-              </label>
-             
-              <label className="flex flex-col gap-1 text-sm">
-                Current Language
-                <input {...register("currentLanguage")} className="input" />
-              </label>
-              <label className="flex flex-col gap-1 text-sm">
-                Status
-                <select {...register("status")} className="input">
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-              </label>
+              <div>
+                <Label required>{t("name")}</Label>
+                <Input {...register("name")} />
+              </div>
+
+              {!isAdmin && (
+                <>
+                  <div>
+                    <Label>{t("phone")}</Label>
+                    <Input {...register("phone")} />
+                  </div>
+                  <div>
+                    <Label>{t("department")}</Label>
+                    <Input {...register("department")} />
+                  </div>
+                  <div>
+                    <Label>{t("designation")}</Label>
+                    <Input {...register("designation")} />
+                  </div>
+                  <div>
+                    <Label>{t("location")}</Label>
+                    <Input {...register("location")} />
+                  </div>
+                  <div>
+                    <Label>{t("modifiable")}</Label>
+                    <Controller
+                      name="modifiable"
+                      control={control}
+                      render={({ field: { value, onChange } }) => (
+                        <Switch
+                          label=""
+                          checked={value}
+                          onChange={onChange}
+                        />
+                      )}
+                    />
+                  </div>
+                  <div>
+                    <Label>{t("trainingCompleted")}</Label>
+                    <Controller
+                      name="trainingCompleted"
+                      control={control}
+                      render={({ field: { value, onChange } }) => (
+                        <Switch
+                          label=""
+                          checked={value}
+                          onChange={onChange}
+                        />
+                      )}
+                    />
+                  </div>
+                </>
+              )}
+
+              <div>
+                <Label htmlFor="status" className="whitespace-nowrap">Status</Label>
+                <Controller
+                  name="status"
+                  control={control}
+                  render={({ field: { value, onChange } }) => (
+                    <Switch
+                      label=""
+                      checked={value}
+                      onChange={onChange}
+                    />
+                  )}
+                />
+              </div>
             </div>
             <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
               <Button size="sm" variant="outline" type="button" onClick={closeModal}>
@@ -115,3 +212,16 @@ const Info = ({ label, value }: { label: string; value: string }) => (
     <p className="text-sm font-medium text-gray-800 dark:text-white/90">{value}</p>
   </div>
 );
+
+// Role extraction helper
+const getRole = (
+  roles: { name?: string; type?: string; permissions: { name: string }[] }[]
+): string => {
+  const builtInRoles = roles?.filter(role => role.type === "BUILT_IN");
+  const roleNames = builtInRoles?.map(role => role.name);
+
+  if (roleNames?.includes("Super Admin")) return "Super Admin";
+  if (roleNames?.includes("Admin")) return "Admin";
+  if (roleNames?.includes("User")) return "User";
+  return "-";
+};

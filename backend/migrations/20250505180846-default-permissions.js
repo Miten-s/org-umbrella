@@ -52,6 +52,7 @@ module.exports = {
     }
 
     // 2. Create Super Admin Role
+    //do not change the name of this role, in frontend we are used this feild as condition for getting role 
     const roleInsertResult = await db.collection("roles").insertOne({
       name: "Super Admin",
       type: "BUILT_IN",

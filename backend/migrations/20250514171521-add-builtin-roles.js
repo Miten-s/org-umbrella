@@ -32,10 +32,11 @@ module.exports = {
     );
 
     // Insert Admin and User roles
+    //do not change the name of this role, in frontend we are used this feild as condition for getting role 
     const roles = [
       {
         name: "Admin",
-        type: "Built_In",
+        type: "BUILT_IN",
         permissions: adminPermissionIds,
         deletedAt: null,
         createdAt: new Date(),
@@ -43,7 +44,7 @@ module.exports = {
       },
       {
         name: "User",
-        type: "Built_In",
+        type: "BUILT_IN",
         permissions: userPermissionIds,
         deletedAt: null,
         createdAt: new Date(),

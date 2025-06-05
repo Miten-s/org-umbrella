@@ -16,21 +16,37 @@ interface AuthContextType {
   isAuthenticated: boolean;
   setIsAuthenticated: any
   currentCompany: Record<string, string | any>;
+  currentUserRole: string;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: {},
   isAuthenticated: false,
   setIsAuthenticated: () => { },
-  currentCompany: {}
+  currentCompany: {},
+  currentUserRole: "-"
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<Record<string, string>>({});
   const [currentCompany, setCurrentCompany] = useState<Record<string, string>>({});
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUserRole, setCurrentUserRole] = useState<string>("-");
+
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+  const getRole = (
+    roles: { name?: string; type?: string; permissions: { name: string }[] }[]
+  ): string => {
+    const builtInRoles = roles?.filter(role => role.type === "BUILT_IN");
+    const roleNames = builtInRoles?.map(role => role.name);
+    if (roleNames?.includes("Super Admin")) return "Super Admin";
+    if (roleNames?.includes("Admin")) return "Admin";
+    if (roleNames?.includes("User")) return "User";
+    return "-";
+  };
+
 
   const fetchUser = async () => {
     try {
@@ -40,6 +56,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(response.user);
       dispatch(setCurrentUser(response.user));
       // navigate(SYSTEM_ROUTES.HOME);
+      const userRole = getRole(response.user?.roles || []);
+      setCurrentUserRole(userRole);
     } catch (error: any) {
       if (
         error?.response?.status === 404 &&
@@ -55,8 +73,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [isAuthenticated, setIsAuthenticated]);
 
   const value = useMemo(
-    () => ({ user, isAuthenticated, setIsAuthenticated,currentCompany }),
-    [user, isAuthenticated, setIsAuthenticated,currentCompany]
+    () => ({ user, isAuthenticated, setIsAuthenticated, currentCompany,currentUserRole }),
+    [user, isAuthenticated, setIsAuthenticated, currentCompany,currentUserRole]
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
