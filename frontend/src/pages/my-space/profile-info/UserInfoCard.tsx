@@ -80,7 +80,7 @@ export default function UserInfoCard() {
         </div>
 
         {/* Edit Button */}
-        <button
+        {/* <button
           onClick={() => {
             reset({
               name: user.name || "",
@@ -105,7 +105,7 @@ export default function UserInfoCard() {
             />
           </svg>
           Edit
-        </button>
+        </button> */}
       </div>
 
       {/* Modal */}
