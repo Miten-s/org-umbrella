@@ -54,7 +54,7 @@ module.exports = {
     // 2. Create Super Admin Role
     const roleInsertResult = await db.collection("roles").insertOne({
       name: "Super Admin",
-      type: "BUILT_IN",
+      type: "Built_In",
       permissions: [operateAllPermissionId],
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -90,6 +90,13 @@ module.exports = {
       updatedAt: new Date()
     });
 
+    db.users.createIndex(
+      { email: 1 },
+      {
+        unique: true,
+        partialFilterExpression: { deletedAt: null }
+      }
+    );
     console.log("Company created");
   },
 

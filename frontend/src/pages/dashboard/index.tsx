@@ -4,12 +4,37 @@ import { PencilIcon } from "@/public/icons";
 import { getCompany } from "@/services/admin.service";
 
 const modules = [
-  { id: "gxp", title: "GxP Services", description: "Manage compliance-related activities", route: "/gxp" },
+  {
+    id: "gxp",
+    title: "GxP Services",
+    description: "Manage compliance-related activities",
+    route: "/gxp"
+  },
   { id: "qa", title: "Comming soon...", description: ".......", route: "/qa" },
-  { id: "labs", title: "Comming soon...", description: ".......", route: "/labs" },
-  { id: "supply", title: "Comming soon...", description: ".......", route: "/supply" },
-  { id: "training", title: "Comming soon... ", description: ".......", route: "/training" },
-  { id: "docs", title: "Comming soon...", description: ".......", route: "/docs" },
+  {
+    id: "labs",
+    title: "Comming soon...",
+    description: ".......",
+    route: "/labs"
+  },
+  {
+    id: "supply",
+    title: "Comming soon...",
+    description: ".......",
+    route: "/supply"
+  },
+  {
+    id: "training",
+    title: "Comming soon... ",
+    description: ".......",
+    route: "/training"
+  },
+  {
+    id: "docs",
+    title: "Comming soon...",
+    description: ".......",
+    route: "/docs"
+  }
 ];
 
 const Dashboard = () => {
@@ -34,13 +59,15 @@ const Dashboard = () => {
   }, []);
 
   return (
-      <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4">
       <div className="mb-10">
         <div className="flex justify-between items-center flex-wrap gap-4">
-          <h1 className="text-2xl font-semibold text-gray-900">{company?.name || "..."}</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">
+            {company?.name || "..."}
+          </h1>
           {company?.logo && (
             <img
-              src={`${import.meta.env.VITE_API_BASE_URL}/uploads/${company.logo}`}
+              src={`${import.meta.env.VITE_API_BASE_URL}/uploads${company.logo}`}
               alt="Organization Logo"
               className="h-32 w-44 object-contain rounded-md shadow"
             />

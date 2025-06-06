@@ -25,7 +25,7 @@ export interface IConditionalUserFields {
   deletedAt?: Date | null;
   passwordExpiryTime?: Date | null;
   lastLogin?: Date | null;
-  createdBy?: mongoose.Types.ObjectId;
+  createdBy?: string;
   lastPasswords?: string[];
 }
 
@@ -38,7 +38,7 @@ export interface IUser
 }
 
 const AdminSchema: Record<keyof IBasicUserFields, any> = {
-  username: { type: String, required: true, unique: true },
+  username: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   name: { type: String, required: true },
   password: { type: String, required: true },
@@ -75,7 +75,7 @@ const ClientSchema: Record<keyof IConditionalUserFields, any> = {
   modifiable: { type: Boolean },
   manager: { type: Schema.Types.ObjectId, ref: "User" },
   trainingCompleted: { type: Boolean },
-  deletedAt: { type: Date },
+  deletedAt: { type: Date, default: null },
   passwordExpiryTime: { type: Date },
   lastLogin: { type: Date },
   lastPasswords: [{ type: String }],

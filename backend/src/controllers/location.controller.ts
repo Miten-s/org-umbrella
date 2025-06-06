@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import * as locationService from "../services/location.service";
 import asyncHandler from "../middlewares/error.middleware";
 import { CUSTOM_MESSAGES } from "../utils/common.util";
-import { CUSTOM_MESSAGES } from "../utils/common.util";
 
 export const createLocation = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
@@ -19,7 +18,6 @@ export const createLocation = asyncHandler(
 export const getAllLocations = asyncHandler(
   async (_req: Request, res: Response): Promise<any> => {
     const locations = await locationService.getAllLocations();
-    res.status(200).json({ locations });
     res.status(200).json({ locations });
   }
 );
