@@ -55,7 +55,7 @@ module.exports = {
     //do not change the name of this role, in frontend we are used this feild as condition for getting role 
     const roleInsertResult = await db.collection("roles").insertOne({
       name: "Super Admin",
-      type: "BUILT_IN",
+      type: "Built_In",
       permissions: [operateAllPermissionId],
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -91,6 +91,13 @@ module.exports = {
       updatedAt: new Date()
     });
 
+    db.users.createIndex(
+      { email: 1 },
+      {
+        unique: true,
+        partialFilterExpression: { deletedAt: null }
+      }
+    );
     console.log("Company created");
   },
 

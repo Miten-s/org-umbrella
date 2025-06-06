@@ -1,5 +1,3 @@
-const { ObjectId } = require("mongoose").Types;
-
 module.exports = {
   async up(db, client) {
     const permissionNames = [

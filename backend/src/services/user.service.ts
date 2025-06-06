@@ -2,13 +2,33 @@ import { Request } from "express";
 import { IUser, User } from "../models/user.model";
 
 const getUsers = async (user?: IUser) => {
-  let filter: {} = { username: { $nin: ["superadmin", user?.username] } };
-  return await User.find(filter).populate("roles", ["name"]);
+  let filter = { username: { $nin: ["superadmin", user?.username] } };
+  let populatation = {
+    populate: [
+      {
+        path: "roles",
+        select: ["name"]
+      },
+      {
+        path: "department",
+        select: ["departmentName"]
+      },
+      {
+        path: "location",
+        select: ["locationName"]
+      },
+      {
+        path: "designation",
+        select: ["designationName"]
+      }
+    ]
+  };
+  return await User.find(filter, null, populatation).exec();
 };
 
 const createUser = async (req: Request) => {
   const payload = req.body;
-  payload["createdBy"] = req.user?.id;
+  payload["createdBy"] = req.user?._id;
   return await User.create(payload);
 };
 

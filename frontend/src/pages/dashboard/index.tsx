@@ -3,12 +3,37 @@ import { PencilIcon } from "@/public/icons";
 import { useAuth } from "@/context/AuthContext";
 
 const modules = [
-  { id: "gxp", title: "GxP Services", description: "Manage compliance-related activities", route: "/gxp" },
+  {
+    id: "gxp",
+    title: "GxP Services",
+    description: "Manage compliance-related activities",
+    route: "/gxp"
+  },
   { id: "qa", title: "Comming soon...", description: ".......", route: "/qa" },
-  { id: "labs", title: "Comming soon...", description: ".......", route: "/labs" },
-  { id: "supply", title: "Comming soon...", description: ".......", route: "/supply" },
-  { id: "training", title: "Comming soon... ", description: ".......", route: "/training" },
-  { id: "docs", title: "Comming soon...", description: ".......", route: "/docs" },
+  {
+    id: "labs",
+    title: "Comming soon...",
+    description: ".......",
+    route: "/labs"
+  },
+  {
+    id: "supply",
+    title: "Comming soon...",
+    description: ".......",
+    route: "/supply"
+  },
+  {
+    id: "training",
+    title: "Comming soon... ",
+    description: ".......",
+    route: "/training"
+  },
+  {
+    id: "docs",
+    title: "Comming soon...",
+    description: ".......",
+    route: "/docs"
+  }
 ];
 
 const Dashboard = () => {
