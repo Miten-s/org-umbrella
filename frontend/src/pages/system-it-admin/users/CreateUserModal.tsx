@@ -4,13 +4,10 @@ import { useMemo } from "react";
 import Input from "@/components/common/form/input/InputField";
 import Label from "@/components/common/form/Label";
 import Button from "@/components/ui/button/Button";
-import { Dropdown } from "@/components/ui/dropdown/Dropdown";
-import { DropdownItem } from "@/components/ui/dropdown/DropdownItem";
 import Checkbox from "@/components/common/form/input/Checkbox";
 import SignatureCanvas from "@/components/common/Signature";
 import TextArea from "@/components/common/form/input/TextArea";
 import MultiSelect from "@/components/common/form/MultiSelect";
-import { ChevronDownIcon } from "@/public/icons";
 import { getUserAdminSchema } from "@/lib/schema";
 import { zodResolver } from '@hookform/resolvers/zod';
 import Switch from "@/components/common/form/switch/Switch";
@@ -50,13 +47,9 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
   const { t } = useTranslation();
   const builtInRoles = useMemo(() => roles.filter(role => role.type === "Built_In" && role.name !== "Super Admin"), [roles]);
   const customRoles = useMemo(() => roles.filter(role => role.type !== "Built_In"), [roles]);
-  console.log('customRoles', customRoles);
 
 
-  console.log("activeUser.department", activeUser?.roles);
-  console.log("activeUser", activeUser);
-
-  const { register, handleSubmit, setValue, control, watch, formState: { errors } } = useForm({
+  const { register, handleSubmit, control, watch, formState: { errors } } = useForm({
     resolver: zodResolver(getUserAdminSchema(!!activeUser)),
     defaultValues: {
       fullName: activeUser?.name || '',
@@ -65,8 +58,8 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
       locationGroup: activeUser?.location[0]?._id || '',  //remove this [0] after backend changes
       designation: activeUser?.designation?._id || '',
       department: activeUser?.department?._id || '',
-      userType: activeUser?.roles?.find((role: Role) => role.name === "User" || "Admin")?._id || builtInRoles[0]?._id,   //Need to set after backend changes
-      assignRole: activeUser?.roles?.filter((role: Role) => role.name !== "User" && role.name !== "Admin") || [],
+      userType: activeUser?.roles?.find((role: Role) => role.name === "Admin" || role.name === "User")?._id || builtInRoles[0]?._id,
+      assignRole: activeUser?.roles?.filter((role: Role) => role.name !== "Admin" && role.name !== "User").map((role: Role) => role._id) || [],
       description: activeUser?.description || '',
       status: activeUser?.status === 'active' ? true : false,
       password: '',
