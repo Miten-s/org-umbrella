@@ -175,26 +175,7 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
             />
           </div>
 
-          <div>
-            <Label htmlFor="userType" required>{t("userType")}</Label>
-            <Controller
-              name="userType"
-              control={control}
-              render={({ field }) => (
-                <select
-                  {...field}
-                  className="input w-full"
-                >
-                  {builtInRoles.map(role => (
-                    <option key={role.value} value={role.value}>
-                      {role.text}
-                    </option>
-                  ))}
-                </select>
-              )}
-            />
-            {errors.userType && <p className="text-red-500 text-xs mt-1">{errors.userType.message as string}</p>}
-          </div>
+
 
 
           {/* Password Fields */}
@@ -224,9 +205,6 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
             />
           </div>
 
-
-
-
           <div>
             <Label htmlFor="assignRole">{t("assignRoles")}</Label>
             <Controller
@@ -243,6 +221,29 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
             />
             {errors.assignRole && <p className="text-red-500 text-xs mt-1">{errors.assignRole.message as string}</p>}
           </div>
+
+          <div>
+            <Label htmlFor="userType" required>{t("userType")}</Label>
+            <Controller
+              name="userType"
+              control={control}
+              render={({ field }) => (
+                <select
+                  {...field}
+                  className="input w-full"
+                >
+                  {builtInRoles?.map(role => (
+                    <option key={role.value} value={role.value}>
+                      {role.text}
+                    </option>
+                  ))}
+                </select>
+              )}
+            />
+            {errors.userType && <p className="text-red-500 text-xs mt-1">{errors.userType.message as string}</p>}
+          </div>
+
+
 
 
           <div>
@@ -263,6 +264,36 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
           {/* User Specific Fields */}
           {!isAdmin && (
             <>
+
+
+
+              <div className="flex gap-10">
+                <div>
+                  <Label>{t("modifiable")}</Label>
+                  <Checkbox
+                    checked={modifiable}
+                    onChange={(checked) => {
+                      setModifiable(checked);
+                      setValue("modifiable", checked);
+                    }}
+                    label={t("yes")}
+                  />
+                  {errors.modifiable && <p className="text-red-500 text-xs mt-1">{errors.modifiable.message as string}</p>}
+                </div>
+                <div>
+                  <Label>{t("trainingCompleted")}</Label>
+                  <Checkbox
+                    checked={trainingCompleted}
+                    onChange={(checked) => {
+                      setTrainingCompleted(checked);
+                      setValue("trainingCompleted", checked);
+                    }}
+                    label={t("yes")}
+                  />
+                  {errors.trainingCompleted && <p className="text-red-500 text-xs mt-1">{errors.trainingCompleted.message as string}</p>}
+                </div>
+              </div>
+
               <div>
                 <Label>{t("mobileNumber")}</Label>
                 <Input
@@ -373,33 +404,6 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
                   onChange={(event) => setValue("description", event)}
                 />
                 {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message as string}</p>}
-              </div>
-
-              <div className="flex gap-10">
-                <div>
-                  <Label>{t("modifiable")}</Label>
-                  <Checkbox
-                    checked={modifiable}
-                    onChange={(checked) => {
-                      setModifiable(checked);
-                      setValue("modifiable", checked);
-                    }}
-                    label={t("yes")}
-                  />
-                  {errors.modifiable && <p className="text-red-500 text-xs mt-1">{errors.modifiable.message as string}</p>}
-                </div>
-                <div>
-                  <Label>{t("trainingCompleted")}</Label>
-                  <Checkbox
-                    checked={trainingCompleted}
-                    onChange={(checked) => {
-                      setTrainingCompleted(checked);
-                      setValue("trainingCompleted", checked);
-                    }}
-                    label={t("yes")}
-                  />
-                  {errors.trainingCompleted && <p className="text-red-500 text-xs mt-1">{errors.trainingCompleted.message as string}</p>}
-                </div>
               </div>
 
               <div className="md:col-span-2">

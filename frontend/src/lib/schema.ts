@@ -3,25 +3,40 @@ import { z } from "zod";
 export const getUserAdminSchema = (isUpdate: boolean) => {
   const schema = z
     .object({
-      fullName: z.string().min(1, "Full name is required"),
-      email: z.string().email("Invalid email"),
-      // userType: z.enum(['user', 'admin'], { required_error: "User type is required" }),
-      assignRole: z.array(z.string()).optional(),
-      passwordExpiry: z.string().optional(), 
+      // Common fields
+      fullName: z.string()
+        .min(1, "Full name is required")
+        .max(30, "Full name must not exceed 30 characters"),
+      email: z.string()
+        .email("Invalid email")
+        .max(30, "Email must not exceed 30 characters"),
+      userType: z.string()
+        .min(1, "User type is required"),
+      assignRole: z.array(z.string())
+        .optional(),
+      passwordExpiry: z.string().optional(),
 
-      // User-specific optional fields
-      mobileNumber: z.string().optional(),
-      locationGroup: z.string().optional(), 
-      designation: z.string().optional(), 
-      department: z.string().optional(), 
-      description: z.string().optional(),
+      // User-specific fields
+      mobileNumber: z.string()
+        .max(15, "Phone number must not exceed 15 characters")
+        .optional(),
+      locationGroup: z.string().optional(),
+      designation: z.string().optional(),
+      department: z.string().optional(),
+      description: z.string()
+        .max(50, "Description must not exceed 50 characters")
+        .optional(),
       modifiable: z.boolean().optional(),
       trainingCompleted: z.boolean().optional(),
       status: z.boolean().optional(),
+      signature: z.string().optional(),
 
+      // Password fields
       password: isUpdate
         ? z.string().optional()
-        : z.string().min(6, "Password must be at least 6 characters"),
+        : z.string()
+            .min(6, "Password must be at least 6 characters")
+            .max(20, "Password must not exceed 20 characters"),
       confirmPassword: isUpdate
         ? z.string().optional()
         : z.string().min(1, "Please confirm your password"),

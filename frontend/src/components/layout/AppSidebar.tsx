@@ -48,7 +48,7 @@ const AppSidebar: React.FC = () => {
     {
       icon: <UserManagement />,
       name: t('systemITAdministration'),
-      permissions: ["VIEW:DASHBOARD"],
+      permissions: ["VIEW:USER"],
       subItems: [
         { name: t('users'), path: PageUrl.Users.path },
         { name: t('designations'), path: PageUrl.Designations.path },
@@ -59,7 +59,7 @@ const AppSidebar: React.FC = () => {
      {
     icon: <CompanyIcon />, 
     name: t('companySetup'), 
-    permissions: ["CREATE:COMPANY"],
+    permissions: ["OPERATE:ALL"],
     subItems: [
       { name: t('companyInfo'), path: PageUrl.CompanySettings.path }
     ]
