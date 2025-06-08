@@ -1,6 +1,6 @@
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo } from "react";
 import Input from "@/components/common/form/input/InputField";
 import Label from "@/components/common/form/Label";
 import Button from "@/components/ui/button/Button";
@@ -15,57 +15,46 @@ import { getUserAdminSchema } from "@/lib/schema";
 import { zodResolver } from '@hookform/resolvers/zod';
 import Switch from "@/components/common/form/switch/Switch";
 
-interface Option {
-  value: string;
-  text: string;
-  type?: string;
-  name?: string;
+interface Role {
+  _id: string;
+  name: string;
+  type: string;
+}
+
+interface Location {
+  _id: string;
+  locationName: string;
+}
+
+interface Department {
+  _id: string;
+  departmentName: string;
+}
+
+interface Designation {
+  _id: string;
+  designationName: string;
 }
 
 interface CreateUserModalProps {
   onClose: () => void;
-  roles: Option[];
-  locations: Option[];
-  departments: Option[];
-  designations: Option[];
+  roles: Role[];
+  locations: Location[];
+  departments: Department[];
+  designations: Designation[];
   onSubmit: (data: any) => Promise<void>;
   activeUser: any | null;
 }
 
 const CreateUserModal = ({ onClose, roles, locations, departments, designations, onSubmit, activeUser }: CreateUserModalProps) => {
   const { t } = useTranslation();
-  const builtInRoles = useMemo(() => roles.filter(role => role.type === "Built_In" && role.text !== "Super Admin"), [roles]);
+  const builtInRoles = useMemo(() => roles.filter(role => role.type === "Built_In" && role.name !== "Super Admin"), [roles]);
   const customRoles = useMemo(() => roles.filter(role => role.type !== "Built_In"), [roles]);
-  console.log("CreateUserModal rendered with activeUser:", activeUser);
-  console.log("builtInRoles:", builtInRoles);
-  // State for dropdowns
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-  const [selectedLocation, setSelectedLocation] = useState<Option | null>(null);
-  const [selectedDepartment, setSelectedDepartment] = useState<Option | null>(null);
-  const [selectedDesignation, setSelectedDesignation] = useState<Option | null>(null);
-  const [modifiable, setModifiable] = useState(false);
-  const [trainingCompleted, setTrainingCompleted] = useState(false);
+  console.log('customRoles', customRoles);
 
-  // Initialize form values when activeUser changes
-  useEffect(() => {
-    if (activeUser) {
-      // Set other dropdown values
-      setSelectedLocation(locations.find(loc => loc.value === activeUser.location) || null);
-      setSelectedDepartment(departments.find(dept => dept.value === activeUser.department) || null);
-      setSelectedDesignation(designations.find(desig => desig.value === activeUser.designation) || null);
 
-      // Set checkbox values
-      setModifiable(activeUser.modifiable ?? false);
-      setTrainingCompleted(activeUser.trainingCompleted ?? false);
-    } else {
-      // Reset all values for new user
-      setSelectedLocation(null);
-      setSelectedDepartment(null);
-      setSelectedDesignation(null);
-      setModifiable(false);
-      setTrainingCompleted(false);
-    }
-  }, [activeUser, locations, departments, designations]);
+  console.log("activeUser.department", activeUser?.roles);
+  console.log("activeUser", activeUser);
 
   const { register, handleSubmit, setValue, control, watch, formState: { errors } } = useForm({
     resolver: zodResolver(getUserAdminSchema(!!activeUser)),
@@ -73,11 +62,11 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
       fullName: activeUser?.name || '',
       email: activeUser?.email || '',
       mobileNumber: activeUser?.phone || '',
-      locationGroup: activeUser?.location || '',
-      designation: activeUser?.designation || '',
-      department: activeUser?.department || '',
-      userType: activeUser?.roles?.find((role: any) => role.type === "Built_In")?._id || builtInRoles[0]?.value,
-      assignRole: activeUser?.roles?.filter((role: any) => role.type !== "Built_In").map((role: any) => role._id) || [],
+      locationGroup: activeUser?.location[0]?._id || '',  //remove this [0] after backend changes
+      designation: activeUser?.designation?._id || '',
+      department: activeUser?.department?._id || '',
+      userType: activeUser?.roles?.find((role: Role) => role.name === "User" || "Admin")?._id || builtInRoles[0]?._id,   //Need to set after backend changes
+      assignRole: activeUser?.roles?.filter((role: Role) => role.name !== "User" && role.name !== "Admin") || [],
       description: activeUser?.description || '',
       status: activeUser?.status === 'active' ? true : false,
       password: '',
@@ -91,9 +80,9 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
   const userType = watch("userType") as string;
   const isAdmin = useMemo(() => {
     if (activeUser) {
-      return activeUser.roles?.some((role: any) => role.name === 'Admin') || false;
+      return activeUser.roles?.some((role: Role) => role.name === 'Admin') || false;
     }
-    return userType === builtInRoles.find(role => role.text === "Admin")?.value;
+    return userType === builtInRoles.find(role => role.name === "Admin")?._id;
   }, [userType, builtInRoles, activeUser]);
 
   const handleFormSubmit = (data: any) => {
@@ -118,32 +107,11 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
       payload.designation = data.designation;
       payload.department = data.department;
       payload.description = data.description;
-      payload.modifiable = modifiable;
-      payload.trainingCompleted = trainingCompleted;
+      payload.modifiable = data.modifiable;
+      payload.trainingCompleted = data.trainingCompleted;
     }
 
     onSubmit(payload);
-  };
-
-  // Unified dropdown handler
-  const handleDropdown = (type: string, value?: any) => {
-    if (value) {
-      switch (type) {
-        case 'location':
-          setSelectedLocation(value);
-          setValue("locationGroup", value.value, { shouldValidate: true });
-          break;
-        case 'department':
-          setSelectedDepartment(value);
-          setValue("department", value.value, { shouldValidate: true });
-          break;
-        case 'designation':
-          setSelectedDesignation(value);
-          setValue("designation", value.value, { shouldValidate: true });
-          break;
-      }
-    }
-    setOpenDropdown(openDropdown === type ? null : type);
   };
 
   return (
@@ -175,8 +143,59 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
             />
           </div>
 
+          <div>
+            <Label htmlFor="assignRole">{t("assignRoles")}</Label>
+            <Controller
+              name="assignRole"
+              control={control}
+              render={({ field }) => (
+                <MultiSelect
+                  options={customRoles.map(role => ({ text: role.name, value: role._id }))}
+                  label={t("selectRoles")}
+                  onChange={field.onChange}
+                  defaultSelected={field.value}
+                />
+              )}
+            />
+            {errors.assignRole && <p className="text-red-500 text-xs mt-1">{errors.assignRole.message as string}</p>}
+          </div>
 
+          <div>
+            <Label htmlFor="userType" required>{t("userType")}</Label>
+            <Controller
+              name="userType"
+              control={control}
+              render={({ field }) => (
+                <select
+                  {...field}
+                  className="input w-full"
+                >
+                  {builtInRoles?.map(role => (
+                    <option key={role._id} value={role._id}>
+                      {role.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            />
+            {errors.userType && <p className="text-red-500 text-xs mt-1">{errors.userType.message as string}</p>}
+          </div>
 
+          <div>
+            <Label htmlFor="status" className="whitespace-nowrap">Status</Label>
+            <Controller
+              name="status"
+              control={control}
+              defaultValue={true}
+              render={({ field: { value, onChange } }) => (
+                <Switch
+                  label=""
+                  checked={value ?? false}
+                  onChange={onChange}
+                />
+              )}
+            />
+          </div>
 
           {/* Password Fields */}
           <div>
@@ -205,90 +224,37 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
             />
           </div>
 
-          <div>
-            <Label htmlFor="assignRole">{t("assignRoles")}</Label>
-            <Controller
-              name="assignRole"
-              control={control}
-              render={({ field }) => (
-                <MultiSelect
-                  options={customRoles}
-                  label={t("selectRoles")}
-                  onChange={field.onChange}
-                  defaultSelected={field.value}
-                />
-              )}
-            />
-            {errors.assignRole && <p className="text-red-500 text-xs mt-1">{errors.assignRole.message as string}</p>}
-          </div>
-
-          <div>
-            <Label htmlFor="userType" required>{t("userType")}</Label>
-            <Controller
-              name="userType"
-              control={control}
-              render={({ field }) => (
-                <select
-                  {...field}
-                  className="input w-full"
-                >
-                  {builtInRoles?.map(role => (
-                    <option key={role.value} value={role.value}>
-                      {role.text}
-                    </option>
-                  ))}
-                </select>
-              )}
-            />
-            {errors.userType && <p className="text-red-500 text-xs mt-1">{errors.userType.message as string}</p>}
-          </div>
-
-
-
-
-          <div>
-            <Label htmlFor="status" className="whitespace-nowrap">Status</Label>
-            <Controller
-              name="status"
-              control={control}
-              defaultValue={true}
-              render={({ field: { value, onChange } }) => (
-                <Switch
-                  label=""
-                  checked={value}
-                  onChange={onChange}
-                />
-              )}
-            />
-          </div>
           {/* User Specific Fields */}
           {!isAdmin && (
             <>
-
-
-
               <div className="flex gap-10">
                 <div>
                   <Label>{t("modifiable")}</Label>
-                  <Checkbox
-                    checked={modifiable}
-                    onChange={(checked) => {
-                      setModifiable(checked);
-                      setValue("modifiable", checked);
-                    }}
-                    label={t("yes")}
+                  <Controller
+                    name="modifiable"
+                    control={control}
+                    render={({ field: { value, onChange } }) => (
+                      <Checkbox
+                        checked={value ?? false}
+                        onChange={onChange}
+                        label={t("yes")}
+                      />
+                    )}
                   />
                   {errors.modifiable && <p className="text-red-500 text-xs mt-1">{errors.modifiable.message as string}</p>}
                 </div>
                 <div>
                   <Label>{t("trainingCompleted")}</Label>
-                  <Checkbox
-                    checked={trainingCompleted}
-                    onChange={(checked) => {
-                      setTrainingCompleted(checked);
-                      setValue("trainingCompleted", checked);
-                    }}
-                    label={t("yes")}
+                  <Controller
+                    name="trainingCompleted"
+                    control={control}
+                    render={({ field: { value, onChange } }) => (
+                      <Checkbox
+                        checked={value ?? false}
+                        onChange={onChange}
+                        label={t("yes")}
+                      />
+                    )}
                   />
                   {errors.trainingCompleted && <p className="text-red-500 text-xs mt-1">{errors.trainingCompleted.message as string}</p>}
                 </div>
@@ -304,104 +270,83 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
                 />
               </div>
 
-              <div className="relative md:col-span-1">
+              <div>
                 <Label required>{t("locationGroup")}</Label>
-                <button
-                  type="button"
-                  onClick={() => handleDropdown('location')}
-                  className={`input w-full flex justify-between items-center ${!selectedLocation && errors.locationGroup ? 'border-red-500' : ''}`}
-                >
-                  <span className="text-theme-sm dark:text-gray-400">
-                    {selectedLocation ? selectedLocation.text : t("select", { entity: t("location") })}
-                  </span>
-                  <ChevronDownIcon className="ml-2 h-4 w-4" />
-                </button>
-                <Dropdown
-                  isOpen={openDropdown === 'location'}
-                  onClose={() => setOpenDropdown(null)}
-                  className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-900"
-                >
-                  {locations.map(loc => (
-                    <DropdownItem key={loc.value} onItemClick={() => handleDropdown('location', loc)}>
-                      {loc.text}
-                    </DropdownItem>
-                  ))}
-                  {locations.length === 0 && (
-                    <DropdownItem onItemClick={() => { }}>
-                      {t('noLocationsAvailable')}
-                    </DropdownItem>
+                <Controller
+                  name="locationGroup"
+                  control={control}
+                  render={({ field }) => (
+                    <select
+                      {...field}
+                      className="input w-full"
+                    >
+                      <option value="">{t("select", { entity: t("location") })}</option>
+                      {locations.map(loc => (
+                        <option key={loc._id} value={loc._id}>
+                          {loc.locationName}
+                        </option>
+                      ))}
+                    </select>
                   )}
-                </Dropdown>
+                />
                 {errors.locationGroup && <p className="text-red-500 text-xs mt-1">{errors.locationGroup.message as string}</p>}
               </div>
 
-              <div className="relative md:col-span-1">
-                <Label required>{t("designation")} </Label>
-                <button
-                  type="button"
-                  onClick={() => handleDropdown('designation')}
-                  className={`input w-full flex justify-between items-center ${!selectedDesignation && errors.designation ? 'border-red-500' : ''}`}
-                >
-                  <span className="text-theme-sm dark:text-gray-400">
-                    {selectedDesignation ? selectedDesignation.text : t("select", { entity: t("designation") })}
-                  </span>
-                  <ChevronDownIcon className="ml-2 h-4 w-4" />
-                </button>
-                <Dropdown
-                  isOpen={openDropdown === 'designation'}
-                  onClose={() => setOpenDropdown(null)}
-                  className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-900"
-                >
-                  {designations.map(des => (
-                    <DropdownItem key={des.value} onItemClick={() => handleDropdown('designation', des)}>
-                      {des.text}
-                    </DropdownItem>
-                  ))}
-                  {designations.length === 0 && (
-                    <DropdownItem onItemClick={() => { }}>
-                      {t('noDesignationsAvailable')}
-                    </DropdownItem>
+              <div>
+                <Label required>{t("designation")}</Label>
+                <Controller
+                  name="designation"
+                  control={control}
+                  render={({ field }) => (
+                    <select
+                      {...field}
+                      className="input w-full"
+                    >
+                      <option value="">{t("select", { entity: t("designation") })}</option>
+                      {designations.map(des => (
+                        <option key={des._id} value={des._id}>
+                          {des.designationName}
+                        </option>
+                      ))}
+                    </select>
                   )}
-                </Dropdown>
+                />
                 {errors.designation && <p className="text-red-500 text-xs mt-1">{errors.designation.message as string}</p>}
               </div>
 
-              <div className="relative md:col-span-1">
-                <Label htmlFor="department" required>{t("department")}</Label>
-                <button
-                  type="button"
-                  onClick={() => handleDropdown('department')}
-                  className={`input w-full flex justify-between items-center ${!selectedDepartment && errors.department ? 'border-red-500' : ''}`}
-                >
-                  <span className="text-theme-sm dark:text-gray-400">
-                    {selectedDepartment ? selectedDepartment.text : t("select", { entity: t("department") })}
-                  </span>
-                  <ChevronDownIcon className="ml-2 h-4 w-4" />
-                </button>
-                <Dropdown
-                  isOpen={openDropdown === 'department'}
-                  onClose={() => setOpenDropdown(null)}
-                  className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-900"
-                >
-                  {departments.map(dept => (
-                    <DropdownItem key={dept.value} onItemClick={() => handleDropdown('department', dept)}>
-                      {dept.text}
-                    </DropdownItem>
-                  ))}
-                  {departments.length === 0 && (
-                    <DropdownItem onItemClick={() => { }}>
-                      {t('noDepartmentsAvailable')}
-                    </DropdownItem>
+              <div>
+                <Label required>{t("department")}</Label>
+                <Controller
+                  name="department"
+                  control={control}
+                  render={({ field }) => (
+                    <select
+                      {...field}
+                      className="input w-full"
+                    >
+                      <option value="">{t("select", { entity: t("department") })}</option>
+                      {departments.map(dept => (
+                        <option key={dept._id} value={dept._id}>
+                          {dept.departmentName}
+                        </option>
+                      ))}
+                    </select>
                   )}
-                </Dropdown>
+                />
                 {errors.department && <p className="text-red-500 text-xs mt-1">{errors.department.message as string}</p>}
               </div>
 
               <div className="md:col-span-2">
                 <Label>{t("description")}</Label>
-                <TextArea
-                  value={watch("description")}
-                  onChange={(event) => setValue("description", event)}
+                <Controller
+                  name="description"
+                  control={control}
+                  render={({ field }) => (
+                    <TextArea
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  )}
                 />
                 {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message as string}</p>}
               </div>

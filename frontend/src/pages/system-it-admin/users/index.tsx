@@ -35,10 +35,10 @@ const Users = () => {
         getUsers()
       ]);
 
-      setRoles(fetchedRoles.map((role: any) => ({ text: role.name, value: role._id, type: role.type })));
-      setLocations(fetchedLocations.map((loc: any) => ({ text: loc.locationName, value: loc._id })));
-      setDepartments(fetchedDepartments.map((dept: any) => ({ text: dept.departmentName, value: dept._id })));
-      setDesignations(fetchedDesignations.map((desig: any) => ({ text: desig.designationName, value: desig._id })));
+      setRoles(fetchedRoles);
+      setLocations(fetchedLocations);
+      setDepartments(fetchedDepartments);
+      setDesignations(fetchedDesignations);
       setUsers(fetchedUsers);
     } catch (error) {
       console.error('Error fetching data:', error);
