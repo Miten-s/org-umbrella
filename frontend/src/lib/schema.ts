@@ -29,14 +29,14 @@ export const getUserAdminSchema = (isUpdate: boolean) => {
       modifiable: z.boolean().optional(),
       trainingCompleted: z.boolean().optional(),
       status: z.boolean().optional(),
+      enableSignature: z.boolean().optional(),
       signature: z.string().optional(),
-
       // Password fields
       password: isUpdate
         ? z.string().optional()
         : z.string()
-            .min(6, "Password must be at least 6 characters")
-            .max(20, "Password must not exceed 20 characters"),
+          .min(6, "Password must be at least 6 characters")
+          .max(20, "Password must not exceed 20 characters"),
       confirmPassword: isUpdate
         ? z.string().optional()
         : z.string().min(1, "Please confirm your password"),

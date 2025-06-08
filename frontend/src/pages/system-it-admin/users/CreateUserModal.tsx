@@ -1,11 +1,11 @@
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
+import SignatureCanvas from "react-signature-canvas";
 import Input from "@/components/common/form/input/InputField";
 import Label from "@/components/common/form/Label";
 import Button from "@/components/ui/button/Button";
 import Checkbox from "@/components/common/form/input/Checkbox";
-import SignatureCanvas from "@/components/common/Signature";
 import TextArea from "@/components/common/form/input/TextArea";
 import MultiSelect from "@/components/common/form/MultiSelect";
 import { getUserAdminSchema } from "@/lib/schema";
@@ -45,17 +45,18 @@ interface CreateUserModalProps {
 
 const CreateUserModal = ({ onClose, roles, locations, departments, designations, onSubmit, activeUser }: CreateUserModalProps) => {
   const { t } = useTranslation();
+  const [showSignature, setShowSignature] = useState(false);
+  const signatureRef = useRef<any>(null);
   const builtInRoles = useMemo(() => roles.filter(role => role.type === "Built_In" && role.name !== "Super Admin"), [roles]);
   const customRoles = useMemo(() => roles.filter(role => role.type !== "Built_In"), [roles]);
 
-
-  const { register, handleSubmit, control, watch, formState: { errors } } = useForm({
+  const { register, handleSubmit, control, setValue, watch, formState: { errors } } = useForm({
     resolver: zodResolver(getUserAdminSchema(!!activeUser)),
     defaultValues: {
       fullName: activeUser?.name || '',
       email: activeUser?.email || '',
       mobileNumber: activeUser?.phone || '',
-      locationGroup: activeUser?.location[0]?._id || '',  //remove this [0] after backend changes
+      locationGroup: activeUser?.location[0]?._id || '',
       designation: activeUser?.designation?._id || '',
       department: activeUser?.department?._id || '',
       userType: activeUser?.roles?.find((role: Role) => role.name === "Admin" || role.name === "User")?._id || builtInRoles[0]?._id,
@@ -66,8 +67,23 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
       confirmPassword: '',
       modifiable: activeUser?.modifiable ?? false,
       trainingCompleted: activeUser?.trainingCompleted ?? false,
+      signature: activeUser?.signature || '',
     }
   });
+
+  const handleClearSignature = () => {
+    if (signatureRef.current) {
+      signatureRef.current.clear();
+      setValue('signature', '');
+    }
+  };
+
+  const handleSaveSignature = () => {
+    if (signatureRef.current && !signatureRef.current.isEmpty()) {
+      const trimmedDataURL = signatureRef.current.getTrimmedCanvas().toDataURL("image/png");
+      setValue('signature', trimmedDataURL);
+    }
+  };
 
   // Watch for role changes to determine if user is admin
   const userType = watch("userType") as string;
@@ -79,14 +95,13 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
   }, [userType, builtInRoles, activeUser]);
 
   const handleFormSubmit = (data: any) => {
-    // Always include the user type role in the roles array
     const roles = [data.userType, ...(data.assignRole || [])];
 
     const payload: any = {
       username: data.fullName,
       name: data.fullName,
       email: data.email,
-      roles: roles,
+      roles,
       status: data.status ? "active" : "disabled",
     };
 
@@ -102,6 +117,9 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
       payload.description = data.description;
       payload.modifiable = data.modifiable;
       payload.trainingCompleted = data.trainingCompleted;
+      if (data.signature) {
+        payload.signature = data.signature;
+      }
     }
 
     onSubmit(payload);
@@ -346,8 +364,43 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
               </div>
 
               <div className="md:col-span-2">
-                <Label>{t("signature")}</Label>
-                <SignatureCanvas />
+                <div className="flex items-center gap-2 mb-2">
+                  <Checkbox
+                    checked={showSignature}
+                    onChange={(e) => setShowSignature(e)}
+                    label="Add Signature"
+                  />
+                </div>
+
+                {showSignature && (
+                  <div className="mt-4">
+                    <Label required>Signature</Label>
+                    <div className="rounded-xl border shadow-sm p-4 bg-white">
+                      <div className="w-full h-[200px] border rounded-lg">
+                        <SignatureCanvas
+                          ref={signatureRef}
+                         
+                          penColor="black"
+                        />
+                      </div>
+                      <div className="mt-4 flex justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleClearSignature}
+                        >
+                          Clear
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={handleSaveSignature}
+                        >
+                          Save Signature
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}
