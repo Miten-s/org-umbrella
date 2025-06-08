@@ -17,7 +17,6 @@ export default function UserInfoCard() {
   const { user,currentUserRole } = useAuth();
   const { t } = useTranslation();
   const { setReFetch, reFetch } = useGlobalContext();;
-
   const { register, handleSubmit, control } = useForm({
     defaultValues: {
       name: user.name || "",

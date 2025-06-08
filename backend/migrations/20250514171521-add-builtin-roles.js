@@ -1,6 +1,7 @@
 module.exports = {
   async up(db, client) {
     const permissionNames = [
+      "VIEW:USER",
       "CREATE:USER",
       "READ:USER",
       "UPDATE:USER",
