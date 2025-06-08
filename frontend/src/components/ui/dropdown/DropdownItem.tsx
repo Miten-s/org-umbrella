@@ -1,3 +1,4 @@
+// DropdownItem.tsx
 import type React from "react";
 import { Link } from "react-router";
 
@@ -26,8 +27,8 @@ export const DropdownItem: React.FC<DropdownItemProps> = ({
     if (tag === "button") {
       event.preventDefault();
     }
-    if (onClick) onClick();
-    if (onItemClick) onItemClick();
+    onClick?.();
+    onItemClick?.();
   };
 
   if (tag === "a" && to) {
@@ -44,3 +45,4 @@ export const DropdownItem: React.FC<DropdownItemProps> = ({
     </button>
   );
 };
+  

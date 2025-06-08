@@ -13,14 +13,12 @@ import { Controller } from "react-hook-form";
 import Switch from "@/components/common/form/switch/Switch";
 
 export default function UserInfoCard() {
-  const { isOpen, openModal, closeModal } = useModal();
-  const { user } = useAuth();
+  const { isOpen, closeModal } = useModal();
+  const { user,currentUserRole } = useAuth();
   const { t } = useTranslation();
-  const { setReFetch, reFetch } = useGlobalContext();
+  const { setReFetch, reFetch } = useGlobalContext();;
 
-  const role = getRole(user.roles || []);
-
-  const { register, handleSubmit, reset, control } = useForm({
+  const { register, handleSubmit, control } = useForm({
     defaultValues: {
       name: user.name || "",
       status: user.status === "active",
@@ -47,7 +45,7 @@ export default function UserInfoCard() {
     }
   };
 
-  const isAdmin = role === "Admin" || role === "Super Admin";
+  const isAdmin = currentUserRole === "Admin" || currentUserRole === "Super Admin";
 
   return (
     <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
@@ -59,9 +57,8 @@ export default function UserInfoCard() {
           </h4>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
             <Info label="Name" value={user.name} />
-            <Info label="Username" value={user.username} />
             <Info label="Email" value={user.email} />
-            <Info label="Role" value={role} />
+            <Info label="Role" value={currentUserRole} />
             <Info label="Status" value={user.status} />
             <Info label="Last Login" value={new Date(user.lastLogin).toLocaleString()} />
             <Info label="Created At" value={new Date(user.createdAt).toLocaleString()} />
@@ -213,15 +210,3 @@ const Info = ({ label, value }: { label: string; value: string }) => (
   </div>
 );
 
-// Role extraction helper
-const getRole = (
-  roles: { name?: string; type?: string; permissions: { name: string }[] }[]
-): string => {
-  const builtInRoles = roles?.filter(role => role.type === "BUILT_In");
-  const roleNames = builtInRoles?.map(role => role.name);
-
-  if (roleNames?.includes("Super Admin")) return "Super Admin";
-  if (roleNames?.includes("Admin")) return "Admin";
-  if (roleNames?.includes("User")) return "User";
-  return "-";
-};

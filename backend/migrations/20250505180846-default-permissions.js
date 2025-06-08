@@ -52,9 +52,8 @@ module.exports = {
     }
 
     // 2. Create Super Admin Role
-    //do not change the name of this role, in frontend we are used this feild as condition for getting role 
     const roleInsertResult = await db.collection("roles").insertOne({
-      name: "Super Admin",
+      name: "Super Admin",   // This field is used in frontend for checking if user is super admin or not so do not change it
       type: "Built_In",
       permissions: [operateAllPermissionId],
       createdAt: new Date(),

@@ -30,11 +30,11 @@ module.exports = {
     );
 
     // Insert Admin and User roles
-    //do not change the name of this role, in frontend we are used this feild as condition for getting role 
+    // !!!!! -->> This field is used in frontend for checking if user is super admin or not so do not change it <<--
     const roles = [
       {
         name: "Admin",
-        type: "BUILT_IN",
+        type: "Built_In",
         permissions: adminPermissionIds,
         deletedAt: null,
         createdAt: new Date(),
@@ -42,7 +42,7 @@ module.exports = {
       },
       {
         name: "User",
-        type: "BUILT_IN",
+        type: "Built_In",
         permissions: userPermissionIds,
         deletedAt: null,
         createdAt: new Date(),
