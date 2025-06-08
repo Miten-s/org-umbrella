@@ -153,6 +153,35 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
             {errors.assignRole && <p className="text-red-500 text-xs mt-1">{errors.assignRole.message as string}</p>}
           </div>
 
+
+          {/* Password Fields */}
+          <div>
+            <Label htmlFor="password" required>{t("password")}</Label>
+            <Input
+              id="password"
+              type="password"
+              disabled={!!activeUser}
+              {...register("password")}
+              error={!!errors.password}
+              hint={errors.password?.message as string}
+              maxLength={20}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="confirmPassword" required>{t("confirmPassword")}</Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              disabled={!!activeUser}
+              {...register("confirmPassword")}
+              error={!!errors.confirmPassword}
+              hint={errors.confirmPassword?.message as string}
+              maxLength={20}
+            />
+          </div>
+
+
           <div>
             <Label htmlFor="userType" required>{t("userType")}</Label>
             <Controller
@@ -189,34 +218,6 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
               )}
             />
           </div>
-
-          {/* Password Fields */}
-          <div>
-            <Label htmlFor="password" required>{t("password")}</Label>
-            <Input
-              id="password"
-              type="password"
-              disabled={!!activeUser}
-              {...register("password")}
-              error={!!errors.password}
-              hint={errors.password?.message as string}
-              maxLength={20}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="confirmPassword" required>{t("confirmPassword")}</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              disabled={!!activeUser}
-              {...register("confirmPassword")}
-              error={!!errors.confirmPassword}
-              hint={errors.confirmPassword?.message as string}
-              maxLength={20}
-            />
-          </div>
-
           {/* User Specific Fields */}
           {!isAdmin && (
             <>
