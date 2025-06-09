@@ -2,7 +2,7 @@ import { Request } from "express";
 import { IUser, User } from "../models/user.model";
 
 const getUsers = async (user?: IUser) => {
-  let filter = { username: { $nin: ["superadmin", user?.username] } };
+  let filter = { fullName: { $nin: ["superadmin", user?.fullName] } };
   let populatation = {
     populate: [
       {

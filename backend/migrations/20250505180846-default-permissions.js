@@ -69,7 +69,7 @@ module.exports = {
     const password = await bcrypt.hash("SuperAdmin@123", 10);
 
     await db.collection("users").insertOne({
-      username: "superadmin",
+      fullName: "superadmin",
       email: "superadmin@example.com",
       name: "Super Admin",
       password,
@@ -102,7 +102,7 @@ module.exports = {
 
   async down(db) {
     // Remove Super Admin User
-    await db.collection("users").deleteOne({ username: "superadmin" });
+    await db.collection("users").deleteOne({ fullName: "superadmin" });
 
     // Remove Super Admin Role
     await db.collection("roles").deleteOne({ name: "Super Admin" });

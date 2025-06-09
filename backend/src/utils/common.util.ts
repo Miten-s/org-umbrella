@@ -9,7 +9,7 @@ export const CUSTOM_MESSAGES = {
   ALREADY_EXISTS: "{{entity}} already exists",
   NOT_AUTHORIZED: "{{entity}} is not authorized",
   FIELD_REQUIRED: "{{entity}} is required",
-  INVALID_EMAIL_PASSWORD: "Invalid username or password",
+  INVALID_EMAIL_PASSWORD: "Invalid email or password",
   LOGIN_SUCCESSFUL: "Login successful",
   LOGOUT_SUCCESSFUL: "Logout successful",
   SOMETHING_WENT_WRONG: "Something went wrong",
@@ -51,7 +51,7 @@ export const convertMongooseError = (message: {
 
 export const isSuperAdmin = (user?: IUser) => {
   if (!user) return false;
-  return user.username === "superadmin";
+  return user.fullName === "superadmin";
 };
 
 export const isAppError = (error: unknown): error is AppError => {
