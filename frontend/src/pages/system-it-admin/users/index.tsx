@@ -6,6 +6,7 @@ import CreateUserModal from "./CreateUserModal";
 import { getRoles, getLocations, getDepartments, getDesignations, createUser, updateUser, getUsers, deleteUser } from "@/services/admin.service";
 import { useEffect, useState } from "react";
 import { useGlobalContext } from "@/context";
+import { LockIcon } from "@/public/icons";
 
 const Users = () => {
   const { isOpen, openModal, closeModal } = useModal();
@@ -130,14 +131,20 @@ const Users = () => {
 
                 <td className="px-6 py-4 whitespace-nowrap mx-auto text-sm text-gray-500">
                   <div className="flex flex-wrap justify-center gap-2">
-                    {usr.roles.slice(0, 2).map((role: any, idx: number) => (
-                      <span
-                        key={idx}
-                        className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs"
-                      >
-                        {role.name}
-                      </span>
-                    ))}
+                    {usr.roles.slice(0, 2).map((role: any, idx: number) => {
+                      const isDefault = role.type === 'Built_In';
+                      return (
+                        <span
+                          key={idx}
+                          className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${isDefault ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'
+                            }`}
+                          title={isDefault ? 'Default System Role' : 'Custom Role'}
+                        >
+                          {isDefault && <LockIcon className="w-3 h-3" />}
+                          {isDefault ? `Default - ${role.name}` : role.name}
+                        </span>
+                      );
+                    })}
                     {usr.roles.length > 2 && (
                       <span className="px-2 py-1 bg-gray-200 text-gray-800 rounded-full text-xs">
                         + {usr.roles.length - 2}

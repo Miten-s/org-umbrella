@@ -123,30 +123,34 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
 
           {isOpen && (
             <div
-            className="absolute left-0 z-10 w-full overflow-y-auto bg-white rounded-lg shadow-lg top-full max-h-[200px] dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
-            onClick={(e) => e.stopPropagation()}
+              className="absolute left-0 z-10 w-full overflow-y-auto bg-white rounded-lg shadow-lg top-full max-h-[200px] dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
+              onClick={(e) => e.stopPropagation()}
             >
               <div className="flex flex-col">
-                {options.map((option, index) => (
-                  <div
-                    key={index}
-                    className={`hover:bg-gray-100 dark:hover:bg-gray-800 w-full cursor-pointer border-b border-gray-200 dark:border-gray-700 last:border-b-0`}
-                    onClick={() => handleSelect(option.value)}
-                  >
+                {options.length === 0 ? (
+                  <div className="p-2 text-center text-gray-500 dark:text-white/70">
+                    No data found
+                  </div>
+                ) : (
+                  options.map((option, index) => (
                     <div
-                      className={`relative flex w-full items-center p-2 pl-2 ${
-                        selectedOptions.includes(option.value)
-                          ? "bg-primary/10"
-                          : ""
-                      }`}
+                      key={index}
+                      className={`hover:bg-gray-100 dark:hover:bg-gray-800 w-full cursor-pointer border-b border-gray-200 dark:border-gray-700 last:border-b-0`}
+                      onClick={() => handleSelect(option.value)}
                     >
-                      <div className="mx-2 leading-6 text-gray-800 dark:text-white/90">
-                        {option.text}
+                      <div
+                        className={`relative flex w-full items-center p-2 pl-2 ${selectedOptions.includes(option.value) ? "bg-primary/10" : ""
+                          }`}
+                      >
+                        <div className="mx-2 leading-6 text-gray-800 dark:text-white/90">
+                          {option.text}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
+
             </div>
           )}
         </div>
