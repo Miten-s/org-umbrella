@@ -3,14 +3,16 @@ import bcrypt from "bcrypt";
 import { IRole } from "./role.model";
 
 export interface IBasicUserFields {
-  username: string;
+  fullName?: string;
   email: string;
   name: string;
   password: string;
   currentLanguage?: string;
+  userType: "Admin" | "User";
   status: "active" | "disabled";
   roles?: IRole[];
   modifiedOn?: Date;
+  description?: string;
   modifiedBy?: mongoose.Types.ObjectId;
 }
 
@@ -18,7 +20,7 @@ export interface IConditionalUserFields {
   phone?: string;
   department?: string;
   designation?: string;
-  location?: string[];
+  location?: string;
   modifiable?: boolean;
   manager?: string;
   trainingCompleted?: boolean;
@@ -38,10 +40,11 @@ export interface IUser
 }
 
 const AdminSchema: Record<keyof IBasicUserFields, any> = {
-  username: { type: String, required: true },
+  fullName: { type: String },
   email: { type: String, required: true, unique: true },
   name: { type: String, required: true },
   password: { type: String, required: true },
+  userType: { type: String, enum: ["Admin", "User"], default: "User" },
   status: { type: String, enum: ["active", "disabled"], default: "active" },
   currentLanguage: {
     type: String,
@@ -64,6 +67,7 @@ const AdminSchema: Record<keyof IBasicUserFields, any> = {
   },
   roles: [{ type: Schema.Types.ObjectId, ref: "Role" }],
   modifiedOn: { type: Date },
+  description: { type: String, default: "" },
   modifiedBy: { type: Schema.Types.ObjectId, ref: "User" }
 };
 
@@ -71,7 +75,7 @@ const ClientSchema: Record<keyof IConditionalUserFields, any> = {
   phone: { type: String },
   department: { type: Schema.Types.ObjectId, ref: "Department" },
   designation: { type: Schema.Types.ObjectId, ref: "Designation" },
-  location: [{ type: Schema.Types.ObjectId, ref: "Location" }],
+  location: { type: Schema.Types.ObjectId, ref: "Location" },
   modifiable: { type: Boolean },
   manager: { type: Schema.Types.ObjectId, ref: "User" },
   trainingCompleted: { type: Boolean },
@@ -133,7 +137,7 @@ UserSchema.methods.isRecentPassword = async function (
 
 UserSchema.pre(["find", "findOne", "findOneAndUpdate"], async function () {
   this.where({ deletedAt: null });
-  this.populate("createdBy", "username");
+  this.populate("createdBy", "fullName");
 });
 
 export const User = mongoose.model<IUser>("User", UserSchema);

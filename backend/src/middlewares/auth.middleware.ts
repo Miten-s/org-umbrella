@@ -31,10 +31,10 @@ export const authenticate = async (
 
     const userId = decoded.id;
 
-    if (userCache.has(userId)) {
-      req.user = userCache.get(userId)!;
-      return next();
-    }
+    // if (userCache.has(userId)) {
+    //   req.user = userCache.get(userId)!;
+    //   return next();
+    // }
 
     const fetchedUser = await User.findById(userId)
       .populate("roles", ["permissions"])
@@ -45,7 +45,7 @@ export const authenticate = async (
     }
 
     // Cache and attach user
-    userCache.set(userId, fetchedUser);
+    // userCache.set(userId, fetchedUser);
     req.user = fetchedUser;
 
     next();

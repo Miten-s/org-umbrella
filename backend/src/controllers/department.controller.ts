@@ -5,7 +5,7 @@ import { CUSTOM_MESSAGES } from "../utils/common.util";
 
 export const createDepartment = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
-    await departmentService.createDepartment(req.body, req.user?.username);
+    await departmentService.createDepartment(req.body, req.user?.fullName);
     res.status(201).json({
       message: CUSTOM_MESSAGES.ENTITY_CREATED.replace(
         "{{ entity }}",

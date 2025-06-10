@@ -24,6 +24,8 @@ app.use(
   })
 );
 
+import "./configs/redis.config";
+
 app.use(cookierParser());
 
 // Connect to the database
