@@ -7,7 +7,7 @@ const getUsers = async (user?: IUser) => {
     populate: [
       {
         path: "roles",
-        select: ["name"]
+        select: ["name", "type", "permissions"]
       },
       {
         path: "department",
@@ -47,7 +47,26 @@ const getUserDetail = async (id: string) => {
   return await User.findOne(
     { _id: id },
     { password: 0 },
-    { populate: { path: "roles", select: ["permissions","name","type"] } }
+    {
+      populate: [
+        {
+          path: "roles",
+          select: ["name", "type", "permissions"]
+        },
+        {
+          path: "department",
+          select: ["departmentName"]
+        },
+        {
+          path: "location",
+          select: ["locationName"]
+        },
+        {
+          path: "designation",
+          select: ["designationName"]
+        }
+      ]
+    }
   ).exec();
 };
 

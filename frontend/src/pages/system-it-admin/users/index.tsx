@@ -34,7 +34,6 @@ const Users = () => {
         getDesignations(),
         getUsers()
       ]);
-
       setRoles(fetchedRoles);
       setLocations(fetchedLocations);
       setDepartments(fetchedDepartments);
@@ -104,11 +103,11 @@ const Users = () => {
               <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                 {t('role')}
               </th>
-             
+
               <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                 {t('status')}
               </th>
-             
+
               <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                 {t('actions')}
               </th>
@@ -118,7 +117,7 @@ const Users = () => {
             {users.map((usr: any, index: number) => (
               <tr key={index + 1}>
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900">
-                  {usr.username}
+                  {usr.fullName}
                 </td>
 
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900">
@@ -149,8 +148,8 @@ const Users = () => {
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                   <span
                     className={`px-2 py-1 rounded-full text-xs ${usr.status === 'active'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
                       }`}
                   >
                     {usr.status?.toUpperCase() ?? '-'}

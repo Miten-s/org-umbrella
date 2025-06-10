@@ -11,6 +11,7 @@ import MultiSelect from "@/components/common/form/MultiSelect";
 import { getUserAdminSchema } from "@/lib/schema";
 import { zodResolver } from '@hookform/resolvers/zod';
 import Switch from "@/components/common/form/switch/Switch";
+import { UserTypes } from "@/utils/common.constants";
 
 interface Role {
   _id: string;
@@ -47,7 +48,6 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
   const { t } = useTranslation();
   const [showSignature, setShowSignature] = useState(false);
   const signatureRef = useRef<any>(null);
-  const builtInRoles = useMemo(() => roles.filter(role => role.type === "Built_In" && role.name !== "Super Admin"), [roles]);
   const customRoles = useMemo(() => roles.filter(role => role.type !== "Built_In"), [roles]);
 
   const { register, handleSubmit, control, setValue, watch, formState: { errors } } = useForm({
@@ -56,10 +56,9 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
       fullName: activeUser?.name || '',
       email: activeUser?.email || '',
       mobileNumber: activeUser?.phone || '',
-      locationGroup: activeUser?.location[0]?._id || '',
+      locationGroup: activeUser?.location?._id || '',
       designation: activeUser?.designation?._id || '',
       department: activeUser?.department?._id || '',
-      userType: activeUser?.roles?.find((role: Role) => role.name === "Admin" || role.name === "User")?._id || builtInRoles[0]?._id,
       assignRole: activeUser?.roles?.filter((role: Role) => role.name !== "Admin" && role.name !== "User").map((role: Role) => role._id) || [],
       description: activeUser?.description || '',
       status: activeUser?.status === 'active' ? true : false,
@@ -68,6 +67,7 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
       modifiable: activeUser?.modifiable ?? false,
       trainingCompleted: activeUser?.trainingCompleted ?? false,
       signature: activeUser?.signature || '',
+      userType: activeUser?.userType || UserTypes.USER
     }
   });
 
@@ -86,44 +86,43 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
   };
 
   // Watch for role changes to determine if user is admin
-  const userType = watch("userType") as string;
-  const isAdmin = useMemo(() => {
-    if (activeUser) {
-      return activeUser.roles?.some((role: Role) => role.name === 'Admin') || false;
-    }
-    return userType === builtInRoles.find(role => role.name === "Admin")?._id;
-  }, [userType, builtInRoles, activeUser]);
+  const isAdmin = watch("userType") === UserTypes.ADMIN;
+
 
   const handleFormSubmit = (data: any) => {
-    const roles = [data.userType, ...(data.assignRole || [])];
+  // Find role ID from userType string
+  const userTypeRole = roles.find(role => role.name === data.userType);
+  const assignRoleIds = data.assignRole || [];
 
-    const payload: any = {
-      username: data.fullName,
-      name: data.fullName,
-      email: data.email,
-      roles,
-      status: data.status ? "active" : "disabled",
-    };
-
-    if (!activeUser && (data.password || data.confirmPassword)) {
-      payload.password = data.password;
-    }
-
-    if (!isAdmin) {
-      payload.phone = data.mobileNumber;
-      payload.location = data.locationGroup;
-      payload.designation = data.designation;
-      payload.department = data.department;
-      payload.description = data.description;
-      payload.modifiable = data.modifiable;
-      payload.trainingCompleted = data.trainingCompleted;
-      if (data.signature) {
-        payload.signature = data.signature;
-      }
-    }
-
-    onSubmit(payload);
+  const payload: any = {
+    fullName: data.fullName,
+    name: data.fullName,
+    email: data.email,
+    userType: data.userType, // Keep the string
+    roles: userTypeRole ? [userTypeRole._id, ...assignRoleIds] : [...assignRoleIds],
+    status: data.status ? "active" : "disabled",
   };
+
+  if (!activeUser && (data.password || data.confirmPassword)) {
+    payload.password = data.password;
+  }
+
+  if (data.userType !== UserTypes.ADMIN) {
+    payload.phone = data.mobileNumber;
+    payload.location = data.locationGroup;
+    payload.designation = data.designation;
+    payload.department = data.department;
+    payload.description = data.description;
+    payload.modifiable = data.modifiable;
+    payload.trainingCompleted = data.trainingCompleted;
+    if (data.signature) {
+      payload.signature = data.signature;
+    }
+  }
+
+  onSubmit(payload);
+};
+
 
   return (
     <div className="p-6 max-h-[90vh] overflow-y-auto">
@@ -206,19 +205,17 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
               name="userType"
               control={control}
               render={({ field }) => (
-                <select
-                  {...field}
-                  className="input w-full"
-                >
-                  {builtInRoles?.map(role => (
-                    <option key={role._id} value={role._id}>
-                      {role.name}
+                <select {...field} className="input w-full">
+                  {Object.entries(UserTypes).map(([key, value]) => (
+                    <option key={key} value={value}>
+                      {value}
                     </option>
                   ))}
                 </select>
               )}
             />
             {errors.userType && <p className="text-red-500 text-xs mt-1">{errors.userType.message as string}</p>}
+
           </div>
 
           <div>
@@ -379,7 +376,7 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
                       <div className="w-full h-[200px] border rounded-lg">
                         <SignatureCanvas
                           ref={signatureRef}
-                         
+
                           penColor="black"
                         />
                       </div>

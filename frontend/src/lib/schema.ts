@@ -1,3 +1,4 @@
+import { UserTypes } from "@/utils/common.constants";
 import { z } from "zod";
 
 export const getUserAdminSchema = (isUpdate: boolean) => {
@@ -10,12 +11,10 @@ export const getUserAdminSchema = (isUpdate: boolean) => {
       email: z.string()
         .email("Invalid email")
         .max(30, "Email must not exceed 30 characters"),
-      userType: z.string()
-        .min(1, "User type is required"),
       assignRole: z.array(z.string())
         .optional(),
       passwordExpiry: z.string().optional(),
-
+      userType: z.enum([UserTypes.ADMIN, UserTypes.USER]),
       // User-specific fields
       mobileNumber: z.string()
         .max(15, "Phone number must not exceed 15 characters")

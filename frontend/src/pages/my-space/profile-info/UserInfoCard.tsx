@@ -14,19 +14,19 @@ import Switch from "@/components/common/form/switch/Switch";
 
 export default function UserInfoCard() {
   const { isOpen, closeModal } = useModal();
-  const { user,currentUserRole } = useAuth();
+  const { user } = useAuth();
   const { t } = useTranslation();
   const { setReFetch, reFetch } = useGlobalContext();;
   const { register, handleSubmit, control } = useForm({
     defaultValues: {
-      name: user.name || "",
-      status: user.status === "active",
-      phone: user.phone || "",
-      department: user.department || "",
-      designation: user.designation || "",
-      location: user.location || "",
-      modifiable: user.modifiable || false,
-      trainingCompleted: user.trainingCompleted || false,
+      name: user?.name || "",
+      status: user?.status === "active",
+      phone: user?.phone || "",
+      department: user?.department?._id || "",
+      designation: user?.designation?._id || "",
+      location: user?.location?._id || "",
+      modifiable: user?.modifiable || false,
+      trainingCompleted: user?.trainingCompleted || false,
     },
   });
 
@@ -36,7 +36,7 @@ export default function UserInfoCard() {
         ...data,
         status: data.status ? "active" : "disabled",
       };
-      await updateUser(user._id, payload);
+      await updateUser(user?._id, payload);
       setReFetch(!reFetch);
       closeModal();
     } catch (error) {
@@ -44,7 +44,6 @@ export default function UserInfoCard() {
     }
   };
 
-  const isAdmin = currentUserRole === "Admin" || currentUserRole === "Super Admin";
 
   return (
     <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
@@ -55,21 +54,21 @@ export default function UserInfoCard() {
             Personal Information
           </h4>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
-            <Info label="Name" value={user.name} />
-            <Info label="Email" value={user.email} />
-            <Info label="Role" value={currentUserRole} />
-            <Info label="Status" value={user.status} />
-            <Info label="Last Login" value={new Date(user.lastLogin).toLocaleString()} />
-            <Info label="Created At" value={new Date(user.createdAt).toLocaleString()} />
+            <Info label="Name" value={user?.name} />
+            <Info label="Email" value={user?.email} />
+            <Info label="Role" value={user?.userType} />
+            <Info label="Status" value={user?.status} />
+            <Info label="Last Login" value={new Date(user?.lastLogin).toLocaleString()} />
+            <Info label="Created At" value={new Date(user?.createdAt).toLocaleString()} />
             
-            {!isAdmin && (
+            {user?.userType === "User" && (
               <>
-                <Info label="Phone" value={user.phone} />
-                <Info label="Department" value={user.department} />
-                <Info label="Designation" value={user.designation} />
-                <Info label="Location" value={user.location} />
-                <Info label="Modifiable" value={user.modifiable ? "Yes" : "No"} />
-                <Info label="Training Completed" value={user.trainingCompleted ? "Yes" : "No"} />
+                <Info label="Phone" value={user?.phone} />
+                <Info label="Department" value={user?.department?.departmentName} />
+                <Info label="Designation" value={user?.designation?.designationName} />
+                <Info label="Location" value={user?.location?.locationName} />
+                <Info label="Modifiable" value={user?.modifiable ? "Yes" : "No"} />
+                <Info label="Training Completed" value={user?.trainingCompleted ? "Yes" : "No"} />
               </>
             )}
           </div>
@@ -122,7 +121,7 @@ export default function UserInfoCard() {
                 <Input {...register("name")} />
               </div>
 
-              {!isAdmin && (
+            {user?.userType === "User" && (
                 <>
                   <div>
                     <Label>{t("phone")}</Label>
