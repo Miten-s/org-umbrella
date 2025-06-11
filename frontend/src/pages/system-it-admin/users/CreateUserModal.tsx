@@ -67,7 +67,7 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
       modifiable: activeUser?.modifiable ?? false,
       trainingCompleted: activeUser?.trainingCompleted ?? false,
       signature: activeUser?.signature || '',
-      userType: activeUser?.userType || UserTypes.USER
+      userType: activeUser?.userType || UserTypes.ADMIN
     }
   });
 
@@ -78,50 +78,48 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
     }
   };
 
-  const handleSaveSignature = () => {
-    if (signatureRef.current && !signatureRef.current.isEmpty()) {
-      const trimmedDataURL = signatureRef.current.getTrimmedCanvas().toDataURL("image/png");
-      setValue('signature', trimmedDataURL);
-    }
-  };
-
   // Watch for role changes to determine if user is admin
   const isAdmin = watch("userType") === UserTypes.ADMIN;
 
-
   const handleFormSubmit = (data: any) => {
-  // Find role ID from userType string
-  const userTypeRole = roles.find(role => role.name === data.userType);
-  const assignRoleIds = data.assignRole || [];
-
-  const payload: any = {
-    fullName: data.fullName,
-    name: data.fullName,
-    email: data.email,
-    userType: data.userType, // Keep the string
-    roles: userTypeRole ? [userTypeRole._id, ...assignRoleIds] : [...assignRoleIds],
-    status: data.status ? "active" : "disabled",
-  };
-
-  if (!activeUser && (data.password || data.confirmPassword)) {
-    payload.password = data.password;
-  }
-
-  if (data.userType !== UserTypes.ADMIN) {
-    payload.phone = data.mobileNumber;
-    payload.location = data.locationGroup;
-    payload.designation = data.designation;
-    payload.department = data.department;
-    payload.description = data.description;
-    payload.modifiable = data.modifiable;
-    payload.trainingCompleted = data.trainingCompleted;
-    if (data.signature) {
-      payload.signature = data.signature;
+    if (signatureRef.current && !signatureRef.current.isEmpty()) {
+      const trimmedDataURL = signatureRef.current.toDataURL("image/png");
+      data.signature = trimmedDataURL;
+    } else {
+      data.signature = '';
     }
-  }
 
-  onSubmit(payload);
-};
+    const userTypeRole = roles.find(role => role.name === data.userType);
+    const assignRoleIds = data.assignRole || [];
+
+    const payload: any = {
+      fullName: data.fullName,
+      name: data.fullName,
+      email: data.email,
+      userType: data.userType,
+      roles: userTypeRole ? [userTypeRole._id, ...assignRoleIds] : [...assignRoleIds],
+      status: data.status ? "active" : "disabled",
+    };
+
+    if (!activeUser && (data.password || data.confirmPassword)) {
+      payload.password = data.password;
+    }
+
+    if (data.userType !== UserTypes.ADMIN) {
+      payload.phone = data.mobileNumber;
+      payload.location = data.locationGroup;
+      payload.designation = data.designation;
+      payload.department = data.department;
+      payload.description = data.description;
+      payload.modifiable = data.modifiable;
+      payload.trainingCompleted = data.trainingCompleted;
+      if (data.signature) {
+        payload.signature = data.signature;
+      }
+    }
+
+    onSubmit(payload);
+  };
 
 
   return (
@@ -373,10 +371,10 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
                   <div className="mt-4">
                     <Label required>Signature</Label>
                     <div className="rounded-xl border shadow-sm p-4 bg-white">
-                      <div className="w-full h-[200px] border rounded-lg">
+                      <div className="w-full h-[200px]  rounded-lg">
                         <SignatureCanvas
                           ref={signatureRef}
-
+                          canvasProps={{ className: "w-full h-full" }}
                           penColor="black"
                         />
                       </div>
@@ -387,12 +385,6 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
                           onClick={handleClearSignature}
                         >
                           Clear
-                        </Button>
-                        <Button
-                          type="button"
-                          onClick={handleSaveSignature}
-                        >
-                          Save Signature
                         </Button>
                       </div>
                     </div>

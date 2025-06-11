@@ -56,21 +56,31 @@ export default function UserInfoCard() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
             <Info label="Name" value={user?.name} />
             <Info label="Email" value={user?.email} />
-            <Info label="Role" value={user?.userType} />
+            <Info
+              label="Role"
+              value={
+                user?.roles?.some((role: any) =>
+                  role.permissions?.some((perm: any) => perm.name === "OPERATE:ALL")
+                )
+                  ? "Super Admin"
+                  : user?.userType
+              }
+            />
             <Info label="Status" value={user?.status} />
             <Info label="Last Login" value={new Date(user?.lastLogin).toLocaleString()} />
             <Info label="Created At" value={new Date(user?.createdAt).toLocaleString()} />
-            
-            {user?.userType === "User" && (
-              <>
-                <Info label="Phone" value={user?.phone} />
-                <Info label="Department" value={user?.department?.departmentName} />
-                <Info label="Designation" value={user?.designation?.designationName} />
-                <Info label="Location" value={user?.location?.locationName} />
-                <Info label="Modifiable" value={user?.modifiable ? "Yes" : "No"} />
-                <Info label="Training Completed" value={user?.trainingCompleted ? "Yes" : "No"} />
-              </>
-            )}
+
+            {user?.userType === "User" && !(user?.roles?.some((role: any) =>
+              role.permissions?.some((perm: any) => perm.name === "OPERATE:ALL"))) && (
+                <>
+                  <Info label="Phone" value={user?.phone} />
+                  <Info label="Department" value={user?.department?.departmentName} />
+                  <Info label="Designation" value={user?.designation?.designationName} />
+                  <Info label="Location" value={user?.location?.locationName} />
+                  <Info label="Modifiable" value={user?.modifiable ? "Yes" : "No"} />
+                  <Info label="Training Completed" value={user?.trainingCompleted ? "Yes" : "No"} />
+                </>
+              )}
           </div>
         </div>
 
@@ -121,7 +131,7 @@ export default function UserInfoCard() {
                 <Input {...register("name")} />
               </div>
 
-            {user?.userType === "User" && (
+              {user?.userType === "User" && (
                 <>
                   <div>
                     <Label>{t("phone")}</Label>
