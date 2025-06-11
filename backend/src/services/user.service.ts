@@ -47,7 +47,7 @@ const getUserDetail = async (id: string) => {
   return await User.findOne(
     { _id: id },
     { password: 0, "roles.name": 0 },
-    { populate: { path: "roles", select: ["permissions"] } }
+    { populate: { path: "roles", select: ["permissions", "name", "type"] } }
   ).exec();
 };
 

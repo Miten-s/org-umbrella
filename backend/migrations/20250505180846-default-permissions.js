@@ -28,7 +28,11 @@ module.exports = {
       { name: "CREATE:ROLE", description: "Create a new role" },
       { name: "VIEW:ROLE", description: "Read role data" },
       { name: "UPDATE:ROLE", description: "Update role details" },
-      { name: "DELETE:ROLE", description: "Delete a role" }
+      { name: "DELETE:ROLE", description: "Delete a role" },
+      { name: "CREATE:USER", description: "Create a new user" },
+      { name: "VIEW:USER", description: "Read user data" },
+      { name: "UPDATE:USER", description: "Update user information" },
+      { name: "DELETE:USER", description: "Delete a user" }
     ];
 
     // 1. Insert Permissions
@@ -134,7 +138,11 @@ module.exports = {
       "CREATE:ROLE",
       "VIEW:ROLE",
       "UPDATE:ROLE",
-      "DELETE:ROLE"
+      "DELETE:ROLE",
+      "CREATE:USER",
+      "VIEW:USER",
+      "UPDATE:USER",
+      "DELETE:USER"
     ];
 
     await db
