@@ -44,7 +44,7 @@ const AdminSchema: Record<keyof IBasicUserFields, any> = {
   email: { type: String, required: true, unique: true },
   name: { type: String, required: true },
   password: { type: String, required: true },
-  userType: { type: String, enum: ["Admin", "User"], default: "User" },
+  userType: { type: String, enum: ["Admin", "User"] },
   status: { type: String, enum: ["active", "disabled"], default: "active" },
   currentLanguage: {
     type: String,

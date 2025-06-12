@@ -9,7 +9,23 @@ module.exports = {
       "READ:PERMISSION",
       "UPDATE:PERMISSION",
       "DELETE:PERMISSION",
-      "VIEW:DASHBOARD"
+      "VIEW:DASHBOARD",
+      "CREATE:LOCATION",
+      "VIEW:LOCATION",
+      "UPDATE:LOCATION",
+      "DELETE:LOCATION",
+      "CREATE:DEPARTMENT",
+      "VIEW:DEPARTMENT",
+      "UPDATE:DEPARTMENT",
+      "DELETE:DEPARTMENT",
+      "CREATE:DESIGNATION",
+      "VIEW:DESIGNATION",
+      "UPDATE:DESIGNATION",
+      "DELETE:DESIGNATION",
+      "CREATE:ROLE",
+      "VIEW:ROLE",
+      "UPDATE:ROLE",
+      "DELETE:ROLE"
     ];
 
     // Fetch permission IDs by name

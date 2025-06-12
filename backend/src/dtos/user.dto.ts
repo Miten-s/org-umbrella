@@ -42,7 +42,7 @@ export class CreateUserDTO {
 
   @IsOptional()
   @IsEnum(["active", "disabled"])
-  status?: "active" | "disabled";
+  status?: "active" | "disabled" = "active";
 
   @ValidateIf((obj) => obj.userType === "User")
   @IsString({ message: "Phone number is required and must be a string." })
