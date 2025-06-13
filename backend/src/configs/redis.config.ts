@@ -1,8 +1,9 @@
 import { createClient } from "redis";
+import ENV from "../utils/environment";
 
 const redisClient = createClient({
-  url: "redis://localhost:6379",
-  password: "your_secure_password" // Use the same password set in redis.conf
+  url: ENV.REDIS_SERVER_URL,
+  password: ENV.REDIS_SERVER_PASSWORD // Use the same password set in redis.conf
 });
 
 (async () => {

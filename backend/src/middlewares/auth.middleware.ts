@@ -3,8 +3,7 @@ import jwt from "jsonwebtoken";
 import ENV from "../utils/environment";
 import { IUser, User } from "../models/user.model";
 import API_ROUTES from "../utils/routes";
-
-const userCache = new Map<string, IUser>();
+import { cacheResponse, getCachedResponse } from "../configs/redis.config";
 
 export const authenticate = async (
   req: Request,
@@ -31,29 +30,28 @@ export const authenticate = async (
 
     const userId = decoded.id;
 
-    // if (userCache.has(userId)) {
-    //   req.user = userCache.get(userId)!;
-    //   return next();
-    // }
+    // Attempt to fetch the user from Redis
+    const cachedUser = await getCachedResponse(userId);
+    if (cachedUser) {
+      req.user = JSON.parse(cachedUser) as IUser;
+      return next();
+    }
 
     const fetchedUser = await User.findById(userId)
       .populate("roles", ["permissions"])
       .lean();
+
     if (!fetchedUser) {
       res.status(404).json({ error: "User not found" });
       return;
     }
 
-    // Cache and attach user
-    // userCache.set(userId, fetchedUser);
+    // Cache the user data in Redis
+    await cacheResponse({ key: userId, value: JSON.stringify(fetchedUser) });
     req.user = fetchedUser;
 
     next();
   } catch {
     res.status(401).json({ error: "Invalid token" });
   }
-};
-
-export const clearCache = (): void => {
-  userCache.clear();
 };
