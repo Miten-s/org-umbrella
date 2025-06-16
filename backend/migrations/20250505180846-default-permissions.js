@@ -3,10 +3,6 @@ const bcrypt = require("bcrypt");
 module.exports = {
   async up(db) {
     const permissions = [
-      { name: "CREATE:USER", description: "Create a new user" },
-      { name: "VIEW:USER", description: "Read user data" },
-      { name: "UPDATE:USER", description: "Update user information" },
-      { name: "DELETE:USER", description: "Delete a user" },
       { name: "CREATE:PERMISSION", description: "Create a new permission" },
       { name: "VIEW:PERMISSION", description: "Read permission data" },
       { name: "UPDATE:PERMISSION", description: "Update permission details" },
@@ -134,11 +130,7 @@ module.exports = {
       "CREATE:ROLE",
       "VIEW:ROLE",
       "UPDATE:ROLE",
-      "DELETE:ROLE",
-      "CREATE:USER",
-      "VIEW:USER",
-      "UPDATE:USER",
-      "DELETE:USER"
+      "DELETE:ROLE"
     ];
 
     await db
