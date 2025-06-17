@@ -12,6 +12,7 @@ import { getUserAdminSchema } from "@/lib/schema";
 import { zodResolver } from '@hookform/resolvers/zod';
 import Switch from "@/components/common/form/switch/Switch";
 import { UserTypes } from "@/utils/common.constants";
+import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
 
 interface Role {
   _id: string;
@@ -123,291 +124,297 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
 
 
   return (
-   <div className="p-6 max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-  <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
-    <h2 className="text-xl font-semibold">
-      {activeUser ? t("update", { entity: t("user") }) : t("create", { entity: t("user") })}
-    </h2>
+    <div className="p-6 max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+        <h2 className="text-xl font-semibold">
+          {activeUser ? t("update", { entity: t("user") }) : t("create", { entity: t("user") })}
+        </h2>
 
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <Label required>{t("fullName")}</Label>
-        <Input
-          {...register("fullName")}
-          error={!!errors.fullName}
-          hint={errors.fullName?.message as string}
-          maxLength={30}
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="email" required>{t("email")}</Label>
-        <Input
-          id="email"
-          type="email"
-          {...register("email")}
-          disabled={!!activeUser}
-          error={!!errors.email}
-          hint={errors.email?.message as string}
-          maxLength={30}
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="assignRole">{t("assignRoles")}</Label>
-        <Controller
-          name="assignRole"
-          control={control}
-          render={({ field }) => (
-            <MultiSelect
-              options={customRoles.map(role => ({ text: role.name, value: role._id }))}
-              label={t("selectRoles")}
-              onChange={field.onChange}
-              defaultSelected={field.value}
-            />
-          )}
-        />
-        {errors.assignRole && <p className="text-red-500 text-xs mt-1">{errors.assignRole.message as string}</p>}
-      </div>
-
-      <div>
-        <Label htmlFor="password" required>{t("password")}</Label>
-        <Input
-          id="password"
-          type="password"
-          disabled={!!activeUser}
-          {...register("password")}
-          error={!!errors.password}
-          hint={errors.password?.message as string}
-          maxLength={20}
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="confirmPassword" required>{t("confirmPassword")}</Label>
-        <Input
-          id="confirmPassword"
-          type="password"
-          disabled={!!activeUser}
-          {...register("confirmPassword")}
-          error={!!errors.confirmPassword}
-          hint={errors.confirmPassword?.message as string}
-          maxLength={20}
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="userType" required>{t("userType")}</Label>
-        <Controller
-          name="userType"
-          control={control}
-          render={({ field }) => (
-            <select
-              {...field}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-            >
-              {Object.entries(UserTypes).map(([key, value]) => (
-                <option key={key} value={value}>
-                  {value}
-                </option>
-              ))}
-            </select>
-          )}
-        />
-        {errors.userType && <p className="text-red-500 text-xs mt-1">{errors.userType.message as string}</p>}
-      </div>
-
-      <div>
-        <Label htmlFor="status" className="whitespace-nowrap">Status</Label>
-        <Controller
-          name="status"
-          control={control}
-          defaultValue={true}
-          render={({ field: { value, onChange } }) => (
-            <Switch
-              label=""
-              checked={value ?? false}
-              onChange={onChange}
-            />
-          )}
-        />
-      </div>
-
-      {!isAdmin && (
-        <>
-          <div className="flex gap-10 md:col-span-2">
-            <div>
-              <Label>{t("modifiable")}</Label>
-              <Controller
-                name="modifiable"
-                control={control}
-                render={({ field: { value, onChange } }) => (
-                  <Checkbox
-                    checked={value ?? false}
-                    onChange={onChange}
-                    label={t("yes")}
-                  />
-                )}
-              />
-              {errors.modifiable && <p className="text-red-500 text-xs mt-1">{errors.modifiable.message as string}</p>}
-            </div>
-
-            <div>
-              <Label>{t("trainingCompleted")}</Label>
-              <Controller
-                name="trainingCompleted"
-                control={control}
-                render={({ field: { value, onChange } }) => (
-                  <Checkbox
-                    checked={value ?? false}
-                    onChange={onChange}
-                    label={t("yes")}
-                  />
-                )}
-              />
-              {errors.trainingCompleted && <p className="text-red-500 text-xs mt-1">{errors.trainingCompleted.message as string}</p>}
-            </div>
-          </div>
-
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label>{t("mobileNumber")}</Label>
+            <Label required>{t("fullName")}</Label>
             <Input
-              {...register("mobileNumber")}
-              error={!!errors.mobileNumber}
-              hint={errors.mobileNumber?.message as string}
-              maxLength={12}
+              {...register("fullName")}
+              error={!!errors.fullName}
+              hint={errors.fullName?.message as string}
+              maxLength={30}
             />
           </div>
 
           <div>
-            <Label required>{t("locationGroup")}</Label>
-            <Controller
-              name="locationGroup"
-              control={control}
-              render={({ field }) => (
-                <select
-                  {...field}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                >
-                  <option value="">{t("select", { entity: t("location") })}</option>
-                  {locations.map(loc => (
-                    <option key={loc._id} value={loc._id}>
-                      {loc.locationName}
-                    </option>
-                  ))}
-                </select>
-              )}
+            <Label htmlFor="email" required>{t("email")}</Label>
+            <Input
+              id="email"
+              type="email"
+              {...register("email")}
+              disabled={!!activeUser}
+              error={!!errors.email}
+              hint={errors.email?.message as string}
+              maxLength={30}
             />
-            {errors.locationGroup && <p className="text-red-500 text-xs mt-1">{errors.locationGroup.message as string}</p>}
           </div>
 
           <div>
-            <Label required>{t("designation")}</Label>
+            <Label htmlFor="assignRole">{t("assignRoles")}</Label>
             <Controller
-              name="designation"
+              name="assignRole"
               control={control}
               render={({ field }) => (
-                <select
-                  {...field}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                >
-                  <option value="">{t("select", { entity: t("designation") })}</option>
-                  {designations.map(des => (
-                    <option key={des._id} value={des._id}>
-                      {des.designationName}
-                    </option>
-                  ))}
-                </select>
-              )}
-            />
-            {errors.designation && <p className="text-red-500 text-xs mt-1">{errors.designation.message as string}</p>}
-          </div>
-
-          <div>
-            <Label required>{t("department")}</Label>
-            <Controller
-              name="department"
-              control={control}
-              render={({ field }) => (
-                <select
-                  {...field}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                >
-                  <option value="">{t("select", { entity: t("department") })}</option>
-                  {departments.map(dept => (
-                    <option key={dept._id} value={dept._id}>
-                      {dept.departmentName}
-                    </option>
-                  ))}
-                </select>
-              )}
-            />
-            {errors.department && <p className="text-red-500 text-xs mt-1">{errors.department.message as string}</p>}
-          </div>
-
-          <div className="md:col-span-2">
-            <Label>{t("description")}</Label>
-            <Controller
-              name="description"
-              control={control}
-              render={({ field }) => (
-                <TextArea
-                  value={field.value}
+                <MultiSelect
+                  options={customRoles.map(role => ({ text: role.name, value: role._id }))}
+                  label={t("selectRoles")}
                   onChange={field.onChange}
-                  className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700"
+                  defaultSelected={field.value}
                 />
               )}
             />
-            {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message as string}</p>}
+            {errors.assignRole && <p className="text-red-500 text-xs mt-1">{errors.assignRole.message as string}</p>}
           </div>
 
-          <div className="md:col-span-2">
-            <div className="flex items-center gap-2 mb-2">
-              <Checkbox
-                checked={showSignature}
-                onChange={(e) => setShowSignature(e)}
-                label="Add Signature"
-              />
-            </div>
+          <div>
+            <Label htmlFor="password" required>{t("password")}</Label>
+            <Input
+              id="password"
+              type="password"
+              disabled={!!activeUser}
+              {...register("password")}
+              error={!!errors.password}
+              hint={errors.password?.message as string}
+              maxLength={20}
+            />
+          </div>
 
-            {showSignature && (
-              <div className="mt-4">
-                <Label required>Signature</Label>
-                <div className="rounded-xl border shadow-sm p-4 bg-white dark:bg-gray-800 dark:border-gray-700">
-                  <div className="w-full h-[200px] rounded-lg bg-gray-100 dark:bg-gray-700">
-                    <SignatureCanvas
-                      ref={signatureRef}
-                      canvasProps={{ className: "w-full h-full" }}
-                      penColor="black"
-                    />
-                  </div>
-                  <div className="mt-4 flex justify-end gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleClearSignature}
-                    >
-                      Clear
-                    </Button>
-                  </div>
-                </div>
-              </div>
+          <div>
+            <Label htmlFor="confirmPassword" required>{t("confirmPassword")}</Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              disabled={!!activeUser}
+              {...register("confirmPassword")}
+              error={!!errors.confirmPassword}
+              hint={errors.confirmPassword?.message as string}
+              maxLength={20}
+            />
+          </div>
+
+          <div className="relative">
+            <Label htmlFor="userType" required>
+              {t("userType")}
+            </Label>
+
+            <Controller
+              name="userType"
+              control={control}
+              render={({ field }) => (
+                <SelectDropdown
+                  value={field.value}
+                  onChange={(val) => {
+                    field.onChange(val);
+                  }} placeholder={t("selectEntity", { entity: t("userType") })}
+                  options={Object.entries(UserTypes).map(([key, value]) => ({
+                    label: key,
+                    value: value,
+                  }))}
+                />
+              )}
+            />
+
+
+            {errors.userType && (
+              <p className="text-red-500 text-xs mt-1">
+                {errors.userType.message as string}
+              </p>
             )}
           </div>
-        </>
-      )}
-    </div>
 
-    <div className="flex justify-end gap-2 mt-4">
-      <Button variant="outline" type="button" onClick={onClose}>
-        {t("cancel")}
-      </Button>
-      <Button type="submit" variant="primary">
-        {t("save")}
-      </Button>
+          <div>
+            <Label htmlFor="status" className="whitespace-nowrap">Status</Label>
+            <Controller
+              name="status"
+              control={control}
+              defaultValue={true}
+              render={({ field: { value, onChange } }) => (
+                <Switch
+                  label=""
+                  checked={value ?? false}
+                  onChange={onChange}
+                />
+              )}
+            />
+          </div>
+
+          {!isAdmin && (
+            <>
+              <div className="flex gap-10">
+                <div>
+                  <Label>{t("modifiable")}</Label>
+                  <Controller
+                    name="modifiable"
+                    control={control}
+                    render={({ field: { value, onChange } }) => (
+                      <Checkbox
+                        checked={value ?? false}
+                        onChange={onChange}
+                        label={t("yes")}
+                      />
+                    )}
+                  />
+                  {errors.modifiable && <p className="text-red-500 text-xs mt-1">{errors.modifiable.message as string}</p>}
+                </div>
+
+                <div>
+                  <Label>{t("trainingCompleted")}</Label>
+                  <Controller
+                    name="trainingCompleted"
+                    control={control}
+                    render={({ field: { value, onChange } }) => (
+                      <Checkbox
+                        checked={value ?? false}
+                        onChange={onChange}
+                        label={t("yes")}
+                      />
+                    )}
+                  />
+                  {errors.trainingCompleted && <p className="text-red-500 text-xs mt-1">{errors.trainingCompleted.message as string}</p>}
+                </div>
+              </div>
+              <div>
+                <Label>{t("mobileNumber")}</Label>
+                <Input
+                  {...register("mobileNumber")}
+                  error={!!errors.mobileNumber}
+                  hint={errors.mobileNumber?.message as string}
+                  maxLength={12}
+                />
+              </div>
+
+              <div>
+                <Label required>{t("locationGroup")}</Label>
+                <Controller
+                  name="locationGroup"
+                  control={control}
+                  render={({ field }) => (
+                    <SelectDropdown
+                      value={field.value}
+                      onChange={(val) => field.onChange(val)}
+                      placeholder={t("select", { entity: t("location") })}
+                      options={locations.map((loc) => ({
+                        label: loc.locationName,
+                        value: loc._id,
+                      }))}
+                    />
+                  )}
+                />
+
+                {errors.locationGroup && <p className="text-red-500 text-xs mt-1">{errors.locationGroup.message as string}</p>}
+              </div>
+
+              <div>
+                <Label required>{t("designation")}</Label>
+                <Controller
+                  name="designation"
+                  control={control}
+                  render={({ field }) => (
+                    <SelectDropdown
+                      value={field.value}
+                      onChange={(val) => field.onChange(val)}
+                      placeholder={t("select", { entity: t("designation") })}
+                      options={designations.map((des) => ({
+                        label: des.designationName,
+                        value: des._id,
+                      }))}
+                    />
+                  )}
+                />
+
+
+                {errors.designation && <p className="text-red-500 text-xs mt-1">{errors.designation.message as string}</p>}
+              </div>
+
+              <div>
+                <Label required>{t("department")}</Label>
+                <Controller
+                  name="department"
+                  control={control}
+                  render={({ field }) => (
+                    <SelectDropdown
+                      value={field.value}
+                      onChange={(val) => field.onChange(val)}
+                      placeholder={t("select", { entity: t("department") })}
+                      options={departments.map((dept) => ({
+                        label: dept.departmentName,
+                        value: dept._id,
+                      }))}
+                    />
+                  )}
+                />
+
+                {errors.department && <p className="text-red-500 text-xs mt-1">{errors.department.message as string}</p>}
+              </div>
+
+              <div className="md:col-span-2">
+                <Label>{t("description")}</Label>
+                <Controller
+                  name="description"
+                  control={control}
+                  render={({ field }) => (
+                    <TextArea
+                      value={field.value}
+                      onChange={field.onChange}
+                      className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700"
+                    />
+                  )}
+                />
+                {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message as string}</p>}
+              </div>
+
+              <div className="md:col-span-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <Checkbox
+                    checked={showSignature}
+                    onChange={(e) => setShowSignature(e)}
+                    label="Add Signature"
+                  />
+                </div>
+
+                {showSignature && (
+                  <div className="mt-4">
+                    <Label required>Signature</Label>
+                    <div className="rounded-xl border shadow-sm p-4 bg-white dark:bg-gray-800 dark:border-gray-700">
+                      <div className="w-full h-[200px] rounded-lg bg-gray-100 dark:bg-gray-700">
+                        <SignatureCanvas
+                          ref={signatureRef}
+                          canvasProps={{ className: "w-full h-full" }}
+                          penColor="black"
+                        />
+                      </div>
+                      <div className="mt-4 flex justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleClearSignature}
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" type="button" onClick={onClose}>
+            {t("cancel")}
+          </Button>
+          <Button type="submit" variant="primary">
+            {t("save")}
+          </Button>
+        </div>
+      </form>
     </div>
-  </form>
-</div>
 
   );
 };

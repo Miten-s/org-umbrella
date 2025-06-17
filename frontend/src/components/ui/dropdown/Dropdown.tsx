@@ -1,5 +1,4 @@
 // Dropdown.tsx
-import type React from "react";
 import { useEffect, useRef } from "react";
 
 interface DropdownProps {
@@ -29,9 +28,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose]);
 
   if (!isOpen) return null;
@@ -39,9 +36,9 @@ export const Dropdown: React.FC<DropdownProps> = ({
   return (
     <div
       ref={dropdownRef}
-      className={`absolute z-40  right-0 mt-2  rounded-xl border border-gray-200 bg-white  shadow-theme-lg dark:border-gray-800 dark:bg-gray-dark ${className}`}
+      className={`absolute z-50 mt-2 w-full rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg animate-fadeIn ${className}`}
     >
-      {children}
+      <ul className="py-2">{children}</ul>
     </div>
   );
 };
