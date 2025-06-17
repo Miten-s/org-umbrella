@@ -55,7 +55,9 @@ const Designation = () => {
   return (
     <>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">{t("designations")}</h1>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+          {t("designations")}
+        </h1>
         <Button
           onClick={() => {
             setActiveDesignation(null);
@@ -66,13 +68,20 @@ const Designation = () => {
         </Button>
       </div>
 
-      {/* Replace this with a table later */}
+      {/* Designation List */}
       <ul className="space-y-2">
         {designations?.map((d) => (
-          <li key={d._id} className="border p-2 rounded flex justify-between items-center">
+          <li
+            key={d._id}
+            className="border p-4 rounded-xl flex justify-between items-center bg-white dark:bg-gray-800 dark:border-gray-700"
+          >
             <div>
-              <div className="font-medium">{d.designationName}</div>
-              <div className="text-sm text-gray-500">{d.description}</div>
+              <div className="font-medium text-gray-900 dark:text-white">
+                {d.designationName}
+              </div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                {d.description}
+              </div>
             </div>
             <div className="flex gap-2">
               <Button
@@ -102,7 +111,7 @@ const Designation = () => {
       <Modal
         isOpen={isOpen}
         onClose={closeModal}
-        className="max-w-[900px] max-h-[90vh] m-4 overflow-y-auto"
+        className="max-w-[900px] max-h-[90vh] m-4 overflow-y-auto dark:bg-gray-900"
       >
         <CreateDesignationModal
           onClose={closeModal}
@@ -115,14 +124,14 @@ const Designation = () => {
       <Modal
         isOpen={confirmationModal}
         onClose={() => setConfirmationModal(false)}
-        className="max-w-[600px] min-h-[150px] m-4"
+        className="max-w-[600px] min-h-[150px] m-4 dark:bg-gray-900"
         showCloseButton={false}
       >
         <div className="h-full p-5 flex flex-col justify-between">
-          <div className="py-2">
-            {`${t("deleteEntityPrompt", {
-              entityName: designationToDelete?.designationName
-            })} `}
+          <div className="py-2 text-gray-800 dark:text-gray-200">
+            {t("deleteEntityPrompt", {
+              entityName: designationToDelete?.designationName,
+            })}
           </div>
           <div className="flex justify-end gap-2 pt-4">
             <Button
@@ -142,6 +151,7 @@ const Designation = () => {
         </div>
       </Modal>
     </>
+
   );
 };
 

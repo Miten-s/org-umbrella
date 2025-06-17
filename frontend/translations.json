@@ -1,29 +1,29 @@
 {
   "en": {
-    "deleteEntityPrompt": "Are you sure you want to delete this {{entityName}}?"
+    "noBuiltInRolesAvailable": "No built-in roles available"
   },
   "ar": {
-    "deleteEntityPrompt": "هل أنت متأكد أنك تريد حذف {{entityName}}؟"
+    "noBuiltInRolesAvailable": "لا توجد أدوار مدمجة متاحة"
   },
   "es": {
-    "deleteEntityPrompt": "¿Estás seguro de que deseas eliminar este {{entityName}}?"
+    "noBuiltInRolesAvailable": "No hay roles integrados disponibles"
   },
   "fr": {
-    "deleteEntityPrompt": "Êtes-vous sûr de vouloir supprimer ce {{entityName}} ?"
+    "noBuiltInRolesAvailable": "Aucun rôle intégré disponible"
   },
   "hi": {
-    "deleteEntityPrompt": "क्या आप वाकई इस {{entityName}} को हटाना चाहते हैं?"
+    "noBuiltInRolesAvailable": "कोई बिल्ट-इन भूमिकाएं उपलब्ध नहीं हैं"
   },
   "gu": {
-    "deleteEntityPrompt": "શું તમે ખરેખર આ {{entityName}} ને કાઢી નાખવા માંગો છો?"
+    "noBuiltInRolesAvailable": "કોઈ બિલ્ટ-ઇન ભૂમિકાઓ ઉપલબ્ધ નથી"
   },
   "ta": {
-    "deleteEntityPrompt": "இந்த {{entityName}}-ஐ நிச்சயமாக நீக்க விரும்புகிறீர்களா?"
+    "noBuiltInRolesAvailable": "உட்பொதிந்த பாத்திரங்கள் இல்லை"
   },
   "te": {
-    "deleteEntityPrompt": "మీరు నిజంగా ఈ {{entityName}} ను తొలగించాలనుకుంటున్నారా?"
+    "noBuiltInRolesAvailable": "ఎటువంటి అంతర్బద్ధమైన పాత్రలు లభ్యమవడంలేదు"
   },
   "mr": {
-    "deleteEntityPrompt": "आपण खरोखर हे {{entityName}} हटवू इच्छिता?"
+    "noBuiltInRolesAvailable": "कोणतीही अंगभूत भूमिका उपलब्ध नाही"
   }
 }

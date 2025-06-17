@@ -17,10 +17,11 @@ export const loginService = async ({
   }
 
   // Generating Non Expiring Token
-  const token = jwt.sign(
-    { id: user._id, username: user.username, email: user.email },
-    ENV.JWT_SECRET!
-  );
+  const token = jwt.sign({ id: user._id, email: user.email }, ENV.JWT_SECRET!);
+
+  // Saving Last Login
+  user.lastLogin = new Date();
+  await user.save();
 
   return token;
 };

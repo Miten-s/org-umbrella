@@ -1,17 +1,32 @@
-const { ObjectId } = require("mongoose").Types;
-
 module.exports = {
   async up(db, client) {
     const permissionNames = [
       "CREATE:USER",
-      "READ:USER",
+      "VIEW:USER",
       "UPDATE:USER",
       "DELETE:USER",
+
       "CREATE:PERMISSION",
-      "READ:PERMISSION",
+      "VIEW:PERMISSION",
       "UPDATE:PERMISSION",
       "DELETE:PERMISSION",
-      "VIEW:DASHBOARD"
+      "VIEW:DASHBOARD",
+      "CREATE:LOCATION",
+      "VIEW:LOCATION",
+      "UPDATE:LOCATION",
+      "DELETE:LOCATION",
+      "CREATE:DEPARTMENT",
+      "VIEW:DEPARTMENT",
+      "UPDATE:DEPARTMENT",
+      "DELETE:DEPARTMENT",
+      "CREATE:DESIGNATION",
+      "VIEW:DESIGNATION",
+      "UPDATE:DESIGNATION",
+      "DELETE:DESIGNATION",
+      "CREATE:ROLE",
+      "VIEW:ROLE",
+      "UPDATE:ROLE",
+      "DELETE:ROLE"
     ];
 
     // Fetch permission IDs by name

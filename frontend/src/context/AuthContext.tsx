@@ -1,4 +1,4 @@
-import { getUserDetail } from "@/services/admin.service";
+import { getCompany, getUserDetail } from "@/services/admin.service";
 import { SYSTEM_ROUTES } from "@/utils/common.constants";
 import {
   createContext,
@@ -14,24 +14,29 @@ import { useNavigate } from "react-router-dom";
 interface AuthContextType {
   user: Record<string, string | any>;
   isAuthenticated: boolean;
-  setIsAuthenticated : any
+  setIsAuthenticated: any
+  currentCompany: Record<string, string | any>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: {},
   isAuthenticated: false,
-  setIsAuthenticated : () => {}
+  setIsAuthenticated: () => { },
+  currentCompany: {},
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<Record<string, string>>({});
+  const [currentCompany, setCurrentCompany] = useState<Record<string, string>>({});
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const navigate = useNavigate();
-const dispatch = useDispatch();
 
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
   const fetchUser = async () => {
     try {
       const response = await getUserDetail();
+      const { company: fetchCompany } = await getCompany();
+      setCurrentCompany(fetchCompany);
       setUser(response.user);
       dispatch(setCurrentUser(response.user));
       // navigate(SYSTEM_ROUTES.HOME);
@@ -47,11 +52,11 @@ const dispatch = useDispatch();
 
   useEffect(() => {
     fetchUser();
-  }, [isAuthenticated , setIsAuthenticated]);
+  }, [isAuthenticated, setIsAuthenticated]);
 
   const value = useMemo(
-    () => ({ user, isAuthenticated, setIsAuthenticated }),
-    [user, isAuthenticated, setIsAuthenticated]
+    () => ({ user, isAuthenticated, setIsAuthenticated, currentCompany }),
+    [user, isAuthenticated, setIsAuthenticated, currentCompany]
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

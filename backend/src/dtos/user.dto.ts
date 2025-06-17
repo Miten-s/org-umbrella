@@ -4,14 +4,18 @@ import {
   IsOptional,
   IsArray,
   MinLength,
-  Matches
+  Matches,
+  IsEnum,
+  IsMongoId,
+  IsBoolean,
+  ValidateIf
 } from "class-validator";
 import { Types } from "mongoose";
 
 export class CreateUserDTO {
-  @IsString({ message: "Username is required and must be a string." })
-  @MinLength(3, { message: "Username must be at least 3 characters long." })
-  username!: string;
+  @IsString({ message: "Full Name is required and must be a string." })
+  @MinLength(3, { message: "Full Name must be at least 3 characters long." })
+  fullName!: string;
 
   @IsEmail({}, { message: "Invalid email address." })
   email!: string;
@@ -30,32 +34,37 @@ export class CreateUserDTO {
     message: "Each role ID must be a valid MongoDB ObjectId."
   })
   roles?: Types.ObjectId[];
-}
 
-export class UpdateUserDTO {
-  @IsOptional()
-  @IsString({ message: "Username must be a string." })
-  @MinLength(3, { message: "Username must be at least 3 characters long." })
-  username?: string;
-
-  @IsOptional()
-  @IsEmail({}, { message: "Invalid email address." })
-  email?: string;
-
-  @IsOptional()
-  @IsString({ message: "Name must be a string." })
-  name?: string;
-
-  @IsOptional()
-  @IsString({ message: "Password must be a string." })
-  @MinLength(8, { message: "Password must be at least 8 characters long." })
-  password?: string;
-
-  @IsOptional()
-  @IsArray({ message: "Roles must be an array of role IDs." })
-  @Matches(/^[0-9a-fA-F]{24}$/, {
-    each: true,
-    message: "Each role ID must be a valid MongoDB ObjectId."
+  @IsEnum(["Admin", "User"], {
+    message: "User type must be 'Admin' or 'User'."
   })
-  roles?: Types.ObjectId[];
+  userType?: "Admin" | "User";
+
+  @IsOptional()
+  @IsEnum(["active", "disabled"])
+  status?: "active" | "disabled" = "active";
+
+  @ValidateIf((obj) => obj.userType === "User")
+  @IsString({ message: "Phone number is required and must be a string." })
+  phone!: string;
+
+  @ValidateIf((obj) => obj.userType === "User")
+  @IsMongoId({ message: "Department must be a valid MongoDB ObjectId." })
+  department!: string;
+
+  @ValidateIf((obj) => obj.userType === "User")
+  @IsMongoId({ message: "Designation must be a valid MongoDB ObjectId." })
+  designation!: string;
+
+  @ValidateIf((obj) => obj.userType === "User")
+  @IsMongoId({ message: "Location must be a valid MongoDB ObjectId." })
+  location?: string;
+
+  @ValidateIf((obj) => obj.userType === "User")
+  @IsBoolean({ message: "Modifiable must be a boolean." })
+  modifiable!: boolean;
+
+  @ValidateIf((obj) => obj.userType === "User")
+  @IsBoolean({ message: "Training Completed must be a boolean." })
+  trainingCompleted!: boolean;
 }

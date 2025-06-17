@@ -110,5 +110,6 @@
   "company": "Empresa",
   "upload": "Subir {{entity}}",
   "logo": "Logotipo",
-  "deleteEntityPrompt": "¿Estás seguro de que deseas eliminar este {{entityName}}?"
+  "deleteEntityPrompt": "¿Estás seguro de que deseas eliminar este {{entityName}}?",
+  "noBuiltInRolesAvailable": "No hay roles integrados disponibles"
 }

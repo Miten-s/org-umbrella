@@ -111,5 +111,6 @@
   "company": "Entreprise",
   "upload": "Téléverser {{entity}}",
   "logo": "Logo",
-  "deleteEntityPrompt": "Êtes-vous sûr de vouloir supprimer ce {{entityName}} ?"
+  "deleteEntityPrompt": "Êtes-vous sûr de vouloir supprimer ce {{entityName}} ?",
+  "noBuiltInRolesAvailable": "Aucun rôle intégré disponible"
 }

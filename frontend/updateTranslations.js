@@ -45,12 +45,8 @@ async function updateTranslations() {
 
         mergeObjects(languageFile, translationData);
         await fs.writeJson(languageFilePath, languageFile, { spaces: 2 });
-
-        console.log(` Translations updated for: ${lang}`);
       }
     }
-
-    console.log('>> All translations updated successfully.<<');
   } catch (err) {
     console.error(' Error updating translations:', err);
   }

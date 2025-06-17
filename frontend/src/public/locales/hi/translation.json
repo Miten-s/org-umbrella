@@ -113,5 +113,6 @@
   "company": "कंपनी",
   "upload": "{{entity}} अपलोड करें",
   "logo": "लोगो",
-  "deleteEntityPrompt": "क्या आप वाकई इस {{entityName}} को हटाना चाहते हैं?"
+  "deleteEntityPrompt": "क्या आप वाकई इस {{entityName}} को हटाना चाहते हैं?",
+  "noBuiltInRolesAvailable": "कोई बिल्ट-इन भूमिकाएं उपलब्ध नहीं हैं"
 }

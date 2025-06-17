@@ -16,7 +16,7 @@ interface CreateDesignationModalProps {
 
 type CreateDesignationForm = z.infer<typeof getDesignationSchema>;
 
-const CreateDesignationModal = ({ onClose,initialData,onSubmit }: CreateDesignationModalProps) => {
+const CreateDesignationModal = ({ onClose, initialData, onSubmit }: CreateDesignationModalProps) => {
   const { t } = useTranslation();
 
   const {
@@ -36,13 +36,14 @@ const CreateDesignationModal = ({ onClose,initialData,onSubmit }: CreateDesignat
 
 
   return (
-    <div className="p-6 max-h-[90vh] overflow-y-auto">
+    <div className="p-6 max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <h2 className="text-xl font-semibold">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
           {t("create", { entity: t("designation") })}
         </h2>
 
         <div className="grid grid-cols-1 gap-4">
+          {/* Designation Name */}
           <div>
             <Label required>{t("designationName")}</Label>
             <Input
@@ -50,9 +51,11 @@ const CreateDesignationModal = ({ onClose,initialData,onSubmit }: CreateDesignat
               placeholder={t("enterDesignationName")}
               error={!!errors.designationName}
               hint={errors.designationName?.message}
+              className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
             />
           </div>
 
+          {/* Description */}
           <div>
             <Label>{t("description")}</Label>
             <TextArea
@@ -62,10 +65,12 @@ const CreateDesignationModal = ({ onClose,initialData,onSubmit }: CreateDesignat
               }
               error={!!errors.description}
               hint={errors.description?.message}
+              className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
             />
           </div>
         </div>
 
+        {/* Action Buttons */}
         <div className="flex justify-end gap-2 mt-4">
           <Button variant="outline" type="button" onClick={onClose}>
             {t("cancel")}
@@ -76,6 +81,7 @@ const CreateDesignationModal = ({ onClose,initialData,onSubmit }: CreateDesignat
         </div>
       </form>
     </div>
+
   );
 };
 

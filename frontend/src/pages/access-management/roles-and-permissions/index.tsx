@@ -11,7 +11,6 @@ import {
   updateRole
 } from "@/services/admin.service";
 import { toast } from "@/lib/ToastProvider";
-import { MESSAGES } from "@/utils/common.constants";
 import { useGlobalContext } from "@/context";
 import { useTranslation } from "react-i18next";
 
@@ -82,167 +81,161 @@ const RolesAndPermissions = () => {
   };
 
   return (
-    <>
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">
-          {t('rolesAndPermissions')}
-        </h1>
-        <Button
-          onClick={() => {
-            setActiveRole(null);
-            openModal();
-          }}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          {t('create', { entity: t('role') })}
-        </Button>
-      </div>
+      <>
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+            {t('rolesAndPermissions')}
+          </h1>
+          <Button
+            onClick={() => {
+              setActiveRole(null);
+              openModal();
+            }}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            {t('create', { entity: t('role') })}
+          </Button>
+        </div>
 
-      {/* Create Role Modal */}
-      <Modal
-        isOpen={isOpen}
-        onClose={closeModal}
-        className="max-w-[1000px] max-h-[50rem]  m-4"
-      >
-        <CreateRoleModal
+        {/* Create Role Modal */}
+        <Modal
+          isOpen={isOpen}
           onClose={closeModal}
-          onSubmit={handleCreateRole}
-          permissions={permissions.map((p) => p.name)}
-          activeRole={activeRole}
-        />
-      </Modal>
+          className="max-w-[1000px] max-h-[50rem] m-4"
+        >
+          <CreateRoleModal
+            onClose={closeModal}
+            onSubmit={handleCreateRole}
+            permissions={permissions.map((p) => p.name)}
+            activeRole={activeRole}
+          />
+        </Modal>
 
-      {/* Roles Table */}
-      <div className="bg-white rounded-lg shadow">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('roleName')}
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('permissions')}
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('actions')}
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {roles.length > 0 ? (
-              roles.map((role) => (
-                <tr key={role._id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {role.name}
-                  </td>
-                  {/* Permissions */}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div className="flex flex-wrap gap-2">
-                      {role.permissions
-                        .slice(0, 2)
-                        .map((role: any, idx: number) => (
-                          <span
-                            key={idx}
-                            className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs"
-                          >
-                            {role.name}
+        {/* Roles Table */}
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-800">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  {t('roleName')}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  {t('permissions')}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  {t('actions')}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+              {roles.length > 0 ? (
+                roles.map((role) => (
+                  <tr key={role._id}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                      {role.name}
+                    </td>
+
+                    {/* Permissions */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                      <div className="flex flex-wrap gap-2">
+                        {role.permissions
+                          .slice(0, 2)
+                          .map((role: any, idx: number) => (
+                            <span
+                              key={idx}
+                              className="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded-full text-xs"
+                            >
+                              {role.name}
+                            </span>
+                          ))}
+                        {role.permissions.length > 2 && (
+                          <span className="px-2 py-1 bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded-full text-xs">
+                            + {role.permissions.length - 2}
                           </span>
-                        ))}
-                      {role.permissions.length > 2 && (
-                        <span className="px-2 py-1 bg-gray-200 text-gray-800 rounded-full text-xs">
-                          + {role.permissions.length - 2}
-                        </span>
-                      )}
-                    </div>
-                  </td>
+                        )}
+                      </div>
+                    </td>
 
-                  {/* Actions */}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {role.type !== "Built_In" && (
-                      <>
-                        <button
-                          onClick={() => handleEdit(role)}
-                          className="text-blue-600 hover:text-blue-800 mr-3"
-                        >
-                           {t('edit')}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setActiveRole(role);
-                            setConfirmationModal(true);
-                          }}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          {t('delete')}
-                        </button>
-                      </>
-                    )}
+                    {/* Actions */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                      {role.type !== 'Built_In' && (
+                        <>
+                          <button
+                            onClick={() => handleEdit(role)}
+                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
+                          >
+                            {t('edit')}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setActiveRole(role);
+                              setConfirmationModal(true);
+                            }}
+                            className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                          >
+                            {t('delete')}
+                          </button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={4}
+                    className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-300"
+                  >
+                    {t('noRolesFound')}
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td
-                  colSpan={4}
-                  className="px-6 py-4 text-center text-sm text-gray-500"
-                >
-                  {t('noRolesFound')}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <Modal
-        isOpen={confirmationModal}
-        onClose={() => setConfirmationModal(false)}
-        className="max-w-[600px] min-h-[150px] m-4"
-        showCloseButton={false}
-      >
-        <div className="h-full p-5 flex flex-col justify-between">
-          <div className="py-2">
-           {`${t('deleteEntityPrompt', { entityName: t('role') })} ?`}
-            <strong>{activeRole?.name}</strong>?
-          </div>
-          <div className="flex justify-end gap-2 pt-4">
-            <Button
-              variant="secondary"
-              onClick={() => setConfirmationModal(false)}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              {t('cancel')}
-            </Button>
-            <Button
-              onClick={async () => {
-                if (!activeRole) return;
-                try {
-                  await deleteRole(activeRole._id);
-                  toast(
-                    MESSAGES.SUCCESS.ENTITY_DELETED.replace(
-                      "{{ entity }}",
-                      "Role"
-                    ),
-                    "success"
-                  );
-                  setReFetch(!reFetch);
-                } catch {
-                  toast("Failed to delete role. Please try again.", "error");
-                } finally {
-                  setConfirmationModal(false);
-                  setActiveRole(null);
-                }
-              }}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              {t('confirm')}
-
-            </Button>
-          </div>
+              )}
+            </tbody>
+          </table>
         </div>
-      </Modal>
-    </>
+
+        {/* Delete Confirmation Modal */}
+        <Modal
+          isOpen={confirmationModal}
+          onClose={() => setConfirmationModal(false)}
+          className="max-w-[600px] min-h-[150px] m-4"
+          showCloseButton={false}
+        >
+          <div className="h-full p-5 flex flex-col justify-between">
+            <div className="py-2 text-gray-800 dark:text-gray-200">
+              {`${t('deleteEntityPrompt', { entityName: activeRole?.name })}`}
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                variant="secondary"
+                onClick={() => setConfirmationModal(false)}
+                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                {t('cancel')}
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (!activeRole) return;
+                  try {
+                    await deleteRole(activeRole._id);
+                    setReFetch(!reFetch);
+                  } catch {
+                    toast("Failed to delete role. Please try again.", "error");
+                  } finally {
+                    setConfirmationModal(false);
+                    setActiveRole(null);
+                  }
+                }}
+                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                {t('confirm')}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      </>
+
   );
 };
 

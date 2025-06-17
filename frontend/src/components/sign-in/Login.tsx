@@ -27,7 +27,7 @@ const Login = () => {
   const navigate = useNavigate();
   const onSubmit = async (data: LoginFormData) => {
     await loginUser(data);
-    navigate(SYSTEM_ROUTES.HOME);
+    navigate(SYSTEM_ROUTES.DASHBOARD);
     setIsAuthenticated((prev: boolean) => !prev);
   };
 

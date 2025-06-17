@@ -1,5 +1,5 @@
 export const SYSTEM_ROUTES = {
-  HOME : "/",
+  HOME: "/",
   LOGIN: "/sign-in",
   DASHBOARD: "/dashboard"
 }
@@ -13,4 +13,11 @@ export const MESSAGES = {
   ERROR: {
     ENTITY_NOT_FOUND: "{{ entity }} not found",
   }
+}
+
+
+export const UserTypes = {
+  ADMIN: "Admin",
+  SUPER_ADMIN: "Super Admin",
+  USER: "User",
 }

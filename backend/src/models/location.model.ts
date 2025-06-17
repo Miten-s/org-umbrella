@@ -7,6 +7,8 @@ export interface ILocation extends Document {
   comments?: string;
   status: "active" | "disabled";
   deletedAt: Date;
+  modifiedOn?: Date;
+  modifiedBy?: string;
 }
 
 const LocationSchema = new Schema<ILocation>(
@@ -29,6 +31,8 @@ const LocationSchema = new Schema<ILocation>(
       enum: ["active", "disabled"],
       default: "active"
     },
+    modifiedOn: { type: Date },
+    modifiedBy: { type: Schema.Types.ObjectId, ref: "User" },
     deletedAt: { type: Date, default: null }
   },
   { timestamps: true }
@@ -36,6 +40,10 @@ const LocationSchema = new Schema<ILocation>(
 
 LocationSchema.pre(["find", "findOne", "findOneAndUpdate"], async function () {
   this.where({ deletedAt: null });
+});
+
+LocationSchema.pre("save", async function () {
+  this.set("modifiedOn", new Date());
 });
 
 export const Location = model<ILocation>("Location", LocationSchema);

@@ -111,5 +111,6 @@
   "company": "Company",
   "upload": "Upload {{entity}}",
   "logo": "Logo",
-  "deleteEntityPrompt": "Are you sure you want to delete this {{entityName}}?"
+  "deleteEntityPrompt": "Are you sure you want to delete this {{entityName}}?",
+  "noBuiltInRolesAvailable": "No built-in roles available"
 }

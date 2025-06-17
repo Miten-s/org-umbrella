@@ -20,7 +20,6 @@ const updateDesignation = async (_id: string, data: Partial<IDesignation>) => {
 };
 
 const deleteDesignation = async (_id: string) => {
-  console.log('deleteDesignation', _id);
   return await Designation.findByIdAndDelete(
     { _id },
     { deletedAt: new Date() }

@@ -64,4 +64,8 @@ DepartmentSchema.pre(
   }
 );
 
+DepartmentSchema.pre("save", async function () {
+  this.set("modifiedOn", new Date());
+});
+
 export const Department = mongoose.model("Department", DepartmentSchema);

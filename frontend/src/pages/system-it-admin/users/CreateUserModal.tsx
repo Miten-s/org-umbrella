@@ -1,201 +1,414 @@
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { useEffect, useState } from "react";
-import dayjs from "dayjs";
+import { useMemo, useRef, useState } from "react";
+import SignatureCanvas from "react-signature-canvas";
 import Input from "@/components/common/form/input/InputField";
 import Label from "@/components/common/form/Label";
 import Button from "@/components/ui/button/Button";
-import { Dropdown } from "@/components/ui/dropdown/Dropdown";
-import { DropdownItem } from "@/components/ui/dropdown/DropdownItem";
 import Checkbox from "@/components/common/form/input/Checkbox";
-import SignatureCanvas from "@/components/common/Signature";
 import TextArea from "@/components/common/form/input/TextArea";
 import MultiSelect from "@/components/common/form/MultiSelect";
+import { getUserAdminSchema } from "@/lib/schema";
+import { zodResolver } from '@hookform/resolvers/zod';
+import Switch from "@/components/common/form/switch/Switch";
+import { UserTypes } from "@/utils/common.constants";
 
-
-interface Option {
-  value: string;
-  text: string;
+interface Role {
+  _id: string;
+  name: string;
+  type: string;
 }
+
+interface Location {
+  _id: string;
+  locationName: string;
+}
+
+interface Department {
+  _id: string;
+  departmentName: string;
+}
+
+interface Designation {
+  _id: string;
+  designationName: string;
+}
+
 interface CreateUserModalProps {
   onClose: () => void;
-  roles: Option[];
+  roles: Role[];
+  locations: Location[];
+  departments: Department[];
+  designations: Designation[];
+  onSubmit: (data: any) => Promise<void>;
+  activeUser: any | null;
 }
 
-const CreateUserModal = ({ onClose, roles }: CreateUserModalProps) => {
-  const { register, handleSubmit, setValue, watch } = useForm();
+const CreateUserModal = ({ onClose, roles, locations, departments, designations, onSubmit, activeUser }: CreateUserModalProps) => {
   const { t } = useTranslation();
+  const [showSignature, setShowSignature] = useState(false);
+  const signatureRef = useRef<any>(null);
+  const customRoles = useMemo(() => roles.filter(role => role.type !== "Built_In"), [roles]);
 
-  const [isUserTypeDropdownOpen, setIsUserTypeDropdownOpen] = useState(false);
-  const [selectedUserType, setSelectedUserType] = useState("normal");
-  const [modifiable, setModifiable] = useState(false);
-  const [trainingCompleted, setTrainingCompleted] = useState(false);
+  const { register, handleSubmit, control, setValue, watch, formState: { errors } } = useForm({
+    resolver: zodResolver(getUserAdminSchema(!!activeUser)),
+    defaultValues: {
+      fullName: activeUser?.name || '',
+      email: activeUser?.email || '',
+      mobileNumber: activeUser?.phone || '',
+      locationGroup: activeUser?.location?._id || '',
+      designation: activeUser?.designation?._id || '',
+      department: activeUser?.department?._id || '',
+      assignRole: activeUser?.roles?.filter((role: Role) => role.name !== "Admin" && role.name !== "User").map((role: Role) => role._id) || [],
+      description: activeUser?.description || '',
+      status: activeUser?.status === 'active' ? true : false,
+      password: '',
+      confirmPassword: '',
+      modifiable: activeUser?.modifiable ?? false,
+      trainingCompleted: activeUser?.trainingCompleted ?? false,
+      signature: activeUser?.signature || '',
+      userType: activeUser?.userType || UserTypes.ADMIN
+    }
+  });
 
-  const toggleDropdown = () => setIsUserTypeDropdownOpen(prev => !prev);
-  const closeDropdown = () => setIsUserTypeDropdownOpen(false);
-
-  const handleUserTypeSelect = (type: string) => {
-    setSelectedUserType(type);
-    setValue("userType", type);
-    closeDropdown();
+  const handleClearSignature = () => {
+    if (signatureRef.current) {
+      signatureRef.current.clear();
+      setValue('signature', '');
+    }
   };
 
-  const onSubmit = (data: any) => {
-    const payload = {
-      ...data,
-      modifiable,
-      trainingCompleted,
-      createdOn: dayjs().toISOString(),
-      createdBy: "currentUserId", // Replace with actual user ID
-      modifiedOn: dayjs().toISOString(),
-      modifiedBy: "currentUserId", // Replace with actual user ID
+  // Watch for role changes to determine if user is admin
+  const isAdmin = watch("userType") === UserTypes.ADMIN;
+
+  const handleFormSubmit = (data: any) => {
+    if (signatureRef.current && !signatureRef.current.isEmpty()) {
+      const trimmedDataURL = signatureRef.current.toDataURL("image/png");
+      data.signature = trimmedDataURL;
+    } else {
+      data.signature = '';
+    }
+
+    const userTypeRole = roles.find(role => role.name === data.userType);
+    const assignRoleIds = data.assignRole || [];
+
+    const payload: any = {
+      fullName: data.fullName,
+      name: data.fullName,
+      email: data.email,
+      userType: data.userType,
+      roles: userTypeRole ? [userTypeRole._id, ...assignRoleIds] : [...assignRoleIds],
+      status: data.status ? "active" : "disabled",
     };
-    console.log(payload);
-    onClose();
+
+    if (!activeUser && (data.password || data.confirmPassword)) {
+      payload.password = data.password;
+    }
+
+    if (data.userType !== UserTypes.ADMIN) {
+      payload.phone = data.mobileNumber;
+      payload.location = data.locationGroup;
+      payload.designation = data.designation;
+      payload.department = data.department;
+      payload.description = data.description;
+      payload.modifiable = data.modifiable;
+      payload.trainingCompleted = data.trainingCompleted;
+      if (data.signature) {
+        payload.signature = data.signature;
+      }
+    }
+
+    onSubmit(payload);
   };
 
-  useEffect(() => {
-    setValue("userType", selectedUserType);
-  }, [selectedUserType, setValue]);
 
   return (
-    <div className="p-6 max-h-[90vh] overflow-y-auto">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <h2 className="text-xl font-semibold">{t("create", { entity: t("user") })}</h2>
+   <div className="p-6 max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+  <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+    <h2 className="text-xl font-semibold">
+      {activeUser ? t("update", { entity: t("user") }) : t("create", { entity: t("user") })}
+    </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label>{t("fullName")}</Label>
-            <Input {...register("fullName", { maxLength: 30 })} />
-          </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <Label required>{t("fullName")}</Label>
+        <Input
+          {...register("fullName")}
+          error={!!errors.fullName}
+          hint={errors.fullName?.message as string}
+          maxLength={30}
+        />
+      </div>
 
-          <div>
-            <Label>{t("description")}</Label>
-            <TextArea
-              value={watch("description")}
-              onChange={(event) => setValue("description", event)}
+      <div>
+        <Label htmlFor="email" required>{t("email")}</Label>
+        <Input
+          id="email"
+          type="email"
+          {...register("email")}
+          disabled={!!activeUser}
+          error={!!errors.email}
+          hint={errors.email?.message as string}
+          maxLength={30}
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="assignRole">{t("assignRoles")}</Label>
+        <Controller
+          name="assignRole"
+          control={control}
+          render={({ field }) => (
+            <MultiSelect
+              options={customRoles.map(role => ({ text: role.name, value: role._id }))}
+              label={t("selectRoles")}
+              onChange={field.onChange}
+              defaultSelected={field.value}
             />
-          </div>
+          )}
+        />
+        {errors.assignRole && <p className="text-red-500 text-xs mt-1">{errors.assignRole.message as string}</p>}
+      </div>
 
-          <div className="relative">
-            <Label>{t("userType")}</Label>
-            <button
-              type="button"
-              onClick={toggleDropdown}
-              className="input flex justify-between items-center"
+      <div>
+        <Label htmlFor="password" required>{t("password")}</Label>
+        <Input
+          id="password"
+          type="password"
+          disabled={!!activeUser}
+          {...register("password")}
+          error={!!errors.password}
+          hint={errors.password?.message as string}
+          maxLength={20}
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="confirmPassword" required>{t("confirmPassword")}</Label>
+        <Input
+          id="confirmPassword"
+          type="password"
+          disabled={!!activeUser}
+          {...register("confirmPassword")}
+          error={!!errors.confirmPassword}
+          hint={errors.confirmPassword?.message as string}
+          maxLength={20}
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="userType" required>{t("userType")}</Label>
+        <Controller
+          name="userType"
+          control={control}
+          render={({ field }) => (
+            <select
+              {...field}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
             >
-              <span className="text-theme-sm dark:text-gray-400">
-                {selectedUserType === "admin"
-                  ? t("adminUser")
-                  : t("normalUser")}
-              </span>
+              {Object.entries(UserTypes).map(([key, value]) => (
+                <option key={key} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+          )}
+        />
+        {errors.userType && <p className="text-red-500 text-xs mt-1">{errors.userType.message as string}</p>}
+      </div>
 
-              <svg className="ml-2 h-4 w-4" viewBox="0 0 20 20">
-                <path d="M5.5 7l4.5 4.5L14.5 7z" />
-              </svg>
-            </button>
-            <Dropdown
-              isOpen={isUserTypeDropdownOpen}
-              onClose={closeDropdown}
-              className="absolute z-10 mt-1 w-full"
-            >
-              <DropdownItem onItemClick={() => handleUserTypeSelect("normal")}>
-                {t("normalUser")}
-              </DropdownItem>
-              <DropdownItem onItemClick={() => handleUserTypeSelect("admin")}>
-                {t("adminUser")}
-              </DropdownItem>
-            </Dropdown>
-          </div>
+      <div>
+        <Label htmlFor="status" className="whitespace-nowrap">Status</Label>
+        <Controller
+          name="status"
+          control={control}
+          defaultValue={true}
+          render={({ field: { value, onChange } }) => (
+            <Switch
+              label=""
+              checked={value ?? false}
+              onChange={onChange}
+            />
+          )}
+        />
+      </div>
 
-          <div>
-            <Label>{t("email")}</Label>
-            <Input type="email" {...register("email", { maxLength: 20 })} />
+      {!isAdmin && (
+        <>
+          <div className="flex gap-10 md:col-span-2">
+            <div>
+              <Label>{t("modifiable")}</Label>
+              <Controller
+                name="modifiable"
+                control={control}
+                render={({ field: { value, onChange } }) => (
+                  <Checkbox
+                    checked={value ?? false}
+                    onChange={onChange}
+                    label={t("yes")}
+                  />
+                )}
+              />
+              {errors.modifiable && <p className="text-red-500 text-xs mt-1">{errors.modifiable.message as string}</p>}
+            </div>
+
+            <div>
+              <Label>{t("trainingCompleted")}</Label>
+              <Controller
+                name="trainingCompleted"
+                control={control}
+                render={({ field: { value, onChange } }) => (
+                  <Checkbox
+                    checked={value ?? false}
+                    onChange={onChange}
+                    label={t("yes")}
+                  />
+                )}
+              />
+              {errors.trainingCompleted && <p className="text-red-500 text-xs mt-1">{errors.trainingCompleted.message as string}</p>}
+            </div>
           </div>
 
           <div>
             <Label>{t("mobileNumber")}</Label>
-            <Input {...register("mobileNumber", { maxLength: 15 })} />
-          </div>
-
-          <div>
-            <Label>{t("locationGroup")}</Label>
-            <Input {...register("locationGroup")} />
-          </div>
-
-          <div>
-            <Label>{t("designation")}</Label>
-            <Input {...register("designation")} />
-          </div>
-
-          <div>
-            <Label>{t("department")}</Label>
-            <Input {...register("department")} />
-          </div>
-
-          <div>
-            <Label>{t("manager")}</Label>
-            <Input {...register("manager")} />
-          </div>
-
-          <div className="md:col-span-2">
-            <Label htmlFor="assignRole">{t("assignRoles")}</Label>
-            <MultiSelect
-              options={roles}
-              label="Multiple Select Options"
-              onChange={(selected) => setValue("assignRole", selected)}
-            />
-          </div>
-
-          <div>
-            <Label>{t("modifiable")}</Label>
-            <Checkbox checked={modifiable} onChange={setModifiable} label={t("yes")} />
-          </div>
-
-          <div>
-            <Label>{t("trainingCompleted")}</Label>
-            <Checkbox
-              checked={trainingCompleted}
-              onChange={setTrainingCompleted}
-              label={t("yes")}
-            />
-          </div>
-
-          <div>
-            <Label>{t("password")}</Label>
-            <Input type="password" {...register("password")} />
-          </div>
-
-          <div>
-            <Label>{t("confirmPassword")}</Label>
-            <Input type="password" {...register("confirmPassword")} />
-          </div>
-
-          <div>
-            <Label>{t("passwordExpiry")}</Label>
             <Input
-              type="date"
-              defaultValue={dayjs().format("YYYY-MM-DD")}
-              {...register("passwordExpiry")}
+              {...register("mobileNumber")}
+              error={!!errors.mobileNumber}
+              hint={errors.mobileNumber?.message as string}
+              maxLength={12}
             />
           </div>
 
-          <div className="md:col-span-2">
-            <Label>{t("signature")}</Label>
-            <SignatureCanvas />
+          <div>
+            <Label required>{t("locationGroup")}</Label>
+            <Controller
+              name="locationGroup"
+              control={control}
+              render={({ field }) => (
+                <select
+                  {...field}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                >
+                  <option value="">{t("select", { entity: t("location") })}</option>
+                  {locations.map(loc => (
+                    <option key={loc._id} value={loc._id}>
+                      {loc.locationName}
+                    </option>
+                  ))}
+                </select>
+              )}
+            />
+            {errors.locationGroup && <p className="text-red-500 text-xs mt-1">{errors.locationGroup.message as string}</p>}
           </div>
-        </div>
 
-        <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" type="button" onClick={onClose}>
-            {t("cancel")}
-          </Button>
-          <Button type="submit" variant="primary">
-            {t("save")}
-          </Button>
-        </div>
-      </form>
+          <div>
+            <Label required>{t("designation")}</Label>
+            <Controller
+              name="designation"
+              control={control}
+              render={({ field }) => (
+                <select
+                  {...field}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                >
+                  <option value="">{t("select", { entity: t("designation") })}</option>
+                  {designations.map(des => (
+                    <option key={des._id} value={des._id}>
+                      {des.designationName}
+                    </option>
+                  ))}
+                </select>
+              )}
+            />
+            {errors.designation && <p className="text-red-500 text-xs mt-1">{errors.designation.message as string}</p>}
+          </div>
+
+          <div>
+            <Label required>{t("department")}</Label>
+            <Controller
+              name="department"
+              control={control}
+              render={({ field }) => (
+                <select
+                  {...field}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                >
+                  <option value="">{t("select", { entity: t("department") })}</option>
+                  {departments.map(dept => (
+                    <option key={dept._id} value={dept._id}>
+                      {dept.departmentName}
+                    </option>
+                  ))}
+                </select>
+              )}
+            />
+            {errors.department && <p className="text-red-500 text-xs mt-1">{errors.department.message as string}</p>}
+          </div>
+
+          <div className="md:col-span-2">
+            <Label>{t("description")}</Label>
+            <Controller
+              name="description"
+              control={control}
+              render={({ field }) => (
+                <TextArea
+                  value={field.value}
+                  onChange={field.onChange}
+                  className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700"
+                />
+              )}
+            />
+            {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message as string}</p>}
+          </div>
+
+          <div className="md:col-span-2">
+            <div className="flex items-center gap-2 mb-2">
+              <Checkbox
+                checked={showSignature}
+                onChange={(e) => setShowSignature(e)}
+                label="Add Signature"
+              />
+            </div>
+
+            {showSignature && (
+              <div className="mt-4">
+                <Label required>Signature</Label>
+                <div className="rounded-xl border shadow-sm p-4 bg-white dark:bg-gray-800 dark:border-gray-700">
+                  <div className="w-full h-[200px] rounded-lg bg-gray-100 dark:bg-gray-700">
+                    <SignatureCanvas
+                      ref={signatureRef}
+                      canvasProps={{ className: "w-full h-full" }}
+                      penColor="black"
+                    />
+                  </div>
+                  <div className="mt-4 flex justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleClearSignature}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
+
+    <div className="flex justify-end gap-2 mt-4">
+      <Button variant="outline" type="button" onClick={onClose}>
+        {t("cancel")}
+      </Button>
+      <Button type="submit" variant="primary">
+        {t("save")}
+      </Button>
+    </div>
+  </form>
+</div>
+
   );
 };
 

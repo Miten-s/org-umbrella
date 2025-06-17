@@ -6,7 +6,6 @@ import { PageUrl } from "@/types/utils.types";
 // Dashboard & Access Management
 const Dashboard = lazy(() => import("../pages/dashboard"));
 const RolesAndPermissions = lazy(() => import("../pages/access-management/roles-and-permissions"));
-const Admins = lazy(() => import("../pages/access-management/all-admins"));
 
 // My Space
 const ProfileInfo = lazy(() => import("../pages/my-space/profile-info"));
@@ -36,10 +35,6 @@ const routes = [
           {
             path: PageUrl.Roles.path.replace(`${PageUrl.AccessManagement.path}/`, ""),
             element: <RolesAndPermissions />
-          },
-          {
-            path: PageUrl.Admins.path.replace(`${PageUrl.AccessManagement.path}/`, ""),
-            element: <Admins />
           }
         ]
       },
