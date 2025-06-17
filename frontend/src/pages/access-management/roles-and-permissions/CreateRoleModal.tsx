@@ -75,10 +75,11 @@ const CreateRoleModal = ({ onClose, onSubmit, permissions: allPermissions, activ
   };
 
   return (
-    <div className="p-6 max-h-[90vh] overflow-y-auto">
-      <h2 className="text-xl font-semibold mb-4"> {t('createNewRole')}</h2>
+    <div className="p-6 max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100">
+      <h2 className="text-xl font-semibold mb-4">{t('createNewRole')}</h2>
       <form onSubmit={handleSubmit(onFormSubmit)}>
         <div className="space-y-6">
+          {/* Role Name */}
           <div>
             <Label htmlFor="name">{t('roleName')}</Label>
             <Input
@@ -86,27 +87,37 @@ const CreateRoleModal = ({ onClose, onSubmit, permissions: allPermissions, activ
               type="text"
               placeholder="e.g. Admin, Manager"
               {...register('name', { required: true })}
+              className="mt-1 w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm"
             />
           </div>
 
+          {/* Permissions */}
           <div>
-            <Label> {t('permissions')}</Label>
+            <Label className="block">{t('permissions')}</Label>
+            {/* Select All */}
             <Checkbox
               label="Select All Permissions"
               checked={allPermissions.every((perm) => selectedPermissions.includes(perm))}
               onChange={toggleAllPermissions}
+              className="mt-2"
             />
+
+            {/* Grouped Permissions */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-4">
               {Object.entries(groupedPermissions).map(([entity, actions]) => {
                 const groupPerms = actions.map((action) => `${action}:${entity}`);
                 const allSelected = groupPerms.every((p) => selectedPermissions.includes(p));
 
                 return (
-                  <div key={entity} className="border rounded-md p-4 shadow-sm bg-gray-50 dark:bg-gray-900">
+                  <div
+                    key={entity}
+                    className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900 shadow-sm"
+                  >
                     <Checkbox
                       label={`All ${entity}`}
                       checked={allSelected}
                       onChange={() => toggleAllForGroup(entity)}
+                      className="mb-2 font-medium"
                     />
                     <div className="mt-2 space-y-2 ml-2">
                       {actions.map((action) => {
@@ -128,16 +139,27 @@ const CreateRoleModal = ({ onClose, onSubmit, permissions: allPermissions, activ
           </div>
         </div>
 
+        {/* Footer Buttons */}
         <div className="mt-6 flex justify-end space-x-3">
-          <Button variant="outline" onClick={onClose} type="button">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            type="button"
+            className="border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+          >
             {t('cancel')}
           </Button>
-           <Button type="submit" variant="primary">
-            {t("save")}
+          <Button
+            type="submit"
+            variant="primary"
+            className="bg-blue-600 hover:bg-blue-700 text-white transition"
+          >
+            {t('save')}
           </Button>
         </div>
       </form>
     </div>
+
   );
 };
 

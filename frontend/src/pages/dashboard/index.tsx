@@ -44,7 +44,9 @@ const Dashboard = () => {
     <div className="flex flex-col gap-4">
       <div className="mb-10">
         <div className="flex justify-between items-center flex-wrap gap-4">
-          <h1 className="text-2xl font-semibold text-gray-900">{currentCompany?.name || "..."}</h1>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+            {currentCompany?.name || "..."}
+          </h1>
           {currentCompany?.logo && (
             <img
               src={`${import.meta.env.VITE_API_BASE_URL}/uploads/${currentCompany.logo}`}
@@ -55,8 +57,8 @@ const Dashboard = () => {
         </div>
 
         {currentCompany?.description && (
-          <div className="relative overflow-hidden w-full mt-4 h-10 border-t-2 border-b-2 border-gray-200 pt-2">
-            <div className="animate-marquee whitespace-nowrap text-lg text-gray-600">
+          <div className="relative overflow-hidden w-full mt-4 h-10 border-t-2 border-b-2 border-gray-200 dark:border-gray-700 pt-2">
+            <div className="animate-marquee whitespace-nowrap text-lg text-gray-600 dark:text-gray-300">
               {currentCompany.description}
             </div>
           </div>
@@ -68,17 +70,20 @@ const Dashboard = () => {
           <div
             key={mod.id}
             onClick={() => navigate(mod.route)}
-            className="cursor-pointer rounded-2xl shadow-md bg-white p-6 hover:shadow-xl transition-all border hover:border-blue-500"
+            className="cursor-pointer rounded-2xl shadow-md bg-white dark:bg-gray-800 p-6 hover:shadow-xl transition-all border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400"
           >
             <div className="flex items-center gap-4 mb-4">
               <PencilIcon className="w-8 h-8 text-blue-600" />
-              <h2 className="text-xl font-semibold">{mod.title}</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                {mod.title}
+              </h2>
             </div>
-            <p className="text-gray-600">{mod.description}</p>
+            <p className="text-gray-600 dark:text-gray-300">{mod.description}</p>
           </div>
         ))}
       </div>
     </div>
+
   );
 };
 

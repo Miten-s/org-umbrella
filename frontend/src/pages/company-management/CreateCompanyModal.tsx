@@ -61,7 +61,7 @@ const CreateCompanyModal = ({ onClose, initialData, onSubmit }: CreateCompanyMod
     }
   }, [initialData?.logo, setValue]);
   return (
-    <div className="p-6 max-h-[90vh] overflow-y-auto">
+    <div className="p-6 max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-xl">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <h2 className="text-xl font-semibold">
           {t("update", { entity: t("company") })}
@@ -97,7 +97,9 @@ const CreateCompanyModal = ({ onClose, initialData, onSubmit }: CreateCompanyMod
               previewUrl={logoPreview ?? undefined}
             />
             {errors.logo && (
-              <p className="text-sm text-red-600 mt-1">{errors.logo.message?.toString()}</p>
+              <p className="text-sm text-red-600 dark:text-red-500 mt-1">
+                {errors.logo.message?.toString()}
+              </p>
             )}
           </div>
         </div>
@@ -112,6 +114,7 @@ const CreateCompanyModal = ({ onClose, initialData, onSubmit }: CreateCompanyMod
         </div>
       </form>
     </div>
+
   );
 };
 

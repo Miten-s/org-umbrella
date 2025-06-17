@@ -80,121 +80,131 @@ const CreateDepartmentModal = ({
   };
 
   return (
-    <div className="p-6 max-h-[90vh] overflow-y-auto">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <h2 className="text-xl font-semibold">
-          {t(initialData ? "edit" : "create", { entity: t("department") })}
-        </h2>
+   <div className="p-6 max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+  <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <h2 className="text-xl font-semibold">
+      {t(initialData ? "edit" : "create", { entity: t("department") })}
+    </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="departmentName" required>
-              {t("departmentName")}
-            </Label>
-            <Input
-              {...register("departmentName")}
-              error={!!errors.departmentName}
-              hint={errors.departmentName?.message}
-            />
-          </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Department Name */}
+      <div>
+        <Label htmlFor="departmentName" required>
+          {t("departmentName")}
+        </Label>
+        <Input
+          {...register("departmentName")}
+          error={!!errors.departmentName}
+          hint={errors.departmentName?.message}
+          className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
+        />
+      </div>
 
-          <div>
-            <Label>{t("description")}</Label>
-            <TextArea
-              value={description || ""}
-              onChange={(val) => setValue("description", val)}
-            />
-          </div>
+      {/* Description */}
+      <div>
+        <Label>{t("description")}</Label>
+        <TextArea
+          value={description || ""}
+          onChange={(val) => setValue("description", val)}
+          className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
+        />
+      </div>
 
-          <div className="relative">
-            <Label required>{t("departmentManager")}</Label>
-            <input type="hidden" {...register("departmentManager")} />
-            <button
-              type="button"
-              onClick={() => setManagerDropdownOpen((prev) => !prev)}
-              className="input flex justify-between items-center"
+      {/* Manager Dropdown */}
+      <div className="relative">
+        <Label required>{t("departmentManager")}</Label>
+        <input type="hidden" {...register("departmentManager")} />
+        <button
+          type="button"
+          onClick={() => setManagerDropdownOpen((prev) => !prev)}
+          className="input flex justify-between items-center dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+        >
+          <span className="text-theme-sm dark:text-gray-400">
+            {getManagerName(selectedManagerId) ||
+              t("select", { entity: t("departmentManager") })}
+          </span>
+          <svg className="ml-2 h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M5.5 7l4.5 4.5L14.5 7z" />
+          </svg>
+        </button>
+
+        <Dropdown
+          isOpen={managerDropdownOpen}
+          onClose={() => setManagerDropdownOpen(false)}
+          className="absolute z-10 mt-1 w-full rounded-xl border bg-white dark:bg-gray-800 dark:border-gray-700 shadow-md text-gray-900 dark:text-gray-100"
+        >
+          {managers.map((manager) => (
+            <DropdownItem
+              key={manager._id}
+              onItemClick={() => handleManagerSelect(manager._id)}
+              className="hover:bg-gray-100 dark:hover:bg-gray-700"
             >
-              <span className="text-theme-sm dark:text-gray-400">
-                {getManagerName(selectedManagerId) ||
-                  t("select", { entity: t("departmentManager") })}
-              </span>
-              <svg className="ml-2 h-4 w-4" viewBox="0 0 20 20">
-                <path d="M5.5 7l4.5 4.5L14.5 7z" />
-              </svg>
-            </button>
+              {manager.name}
+            </DropdownItem>
+          ))}
+        </Dropdown>
 
-            <Dropdown
-              isOpen={managerDropdownOpen}
-              onClose={() => setManagerDropdownOpen(false)}
-              className="absolute z-10 mt-1 w-full rounded-xl border bg-white shadow-md"
+        {errors.departmentManager && (
+          <p className="text-xs text-error-500 mt-1">
+            {errors.departmentManager.message}
+          </p>
+        )}
+      </div>
+
+      {/* Location Dropdown */}
+      <div className="relative">
+        <Label required>{t("locationGroup")}</Label>
+        <input type="hidden" {...register("departmentGroupLocation")} />
+        <button
+          type="button"
+          onClick={() => setLocationDropdownOpen((prev) => !prev)}
+          className="input flex justify-between items-center dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+        >
+          <span className="text-theme-sm dark:text-gray-400">
+            {getLocationName(selectedLocationId) ||
+              t("select", { entity: t("location") })}
+          </span>
+          <svg className="ml-2 h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M5.5 7l4.5 4.5L14.5 7z" />
+          </svg>
+        </button>
+
+        <Dropdown
+          isOpen={locationDropdownOpen}
+          onClose={() => setLocationDropdownOpen(false)}
+          className="absolute z-10 mt-1 w-full rounded-xl border bg-white dark:bg-gray-800 dark:border-gray-700 shadow-md text-gray-900 dark:text-gray-100"
+        >
+          {locations.map((loc) => (
+            <DropdownItem
+              key={loc._id}
+              onItemClick={() => handleLocationSelect(loc._id)}
+              className="hover:bg-gray-100 dark:hover:bg-gray-700"
             >
-              {managers.map((manager) => (
-                <DropdownItem
-                  key={manager._id}
-                  onItemClick={() => handleManagerSelect(manager._id)}
-                >
-                  {manager.name}
-                </DropdownItem>
-              ))}
-            </Dropdown>
+              {loc.locationName}
+            </DropdownItem>
+          ))}
+        </Dropdown>
 
-            {errors.departmentManager && (
-              <p className="text-xs text-error-500 mt-1">
-                {errors.departmentManager.message}
-              </p>
-            )}
-          </div>
-
-          <div className="relative">
-            <Label required>{t("locationGroup")}</Label>
-            <input type="hidden" {...register("departmentGroupLocation")} />
-            <button
-              type="button"
-              onClick={() => setLocationDropdownOpen((prev) => !prev)}
-              className="input flex justify-between items-center"
-            >
-              <span className="text-theme-sm dark:text-gray-400">
-                {getLocationName(selectedLocationId) ||
-                  t("select", { entity: t("location") })}
-              </span>
-              <svg className="ml-2 h-4 w-4" viewBox="0 0 20 20">
-                <path d="M5.5 7l4.5 4.5L14.5 7z" />
-              </svg>
-            </button>
-
-            <Dropdown
-              isOpen={locationDropdownOpen}
-              onClose={() => setLocationDropdownOpen(false)}
-              className="absolute z-10 mt-1 w-full rounded-xl border bg-white shadow-md"
-            >
-              {locations.map((loc) => (
-                <DropdownItem
-                  key={loc._id}
-                  onItemClick={() => handleLocationSelect(loc._id)}
-                >
-                  {loc.locationName}
-                </DropdownItem>
-              ))}
-            </Dropdown>
-
-            {errors.departmentGroupLocation && (
-              <p className="text-xs text-error-500 mt-1">
-                {errors.departmentGroupLocation.message}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" type="button" onClick={onClose}>
-            {t("cancel")}
-          </Button>
-          <Button type="submit" variant="primary">
-            {t("save")}
-          </Button>
-        </div>
-      </form>
+        {errors.departmentGroupLocation && (
+          <p className="text-xs text-error-500 mt-1">
+            {errors.departmentGroupLocation.message}
+          </p>
+        )}
+      </div>
     </div>
+
+    {/* Action Buttons */}
+    <div className="flex justify-end gap-2 mt-4">
+      <Button variant="outline" type="button" onClick={onClose}>
+        {t("cancel")}
+      </Button>
+      <Button type="submit" variant="primary">
+        {t("save")}
+      </Button>
+    </div>
+  </form>
+</div>
+
   );
 };
 

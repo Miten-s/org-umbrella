@@ -55,7 +55,9 @@ const Location = () => {
   return (
     <>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">{t("locationsGroups")}</h1>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+          {t("locationsGroups")}
+        </h1>
         <Button
           onClick={() => {
             setActiveLocation(null);
@@ -66,16 +68,20 @@ const Location = () => {
         </Button>
       </div>
 
-      {/* Replace with table later */}
+      {/* List of Location Groups */}
       <ul className="space-y-2">
         {locations.map((loc) => (
           <li
             key={loc._id}
-            className="border p-2 rounded flex justify-between items-center"
+            className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm flex justify-between items-center"
           >
             <div>
-              <div className="font-medium">{loc.locationName}</div>
-              <div className="text-sm text-gray-500">{loc.description}</div>
+              <div className="font-medium text-gray-900 dark:text-white">
+                {loc.locationName}
+              </div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                {loc.description}
+              </div>
             </div>
             <div className="flex gap-2">
               <Button
@@ -114,17 +120,17 @@ const Location = () => {
         />
       </Modal>
 
-      {/* Confirmation Modal */}
+      {/* Delete Confirmation Modal */}
       <Modal
         isOpen={confirmationModal}
         onClose={() => setConfirmationModal(false)}
         className="max-w-[600px] min-h-[150px] m-4"
         showCloseButton={false}
       >
-        <div className="h-full p-5 flex flex-col justify-between">
+        <div className="h-full p-5 flex flex-col justify-between bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
           <div className="py-2">
             {`${t("deleteEntityPrompt", {
-              entityName: locationToDelete?.locationName
+              entityName: locationToDelete?.locationName,
             })}`}
           </div>
           <div className="flex justify-end gap-2 pt-4">
@@ -145,6 +151,7 @@ const Location = () => {
         </div>
       </Modal>
     </>
+
   );
 };
 

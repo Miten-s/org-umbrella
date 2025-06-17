@@ -77,66 +77,52 @@ const Users = () => {
     openModal();
   };
 
-  // const handleOpenEditModal = (user: any) => {
-  //   setActiveUser(user);
-  //   openModal();
-  // };
-
   return (
     <>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">{t("users")}</h1>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t("users")}</h1>
         <Button onClick={handleOpenCreateModal}>{t("create", { entity: t("user") })}</Button>
       </div>
-      <div className="bg-white rounded-lg shadow overflow-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow overflow-auto">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead className="bg-gray-50 dark:bg-gray-800">
             <tr>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('userName')}
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('name')}
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('email')}
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('role')}
-              </th>
-
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('status')}
-              </th>
-
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t('actions')}
-              </th>
+              {['userName', 'name', 'email', 'role', 'status', 'actions'].map((key) => (
+                <th
+                  key={key}
+                  className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  {t(key)}
+                </th>
+              ))}
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+
+          <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
             {users.map((usr: any, index: number) => (
               <tr key={index + 1}>
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900">
+                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 dark:text-white">
                   {usr.fullName}
                 </td>
-
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900">
+                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 dark:text-white">
                   {usr.name}
                 </td>
-
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900">
+                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 dark:text-white">
                   {usr.email}
                 </td>
 
-                <td className="px-6 py-4 whitespace-nowrap mx-auto text-sm text-gray-500">
+                {/* Roles */}
+                <td className="px-6 py-4 whitespace-nowrap mx-auto text-sm text-gray-500 dark:text-gray-300">
                   <div className="flex flex-wrap justify-center gap-2">
                     {usr.roles.slice(0, 2).map((role: any, idx: number) => {
                       const isDefault = role.type === 'Built_In';
                       return (
                         <span
                           key={idx}
-                          className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${isDefault ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'
+                          className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${isDefault
+                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
+                              : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
                             }`}
                           title={isDefault ? 'Default System Role' : 'Custom Role'}
                         >
@@ -146,51 +132,54 @@ const Users = () => {
                       );
                     })}
                     {usr.roles.length > 2 && (
-                      <span className="px-2 py-1 bg-gray-200 text-gray-800 rounded-full text-xs">
+                      <span className="px-2 py-1 bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded-full text-xs">
                         + {usr.roles.length - 2}
                       </span>
                     )}
                   </div>
                 </td>
+
+                {/* Status */}
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                   <span
                     className={`px-2 py-1 rounded-full text-xs ${usr.status === 'active'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-red-100 text-red-800'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                        : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
                       }`}
                   >
                     {usr.status?.toUpperCase() ?? '-'}
                   </span>
                 </td>
 
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">
+                {/* Actions */}
+                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500 dark:text-gray-300">
                   <button
                     onClick={() => {
                       setActiveUser(usr);
                       openModal();
                     }}
-                    className="text-blue-600 hover:text-blue-800 mr-3"
+                    className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
                   >
                     {t('edit')}
                   </button>
                   <button
-                    className="text-red-600 hover:text-red-800"
+                    className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                     onClick={() => {
                       setActiveUser(usr);
                       setConfirmationModal(true);
                     }}
                   >
                     {t('delete')}
-
                   </button>
                 </td>
               </tr>
             ))}
+
             {users.length === 0 && (
               <tr>
                 <td
-                  colSpan={4}
-                  className="px-6 py-4 text-center text-sm text-gray-500"
+                  colSpan={6}
+                  className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-300"
                 >
                   {t('noAdminsFound')}
                 </td>
@@ -199,6 +188,8 @@ const Users = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Create User Modal */}
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[1000px] max-h-[50rem] m-4">
         <CreateUserModal
           onClose={closeModal}
@@ -211,15 +202,15 @@ const Users = () => {
         />
       </Modal>
 
-
+      {/* Delete Confirmation Modal */}
       <Modal
         isOpen={confirmationModal}
         onClose={() => setConfirmationModal(!confirmationModal)}
         className="max-w-[600px] min-h-[150px] m-4"
         showCloseButton={false}
       >
-        <div className="h-full p-5 flex flex-col justify-between">
-          <div className="py-2">{`${t('deleteEntityPrompt', { entityName: activeUser?.name })} ?`} </div>
+        <div className="h-full p-5 flex flex-col justify-between dark:text-white">
+          <div className="py-2">{`${t('deleteEntityPrompt', { entityName: activeUser?.name })} ?`}</div>
           <div className="flex justify-end gap-2 pt-4">
             <Button
               variant="secondary"
@@ -242,6 +233,7 @@ const Users = () => {
         </div>
       </Modal>
     </>
+
   );
 };
 
