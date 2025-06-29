@@ -1,6 +1,6 @@
 {
   "localLanguages": {
-    "english": "अंग्रेज़ी",
+    "english": "अंग्रे़ी",
     "arabic": "अरबी",
     "german": "जर्मन",
     "spanish": "स्पेनिश",
@@ -114,5 +114,6 @@
   "upload": "{{entity}} अपलोड करें",
   "logo": "लोगो",
   "deleteEntityPrompt": "क्या आप वाकई इस {{entityName}} को हटाना चाहते हैं?",
-  "noBuiltInRolesAvailable": "कोई बिल्ट-इन भूमिकाएं उपलब्ध नहीं हैं"
+  "noBuiltInRolesAvailable": "कोई बिल्ट-इन भूमिकाएं उपलब्ध नहीं हैं",
+  "noPermissionMessage": "आपको {{action}} की अनुमति नहीं है"
 }

@@ -33,8 +33,7 @@ api.interceptors.response.use(
 
     if (
       error.response?.status === 401 &&
-      (error?.response?.data as { message?: string }).message ===
-        "Token Expired" &&
+      (error?.response?.data as { message?: string })?.message === "Token Expired" &&
       !originalRequest._retry
     ) {
       if (isRefreshing) {
@@ -63,12 +62,13 @@ api.interceptors.response.use(
       }
     }
 
-    if(error.response?.status !== 404 && (error?.response?.data as { message?: string }).message !== "Token not found") {
-      toast(
-        (error?.response?.data as { message?: string }).message ??
-          "Something went wrong",
-        "error"
-      );
+    if (
+      error.response?.status !== 404 &&
+      (error.response?.data as { message?: string })?.message !== "Token not found"
+    ) {
+      const data = error.response?.data as { message?: string; error?: string } | undefined;
+      const errorMessage = data?.message ?? data?.error ?? "Something went wrong";  //Getting error message either from message or error
+      toast(errorMessage, "error");
     }
     return Promise.reject(error);
   }

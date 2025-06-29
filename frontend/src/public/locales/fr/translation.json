@@ -112,5 +112,6 @@
   "upload": "Téléverser {{entity}}",
   "logo": "Logo",
   "deleteEntityPrompt": "Êtes-vous sûr de vouloir supprimer ce {{entityName}} ?",
-  "noBuiltInRolesAvailable": "Aucun rôle intégré disponible"
+  "noBuiltInRolesAvailable": "Aucun rôle intégré disponible",
+  "noPermissionMessage": "Vous n'avez pas la permission de {{action}}"
 }

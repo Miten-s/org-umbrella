@@ -81,7 +81,13 @@ const Users = () => {
     <>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t("users")}</h1>
-        <Button onClick={handleOpenCreateModal}>{t("create", { entity: t("user") })}</Button>
+        <Button
+          permission="CREATE:USER"
+          tooltipPosition="left"
+          onClick={handleOpenCreateModal}
+        >
+          {t("create", { entity: t("user") })}
+        </Button>
       </div>
 
       <div className="bg-white dark:bg-gray-900 rounded-lg shadow overflow-auto">
@@ -153,24 +159,28 @@ const Users = () => {
 
                 {/* Actions */}
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500 dark:text-gray-300">
-                  <button
+                  <Button
+                    permission="UPDATE:USER"
                     onClick={() => {
                       setActiveUser(usr);
                       openModal();
                     }}
+                    variant="outline"
                     className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
                   >
                     {t('edit')}
-                  </button>
-                  <button
-                    className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                  </Button>
+                  <Button
+                    permission="DELETE:USER"
                     onClick={() => {
                       setActiveUser(usr);
                       setConfirmationModal(true);
                     }}
+                    variant="outline"
+                    className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                   >
                     {t('delete')}
-                  </button>
+                  </Button>
                 </td>
               </tr>
             ))}

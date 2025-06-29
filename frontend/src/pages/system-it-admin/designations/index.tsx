@@ -59,6 +59,8 @@ const Designation = () => {
           {t("designations")}
         </h1>
         <Button
+          permission="CREATE:DESIGNATION"
+          tooltipPosition="left"
           onClick={() => {
             setActiveDesignation(null);
             openModal();
@@ -85,20 +87,22 @@ const Designation = () => {
             </div>
             <div className="flex gap-2">
               <Button
-                variant="outline"
+                permission="UPDATE:DESIGNATION"
                 onClick={() => {
                   setActiveDesignation(d);
                   openModal();
                 }}
+                variant="outline"
               >
                 {t("edit")}
               </Button>
               <Button
-                variant="destructive"
+                permission="DELETE:DESIGNATION"
                 onClick={() => {
                   setDesignationToDelete(d);
                   setConfirmationModal(true);
                 }}
+                variant="destructive"
               >
                 {t("delete")}
               </Button>

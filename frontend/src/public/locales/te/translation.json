@@ -113,6 +113,7 @@
   "company": "కంపెనీ",
   "upload": "{{entity}} అప్‌లోడ్ చేయండి",
   "logo": "లోగో",
-  "deleteEntityPrompt": "మీరు నిజంగా ఈ {{entityName}} ను తొలగించాలనుకుంటున్నారా?",
-  "noBuiltInRolesAvailable": "ఎటువంటి అంతర్బద్ధమైన పాత్రలు లభ్యమవడంలేదు"
+  "deleteEntityPrompt": "మీరు ఖచ్చితంగా ఈ {{entityName}} ని తొలగించాలనుకుంటున్నారా?",
+  "noBuiltInRolesAvailable": "ఎలాంటి అంతర్నిర్మిత పాత్రలు అందుబాటులో లేవు",
+  "noPermissionMessage": "మీకు {{action}} కి అనుమతి లేదు"
 }

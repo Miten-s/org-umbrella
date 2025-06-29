@@ -13,7 +13,7 @@ export const checkPermissions = (requiredPermissions: string[] = []): any => {
     );
 
     if (!hasSome && !isSuperAdmin(req.user))
-      return res.status(403).json({ error: "Forbidden" });
+      return res.status(403).json({ error: "permission denied" });
 
     next();
   };

@@ -113,6 +113,7 @@
   "company": "कंपनी",
   "upload": "{{entity}} अपलोड करा",
   "logo": "लोगो",
-  "deleteEntityPrompt": "आपण खरोखर हे {{entityName}} हटवू इच्छिता?",
-  "noBuiltInRolesAvailable": "कोणतीही अंगभूत भूमिका उपलब्ध नाही"
+  "deleteEntityPrompt": "तुम्हाला खात्री आहे की तुम्ही हे {{entityName}} हटवू इच्छिता?",
+  "noBuiltInRolesAvailable": "कोणत्याही बिल्ट-इन भूमिका उपलब्ध नाहीत",
+  "noPermissionMessage": "तुमच्याकडे {{action}} ची परवानगी नाही"
 }

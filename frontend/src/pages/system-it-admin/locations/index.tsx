@@ -59,6 +59,8 @@ const Location = () => {
           {t("locationsGroups")}
         </h1>
         <Button
+          permission="CREATE:LOCATION"
+          tooltipPosition="left"
           onClick={() => {
             setActiveLocation(null);
             openModal();
@@ -85,20 +87,22 @@ const Location = () => {
             </div>
             <div className="flex gap-2">
               <Button
-                variant="outline"
+                permission="UPDATE:LOCATION"
                 onClick={() => {
                   setActiveLocation(loc);
                   openModal();
                 }}
+                variant="outline"
               >
                 {t("edit")}
               </Button>
               <Button
-                variant="destructive"
+                permission="DELETE:LOCATION"
                 onClick={() => {
                   setLocationToDelete(loc);
                   setConfirmationModal(true);
                 }}
+                variant="destructive"
               >
                 {t("delete")}
               </Button>

@@ -24,7 +24,7 @@ const AppSidebar: React.FC = () => {
   const { user } = useAuth();
   const { t, i18n } = useTranslation();
 
-  //To-do need to add proper permission
+  //To-do need to add proper permission  (add atlist one permission to show menu)
   const navItems: NavItem[] = useMemo(() => [
     {
       icon: <GridIcon />,
