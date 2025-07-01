@@ -6,6 +6,7 @@ import { useSidebar } from "../../context/SidebarContext";
 import { ThemeToggleButton } from "../common/ThemeToggleButton";
 import UserDropdown from "../header/UserDropdown";
 import LanguageDropdown from "../header/LanguageDropdown";
+import appLogo from "../../public/images/umbrella-clipart-cover.jpg";
 
 const AppHeader: React.FC = () => {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
@@ -86,8 +87,9 @@ const AppHeader: React.FC = () => {
 
           <Link to="/" className="lg:hidden">
             <img
-              src="./images/logo/logo.svg"
+              src={appLogo}
               alt="Logo"
+              width={32} height={32}
             />
           </Link>
 
