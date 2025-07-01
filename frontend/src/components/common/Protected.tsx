@@ -1,23 +1,69 @@
 import { useAuth } from "@/context/AuthContext";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
+import { SYSTEM_ROUTES } from "@/utils/common.constants";
+import { hasPermission } from "@/utils/permissions";
+
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  requiredPermission?: string;
+  requiredRole?: string;
+  fallback?: React.ReactNode;
+  redirectTo?: string;
+}
+
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+  </div>
+);
+
+const AccessDenied = () => (
+  <div className="flex flex-col items-center justify-center min-h-screen">
+    <div className="text-red-500 text-xl font-semibold mb-2">Access Denied</div>
+    <div className="text-gray-600 mb-4">You don't have permission to access this page</div>
+    <button 
+      onClick={() => window.history.back()} 
+      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+    >
+      Go Back
+    </button>
+  </div>
+);
 
 const ProtectedRoute = ({
   children,
-  requiredPermission
-}: {
-  children: React.ReactNode;
-  requiredPermission?: string;
-}) => {
-  const { user } = useAuth();
-  if (!user) {
-    return <Navigate to="/login" replace />;
+  requiredPermission,
+  requiredRole,
+  fallback = <LoadingSpinner />,
+  redirectTo = SYSTEM_ROUTES.LOGIN
+}: ProtectedRouteProps) => {
+  const { user, isAuthenticated } = useAuth();
+  const location = useLocation();
+console.log("ProtectedRoute user:", user, "isAuthenticated:", isAuthenticated);
+  // Show loading while authentication is being determined
+  if (!isAuthenticated && Object.keys(user).length === 0) {
+    return fallback;
   }
 
-  if (requiredPermission && !user.permissions.includes(requiredPermission)) {
-    return <div className="text-red-500 p-4">Access Denied</div>;
+  // Redirect to login if not authenticated
+  if (!isAuthenticated || !user) {
+    return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
 
-  return children;
+  // Check for required permission
+  if (requiredPermission && !hasPermission(user, requiredPermission)) {
+    return <AccessDenied />;
+  }
+
+  // Check for required role
+  if (requiredRole) {
+    const userRoles = user.roles?.map((role: any) => role.name) || [];
+    if (!userRoles.includes(requiredRole)) {
+      return <AccessDenied />;
+    }
+  }
+
+  return <>{children}</>;
 };
 
 export default ProtectedRoute;

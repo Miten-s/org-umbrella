@@ -2,6 +2,8 @@ import { lazy } from "react";
 import AppLayout from "../components/layout/AppLayout";
 import Login from "@/components/sign-in/Login";
 import { PageUrl } from "@/types/utils.types";
+import { PERMISSIONS } from "@/utils/permissions";
+import type { AppRoute } from "./types";
 
 // Dashboard & Access Management
 const Dashboard = lazy(() => import("../pages/dashboard"));
@@ -19,7 +21,7 @@ const SysLocations = lazy(() => import("../pages/system-it-admin/locations"));
 // Company
 const CompanyManagement = lazy(() => import("../pages/company-management"));
 
-const routes = [
+const routes: AppRoute[] = [
   {
     path: "/",
     element: <AppLayout />,
@@ -27,14 +29,28 @@ const routes = [
       {
         path: PageUrl.Dashboard.path,
         index: true,
-        element: <Dashboard />
+        element: <Dashboard />,
+        protection: {
+          requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+        },
+        meta: {
+          title: "Dashboard",
+          icon: "dashboard"
+        }
       },
       {
         path: PageUrl.AccessManagement.path,
         children: [
           {
             path: PageUrl.Roles.path.replace(`${PageUrl.AccessManagement.path}/`, ""),
-            element: <RolesAndPermissions />
+            element: <RolesAndPermissions />,
+            protection: {
+              requiredPermission: PERMISSIONS.VIEW_ROLE
+            },
+            meta: {
+              title: "Roles & Permissions",
+              icon: "roles"
+            }
           }
         ]
       },
@@ -42,10 +58,18 @@ const routes = [
       // My Space
       {
         path: PageUrl.MySpace.path,
+        element: <div />,
         children: [
           {
             path: PageUrl.ProfileInfo.path.replace(`${PageUrl.MySpace.path}/`, ""),
-            element: <ProfileInfo />
+            element: <ProfileInfo />,
+            protection: {
+              requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+            },
+            meta: {
+              title: "Profile Info",
+              icon: "profile"
+            }
           }
         ]
       },
@@ -53,22 +77,51 @@ const routes = [
       // System IT Admin
       {
         path: PageUrl.System.path,
+        element: <div />,
         children: [
           {
             path: PageUrl.Users.path.replace(`${PageUrl.System.path}/`, ""),
-            element: <SysUsers />
+            element: <SysUsers />,
+            protection: {
+              requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+            },
+            meta: {
+              title: "Users",
+              icon: "users"
+            }
           },
           {
             path: PageUrl.Departments.path.replace(`${PageUrl.System.path}/`, ""),
-            element: <SysDepartments />
+            element: <SysDepartments />,
+            protection: {
+              requiredPermission: PERMISSIONS.VIEW_DEPARTMENT
+            },
+            meta: {
+              title: "Departments",
+              icon: "departments"
+            }
           },
           {
             path: PageUrl.Designations.path.replace(`${PageUrl.System.path}/`, ""),
-            element: <SysDesignations />
+            element: <SysDesignations />,
+            protection: {
+              requiredPermission: PERMISSIONS.VIEW_DESIGNATION
+            },
+            meta: {
+              title: "Designations",
+              icon: "designations"
+            }
           },
           {
             path: PageUrl.LocationsGroups.path.replace(`${PageUrl.System.path}/`, ""),
-            element: <SysLocations />
+            element: <SysLocations />,
+            protection: {
+              requiredPermission: PERMISSIONS.VIEW_LOCATION
+            },
+            meta: {
+              title: "Locations",
+              icon: "locations"
+            }
           }
         ]
       },
@@ -76,22 +129,36 @@ const routes = [
       // Company
       {
         path: PageUrl.CompanySettings.path,
-        index: true,
-        element: <CompanyManagement />
+        element: <CompanyManagement />,
+        protection: {
+          requiredPermission: PERMISSIONS.OPERATE_ALL
+        },
+        meta: {
+          title: "Company Settings",
+          icon: "company"
+        }
       }
     ]
   },
 
-  // Auth
+  // Auth - Public route
   {
     path: PageUrl.SignIn.path,
-    element: <Login />
+    element: <Login />,
+    meta: {
+      title: "Sign In",
+      hideFromMenu: true
+    }
   },
 
   // Fallback
   {
     path: "*",
-    element: <div>404 - Not Found</div>
+    element: <div>404 - Not Found</div>,
+    meta: {
+      title: "Not Found",
+      hideFromMenu: true
+    }
   }
 ];
 

@@ -82,7 +82,13 @@ const Users = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{t("users")}</h1>
         <Button
-          permission="CREATE:USER"
+          permission={[
+            'CREATE:USER',
+            'VIEW:DEPARTMENT',
+            'VIEW:DESIGNATION',
+            'VIEW:LOCATION'
+          ]}
+          permissionLogic="all"
           tooltipPosition="left"
           onClick={handleOpenCreateModal}
         >
@@ -127,8 +133,8 @@ const Users = () => {
                         <span
                           key={idx}
                           className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${isDefault
-                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
-                              : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
+                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
+                            : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
                             }`}
                           title={isDefault ? 'Default System Role' : 'Custom Role'}
                         >
@@ -149,8 +155,8 @@ const Users = () => {
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                   <span
                     className={`px-2 py-1 rounded-full text-xs ${usr.status === 'active'
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-                        : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                      : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
                       }`}
                   >
                     {usr.status?.toUpperCase() ?? '-'}

@@ -38,7 +38,7 @@ const AppSidebar: React.FC = () => {
       //To-do why accessIcon not change color when we click on menu
       icon: <AccessIcon />,
       name: t('accessManagement'),
-      permissions: [ "CREATE:PERMISSION","READ:PERMISSION","UPDATE:PERMISSION","DELETE:PERMISSION",],
+      permissions: ["CREATE:PERMISSION","VIEW:PERMISSION","UPDATE:PERMISSION","DELETE:PERMISSION"],
       subItems: [
         { name: t('rolesAndPermissions'), path: PageUrl.Roles.path },
         // { name: t('allAdmins'), path: PageUrl.Admins.path },

@@ -15,8 +15,8 @@ interface ButtonProps {
   disabled?: boolean;
   className?: string;
   type?: "button" | "submit" | "reset";
-  // Permission-related props
-  permission?: string;
+  permission?: string | string[];
+  permissionLogic?: 'all' | 'any';
   tooltipMessage?: string;
   tooltipPosition?: 'top' | 'bottom' | 'left' | 'right';
 }
@@ -35,6 +35,7 @@ const Button: React.FC<ButtonProps> = ({
   type = "button",
   // Permission-related props
   permission,
+  permissionLogic = 'all',
   tooltipMessage,
   tooltipPosition = 'bottom'
 }) => {
@@ -60,7 +61,25 @@ const Button: React.FC<ButtonProps> = ({
   };
 
   // Permission checking
-  const userHasPermission = permission ? hasPermission(user, permission) : true;
+  const checkPermissions = (user: any, permission: string | string[] | undefined, logic: 'all' | 'any') => {
+    if (!permission) return true;
+    if (Array.isArray(permission)) {
+      const results = permission.map(p => hasPermission(user, p));
+      return logic === 'all' ? results.every(Boolean) : results.some(Boolean);
+    }
+    return hasPermission(user, permission);
+  };
+
+  const getMissingPermissions = (user: any, permission: string | string[] | undefined, logic: 'all' | 'any') => {
+    if (!permission) return [];
+    if (Array.isArray(permission)) {
+      return permission.filter(p => !hasPermission(user, p));
+    }
+    return hasPermission(user, permission) ? [] : [permission];
+  };
+
+  const userHasPermission = checkPermissions(user, permission, permissionLogic);
+  const missingPermissions = getMissingPermissions(user, permission, permissionLogic);
   const isDisabled = disabled || (permission && !userHasPermission);
 
   const handleClick = () => {
@@ -98,14 +117,21 @@ const Button: React.FC<ButtonProps> = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showTooltip]);
-  console.log(permission);
-  console.log( permission?.split(':')[1]?.toLowerCase());
 
-  const defaultTooltipMessage = permission ? t('noPermissionMessage', {
-    action: t('create',{entity: permission?.split(':')[1]?.toLowerCase() || 'this item'}),
-    
-  }) : '';
-  console.log(defaultTooltipMessage);
+  // Tooltip message logic
+  let defaultTooltipMessage = '';
+  if (permission && !userHasPermission) {
+    if (Array.isArray(permission)) {
+      defaultTooltipMessage =
+        t('noPermissionMessage', { action: t('create', { entity: '' }) }) +
+        ': ' +
+        missingPermissions.map(p => t('permission.' + p, p)).join(', ');
+    } else {
+      defaultTooltipMessage = t('noPermissionMessage', {
+        action: t('create', { entity: permission?.split(':')[1]?.toLowerCase() || 'this item' }),
+      });
+    }
+  }
 
   const getTooltipPositionClasses = () => {
     switch (tooltipPosition) {
@@ -162,7 +188,6 @@ const Button: React.FC<ButtonProps> = ({
           ></div>
         </div>
       )}
-
     </div>
   );
 };

@@ -18,6 +18,5 @@ export const MESSAGES = {
 
 export const UserTypes = {
   ADMIN: "Admin",
-  // SUPER_ADMIN: "Super Admin",
   USER: "User",
 }
