@@ -215,6 +215,7 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
                     label: key,
                     value: value,
                   }))}
+                  
                 />
               )}
             />

@@ -206,7 +206,8 @@ const Users = () => {
       </div>
 
       {/* Create User Modal */}
-      <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[1000px] max-h-[50rem] m-4">
+      <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[1000px] max-h-[100rem]  m-4 overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+      >
         <CreateUserModal
           onClose={closeModal}
           roles={roles}

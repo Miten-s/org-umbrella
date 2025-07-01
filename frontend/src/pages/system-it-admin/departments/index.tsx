@@ -138,8 +138,9 @@ const Departments = () => {
       <Modal
         isOpen={isOpen}
         onClose={closeModal}
-        className="max-w-[900px] max-h-[90vh] m-4 overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+        className="max-w-[900px] max-h-[100rem]  m-4 overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
       >
+
         <CreateDepartmentModal
           onClose={closeModal}
           onSubmit={handleSave}

@@ -43,7 +43,7 @@ export const SelectDropdown: React.FC<SelectDropdownProps> = ({
                 <ChevronDownIcon className={`w-4 h-4 transition-transform ${open ? "rotate-180" : ""}`} />
             </button>
 
-            <Dropdown isOpen={open} onClose={() => setOpen(false)}>
+            <Dropdown isOpen={open} onClose={() => setOpen(false)} className="w-full">
                 {options.map((opt) => (
                     <DropdownItem
                         key={opt.value}
