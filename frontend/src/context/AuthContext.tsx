@@ -9,19 +9,27 @@ import {
 } from "react";
 import { useDispatch } from "react-redux";
 import { setCurrentUser } from "@/redux/slices/userSlice";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 interface AuthContextType {
   user: Record<string, string | any>;
   isAuthenticated: boolean;
-  setIsAuthenticated: any
+  isLoading: boolean;
+  setIsAuthenticated: any;
+  setUser: any;
+  setCurrentCompany: any;
+  refreshAuth: () => void;
   currentCompany: Record<string, string | any>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: {},
   isAuthenticated: false,
+  isLoading: true,
   setIsAuthenticated: () => { },
+  setUser: () => { },
+  setCurrentCompany: () => { },
+  refreshAuth: () => { },
   currentCompany: {},
 });
 
@@ -29,25 +37,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<Record<string, string>>({});
   const [currentCompany, setCurrentCompany] = useState<Record<string, string>>({});
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
+
   const fetchUser = async () => {
     try {
+      setIsLoading(true);
       const response = await getUserDetail();
       const { company: fetchCompany } = await getCompany();
       setCurrentCompany(fetchCompany);
       setUser(response.user);
+      setIsAuthenticated(true);
       dispatch(setCurrentUser(response.user));
-      // navigate(SYSTEM_ROUTES.HOME);
     } catch (error: any) {
-      if (
-        error?.response?.status === 404 &&
-        error?.response?.data?.message === "Token not found"
-      ) {
-        navigate(SYSTEM_ROUTES.LOGIN);
+      setUser({});
+      setCurrentCompany({});
+      setIsAuthenticated(false);
+      dispatch(setCurrentUser(null));
+      // Only redirect to login if not already on login page and not on public routes
+      if (location.pathname !== SYSTEM_ROUTES.LOGIN && !location.pathname.includes('/public')) {
+        navigate(SYSTEM_ROUTES.LOGIN, { replace: true });
       }
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const refreshAuth = () => {
+    fetchUser();
   };
 
   useEffect(() => {
@@ -55,9 +75,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [isAuthenticated, setIsAuthenticated]);
 
   const value = useMemo(
-    () => ({ user, isAuthenticated, setIsAuthenticated, currentCompany }),
-    [user, isAuthenticated, setIsAuthenticated, currentCompany]
+    () => ({ user, isAuthenticated, isLoading, setIsAuthenticated, setUser, setCurrentCompany, refreshAuth, currentCompany }),
+    [user, isAuthenticated, isLoading, setIsAuthenticated, setUser, setCurrentCompany, refreshAuth, currentCompany]
   );
+  
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 

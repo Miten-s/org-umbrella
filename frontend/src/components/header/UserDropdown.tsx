@@ -13,6 +13,7 @@ export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const { t } = useTranslation()
+  const { setIsAuthenticated, setUser, setCurrentCompany } = useAuth();
   function toggleDropdown() {
     setIsOpen(!isOpen);
   }
@@ -22,9 +23,19 @@ export default function UserDropdown() {
   }
 
   const handleLogout = async () => {
-    const response = await logoutUser();
-    toast(response.message, "success");
-    navigate(SYSTEM_ROUTES.LOGIN);
+    try {
+      const response = await logoutUser();
+      toast(response.message, "success");
+      // Clear authentication state immediately
+      setIsAuthenticated(false);
+      setUser({});
+      setCurrentCompany({});
+      
+      // Navigate to login
+      navigate(SYSTEM_ROUTES.LOGIN, { replace: true });
+    } catch (error) {
+      toast("Logout failed", "error");
+    }
   }
 
   const { user } = useAuth()

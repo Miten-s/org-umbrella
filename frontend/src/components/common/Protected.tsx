@@ -37,16 +37,16 @@ const ProtectedRoute = ({
   fallback = <LoadingSpinner />,
   redirectTo = SYSTEM_ROUTES.LOGIN
 }: ProtectedRouteProps) => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
-console.log("ProtectedRoute user:", user, "isAuthenticated:", isAuthenticated);
+
   // Show loading while authentication is being determined
-  if (!isAuthenticated && Object.keys(user).length === 0) {
+  if (isLoading) {
     return fallback;
   }
 
   // Redirect to login if not authenticated
-  if (!isAuthenticated || !user) {
+  if (!isAuthenticated || !user || Object.keys(user).length === 0) {
     return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
 

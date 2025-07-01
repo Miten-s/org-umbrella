@@ -7,8 +7,17 @@ interface Props {
 }
 
 const renderRoutes = (routes: AppRoute[]) =>
-  routes.map(({ path, element, children, protection }) => {
-    // Wrap element with protection if specified
+  routes.map(({ path, element, children, protection, index }) => {
+    // For parent routes with children but no element, just render children
+    if (!element && children && children.length > 0) {
+      return (
+        <Route key={path} path={path}>
+          {renderRoutes(children)}
+        </Route>
+      );
+    }
+
+    // For routes with element, wrap with protection if specified
     const protectedElement = protection ? (
       <ProtectedRoute
         requiredPermission={protection.requiredPermission}
@@ -20,8 +29,17 @@ const renderRoutes = (routes: AppRoute[]) =>
       </ProtectedRoute>
     ) : element;
 
+    const routeProps: any = {
+      path: path,
+      element: protectedElement
+    };
+    
+    if (index) {
+      routeProps.index = true;
+    }
+    
     return (
-      <Route key={path} path={path} element={protectedElement}>
+      <Route key={path} {...routeProps}>
         {children && renderRoutes(children)}
       </Route>
     );

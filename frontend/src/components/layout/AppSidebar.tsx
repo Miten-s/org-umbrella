@@ -2,12 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import appLogo from "../../public/images/logo-transparant.png";
 import appSmLogo from "../../public/images/umbrella-clipart-cover.jpg";
-import { ChevronDownIcon, UserManagement, GridIcon, HorizontaLDots, UserIcon,CompanyIcon } from "../../public/icons";
+import { ChevronDownIcon, UserManagement, GridIcon, HorizontaLDots, UserIcon, CompanyIcon } from "../../public/icons";
 import { useSidebar } from "../../context/SidebarContext";
 import { AccessIcon } from "../../public/icons";
 import { PageUrl } from "@/types/utils.types";
 import { useAuth } from "@/context/AuthContext";
-import { hasPermission } from "@/utils/permissions";
+import { hasPermission, PERMISSIONS } from "@/utils/permissions";
 import { useTranslation } from "react-i18next";
 
 type NavItem = {
@@ -24,50 +24,46 @@ const AppSidebar: React.FC = () => {
   const { user } = useAuth();
   const { t, i18n } = useTranslation();
 
-  //To-do need to add proper permission  (add atlist one permission to show menu)
   const navItems: NavItem[] = useMemo(() => [
     {
       icon: <GridIcon />,
       name: t('dashboard'),
-      permissions: ["VIEW:DASHBOARD"],
+      permissions: [PERMISSIONS.VIEW_DASHBOARD],
       subItems: [
         { name: t('allServices'), path: PageUrl.Dashboard.path, pro: false }
       ]
     },
     {
-      //To-do why accessIcon not change color when we click on menu
       icon: <AccessIcon />,
       name: t('accessManagement'),
-      permissions: ["CREATE:PERMISSION","VIEW:PERMISSION","UPDATE:PERMISSION","DELETE:PERMISSION"],
+      permissions: [PERMISSIONS.CREATE_PERMISSION, PERMISSIONS.VIEW_PERMISSION, PERMISSIONS.UPDATE_PERMISSION, PERMISSIONS.DELETE_PERMISSION],
       subItems: [
         { name: t('rolesAndPermissions'), path: PageUrl.Roles.path },
-        // { name: t('allAdmins'), path: PageUrl.Admins.path },
       ]
     },
-
     {
       icon: <UserManagement />,
       name: t('systemITAdministration'),
-      permissions: ["VIEW:USER"],
+      permissions: [PERMISSIONS.VIEW_DASHBOARD, PERMISSIONS.CREATE_USER, PERMISSIONS.VIEW_USER, PERMISSIONS.UPDATE_USER, PERMISSIONS.DELETE_USER],
       subItems: [
         { name: t('users'), path: PageUrl.Users.path },
         { name: t('designations'), path: PageUrl.Designations.path },
         { name: t('locationsGroups'), path: PageUrl.LocationsGroups.path },
         { name: t('departments'), path: PageUrl.Departments.path },
       ]
-    }, 
-     {
-    icon: <CompanyIcon />, 
-    name: t('companySetup'), 
-    permissions: ["OPERATE:ALL"],
-    subItems: [
-      { name: t('companyInfo'), path: PageUrl.CompanySettings.path }
-    ]
-  },
+    },
+    {
+      icon: <CompanyIcon />,
+      name: t('companySetup'),
+      permissions: [PERMISSIONS.OPERATE_ALL],
+      subItems: [
+        { name: t('companyInfo'), path: PageUrl.CompanySettings.path }
+      ]
+    },
     {
       icon: <UserIcon />,
       name: t('mySpace'),
-      permissions: ["VIEW:DASHBOARD"],
+      permissions: [PERMISSIONS.VIEW_DASHBOARD],
       subItems: [
         { name: t('profileInfo'), path: PageUrl.ProfileInfo.path }
       ]
@@ -76,11 +72,13 @@ const AppSidebar: React.FC = () => {
 
   const restrictedFilteredNavItems = useMemo(() => {
     if (user) {
-      return navItems.filter((item) => {
-        return item.permissions?.some((permission) =>
+      const filtered = navItems.filter((item) => {
+        const hasAccess = item.permissions?.some((permission) =>
           hasPermission(user, permission)
         );
+        return hasAccess;
       });
+      return filtered;
     }
     return [];
   }, [user, navItems]);

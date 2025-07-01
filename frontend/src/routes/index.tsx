@@ -58,7 +58,6 @@ const routes: AppRoute[] = [
       // My Space
       {
         path: PageUrl.MySpace.path,
-        element: <div />,
         children: [
           {
             path: PageUrl.ProfileInfo.path.replace(`${PageUrl.MySpace.path}/`, ""),
@@ -77,13 +76,12 @@ const routes: AppRoute[] = [
       // System IT Admin
       {
         path: PageUrl.System.path,
-        element: <div />,
         children: [
           {
             path: PageUrl.Users.path.replace(`${PageUrl.System.path}/`, ""),
             element: <SysUsers />,
             protection: {
-              requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+              requiredPermission: PERMISSIONS.VIEW_USER
             },
             meta: {
               title: "Users",
