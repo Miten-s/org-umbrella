@@ -71,7 +71,7 @@ const Designation = () => {
       </div>
 
       {/* Designation List */}
-      <ul className="space-y-2">
+       <ul className="space-y-2">
         {designations?.map((d) => (
           <li
             key={d._id}
@@ -109,7 +109,7 @@ const Designation = () => {
             </div>
           </li>
         ))}
-      </ul>
+      </ul> 
 
       {/* Create/Edit Modal */}
       <Modal

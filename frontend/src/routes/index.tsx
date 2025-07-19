@@ -11,6 +11,7 @@ const RolesAndPermissions = lazy(() => import("../pages/access-management/roles-
 
 // My Space
 const ProfileInfo = lazy(() => import("../pages/my-space/profile-info"));
+const AboutCompany = lazy(() => import("../pages/my-space/about-company"));
 
 // System IT Admin
 const SysUsers = lazy(() => import("../pages/system-it-admin/users"));
@@ -68,6 +69,16 @@ const routes: AppRoute[] = [
             meta: {
               title: "Profile Info",
               icon: "profile"
+            }
+          }, {
+            path: PageUrl.AboutCompany.path.replace(`${PageUrl.MySpace.path}/`, ""),
+            element: <AboutCompany/>,
+            protection: {
+              requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+            },
+            meta: {
+              title: "About Company",
+              icon: "About Company"
             }
           }
         ]

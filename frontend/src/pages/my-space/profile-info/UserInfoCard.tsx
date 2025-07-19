@@ -62,7 +62,7 @@ export default function UserInfoCard() {
                 user?.roles?.some((role: any) =>
                   role.permissions?.some((perm: any) => perm.name === "OPERATE:ALL")
                 )
-                  ? "Super Admin"
+                  ? "Super Admin "
                   : user?.userType
               }
             />

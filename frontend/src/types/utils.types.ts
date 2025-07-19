@@ -1,3 +1,5 @@
+
+
 export type PageUrlConfig = {
   path: string;
   matchPattern: RegExp;
@@ -60,6 +62,11 @@ export const PageUrl: PageUrlType = {
     path: "/client/my-space/profile-info",
     matchPattern: /^\/client\/my-space\/profile-info$/i,
     pageTitle: "Profile Info"
+  },
+  AboutCompany: {
+    path: "/client/my-space/about-company",
+    matchPattern: /^\/client\/my-space\/about-company$/i,
+    pageTitle: "About Company" 
   },
   // #endregion
 

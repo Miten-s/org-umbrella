@@ -65,7 +65,8 @@ const AppSidebar: React.FC = () => {
       name: t('mySpace'),
       permissions: [PERMISSIONS.VIEW_DASHBOARD],
       subItems: [
-        { name: t('profileInfo'), path: PageUrl.ProfileInfo.path }
+        { name: t('profileInfo'), path: PageUrl.ProfileInfo.path },
+        { name: t('About Company'), path: PageUrl.AboutCompany.path }
       ]
     },
   ], [t, i18n.language]);
