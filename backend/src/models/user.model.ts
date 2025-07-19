@@ -33,8 +33,8 @@ export interface IConditionalUserFields {
 
 export interface IUser
   extends Document,
-    IBasicUserFields,
-    IConditionalUserFields {
+  IBasicUserFields,
+  IConditionalUserFields {
   _id: string;
   isRecentPassword: (password: string) => Promise<boolean>;
 }
@@ -49,19 +49,18 @@ const AdminSchema: Record<keyof IBasicUserFields, any> = {
   currentLanguage: {
     type: String,
     enum: [
-      "en",
-      "ar",
-      "zh",
-      "de",
-      "es",
-      "fr",
-      "he",
-      "it",
-      "ja",
-      "ko",
-      "nl",
-      "pl",
-      "pt"
+      'en',
+      'ar',
+      'de',
+      'es',
+      'fr',
+      'he',
+      'it',
+      'hi',
+      'gu',
+      'ta',
+      'te',
+      'mr',
     ],
     default: "en"
   },
