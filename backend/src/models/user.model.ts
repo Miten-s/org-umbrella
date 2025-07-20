@@ -49,6 +49,7 @@ const AdminSchema: Record<keyof IBasicUserFields, any> = {
   currentLanguage: {
     type: String,
     enum: [
+      "hi",
       "en",
       "ar",
       "zh",
