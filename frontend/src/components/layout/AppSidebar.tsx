@@ -44,7 +44,7 @@ const AppSidebar: React.FC = () => {
     {
       icon: <UserManagement />,
       name: t('systemITAdministration'),
-      permissions: [PERMISSIONS.VIEW_DASHBOARD, PERMISSIONS.CREATE_USER, PERMISSIONS.VIEW_USER, PERMISSIONS.UPDATE_USER, PERMISSIONS.DELETE_USER],
+      permissions: [ PERMISSIONS.CREATE_USER, PERMISSIONS.VIEW_USER, PERMISSIONS.UPDATE_USER, PERMISSIONS.DELETE_USER],
       subItems: [
         { name: t('users'), path: PageUrl.Users.path },
         { name: t('designations'), path: PageUrl.Designations.path },
