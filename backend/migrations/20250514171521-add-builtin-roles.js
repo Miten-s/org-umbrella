@@ -26,7 +26,9 @@ module.exports = {
       "CREATE:ROLE",
       "VIEW:ROLE",
       "UPDATE:ROLE",
-      "DELETE:ROLE"
+      "DELETE:ROLE",
+      // "VIEW:COMPANY INFO",
+
     ];
 
     // Fetch permission IDs by name

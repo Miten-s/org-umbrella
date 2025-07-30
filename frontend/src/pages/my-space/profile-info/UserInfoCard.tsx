@@ -13,11 +13,11 @@ import { Controller } from "react-hook-form";
 import Switch from "@/components/common/form/switch/Switch";
 
 export default function UserInfoCard() {
-  const { isOpen, closeModal } = useModal();
+  const { isOpen, closeModal, openModal } = useModal();
   const { user } = useAuth();
   const { t } = useTranslation();
   const { setReFetch, reFetch } = useGlobalContext();;
-  const { register, handleSubmit, control } = useForm({
+  const { register, handleSubmit, control,reset } = useForm({
     defaultValues: {
       name: user?.name || "",
       status: user?.status === "active",
@@ -43,7 +43,8 @@ export default function UserInfoCard() {
       console.error('Error saving user:', error);
     }
   };
-
+console.log(user)
+console.log(user)
 
   return (
     <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
@@ -85,17 +86,17 @@ export default function UserInfoCard() {
         </div>
 
         {/* Edit Button */}
-        {/* <button
+        <button
           onClick={() => {
             reset({
-              name: user.name || "",
-              status: user.status === "active",
-              phone: user.phone || "",
-              department: user.department || "",
-              designation: user.designation || "",
-              location: user.location || "",
-              modifiable: user.modifiable || false,
-              trainingCompleted: user.trainingCompleted || false,
+              name: user?.name || "",
+              status: user?.status === "active",
+              phone: user?.phone || "",
+              department: user?.department?._id || "",
+              designation: user?.designation?._id || "",
+              location: user?.location?._id || "",
+              modifiable: user?.modifiable || false,
+              trainingCompleted: user?.trainingCompleted || false,
             });
             openModal();
           }}
@@ -110,7 +111,7 @@ export default function UserInfoCard() {
             />
           </svg>
           Edit
-        </button> */}
+        </button>
       </div>
 
       {/* Modal */}

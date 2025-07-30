@@ -2,6 +2,9 @@ export const PERMISSIONS = {
   // Dashboard
   VIEW_DASHBOARD: "VIEW:DASHBOARD",
 
+  // Company Info
+  VIEW_COMPANY_INFO: "VIEW:COMPANY INFO",
+
   // Permission Management
   CREATE_PERMISSION: "CREATE:PERMISSION",
   VIEW_PERMISSION: "VIEW:PERMISSION",
