@@ -6,14 +6,14 @@ const redisClient = createClient({
   password: ENV.REDIS_SERVER_PASSWORD // Use the same password set in redis.conf
 });
 
-(async () => {
-  try {
-    await redisClient.connect();
-    console.log("Connected to Redis with authentication");
-  } catch (error) {
-    console.error("Redis connection error:", error);
-  }
-})();
+// (async () => {
+//   try {
+//     await redisClient.connect();
+//     console.log("Connected to Redis with authentication");
+//   } catch (error) {
+//     console.error("Redis connection error:", error);
+//   }
+// })();
 
 // Cache methods
 export const cacheResponse = async ({
