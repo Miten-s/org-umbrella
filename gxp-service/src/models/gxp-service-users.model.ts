@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
 const GxpServiceUserSchema = new mongoose.Schema(
   {
@@ -11,20 +11,11 @@ const GxpServiceUserSchema = new mongoose.Schema(
       enum: ["User", "Resolver"],
       required: true
     },
-    roles: [
-      {
-        roleId: {
-          type: String,
-          match: /^SRV~/,
-          required: true
-        },
-        roleName: {
-          type: String,
-          match: /^Service/,
-          required: true
-        }
-      }
-    ],
+    roles: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "Role"
+    },
     description: {
       type: String,
       maxlength: 50
@@ -36,6 +27,11 @@ const GxpServiceUserSchema = new mongoose.Schema(
     modifiedBy: {
       type: String,
       maxlength: 40
+    },
+    status: {
+      type: String,
+      enum: ["enabled", "disabled"],
+      default: "enabled"
     },
     trainingCompleted: {
       type: Boolean,
