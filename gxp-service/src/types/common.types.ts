@@ -4,3 +4,8 @@ export type AppError = {
   stack?: string;
   [key: string]: any;
 };
+
+export enum STATUS {
+  ENABLED = "enabled",
+  DISABLED = "disabled"
+}
