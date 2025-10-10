@@ -2,7 +2,7 @@ import mongoose, { Schema } from "mongoose";
 import { STATUS } from "../types/common.types";
 
 export interface Workflow {
-  workflowId: string;
+  _id: string;
   workflowName: string;
   numberOfLevels: number;
   groups: string[];
@@ -16,10 +16,9 @@ export interface Workflow {
 
 const workflowSchema = new Schema(
   {
-    workflowId: { type: String, required: true, unique: true, index: true },
     workflowName: { type: String, required: true, maxlength: 20 },
     numberOfLevels: { type: Number, required: true },
-    groups: { type: [String], required: true },
+    levels: { type: [String], required: true },
     description: { type: String, maxlength: 50 },
     createdOn: { type: Date, default: null },
     createdBy: { type: String, maxlength: 40, default: "" },
@@ -31,6 +30,6 @@ const workflowSchema = new Schema(
 );
 
 export const WorkflowModel = mongoose.model<Workflow>(
-  "Workflow",
+  "GxpServiceWorkflow",
   workflowSchema
 );

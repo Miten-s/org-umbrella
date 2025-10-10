@@ -50,6 +50,6 @@ const environmentSchema = new Schema(
 );
 
 export const EnvironmentModel = mongoose.model<Environment>(
-  "Environment",
+  "GxpEnvironment",
   environmentSchema
 );

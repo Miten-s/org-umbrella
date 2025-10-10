@@ -24,7 +24,7 @@ const GxpServicePortalRoleSchema = new Schema(
     permissions: [
       {
         type: Schema.Types.ObjectId,
-        ref: "Permission",
+        ref: "GxpServicePortalPermissions",
         required: true
       }
     ],
@@ -48,7 +48,7 @@ const GxpServicePortalRoleSchema = new Schema(
   },
   {
     timestamps: true,
-    _id: false // Tell Mongoose not to create ObjectId automatically
+    _id: false
   }
 );
 

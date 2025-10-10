@@ -6,7 +6,7 @@ import {
   getAll,
   search,
   update
-} from "../services/gsxp-service-workflows.service";
+} from "../services/gxp-service-workflows.service";
 import asyncHandler from "../middlewares/error.middleware";
 
 export const createWorkflow = asyncHandler(

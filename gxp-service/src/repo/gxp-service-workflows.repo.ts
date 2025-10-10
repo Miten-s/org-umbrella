@@ -1,4 +1,4 @@
-import { WorkflowModel } from "../models/gsx-service-workflows.model";
+import { WorkflowModel } from "../models/gxp-service-workflows.model";
 import { STATUS } from "../types/common.types";
 
 export const createWorkflow = async (data: any) => {

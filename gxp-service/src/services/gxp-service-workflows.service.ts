@@ -5,7 +5,7 @@ import {
   disableWorkflow,
   enableWorkflow,
   searchWorkflows
-} from "../repo/gsx-service-workflows.repo";
+} from "../repo/gxp-service-workflows.repo";
 
 export const addWorkflow = async (workflowData: any) => {
   const newWorkflow = {
