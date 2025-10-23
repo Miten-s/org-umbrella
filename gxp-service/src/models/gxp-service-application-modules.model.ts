@@ -1,10 +1,10 @@
 import mongoose, { Schema } from "mongoose";
 
-const GxpServiceAppModule = new mongoose.Schema(
+const GxpServiceAppModuleSchema = new mongoose.Schema(
   {
     appId: {
       type: String,
-      ref: "Application",
+      ref: "GxpServiceApplication",
       required: true
     },
     moduleName: {
@@ -28,11 +28,11 @@ const GxpServiceAppModule = new mongoose.Schema(
   }
 );
 
-const GxpServiceUser = mongoose.model(
+const GxpServiceAppModuleModel = mongoose.model(
   "GxpServiceAppModule",
-  GxpServiceAppModule
+  GxpServiceAppModuleSchema
 );
 
-GxpServiceAppModule.index({ appId: 1, moduleName: 1 }, { unique: true });
+GxpServiceAppModuleSchema.index({ appId: 1, moduleName: 1 }, { unique: true });
 
-export default GxpServiceUser;
+export default GxpServiceAppModuleModel;

@@ -43,8 +43,11 @@ const GxpServiceUserSchema = new mongoose.Schema(
   }
 );
 
-const GxpServiceUser = mongoose.model("GxpServiceUser", GxpServiceUserSchema);
+const GxpServiceUserModel = mongoose.model(
+  "GxpServiceUser",
+  GxpServiceUserSchema
+);
 
 GxpServiceUserSchema.index({ "user.id": 1, userType: 1 }, { unique: true });
 
-export default GxpServiceUser;
+export default GxpServiceUserModel;

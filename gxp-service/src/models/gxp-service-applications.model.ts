@@ -4,6 +4,7 @@ export interface IApplication extends Document {
   applicationName: string;
   applicationType: "GxP" | "Non-GxP";
   applicationEnvironment?: string;
+  group: string;
   applicationRoles: string[];
   applicationGroups: string[];
   applicationServiceRequestTypes: string[];
@@ -22,30 +23,45 @@ export interface IApplication extends Document {
   status: "enabled" | "disabled";
 }
 
-const ApplicationSchema = new Schema<IApplication>(
+const GxpServiceApplicationSchema = new Schema<IApplication>(
   {
     applicationName: { type: String, required: true, trim: true },
     applicationType: { type: String, enum: ["GxP", "Non-GxP"], required: true },
-    applicationEnvironment: { type: String, trim: true },
-    applicationRoles: { type: [String], default: [] },
-    applicationGroups: { type: [String], default: [] },
+    applicationEnvironment: {
+      type: String,
+      ref: "GxpEnvironment",
+      trim: true
+    },
+    group: { type: String, trim: true }, // This will be basically a Object Id
+    applicationRoles: {
+      type: [{ type: String, ref: "GxpServiceAppRole" }],
+      default: []
+    },
+    applicationGroups: { type: [{ type: String, ref: "GxpServiceAppGroup" }] },
     // Move the services to the app_services
     applicationServiceRequestTypes: {
-      type: [String],
-      default: [],
-      enum: [
-        "Provide Access",
-        "Modify Access",
-        "Remove Access",
-        "Generate Report",
-        "Add Master Data Request",
-        "Edit Master Data Request",
-        "Remove Master Data Request",
-        "Other Request"
-      ]
+      type: [{ type: String, ref: "GxpServiceAppService" }],
+      default: []
+      // enum: [
+      //   "Provide Access",
+      //   "Modify Access",
+      //   "Remove Access",
+      //   "Generate Report",
+      //   "Add Master Data Request",
+      //   "Edit Master Data Request",
+      //   "Remove Master Data Request",
+      //   "Other Request"
+      // ]
     },
-    applicationModules: { type: [String], default: [] },
-    applicationWorkflow: { type: String, trim: true },
+    applicationModules: {
+      type: [{ type: String, ref: "GxpServiceAppModule" }],
+      default: []
+    },
+    applicationWorkflow: {
+      type: String,
+      ref: "GxpServiceAppWorkflow",
+      trim: true
+    },
     applicationSystemOwner: { type: String, ref: "GxpServiceUser", trim: true },
     applicationProcessOwner: {
       type: String,
@@ -67,7 +83,9 @@ const ApplicationSchema = new Schema<IApplication>(
   }
 );
 
-export const ApplicationModel = mongoose.model<IApplication>(
-  "GxpApplication",
-  ApplicationSchema
+const GxpServiceApplicationModel = mongoose.model<IApplication>(
+  "GxpServiceApplication",
+  GxpServiceApplicationSchema
 );
+
+export default GxpServiceApplicationModel;

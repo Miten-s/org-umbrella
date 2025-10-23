@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const GxpServiceRequestAttachment = new mongoose.Schema(
+const GxpServiceRequestAttachmentSchema = new mongoose.Schema(
   {
     requestId: {
       type: String,
@@ -24,9 +24,9 @@ const GxpServiceRequestAttachment = new mongoose.Schema(
   }
 );
 
-const GxpRequestAttachment = mongoose.model(
+const GxpRequestAttachmentModel = mongoose.model(
   "GxpServiceRequestAttachment",
-  GxpServiceRequestAttachment
+  GxpServiceRequestAttachmentSchema
 );
 
-export default GxpRequestAttachment;
+export default GxpRequestAttachmentModel;

@@ -1,4 +1,3 @@
-// src/services/gxpSupplier.service.ts
 import * as repo from "../repo/gxp-service-suppliers.repo";
 import { IGxpSupplier } from "../models/gxp-service-suppliers.model";
 
@@ -59,7 +58,6 @@ export const enableSupplier = async (id: string, currentUser?: string) => {
   return await repo.restoreSupplier(id);
 };
 
-export const searchSuppliers = async (q: string, limit = 20) => {
-  if (!q || q.trim() === "") return [];
-  return await repo.searchSuppliersByName(q, limit);
+export const deleteSupplier = async (id: string) => {
+  return await repo.deleteSupplierById(id);
 };

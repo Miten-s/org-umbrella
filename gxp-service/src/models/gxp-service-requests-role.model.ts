@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const GxpServiceRequestRole = new mongoose.Schema(
+const GxpServiceRequestRoleSchema = new mongoose.Schema(
   {
     requestId: {
       type: String,
@@ -24,9 +24,9 @@ const GxpServiceRequestRole = new mongoose.Schema(
   }
 );
 
-const GxpRequestRole = mongoose.model(
+const GxpRequestRoleModel = mongoose.model(
   "GxpServiceRequestRole",
-  GxpServiceRequestRole
+  GxpServiceRequestRoleSchema
 );
 
-export default GxpRequestRole;
+export default GxpRequestRoleModel;

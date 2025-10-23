@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const GxpServiceRequestGroup = new mongoose.Schema(
+const GxpServiceRequestGroupSchema = new mongoose.Schema(
   {
     requestId: {
       type: String,
@@ -24,9 +24,9 @@ const GxpServiceRequestGroup = new mongoose.Schema(
   }
 );
 
-const GxpRequesGroup = mongoose.model(
+const GxpRequestGroupModel = mongoose.model(
   "GxpServiceRequestGroup",
-  GxpServiceRequestGroup
+  GxpServiceRequestGroupSchema
 );
 
-export default GxpRequesGroup;
+export default GxpRequestGroupModel;

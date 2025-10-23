@@ -52,9 +52,9 @@ const GxpServicePortalRoleSchema = new Schema(
   }
 );
 
-const GxpServicePortalRole = mongoose.model(
+const GxpServicePortalRoleModel = mongoose.model(
   "GxpServicePortalRole",
   GxpServicePortalRoleSchema
 );
 
-export default GxpServicePortalRole;
+export default GxpServicePortalRoleModel;

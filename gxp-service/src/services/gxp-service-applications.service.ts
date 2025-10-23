@@ -1,4 +1,3 @@
-// src/services/application.service.ts
 import * as repo from "../repo/gxp-service-applications.repo";
 import { IApplication } from "../models/gxp-service-applications.model";
 
@@ -15,6 +14,7 @@ export const create = async (
     modifiedBy: currentUser ?? null,
     status: "enabled"
   };
+
   return await repo.create(toSave);
 };
 
@@ -57,4 +57,8 @@ export const restore = async (id: string, currentUser?: string) => {
     modifiedBy: currentUser ?? null
   });
   return await repo.restore(id);
+};
+
+export const deleteApplication = async (id: string) => {
+  return await repo.deleteApplcation(id);
 };

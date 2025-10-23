@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
 
-const GxpServiceAppDepartment = new mongoose.Schema(
+const GxpServiceAppRolesSchema = new mongoose.Schema(
   {
     appId: {
       type: String,
-      ref: "Application",
+      ref: "GxpServiceApplication",
       required: true
     },
     role: {
@@ -25,14 +25,14 @@ const GxpServiceAppDepartment = new mongoose.Schema(
   }
 );
 
-const GxpServiceDepartment = mongoose.model(
-  "GxpServiceAppDepartment",
-  GxpServiceAppDepartment
+const GxpServiceRolesModel = mongoose.model(
+  "GxpServiceAppRoles",
+  GxpServiceAppRolesSchema
 );
 
-GxpServiceAppDepartment.index(
+GxpServiceAppRolesSchema.index(
   { appId: 1, departmentName: 1 },
   { unique: true }
 );
 
-export default GxpServiceDepartment;
+export default GxpServiceRolesModel;

@@ -1,13 +1,13 @@
 import mongoose from "mongoose";
 
-const GxpServiceAppService = new mongoose.Schema(
+const GxpServiceAppGroupSchema = new mongoose.Schema(
   {
     appId: {
       type: String,
       ref: "GxpServiceApplication",
       required: true
     },
-    service: {
+    appGroup: {
       type: String,
       required: true
     },
@@ -24,11 +24,11 @@ const GxpServiceAppService = new mongoose.Schema(
   }
 );
 
-const GxpServiceAppServiceModel = mongoose.model(
-  "GxpServiceAppService",
-  GxpServiceAppService
+const GxpServiceAppGroupModel = mongoose.model(
+  "GxpServiceAppGroup",
+  GxpServiceAppGroupSchema
 );
 
-GxpServiceAppService.index({ appId: 1, service: 1 }, { unique: true });
+GxpServiceAppGroupSchema.index({ appId: 1, appGroup: 1 }, { unique: true });
 
-export default GxpServiceAppServiceModel;
+export default GxpServiceAppGroupModel;

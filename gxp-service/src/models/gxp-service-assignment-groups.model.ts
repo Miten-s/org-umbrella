@@ -18,7 +18,7 @@ export interface AssignmentGroup {
   isActive: boolean;
 }
 
-const assignmentGroupSchema = new Schema(
+const GxpServiceAssignmentGroupSchema = new Schema(
   {
     groupName: {
       type: String,
@@ -47,7 +47,9 @@ const assignmentGroupSchema = new Schema(
   { timestamps: false }
 );
 
-export const AssignmentGroupModel = mongoose.model<AssignmentGroup>(
-  "AssignmentGroup",
-  assignmentGroupSchema
+const GxpServiceAssignmentGroupModel = mongoose.model<AssignmentGroup>(
+  "GxpServiceAssignmentGroup",
+  GxpServiceAssignmentGroupSchema
 );
+
+export default GxpServiceAssignmentGroupModel;

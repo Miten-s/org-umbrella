@@ -34,7 +34,7 @@ export interface IServiceRequest {
   comments: string[];
 }
 
-const ServiceRequestSchema = new Schema<IServiceRequest>(
+const GxpServicePortalRequestSchema = new Schema<IServiceRequest>(
   {
     _id: {
       type: String,
@@ -82,7 +82,7 @@ const ServiceRequestSchema = new Schema<IServiceRequest>(
   { timestamps: true, _id: false }
 );
 
-export const ServiceRequestModel = mongoose.model<IServiceRequest>(
+export const GxpServiceRequestModel = mongoose.model<IServiceRequest>(
   "GxpServiceRequest",
-  ServiceRequestSchema
+  GxpServicePortalRequestSchema
 );

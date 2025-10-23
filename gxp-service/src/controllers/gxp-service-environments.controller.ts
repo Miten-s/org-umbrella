@@ -1,58 +1,51 @@
 import { Request, Response } from "express";
-
-import {
-  addNewEnvironment,
-  getAllEnvironments,
-  updateEnvironment,
-  disableEnvironment,
-  restoreEnvironment,
-  searchEnvironment
-} from "../services/gxp-service-environments.service";
-
+import * as service from "../services/gxp-service-environments.service";
 import asyncHandler from "../middlewares/error.middleware";
 
-export const createEnvironmentHandler = asyncHandler(
+export const createEnvironment = asyncHandler(
   async (req: Request, res: Response) => {
-    const result = await addNewEnvironment(req.body, null);
-    res.status(201).json(result);
+    const currentUser = (req as any).user?.id ?? null;
+    const result = await service.addNewEnvironment(req.body, currentUser);
+    res.status(201).send(result);
   }
 );
 
-export const getAllEnvironmentsHandler = asyncHandler(
+export const getEnvironments = asyncHandler(
   async (_req: Request, res: Response) => {
-    const result = await getAllEnvironments();
-    res.json(result);
+    const result = await service.getAllEnvironments();
+    res.status(200).send(result);
   }
 );
 
-export const updateEnvironmentHandler = asyncHandler(
+export const updateEnvironment = asyncHandler(
   async (req: Request, res: Response) => {
-    const { environmentName } = req.params;
-    const result = await updateEnvironment(environmentName, req.body, null);
-    res.json(result);
+    const { id } = req.params;
+    const currentUser = (req as any).user?.id ?? null;
+    const result = await service.updateEnvironment(id, req.body, currentUser);
+    res.status(200).send(result);
   }
 );
 
-export const disableEnvironmentHandler = asyncHandler(
+export const disableEnvironment = asyncHandler(
   async (req: Request, res: Response) => {
-    const { environmentName } = req.params;
-    const result = await disableEnvironment(environmentName);
-    res.json(result);
+    const { id } = req.params;
+    const result = await service.disableEnvironment(id);
+    res.status(200).send(result);
   }
 );
 
-export const restoreEnvironmentHandler = asyncHandler(
+export const enableEnvironment = asyncHandler(
   async (req: Request, res: Response) => {
-    const { environmentName } = req.body;
-    const result = await restoreEnvironment(environmentName);
-    res.json(result);
+    const { id } = req.params;
+    const result = await service.restoreEnvironment(id);
+    res.status(200).send(result);
   }
 );
 
-export const searchEnvironmentHandler = asyncHandler(
+export const deleteEnvironment = asyncHandler(
   async (req: Request, res: Response) => {
-    const { q } = req.query;
-    const result = await searchEnvironment(q as string);
-    res.json(result);
+    const { id } = req.params;
+    const result = await service.deleteEnvironment(id);
+    res.status(200).send(result);
   }
 );

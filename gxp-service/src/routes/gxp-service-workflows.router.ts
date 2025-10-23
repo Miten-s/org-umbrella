@@ -1,7 +1,6 @@
 import { Router } from "express";
 import API_ROUTES from "../utils/routes";
 import {
-  searchWorkflows,
   getAllWorkflows,
   createWorkflow,
   updateWorkflow,
@@ -13,24 +12,22 @@ const router: Router = Router();
 
 // ---------------------------------------------------------------------------------------- GET Requests ----------------------------------------------------------------------------------------
 
-router.get(API_ROUTES.ROOT, (req, res) => {
-  res.send("GXP Service Workflows API");
-});
-
-router.get("/search", searchWorkflows);
-router.get("/", getAllWorkflows);
+router.get(API_ROUTES.WORKFLOWS.ROOT, getAllWorkflows);
 
 // ---------------------------------------------------------------------------------------- POST Requests ----------------------------------------------------------------------------------------
 
-router.post("/", createWorkflow);
-router.post("/restore", restoreWorkflow);
+router.post(API_ROUTES.WORKFLOWS.ROOT, createWorkflow);
 
 // ---------------------------------------------------------------------------------------- PUT Requests ----------------------------------------------------------------------------------------
 
-router.patch("/:workflowId", updateWorkflow);
+router.patch(API_ROUTES.WORKFLOWS.ENABLE_BY_ID, restoreWorkflow);
+
+router.patch(API_ROUTES.WORKFLOWS.DISABLE_BY_ID, restoreWorkflow);
+
+router.patch(API_ROUTES.WORKFLOWS.BY_ID, updateWorkflow);
 
 // ---------------------------------------------------------------------------------------- DELETE Requests ----------------------------------------------------------------------------------------
 
-router.delete("/:workflowId", disableWorkflow);
+router.delete(API_ROUTES.WORKFLOWS.BY_ID, disableWorkflow);
 
 export default router;

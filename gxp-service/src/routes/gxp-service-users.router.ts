@@ -12,22 +12,18 @@ const router: Router = Router();
 
 // ---------------------------------------------------------------------------------------- GET Requests ----------------------------------------------------------------------------------------
 
-router.get(API_ROUTES.ROOT, (req, res) => {
-  res.send("GXP Service Users API");
-});
-
-router.get("/", getAllUsers);
+router.get(API_ROUTES.USER.ROOT, getAllUsers);
 
 // ---------------------------------------------------------------------------------------- POST Requests ----------------------------------------------------------------------------------------
 
-router.post("/", createUser);
+router.post(API_ROUTES.USER.ROOT, createUser);
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
-router.patch("/:id", updateUser);
+router.patch(API_ROUTES.USER.BY_ID, updateUser);
 
-router.patch("/:id/disable", disableUser);
+router.patch(API_ROUTES.USER.DISABLE_BY_ID, disableUser);
 
-router.patch("/:id/enable", enableUser);
+router.patch(API_ROUTES.USER.ENABLE_BY_ID, enableUser);
 
 // ---------------------------------------------------------------------------------------- DELETE Requests ----------------------------------------------------------------------------------------
 

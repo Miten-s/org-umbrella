@@ -10,7 +10,7 @@ export interface Environment {
   isActive: boolean;
 }
 
-const environmentSchema = new Schema(
+const GxpServiceEnvironmentSchema = new Schema(
   {
     environmentName: {
       type: String,
@@ -49,7 +49,9 @@ const environmentSchema = new Schema(
   { timestamps: false }
 );
 
-export const EnvironmentModel = mongoose.model<Environment>(
-  "GxpEnvironment",
-  environmentSchema
+const GxpServiceEnvironmentModel = mongoose.model<Environment>(
+  "GxpServiceEnvironment",
+  GxpServiceEnvironmentSchema
 );
+
+export default GxpServiceEnvironmentModel;

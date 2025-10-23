@@ -50,3 +50,7 @@ export const searchSuppliersByName = async (q: string, limit = 20) => {
     .limit(limit)
     .lean();
 };
+
+export const deleteSupplierById = async (id: string) => {
+  return await GxpSupplierModel.findByIdAndDelete(id);
+};

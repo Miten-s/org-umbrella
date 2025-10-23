@@ -31,9 +31,9 @@ const GxpServicePortalPermissionsSchema = new Schema(
   }
 );
 
-const GxpServicePortalPermissions = mongoose.model(
-  "GxpServicePortalPermissions",
+const GxpServicePortalPermissionsModel = mongoose.model(
+  "GxpServicePortalPermission",
   GxpServicePortalPermissionsSchema
 );
 
-export default GxpServicePortalPermissions;
+export default GxpServicePortalPermissionsModel;

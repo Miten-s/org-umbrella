@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
 
-const GxpServiceAppAttachment = new mongoose.Schema(
+const GxpServiceAppAttachmentSchema = new mongoose.Schema(
   {
     appId: {
       type: String,
-      ref: "Application",
+      ref: "GxpServiceApplication",
       required: true
     },
     attachmentLink: {
@@ -24,11 +24,11 @@ const GxpServiceAppAttachment = new mongoose.Schema(
   }
 );
 
-const GxpServiceAppServiceModel = mongoose.model(
+const GxpServiceAppAttachmentModel = mongoose.model(
   "GxpServiceAppAttachment",
-  GxpServiceAppAttachment
+  GxpServiceAppAttachmentSchema
 );
 
-GxpServiceAppAttachment.index({ appId: 1, service: 1 }, { unique: true });
+GxpServiceAppAttachmentSchema.index({ appId: 1 }, { unique: true });
 
-export default GxpServiceAppServiceModel;
+export default GxpServiceAppAttachmentModel;

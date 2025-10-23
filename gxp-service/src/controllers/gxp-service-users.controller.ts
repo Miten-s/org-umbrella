@@ -16,25 +16,25 @@ export const createUser = asyncHandler(async (req: Request, res: Response) => {
 
 export const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
   const result = await getAllUsersService();
-  res.json(result);
+  res.status(200).send(result);
 });
 
 export const updateUser = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const data = req.body;
   const result = await updateUserService(id, data);
-  res.json(result);
+  res.status(200).send(result);
 });
 
 export const disableUser = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const result = await disableUserService(id);
-  res.json(result);
+  res.status(200).send(result);
 });
 
 export const enableUser = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const { comments } = req.body;
   const result = await enableUserService(id, comments);
-  res.json(result);
+  res.status(200).send(result);
 });

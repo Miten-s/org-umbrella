@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const GxpServiceRequestComment = new mongoose.Schema(
+const GxpServiceRequestCommentSchema = new mongoose.Schema(
   {
     requestId: {
       type: String,
@@ -24,9 +24,9 @@ const GxpServiceRequestComment = new mongoose.Schema(
   }
 );
 
-const GxpRequesComments = mongoose.model(
+const GxpRequestCommentsModel = mongoose.model(
   "GxpServiceRequestComment",
-  GxpServiceRequestComment
+  GxpServiceRequestCommentSchema
 );
 
-export default GxpRequesComments;
+export default GxpRequestCommentsModel;

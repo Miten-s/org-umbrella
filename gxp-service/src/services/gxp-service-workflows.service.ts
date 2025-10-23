@@ -7,9 +7,10 @@ import {
   searchWorkflows
 } from "../repo/gxp-service-workflows.repo";
 
-export const addWorkflow = async (workflowData: any) => {
+export const addWorkflow = async (workflowData: any, user: string) => {
   const newWorkflow = {
     ...workflowData,
+    createdBy: user,
     createdOn: new Date(),
     modifiedOn: new Date(),
     status: "enabled"

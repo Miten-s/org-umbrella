@@ -1,11 +1,4 @@
-import {
-  createEnvironment,
-  findAllEnvironments,
-  updateEnvironmentByName,
-  disableEnvironmentByName,
-  enableEnvironmentByName,
-  searchEnvironmentsByName
-} from "../repo/gxp-service-environments.repo";
+import * as repo from "../repo/gxp-service-environments.repo";
 
 export const addNewEnvironment = async (data: any, user: any) => {
   const environmentToCreate = {
@@ -17,33 +10,33 @@ export const addNewEnvironment = async (data: any, user: any) => {
     isActive: true
   };
 
-  return await createEnvironment(environmentToCreate);
+  return await repo.createEnvironment(environmentToCreate);
 };
 
 export const getAllEnvironments = async () => {
-  return await findAllEnvironments();
+  return await repo.findAllEnvironments();
 };
 
 export const updateEnvironment = async (
-  environmentName: string,
+  id: string,
   updatedData: any,
   user: any
 ) => {
-  return await updateEnvironmentByName(environmentName, {
+  return await repo.updateEnvironment(id, {
     ...updatedData,
     modifiedOn: new Date(),
     modifiedBy: user
   });
 };
 
-export const disableEnvironment = async (environmentName: string) => {
-  return await disableEnvironmentByName(environmentName);
+export const disableEnvironment = async (id: string) => {
+  return await repo.disableEnvironment(id);
 };
 
-export const restoreEnvironment = async (environmentName: string) => {
-  return await enableEnvironmentByName(environmentName);
+export const restoreEnvironment = async (id: string) => {
+  return await repo.enableEnvironment(id);
 };
 
-export const searchEnvironment = async (searchTerm: string) => {
-  return await searchEnvironmentsByName(searchTerm);
+export const deleteEnvironment = async (id: string) => {
+  return await repo.disableEnvironment(id);
 };

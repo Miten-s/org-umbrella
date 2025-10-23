@@ -40,7 +40,7 @@ app.get(API_ROUTES.HEALTH, (_req, res) => {
   res.status(200).json({ message: CUSTOM_MESSAGES.HEALTHY_MESSAGE });
 });
 
-// Rate limiter: 20 requests per 1 minute per user
+// Rate limiter: 50 requests per 1 minute per user
 
 const userRateLimiter = rateLimit({
   windowMs: 1 * 60 * 1000,

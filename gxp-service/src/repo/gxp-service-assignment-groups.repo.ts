@@ -1,19 +1,19 @@
-import { AssignmentGroupModel } from "../models/gxp-service-assignment-groups.model";
+import GxpServiceAssignmentGroupModel from "../models/gxp-service-assignment-groups.model";
 
 export const createGroup = async (data: any) => {
-  return await AssignmentGroupModel.create(data);
+  return await GxpServiceAssignmentGroupModel.create(data);
 };
 
 export const getAllGroups = async () => {
-  return await AssignmentGroupModel.find();
+  return await GxpServiceAssignmentGroupModel.find();
 };
 
 export const getGroupByName = async (groupName: string) => {
-  return await AssignmentGroupModel.findOne({ groupName });
+  return await GxpServiceAssignmentGroupModel.findOne({ groupName });
 };
 
 export const updateGroup = async (groupName: string, updateData: any) => {
-  return await AssignmentGroupModel.findOneAndUpdate(
+  return await GxpServiceAssignmentGroupModel.findOneAndUpdate(
     { groupName },
     updateData,
     { new: true }
@@ -21,7 +21,7 @@ export const updateGroup = async (groupName: string, updateData: any) => {
 };
 
 export const disableGroup = async (groupName: string) => {
-  return await AssignmentGroupModel.findOneAndUpdate(
+  return await GxpServiceAssignmentGroupModel.findOneAndUpdate(
     { groupName },
     { isActive: false },
     { new: true }
@@ -29,7 +29,7 @@ export const disableGroup = async (groupName: string) => {
 };
 
 export const enableGroup = async (groupName: string) => {
-  return await AssignmentGroupModel.findOneAndUpdate(
+  return await GxpServiceAssignmentGroupModel.findOneAndUpdate(
     { groupName },
     { isActive: true },
     { new: true }
@@ -37,7 +37,7 @@ export const enableGroup = async (groupName: string) => {
 };
 
 export const searchGroups = async (searchTerm: string) => {
-  return await AssignmentGroupModel.find({
+  return await GxpServiceAssignmentGroupModel.find({
     groupName: new RegExp(searchTerm, "i")
   });
 };
