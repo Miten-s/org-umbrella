@@ -26,8 +26,10 @@ const GxpServiceWorkflowSchema = new Schema(
     modifiedBy: { type: String, maxlength: 40, default: null },
     status: { type: String, enum: STATUS, default: true }
   },
-  { timestamps: false }
+  { timestamps: false, collection: "gxp-service-workflows" }
 );
+
+GxpServiceWorkflowSchema.index({ workflowName: 1 }, { unique: true });
 
 export const GxpServiceWorkFlowModel = mongoose.model<Workflow>(
   "GxpServiceWorkflow",

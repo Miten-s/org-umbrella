@@ -25,11 +25,12 @@ const GxpSupplierSchema = new Schema<IGxpSupplier>(
     status: { type: String, enum: ["enabled", "disabled"], default: "enabled" }
   },
   {
-    timestamps: false
+    timestamps: false,
+    collection: "gxp-service-suppliers"
   }
 );
 
 export const GxpSupplierModel = mongoose.model<IGxpSupplier>(
-  "GxpSupplier",
+  "GxpServiceSupplier",
   GxpSupplierSchema
 );

@@ -9,26 +9,23 @@ const GxpServiceAppDepartmentSchema = new mongoose.Schema(
     },
     departmentName: {
       type: String,
-      enum: ["User", "Resolver"],
       required: true
     },
     active: {
       type: Boolean,
-      required: true
+      default: true
     },
     createdBy: {
       type: String
     }
   },
   {
-    timestamps: true
+    timestamps: true,
+    collection: "gxp-service-app-departments"
   }
 );
 
-GxpServiceAppDepartmentSchema.index(
-  { appId: 1, departmentName: 1 },
-  { unique: true }
-);
+GxpServiceAppDepartmentSchema.index({ appId: 1, departmentName: 1 });
 
 const GxpServiceAppDepartmentModel = mongoose.model(
   "GxpServiceAppDepartments",

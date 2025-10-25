@@ -13,8 +13,8 @@ export interface IApplication extends Document {
   applicationSystemOwner?: string;
   applicationProcessOwner?: string;
   supplier?: string;
-  departments: string;
-  note?: string;
+  departments: string[];
+  notes?: string;
   attachments: string[];
   createdOn?: Date | null;
   createdBy?: string | null;
@@ -29,29 +29,17 @@ const GxpServiceApplicationSchema = new Schema<IApplication>(
     applicationType: { type: String, enum: ["GxP", "Non-GxP"], required: true },
     applicationEnvironment: {
       type: String,
-      ref: "GxpEnvironment",
-      trim: true
+      ref: "GxpServiceEnvironment"
     },
-    group: { type: String, trim: true }, // This will be basically a Object Id
+    group: { type: String, ref: "GxpServiceAssignmentGroup" },
     applicationRoles: {
       type: [{ type: String, ref: "GxpServiceAppRole" }],
       default: []
     },
     applicationGroups: { type: [{ type: String, ref: "GxpServiceAppGroup" }] },
-    // Move the services to the app_services
     applicationServiceRequestTypes: {
       type: [{ type: String, ref: "GxpServiceAppService" }],
       default: []
-      // enum: [
-      //   "Provide Access",
-      //   "Modify Access",
-      //   "Remove Access",
-      //   "Generate Report",
-      //   "Add Master Data Request",
-      //   "Edit Master Data Request",
-      //   "Remove Master Data Request",
-      //   "Other Request"
-      // ]
     },
     applicationModules: {
       type: [{ type: String, ref: "GxpServiceAppModule" }],
@@ -59,19 +47,20 @@ const GxpServiceApplicationSchema = new Schema<IApplication>(
     },
     applicationWorkflow: {
       type: String,
-      ref: "GxpServiceAppWorkflow",
-      trim: true
+      ref: "GxpServiceWorkflow"
     },
-    applicationSystemOwner: { type: String, ref: "GxpServiceUser", trim: true },
+    applicationSystemOwner: { type: String, ref: "GxpServiceUser" },
     applicationProcessOwner: {
       type: String,
-      ref: "GxpServiceUser",
-      trim: true
+      ref: "GxpServiceUser"
     },
-    supplier: { type: String, ref: "GxpSupplier", trim: true },
-    departments: { type: String, ref: "GxpServiceAppDepartment" },
-    note: { type: String, trim: true },
-    attachments: [{ type: String, ref: "GxpServiceAppAttachment", trim: true }],
+    supplier: { type: String, ref: "GxpServiceSupplier" },
+    departments: {
+      type: [{ type: String, ref: "GxpServiceAppDepartment" }],
+      default: []
+    },
+    notes: { type: String, trim: true },
+    attachments: [{ type: String, ref: "GxpServiceAppAttachment" }],
     createdOn: { type: Date, default: null },
     createdBy: { type: String, default: null },
     modifiedOn: { type: Date, default: null },
@@ -79,9 +68,12 @@ const GxpServiceApplicationSchema = new Schema<IApplication>(
     status: { type: String, enum: ["enabled", "disabled"], default: "enabled" }
   },
   {
-    timestamps: false
+    timestamps: false,
+    collection: "gxp-service-applications"
   }
 );
+
+GxpServiceApplicationSchema.index({ applicationName: 1 }, { unique: true });
 
 const GxpServiceApplicationModel = mongoose.model<IApplication>(
   "GxpServiceApplication",

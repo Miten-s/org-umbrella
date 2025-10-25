@@ -18,15 +18,13 @@ const GxpServiceUserSchema = new mongoose.Schema(
     },
     description: {
       type: String,
-      maxlength: 50
+      maxlength: 100
     },
     createdBy: {
-      type: String,
-      maxlength: 40
+      type: String
     },
     modifiedBy: {
-      type: String,
-      maxlength: 40
+      type: String
     },
     status: {
       type: String,
@@ -39,7 +37,8 @@ const GxpServiceUserSchema = new mongoose.Schema(
     }
   },
   {
-    timestamps: true
+    timestamps: true,
+    collection: "gxp-service-users"
   }
 );
 

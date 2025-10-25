@@ -1,4 +1,4 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose from "mongoose";
 
 const GxpServiceAppModuleSchema = new mongoose.Schema(
   {
@@ -9,22 +9,19 @@ const GxpServiceAppModuleSchema = new mongoose.Schema(
     },
     moduleName: {
       type: String,
-      enum: ["User", "Resolver"],
       required: true
     },
     active: {
-      type: Schema.Types.ObjectId,
-      required: true,
-      ref: "Role"
+      type: Boolean,
+      default: true
     },
-    status: {
-      type: String,
-      enum: ["enabled", "disabled"],
-      default: "enabled"
+    createdBy: {
+      type: String
     }
   },
   {
-    timestamps: true
+    timestamps: true,
+    collection: "gxp-service-app-modules"
   }
 );
 
@@ -33,6 +30,6 @@ const GxpServiceAppModuleModel = mongoose.model(
   GxpServiceAppModuleSchema
 );
 
-GxpServiceAppModuleSchema.index({ appId: 1, moduleName: 1 }, { unique: true });
+GxpServiceAppModuleSchema.index({ appId: 1, moduleName: 1 });
 
 export default GxpServiceAppModuleModel;

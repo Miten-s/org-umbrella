@@ -27,7 +27,8 @@ const GxpServicePortalPermissionsSchema = new Schema(
     }
   },
   {
-    timestamps: true
+    timestamps: true,
+    collection: "gxp-service-permissions"
   }
 );
 

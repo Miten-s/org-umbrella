@@ -13,14 +13,15 @@ const GxpServiceAppGroupSchema = new mongoose.Schema(
     },
     active: {
       type: Boolean,
-      required: true
+      default: true
     },
     createdBy: {
       type: String
     }
   },
   {
-    timestamps: true
+    timestamps: true,
+    collection: "gxp-service-app-groups"
   }
 );
 

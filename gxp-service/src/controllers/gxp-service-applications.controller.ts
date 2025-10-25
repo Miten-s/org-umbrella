@@ -4,9 +4,12 @@ import asyncHandler from "../middlewares/error.middleware";
 
 export const createApplication = asyncHandler(
   async (req: Request, res: Response) => {
-    const currentUser = (req as any).user?.username ?? null;
+    const currentUser = (req as any).user?.id ?? null;
     const payload = req.body;
-    const created = await service.create(payload, currentUser ?? undefined);
+    const created = await service.createApplication(
+      payload,
+      currentUser ?? undefined
+    );
     return res.status(201).json(created);
   }
 );
@@ -14,7 +17,7 @@ export const createApplication = asyncHandler(
 export const getApplications = asyncHandler(
   async (req: Request, res: Response) => {
     const includeDisabled = req.query.includeDisabled === "true";
-    const items = await service.list(includeDisabled);
+    const items = await service.getApplications(includeDisabled);
     return res.status(200).send(items);
   }
 );
@@ -22,7 +25,7 @@ export const getApplications = asyncHandler(
 export const getApplicationById = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const item = await service.getById(id);
+    const item = await service.getApplicationById(id);
     if (!item)
       return res.status(404).json({ message: "Application not found" });
     return res.status(200).send(item);
@@ -35,7 +38,11 @@ export const updateAppplication = asyncHandler(
     const payload = req.body;
     const currentUser =
       (req as any).user?.username ?? (req.headers["x-user"] as string) ?? null;
-    const updated = await service.update(id, payload, currentUser ?? undefined);
+    const updated = await service.updateApplication(
+      id,
+      payload,
+      currentUser ?? undefined
+    );
     if (!updated)
       return res.status(404).json({ message: "Application not found" });
     return res.status(200).send(updated);
@@ -47,7 +54,10 @@ export const disableApplication = asyncHandler(
     const { id } = req.params;
     const currentUser =
       (req as any).user?.username ?? (req.headers["x-user"] as string) ?? null;
-    const disabled = await service.remove(id, currentUser ?? undefined);
+    const disabled = await service.disableApplication(
+      id,
+      currentUser ?? undefined
+    );
     if (!disabled)
       return res.status(404).json({ message: "Application not found" });
     return res
@@ -61,7 +71,10 @@ export const enableApplication = asyncHandler(
     const { id } = req.params;
     const currentUser =
       (req as any).user?.username ?? (req.headers["x-user"] as string) ?? null;
-    const restored = await service.restore(id, currentUser ?? undefined);
+    const restored = await service.enableApplication(
+      id,
+      currentUser ?? undefined
+    );
     if (!restored)
       return res.status(404).json({ message: "Application not found" });
     return res

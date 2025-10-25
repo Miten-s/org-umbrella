@@ -48,6 +48,7 @@ const GxpServicePortalRoleSchema = new Schema(
   },
   {
     timestamps: true,
+    collection: "gxp-service-portal-roles",
     _id: false
   }
 );

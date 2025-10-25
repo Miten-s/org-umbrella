@@ -1,4 +1,5 @@
 import mongoose, { Schema } from "mongoose";
+import { STATUS } from "../types/common.types";
 
 export interface Environment {
   environmentName: string;
@@ -7,7 +8,7 @@ export interface Environment {
   createdBy: string;
   modifiedOn: Date;
   modifiedBy: string;
-  isActive: boolean;
+  status: STATUS;
 }
 
 const GxpServiceEnvironmentSchema = new Schema(
@@ -16,8 +17,7 @@ const GxpServiceEnvironmentSchema = new Schema(
       type: String,
       required: true,
       maxlength: 20,
-      unique: true,
-      index: true
+      unique: true
     },
     description: {
       type: String,
@@ -28,9 +28,7 @@ const GxpServiceEnvironmentSchema = new Schema(
       default: null
     },
     createdBy: {
-      type: String,
-      maxlength: 40,
-      default: ""
+      type: String
     },
     modifiedOn: {
       type: Date,
@@ -41,12 +39,13 @@ const GxpServiceEnvironmentSchema = new Schema(
       maxlength: 40,
       default: ""
     },
-    isActive: {
-      type: Boolean,
+    status: {
+      type: String,
+      enum: STATUS,
       default: true
     }
   },
-  { timestamps: false }
+  { timestamps: false, collection: "gxp-service-enironments" }
 );
 
 const GxpServiceEnvironmentModel = mongoose.model<Environment>(

@@ -1,11 +1,4 @@
-import {
-  createWorkflow,
-  getAllWorkflows,
-  updateWorkflow,
-  disableWorkflow,
-  enableWorkflow,
-  searchWorkflows
-} from "../repo/gxp-service-workflows.repo";
+import * as repo from "../repo/gxp-service-workflows.repo";
 
 export const addWorkflow = async (workflowData: any, user: string) => {
   const newWorkflow = {
@@ -16,28 +9,33 @@ export const addWorkflow = async (workflowData: any, user: string) => {
     status: "enabled"
   };
 
-  return await createWorkflow(newWorkflow);
+  return await repo.createWorkflow(newWorkflow);
 };
 
-export const getAll = async () => {
-  return await getAllWorkflows();
+export const getWorkflows = async () => {
+  return await repo.getAllWorkflows();
 };
 
-export const update = async (workflowId: string, updatedData: any) => {
-  return await updateWorkflow(workflowId, {
+export const updateWorkflow = async (
+  workflowId: string,
+  updatedData: any,
+  user: string
+) => {
+  return await repo.updateWorkflow(workflowId, {
     ...updatedData,
-    modifiedOn: new Date()
+    modifiedOn: new Date(),
+    modifiedBy: user
   });
 };
 
-export const disable = async (workflowId: string) => {
-  return await disableWorkflow(workflowId);
+export const disableWorkflow = async (workflowId: string, user: string) => {
+  return await repo.disableWorkflow(workflowId, user);
 };
 
-export const enable = async (workflowId: string) => {
-  return await enableWorkflow(workflowId);
+export const enableWorkflow = async (workflowId: string, user: string) => {
+  return await repo.enableWorkflow(workflowId, user);
 };
 
-export const search = async (term: string) => {
-  return await searchWorkflows(term);
+export const deleteWorkflow = async (workflowId: string) => {
+  return await repo.deleteWorkflow(workflowId);
 };

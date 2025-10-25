@@ -20,7 +20,8 @@ const GxpServiceRequestRoleSchema = new mongoose.Schema(
     }
   },
   {
-    timestamps: true
+    timestamps: true,
+    collection: "gxp-service-request-roles"
   }
 );
 

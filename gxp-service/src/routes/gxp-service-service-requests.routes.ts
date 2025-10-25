@@ -1,23 +1,26 @@
-// src/routes/serviceRequest.routes.ts
-
 import { Router } from "express";
 import multer from "multer";
 import {
-  create,
-  getAll,
-  getById
+  createServiceRequest,
+  getAllSeviceRequests,
+  getServiceRequestById
 } from "../controllers/gxp-service-service-requests.controller.js";
+import API_ROUTES from "../utils/routes.js";
 
 const router = Router();
 
 const upload = multer({ dest: "uploads/" });
 
 // ---------------------------------------------------------------------------------------- GET Requests ----------------------------------------------------------------------------------------
-router.get("/", getAll);
+router.get(API_ROUTES.SERVICE_REQUESTS.ROOT, getAllSeviceRequests);
 
-router.get("/:id", getById);
+router.get(API_ROUTES.SERVICE_REQUESTS.BY_ID, getServiceRequestById);
 
 // ---------------------------------------------------------------------------------------- POST Requests ----------------------------------------------------------------------------------------
-router.post("/", upload.array("trainingEvidence"), create);
+router.post(
+  API_ROUTES.SERVICE_REQUESTS.ROOT,
+  upload.array("trainingEvidence"),
+  createServiceRequest
+);
 
 export default router;

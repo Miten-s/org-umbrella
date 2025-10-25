@@ -44,7 +44,7 @@ const GxpServiceAssignmentGroupSchema = new Schema(
     modifiedBy: { type: String, maxlength: 40, default: "" },
     isActive: { type: Boolean, default: true }
   },
-  { timestamps: false }
+  { timestamps: false, collection: "gxp-service-assignment-groups" }
 );
 
 const GxpServiceAssignmentGroupModel = mongoose.model<AssignmentGroup>(

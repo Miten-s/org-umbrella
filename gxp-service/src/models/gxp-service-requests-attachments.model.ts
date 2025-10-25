@@ -20,7 +20,8 @@ const GxpServiceRequestAttachmentSchema = new mongoose.Schema(
     }
   },
   {
-    timestamps: true
+    timestamps: true,
+    collection: "gxp-service-requests-attachments"
   }
 );
 

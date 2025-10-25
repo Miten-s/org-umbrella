@@ -14,14 +14,15 @@ const GxpServiceAppRolesSchema = new mongoose.Schema(
     },
     active: {
       type: Boolean,
-      required: true
+      default: true
     },
     createdBy: {
       type: String
     }
   },
   {
-    timestamps: true
+    timestamps: true,
+    collection: "gxp-service-app-roles"
   }
 );
 
@@ -30,9 +31,6 @@ const GxpServiceRolesModel = mongoose.model(
   GxpServiceAppRolesSchema
 );
 
-GxpServiceAppRolesSchema.index(
-  { appId: 1, departmentName: 1 },
-  { unique: true }
-);
+GxpServiceAppRolesSchema.index({ appId: 1, role: 1 });
 
 export default GxpServiceRolesModel;

@@ -14,32 +14,32 @@ export const getWorkflowById = async (workflowId: string) => {
 };
 
 export const updateWorkflow = async (workflowId: string, data: any) => {
-  return await GxpServiceWorkFlowModel.findOneAndUpdate({ workflowId }, data, {
-    new: true
-  });
+  const result = await GxpServiceWorkFlowModel.findOneAndUpdate(
+    { _id: workflowId },
+    data,
+    {
+      new: true
+    }
+  );
+  return result;
 };
 
-export const disableWorkflow = async (workflowId: string) => {
+export const disableWorkflow = async (workflowId: string, user: string) => {
   return await GxpServiceWorkFlowModel.findOneAndUpdate(
-    { workflowId },
-    { isActive: false },
+    { _id: workflowId },
+    { status: STATUS.DISABLED, modifiedOn: new Date(), modifiedBy: user },
     { new: true }
   );
 };
 
-export const enableWorkflow = async (workflowId: string) => {
+export const enableWorkflow = async (workflowId: string, user: string) => {
   return await GxpServiceWorkFlowModel.findOneAndUpdate(
-    { workflowId },
-    { status: STATUS.ENABLED },
+    { _id: workflowId },
+    { status: STATUS.ENABLED, modifiedOn: new Date(), modifiedBy: user },
     { new: true }
   );
 };
 
-export const searchWorkflows = async (searchTerm: string) => {
-  return await GxpServiceWorkFlowModel.find({
-    $or: [
-      { workflowId: new RegExp(searchTerm, "i") },
-      { workflowName: new RegExp(searchTerm, "i") }
-    ]
-  });
+export const deleteWorkflow = async (workflowId: string) => {
+  return await GxpServiceWorkFlowModel.deleteOne({ _id: workflowId });
 };

@@ -2,12 +2,16 @@ import GxpServiceApplicationModel, {
   type IApplication
 } from "../models/gxp-service-applications.model";
 
-export const create = async (payload: Partial<IApplication>) => {
+export const createApplication = async (payload: Partial<IApplication>) => {
   const doc = new GxpServiceApplicationModel(payload);
   return await doc.save();
 };
 
-export const findAll = async (filter = {}, projection = null, options = {}) => {
+export const getApplications = async (
+  filter = {},
+  projection = null,
+  options = {}
+) => {
   return await GxpServiceApplicationModel.find(
     filter,
     projection,
@@ -15,11 +19,11 @@ export const findAll = async (filter = {}, projection = null, options = {}) => {
   ).lean();
 };
 
-export const findById = async (id: string) => {
+export const findApplicationById = async (id: string) => {
   return await GxpServiceApplicationModel.findById(id);
 };
 
-export const updateById = async (
+export const updateApplication = async (
   id: string,
   updates: Partial<IApplication>
 ) => {
@@ -28,7 +32,7 @@ export const updateById = async (
   });
 };
 
-export const softDisable = async (id: string) => {
+export const disableApplication = async (id: string) => {
   return await GxpServiceApplicationModel.findByIdAndUpdate(
     id,
     { status: "disabled" },
@@ -36,7 +40,7 @@ export const softDisable = async (id: string) => {
   );
 };
 
-export const restore = async (id: string) => {
+export const enableApplication = async (id: string) => {
   return await GxpServiceApplicationModel.findByIdAndUpdate(
     id,
     { status: "enabled" },

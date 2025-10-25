@@ -9,6 +9,11 @@ interface CustomError extends Error {
   statusCode?: number;
   errorResponse?: any;
   response?: any;
+  code?: number;
+  path?: string;
+  value?: string;
+  keyValue?: string;
+  errors?: { [key: string]: { message?: string } };
 }
 
 export const errorHandler = (
@@ -18,18 +23,48 @@ export const errorHandler = (
   next: NextFunction
 ) => {
   if (res.headersSent) {
-    return next(err); // If response is already sent, do nothing
+    return next(err);
   }
 
-  const statusCode = err.statusCode ?? 500;
-  const message = err?.errorResponse
-    ? convertMongooseError({
-        code: err?.errorResponse?.code,
-        entity: Object.keys(err?.errorResponse?.keyValue)[0]
-      })
-    : getMessage(
-        err.response?.data?.message ?? CUSTOM_MESSAGES.SOMETHING_WENT_WRONG
-      );
+  let statusCode: number;
+  let message: string;
+
+  // Handle Mongoose Validation Error
+  if (err.name === "ValidationError") {
+    statusCode = 400;
+    message = Object.values(err?.errors ?? {})
+      .map((e) => e.message)
+      .join(", ");
+  }
+
+  // Handle Invalid ObjectId or CastError
+  else if (err.name === "CastError") {
+    statusCode = 400;
+    message = `Invalid ${err.path}: ${err.value}`;
+  }
+
+  // Handle Duplicate Key Error (E11000)
+  else if (err.code === 11000) {
+    statusCode = 400;
+    const field = Object.keys(err?.keyValue ?? {})[0];
+    message = `Duplicate value for field "${field}".`;
+  }
+
+  // Handle Document Not Found
+  else if (err.name === "DocumentNotFoundError") {
+    statusCode = 404;
+    message = "Document not found.";
+  } else {
+    statusCode = err.statusCode ?? 500;
+    message = err?.errorResponse
+      ? (convertMongooseError({
+          code: err?.errorResponse?.code,
+          entity: Object.keys(err?.errorResponse?.keyValue)[0]
+        }) ?? CUSTOM_MESSAGES.SOMETHING_WENT_WRONG)
+      : getMessage(
+          err.response?.data?.message ?? CUSTOM_MESSAGES.SOMETHING_WENT_WRONG
+        );
+  }
 
   res.status(statusCode).json({
     message:

@@ -79,7 +79,7 @@ const GxpServicePortalRequestSchema = new Schema<IServiceRequest>(
     requestType: { type: String, default: "Applications" },
     comments: [{ type: String }]
   },
-  { timestamps: true, _id: false }
+  { timestamps: true, _id: false, collection: "gxp-service-service-requests" }
 );
 
 export const GxpServiceRequestModel = mongoose.model<IServiceRequest>(
