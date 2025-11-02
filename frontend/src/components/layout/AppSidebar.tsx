@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import appLogo from "../../public/images/logo-transparant.png";
 import appSmLogo from "../../public/images/umbrella-clipart-cover.jpg";
-import { ChevronDownIcon, UserManagement, GridIcon, HorizontaLDots, UserIcon, CompanyIcon } from "../../public/icons";
+import { ChevronDownIcon, UserManagement, GridIcon, HorizontaLDots, UserIcon, CompanyIcon, BoltIcon } from "../../public/icons";
 import { useSidebar } from "../../context/SidebarContext";
 import { AccessIcon } from "../../public/icons";
 import { PageUrl } from "@/types/utils.types";
@@ -66,6 +66,22 @@ const AppSidebar: React.FC = () => {
       permissions: [PERMISSIONS.VIEW_DASHBOARD],
       subItems: [
         { name: t('profileInfo'), path: PageUrl.ProfileInfo.path }
+      ]
+    },
+    {
+      icon: <BoltIcon />,
+      name: t('gxpService'),
+      permissions: [PERMISSIONS.VIEW_DASHBOARD],
+      subItems: [
+        { name: t('users'), path: PageUrl.GXPUsers.path },
+        { name: t('gxpRolesAndPermissions'), path: PageUrl.GXPRolesAndPermissions.path },
+        { name: t('gxpWorkflows'), path: PageUrl.GXPWorkflows.path },
+        { name: t('gxpAssignmentGroups'), path: PageUrl.GXPAssignmentGroups.path },
+        { name: t('gxpEnvironments'), path: PageUrl.GXPEnvironments.path },
+        { name: t('gxpSuppliers'), path: PageUrl.GXPSuppliers.path },
+        { name: t('gxpApplicationSoftwareModule'), path: PageUrl.GXPApplicationSoftwareModule.path },
+        { name: t('gxpAddNewApplication'), path: PageUrl.GXPAddNewApplication.path },
+        { name: t('gxpCreateNewServiceRequest'), path: PageUrl.GXPCreateNewServiceRequest.path },
       ]
     },
   ], [t, i18n.language]);

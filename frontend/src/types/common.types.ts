@@ -75,3 +75,52 @@ export interface Company {
   description?: string;
   logo?: string; 
 }
+
+export interface Supplier {
+  _id: string;
+  supplierName: string;
+  typeOfSupplier?: string;
+  product?: string;
+  description?: string;
+  status: "enabled" | "disabled";
+}
+
+export interface Workflow {
+  _id: string;
+  workflowName: string;
+  numberOfLevels: number;
+  levels: string[];
+  description?: string;
+}
+
+export interface AssignmentGroup {
+  _id: string;
+  groupName: string;
+  manager: { userId: string; name: string };
+  members: { userId: string; name: string }[];
+  description?: string;
+}
+
+export interface User {
+  _id: string;
+  fullName: string;
+}
+
+export interface Environment {
+  _id: string;
+  environmentName: string;
+  description?: string;
+}
+
+export interface GxpPermission {
+  _id: string;
+  permissionName: string;
+  description?: string;
+}
+
+export interface GxpRole {
+  _id: string;
+  roleName: string;
+  permissions: string[];
+  description?: string;
+}

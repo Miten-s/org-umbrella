@@ -99,3 +99,60 @@ export const getDesignationSchema = z.object({
     .max(50, "Designation name must be under 50 characters"),
   description: z.string().optional(),
 });
+
+export const getSupplierSchema = z.object({
+  supplierName: z
+    .string()
+    .min(1, "Supplier name is required")
+    .max(20, "Supplier name must not exceed 20 characters"),
+  typeOfSupplier: z.string().optional(),
+  product: z.string().optional(),
+  description: z.string().max(50, "Description must not exceed 50 characters").optional(),
+  status: z.enum(["enabled", "disabled"]).optional(),
+});
+
+export const getWorkflowSchema = z.object({
+  workflowName: z
+    .string()
+    .min(1, "Workflow name is required")
+    .max(20, "Workflow name must not exceed 20 characters"),
+  levels: z.string().min(1, "Levels are required"),
+  description: z.string().max(50, "Description must not exceed 50 characters").optional(),
+});
+
+export const getAssignmentGroupSchema = z.object({
+  groupName: z
+    .string()
+    .min(1, "Group name is required")
+    .regex(/^[A-Z]{2}-[A-Z]{3,}-[A-Z]{2,}-[A-Z]{2,}$/, "Invalid group name format. Expected format: RD-APP-LIMS-BUS-ADMIN"),
+  manager: z.string().min(1, "Manager is required"),
+  members: z.array(z.string()).min(1, "At least one member is required"),
+  description: z.string().max(50, "Description must not exceed 50 characters").optional(),
+});
+
+export const getEnvironmentSchema = z.object({
+  environmentName: z
+    .string()
+    .min(1, "Environment name is required")
+    .max(20, "Environment name must not exceed 20 characters"),
+  description: z.string().max(50, "Description must not exceed 50 characters").optional(),
+});
+
+export const getGxpPermissionSchema = z.object({
+  permissionName: z
+    .string()
+    .min(1, "Permission name is required"),
+  description: z.string().max(50, "Description must not exceed 50 characters").optional(),
+});
+
+export const getGxpRoleSchema = z.object({
+  roleName: z
+    .string()
+    .min(1, "Role name is required")
+    .max(20, "Role name must not exceed 20 characters")
+    .refine((v) => v.startsWith("Service"), {
+      message: "Role name must start with Service",
+    }),
+  permissions: z.array(z.string()).min(1, "At least one permission is required"),
+  description: z.string().max(50, "Description must not exceed 50 characters").optional(),
+});

@@ -21,6 +21,17 @@ const SysLocations = lazy(() => import("../pages/system-it-admin/locations"));
 // Company
 const CompanyManagement = lazy(() => import("../pages/company-management"));
 
+// GXP Service
+const GXPUsersPage = lazy(() => import("../pages/gxp-service/users"));
+const GXPRolesAndPermissionsPage = lazy(() => import("../pages/gxp-service/roles-and-permissions"));
+const GXPWorkflowsPage = lazy(() => import("../pages/gxp-service/workflows"));
+const GXPAssignmentGroupsPage = lazy(() => import("../pages/gxp-service/assignment-groups"));
+const GXPEnvironmentsPage = lazy(() => import("../pages/gxp-service/environments"));
+const GXPSuppliersPage = lazy(() => import("../pages/gxp-service/suppliers"));
+const GXPApplicationSoftwareModulePage = lazy(() => import("../pages/gxp-service/application-software-module"));
+const GXPAddNewApplicationPage = lazy(() => import("../pages/gxp-service/add-new-application"));
+const GXPCreateNewServiceRequestPage = lazy(() => import("../pages/gxp-service/create-new-service-request"));
+
 const routes: AppRoute[] = [
   {
     path: "/",
@@ -135,6 +146,112 @@ const routes: AppRoute[] = [
           title: "Company Settings",
           icon: "company"
         }
+      },
+
+      // GXP Service
+      {
+        path: PageUrl.GXPService.path,
+        children: [
+          {
+            path: PageUrl.GXPUsers.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            element: <GXPUsersPage />,
+            protection: {
+              requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+            },
+            meta: {
+              title: "Users",
+              icon: "users"
+            }
+          },
+          {
+            path: PageUrl.GXPRolesAndPermissions.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            element: <GXPRolesAndPermissionsPage />,
+            protection: {
+              requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+            },
+            meta: {
+              title: "Roles and Permissions",
+              icon: "roles"
+            }
+          },
+          {
+            path: PageUrl.GXPWorkflows.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            element: <GXPWorkflowsPage />,
+            protection: {
+              requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+            },
+            meta: {
+              title: "Workflows",
+              icon: "workflows"
+            }
+          },
+          {
+            path: PageUrl.GXPAssignmentGroups.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            element: <GXPAssignmentGroupsPage />,
+            protection: {
+              requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+            },
+            meta: {
+              title: "Assignment Groups",
+              icon: "assignment-groups"
+            }
+          },
+          {
+            path: PageUrl.GXPEnvironments.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            element: <GXPEnvironmentsPage />,
+            protection: {
+              requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+            },
+            meta: {
+              title: "Environments",
+              icon: "environments"
+            }
+          },
+          {
+            path: PageUrl.GXPSuppliers.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            element: <GXPSuppliersPage />,
+            protection: {
+              requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+            },
+            meta: {
+              title: "Suppliers",
+              icon: "suppliers"
+            }
+          },
+          {
+            path: PageUrl.GXPApplicationSoftwareModule.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            element: <GXPApplicationSoftwareModulePage />,
+            protection: {
+              requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+            },
+            meta: {
+              title: "Application/Software Module",
+              icon: "application-software-module"
+            }
+          },
+          {
+            path: PageUrl.GXPAddNewApplication.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            element: <GXPAddNewApplicationPage />,
+            protection: {
+              requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+            },
+            meta: {
+              title: "Add a new GxP Portal Application/Software form",
+              icon: "add-new-application"
+            }
+          },
+          {
+            path: PageUrl.GXPCreateNewServiceRequest.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            element: <GXPCreateNewServiceRequestPage />,
+            protection: {
+              requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+            },
+            meta: {
+              title: "Create a new Service Request",
+              icon: "create-new-service-request"
+            }
+          }
+        ]
       }
     ]
   },
