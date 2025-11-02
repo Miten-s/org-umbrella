@@ -8,15 +8,18 @@ import Label from "@/components/common/form/Label";
 import Button from "@/components/ui/button/Button";
 import TextArea from "@/components/common/form/input/TextArea";
 
-import { getEnvironmentSchema } from "@/lib/schema";
+const getEnvironmentSchema = z.object({
+  environmentName: z.string().min(1, "Environment name is required").max(20, "Environment name must be 20 characters or less"),
+  description: z.string().max(50, "Description must be 50 characters or less").optional(),
+});
+
+type CreateEnvironmentForm = z.infer<typeof getEnvironmentSchema>;
 
 interface CreateEnvironmentModalProps {
   onClose: () => void;
   onSubmit: (data: CreateEnvironmentForm) => void;
   initialData?: any;
 }
-
-type CreateEnvironmentForm = z.infer<typeof getEnvironmentSchema>;
 
 const CreateEnvironmentModal = ({
   onClose,
@@ -40,16 +43,16 @@ const CreateEnvironmentModal = ({
   });
 
   const description = useWatch({ control, name: "description" });
+  
 
   return (
     <div className="p-6 max-h-[120vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <h2 className="text-xl font-semibold">
-          {t(initialData ? "edit" : "create", { entity: t("gxpEnvironments") })}
+          {t(initialData ? "edit" : "create", { entity: t("environment") })}
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Environment Name */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-32">
           <div>
             <Label htmlFor="environmentName" required>
               {t("environmentName")}
@@ -62,20 +65,18 @@ const CreateEnvironmentModal = ({
             />
           </div>
 
-          {/* Description */}
-          <div className="col-span-2">
+          <div>
             <Label>{t("description")}</Label>
             <TextArea
               value={description || ""}
               onChange={(val) => setValue("description", val)}
-              error={!!errors.description}
-              hint={errors.description?.message}
               className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
             />
           </div>
+
+          
         </div>
 
-        {/* Action Buttons */}
         <div className="flex justify-end gap-2 mt-4">
           <Button variant="outline" type="button" onClick={onClose}>
             {t("cancel")}

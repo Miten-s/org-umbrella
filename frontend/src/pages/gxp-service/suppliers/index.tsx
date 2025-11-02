@@ -23,16 +23,23 @@ const Suppliers = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [activeSupplier, setActiveSupplier] = useState<Supplier | null>(null);
   const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
+  const [includeDisabled, setIncludeDisabled] = useState(false);
 
   const [confirmationModal, setConfirmationModal] = useState(false);
 
   useEffect(() => {
-    const fetchInitialData = async () => {
-      const  suppliers  = await getSuppliers();
-      setSuppliers(suppliers);
-    };
-    fetchInitialData();
-  }, [reFetch]);
+
+      const fetchInitialData = async () => {
+
+        const suppliers = await getSuppliers(includeDisabled);
+
+        setSuppliers(suppliers);
+
+      };
+
+      fetchInitialData();
+
+    }, [reFetch, includeDisabled]);
 
   // Create or Update
   const handleSave = async (data: Partial<Supplier>) => {
@@ -87,16 +94,25 @@ const Suppliers = () => {
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
           {t("gxpSuppliers")}
         </h1>
-        <Button
-          // permission="CREATE:SUPPLIER"
-          tooltipPosition="left"
-          onClick={() => {
-            setActiveSupplier(null);
-            openModal();
-          }}
-        >
-          {t("create", { entity: t("supplier") })}
-        </Button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Switch
+              label={t("includeDisabled")}
+              checked={includeDisabled}
+              onChange={() => setIncludeDisabled(!includeDisabled)}
+            />
+          </div>
+          <Button
+            // permission="CREATE:SUPPLIER"
+            tooltipPosition="left"
+            onClick={() => {
+              setActiveSupplier(null);
+              openModal();
+            }}
+          >
+            {t("create", { entity: t("supplier") })}
+          </Button>
+        </div>
       </div>
 
       {/* Supplier Table */}

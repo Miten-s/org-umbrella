@@ -83,8 +83,12 @@ export const deleteWorkflow = async (id: string) => {
 
 // #region Assignment Group
 
-export const getAssignmentGroups = async () => {
-  const response = await gxpApi.get(API_ROUTES.assignmentGroups);
+export const getAssignmentGroups = async (includeInactive: boolean = false) => {
+  let url = API_ROUTES.assignmentGroups;
+  if (includeInactive) {
+    url = `${API_ROUTES.assignmentGroups}?includeInactive=true`;
+  }
+  const response = await gxpApi.get(url);
   return response["data"];
 };
 
@@ -106,12 +110,28 @@ export const deleteAssignmentGroup = async (id: string) => {
   return response["data"];
 };
 
+export const enableAssignmentGroup = async (id: string) => {
+  const response = await gxpApi.patch(`${API_ROUTES.assignmentGroups}/enable/${id}`);
+  toast(response.data.message, "success");
+  return response["data"];
+};
+
+export const disableAssignmentGroup = async (id: string) => {
+  const response = await gxpApi.patch(`${API_ROUTES.assignmentGroups}/disable/${id}`);
+  toast(response.data.message, "success");
+  return response["data"];
+};
+
 // #endregion
 
 // #region Environment
 
-export const getEnvironments = async () => {
-  const response = await gxpApi.get(API_ROUTES.environments);
+export const getEnvironments = async (includeDisabled: boolean = false) => {
+  let url = API_ROUTES.environments;
+  if (includeDisabled) {
+    url = `${API_ROUTES.environments}?includeDisabled=true`;
+  }
+  const response = await gxpApi.get(url);
   return response["data"];
 };
 
@@ -129,6 +149,18 @@ export const updateEnvironment = async (id: string, payload: Record<string, any>
 
 export const deleteEnvironment = async (id: string) => {
   const response = await gxpApi.delete(`${API_ROUTES.environments}/${id}`);
+  toast(response.data.message, "success");
+  return response["data"];
+};
+
+export const enableEnvironment = async (id: string) => {
+  const response = await gxpApi.patch(`${API_ROUTES.environments}/enable/${id}`);
+  toast(response.data.message, "success");
+  return response["data"];
+};
+
+export const disableEnvironment = async (id: string) => {
+  const response = await gxpApi.patch(`${API_ROUTES.environments}/disable/${id}`);
   toast(response.data.message, "success");
   return response["data"];
 };
@@ -184,6 +216,11 @@ export const updateGxpRole = async (id: string, payload: Record<string, any>) =>
 export const deleteGxpRole = async (id: string) => {
   const response = await gxpApi.delete(`${API_ROUTES.gxpRoles}/${id}`);
   toast(response.data.message, "success");
+  return response["data"];
+};
+
+export const getUsers = async () => {
+  const response = await gxpApi.get("/users");
   return response["data"];
 };
 

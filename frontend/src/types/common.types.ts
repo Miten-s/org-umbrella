@@ -99,11 +99,13 @@ export interface AssignmentGroup {
   manager: { userId: string; name: string };
   members: { userId: string; name: string }[];
   description?: string;
+  isActive: boolean;
 }
 
 export interface User {
   _id: string;
   fullName: string;
+  userType: string;
 }
 
 export interface Environment {

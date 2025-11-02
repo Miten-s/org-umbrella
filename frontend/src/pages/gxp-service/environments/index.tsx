@@ -3,58 +3,59 @@ import { Modal } from "@/components/ui/modal";
 import Button from "@/components/ui/button/Button";
 import { useModal } from "@/hooks/useModal";
 import { useTranslation } from "react-i18next";
-import CreateEnvironmentModal from "./CreateEnvironmentModal";
 import {
   getEnvironments,
   createEnvironment,
   updateEnvironment,
   deleteEnvironment,
 } from "@/services/gxp.service";
-import { Environment } from "@/types/common.types";
 import { useGlobalContext } from "@/context";
+import CreateEnvironmentModal from "./CreateEnvironmentModal";
+
+interface Environment {
+  _id: string;
+  environmentName: string;
+  description: string;
+}
 
 const Environments = () => {
   const { isOpen, openModal, closeModal } = useModal();
   const { t } = useTranslation();
   const { reFetch, setReFetch } = useGlobalContext();
   const [environments, setEnvironments] = useState<Environment[]>([]);
-
   const [activeEnvironment, setActiveEnvironment] = useState<Environment | null>(null);
   const [environmentToDelete, setEnvironmentToDelete] = useState<Environment | null>(null);
-
   const [confirmationModal, setConfirmationModal] = useState(false);
 
+
   useEffect(() => {
-    const fetchInitialData = async () => {
-      const { environments } = await getEnvironments();
+    const fetchEnvironments = async () => {
+      const environments = await getEnvironments();
       setEnvironments(environments);
     };
 
-    fetchInitialData();
+    fetchEnvironments();
   }, [reFetch]);
 
-  // Create or Update
   const handleSave = async (data: Partial<Environment>) => {
+    const payload = {
+      ...data,
+    };
     if (activeEnvironment) {
-      const updated = await updateEnvironment(activeEnvironment._id, data);
-      setEnvironments((prev) =>
-        prev.map((env) => (env._id === updated._id ? updated : env))
-      );
+      await updateEnvironment(activeEnvironment._id, payload);
     } else {
-      const created = await createEnvironment(data);
-      setEnvironments((prev) => [created, ...prev]);
+      await createEnvironment(payload);
     }
     setReFetch(!reFetch);
     closeModal();
     setActiveEnvironment(null);
   };
 
-  // Confirm Delete
   const confirmDelete = async () => {
     if (!environmentToDelete) return;
 
     await deleteEnvironment(environmentToDelete._id);
-    setEnvironments((prev) => prev.filter((env) => env._id !== environmentToDelete._id));
+    setEnvironments((prev) => prev.filter((d) => d._id !== environmentToDelete._id));
 
     setConfirmationModal(false);
     setEnvironmentToDelete(null);
@@ -65,72 +66,83 @@ const Environments = () => {
     openModal();
   };
 
+
+
   return (
     <>
-      {/* Header and Create Button */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-          {t("gxpEnvironments")}
+          {t("environments")}
         </h1>
-        <Button
-          // permission="CREATE:ENVIRONMENT"
-          tooltipPosition="left"
-          onClick={() => {
-            setActiveEnvironment(null);
-            openModal();
-          }}
-        >
-          {t("create", { entity: t("gxpEnvironments") })}
-        </Button>
+        <div className="flex items-center gap-4">
+
+          <Button
+            onClick={() => {
+              setActiveEnvironment(null);
+              openModal();
+            }}
+          >
+            {t("create", { entity: t("environment") })}
+          </Button>
+        </div>
       </div>
 
-      {/* Environment List */}
-      <ul className="space-y-2">
-        {environments.map((env) => (
-          <li
-            key={env._id}
-            className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm flex justify-between items-start gap-4"
-          >
-            <div className="flex-1">
-              <div className="font-semibold text-lg text-gray-900 dark:text-white">
-                {env.environmentName}
-              </div>
-              {env.description && (
-                <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {env.description}
-                </div>
-              )}
-            </div>
-            <div className="flex gap-2 shrink-0">
-              <Button
-                // permission="UPDATE:ENVIRONMENT"
-                onClick={() => openEditModal(env)}
-                variant="outline"
-              >
-                {t("edit")}
-              </Button>
-              <Button
-                // permission="DELETE:ENVIRONMENT"
-                onClick={() => {
-                  setEnvironmentToDelete(env);
-                  setConfirmationModal(true);
-                }}
-                variant="destructive"
-              >
-                {t("delete")}
-              </Button>
-            </div>
-          </li>
-        ))}
-      </ul>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead className="bg-gray-50 dark:bg-gray-800">
+            <tr>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
+                {t("environmentName")}
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
+                {t("description")}
+              </th>
 
-      {/* Create/Edit Environment Modal */}
+              <th scope="col" className="relative px-6 py-3">
+                <span className="sr-only">{t("actions")}</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700">
+            {environments?.map((environment) => (
+              <tr key={environment._id}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                  {environment.environmentName}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                  {environment.description}
+                </td>
+
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      onClick={() => openEditModal(environment)}
+                      variant="outline"
+                    >
+                      {t("edit")}
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setEnvironmentToDelete(environment);
+                        setConfirmationModal(true);
+                      }}
+                      variant="destructive"
+                    >
+                      {t("delete")}
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
       <Modal
         isOpen={isOpen}
         onClose={closeModal}
-        className="max-w-[900px] max-h-[100rem]  m-4 overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+        className="max-w-[900px] max-h-[100rem] m-4 overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
       >
-
         <CreateEnvironmentModal
           onClose={closeModal}
           onSubmit={handleSave}
@@ -138,7 +150,6 @@ const Environments = () => {
         />
       </Modal>
 
-      {/* Delete Confirmation Modal */}
       <Modal
         isOpen={confirmationModal}
         onClose={() => setConfirmationModal(false)}
@@ -162,7 +173,6 @@ const Environments = () => {
         </div>
       </Modal>
     </>
-
   );
 };
 

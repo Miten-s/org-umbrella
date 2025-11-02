@@ -139,5 +139,7 @@
   "disabled": "Disabled",
   "noRecordsFound": "No records found",
   "gxpRoleName": "Role Name",
-  "gxpPermissions": "Permissions"
+  "gxpPermissions": "Permissions",
+  "includeDisabled": "Include Disabled"
+  
 }
