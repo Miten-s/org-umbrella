@@ -1,24 +1,31 @@
-import { useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Input from "@/components/common/form/input/InputField";
 import Label from "@/components/common/form/Label";
 import Button from "@/components/ui/button/Button";
-import { Dropdown } from "@/components/ui/dropdown/Dropdown";
-import { DropdownItem } from "@/components/ui/dropdown/DropdownItem";
 import TextArea from "@/components/common/form/input/TextArea";
 
 import { getAssignmentGroupSchema } from "@/lib/schema";
 import { User } from "@/types/common.types";
+import MultiSelect from "@/components/common/form/MultiSelect";
+import Switch from "@/components/common/form/switch/Switch";
+import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
+import { getUsers } from "@/services/admin.service";
+import { UserTypes } from "@/utils/common.constants";
 
 interface CreateAssignmentGroupModalProps {
   onClose: () => void;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: CreateAssignmentGroupForm) => void;
   initialData?: any;
-  users?: User[];
+}
+
+interface SelectOption {
+  value: string;
+  label: string;
 }
 
 type CreateAssignmentGroupForm = z.infer<typeof getAssignmentGroupSchema>;
@@ -27,9 +34,10 @@ const CreateAssignmentGroupModal = ({
   onClose,
   onSubmit,
   initialData,
-  users = [],
 }: CreateAssignmentGroupModalProps) => {
   const { t } = useTranslation();
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [adminUsers, setAdminUsers] = useState<User[]>([]);
 
   const {
     register,
@@ -41,59 +49,40 @@ const CreateAssignmentGroupModal = ({
     resolver: zodResolver(getAssignmentGroupSchema),
     defaultValues: {
       groupName: initialData?.groupName || "",
-      manager: initialData?.manager?.userId || "",
-      members: initialData?.members?.map((m: any) => m.userId) || [],
+      manager: initialData?.manager || { userId: "", name: "" },
+      members: initialData?.members || [],
       description: initialData?.description || "",
+      isActive: initialData?.isActive ?? true,
     },
   });
 
   const description = useWatch({ control, name: "description" });
-
-  const [managerDropdownOpen, setManagerDropdownOpen] = useState(false);
-  const [membersDropdownOpen, setMembersDropdownOpen] = useState(false);
-
-  const selectedManagerId = useWatch({ control, name: "manager" });
-  const selectedMemberIds = useWatch({ control, name: "members" });
-
-  const getManagerName = (id: string) =>
-    users.find((u) => u._id === id)?.fullName || "";
-
-  const handleManagerSelect = (id: string) => {
-    setValue("manager", id, { shouldValidate: true });
-    setManagerDropdownOpen(false);
-  };
-
-  const handleMemberSelect = (id: string) => {
-    const currentMembers = selectedMemberIds || [];
-    const newMembers = currentMembers.includes(id)
-      ? currentMembers.filter((memberId) => memberId !== id)
-      : [...currentMembers, id];
-    setValue("members", newMembers, { shouldValidate: true });
-  };
-
-  const handleFormSubmit = (data: CreateAssignmentGroupForm) => {
-    const managerObject = {
-      userId: data.manager,
-      name: users.find(u => u._id === data.manager)?.fullName,
+  const isActive = useWatch({ control, name: "isActive" });
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const { users } = await getUsers();
+      console.log("Fetched users:", users);
+      setAllUsers(users);
+      setAdminUsers(users.filter((user: User) => user.userType === UserTypes.ADMIN));
     };
-    const membersArray = data.members.map(memberId => ({
-      userId: memberId,
-      name: users.find(u => u._id === memberId)?.fullName,
-    }));
+    fetchUsers();
+  }, []);
 
-    const submissionData = {
-      ...data,
-      manager: managerObject,
-      members: membersArray,
-    };
-    onSubmit(submissionData);
-  };
+  const userOptions = allUsers.map((user) => ({
+    text: user.fullName, // <-- Change 'label' to 'text'
+    value: user._id,
+  }));
+
+  const adminUserOptions: SelectOption[] = adminUsers.map((user) => ({
+    label: user.fullName,
+    value: user._id,
+  }));
 
   return (
     <div className="p-6 max-h-[120vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <h2 className="text-xl font-semibold">
-          {t(initialData ? "edit" : "create", { entity: t("gxpAssignmentGroups") })}
+          {t(initialData ? "edit" : "create", { entity: t("assignmentGroup") })}
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -110,97 +99,55 @@ const CreateAssignmentGroupModal = ({
             />
           </div>
 
-          {/* Manager Dropdown */}
-          <div className="relative">
-            <Label required>{t("manager")}</Label>
-            <input type="hidden" {...register("manager")} />
-            <button
-              type="button"
-              onClick={() => setManagerDropdownOpen((prev) => !prev)}
-              className="input flex justify-between items-center dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-            >
-              <span className="text-theme-sm dark:text-gray-400">
-                {getManagerName(selectedManagerId) ||
-                  t("select", { entity: t("manager") })}
-              </span>
-              <svg className="ml-2 h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M5.5 7l4.5 4.5L14.5 7z" />
-              </svg>
-            </button>
-
-            <Dropdown
-              isOpen={managerDropdownOpen}
-              onClose={() => setManagerDropdownOpen(false)}
-              className="absolute z-10 mt-1 w-full rounded-xl border bg-white dark:bg-gray-800 dark:border-gray-700 shadow-md text-gray-900 dark:text-gray-100"
-            >
-              {users.map((user) => (
-                <DropdownItem
-                  key={user._id}
-                  onItemClick={() => handleManagerSelect(user._id)}
-                  className="hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                  {user.fullName}
-                </DropdownItem>
-              ))}
-            </Dropdown>
-
-            {errors.manager && (
-              <p className="text-xs text-error-500 mt-1">
-                {errors.manager.message}
-              </p>
-            )}
+          {/* Manager */}
+          <div>
+            <Label htmlFor="manager" required>
+              {t("manager")}
+            </Label>
+            <Controller
+              name="manager"
+              control={control}
+              render={({ field }) => (
+                <SelectDropdown
+                  value={field.value.userId}
+                  onChange={(val: string) => {
+                    const selectedUser = adminUsers?.find((user) => user._id === val);
+                    field.onChange({
+                      userId: val,
+                      name: selectedUser?.fullName || "",
+                    });
+                  }}
+                  options={adminUserOptions}
+                  placeholder={t("select", { entity: t("manager") })}
+                />
+              )}
+            />
+            {errors.manager && <p className="text-red-500 text-xs mt-1">{errors.manager.message}</p>}
           </div>
 
-          {/* Members Dropdown */}
-          <div className="relative col-span-2">
-            <Label required>{t("members")}</Label>
-            <input type="hidden" {...register("members")} />
-            <button
-              type="button"
-              onClick={() => setMembersDropdownOpen((prev) => !prev)}
-              className="input flex justify-between items-center dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-            >
-              <span className="text-theme-sm dark:text-gray-400">
-                {selectedMemberIds?.length > 0
-                  ? `${selectedMemberIds.length} members selected`
-                  : t("select", { entity: t("members") })}
-              </span>
-              <svg className="ml-2 h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M5.5 7l4.5 4.5L14.5 7z" />
-              </svg>
-            </button>
-
-            <Dropdown
-              isOpen={membersDropdownOpen}
-              onClose={() => setMembersDropdownOpen(false)}
-              className="absolute z-10 mt-1 w-full rounded-xl border bg-white dark:bg-gray-800 dark:border-gray-700 shadow-md text-gray-900 dark:text-gray-100"
-            >
-              {users.map((user) => (
-                <DropdownItem
-                  key={user._id}
-                  onItemClick={() => handleMemberSelect(user._id)}
-                  className="hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedMemberIds?.includes(user._id)}
-                    readOnly
-                    className="mr-2"
-                  />
-                  {user.fullName}
-                </DropdownItem>
-              ))}
-            </Dropdown>
-
-            {errors.members && (
-              <p className="text-xs text-error-500 mt-1">
-                {errors.members.message}
-              </p>
-            )}
+          {/* Members */}
+          <div>
+            <Label htmlFor="members">{t("members")}</Label>
+            <Controller
+              name="members"
+              control={control}
+              render={({ field }) => (
+                <MultiSelect
+                  options={userOptions}
+                  label={t("members")}
+                  onChange={(selectedValues: string[]) => {
+                    const selectedMembers = allUsers?.filter((user) =>
+                      selectedValues.includes(user._id)
+                    ).map((user) => ({ userId: user._id, name: user.fullName }));
+                    field.onChange(selectedMembers);
+                  }}
+                  defaultSelected={Array.isArray(field.value) ? field.value.map((m: any) => m.userId) : []}
+                />
+              )}
+            />
           </div>
-
           {/* Description */}
-          <div className="col-span-2">
+          <div>
             <Label>{t("description")}</Label>
             <TextArea
               value={description || ""}
@@ -208,6 +155,16 @@ const CreateAssignmentGroupModal = ({
               error={!!errors.description}
               hint={errors.description?.message}
               className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
+            />
+          </div>
+
+          {/* Is Active */}
+          <div>
+            <Label>{t("isActive")}</Label>
+            <Switch
+              label={isActive ? t("active") : t("inactive")}
+              checked={isActive}
+              onChange={(checked) => setValue("isActive", checked)}
             />
           </div>
         </div>

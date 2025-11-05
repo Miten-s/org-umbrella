@@ -219,7 +219,7 @@ export const deleteGxpRole = async (id: string) => {
   return response["data"];
 };
 
-export const getUsers = async () => {
+export const getGxpUsers = async () => {
   const response = await gxpApi.get("/users");
   return response["data"];
 };

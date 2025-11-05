@@ -75,8 +75,8 @@ const AppSidebar: React.FC = () => {
       subItems: [
         { name: t('users'), path: PageUrl.GXPUsers.path },
         { name: t('gxpRolesAndPermissions'), path: PageUrl.GXPRolesAndPermissions.path },
-        { name: t('gxpWorkflows'), path: PageUrl.GXPWorkflows.path },
         { name: t('gxpAssignmentGroups'), path: PageUrl.GXPAssignmentGroups.path },
+        { name: t('gxpWorkflows'), path: PageUrl.GXPWorkflows.path },
         { name: t('gxpEnvironments'), path: PageUrl.GXPEnvironments.path },
         { name: t('gxpSuppliers'), path: PageUrl.GXPSuppliers.path },
         { name: t('gxpApplicationSoftwareModule'), path: PageUrl.GXPApplicationSoftwareModule.path },

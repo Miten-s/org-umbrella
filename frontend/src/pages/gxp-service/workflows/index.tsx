@@ -86,7 +86,7 @@ const Workflows = () => {
 
       {/* Workflow List */}
       <ul className="space-y-2">
-        {workflows.map((wf) => (
+        {workflows?.map((wf) => (
           <li
             key={wf._id}
             className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm flex justify-between items-start gap-4"

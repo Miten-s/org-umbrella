@@ -125,9 +125,16 @@ export const getAssignmentGroupSchema = z.object({
     .string()
     .min(1, "Group name is required")
     .regex(/^[A-Z]{2}-[A-Z]{3,}-[A-Z]{2,}-[A-Z]{2,}$/, "Invalid group name format. Expected format: RD-APP-LIMS-BUS-ADMIN"),
-  manager: z.string().min(1, "Manager is required"),
-  members: z.array(z.string()).min(1, "At least one member is required"),
+  manager: z.object({
+    userId: z.string().min(1, "Manager is required"),
+    name: z.string().min(1, "Manager name is required"),
+  }),
+  members: z.array(z.object({
+    userId: z.string(),
+    name: z.string(),
+  })).optional(),
   description: z.string().max(50, "Description must not exceed 50 characters").optional(),
+  isActive: z.boolean().default(true).optional(),
 });
 
 export const getEnvironmentSchema = z.object({
