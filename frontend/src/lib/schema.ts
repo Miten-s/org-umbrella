@@ -117,6 +117,7 @@ export const getWorkflowSchema = z.object({
     .min(1, "Workflow name is required")
     .max(20, "Workflow name must not exceed 20 characters"),
   levels: z.string().min(1, "Levels are required"),
+  assignmentGroups: z.array(z.string()).optional(),
   description: z.string().max(50, "Description must not exceed 50 characters").optional(),
 });
 

@@ -1,4 +1,4 @@
-import { useForm, useWatch } from "react-hook-form";
+import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
@@ -7,6 +7,7 @@ import Input from "@/components/common/form/input/InputField";
 import Label from "@/components/common/form/Label";
 import Button from "@/components/ui/button/Button";
 import TextArea from "@/components/common/form/input/TextArea";
+import MultiSelect from "@/components/common/form/MultiSelect";
 
 import { getWorkflowSchema } from "@/lib/schema";
 
@@ -14,6 +15,7 @@ interface CreateWorkflowModalProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  assignmentGroups?: any[];
 }
 
 type CreateWorkflowForm = z.infer<typeof getWorkflowSchema>;
@@ -22,6 +24,7 @@ const CreateWorkflowModal = ({
   onClose,
   onSubmit,
   initialData,
+  assignmentGroups = [],
 }: CreateWorkflowModalProps) => {
   const { t } = useTranslation();
 
@@ -37,6 +40,7 @@ const CreateWorkflowModal = ({
       workflowName: initialData?.workflowName || "",
       levels: initialData?.levels?.join(", ") || "",
       description: initialData?.description || "",
+      assignmentGroups: initialData?.assignmentGroups || [],
     },
   });
 
@@ -84,6 +88,24 @@ const CreateWorkflowModal = ({
               hint={errors.levels?.message}
               className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
             />
+          </div>
+
+          {/* Assignment Groups */}
+          <div>
+            <Label htmlFor="assignmentGroups">{t("gxpAssignmentGroups")}</Label>
+            <Controller
+              name="assignmentGroups"
+              control={control}
+              render={({ field }) => (
+                <MultiSelect
+                  options={assignmentGroups?.map(group => ({ text: group.name, value: group._id }))}
+                  label={t("selectGroups")}
+                  onChange={field.onChange}
+                  defaultSelected={field.value}
+                />
+              )}
+            />
+            {errors.assignmentGroups && <p className="text-red-500 text-xs mt-1">{errors.assignmentGroups.message as string}</p>}
           </div>
 
           {/* Description */}
