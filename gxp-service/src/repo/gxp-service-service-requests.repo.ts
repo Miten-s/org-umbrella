@@ -12,3 +12,20 @@ export const getAllServiceRequests = async () => {
 export const getServiceRequestById = async (id: string) => {
   return await GxpServiceRequestModel.findById(id);
 };
+
+export const updateServiceRequest = async (
+  id: string,
+  data: IServiceRequest
+) => {
+  return await GxpServiceRequestModel.findByIdAndUpdate(
+    id,
+    { $set: data },
+    {
+      new: true
+    }
+  );
+};
+
+export const deleteServiceRequest = async (id: string) => {
+  return await GxpServiceRequestModel.findByIdAndDelete(id);
+};

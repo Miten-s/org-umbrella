@@ -3,7 +3,9 @@ import multer from "multer";
 import {
   createServiceRequest,
   getAllSeviceRequests,
-  getServiceRequestById
+  getServiceRequestById,
+  updateServiceRequest,
+  deleteServiceRequest
 } from "../controllers/gxp-service-service-requests.controller.js";
 import API_ROUTES from "../utils/routes.js";
 
@@ -22,5 +24,13 @@ router.post(
   upload.array("trainingEvidence"),
   createServiceRequest
 );
+
+// ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
+
+router.patch(API_ROUTES.SERVICE_REQUESTS.BY_ID, updateServiceRequest);
+
+// ---------------------------------------------------------------------------------------- DELETE Requests ----------------------------------------------------------------------------------------
+
+router.delete(API_ROUTES.SERVICE_REQUESTS.BY_ID, deleteServiceRequest);
 
 export default router;

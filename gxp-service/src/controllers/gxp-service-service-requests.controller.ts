@@ -5,11 +5,13 @@ import asyncHandler from "../middlewares/error.middleware.js";
 export const createServiceRequest = asyncHandler(
   async (req: Request, res: Response) => {
     const data = req.body;
+    const user = (req as any).user.id;
     const files = req.files as Express.Multer.File[];
     const trainingEvidence = files?.map((file) => file.path) || [];
 
     const newRequest = await service.createServiceRequest({
       ...data,
+      createdBy: user,
       trainingEvidence
     });
 
@@ -19,16 +21,35 @@ export const createServiceRequest = asyncHandler(
 
 export const getAllSeviceRequests = asyncHandler(
   async (_req: Request, res: Response) => {
-    const all = await service.fetchAllRequests();
-    res.status(200).send(all);
+    const result = await service.fetchAllRequests();
+    res.status(200).send(result);
   }
 );
 
 export const getServiceRequestById = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const request = await service.fetchRequestById(id);
-    if (!request) return res.status(404).json({ message: "Not Found" });
-    res.status(200).send(request);
+    const result = await service.fetchRequestById(id);
+    if (!result) return res.status(404).json({ message: "Not Found" });
+    res.status(200).send(result);
+  }
+);
+
+export const updateServiceRequest = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const data = req.body;
+    const result = await service.updateRequest(id, data);
+    if (!result) return res.status(404).json({ message: "Not Found" });
+    res.status(200).send(result);
+  }
+);
+
+export const deleteServiceRequest = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const result = await service.deleteRequest(id);
+    if (!result) return res.status(404).json({ message: "Not Found" });
+    res.status(200).send(result);
   }
 );

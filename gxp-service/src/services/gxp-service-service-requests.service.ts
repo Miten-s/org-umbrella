@@ -1,20 +1,22 @@
-// src/services/serviceRequest.service.ts
-
 import { IServiceRequest } from "../models/gxp-service-service-requests.model.js";
-import {
-  createServiceRequest as createRepo,
-  getAllServiceRequests,
-  getServiceRequestById
-} from "../repo/gxp-service-service-requests.repo.js";
+import * as repo from "../repo/gxp-service-service-requests.repo.js";
 
 export const createServiceRequest = async (data: IServiceRequest) => {
-  return await createRepo(data);
+  return await repo.createServiceRequest(data);
 };
 
 export const fetchAllRequests = async () => {
-  return await getAllServiceRequests();
+  return await repo.getAllServiceRequests();
 };
 
 export const fetchRequestById = async (id: string) => {
-  return await getServiceRequestById(id);
+  return await repo.getServiceRequestById(id);
+};
+
+export const updateRequest = async (id: string, data: IServiceRequest) => {
+  return await repo.updateServiceRequest(id, data);
+};
+
+export const deleteRequest = async (id: string) => {
+  return await repo.deleteServiceRequest(id);
 };
