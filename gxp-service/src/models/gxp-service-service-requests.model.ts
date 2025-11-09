@@ -40,14 +40,18 @@ const GxpServicePortalRequestSchema = new Schema<IServiceRequest>(
       type: String,
       default: generateSrvId
     },
-    group: { type: String, ref: "AssignmentGroup", required: true },
+    group: { type: String, required: true }, // From the Auth Service Groups
     priority: {
       type: String,
       enum: ["Very High", "High", "Medium", "Low"],
       required: true
     },
-    applicationId: { type: String, ref: "GxpApplication", required: true },
-    environment: { type: String, ref: "GxpEnvironment", required: true },
+    applicationId: {
+      type: String,
+      ref: "GxpServiceApplication",
+      required: true
+    },
+    environment: { type: String, ref: "GxpServiceEnvironment", required: true },
     module: {
       type: String,
       ref: "GxpServiceAppModule",
@@ -55,7 +59,7 @@ const GxpServicePortalRequestSchema = new Schema<IServiceRequest>(
     },
     note: { type: String },
     requestRole: { type: String },
-    esignCheck: { type: String, enum: ["Yes", "No"], required: true },
+    esignCheck: { type: String, enum: ["Yes", "No"], default: "No" },
     trainingDone: { type: Boolean, required: true, default: true },
     description: { type: String, required: true },
     shortDescription: { type: String, required: true },
