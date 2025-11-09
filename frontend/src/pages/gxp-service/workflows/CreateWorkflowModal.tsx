@@ -10,6 +10,7 @@ import TextArea from "@/components/common/form/input/TextArea";
 import MultiSelect from "@/components/common/form/MultiSelect";
 
 import { getWorkflowSchema } from "@/lib/schema";
+import Switch from "@/components/common/form/switch/Switch";
 
 interface CreateWorkflowModalProps {
   onClose: () => void;
@@ -18,6 +19,7 @@ interface CreateWorkflowModalProps {
   assignmentGroups?: any[];
 }
 
+// If you re-exported type from schema file, import it instead:
 type CreateWorkflowForm = z.infer<typeof getWorkflowSchema>;
 
 const CreateWorkflowModal = ({
@@ -41,18 +43,30 @@ const CreateWorkflowModal = ({
       levels: initialData?.levels?.join(", ") || "",
       description: initialData?.description || "",
       assignmentGroups: initialData?.assignmentGroups || [],
+      status: initialData?.status ?? "enabled", // <-- default to enabled
     },
   });
 
   const description = useWatch({ control, name: "description" });
 
   const handleFormSubmit = (data: CreateWorkflowForm) => {
-    const levelsArray = data.levels.split(',').map(item => item.trim());
+    // robust split/trim, drop empties, dedupe
+    const levelsArray = Array.from(
+      new Set(
+        data.levels
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      )
+    );
+
     const submissionData = {
       ...data,
       levels: levelsArray,
       numberOfLevels: levelsArray.length,
+      // status already in `data.status`
     };
+
     onSubmit(submissionData);
   };
 
@@ -77,7 +91,7 @@ const CreateWorkflowModal = ({
             />
           </div>
 
-          {/* Levels */}
+          {/* Levels (comma-separated) */}
           <div>
             <Label htmlFor="levels" required>
               {t("levels")}
@@ -98,14 +112,51 @@ const CreateWorkflowModal = ({
               control={control}
               render={({ field }) => (
                 <MultiSelect
-                  options={assignmentGroups?.map(group => ({ text: group.name, value: group._id }))}
+                  options={assignmentGroups?.map((group) => ({
+                    text: group.name,
+                    value: group._id,
+                  }))}
                   label={t("selectGroups")}
                   onChange={field.onChange}
                   defaultSelected={field.value}
                 />
               )}
             />
-            {errors.assignmentGroups && <p className="text-red-500 text-xs mt-1">{errors.assignmentGroups.message as string}</p>}
+            {errors.assignmentGroups && (
+              <p className="text-red-500 text-xs mt-1">
+                {errors.assignmentGroups.message as string}
+              </p>
+            )}
+          </div>
+
+          {/* Status */}
+          <div className="flex items-end">
+            <div className="w-full">
+              <Label htmlFor="status">{t("status")}</Label>
+              <Controller
+                name="status"
+                control={control}
+                render={({ field }) => {
+                  const checked = field.value === "enabled";
+                  return (
+                    <div className="flex items-center gap-3 py-2">
+                      <Switch
+                        checked={checked}
+                        onChange={(val: boolean) =>
+                          field.onChange(val ? "enabled" : "disabled")
+                        }
+                        label={checked ? t("enabled") : t("disabled")}
+                      />
+                    </div>
+                  );
+                }}
+              />
+              {errors.status && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.status.message as string}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Description */}

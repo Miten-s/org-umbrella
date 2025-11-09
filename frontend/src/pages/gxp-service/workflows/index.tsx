@@ -10,31 +10,32 @@ import {
   updateWorkflow,
   deleteWorkflow,
   getAssignmentGroups,
+  enableWorkflow,
+  disableWorkflow,
 } from "@/services/gxp.service";
 import { Workflow } from "@/types/common.types";
 import { useGlobalContext } from "@/context";
+import Switch from "@/components/common/form/switch/Switch";
 
 const Workflows = () => {
   const { isOpen, openModal, closeModal } = useModal();
   const { t } = useTranslation();
   const { reFetch, setReFetch } = useGlobalContext();
+
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  console.log("workflows", workflows);
   const [assignmentGroups, setAssignmentGroups] = useState<any[]>([]);
-
-
   const [activeWorkflow, setActiveWorkflow] = useState<Workflow | null>(null);
   const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
-
   const [confirmationModal, setConfirmationModal] = useState(false);
 
   useEffect(() => {
     const fetchInitialData = async () => {
-      const { workflows } = await getWorkflows();
+      const workflows = await getWorkflows();
+      setWorkflows(workflows);
       const { data } = await getAssignmentGroups();
       setAssignmentGroups(data);
-      setWorkflows(workflows);
     };
-
     fetchInitialData();
   }, [reFetch]);
 
@@ -54,13 +55,32 @@ const Workflows = () => {
     setActiveWorkflow(null);
   };
 
+  // Toggle Status (enabled/disabled)
+  const handleStatusChange = async (wf: Workflow) => {
+    const newStatus = wf.status === "enabled" ? "disabled" : "enabled";
+    setWorkflows((prev) =>
+      prev.map((w) => (w._id === wf._id ? { ...w, status: newStatus } : w))
+    );
+    try {
+      if (newStatus === "enabled") {
+        await enableWorkflow(wf._id);
+      } else {
+        await disableWorkflow(wf._id);
+      }
+    } catch (err) {
+      setWorkflows((prev) =>
+        prev.map((w) => (w._id === wf._id ? { ...w, status: wf.status } : w))
+      );
+      console.error("Workflow status update failed:", err);
+    }
+  };
+
+
   // Confirm Delete
   const confirmDelete = async () => {
     if (!workflowToDelete) return;
-
     await deleteWorkflow(workflowToDelete._id);
     setWorkflows((prev) => prev.filter((wf) => wf._id !== workflowToDelete._id));
-
     setConfirmationModal(false);
     setWorkflowToDelete(null);
   };
@@ -78,8 +98,6 @@ const Workflows = () => {
           {t("gxpWorkflows")}
         </h1>
         <Button
-          // permission="CREATE:WORKFLOW"
-          tooltipPosition="left"
           onClick={() => {
             setActiveWorkflow(null);
             openModal();
@@ -89,56 +107,98 @@ const Workflows = () => {
         </Button>
       </div>
 
-      {/* Workflow List */}
-      <ul className="space-y-2">
-        {workflows?.map((wf) => (
-          <li
-            key={wf._id}
-            className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm flex justify-between items-start gap-4"
-          >
-            <div className="flex-1">
-              <div className="font-semibold text-lg text-gray-900 dark:text-white">
-                {wf.workflowName}
-              </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Levels: {wf.levels.join(", ")}
-              </div>
-              {wf.description && (
-                <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {wf.description}
-                </div>
-              )}
-            </div>
-            <div className="flex gap-2 shrink-0">
-              <Button
-                // permission="UPDATE:WORKFLOW"
-                onClick={() => openEditModal(wf)}
-                variant="outline"
-              >
-                {t("edit")}
-              </Button>
-              <Button
-                // permission="DELETE:WORKFLOW"
-                onClick={() => {
-                  setWorkflowToDelete(wf);
-                  setConfirmationModal(true);
-                }}
-                variant="destructive"
-              >
-                {t("delete")}
-              </Button>
-            </div>
-          </li>
-        ))}
-      </ul>
+      {/* Workflow Table */}
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow overflow-auto">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead className="bg-gray-50 dark:bg-gray-800">
+            <tr>
+              {[
+                "workflowName",
+                "numberOfLevels",
+                "levels",
+                "description",
+                "status",
+                "actions",
+              ].map((key) => (
+                <th
+                  key={key}
+                  className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                >
+                  {t(key)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+
+          <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+            {workflows?.map((wf) => (
+              <tr key={wf._id}>
+                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 dark:text-white">
+                  {wf.workflowName}
+                </td>
+
+                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
+                  {wf.numberOfLevels ?? wf.levels?.length ?? 0}
+                </td>
+
+                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
+                  {Array.isArray(wf.levels) ? wf.levels.join(", ") : "-"}
+                </td>
+
+                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
+                  {wf.description ?? "-"}
+                </td>
+
+                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                  <Switch
+                    label={wf.status === "enabled" ? t("enabled") : t("disabled")}
+                    checked={wf.status === "enabled"}
+                    onChange={() => handleStatusChange(wf)}
+                  />
+                </td>
+
+                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500 dark:text-gray-300">
+                  <Button
+                    onClick={() => openEditModal(wf)}
+                    variant="outline"
+                    className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
+                  >
+                    {t("edit")}
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setWorkflowToDelete(wf);
+                      setConfirmationModal(true);
+                    }}
+                    variant="destructive"
+                    className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                  >
+                    {t("delete")}
+                  </Button>
+                </td>
+              </tr>
+            ))}
+
+            {workflows?.length === 0 && (
+              <tr>
+                <td
+                  colSpan={6}
+                  className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-300"
+                >
+                  {t("noRecordsFound")}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {/* Create/Edit Workflow Modal */}
       <Modal
         isOpen={isOpen}
         onClose={closeModal}
-        className="max-w-[900px] max-h-[100rem]  m-4 overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+        className="max-w-[900px] max-h-[100rem] m-4 overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
       >
-
         <CreateWorkflowModal
           onClose={closeModal}
           onSubmit={handleSave}
@@ -171,7 +231,6 @@ const Workflows = () => {
         </div>
       </Modal>
     </>
-
   );
 };
 

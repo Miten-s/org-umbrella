@@ -9,6 +9,7 @@ const API_ROUTES = {
   GXP_APPLICATIONS: "/gxp-applications",
   GXP_WORKFLOWS: "/gxp-workflows",
   GXP_SERVICES_REQUESTS: "/gxp-service-requests",
+  GXP_ASSIGNMENT_GROUPS: "/gxp-assignment-groups",
   HEALTH: "/health",
   USER: {
     ROOT: "/",
@@ -48,6 +49,13 @@ const API_ROUTES = {
     BY_ID: "/:id",
     ENABLE_BY_ID: "/enable/:id",
     DISABLE_BY_ID: "/disable/:id"
+  },
+  ASSIGNMENT_GROUPS: {
+    ROOT: "/",
+    SEARCH: "/search",
+    BY_ID: "/:id",
+    ENABLE_BY_ID: "/enable/:groupName",
+    DISABLE_BY_ID: "/disable/:groupName"
   }
 };
 

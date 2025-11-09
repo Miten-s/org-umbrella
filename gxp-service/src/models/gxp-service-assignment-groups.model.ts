@@ -23,7 +23,7 @@ const GxpServiceAssignmentGroupSchema = new Schema(
     groupName: {
       type: String,
       required: true,
-      match: /^[A-Z]{2}-[A-Z]{3,}-[A-Z]{2,}-[A-Z]{2,}$/, // Format like RD-APP-LIMS-BUS-ADMIN
+      // match: /^[A-Z]{2}-[A-Z]{3,}-[A-Z]{2,}-[A-Z]{2,}$/, // Format like RD-APP-LIMS-BUS-ADMIN (miten- for testing purpose only)
       unique: true,
       index: true
     },

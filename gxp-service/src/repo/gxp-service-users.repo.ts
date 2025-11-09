@@ -6,17 +6,23 @@ export const createUserRepo = async (data: any) => {
 };
 
 export const findAllUsersRepo = async () => {
-  return await GxpServiceUser.find().populate("roles", "name");
+  //temporary fix as role module is not yet ready
+  return await GxpServiceUser.find().lean();;
 };
 
 export const findUserByIdRepo = async (id: string) => {
-  return await GxpServiceUser.findById(id).populate("roles", "name");
+  return await GxpServiceUser.findById(id).lean();
 };
 
 export const updateUserRepo = async (id: string, data: any) => {
+  try {
   return await GxpServiceUser.findByIdAndUpdate(id, data, {
     new: true
-  }).populate("roles", "name");
+  }).lean();
+} catch (error) {
+  console.log("Error updating user:", error);
+  throw error;
+}
 };
 
 export const disableUserRepo = async (id: string) => {

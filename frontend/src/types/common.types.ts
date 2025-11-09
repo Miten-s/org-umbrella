@@ -22,12 +22,17 @@ export enum SupportedLanguages {
   'fr' = 'fr',
   'he' = 'he',
   'it' = 'it',
-  'hi' = 'hi',   
-  'gu' = 'gu',   
-  'ta' = 'ta',   
-  'te' = 'te',   
-  'mr' = 'mr',   
+  'hi' = 'hi',
+  'gu' = 'gu',
+  'ta' = 'ta',
+  'te' = 'te',
+  'mr' = 'mr',
 }
+
+export const applicationTypeOptions = [
+  { label: "GxP", value: "GxP" },
+  { label: "Non-GxP", value: "Non-GxP" },
+];
 
 export interface Designation {
   _id: string;
@@ -56,10 +61,10 @@ export interface Location {
 
 export interface Department {
   _id: string;
-  departmentId: string; 
+  departmentId: string;
   departmentName: string;
-  locationId?: string; 
-  departmentManagerId?: string; 
+  locationId?: string;
+  departmentManagerId?: string;
   description?: string;
   createdBy?: string;
   createdAt?: string;
@@ -73,7 +78,7 @@ export interface Company {
   _id: string;
   name: string;
   description?: string;
-  logo?: string; 
+  logo?: string;
 }
 
 export interface Supplier {
@@ -91,6 +96,9 @@ export interface Workflow {
   numberOfLevels: number;
   levels: string[];
   description?: string;
+  status: "enabled" | "disabled";
+  assignmentGroupId?: string;
+
 }
 
 export interface AssignmentGroup {
@@ -126,3 +134,4 @@ export interface GxpRole {
   permissions: string[];
   description?: string;
 }
+

@@ -30,5 +30,6 @@ export const disableUserService = async (id: any) => {
 export const enableUserService = async (id: any, comments: any) => {
   const existing = await findUserByIdRepo(id);
   if (!existing) throw new Error("User not found");
+  console.log('comments:', comments);
   return await enableUserRepo(id, comments);
 };

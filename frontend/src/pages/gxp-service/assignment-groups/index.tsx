@@ -65,9 +65,9 @@ const AssignmentGroups = () => {
   const handleStatusChange = async (group: AssignmentGroup) => {
     const newStatus = group.isActive ? false : true; // Assuming isActive is boolean
     if (newStatus) {
-      await enableAssignmentGroup(group._id);
+      await enableAssignmentGroup(group.groupName);
     } else {
-      await disableAssignmentGroup(group._id);
+      await disableAssignmentGroup(group.groupName);
     }
     setAssignmentGroups((prev) =>
       prev.map((s) =>

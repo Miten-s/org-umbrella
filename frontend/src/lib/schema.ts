@@ -119,13 +119,16 @@ export const getWorkflowSchema = z.object({
   levels: z.string().min(1, "Levels are required"),
   assignmentGroups: z.array(z.string()).optional(),
   description: z.string().max(50, "Description must not exceed 50 characters").optional(),
+  status: z.enum(["enabled", "disabled"]).optional(),
+
 });
 
 export const getAssignmentGroupSchema = z.object({
   groupName: z
     .string()
-    .min(1, "Group name is required")
-    .regex(/^[A-Z]{2}-[A-Z]{3,}-[A-Z]{2,}-[A-Z]{2,}$/, "Invalid group name format. Expected format: RD-APP-LIMS-BUS-ADMIN"),
+    .min(1, "Group name is required"),
+  //Comment out in future 
+  // .regex(/^[A-Z]{2}-[A-Z]{3,}-[A-Z]{2,}-[A-Z]{2,}$/, "Invalid group name format. Expected format: RD-APP-LIMS-BUS-ADMIN"),
   manager: z.object({
     userId: z.string().min(1, "Manager is required"),
     name: z.string().min(1, "Manager name is required"),
@@ -164,3 +167,50 @@ export const getGxpRoleSchema = z.object({
   permissions: z.array(z.string()).min(1, "At least one permission is required"),
   description: z.string().max(50, "Description must not exceed 50 characters").optional(),
 });
+
+
+export const getApplicationSchema = z.object({
+  applicationName: z.string().min(1),
+  applicationType: z.enum(["GxP", "Non-GxP"]),
+  applicationEnvironment: z.string().optional().or(z.string().nullable()),
+  group: z.string().optional().or(z.string().nullable()),
+  applicationRoles: z.array(z.string()).default([]),
+  applicationGroups: z.array(z.string()).default([]),
+  applicationServiceRequestTypes: z.array(z.string()).default([]),
+  applicationModules: z.array(z.string()).default([]),
+  applicationWorkflow: z.string().optional().or(z.string().nullable()),
+  applicationSystemOwner: z.string().optional().or(z.string().nullable()),
+  applicationProcessOwner: z.string().optional().or(z.string().nullable()),
+  supplier: z.string().optional().or(z.string().nullable()),
+  departments: z.array(z.string()).default([]),
+  notes: z.string().optional(),
+  attachments: z.array(z.string()).default([]),
+  status: z.enum(["enabled", "disabled"]).default("enabled"),
+});
+
+
+export const getApplicationSoftwareModuleSchema = z.object({
+  moduleName: z
+    .string()
+    .min(1, "Module name is required")
+    .max(100, "Module name must be less than 100 characters"),
+  applicationType: z.enum(["GxP", "Non-GxP"], {
+    required_error: "Application type is required",
+  }),
+  description: z
+    .string()
+    .max(100, "Description must be under 100 characters")
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+  active: z.boolean().default(true),
+});
+
+export const getGxpUserSchema = z.object({
+    userId: z.string().min(1, "User ID is required"),
+    userType: z.enum(["User", "Resolver"]),
+    roleId: z.string().min(1, "Role ID is required"),
+    description: z.string().optional(),
+    status: z.enum(["enabled", "disabled"]),
+});
+export type GxpUserFormInput = z.infer<typeof getGxpUserSchema>;
+export type GxpUserFormOutput = z.output<typeof getGxpUserSchema>;

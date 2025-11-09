@@ -141,5 +141,20 @@
   "gxpRoleName": "Role Name",
   "gxpPermissions": "Permissions",
   "includeDisabled": "Include Disabled",
-  "includeInactive": "Include Inactive"
+  "includeInactive": "Include Inactive",
+  "gxpApplications": "Applications",
+  "gxpAppRoles": "Application Roles",
+  "gxpAppGroups": "Application Groups",
+  "gxpAppModules": "Application Modules",
+  "gxpAppServiceRequestTypes": "Service Request Types",
+  "gxpDepartments": "Departments",
+  "gxpSystemOwner": "System Owner",
+  "gxpProcessOwner": "Process Owner",
+  "gxpApplicationSoftware": "Application Software",
+  "applicationName": "Application Name",
+  "applicationType": "Application Type",
+  "applicationEnvironment": "Application Environment",
+  "applicationWorkflow": "Application Workflow",
+  "group": "Assignment Group",
+  "notes": "Notes"
 }
