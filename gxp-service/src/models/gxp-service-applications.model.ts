@@ -33,7 +33,7 @@ const GxpServiceApplicationSchema = new Schema<IApplication>(
     },
     group: { type: String, ref: "GxpServiceAssignmentGroup" },
     applicationRoles: {
-      type: [{ type: String, ref: "GxpServiceAppRole" }],
+      type: [{ type: String, ref: "GxpServiceAppRoles" }],
       default: []
     },
     applicationGroups: { type: [{ type: String, ref: "GxpServiceAppGroup" }] },
@@ -56,7 +56,7 @@ const GxpServiceApplicationSchema = new Schema<IApplication>(
     },
     supplier: { type: String, ref: "GxpServiceSupplier" },
     departments: {
-      type: [{ type: String, ref: "GxpServiceAppDepartment" }],
+      type: [{ type: String, ref: "GxpServiceAppDepartments" }],
       default: []
     },
     notes: { type: String, trim: true },

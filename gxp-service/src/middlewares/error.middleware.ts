@@ -26,11 +26,13 @@ export const errorHandler = (
     return next(err);
   }
 
+  console.log(err?.message);
+
   let statusCode: number;
   let message: string;
 
   // Handle Mongoose Validation Error
-  if (err.name === "ValidationError") {
+  if (err?.name === "ValidationError") {
     statusCode = 400;
     message = Object.values(err?.errors ?? {})
       .map((e) => e.message)
@@ -38,32 +40,34 @@ export const errorHandler = (
   }
 
   // Handle Invalid ObjectId or CastError
-  else if (err.name === "CastError") {
+  else if (err?.name === "CastError") {
     statusCode = 400;
     message = `Invalid ${err.path}: ${err.value}`;
   }
 
   // Handle Duplicate Key Error (E11000)
-  else if (err.code === 11000) {
+  else if (err?.code === 11000) {
     statusCode = 400;
     const field = Object.keys(err?.keyValue ?? {})[0];
     message = `Duplicate value for field "${field}".`;
   }
 
   // Handle Document Not Found
-  else if (err.name === "DocumentNotFoundError") {
+  else if (err?.name === "DocumentNotFoundError") {
     statusCode = 404;
     message = "Document not found.";
   } else {
-    statusCode = err.statusCode ?? 500;
-    message = err?.errorResponse
-      ? (convertMongooseError({
-          code: err?.errorResponse?.code,
-          entity: Object.keys(err?.errorResponse?.keyValue)[0]
-        }) ?? CUSTOM_MESSAGES.SOMETHING_WENT_WRONG)
-      : getMessage(
-          err.response?.data?.message ?? CUSTOM_MESSAGES.SOMETHING_WENT_WRONG
-        );
+    statusCode = err?.statusCode ?? 500;
+    message =
+      err?.message ??
+      (err?.errorResponse
+        ? (convertMongooseError({
+            code: err?.errorResponse?.code,
+            entity: Object.keys(err?.errorResponse?.keyValue)[0]
+          }) ?? CUSTOM_MESSAGES.SOMETHING_WENT_WRONG)
+        : getMessage(
+            err.response?.data?.message ?? CUSTOM_MESSAGES.SOMETHING_WENT_WRONG
+          ));
   }
 
   res.status(statusCode).json({
