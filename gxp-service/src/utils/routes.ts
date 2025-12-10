@@ -7,6 +7,7 @@ const API_ROUTES = {
   GXP_SUPPLIERS: "/gxp-suppliers",
   GXP_ENVIRONMENTS: "/gxp-environments",
   GXP_APPLICATIONS: "/gxp-applications",
+  GXP_APPLICATION_MODULES: "/gxp-application-modules",
   GXP_WORKFLOWS: "/gxp-workflows",
   GXP_SERVICES_REQUESTS: "/gxp-service-requests",
   GXP_ASSIGNMENT_GROUPS: "/gxp-assignment-groups",
@@ -55,7 +56,12 @@ const API_ROUTES = {
     SEARCH: "/search",
     BY_ID: "/:id",
     ENABLE_BY_ID: "/enable/:groupName",
-    DISABLE_BY_ID: "/disable/:groupName"
+    DISABLE_BY_ID: "/disable/:groupName",
+  },
+  APPLICATION_MODULES: {
+    ROOT: "/",
+    BY_ID: "/:id",
+    STATUS_BY_ID: "/status/:id"
   }
 };
 
