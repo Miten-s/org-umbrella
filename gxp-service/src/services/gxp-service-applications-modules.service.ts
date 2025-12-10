@@ -10,7 +10,7 @@ export const createApplicationModule = async (
 
 export const getApplicationModules = async (includeDisabled = false) => {
   const filter: any = {};
-  if (!includeDisabled) filter.active = "enabled";
+  if (!includeDisabled) filter["status"] = "enabled";
   return await repo.getApplicationModules(filter);
 };
 

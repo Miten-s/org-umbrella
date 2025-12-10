@@ -9,7 +9,6 @@ const GxpServiceAppRolesSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["User", "Resolver"],
       required: true
     },
     active: {

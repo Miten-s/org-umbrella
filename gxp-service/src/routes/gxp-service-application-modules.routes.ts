@@ -28,13 +28,13 @@ router.patch(
   updateApplicationModuleStatus
 );
 
-router.post(
+router.patch(
   API_ROUTES.APPLICATION_MODULES.STATUS_BY_ID,
   updateAppplicationModule
 );
 
 // ---------------------------------------------------------------------------------------- DELETE Requests ----------------------------------------------------------------------------------------
 
-router.delete(API_ROUTES.APPLICATIONS.BY_ID, deleteApplicationModule);
+router.delete(API_ROUTES.APPLICATION_MODULES.BY_ID, deleteApplicationModule);
 
 export default router;
