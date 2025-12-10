@@ -4,7 +4,7 @@ import GxpServiceRolesModel from "../models/gxp-service-application-roles.model"
 import GxpServiceAppGroupModel from "../models/gxp-service-application-groups.model";
 import GxpServiceAppServiceModel from "../models/gxp-service-application-services.model";
 import GxpServiceAppDepartmentModel from "../models/gxp-service-application-departments.model";
-import GxpServiceAppModuleModel from "../models/gxp-service-application-modules.model";
+import { GxpServiceAppModuleModel } from "../models/gxp-service-application-modules.model";
 
 export const createApplication = async (
   payload: Partial<IApplication>,
@@ -68,7 +68,7 @@ export const createApplication = async (
 
   if (payload.applicationModules) {
     const modules = payload.applicationModules.map((name) => ({
-      insertOne: { document: { moduleName: name, appId: application._id } }
+      insertOne: { document: { moduleName: name } }
     }));
 
     const result = await GxpServiceAppModuleModel.bulkWrite(modules);

@@ -1,19 +1,26 @@
 import mongoose from "mongoose";
 
+enum STATUS {
+  ENABLED = "enabled",
+  DISABLED = "disabled"
+}
+export interface IGxpServiceAppModule {
+  _id: string;
+  moduleName: string;
+  status: STATUS;
+  createdBy: string;
+}
+
 const GxpServiceAppModuleSchema = new mongoose.Schema(
   {
-    appId: {
-      type: String,
-      ref: "GxpServiceApplication",
-      required: true
-    },
     moduleName: {
       type: String,
       required: true
     },
-    active: {
-      type: Boolean,
-      default: true
+    status: {
+      type: String,
+      enum: ["enabled", "disabled"],
+      default: "enabled"
     },
     createdBy: {
       type: String
@@ -25,11 +32,9 @@ const GxpServiceAppModuleSchema = new mongoose.Schema(
   }
 );
 
-const GxpServiceAppModuleModel = mongoose.model(
+GxpServiceAppModuleSchema.index({ moduleName: 1 });
+
+export const GxpServiceAppModuleModel = mongoose.model(
   "GxpServiceAppModule",
   GxpServiceAppModuleSchema
 );
-
-GxpServiceAppModuleSchema.index({ appId: 1, moduleName: 1 });
-
-export default GxpServiceAppModuleModel;

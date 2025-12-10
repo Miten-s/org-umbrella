@@ -4,6 +4,7 @@ import gxpSupplierRouter from "./gxp-service-suppliers.routes";
 import gxpEnvironmentRouter from "./gxp-service-environments.routes";
 import gxpApplicationRouter from "./gxp-service-applications.routes";
 import gxpWorkflowRouter from "./gxp-service-workflows.router";
+import gxpApplicationModuleRouter from "./gxp-service-application-modules.routes";
 import gxpServiceRequestsRouter from "./gxp-service-service-requests.routes";
 import API_ROUTES from "../utils/routes";
 import { authenticate } from "../middlewares/auth.middleware";
@@ -33,5 +34,11 @@ commonRouter.use(
 );
 
 commonRouter.use(API_ROUTES.GXP_WORKFLOWS, authenticate, gxpWorkflowRouter);
+
+commonRouter.use(
+  API_ROUTES.GXP_APPLICATION_MODULES,
+  authenticate,
+  gxpApplicationModuleRouter
+);
 
 export default commonRouter;
