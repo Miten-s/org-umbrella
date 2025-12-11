@@ -26,9 +26,9 @@ router.post(API_ROUTES.APPLICATIONS.ROOT, createApplication);
 
 router.patch(API_ROUTES.APPLICATIONS.BY_ID, updateAppplication);
 
-router.post(API_ROUTES.APPLICATIONS.ENABLE_BY_ID, enableApplication);
+router.patch(API_ROUTES.APPLICATIONS.ENABLE_BY_ID, enableApplication);
 
-router.post(API_ROUTES.APPLICATIONS.DISABLE_BY_ID, disableApplication);
+router.patch(API_ROUTES.APPLICATIONS.DISABLE_BY_ID, disableApplication);
 
 // ---------------------------------------------------------------------------------------- DELETE Requests ----------------------------------------------------------------------------------------
 

@@ -156,5 +156,6 @@
   "applicationEnvironment": "Application Environment",
   "applicationWorkflow": "Application Workflow",
   "group": "Assignment Group",
-  "notes": "Notes"
+  "notes": "Notes",
+  "moduleName": "Module Name"
 }

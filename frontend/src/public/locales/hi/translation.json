@@ -115,5 +115,6 @@
   "logo": "लोगो",
   "deleteEntityPrompt": "क्या आप वाकई इस {{entityName}} को हटाना चाहते हैं?",
   "noBuiltInRolesAvailable": "कोई बिल्ट-इन भूमिकाएं उपलब्ध नहीं हैं",
-  "noPermissionMessage": "आपको {{action}} की अनुमति नहीं है"
+  "noPermissionMessage": "आपको {{action}} की अनुमति नहीं है",
+  "moduleName": "मॉड्यूल नाम"
 }

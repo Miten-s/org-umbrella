@@ -34,6 +34,30 @@ export const applicationTypeOptions = [
   { label: "Non-GxP", value: "Non-GxP" },
 ];
 
+export enum ApplicationRole {
+  User = "User",
+  Resolver = "Resolver",
+}
+
+export const applicationRoleOptions = Object.values(ApplicationRole).map((label) => ({
+  label,
+  value: label,
+}));
+
+export enum ApplicationServiceRequestType {
+  ProvideAccess = "Provide Access",
+  ModifyAccess = "Modify Access",
+  RemoveAccess = "Remove Access",
+  GenerateReport = "Generate Report",
+  AddMasterDataRequest = "Add Master Data Request",
+  EditMasterDataRequest = "Edit Master Data Request",
+  RemoveMasterDataRequest = "Remove Master Data Request",
+}
+
+export const applicationServiceRequestTypeOptions = Object.values(ApplicationServiceRequestType).map(
+  (label) => ({ label, value: label })
+);
+
 export interface Designation {
   _id: string;
   designationName: string;
@@ -134,4 +158,3 @@ export interface GxpRole {
   permissions: string[];
   description?: string;
 }
-

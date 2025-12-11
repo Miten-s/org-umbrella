@@ -8,19 +8,19 @@ import { useGlobalContext } from "@/context";
 
 import CreateApplicationSoftwareModuleModal from "./CreateApplicationSoftwareModuleModal";
 
-import { createApplicationSoftware, getApplicationSoftware,
+import {
+  createApplicationSoftware, getApplicationSoftware,
   updateApplicationSoftware,
   deleteApplicationSoftware,
   enableApplicationSoftware,
-  disableApplicationSoftware, } from "@/services/gxp.service";
+  disableApplicationSoftware,
+} from "@/services/gxp.service";
 import Switch from "@/components/common/form/switch/Switch";
 
 type ApplicationSoftwareModule = {
   _id: string;
   moduleName: string;
-  applicationType: "GxP" | "Non-GxP";
-  description?: string;
-  active: boolean;
+  status: "enabled" | "disabled";
   createdOn?: string | null;
   createdBy?: string | null;
   modifiedOn?: string | null;
@@ -39,13 +39,14 @@ const GXPApplicationSoftwareModulePage = () => {
   const [activeModule, setActiveModule] = useState<ApplicationSoftwareModule | null>(null);
   const [confirmationModal, setConfirmationModal] = useState(false);
   const [moduleToDelete, setModuleToDelete] = useState<ApplicationSoftwareModule | null>(null);
+  const [includeDisabled, setIncludeDisabled] = useState(false);
 
   useEffect(() => {
     (async () => {
-      const res = await getApplicationSoftware();
+      const res = await getApplicationSoftware(includeDisabled);
       setModules(ensureArray(res));
     })();
-  }, [reFetch]);
+  }, [reFetch, includeDisabled]);
 
   const openEditModal = (m: ApplicationSoftwareModule) => {
     setActiveModule(m);
@@ -66,20 +67,25 @@ const GXPApplicationSoftwareModulePage = () => {
   };
 
   const handleStatusChange = async (m: ApplicationSoftwareModule) => {
-    const nextActive = !m.active;
+    const nextStatus: ApplicationSoftwareModule["status"] =
+      m.status === "enabled" ? "disabled" : "enabled";
 
     // optimistic update
-    setModules(prev => prev.map(x => (x._id === m._id ? { ...x, active: nextActive } : x)));
+    setModules(prev =>
+      prev.map(x => (x._id === m._id ? { ...x, status: nextStatus } : x))
+    );
 
     try {
-      if (nextActive) {
+      if (nextStatus === "enabled") {
         await enableApplicationSoftware(m._id);
       } else {
         await disableApplicationSoftware(m._id);
       }
     } catch (e) {
       // rollback
-      setModules(prev => prev.map(x => (x._id === m._id ? { ...x, active: m.active } : x)));
+      setModules(prev =>
+        prev.map(x => (x._id === m._id ? { ...x, status: m.status } : x))
+      );
       console.error("Module status update failed:", e);
     }
   };
@@ -99,14 +105,23 @@ const GXPApplicationSoftwareModulePage = () => {
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
           {t("gxpAppModules")}
         </h1>
-        <Button
-          onClick={() => {
-            setActiveModule(null);
-            openModal();
-          }}
-        >
-          {t("create", { entity: t("gxpAppModules") })}
-        </Button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Switch
+              label={t("includeDisabled")}
+              checked={includeDisabled}
+              onChange={() => setIncludeDisabled((prev) => !prev)}
+            />
+          </div>
+          <Button
+            onClick={() => {
+              setActiveModule(null);
+              openModal();
+            }}
+          >
+            {t("create", { entity: t("gxpAppModules") })}
+          </Button>
+        </div>
       </div>
 
       {/* Table */}
@@ -114,7 +129,7 @@ const GXPApplicationSoftwareModulePage = () => {
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-800">
             <tr>
-              {["moduleName", "applicationType", "description", "status", "actions"].map(key => (
+              {["moduleName", "status", "actions"].map(key => (
                 <th
                   key={key}
                   className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
@@ -131,16 +146,11 @@ const GXPApplicationSoftwareModulePage = () => {
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 dark:text-white">
                   {m.moduleName}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
-                  {m.applicationType}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
-                  {m.description ?? "-"}
-                </td>
+
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                   <Switch
-                    label={m.active ? t("enabled") : t("disabled")}
-                    checked={m.active}
+                    label={m.status === "enabled" ? t("enabled") : t("disabled")}
+                    checked={m.status === "enabled"}
                     onChange={() => handleStatusChange(m)}
                   />
                 </td>

@@ -194,15 +194,7 @@ export const getApplicationSoftwareModuleSchema = z.object({
     .string()
     .min(1, "Module name is required")
     .max(100, "Module name must be less than 100 characters"),
-  applicationType: z.enum(["GxP", "Non-GxP"], {
-    required_error: "Application type is required",
-  }),
-  description: z
-    .string()
-    .max(100, "Description must be under 100 characters")
-    .optional()
-    .or(z.literal("").transform(() => undefined)),
-  active: z.boolean().default(true),
+  status: z.enum(["enabled", "disabled"]).default("enabled"),
 });
 
 export const getGxpUserSchema = z.object({

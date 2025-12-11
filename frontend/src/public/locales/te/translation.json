@@ -115,5 +115,6 @@
   "logo": "లోగో",
   "deleteEntityPrompt": "మీరు ఖచ్చితంగా ఈ {{entityName}} ని తొలగించాలనుకుంటున్నారా?",
   "noBuiltInRolesAvailable": "ఎలాంటి అంతర్నిర్మిత పాత్రలు అందుబాటులో లేవు",
-  "noPermissionMessage": "మీకు {{action}} కి అనుమతి లేదు"
+  "noPermissionMessage": "మీకు {{action}} కి అనుమతి లేదు",
+  "moduleName": "మాడ్యూల్ పేరు"
 }

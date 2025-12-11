@@ -41,7 +41,7 @@ export const findApplicationById = async (id: string) => {
     updatedAt: 0
   };
 
-  let query = GxpServiceApplicationModel.find({ _id: id });
+  let query = GxpServiceApplicationModel.findById(id);
   for (const field of POPULATE_FIELDS) {
     query = query.populate({ path: field, select: POPULATE_PROJECTION });
   }

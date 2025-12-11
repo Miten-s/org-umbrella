@@ -115,5 +115,6 @@
   "logo": "લોગો",
   "deleteEntityPrompt": "શું તમે ખરેખર આ {{entityName}} ને કાઢી નાખવા માંગો છો?",
   "noBuiltInRolesAvailable": "કોઈ બિલ્ટ-ઇન ભૂમિકાઓ ઉપલબ્ધ નથી",
-  "noPermissionMessage": "તમારી પાસે {{action}} ની પરવાનગી નથી"
+  "noPermissionMessage": "તમારી પાસે {{action}} ની પરવાનગી નથી",
+  "moduleName": "મોડ્યુલ નામ"
 }

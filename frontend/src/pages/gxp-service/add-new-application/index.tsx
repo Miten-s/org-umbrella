@@ -21,7 +21,7 @@ import {
   getWorkflows,
   getSuppliers,
   getApplicationSoftware,
-  getApplicationServices,
+  getApplicationById,
 } from "@/services/gxp.service";
 import CreateApplicationModal from "./CreateApplicationModal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -31,17 +31,23 @@ type Application = {
   _id: string;
   applicationName: string;
   applicationType: "GxP" | "Non-GxP";
-  applicationEnvironment?: string;
-  group: string;
-  applicationRoles: string[];
-  applicationGroups: string[];
-  applicationServiceRequestTypes: string[];
-  applicationModules: string[];
-  applicationWorkflow?: string;
-  applicationSystemOwner?: string;
-  applicationProcessOwner?: string;
-  supplier?: string;
-  departments: string[];
+  applicationEnvironment?:
+    | {
+        _id: string;
+        environmentName: string;
+      }
+    | string
+    | null;
+  group?: string | null;
+  applicationRoles: any[];
+  applicationGroups: any[];
+  applicationServiceRequestTypes: any[];
+  applicationModules: any[];
+  applicationWorkflow?: any;
+  applicationSystemOwner?: any;
+  applicationProcessOwner?: any;
+  supplier?: any;
+  departments: any[];
   notes?: string;
   attachments: string[];
   status: "enabled" | "disabled";
@@ -58,20 +64,21 @@ const GXPAddNewApplicationPage = () => {
 
   const [applications, setApplications] = useState<Application[]>([]);
   const [activeApplication, setActiveApplication] = useState<Application | null>(null);
+  const [isLoadingActive, setIsLoadingActive] = useState(false);
   const [confirmationModal, setConfirmationModal] = useState(false);
   const [appToDelete, setAppToDelete] = useState<Application | null>(null);
 
   // Option lists
   const [environments, setEnvironments] = useState<any[]>([]);
+  console.log("environments:", environments);
   const [assignmentGroups, setAssignmentGroups] = useState<any[]>([]);
   const [appRoles, setAppRoles] = useState<any[]>([]);
-  const [appGroups, setAppGroups] = useState<any[]>([]);
-  const [serviceTypes, setServiceTypes] = useState<any[]>([]);
   const [appModules, setAppModules] = useState<any[]>([]);
   const [workflows, setWorkflows] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
+  const [includeDisabled, setIncludeDisabled] = useState(false);
   // helper: normalize direct calls that may return {data: []} or []
   const ensureArray = (val: any) =>
     Array.isArray(val) ? val : (val?.data && Array.isArray(val.data) ? val.data : []);
@@ -101,44 +108,47 @@ const GXPAddNewApplicationPage = () => {
 
   useEffect(() => {
     (async () => {
-      const { applications } = await getApplications();
+      const applications = await getApplications(includeDisabled);
       setApplications(applications);
       const [envs, groups] = await Promise.all([getEnvironments(), getAssignmentGroups()]);
       setEnvironments(ensureArray(envs));
       setAssignmentGroups(ensureArray(groups));
       // load option sets (any shape tolerated)
-      const [roles, ags, srs, mods, wfs, us, sups,deps] = await Promise.allSettled([
+      const [roles, mods, wfs, us, sups,deps] = await Promise.allSettled([
         getRoles(),              
-        getAssignmentGroups(),    
-        getApplicationServices(), // if you re-enable later
         getApplicationSoftware(), 
         getWorkflows(),            
         getUsers(),                
         getSuppliers(),            
         getDepartments(),         
       ]);
-
       setAppRoles(extractList(roles, ["roles"]));
-      setAppGroups(extractList(ags, ["groups", "data"]));
-      setServiceTypes(extractList(srs, ["serviceRequestTypes", "data"])); // if enabled
       setAppModules(extractList(mods, ["modules", "software", "data"]));
       setWorkflows(extractList(wfs, ["workflows", "data"]));
       setUsers(extractList(us, ["users", "data"]));
       setSuppliers(extractList(sups, ["suppliers", "data"]));
       setDepartments(extractList(deps, ["departments", "data"]));
     })();
-  }, [reFetch]);
+  }, [reFetch, includeDisabled]);
 
 
-  const openEditModal = (app: Application) => {
-    setActiveApplication(app);
-    openModal();
+  const openEditModal = async (appId: string) => {
+    setIsLoadingActive(true);
+    try {
+      const full = await getApplicationById(appId);
+      setActiveApplication(full);
+      openModal();
+    } catch (e) {
+      console.error("Failed to load application details", e);
+    } finally {
+      setIsLoadingActive(false);
+    }
   };
 
   const handleSave = async (data: Partial<Application>) => {
     if (activeApplication) {
       const updated = await updateApplication(activeApplication._id, data);
-      setApplications(prev => prev.map(a => (a._id === updated._id ? updated : a)));
+      setApplications(prev => prev?.map(a => (a._id === updated._id ? updated : a)));
     } else {
       const created = await createApplication(data);
       setApplications(prev => [created, ...prev]);
@@ -184,14 +194,24 @@ const GXPAddNewApplicationPage = () => {
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
           {t("gxpApplications")}
         </h1>
-        <Button
-          onClick={() => {
-            setActiveApplication(null);
-            openModal();
-          }}
-        >
-          {t("create", { entity: t("gxpApplications") })}
-        </Button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Switch
+              label={t("includeDisabled")}
+              checked={includeDisabled}
+              onChange={() => setIncludeDisabled((prev) => !prev)}
+            />
+          </div>
+          <Button
+            onClick={() => {
+              setActiveApplication(null);
+              openModal();
+            }}
+            disabled={isLoadingActive}
+          >
+            {t("create", { entity: t("gxpApplications") })}
+          </Button>
+        </div>
       </div>
 
       {/* Applications Table */}
@@ -199,7 +219,7 @@ const GXPAddNewApplicationPage = () => {
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-800">
             <tr>
-              {["applicationName", "applicationType", "applicationEnvironment", "group", "status", "actions"].map(key => (
+              {["applicationName", "applicationType", "applicationEnvironment", "applicationGroups", "status", "actions"].map(key => (
                 <th
                   key={key}
                   className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
@@ -219,10 +239,17 @@ const GXPAddNewApplicationPage = () => {
                   {app.applicationType}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
-                  {app.applicationEnvironment ?? "-"}
+                  {typeof app.applicationEnvironment === "object"
+                    ? app.applicationEnvironment?.environmentName ?? "-"
+                    : app.applicationEnvironment ?? "-"}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
+                {/* <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
                   {app.group ?? "-"}
+                </td> */}
+                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
+                  {(app.applicationGroups ?? [])
+                    .map((g: any) => g?.appGroup ?? g?.name ?? g)
+                    .join(", ") || "-"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                   <Switch
@@ -233,7 +260,8 @@ const GXPAddNewApplicationPage = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500 dark:text-gray-300">
                   <Button
-                    onClick={() => openEditModal(app)}
+                    onClick={() => openEditModal(app._id)}
+                    disabled={isLoadingActive}
                     variant="outline"
                     className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
                   >
@@ -270,7 +298,7 @@ const GXPAddNewApplicationPage = () => {
       <Modal
         isOpen={isOpen}
         onClose={closeModal}
-        className="max-w-[1000px] max-h-[100rem] m-4 overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+        className="max-w-[70rem] max-h-[45rem] m-4 overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
       >
         <CreateApplicationModal
           onClose={closeModal}
@@ -280,8 +308,6 @@ const GXPAddNewApplicationPage = () => {
             environments,
             assignmentGroups,
             appRoles,
-            appGroups,
-            serviceTypes,
             appModules,
             workflows,
             users,

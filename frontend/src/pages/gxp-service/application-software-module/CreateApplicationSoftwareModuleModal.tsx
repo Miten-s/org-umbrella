@@ -4,9 +4,7 @@ import { z } from "zod";
 import { useTranslation } from "react-i18next";
 import Label from "@/components/common/form/Label";
 import Input from "@/components/common/form/input/InputField";
-import TextArea from "@/components/common/form/input/TextArea";
 import Button from "@/components/ui/button/Button";
-import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
 import Switch from "@/components/common/form/switch/Switch";
 import { getApplicationSoftwareModuleSchema } from "@/lib/schema";
 
@@ -35,9 +33,7 @@ const CreateApplicationSoftwareModuleModal = ({
         resolver: zodResolver(getApplicationSoftwareModuleSchema),
         defaultValues: {
             moduleName: initialData?.moduleName ?? "",
-            applicationType: initialData?.applicationType ?? "GxP",
-            description: initialData?.description ?? "",
-            active: initialData?.active ?? true,
+            status: initialData?.status ?? "enabled",
         },
     });
 
@@ -53,7 +49,7 @@ const CreateApplicationSoftwareModuleModal = ({
                     {t(initialData ? "edit" : "create", { entity: t("gxpAppModules") })}
                 </h2>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
                     {/* Module Name */}
                     <div>
                         <Label htmlFor="moduleName" required>{t("moduleName")}</Label>
@@ -65,59 +61,21 @@ const CreateApplicationSoftwareModuleModal = ({
                         />
                     </div>
 
-                    {/* Application Type */}
-                    <div>
-                        <Label htmlFor="applicationType" required>{t("applicationType")}</Label>
-                        <Controller
-                            name="applicationType"
-                            control={control}
-                            render={({ field }) => (
-                                <SelectDropdown
-                                    value={field.value}
-                                    onChange={(val: string) => field.onChange(val)}
-                                    options={[
-                                        { label: "GxP", value: "GxP" },
-                                        { label: "Non-GxP", value: "Non-GxP" },
-                                    ]}
-                                    placeholder={t("select", { entity: t("applicationType") })}
-                                />
-                            )}
-                        />
-                        {errors.applicationType && (
-                            <p className="text-red-500 text-xs mt-1">{errors.applicationType.message as string}</p>
-                        )}
-                    </div>
-
-                    {/* Description */}
-                    <div className="md:col-span-2">
-                        <Label>{t("description")}</Label>
-                        <Controller
-                            name="description"
-                            control={control}
-                            render={({ field }) => (
-                                <TextArea
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                    className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700"
-                                />
-                            )}
-                        />
-                        {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message as string}</p>}
-                    </div>
-
                     {/* Active */}
                     <div className="md:col-span-2">
-                        <Label htmlFor="active">{t("status")}</Label>
+                        <Label htmlFor="status">{t("status")}</Label>
                         <Controller
-                            name="active"
+                            name="status"
                             control={control}
                             render={({ field }) => {
-                                const on = !!field.value;
+                                const on = field.value === "enabled";
                                 return (
                                     <div className="flex items-center gap-3 py-2">
                                         <Switch
                                             checked={on}
-                                            onChange={(val: boolean) => field.onChange(val)}
+                                            onChange={(val: boolean) =>
+                                                field.onChange(val ? "enabled" : "disabled")
+                                            }
                                             label={on ? t("enabled") : t("disabled")}
                                         />
                                     </div>
