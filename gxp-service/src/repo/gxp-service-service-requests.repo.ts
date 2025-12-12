@@ -15,12 +15,13 @@ export const getServiceRequestById = async (id: string) => {
 
 export const updateServiceRequest = async (
   id: string,
-  data: IServiceRequest
+  data: Partial<IServiceRequest>
 ) => {
   return await GxpServiceRequestModel.findByIdAndUpdate(
     id,
     { $set: data },
     {
+      runValidators: true,
       new: true
     }
   );

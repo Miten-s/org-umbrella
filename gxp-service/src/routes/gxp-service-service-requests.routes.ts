@@ -29,6 +29,8 @@ router.post(
 
 router.patch(API_ROUTES.SERVICE_REQUESTS.BY_ID, updateServiceRequest);
 
+router.patch(API_ROUTES.SERVICE_REQUESTS.UPDATE_STATUS, updateServiceRequest);
+
 // ---------------------------------------------------------------------------------------- DELETE Requests ----------------------------------------------------------------------------------------
 
 router.delete(API_ROUTES.SERVICE_REQUESTS.BY_ID, deleteServiceRequest);
