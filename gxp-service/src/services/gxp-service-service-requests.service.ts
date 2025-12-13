@@ -13,7 +13,10 @@ export const fetchRequestById = async (id: string) => {
   return await repo.getServiceRequestById(id);
 };
 
-export const updateRequest = async (id: string, data: IServiceRequest) => {
+export const updateRequest = async (
+  id: string,
+  data: Partial<IServiceRequest>
+) => {
   return await repo.updateServiceRequest(id, data);
 };
 

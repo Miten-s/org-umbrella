@@ -45,6 +45,20 @@ export const updateServiceRequest = asyncHandler(
   }
 );
 
+export const updateStatusOfRequest = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { status, comments } = req.body;
+
+    if (!status) return res.status(400).json({ message: "Status Not Found" });
+
+    const result = await service.updateRequest(id, { status, comments });
+
+    if (!result) return res.status(404).json({ message: "Not Found" });
+    res.status(200).send(result);
+  }
+);
+
 export const deleteServiceRequest = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
