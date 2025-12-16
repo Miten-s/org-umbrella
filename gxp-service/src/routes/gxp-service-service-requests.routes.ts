@@ -27,6 +27,8 @@ router.post(
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
 
+// Sanitization is Left for the payload
+
 router.patch(API_ROUTES.SERVICE_REQUESTS.BY_ID, updateServiceRequest);
 
 router.patch(API_ROUTES.SERVICE_REQUESTS.UPDATE_STATUS, updateServiceRequest);
