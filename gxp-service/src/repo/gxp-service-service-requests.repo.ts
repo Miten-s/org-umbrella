@@ -13,7 +13,12 @@ export const getAllServiceRequests = async () => {
 };
 
 export const getServiceRequestById = async (id: string) => {
-  return await GxpServiceRequestModel.findById(id);
+  return await GxpServiceRequestModel.findById(id)
+    .populate("application", ["applicationName", "_id"])
+    .populate("workflow", ["workflowName", "_id"])
+    .populate("environment", ["environmentName", "_id"])
+    .populate("module", ["moduleName", "_id"])
+    .lean();
 };
 
 export const updateServiceRequest = async (
