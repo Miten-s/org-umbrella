@@ -7,7 +7,7 @@ export const createServiceRequest = async (data: IServiceRequest) => {
 
 export const getAllServiceRequests = async () => {
   return await GxpServiceRequestModel.find()
-    .populate("applicationId", ["applicationName", "_id"])
+    .populate("application", ["applicationName", "_id"])
     .populate("workflow", ["workflowName", "_id"])
     .lean();
 };

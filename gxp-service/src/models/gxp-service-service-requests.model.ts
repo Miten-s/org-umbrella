@@ -9,7 +9,7 @@ export interface IServiceRequest {
   _id: string;
   group: string;
   priority: "Very High" | "High" | "Medium" | "Low";
-  applicationId: string;
+  application: string;
   environment: string;
   note: string;
   module: string;
@@ -47,7 +47,7 @@ const GxpServicePortalRequestSchema = new Schema<IServiceRequest>(
       enum: ["Very High", "High", "Medium", "Low"],
       required: true
     },
-    applicationId: {
+    application: {
       type: String,
       ref: "GxpServiceApplication",
       required: true
