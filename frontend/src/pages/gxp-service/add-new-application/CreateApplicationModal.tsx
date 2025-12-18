@@ -1,7 +1,6 @@
 // src/pages/gxp/CreateApplicationModal.tsx
 import { Controller, SubmitHandler, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useState } from "react";
 
@@ -11,7 +10,11 @@ import TextArea from "@/components/common/form/input/TextArea";
 import MultiSelect from "@/components/common/form/MultiSelect";
 import Button from "@/components/ui/button/Button";
 import Switch from "@/components/common/form/switch/Switch";
-import { getApplicationSchema } from "@/lib/schema";
+import {
+    ApplicationFormInput,
+    ApplicationFormOutput,
+    getApplicationSchema,
+} from "@/lib/schema";
 import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
 import {
     applicationRoleOptions,
@@ -19,63 +22,78 @@ import {
     applicationTypeOptions,
 } from "@/types/common.types";
 import { useGlobalContext } from "@/context";
+import type {
+    Application,
+    ApplicationSoftwareModule,
+    AssignmentGroup,
+    Department,
+    Environment,
+    Supplier,
+    User,
+    Workflow,
+} from "@/types/gxp-service.types";
 
 interface CreateApplicationModalProps {
     onClose: () => void;
-    onSubmit: (data: any) => void;
-    initialData?: any;
+    onSubmit: (data: ApplicationFormOutput) => void | Promise<void>;
+    initialData?: Application | Application[] | null;
     optionSets: {
-        environments: any[];
-        assignmentGroups: any[];
-        appRoles: any[];
-        appModules: any[];
-        workflows: any[];
-        users: any[];     // owners
-        suppliers: any[];
-        departments: any[];
+        environments: Environment[];
+        assignmentGroups: AssignmentGroup[];
+        appModules: ApplicationSoftwareModule[];
+        workflows: Workflow[];
+        users: User[]; // owners
+        suppliers: Supplier[];
+        departments: Department[];
     };
 }
 
-// types derived from zod
-type ApplicationFormInput = z.input<typeof getApplicationSchema>;   // input, status optional
-type ApplicationFormOutput = z.output<typeof getApplicationSchema>; // output, status required
 type MultiSelectOption = { text: string; value: string };
 
-const normalizeId = (value: any, keys: string[] = []): string => {
-    if (!value) return "";
-    if (typeof value === "string") return value;
-    const orderedKeys = [...keys, "_id", "value"];
-    for (const key of orderedKeys) {
-        const candidate = value?.[key];
-        if (candidate && typeof candidate === "string") {
-            return candidate;
-        }
-    }
-    return "";
+const DEFAULT_FORM_VALUES: ApplicationFormInput = {
+    applicationName: "",
+    applicationType: "GxP",
+    applicationEnvironment: "",
+    group: "",
+    applicationRoles: [],
+    applicationGroups: [],
+    applicationServiceRequestTypes: [],
+    applicationModules: [],
+    applicationWorkflow: "",
+    applicationSystemOwner: "",
+    applicationProcessOwner: "",
+    supplier: "",
+    departments: [],
+    notes: "",
+    attachments: [],
+    status: "enabled",
 };
 
-const mapArrayToIds = (items: any[] | undefined, keys: string[] = []): string[] =>
-    (items ?? [])
-        .map((item) => normalizeId(item, keys))
-        .filter((val): val is string => Boolean(val));
+const normalizeId = (value: string | { _id: string } | null | undefined): string => {
+    if (!value) return "";
+    return typeof value === "string" ? value : value._id;
+};
 
-const normalizeInitialValues = (data?: any): ApplicationFormInput => ({
-    applicationName: data?.applicationName ?? "",
-    applicationType: data?.applicationType ?? "GxP",
+const normalizeInitialValues = (data?: Application | null): ApplicationFormInput => ({
+    ...DEFAULT_FORM_VALUES,
+    applicationName: data?.applicationName ?? DEFAULT_FORM_VALUES.applicationName,
+    applicationType: data?.applicationType ?? DEFAULT_FORM_VALUES.applicationType,
     applicationEnvironment: normalizeId(data?.applicationEnvironment),
-    group: normalizeId(data?.group, ["appGroup"]),
-    applicationRoles: mapArrayToIds(data?.applicationRoles, ["role"]),
-    applicationGroups: mapArrayToIds(data?.applicationGroups, ["appGroup"]),
-    applicationServiceRequestTypes: mapArrayToIds(data?.applicationServiceRequestTypes, ["service"]),
-    applicationModules: mapArrayToIds(data?.applicationModules, ["moduleName"]),
+    group: normalizeId(data?.group),
+    applicationRoles: data?.applicationRoles?.map((r) => r.role).filter(Boolean) ?? [],
+    applicationGroups: data?.applicationGroups?.map((g) => g.appGroup).filter(Boolean) ?? [],
+    applicationServiceRequestTypes:
+        data?.applicationServiceRequestTypes?.map((s) => s.service).filter(Boolean) ?? [],
+    applicationModules:
+        data?.applicationModules?.map((m) => m.moduleName).filter(Boolean) ?? [],
     applicationWorkflow: normalizeId(data?.applicationWorkflow),
     applicationSystemOwner: normalizeId(data?.applicationSystemOwner),
     applicationProcessOwner: normalizeId(data?.applicationProcessOwner),
     supplier: normalizeId(data?.supplier),
-    departments: mapArrayToIds(data?.departments, ["departmentName", "departmentId", "value"]),
-    notes: data?.notes ?? "",
-    attachments: data?.attachments ?? [],
-    status: data?.status ?? "enabled",
+    departments: data?.departments?.map((d) => d.departmentName).filter(Boolean) ?? [],
+    notes: data?.notes ?? DEFAULT_FORM_VALUES.notes,
+    attachments: data?.attachments ?? DEFAULT_FORM_VALUES.attachments,
+    status: data?.status ?? DEFAULT_FORM_VALUES.status,
 });
 
 const CreateApplicationModal = ({
@@ -95,7 +113,6 @@ const CreateApplicationModal = ({
     const {
         environments,
         assignmentGroups,
-        appRoles,
         appModules,
         workflows,
         users,
@@ -114,23 +131,6 @@ const CreateApplicationModal = ({
         defaultValues: normalizedDefaults,
     });
 
-    // helper to map option to MultiSelect’s shape
-    const toOption = (item: any, textKey: string = "name", valueKey: string = "_id") => ({
-        text:
-            item?.[textKey] ??
-            item?.moduleName ??
-            item?.name ??
-            item?.title ??
-            item?.applicationName ??
-            String(item),
-        value:
-            item?.[valueKey] ??
-            (textKey === "moduleName" ? item?.moduleName : undefined) ??
-            item?._id ??
-            item?.value ??
-            item?.name ??
-            String(item),
-    });
     const notes = useWatch({ control, name: "notes" });
     const [appGroupOptions, setAppGroupOptions] = useState<MultiSelectOption[]>([]);
     const [appModuleOptions, setAppModuleOptions] = useState<MultiSelectOption[]>([]);
@@ -152,8 +152,8 @@ const CreateApplicationModal = ({
     useEffect(() => {
         const baseOptions =
             appModules?.map((m) => ({
-                text: m?.moduleName ?? m?.name ?? String(m?._id ?? ""),
-                value: m?.moduleName ?? "",
+                text: m.moduleName,
+                value: m.moduleName,
             })) || [];
 
         const mergedOptions = [...baseOptions];
@@ -166,66 +166,11 @@ const CreateApplicationModal = ({
         setAppModuleOptions(mergedOptions.filter((opt) => opt.value));
     }, [appModules, normalizedDefaults.applicationModules]);
 
-    // If the stored values are ids, map them to module names when possible so we submit names
-    useEffect(() => {
-        if (!appModules?.length) return;
-        const current = normalizedDefaults.applicationModules ?? [];
-        const mapped = current.map((val) => {
-            const match = appModules.find((m) => m?._id === val);
-            return match?.moduleName ?? val;
-        });
-        // only update if changed to avoid unnecessary re-renders
-        const hasDiff =
-            mapped.length !== current.length ||
-            mapped.some((v, idx) => v !== current[idx]);
-        if (hasDiff) {
-            setValue("applicationModules", mapped);
-        }
-    }, [appModules, normalizedDefaults.applicationModules, setValue]);
-
     const onFormSubmit: SubmitHandler<ApplicationFormInput> = async (data) => {
-        // Ensure defaults are applied & types are output-safe
         const parsed: ApplicationFormOutput = getApplicationSchema.parse(data);
-
-        // normalize single-selects if needed, example:
-        const normalizeSingle = (val: any) => {
-            const v = Array.isArray(val) ? val[0] : val;
-            return v ? v : undefined;
-        };
-        const normalizeMany = (vals: any[] | undefined, preferNameKey?: string) =>
-            (vals ?? [])
-                .map((v) => {
-                    if (typeof v === "string") return v || undefined;
-                    if (typeof v === "object" && v !== null) {
-                        if (preferNameKey && v[preferNameKey]) return v[preferNameKey];
-                        return v.value ?? v._id ?? v.appGroup ?? v.name ?? v.label ?? undefined;
-                    }
-                    return undefined;
-                })
-                .filter((v): v is string => Boolean(v));
-
-        const toModuleName = (val: string | undefined) => {
-            if (!val) return val;
-            const match = appModules?.find((m) => m?._id === val);
-            return match?.moduleName ?? val;
-        };
-
-        const payload = {
-            applicationName: parsed.applicationName,
-            applicationType: parsed.applicationType,
-            applicationEnvironment: normalizeSingle(parsed.applicationEnvironment),
-            group: normalizeSingle(parsed.group),
-            applicationRoles: normalizeMany(parsed.applicationRoles),
-            applicationGroups: normalizeMany(parsed.applicationGroups),
-            applicationServiceRequestTypes: normalizeMany(parsed.applicationServiceRequestTypes),
-            applicationModules: normalizeMany(parsed.applicationModules, "moduleName").map(toModuleName),
-            applicationWorkflow: normalizeSingle(parsed.applicationWorkflow),
-            applicationSystemOwner: normalizeSingle(parsed.applicationSystemOwner),
-            applicationProcessOwner: normalizeSingle(parsed.applicationProcessOwner),
-            supplier: normalizeSingle(parsed.supplier),
-            departments: normalizeMany(parsed.departments),
+        const payload: ApplicationFormOutput = {
+            ...parsed,
             notes: parsed.notes ?? "",
-            status: parsed.status ?? "enabled",
         };
 
         try {
@@ -239,13 +184,14 @@ const CreateApplicationModal = ({
 
 
 
-    const toSingleValue = (val: any) => (Array.isArray(val) ? val[0] ?? "" : val);
-
     const appendUnique = (current: string[] | undefined, next: string) =>
         current?.includes(next) ? current : [...(current || []), next];
 
+    const toSingleValue = (vals: string[]) => vals[0] ?? "";
+
     return (
-        <div className="p-6 max-h-[120vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+        //Remove max-h-screen to allow full height scrolling when validation errors occur
+        <div className="p-6  overflow-y-auto no-scrollbar bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
             <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
                 <h2 className="text-xl font-semibold">
                     {t(resolvedInitial ? "edit" : "create", { entity: t("gxpApplications") })}
@@ -287,7 +233,7 @@ const CreateApplicationModal = ({
 
                     {/* Environment (single) */}
                     <div>
-                        <Label htmlFor="applicationEnvironment">{t("applicationEnvironment")}</Label>
+                        <Label htmlFor="applicationEnvironment" required>{t("applicationEnvironment")}</Label>
                         <Controller
                             name="applicationEnvironment"
                             control={control}
@@ -295,10 +241,10 @@ const CreateApplicationModal = ({
                                 <SelectDropdown
                                     value={field.value ?? ""}
                                     onChange={(val) => field.onChange(val)}
-                                    options={environments?.map((e) => {
-                                        const opt = toOption(e, "environmentName", "_id");
-                                        return { label: opt.text, value: opt.value };
-                                    })}
+                                    options={environments.map((e) => ({
+                                        label: e.environmentName,
+                                        value: e._id,
+                                    }))}
                                     placeholder={t("select", { entity: t("gxpEnvironments") })}
                                 />
                             )}
@@ -312,7 +258,7 @@ const CreateApplicationModal = ({
 
                     {/* Assignment Group (single) */}
                     <div>
-                        <Label htmlFor="group">{t("group")}</Label>
+                        <Label htmlFor="group" required>{t("group")}</Label>
                         <Controller
                             name="group"
                             control={control}
@@ -320,10 +266,10 @@ const CreateApplicationModal = ({
                                         <SelectDropdown
                                             value={field.value ?? ""}
                                             onChange={(val) => field.onChange(val)}
-                                            options={assignmentGroups?.map((g) => {
-                                                const opt = toOption(g, "groupName", "_id");
-                                                return { label: opt.text, value: opt.value };
-                                            })}
+                                            options={assignmentGroups.map((g) => ({
+                                                label: g.groupName,
+                                                value: g._id,
+                                            }))}
                                             placeholder={t("select", { entity: t("gxpAssignmentGroups") })}
                                         />
                                     )}
@@ -349,6 +295,7 @@ const CreateApplicationModal = ({
                                     label={t("select", { entity: t("gxpAppRoles") })}
                                     onChange={field.onChange}
                                     defaultSelected={field.value}
+                                    error={errors.applicationRoles?.message as string}
                                 />
                             )}
                         />
@@ -367,6 +314,7 @@ const CreateApplicationModal = ({
                                     label={t("select", { entity: t("gxpAppGroups") })}
                                     onChange={field.onChange}
                                     defaultSelected={field.value}
+                                    error={errors.applicationGroups?.message as string}
                                     showAddButton
                                     onAdd={(newOption) => {
                                         setAppGroupOptions((prev) =>
@@ -383,7 +331,7 @@ const CreateApplicationModal = ({
 
                     {/* Service Request Types (multi) */}
                     <div>
-                        <Label htmlFor="applicationServiceRequestTypes">{t("gxpAppServiceRequestTypes")}</Label>
+                        <Label htmlFor="applicationServiceRequestTypes" required>{t("gxpAppServiceRequestTypes")}</Label>
                         <Controller
                             name="applicationServiceRequestTypes"
                             control={control}
@@ -397,6 +345,7 @@ const CreateApplicationModal = ({
                                     label={t("select", { entity: t("gxpAppServiceRequestTypes") })}
                                     onChange={field.onChange}
                                     defaultSelected={field.value}
+                                    error={errors.applicationServiceRequestTypes?.message as string}
                                 />
                             )}
                         />
@@ -415,6 +364,7 @@ const CreateApplicationModal = ({
                                     label={t("select", { entity: t("gxpAppModules") })}
                                     onChange={field.onChange}
                                     defaultSelected={field.value}
+                                    error={errors.applicationModules?.message as string}
                                     showAddButton
                                     onAdd={(newOption) => {
                                         setAppModuleOptions((prev) =>
@@ -431,17 +381,21 @@ const CreateApplicationModal = ({
 
                     {/* Workflow (single) */}
                     <div>
-                        <Label htmlFor="applicationWorkflow">{t("applicationWorkflow")}</Label>
+                        <Label htmlFor="applicationWorkflow" required>{t("applicationWorkflow")}</Label>
                         <Controller
                             name="applicationWorkflow"
                             control={control}
                             render={({ field }) => (
                                 <MultiSelect
                                     key={`workflow-${initialKey}`}
-                                    options={workflows?.map((w) => toOption(w, "workflowName", "_id"))}
+                                    options={workflows.map((w) => ({
+                                        text: w.workflowName,
+                                        value: w._id,
+                                    }))}
                                     label={t("select", { entity: t("gxpWorkflows") })}
                                     onChange={(val) => field.onChange(toSingleValue(val))}
                                     defaultSelected={field.value ? [field.value] : []}
+                                    error={errors.applicationWorkflow?.message as string}
                                 />
                             )}
                         />
@@ -449,17 +403,21 @@ const CreateApplicationModal = ({
 
                     {/* System Owner (single) */}
                     <div>
-                        <Label htmlFor="applicationSystemOwner">{t("gxpSystemOwner")}</Label>
+                        <Label htmlFor="applicationSystemOwner" required>{t("gxpSystemOwner")}</Label>
                         <Controller
                             name="applicationSystemOwner"
                             control={control}
                             render={({ field }) => (
                                 <MultiSelect
                                     key={`systemOwner-${initialKey}`}
-                                    options={users?.map((u) => toOption(u, "fullName", "_id"))}
+                                    options={users.map((u) => ({
+                                        text: u.fullName,
+                                        value: u._id,
+                                    }))}
                                     label={t("select", { entity: t("gxpSystemOwner") })}
                                     onChange={(val) => field.onChange(toSingleValue(val))}
                                     defaultSelected={field.value ? [field.value] : []}
+                                    error={errors.applicationSystemOwner?.message as string}
                                 />
                             )}
                         />
@@ -467,17 +425,21 @@ const CreateApplicationModal = ({
 
                     {/* Process Owner (single) */}
                     <div>
-                        <Label htmlFor="applicationProcessOwner">{t("gxpProcessOwner")}</Label>
+                        <Label htmlFor="applicationProcessOwner" required>{t("gxpProcessOwner")}</Label>
                         <Controller
                             name="applicationProcessOwner"
                             control={control}
                             render={({ field }) => (
                                 <MultiSelect
                                     key={`processOwner-${initialKey}`}
-                                    options={users?.map((u) => toOption(u, "fullName", "_id"))}
+                                    options={users.map((u) => ({
+                                        text: u.fullName,
+                                        value: u._id,
+                                    }))}
                                     label={t("select", { entity: t("gxpProcessOwner") })}
                                     onChange={(val) => field.onChange(toSingleValue(val))}
                                     defaultSelected={field.value ? [field.value] : []}
+                                    error={errors.applicationProcessOwner?.message as string}
                                 />
                             )}
                         />
@@ -485,17 +447,21 @@ const CreateApplicationModal = ({
 
                     {/* Supplier (single) */}
                     <div>
-                        <Label htmlFor="supplier">{t("supplier")}</Label>
+                        <Label htmlFor="supplier" required>{t("supplier")}</Label>
                         <Controller
                             name="supplier"
                             control={control}
                             render={({ field }) => (
                                 <MultiSelect
                                     key={`supplier-${initialKey}`}
-                                    options={suppliers?.map((s) => toOption(s, "supplierName", "_id"))}
+                                    options={suppliers.map((s) => ({
+                                        text: s.supplierName,
+                                        value: s._id,
+                                    }))}
                                     label={t("select", { entity: t("gxpSuppliers") })}
                                     onChange={(val) => field.onChange(toSingleValue(val))}
                                     defaultSelected={field.value ? [field.value] : []}
+                                    error={errors.supplier?.message as string}
                                 />
                             )}
                         />
@@ -503,17 +469,21 @@ const CreateApplicationModal = ({
 
                     {/* Departments (multi) */}
                     <div>
-                        <Label htmlFor="departments">{t("departments")}</Label>
+                        <Label htmlFor="departments" required>{t("departments")}</Label>
                         <Controller
                             name="departments"
                             control={control}
                             render={({ field }) => (
                                 <MultiSelect
                                     key={`departments-${initialKey}`}
-                                    options={departments?.map((d) => toOption(d, 'departmentName', '_id'))}
+                                    options={departments.map((d) => ({
+                                        text: d.departmentName,
+                                        value: d._id,
+                                    }))}
                                     label={t("select", { entity: t("gxpDepartments") })}
                                     onChange={field.onChange}
                                     defaultSelected={field.value}
+                                    error={errors.departments?.message as string}
                                 />
                             )}
                         />
@@ -521,7 +491,7 @@ const CreateApplicationModal = ({
 
                     {/* Notes */}
                     <div className="col-span-2">
-                        <Label htmlFor="notes">{t("notes")}</Label>
+                        <Label htmlFor="notes" required>{t("notes")}</Label>
                         <TextArea
                             value={notes ?? ""}
                             onChange={(val) => setValue("notes", val)}

@@ -1,6 +1,6 @@
 import Button from "@/components/ui/button/Button";
 import { t } from "i18next";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 interface Option {
   value: string;
@@ -15,6 +15,8 @@ interface MultiSelectProps {
   disabled?: boolean;
   showAddButton?: boolean;
   onAdd?: (newOption: Option) => void;
+  error?: string;
+  hint?: string;
 }
 
 const MultiSelect: React.FC<MultiSelectProps> = ({
@@ -24,7 +26,10 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   disabled = false,
   showAddButton = false,
   onAdd,
+  error,
+  hint,
 }) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<string[]>(defaultSelected);
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -34,6 +39,27 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   useEffect(() => {
     setInternalOptions(options);
   }, [options]);
+
+  // Close when clicking outside or pressing Escape so multiple dropdowns don't stay open
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!containerRef.current) return;
+      if (!containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsOpen(false);
+    };
+
+    document.addEventListener("mousedown", handleClickOutside, true);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside, true);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
 
   const toggleDropdown = () => {
     if (!disabled) setIsOpen((prev) => !prev);
@@ -74,7 +100,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   );
 
   return (
-    <div className="w-full">
+    <div className="w-full" ref={containerRef}>
       <div className="relative inline-block w-full">
         <div className="relative flex flex-col items-center">
           <div
@@ -84,7 +110,11 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
             }}
             className="w-full"
           >
-            <div className="mb-2 flex h-11 rounded-lg border border-gray-300 py-1.5 pl-3 pr-3 shadow-theme-xs outline-hidden transition focus:border-brand-300 focus:shadow-focus-ring dark:border-gray-700 dark:bg-gray-900 dark:focus:border-brand-300">
+            <div
+              className={`mb-2 flex h-11 rounded-lg border border-gray-300 py-1.5 pl-3 pr-3 shadow-theme-xs outline-hidden transition focus:border-brand-300 focus:shadow-focus-ring dark:border-gray-700 dark:bg-gray-900 dark:focus:border-brand-300 ${
+                error ? "border-red-500 focus:border-red-500 focus:shadow-none" : ""
+              }`}
+            >
               <div className="flex flex-wrap flex-auto gap-2">
                 {selectedOptions.length > 0 ? (
                   selectedOptions.map((val, index) => (
@@ -210,6 +240,11 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
           )}
         </div>
       </div>
+      {(error || hint) && (
+        <p className={`mt-1 text-xs ${error ? "text-red-500" : "text-gray-500"}`}>
+          {error || hint}
+        </p>
+      )}
     </div>
   );
 };

@@ -25,37 +25,18 @@ import {
 } from "@/services/gxp.service";
 import CreateApplicationModal from "./CreateApplicationModal";
 import Switch from "@/components/common/form/switch/Switch";
-import { getDepartments, getRoles, getUsers } from "@/services/admin.service";
-
-type Application = {
-  _id: string;
-  applicationName: string;
-  applicationType: "GxP" | "Non-GxP";
-  applicationEnvironment?:
-    | {
-        _id: string;
-        environmentName: string;
-      }
-    | string
-    | null;
-  group?: string | null;
-  applicationRoles: any[];
-  applicationGroups: any[];
-  applicationServiceRequestTypes: any[];
-  applicationModules: any[];
-  applicationWorkflow?: any;
-  applicationSystemOwner?: any;
-  applicationProcessOwner?: any;
-  supplier?: any;
-  departments: any[];
-  notes?: string;
-  attachments: string[];
-  status: "enabled" | "disabled";
-  createdOn?: string | null;
-  createdBy?: string | null;
-  modifiedOn?: string | null;
-  modifiedBy?: string | null;
-};
+import { getDepartments, getUsers } from "@/services/admin.service";
+import type { ApplicationFormOutput } from "@/lib/schema";
+import type {
+  Application,
+  ApplicationSoftwareModule,
+  AssignmentGroup,
+  Department,
+  Environment,
+  Supplier,
+  User,
+  Workflow,
+} from "@/types/gxp-service.types";
 
 const GXPAddNewApplicationPage = () => {
   const { t } = useTranslation();
@@ -69,65 +50,68 @@ const GXPAddNewApplicationPage = () => {
   const [appToDelete, setAppToDelete] = useState<Application | null>(null);
 
   // Option lists
-  const [environments, setEnvironments] = useState<any[]>([]);
-  console.log("environments:", environments);
-  const [assignmentGroups, setAssignmentGroups] = useState<any[]>([]);
-  const [appRoles, setAppRoles] = useState<any[]>([]);
-  const [appModules, setAppModules] = useState<any[]>([]);
-  const [workflows, setWorkflows] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
-  const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [departments, setDepartments] = useState<any[]>([]);
+  const [environments, setEnvironments] = useState<Environment[]>([]);
+  const [assignmentGroups, setAssignmentGroups] = useState<AssignmentGroup[]>([]);
+  const [appModules, setAppModules] = useState<ApplicationSoftwareModule[]>([]);
+  const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [includeDisabled, setIncludeDisabled] = useState(false);
-  // helper: normalize direct calls that may return {data: []} or []
-  const ensureArray = (val: any) =>
-    Array.isArray(val) ? val : (val?.data && Array.isArray(val.data) ? val.data : []);
+  const isRecord = (val: unknown): val is Record<string, unknown> =>
+    typeof val === "object" && val !== null;
+
+  const ensureArray = <T,>(val: unknown): T[] => {
+    if (Array.isArray(val)) return val as T[];
+    if (isRecord(val) && Array.isArray(val.data)) return val.data as T[];
+    return [];
+  };
 
   // helper: pick the first array from a settled result by preferred keys, then fallback
-  const extractList = (
-    settled: PromiseSettledResult<any>,
+  const extractList = <T,>(
+    settled: PromiseSettledResult<unknown>,
     preferredKeys: string[] = []
-  ) => {
+  ): T[] => {
     if (!settled || settled.status !== "fulfilled") return [];
 
     const v = settled.value;
 
     // 1) direct array
-    if (Array.isArray(v)) return v;
+    if (Array.isArray(v)) return v as T[];
 
     // 2) common keys
-    if (Array.isArray(v?.data)) return v.data;
+    if (!isRecord(v)) return [];
+    if (Array.isArray(v.data)) return v.data as T[];
     for (const k of preferredKeys) {
-      if (Array.isArray(v?.[k])) return v[k];
+      const candidate = v[k];
+      if (Array.isArray(candidate)) return candidate as T[];
     }
 
     // 3) fallback: first array found among values
     const firstArray = Object.values(v).find(Array.isArray);
-    return Array.isArray(firstArray) ? firstArray : [];
+    return Array.isArray(firstArray) ? (firstArray as T[]) : [];
   };
 
   useEffect(() => {
     (async () => {
       const applications = await getApplications(includeDisabled);
-      setApplications(applications);
+      setApplications(ensureArray<Application>(applications));
       const [envs, groups] = await Promise.all([getEnvironments(), getAssignmentGroups()]);
-      setEnvironments(ensureArray(envs));
-      setAssignmentGroups(ensureArray(groups));
+      setEnvironments(ensureArray<Environment>(envs));
+      setAssignmentGroups(ensureArray<AssignmentGroup>(groups));
       // load option sets (any shape tolerated)
-      const [roles, mods, wfs, us, sups,deps] = await Promise.allSettled([
-        getRoles(),              
+      const [mods, wfs, us, sups, deps] = await Promise.allSettled([
         getApplicationSoftware(), 
         getWorkflows(),            
         getUsers(),                
         getSuppliers(),            
         getDepartments(),         
       ]);
-      setAppRoles(extractList(roles, ["roles"]));
-      setAppModules(extractList(mods, ["modules", "software", "data"]));
-      setWorkflows(extractList(wfs, ["workflows", "data"]));
-      setUsers(extractList(us, ["users", "data"]));
-      setSuppliers(extractList(sups, ["suppliers", "data"]));
-      setDepartments(extractList(deps, ["departments", "data"]));
+      setAppModules(extractList<ApplicationSoftwareModule>(mods, ["modules", "software", "data"]));
+      setWorkflows(extractList<Workflow>(wfs, ["workflows", "data"]));
+      setUsers(extractList<User>(us, ["users", "data"]));
+      setSuppliers(extractList<Supplier>(sups, ["suppliers", "data"]));
+      setDepartments(extractList<Department>(deps, ["departments", "data"]));
     })();
   }, [reFetch, includeDisabled]);
 
@@ -136,7 +120,7 @@ const GXPAddNewApplicationPage = () => {
     setIsLoadingActive(true);
     try {
       const full = await getApplicationById(appId);
-      setActiveApplication(full);
+      setActiveApplication(full as Application);
       openModal();
     } catch (e) {
       console.error("Failed to load application details", e);
@@ -145,13 +129,15 @@ const GXPAddNewApplicationPage = () => {
     }
   };
 
-  const handleSave = async (data: Partial<Application>) => {
+  const handleSave = async (data: ApplicationFormOutput) => {
     if (activeApplication) {
       const updated = await updateApplication(activeApplication._id, data);
-      setApplications(prev => prev?.map(a => (a._id === updated._id ? updated : a)));
+      setApplications((prev) =>
+        prev?.map((a) => (a._id === updated._id ? (updated as Application) : a))
+      );
     } else {
       const created = await createApplication(data);
-      setApplications(prev => [created, ...prev]);
+      setApplications((prev) => [(created as Application), ...prev]);
     }
     setActiveApplication(null);
     setReFetch(!reFetch);
@@ -247,9 +233,7 @@ const GXPAddNewApplicationPage = () => {
                   {app.group ?? "-"}
                 </td> */}
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
-                  {(app.applicationGroups ?? [])
-                    .map((g: any) => g?.appGroup ?? g?.name ?? g)
-                    .join(", ") || "-"}
+                  {app.applicationGroups?.map((g) => g.appGroup).join(", ") || "-"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                   <Switch
@@ -298,7 +282,7 @@ const GXPAddNewApplicationPage = () => {
       <Modal
         isOpen={isOpen}
         onClose={closeModal}
-        className="max-w-[70rem] max-h-[45rem] m-4 overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+        className="max-w-[70rem] max-h-[45rem] m-4 overflow-y-auto no-scrollbar  bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
       >
         <CreateApplicationModal
           onClose={closeModal}
@@ -307,7 +291,6 @@ const GXPAddNewApplicationPage = () => {
           optionSets={{
             environments,
             assignmentGroups,
-            appRoles,
             appModules,
             workflows,
             users,

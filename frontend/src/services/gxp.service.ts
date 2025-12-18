@@ -17,7 +17,8 @@ export const API_ROUTES = {
   gxpApplications: "/gxp-applications",
   gxpApplicationSoftware: "/gxp-application-modules",
   gxpApplicationServices: "/gxp-applications-services",
-  gxpUsers: "/gxp-users"
+  gxpUsers: "/gxp-users",
+  gxpServiceRequests: "/gxp-service-requests"
 };
 
 // #region Supplier
@@ -381,6 +382,44 @@ export const enableApplicationService = async (id: string) => {
 export const disableApplicationService = async (id: string) => {
   const response = await gxpApi.patch(`${API_ROUTES.gxpApplicationServices}/disable/${id}`);
   toastSuccess(response, "Application service disabled successfully");
+  return response["data"];
+};
+// #endregion
+
+// #region Service Requests
+export const getServiceRequests = async () => {
+  const response = await gxpApi.get(API_ROUTES.gxpServiceRequests);
+  return response["data"];
+};
+
+export const getServiceRequestById = async (id: string) => {
+  const response = await gxpApi.get(`${API_ROUTES.gxpServiceRequests}/${id}`);
+  return response["data"];
+};
+
+export const createServiceRequest = async (payload: FormData | Record<string, any>) => {
+  const config =
+    payload instanceof FormData
+      ? {
+          headers: {
+            "Content-Type": "multipart/form-data"
+          }
+        }
+      : undefined;
+  const response = await gxpApi.post(API_ROUTES.gxpServiceRequests, payload, config);
+  toastSuccess(response, "Service request created successfully");
+  return response["data"];
+};
+
+export const updateServiceRequest = async (id: string, payload: Record<string, any>) => {
+  const response = await gxpApi.patch(`${API_ROUTES.gxpServiceRequests}/${id}`, payload);
+  toastSuccess(response, "Service request updated successfully");
+  return response["data"];
+};
+
+export const deleteServiceRequest = async (id: string) => {
+  const response = await gxpApi.delete(`${API_ROUTES.gxpServiceRequests}/${id}`);
+  toastSuccess(response, "Service request deleted successfully");
   return response["data"];
 };
 // #endregion

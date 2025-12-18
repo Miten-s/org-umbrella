@@ -7,7 +7,7 @@ const modules = [
     id: "gxp",
     title: "GxP Services",
     description: "Manage compliance-related activities",
-    route: "/gxp"
+    route: "/gxp-service/create-new-service-request"
   },
   { id: "qa", title: "Comming soon...", description: ".......", route: "/qa" },
   {

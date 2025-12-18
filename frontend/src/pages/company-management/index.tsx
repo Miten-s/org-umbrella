@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import { getCompany, updateCompany } from "@/services/admin.service";
 import { Company } from "@/types/common.types";
 import CreateCompanyModal from "./CreateCompanyModal";
-import { useGlobalContext } from "@/context";
 
 const CompanyManagement = () => {
   const { isOpen, openModal, closeModal } = useModal();

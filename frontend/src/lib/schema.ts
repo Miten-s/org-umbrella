@@ -172,21 +172,28 @@ export const getGxpRoleSchema = z.object({
 export const getApplicationSchema = z.object({
   applicationName: z.string().min(1),
   applicationType: z.enum(["GxP", "Non-GxP"]),
-  applicationEnvironment: z.string().optional().or(z.string().nullable()),
-  group: z.string().optional().or(z.string().nullable()),
+  applicationEnvironment: z.string().min(1, "Application environment is required"),
+  group: z.string().min(1, "Group is required"),
   applicationRoles: z.array(z.string()).default([]),
   applicationGroups: z.array(z.string()).default([]),
-  applicationServiceRequestTypes: z.array(z.string()).default([]),
+  applicationServiceRequestTypes: z
+    .array(z.string().min(1, "Service request type is required"))
+    .min(1, "Service request type is required"),
   applicationModules: z.array(z.string()).default([]),
-  applicationWorkflow: z.string().optional().or(z.string().nullable()),
-  applicationSystemOwner: z.string().optional().or(z.string().nullable()),
-  applicationProcessOwner: z.string().optional().or(z.string().nullable()),
-  supplier: z.string().optional().or(z.string().nullable()),
-  departments: z.array(z.string()).default([]),
-  notes: z.string().optional(),
+  applicationWorkflow: z.string().min(1, "Workflow is required"),
+  applicationSystemOwner: z.string().min(1, "System owner is required"),
+  applicationProcessOwner: z.string().min(1, "Process owner is required"),
+  supplier: z.string().min(1, "Supplier is required"),
+  departments: z
+    .array(z.string().min(1, "Department is required"))
+    .min(1, "At least one department is required"),
+  notes: z.string().min(1, "Notes are required"),
   attachments: z.array(z.string()).default([]),
   status: z.enum(["enabled", "disabled"]).default("enabled"),
 });
+
+export type ApplicationFormInput = z.input<typeof getApplicationSchema>;
+export type ApplicationFormOutput = z.output<typeof getApplicationSchema>;
 
 
 export const getApplicationSoftwareModuleSchema = z.object({
@@ -206,3 +213,34 @@ export const getGxpUserSchema = z.object({
 });
 export type GxpUserFormInput = z.infer<typeof getGxpUserSchema>;
 export type GxpUserFormOutput = z.output<typeof getGxpUserSchema>;
+
+export const getServiceRequestSchema = z.object({
+  group: z.string().min(1, "Group is required"),
+  priority: z.enum(["Very High", "High", "Medium", "Low"]),
+  applicationId: z.string().min(1, "Application is required"),
+  environment: z.string().min(1, "Environment is required"),
+  module: z.string().min(1, "Module is required"),
+  requestRole: z.string().optional().or(z.string().nullable()),
+  esignCheck: z.enum(["Yes", "No"]).default("No"),
+  trainingDone: z.boolean().default(true),
+  description: z.string().min(1, "Description is required"),
+  shortDescription: z.string().min(1, "Short description is required"),
+  note: z.string().optional(),
+  workflow: z.string().optional().or(z.string().nullable()),
+  requestType: z.string().min(1).default("Applications"),
+  status: z
+    .enum([
+      "New",
+      "In Progress",
+      "Hold",
+      "Closed - Incomplete",
+      "Closed - Complete",
+      "Closed - Skipped"
+    ])
+    .default("New"),
+  attachments: z.array(z.string()).default([]),
+  comments: z.array(z.string()).default([]),
+});
+
+export type ServiceRequestFormInput = z.input<typeof getServiceRequestSchema>;
+export type ServiceRequestFormOutput = z.output<typeof getServiceRequestSchema>;
