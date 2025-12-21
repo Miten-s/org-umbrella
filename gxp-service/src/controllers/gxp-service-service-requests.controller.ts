@@ -7,12 +7,13 @@ export const createServiceRequest = asyncHandler(
     const data = req.body;
     const user = (req as any).user.id;
     const files = req.files as Express.Multer.File[];
-    const trainingEvidence = files?.map((file) => file.path) || [];
+
+    const attachments = files?.map((file) => file.originalname) || [];
 
     const newRequest = await service.createServiceRequest({
       ...data,
       createdBy: user,
-      trainingEvidence
+      attachments
     });
 
     res.status(201).send(newRequest);
