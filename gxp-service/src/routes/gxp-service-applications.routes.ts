@@ -6,7 +6,8 @@ import {
   updateAppplication,
   enableApplication,
   disableApplication,
-  deleteApplication
+  deleteApplication,
+  getApplicationGroups
 } from "../controllers/gxp-service-applications.controller";
 import API_ROUTES from "../utils/routes";
 
@@ -15,6 +16,11 @@ const router = Router();
 // ---------------------------------------------------------------------------------------- GET Requests ----------------------------------------------------------------------------------------
 
 router.get(API_ROUTES.APPLICATIONS.ROOT, getApplications);
+
+router.get(
+  API_ROUTES.APPLICATIONS.GET_APPLICATION_GROUPS,
+  getApplicationGroups
+);
 
 router.get(API_ROUTES.APPLICATIONS.BY_ID, getApplicationById);
 

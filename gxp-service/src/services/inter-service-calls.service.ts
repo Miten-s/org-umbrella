@@ -1,0 +1,39 @@
+import { Db, MongoClient, ObjectId } from "mongodb";
+
+const uri = process.env.AUTH_MONGO_URI || "";
+
+export let db: Db | null = null;
+
+(async () => {
+  if (db) return;
+  try {
+    const client = new MongoClient(uri, {
+      maxPoolSize: 5,
+      serverSelectionTimeoutMS: 5000
+    });
+
+    await client.connect();
+    db = client.db("umbrella");
+  } catch (error) {
+    throw new Error("Failed to connect to Auth database: " + error);
+  }
+})();
+
+export const fetchUserBasedOnId = async (userIds: string[]) => {
+  if (!db) {
+    throw new Error("Database connection is not established");
+  }
+
+  try {
+    const usersCollection = db.collection("users");
+    const objectIds = userIds.map((id) => new ObjectId(id));
+    const users = await usersCollection
+      .find({ _id: { $in: objectIds } })
+      .project({ _id: 1, name: 1, email: 1 })
+      .toArray();
+
+    return users;
+  } catch (error) {
+    throw new Error("Failed to fetch users: " + error);
+  }
+};

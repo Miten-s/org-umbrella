@@ -27,6 +27,14 @@ export const createApplication = async (
   delete toSave.applicationModules;
   delete toSave.departments;
 
+  const exisitingApplication = await repo.getApplications({
+    applicationName: payload.applicationName
+  });
+
+  if (exisitingApplication.length > 0) {
+    throw new Error("Application with the same name already exists");
+  }
+
   const application = await repo.createApplication(toSave);
 
   // Create application roles from payload
@@ -66,14 +74,16 @@ export const createApplication = async (
 
   // Create application modules from payload
 
-  if (payload.applicationModules) {
-    const modules = payload.applicationModules.map((name) => ({
-      insertOne: { document: { moduleName: name } }
-    }));
+  // It would be removed after confirmation
 
-    const result = await GxpServiceAppModuleModel.bulkWrite(modules);
-    application.applicationModules = Object.values(result?.insertedIds ?? {});
-  }
+  // if (payload.applicationModules) {
+  //   const modules = payload.applicationModules.map((name) => ({
+  //     insertOne: { document: { moduleName: name } }
+  //   }));
+
+  //   const result = await GxpServiceAppModuleModel.bulkWrite(modules);
+  //   application.applicationModules = Object.values(result?.insertedIds ?? {});
+  // }
 
   // Create application departments from payload
 
@@ -136,4 +146,8 @@ export const enableApplication = async (id: string, currentUser?: string) => {
 
 export const deleteApplication = async (id: string) => {
   return await repo.deleteApplcation(id);
+};
+
+export const getApplicationGroups = async () => {
+  return await repo.getApplicationGroups();
 };
