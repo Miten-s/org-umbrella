@@ -94,3 +94,10 @@ export const deleteApplication = asyncHandler(
       .send({ message: "Application deleted", application: deleted });
   }
 );
+
+export const getApplicationGroups = asyncHandler(
+  async (_req: Request, res: Response) => {
+    const applicationGroups = await service.getApplicationGroups();
+    return res.status(200).send({ applicationGroups });
+  }
+);

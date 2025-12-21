@@ -1,7 +1,8 @@
-import { populate } from "dotenv";
+import GxpServiceAppGroupModel from "../models/gxp-service-application-groups.model";
 import GxpServiceApplicationModel, {
   type IApplication
 } from "../models/gxp-service-applications.model";
+import { fetchUserBasedOnId } from "../services/inter-service-calls.service";
 
 export const createApplication = async (payload: Partial<IApplication>) => {
   const doc = new GxpServiceApplicationModel(payload);
@@ -28,8 +29,6 @@ export const findApplicationById = async (id: string) => {
     "applicationServiceRequestTypes",
     "applicationModules",
     "applicationWorkflow",
-    "applicationSystemOwner",
-    "applicationProcessOwner",
     "supplier",
     "departments",
     "attachments"
@@ -41,12 +40,39 @@ export const findApplicationById = async (id: string) => {
     updatedAt: 0
   };
 
-  let query = GxpServiceApplicationModel.find({ _id: id });
-  for (const field of POPULATE_FIELDS) {
-    query = query.populate({ path: field, select: POPULATE_PROJECTION });
-  }
+  const application = await GxpServiceApplicationModel.findById(id)
+    .populate(
+      POPULATE_FIELDS.map((field) => ({
+        path: field,
+        select: POPULATE_PROJECTION
+      }))
+    )
+    .lean();
 
-  return await query;
+  if (!application) return null;
+
+  const { applicationSystemOwner, applicationProcessOwner } = application;
+
+  // Deduplicate user IDs
+  const userIds = Array.from(
+    new Set([applicationSystemOwner, applicationProcessOwner].filter(Boolean))
+  );
+
+  const users = await fetchUserBasedOnId(userIds as string[]);
+
+  // Create lookup map
+  const usersMap = users.reduce<Record<string, any>>((acc, user) => {
+    acc[user._id.toString()] = user;
+    return acc;
+  }, {});
+
+  return {
+    ...application,
+    applicationSystemOwner:
+      applicationSystemOwner && usersMap[applicationSystemOwner.toString()],
+    applicationProcessOwner:
+      applicationProcessOwner && usersMap[applicationProcessOwner.toString()]
+  };
 };
 
 export const updateApplication = async (
@@ -76,4 +102,9 @@ export const enableApplication = async (id: string) => {
 
 export const deleteApplcation = async (id: string) => {
   return await GxpServiceApplicationModel.findByIdAndDelete(id);
+};
+
+export const getApplicationGroups = async () => {
+  const groups = await GxpServiceAppGroupModel.find();
+  return groups;
 };
