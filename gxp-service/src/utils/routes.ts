@@ -51,7 +51,8 @@ const API_ROUTES = {
     BY_ID: "/:id",
     ENABLE_BY_ID: "/enable/:id",
     DISABLE_BY_ID: "/disable/:id",
-    UPDATE_STATUS: "/status/:id"
+    UPDATE_STATUS: "/status/:id",
+    DELETE_ATTACHMENTS: "/attachments/:attachmentId"
   },
   ASSIGNMENT_GROUPS: {
     ROOT: "/",

@@ -1,5 +1,12 @@
 import mongoose from "mongoose";
 
+export interface IGxpServiceRequestAttachment {
+  requestId: string;
+  attachment: string;
+  active: boolean;
+  createdBy: string;
+}
+
 const GxpServiceRequestAttachmentSchema = new mongoose.Schema(
   {
     requestId: {

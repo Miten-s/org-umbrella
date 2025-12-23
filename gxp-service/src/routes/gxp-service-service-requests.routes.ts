@@ -4,7 +4,8 @@ import {
   getAllSeviceRequests,
   getServiceRequestById,
   updateServiceRequest,
-  deleteServiceRequest
+  deleteServiceRequest,
+  deleteAttachments
 } from "../controllers/gxp-service-service-requests.controller.js";
 import API_ROUTES from "../utils/routes.js";
 import upload from "../middlewares/multer.middleware.js";
@@ -27,11 +28,20 @@ router.post(
 
 // Sanitization is Left for the payload
 
-router.patch(API_ROUTES.SERVICE_REQUESTS.BY_ID, updateServiceRequest);
+router.patch(
+  API_ROUTES.SERVICE_REQUESTS.BY_ID,
+  upload.array("attachments"),
+  updateServiceRequest
+);
 
 router.patch(API_ROUTES.SERVICE_REQUESTS.UPDATE_STATUS, updateServiceRequest);
 
 // ---------------------------------------------------------------------------------------- DELETE Requests ----------------------------------------------------------------------------------------
+
+router.delete(
+  API_ROUTES.SERVICE_REQUESTS.DELETE_ATTACHMENTS,
+  deleteAttachments
+);
 
 router.delete(API_ROUTES.SERVICE_REQUESTS.BY_ID, deleteServiceRequest);
 
