@@ -17,7 +17,7 @@ export type ServiceRequest = Omit<
   module: EntityRef<"moduleName">;
   requestRole?: EntityRef<"roleName">;
   workflow?: EntityRef<"workflowName">;
-  location?: string;
+  location?: EntityRef<"locationName">;
   closedOn?: string;
   closedBy?: string;
   __v?: number;
@@ -60,6 +60,8 @@ export type Department = {
 export type User = {
   _id: string;
   fullName: string;
+  name?: string;
+  email?: string;
 };
 
 export type ApplicationRole = {

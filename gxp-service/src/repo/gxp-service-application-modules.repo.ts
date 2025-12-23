@@ -7,8 +7,6 @@ export const createApplicationModule = async (
   payload: Partial<IGxpServiceAppModule>,
   currentUser: string
 ) => {
-  console.log(payload);
-
   const doc = new GxpServiceAppModuleModel({
     ...payload,
     createdBy: currentUser

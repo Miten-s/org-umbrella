@@ -61,7 +61,6 @@ const CreateAssignmentGroupModal = ({
   useEffect(() => {
     const fetchUsers = async () => {
       const { users } = await getUsers();
-      console.log("Fetched users:", users);
       setAllUsers(users);
       setAdminUsers(users.filter((user: User) => user.userType === UserTypes.ADMIN));
     };

@@ -78,7 +78,6 @@ const GXPUsersPage = () => {
       const updated = await updateGxpUser(activeUser._id, payload);
       setGxpUsers((prev) => prev.map((x) => (x._id === updated._id ? updated : x)));
     } else {
-      console.log('payload', payload);
       const created = await createGxpUser(payload);
       setGxpUsers((prev) => [created, ...prev]);
     }

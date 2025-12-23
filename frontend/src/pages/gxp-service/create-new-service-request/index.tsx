@@ -18,6 +18,7 @@ import {
   getApplicationSoftware,
   getGxpRoles
 } from "@/services/gxp.service";
+import { getLocations } from "@/services/admin.service";
 import { ServiceRequestFormOutput } from "@/lib/schema";
 import CreateServiceRequestModal from "./CreateServiceRequestModal";
 import { applicationServiceRequestTypeOptions } from "@/types/common.types";
@@ -42,6 +43,7 @@ const GXPCreateNewServiceRequestPage = () => {
   const [appModules, setAppModules] = useState<any[]>([]);
   const [workflows, setWorkflows] = useState<any[]>([]);
   const [roles, setRoles] = useState<any[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
 
   const ensureArray = (val: any) =>
     Array.isArray(val) ? val : (val?.data && Array.isArray(val.data) ? val.data : []);
@@ -63,6 +65,7 @@ const GXPCreateNewServiceRequestPage = () => {
     requestType: req?.requestType ?? "Applications",
     status: req?.status ?? "New",
     attachments: req?.attachments ?? [],
+    location: req?.location?._id ?? req?.location ?? "",
     comments: req?.comments ?? [],
     createdBy: req?.createdBy,
     createdAt: req?.createdAt,
@@ -83,16 +86,18 @@ const GXPCreateNewServiceRequestPage = () => {
 
   useEffect(() => {
     (async () => {
-      const [requests, apps, envs, groups] = await Promise.all([
+      const [requests, apps, envs, groups, locs] = await Promise.all([
         getServiceRequests(),
         getApplications(),
         getEnvironments(),
-        getAssignmentGroups()
-      ]);
+        getAssignmentGroups(),
+        getLocations()
+      ])
       setServiceRequests(ensureArray(requests).map(normalizeServiceRequest));
       setApplications(ensureArray(apps));
       setEnvironments(ensureArray(envs));
       setAssignmentGroups(ensureArray(groups));
+      setLocations(ensureArray(locs.locations));
 
       const [mods, wfs, rls] = await Promise.allSettled([
         getApplicationSoftware(),
@@ -137,10 +142,25 @@ const GXPCreateNewServiceRequestPage = () => {
     fd.append(key, normalized);
   };
 
-  const handleSave = async (data: ServiceRequestFormOutput, trainingEvidence: File[]) => {
+  const handleSave = async (
+    data: ServiceRequestFormOutput,
+    attachments: File[],
+    existingAttachments: string[]
+  ) => {
+    const payloadWithAttachments: ServiceRequestFormOutput = {
+      ...data,
+      attachments: existingAttachments || []
+    };
+
     try {
       if (activeRequest) {
-        const updated = await updateServiceRequest(activeRequest._id, data);
+        const formData = new FormData();
+        Object.entries(payloadWithAttachments || {}).forEach(([key, value]) =>
+          appendFormValue(formData, key, value)
+        );
+        attachments?.forEach((file) => formData.append("attachments", file));
+
+        const updated = await updateServiceRequest(activeRequest._id, formData);
         setServiceRequests((prev) =>
           prev.map((req) =>
             req._id === updated?._id ? normalizeServiceRequest(updated) : req
@@ -148,8 +168,10 @@ const GXPCreateNewServiceRequestPage = () => {
         );
       } else {
         const formData = new FormData();
-        Object.entries(data || {}).forEach(([key, value]) => appendFormValue(formData, key, value));
-        trainingEvidence?.forEach((file) => formData.append("trainingEvidence", file));
+        Object.entries(payloadWithAttachments || {}).forEach(([key, value]) =>
+          appendFormValue(formData, key, value)
+        );
+        attachments?.forEach((file) => formData.append("attachments", file));
         const created = await createServiceRequest(formData);
         setServiceRequests((prev) => [normalizeServiceRequest(created), ...(prev || [])]);
       }
@@ -308,7 +330,8 @@ const GXPCreateNewServiceRequestPage = () => {
             appModules,
             workflows,
             roles,
-            requestTypes: requestTypeOptions
+            requestTypes: requestTypeOptions,
+            locations
           }}
         />
       </Modal>

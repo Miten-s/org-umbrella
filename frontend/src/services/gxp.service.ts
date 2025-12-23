@@ -15,6 +15,7 @@ export const API_ROUTES = {
   gxpPermissions: "/gxp-permissions",
   gxpRoles: "/gxp-roles",
   gxpApplications: "/gxp-applications",
+  gxpApplicationGroups: "/gxp-applications/application-groups",
   gxpApplicationSoftware: "/gxp-application-modules",
   gxpApplicationServices: "/gxp-applications-services",
   gxpUsers: "/gxp-users",
@@ -69,6 +70,11 @@ export const disableSupplier = async (id: string) => {
 
 export const getWorkflows = async () => {
   const response = await gxpApi.get(API_ROUTES.workflows);
+  return response["data"];
+};
+
+export const getApplicationGroups = async () => {
+  const response = await gxpApi.get(API_ROUTES.gxpApplicationGroups);
   return response["data"];
 };
 
@@ -412,7 +418,15 @@ export const createServiceRequest = async (payload: FormData | Record<string, an
 };
 
 export const updateServiceRequest = async (id: string, payload: Record<string, any>) => {
-  const response = await gxpApi.patch(`${API_ROUTES.gxpServiceRequests}/${id}`, payload);
+  const config =
+    payload instanceof FormData
+      ? {
+          headers: {
+            "Content-Type": "multipart/form-data"
+          }
+        }
+      : undefined;
+  const response = await gxpApi.patch(`${API_ROUTES.gxpServiceRequests}/${id}`, payload, config);
   toastSuccess(response, "Service request updated successfully");
   return response["data"];
 };

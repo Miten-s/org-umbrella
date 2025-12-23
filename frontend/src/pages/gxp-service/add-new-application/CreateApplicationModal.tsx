@@ -24,6 +24,7 @@ import {
 import { useGlobalContext } from "@/context";
 import type {
     Application,
+    ApplicationGroup,
     ApplicationSoftwareModule,
     AssignmentGroup,
     Department,
@@ -40,6 +41,7 @@ interface CreateApplicationModalProps {
     optionSets: {
         environments: Environment[];
         assignmentGroups: AssignmentGroup[];
+        applicationGroups: ApplicationGroup[];
         appModules: ApplicationSoftwareModule[];
         workflows: Workflow[];
         users: User[]; // owners
@@ -113,6 +115,7 @@ const CreateApplicationModal = ({
     const {
         environments,
         assignmentGroups,
+        applicationGroups,
         appModules,
         workflows,
         users,
@@ -141,13 +144,20 @@ const CreateApplicationModal = ({
 
     useEffect(() => {
         const baseOptions =
-            (normalizedDefaults.applicationGroups ?? []).map((val) => ({
-                text: val,
-                value: val,
+            applicationGroups?.map((g) => ({
+                text: g.appGroup,
+                value: g.appGroup,
             })) || [];
 
-        setAppGroupOptions(baseOptions.filter((opt) => opt.value));
-    }, [normalizedDefaults.applicationGroups]);
+        const mergedOptions = [...baseOptions];
+        normalizedDefaults.applicationGroups?.forEach((val) => {
+            if (val && !mergedOptions.find((opt) => opt.value === val)) {
+                mergedOptions.push({ text: val, value: val });
+            }
+        });
+
+        setAppGroupOptions(mergedOptions.filter((opt) => opt.value));
+    }, [applicationGroups, normalizedDefaults.applicationGroups]);
 
     useEffect(() => {
         const baseOptions =

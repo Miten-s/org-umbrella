@@ -20,7 +20,6 @@ export const updateUserRepo = async (id: string, data: any) => {
     new: true
   }).lean();
 } catch (error) {
-  console.log("Error updating user:", error);
   throw error;
 }
 };

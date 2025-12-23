@@ -22,6 +22,7 @@ import {
   getSuppliers,
   getApplicationSoftware,
   getApplicationById,
+  getApplicationGroups,
 } from "@/services/gxp.service";
 import CreateApplicationModal from "./CreateApplicationModal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -31,6 +32,7 @@ import type {
   Application,
   ApplicationSoftwareModule,
   AssignmentGroup,
+  ApplicationGroup,
   Department,
   Environment,
   Supplier,
@@ -57,6 +59,7 @@ const GXPAddNewApplicationPage = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [applicationGroups, setApplicationGroups] = useState<ApplicationGroup[]>([]);
   const [includeDisabled, setIncludeDisabled] = useState(false);
   const isRecord = (val: unknown): val is Record<string, unknown> =>
     typeof val === "object" && val !== null;
@@ -100,18 +103,20 @@ const GXPAddNewApplicationPage = () => {
       setEnvironments(ensureArray<Environment>(envs));
       setAssignmentGroups(ensureArray<AssignmentGroup>(groups));
       // load option sets (any shape tolerated)
-      const [mods, wfs, us, sups, deps] = await Promise.allSettled([
-        getApplicationSoftware(), 
-        getWorkflows(),            
-        getUsers(),                
-        getSuppliers(),            
-        getDepartments(),         
+      const [mods, wfs, us, sups, deps, ags] = await Promise.allSettled([
+        getApplicationSoftware(),
+        getWorkflows(),
+        getUsers(),
+        getSuppliers(),
+        getDepartments(),
+        getApplicationGroups(),
       ]);
       setAppModules(extractList<ApplicationSoftwareModule>(mods, ["modules", "software", "data"]));
       setWorkflows(extractList<Workflow>(wfs, ["workflows", "data"]));
       setUsers(extractList<User>(us, ["users", "data"]));
       setSuppliers(extractList<Supplier>(sups, ["suppliers", "data"]));
       setDepartments(extractList<Department>(deps, ["departments", "data"]));
+      setApplicationGroups(extractList<ApplicationGroup>(ags, ["applicationGroups", "data"]));
     })();
   }, [reFetch, includeDisabled]);
 
@@ -291,6 +296,7 @@ const GXPAddNewApplicationPage = () => {
           optionSets={{
             environments,
             assignmentGroups,
+            applicationGroups,
             appModules,
             workflows,
             users,

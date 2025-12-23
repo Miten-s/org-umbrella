@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, ChangeEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
@@ -17,12 +17,18 @@ import {
 import { applicationServiceRequestTypeOptions } from "@/types/common.types";
 import type { ServiceRequest } from "@/types/gxp-service.types";
 import { useGlobalContext } from "@/context";
+import FileUpload from "@/components/common/form/input/FileUpload";
+import { getGxpImageUrl } from "@/services/utils.service";
 
 type DropdownOption = { label: string; value: string };
 
 interface CreateServiceRequestModalProps {
   onClose: () => void;
-  onSubmit: (data: ServiceRequestFormOutput, trainingEvidence: File[]) => void | Promise<void>;
+  onSubmit: (
+    data: ServiceRequestFormOutput,
+    attachments: File[],
+    existingAttachments: string[]
+  ) => void | Promise<void>;
   initialData?: ServiceRequest | ServiceRequest[] | null;
   optionSets: {
     applications: any[];
@@ -32,19 +38,14 @@ interface CreateServiceRequestModalProps {
     workflows: any[];
     roles: any[];
     requestTypes: DropdownOption[];
+    locations: any[];
   };
 }
 
 const normalizeId = (value: any): string => {
   if (!value) return "";
   if (typeof value === "string") return value;
-  return value?._id ?? value?.value ?? value?.name ?? "";
-};
-
-const normalizeModuleValue = (value: any): string => {
-  if (!value) return "";
-  if (typeof value === "string") return value;
-  return value?.moduleName ?? "";
+  return value?._id ?? value?.value ?? value?.name ?? value?.moduleName ?? "";
 };
 
 const normalizeInitialValues = (
@@ -52,21 +53,24 @@ const normalizeInitialValues = (
 ): ServiceRequestFormInput => ({
   group: normalizeId(data?.group),
   priority: data?.priority ?? "Medium",
-  applicationId: normalizeId(data?.application),
+  application: normalizeId(data?.application),
   environment: normalizeId(data?.environment),
-  module: normalizeModuleValue(data?.module),
+  module: normalizeId(data?.module),
   requestRole: normalizeId(data?.requestRole),
   esignCheck: data?.esignCheck ?? "No",
   trainingDone: data?.trainingDone ?? true,
   description: data?.description ?? "",
   shortDescription: data?.shortDescription ?? "",
   note: data?.note ?? "",
+  location: normalizeId(data?.location),
   workflow: normalizeId(data?.workflow),
   requestType: data?.requestType ?? "Applications",
   status: data?.status ?? "New",
   attachments: data?.attachments ?? [],
   comments: data?.comments ?? []
 });
+
+const isImageName = (name: string) => /\.(png|jpe?g|gif|bmp|webp|svg)$/i.test(name || "");
 
 const CreateServiceRequestModal = ({
   onClose,
@@ -88,10 +92,11 @@ const CreateServiceRequestModal = ({
     appModules,
     workflows,
     roles,
-    requestTypes
+    requestTypes,
+    locations
   } = optionSets;
-  const [trainingEvidence, setTrainingEvidence] = useState<File[]>([]);
-
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [existingAttachments, setExistingAttachments] = useState<string[]>([]);
   const {
     control,
     handleSubmit,
@@ -105,7 +110,8 @@ const CreateServiceRequestModal = ({
 
   useEffect(() => {
     reset(normalizedDefaults);
-    setTrainingEvidence([]);
+    setAttachments([]);
+    setExistingAttachments(normalizedDefaults.attachments || []);
   }, [normalizedDefaults, reset]);
 
   const toDropdown = (item: any, labelKey: string, valueKey: string = "_id"): DropdownOption => ({
@@ -155,22 +161,17 @@ const CreateServiceRequestModal = ({
     const parsed: ServiceRequestFormOutput = getServiceRequestSchema.parse(data);
     try {
       toggleLoading(true);
-      await onSubmit(parsed, trainingEvidence);
+      await onSubmit(parsed, attachments, existingAttachments);
     } finally {
       toggleLoading(false);
     }
-  };
-
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    setTrainingEvidence(files);
   };
 
   const renderError = (message?: string) =>
     message ? <p className="text-red-500 text-xs mt-1">{message}</p> : null;
 
   return (
-    <div className="p-6 max-h-[120vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <div className="p-6 overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
         <h2 className="text-xl font-semibold">
           {resolvedInitial ? t("edit") : t("gxpCreateNewServiceRequest")}
@@ -196,11 +197,11 @@ const CreateServiceRequestModal = ({
           </div>
 
           <div>
-            <Label htmlFor="applicationId" required>
+            <Label htmlFor="application" required>
               {t("application")}
             </Label>
             <Controller
-              name="applicationId"
+              name="application"
               control={control}
               render={({ field }) => (
                 <SelectDropdown
@@ -213,7 +214,7 @@ const CreateServiceRequestModal = ({
                 />
               )}
             />
-            {renderError(errors.applicationId?.message)}
+            {renderError(errors.application?.message)}
           </div>
 
           <div>
@@ -231,7 +232,7 @@ const CreateServiceRequestModal = ({
                       field.onChange(val);
                     }
                   }}
-                  options={appModules?.map((mod) => toDropdown(mod, "moduleName", "moduleName"))}
+                  options={appModules?.map((mod) => toDropdown(mod, "moduleName", "_id"))}
                   placeholder={t("select", { entity: t("module") })}
                 />
               )}
@@ -295,6 +296,25 @@ const CreateServiceRequestModal = ({
           </div>
 
           <div>
+            <Label htmlFor="location" required>
+              {t("location")}
+            </Label>
+            <Controller
+              name="location"
+              control={control}
+              render={({ field }) => (
+                <SelectDropdown
+                  value={field.value ?? ""}
+                  onChange={(val) => field.onChange(val)}
+                  options={locations?.map((loc) => toDropdown(loc, "locationName", "_id"))}
+                  placeholder={t("select", { entity: t("location") })}
+                />
+              )}
+            />
+            {renderError(errors.location?.message)}
+          </div>
+
+          <div>
             <Label htmlFor="group" required>
               {t("group")}
             </Label>
@@ -333,7 +353,7 @@ const CreateServiceRequestModal = ({
           </div>
 
           <div>
-            <Label htmlFor="workflow">{t("workflow")}</Label>
+            <Label htmlFor="workflow" required>{t("workflow")}</Label>
             <Controller
               name="workflow"
               control={control}
@@ -387,7 +407,7 @@ const CreateServiceRequestModal = ({
             {renderError(errors.trainingDone?.message)}
           </div>
 
-          <div>
+          <div >
             <Label htmlFor="status">{t("status")}</Label>
             <Controller
               name="status"
@@ -404,7 +424,7 @@ const CreateServiceRequestModal = ({
             {renderError(errors.status?.message)}
           </div>
 
-          <div className="md:col-span-2">
+          <div>
             <Label htmlFor="description" required>
               {t("description")}
             </Label>
@@ -423,8 +443,8 @@ const CreateServiceRequestModal = ({
             />
           </div>
 
-          <div className="md:col-span-2">
-            <Label htmlFor="note">{t("notes")}</Label>
+          <div>
+            <Label htmlFor="note" required> {t("notes")}</Label>
             <Controller
               name="note"
               control={control}
@@ -440,22 +460,92 @@ const CreateServiceRequestModal = ({
             />
           </div>
 
-          <div className="md:col-span-2">
-            <Label htmlFor="trainingEvidence">{t("trainingEvidence")}</Label>
-            <input
-              id="trainingEvidence"
-              type="file"
-              multiple
-              onChange={handleFileChange}
-              className="mt-1 block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer dark:text-gray-300 dark:bg-gray-800 dark:border-gray-700"
+          <div>
+            <Label htmlFor="comments" required>
+              {t("comments")}
+            </Label>
+            <Controller
+              name="comments"
+              control={control}
+              render={({ field }) => (
+                <TextArea
+                  value={(field.value || []).join("\n")}
+                  onChange={(val) => {
+                    const lines = (val || "")
+                      .split("\n")
+                      .map((line) => line.trim())
+                      .filter(Boolean);
+                    field.onChange(lines);
+                  }}
+                  error={!!errors.comments}
+                  hint={
+                    (errors.comments as any)?.message ||
+                    (errors.comments as any)?._errors?.[0]
+                  }
+                  className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
+                />
+              )}
             />
-            {trainingEvidence?.length > 0 && (
-              <ul className="mt-2 text-xs text-gray-600 dark:text-gray-300">
-                {trainingEvidence.map((file) => (
-                  <li key={file.name}>{file.name}</li>
-                ))}
-              </ul>
-            )}
+          </div>
+
+          <div className="md:col-span-2">
+            <Label htmlFor="attachments">
+              {t("attachments", { defaultValue: t("trainingEvidence") ?? "Attachments" })}
+            </Label>
+            {existingAttachments?.length ? (
+              <div className="mb-3 space-y-2">
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  {t("previousUploads", { defaultValue: "Previously uploaded" })} (
+                  {existingAttachments.length})
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {existingAttachments.map((name, idx) => (
+                    <div
+                      key={`${name}-${idx}`}
+                      className="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2"
+                      title={name}
+                    >
+                      {isImageName(name) ? (
+                        <img
+                          src={getGxpImageUrl(name)}
+                          alt={name}
+                          className="h-10 w-10 rounded border border-gray-200 dark:border-gray-700 object-cover"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-[10px] font-semibold text-gray-800 dark:text-gray-100">
+                          {(name?.split(".").pop() || "file").toUpperCase().slice(0, 4)}
+                        </div>
+                      )}
+                      <span className="text-xs text-gray-800 dark:text-gray-100 max-w-[220px] truncate">
+                        {name}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExistingAttachments((prev) =>
+                            prev.filter((_, removeIdx) => removeIdx !== idx)
+                          )
+                        }
+                        className="text-[11px] font-semibold text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                      >
+                        {t("remove", { defaultValue: "Remove" })}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            <FileUpload
+              value={attachments}
+              onChange={(files) => setAttachments(files)}
+              multiple={true}
+              maxFiles={10}
+              maxSizeMB={10}
+              blockAudioVideo={true}
+              // accept not set => allow all (except audio/video via custom rule)
+              title="Upload Training Evidence"
+              description="Upload documents/images. Audio/video not allowed."
+            />
           </div>
         </div>
 

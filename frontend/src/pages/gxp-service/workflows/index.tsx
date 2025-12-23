@@ -23,7 +23,6 @@ const Workflows = () => {
   const { reFetch, setReFetch } = useGlobalContext();
 
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
-  console.log("workflows", workflows);
   const [assignmentGroups, setAssignmentGroups] = useState<any[]>([]);
   const [activeWorkflow, setActiveWorkflow] = useState<Workflow | null>(null);
   const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
