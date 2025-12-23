@@ -1,4 +1,5 @@
 import mongoose, { Schema } from "mongoose";
+import { IGxpServiceRequestAttachment } from "./gxp-service-requests-attachments.model";
 
 const generateSrvId = () => {
   const objectId = new mongoose.Types.ObjectId();
@@ -18,7 +19,7 @@ export interface IServiceRequest {
   trainingDone: boolean;
   description: string;
   shortDescription: string;
-  attachments: string[];
+  attachments: IGxpServiceRequestAttachment[];
   closedOn: Date;
   closedBy: string;
   createdBy: string;
@@ -65,7 +66,6 @@ const GxpServicePortalRequestSchema = new Schema<IServiceRequest>(
     trainingDone: { type: Boolean, required: true, default: true },
     description: { type: String, required: true },
     shortDescription: { type: String, required: true },
-    attachments: [{ type: String, ref: "GxpServiceAttachment" }],
     closedOn: { type: Date, default: null },
     closedBy: { type: String, maxlength: 40, default: "" },
     createdBy: { type: String, maxlength: 40, default: "" },

@@ -1,12 +1,16 @@
+import fs from "fs";
 import multer from "multer";
 import type { Request } from "express";
 // ---------------- Storage ----------------
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
+    if (!fs.existsSync("uploads")) {
+      fs.mkdirSync("uploads", { recursive: true });
+    }
     cb(null, "uploads/");
   },
   filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
+    cb(null, `/${Date.now()}-${file.originalname}`);
   }
 });
 
@@ -17,7 +21,10 @@ const allowedMimeTypes = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "text/plain"
+  "text/plain",
+  "image/jpeg",
+  "image/png",
+  "image/jpg"
 ];
 
 const fileFilter = (_req: Request, file: Express.Multer.File, cb: any) => {

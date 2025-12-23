@@ -74,16 +74,14 @@ export const createApplication = async (
 
   // Create application modules from payload
 
-  // It would be removed after confirmation
+  if (payload.applicationModules) {
+    const modules = payload.applicationModules.map((name) => ({
+      insertOne: { document: { moduleName: name } }
+    }));
 
-  // if (payload.applicationModules) {
-  //   const modules = payload.applicationModules.map((name) => ({
-  //     insertOne: { document: { moduleName: name } }
-  //   }));
-
-  //   const result = await GxpServiceAppModuleModel.bulkWrite(modules);
-  //   application.applicationModules = Object.values(result?.insertedIds ?? {});
-  // }
+    const result = await GxpServiceAppModuleModel.bulkWrite(modules);
+    application.applicationModules = Object.values(result?.insertedIds ?? {});
+  }
 
   // Create application departments from payload
 

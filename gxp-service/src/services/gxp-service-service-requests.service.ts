@@ -23,3 +23,7 @@ export const updateRequest = async (
 export const deleteRequest = async (id: string) => {
   return await repo.deleteServiceRequest(id);
 };
+
+export const deleteAttachments = async (id: string) => {
+  return await repo.deleteAttachments(id);
+};
