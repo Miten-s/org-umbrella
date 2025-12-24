@@ -57,6 +57,8 @@ app.use(userRateLimiter);
 
 // Mount the authentication routes at /v1/auth
 
+app.use("/uploads", express.static("uploads"));
+
 app.use(API_ROUTES.VERSIONS.v1, commonRouter);
 
 // Global error handler
