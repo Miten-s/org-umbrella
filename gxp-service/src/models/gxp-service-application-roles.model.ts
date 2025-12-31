@@ -30,6 +30,6 @@ const GxpServiceRolesModel = mongoose.model(
   GxpServiceAppRolesSchema
 );
 
-GxpServiceAppRolesSchema.index({ appId: 1, role: 1 });
+GxpServiceAppRolesSchema.index({ appId: 1, role: 1 }, { unique: true });
 
 export default GxpServiceRolesModel;

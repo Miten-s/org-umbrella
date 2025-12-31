@@ -1,3 +1,5 @@
+import { IApplication } from "../models/gxp-service-applications.model";
+
 export type AppError = {
   message: string;
   statusCode?: number;
@@ -8,4 +10,15 @@ export type AppError = {
 export enum STATUS {
   ENABLED = "enabled",
   DISABLED = "disabled"
+}
+
+export type Ids = { _id: string; name: string }[];
+
+export interface UpdateApplication
+  extends Pick<IApplication, "applicationName" | "status"> {
+  applicationRoles?: Ids;
+  applicationGroups?: Ids;
+  applicationServiceRequestTypes?: Ids;
+  applicationModules?: Ids;
+  departments?: Ids;
 }

@@ -79,9 +79,13 @@ export const updateApplication = async (
   id: string,
   updates: Partial<IApplication>
 ) => {
-  return await GxpServiceApplicationModel.findByIdAndUpdate(id, updates, {
-    new: true
-  });
+  return await GxpServiceApplicationModel.findOneAndUpdate(
+    { _id: id },
+    { $set: updates },
+    {
+      new: true
+    }
+  );
 };
 
 export const disableApplication = async (id: string) => {

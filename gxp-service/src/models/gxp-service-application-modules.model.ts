@@ -4,6 +4,7 @@ enum STATUS {
   ENABLED = "enabled",
   DISABLED = "disabled"
 }
+
 export interface IGxpServiceAppModule {
   _id: string;
   moduleName: string;
@@ -32,7 +33,7 @@ const GxpServiceAppModuleSchema = new mongoose.Schema(
   }
 );
 
-GxpServiceAppModuleSchema.index({ moduleName: 1 });
+GxpServiceAppModuleSchema.index({ moduleName: 1 }, { unique: true });
 
 export const GxpServiceAppModuleModel = mongoose.model(
   "GxpServiceAppModule",
