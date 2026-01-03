@@ -25,7 +25,10 @@ const GxpServiceAppDepartmentSchema = new mongoose.Schema(
   }
 );
 
-GxpServiceAppDepartmentSchema.index({ appId: 1, departmentName: 1 });
+GxpServiceAppDepartmentSchema.index(
+  { appId: 1, departmentName: 1 },
+  { unique: true }
+);
 
 const GxpServiceAppDepartmentModel = mongoose.model(
   "GxpServiceAppDepartments",

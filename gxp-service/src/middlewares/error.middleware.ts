@@ -49,7 +49,10 @@ export const errorHandler = (
   else if (err?.code === 11000) {
     statusCode = 400;
     const field = Object.keys(err?.keyValue ?? {})[0];
-    message = `Duplicate value for field "${field}".`;
+
+    message = field
+      ? `Duplicate value for field "${field}".`
+      : err?.errorResponse?.message;
   }
 
   // Handle Document Not Found

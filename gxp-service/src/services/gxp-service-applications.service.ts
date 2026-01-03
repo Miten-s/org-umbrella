@@ -5,6 +5,7 @@ import GxpServiceAppGroupModel from "../models/gxp-service-application-groups.mo
 import GxpServiceAppServiceModel from "../models/gxp-service-application-services.model";
 import GxpServiceAppDepartmentModel from "../models/gxp-service-application-departments.model";
 import { GxpServiceAppModuleModel } from "../models/gxp-service-application-modules.model";
+import { UpdateApplication } from "../types/common.types";
 
 export const createApplication = async (
   payload: Partial<IApplication>,
@@ -113,14 +114,120 @@ export const getApplicationById = async (id: string) => {
 
 export const updateApplication = async (
   id: string,
-  updates: Partial<IApplication>,
+  updates: UpdateApplication,
   currentUser?: string
 ) => {
+  const isApplicationExist = await repo.findApplicationById(id);
+
+  if (!isApplicationExist) {
+    throw new Error("Application not found");
+  }
+
   const modified = {
-    ...updates,
+    ...JSON.parse(JSON.stringify(updates)),
     modifiedOn: new Date(),
     modifiedBy: currentUser ?? null
   };
+
+  delete modified.applicationName;
+  delete modified.applicationRoles;
+  delete modified.applicationGroups;
+  delete modified.applicationServiceRequestTypes;
+  delete modified.applicationModules;
+  delete modified.departments;
+
+  // Update application roles from payload
+
+  if (updates.applicationRoles) {
+    const roles = updates.applicationRoles
+      .filter((role) => !role._id)
+      .map((role) => ({
+        insertOne: { document: { role: role.name, appId: id } }
+      }));
+
+    const result = await GxpServiceRolesModel.bulkWrite(roles);
+    modified.applicationRoles = [
+      ...Object.values(result?.insertedIds ?? {}).map(String),
+      ...updates.applicationRoles
+        .filter((role) => role._id)
+        .map((role) => role._id)
+    ];
+  }
+
+  // Update application group from payload
+
+  if (updates.applicationGroups) {
+    const groups = updates.applicationGroups
+      .filter((group) => !group._id)
+      .map((group) => ({
+        insertOne: { document: { appGroup: group.name, appId: id } }
+      }));
+
+    const result = await GxpServiceAppGroupModel.bulkWrite(groups);
+    modified.applicationGroups = [
+      ...Object.values(result?.insertedIds ?? {}).map(String),
+      ...updates.applicationGroups
+        .filter((group) => group._id)
+        .map((group) => group._id)
+    ];
+  }
+
+  // Update application service requests from payload
+
+  if (updates.applicationServiceRequestTypes) {
+    const groups = updates.applicationServiceRequestTypes
+      .filter((request) => !request._id)
+      .map((request) => ({
+        insertOne: { document: { service: request.name, appId: id } }
+      }));
+
+    const result = await GxpServiceAppServiceModel.bulkWrite(groups);
+    modified.applicationServiceRequestTypes = [
+      ...Object.values(result?.insertedIds ?? {}).map(String),
+      ...updates.applicationServiceRequestTypes
+        .filter((request) => request._id)
+        .map((request) => request._id)
+    ];
+  }
+
+  // Update application modules from payload
+
+  if (updates.applicationModules) {
+    const modules = updates.applicationModules
+      .filter((mod) => !mod?._id)
+      .map((mod) => ({
+        insertOne: { document: { moduleName: mod.name } }
+      }));
+
+    const result = await GxpServiceAppModuleModel.bulkWrite(modules);
+    modified.applicationModules = [
+      ...Object.values(result?.insertedIds ?? {}).map(String),
+      ...updates.applicationModules
+        .filter((mod) => mod?._id)
+        .map((mod) => mod?._id)
+    ];
+  }
+
+  // Update application departments from payload
+
+  if (updates.departments) {
+    const modules = updates.departments
+      .filter((department) => !department._id)
+      .map((department) => ({
+        insertOne: {
+          document: { departmentName: department.name, appId: id }
+        }
+      }));
+
+    const result = await GxpServiceAppDepartmentModel.bulkWrite(modules);
+    modified.departments = [
+      ...Object.values(result?.insertedIds ?? {}).map(String),
+      ...updates.departments
+        .filter((department) => department._id)
+        .map((department) => department._id)
+    ];
+  }
+
   return await repo.updateApplication(id, modified);
 };
 
