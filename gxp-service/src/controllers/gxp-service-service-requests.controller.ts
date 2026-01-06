@@ -36,6 +36,13 @@ export const getServiceRequestById = asyncHandler(
   }
 );
 
+export const getServiceTypes = asyncHandler(
+  async (req: Request, res: Response) => {
+    const result = await service.getServiceTypes(req);
+    res.status(200).send({ service_types: result });
+  }
+);
+
 export const updateServiceRequest = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;

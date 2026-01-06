@@ -1,3 +1,4 @@
+import { Request } from "express";
 import { IServiceRequest } from "../models/gxp-service-service-requests.model.js";
 import * as repo from "../repo/gxp-service-service-requests.repo.js";
 
@@ -26,4 +27,8 @@ export const deleteRequest = async (id: string) => {
 
 export const deleteAttachments = async (id: string) => {
   return await repo.deleteAttachments(id);
+};
+
+export const getServiceTypes = async (req: Request) => {
+  return await repo.getServiceTypes(req);
 };

@@ -1,5 +1,4 @@
 import mongoose, { Schema } from "mongoose";
-import { IGxpServiceRequestAttachment } from "./gxp-service-requests-attachments.model";
 
 const generateSrvId = () => {
   const objectId = new mongoose.Types.ObjectId();
@@ -11,15 +10,10 @@ export interface IServiceRequest {
   group: string;
   priority: "Very High" | "High" | "Medium" | "Low";
   application: string;
-  environment: string;
-  note: string;
-  module: string;
-  requestRole: string;
   esignCheck: "Yes" | "No";
   trainingDone: boolean;
   description: string;
   shortDescription: string;
-  attachments: IGxpServiceRequestAttachment[];
   closedOn: Date;
   closedBy: string;
   createdBy: string;
@@ -31,7 +25,6 @@ export interface IServiceRequest {
     | "Closed - Incomplete"
     | "Closed - Complete"
     | "Closed - Skipped";
-  workflow: string;
   requestType: string;
   comments: string[];
 }
@@ -53,15 +46,6 @@ const GxpServicePortalRequestSchema = new Schema<IServiceRequest>(
       ref: "GxpServiceApplication",
       required: true
     },
-    environment: { type: String, ref: "GxpServiceEnvironment", required: true },
-    module: {
-      type: String,
-      ref: "GxpServiceAppModule",
-      required: true
-    },
-    location: { type: String, required: true },
-    note: { type: String },
-    requestRole: { type: String },
     esignCheck: { type: String, enum: ["Yes", "No"], default: "No" },
     trainingDone: { type: Boolean, required: true, default: true },
     description: { type: String, required: true },
@@ -81,7 +65,6 @@ const GxpServicePortalRequestSchema = new Schema<IServiceRequest>(
       ],
       default: "New"
     },
-    workflow: { type: String, ref: "GxpServiceWorkflow" },
     requestType: { type: String, default: "Applications" },
     comments: [{ type: String }]
   },

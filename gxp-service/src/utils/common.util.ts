@@ -62,3 +62,12 @@ export const generateCustomId = (prefix: string) => {
   const oid = new mongoose.Types.ObjectId().toHexString();
   return `${prefix}~${oid}`;
 };
+
+export const removeUndefinedEntries = (obj: any) => {
+  Object.keys(obj).forEach((key) => {
+    if (obj[key] === undefined) {
+      delete obj[key];
+    }
+  });
+  return obj;
+};

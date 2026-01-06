@@ -1,30 +1,33 @@
 import * as repo from "../repo/gxp-service-applications.repo";
-import { IApplication } from "../models/gxp-service-applications.model";
 import GxpServiceRolesModel from "../models/gxp-service-application-roles.model";
 import GxpServiceAppGroupModel from "../models/gxp-service-application-groups.model";
-import GxpServiceAppServiceModel from "../models/gxp-service-application-services.model";
 import GxpServiceAppDepartmentModel from "../models/gxp-service-application-departments.model";
 import { GxpServiceAppModuleModel } from "../models/gxp-service-application-modules.model";
 import { UpdateApplication } from "../types/common.types";
 
 export const createApplication = async (
-  payload: Partial<IApplication>,
+  payload: UpdateApplication,
   currentUser?: string
 ) => {
   const now = new Date();
-  const toSave: Partial<IApplication> = {
-    ...payload,
-    attachments: [],
-    createdOn: now,
-    createdBy: currentUser ?? null,
-    modifiedOn: now,
-    modifiedBy: currentUser ?? null,
-    status: "enabled"
+
+  const toSave = {
+    ...JSON.parse(
+      JSON.stringify({
+        ...payload,
+        createdOn: now,
+        createdBy: currentUser ?? null,
+        modifiedOn: now,
+        modifiedBy: currentUser ?? null,
+        status: "enabled"
+      })
+    ),
+    modifiedOn: new Date(),
+    modifiedBy: currentUser ?? null
   };
 
   delete toSave.applicationRoles;
   delete toSave.applicationGroups;
-  delete toSave.applicationServiceRequestTypes;
   delete toSave.applicationModules;
   delete toSave.departments;
 
@@ -38,63 +41,78 @@ export const createApplication = async (
 
   const application = await repo.createApplication(toSave);
 
-  // Create application roles from payload
-
   if (payload.applicationRoles) {
-    const roles = payload.applicationRoles.map((name) => ({
-      insertOne: { document: { role: name, appId: application._id } }
-    }));
+    const roles = payload.applicationRoles
+      .filter((role) => !role._id)
+      .map((role) => ({
+        insertOne: { document: { role: role.name, appId: application._id } }
+      }));
 
     const result = await GxpServiceRolesModel.bulkWrite(roles);
-    application.applicationRoles = Object.values(result?.insertedIds ?? {});
+    application.applicationRoles = [
+      ...Object.values(result?.insertedIds ?? {}).map(String),
+      ...payload.applicationRoles
+        .filter((role) => role._id)
+        .map((role) => role._id)
+    ];
   }
 
-  // Create application group from payload
+  // Update application group from payload
 
   if (payload.applicationGroups) {
-    const groups = payload.applicationGroups.map((name) => ({
-      insertOne: { document: { appGroup: name, appId: application._id } }
-    }));
+    const groups = payload.applicationGroups
+      .filter((group) => !group._id)
+      .map((group) => ({
+        insertOne: {
+          document: { appGroup: group.name, appId: application._id }
+        }
+      }));
 
     const result = await GxpServiceAppGroupModel.bulkWrite(groups);
-    application.applicationGroups = Object.values(result?.insertedIds ?? {});
+    application.applicationGroups = [
+      ...Object.values(result?.insertedIds ?? {}).map(String),
+      ...payload.applicationGroups
+        .filter((group) => group._id)
+        .map((group) => group._id)
+    ];
   }
 
-  // Create application service requests from payload
-
-  if (payload.applicationServiceRequestTypes) {
-    const groups = payload.applicationServiceRequestTypes.map((name) => ({
-      insertOne: { document: { service: name, appId: application._id } }
-    }));
-
-    const result = await GxpServiceAppServiceModel.bulkWrite(groups);
-    application.applicationServiceRequestTypes = Object.values(
-      result?.insertedIds ?? {}
-    );
-  }
-
-  // Create application modules from payload
+  // Update application modules from payload
 
   if (payload.applicationModules) {
-    const modules = payload.applicationModules.map((name) => ({
-      insertOne: { document: { moduleName: name } }
-    }));
+    const modules = payload.applicationModules
+      .filter((mod) => !mod?._id)
+      .map((mod) => ({
+        insertOne: { document: { moduleName: mod.name } }
+      }));
 
     const result = await GxpServiceAppModuleModel.bulkWrite(modules);
-    application.applicationModules = Object.values(result?.insertedIds ?? {});
+    application.applicationModules = [
+      ...Object.values(result?.insertedIds ?? {}).map(String),
+      ...payload.applicationModules
+        .filter((mod) => mod?._id)
+        .map((mod) => mod?._id)
+    ];
   }
 
-  // Create application departments from payload
+  // Update application departments from payload
 
   if (payload.departments) {
-    const modules = payload.departments.map((name) => ({
-      insertOne: {
-        document: { departmentName: name, appId: application._id }
-      }
-    }));
+    const modules = payload.departments
+      .filter((department) => !department._id)
+      .map((department) => ({
+        insertOne: {
+          document: { departmentName: department.name, appId: application._id }
+        }
+      }));
 
     const result = await GxpServiceAppDepartmentModel.bulkWrite(modules);
-    application.departments = Object.values(result?.insertedIds ?? {});
+    application.departments = [
+      ...Object.values(result?.insertedIds ?? {}).map(String),
+      ...payload.departments
+        .filter((department) => department._id)
+        .map((department) => department._id)
+    ];
   }
 
   application.save();
@@ -132,7 +150,6 @@ export const updateApplication = async (
   delete modified.applicationName;
   delete modified.applicationRoles;
   delete modified.applicationGroups;
-  delete modified.applicationServiceRequestTypes;
   delete modified.applicationModules;
   delete modified.departments;
 
@@ -169,24 +186,6 @@ export const updateApplication = async (
       ...updates.applicationGroups
         .filter((group) => group._id)
         .map((group) => group._id)
-    ];
-  }
-
-  // Update application service requests from payload
-
-  if (updates.applicationServiceRequestTypes) {
-    const groups = updates.applicationServiceRequestTypes
-      .filter((request) => !request._id)
-      .map((request) => ({
-        insertOne: { document: { service: request.name, appId: id } }
-      }));
-
-    const result = await GxpServiceAppServiceModel.bulkWrite(groups);
-    modified.applicationServiceRequestTypes = [
-      ...Object.values(result?.insertedIds ?? {}).map(String),
-      ...updates.applicationServiceRequestTypes
-        .filter((request) => request._id)
-        .map((request) => request._id)
     ];
   }
 
