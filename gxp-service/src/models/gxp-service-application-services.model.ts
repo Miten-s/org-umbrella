@@ -2,11 +2,6 @@ import mongoose from "mongoose";
 
 const GxpServiceAppService = new mongoose.Schema(
   {
-    appId: {
-      type: String,
-      ref: "GxpServiceApplication",
-      required: true
-    },
     service: {
       type: String,
       required: true
@@ -14,9 +9,6 @@ const GxpServiceAppService = new mongoose.Schema(
     active: {
       type: Boolean,
       default: true
-    },
-    createdBy: {
-      type: String
     }
   },
   {
@@ -30,6 +22,6 @@ const GxpServiceAppServiceModel = mongoose.model(
   GxpServiceAppService
 );
 
-GxpServiceAppService.index({ appId: 1, service: 1 }, { unique: true });
+GxpServiceAppService.index({ service: 1 }, { unique: true });
 
 export default GxpServiceAppServiceModel;

@@ -15,7 +15,15 @@ export enum STATUS {
 export type Ids = { _id: string; name: string }[];
 
 export interface UpdateApplication
-  extends Pick<IApplication, "applicationName" | "status"> {
+  extends Pick<
+    IApplication,
+    | "applicationName"
+    | "status"
+    | "createdOn"
+    | "createdBy"
+    | "modifiedOn"
+    | "modifiedBy"
+  > {
   applicationRoles?: Ids;
   applicationGroups?: Ids;
   applicationServiceRequestTypes?: Ids;
