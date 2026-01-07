@@ -19,7 +19,8 @@ export const API_ROUTES = {
   gxpApplicationSoftware: "/gxp-application-modules",
   gxpApplicationServices: "/gxp-applications-services",
   gxpUsers: "/gxp-users",
-  gxpServiceRequests: "/gxp-service-requests"
+  gxpServiceRequests: "/gxp-service-requests",
+  gxpServiceTypes: "/gxp-service-requests/service-types"
 };
 
 // #region Supplier
@@ -41,7 +42,6 @@ export const createSupplier = async (payload: Record<string, any>) => {
 
 export const updateSupplier = async (id: string, payload: Record<string, any>) => {
   const response = await gxpApi.patch(`${API_ROUTES.suppliers}/${id}`, payload);
-  console.log(response);
   toastSuccess(response, "Supplier updated successfully");
   return response["data"];
 };
@@ -434,6 +434,19 @@ export const updateServiceRequest = async (id: string, payload: Record<string, a
 export const deleteServiceRequest = async (id: string) => {
   const response = await gxpApi.delete(`${API_ROUTES.gxpServiceRequests}/${id}`);
   toastSuccess(response, "Service request deleted successfully");
+  return response["data"];
+};
+
+export const deleteServiceRequestAttachment = async (attachmentId: string) => {
+  const response = await gxpApi.delete(
+    `${API_ROUTES.gxpServiceRequests}/attachments/${attachmentId}`
+  );
+  toastSuccess(response, "Attachment removed successfully");
+  return response["data"];
+};
+
+export const getServiceTypes = async () => {
+  const response = await gxpApi.get(API_ROUTES.gxpServiceTypes);
   return response["data"];
 };
 // #endregion

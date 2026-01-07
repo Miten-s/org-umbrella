@@ -18,6 +18,7 @@ export type ServiceRequest = Omit<
   requestRole?: EntityRef<"roleName">;
   workflow?: EntityRef<"workflowName">;
   location?: EntityRef<"locationName">;
+  attachments?: Array<string | { _id?: string; attachment?: string; filename?: string }>;
   closedOn?: string;
   closedBy?: string;
   __v?: number;

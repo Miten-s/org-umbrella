@@ -12,16 +12,10 @@ import {
   deleteServiceRequest,
   getServiceRequestById,
   getApplications,
-  getEnvironments,
-  getAssignmentGroups,
-  getWorkflows,
-  getApplicationSoftware,
-  getGxpRoles
 } from "@/services/gxp.service";
 import { getLocations } from "@/services/admin.service";
 import { ServiceRequestFormOutput } from "@/lib/schema";
 import CreateServiceRequestModal from "./CreateServiceRequestModal";
-import { applicationServiceRequestTypeOptions } from "@/types/common.types";
 import { ServiceRequest } from "@/types/gxp-service.types";
 
 type Lookup = Record<string, string>;
@@ -38,11 +32,6 @@ const GXPCreateNewServiceRequestPage = () => {
   const [requestToDelete, setRequestToDelete] = useState<ServiceRequest | null>(null);
 
   const [applications, setApplications] = useState<any[]>([]);
-  const [environments, setEnvironments] = useState<any[]>([]);
-  const [assignmentGroups, setAssignmentGroups] = useState<any[]>([]);
-  const [appModules, setAppModules] = useState<any[]>([]);
-  const [workflows, setWorkflows] = useState<any[]>([]);
-  const [roles, setRoles] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
 
   const ensureArray = (val: any) =>
@@ -71,53 +60,18 @@ const GXPCreateNewServiceRequestPage = () => {
     createdAt: req?.createdAt,
     updatedAt: req?.updatedAt
   });
-
-  const extractList = (settled: PromiseSettledResult<any>, preferredKeys: string[] = []) => {
-    if (!settled || settled.status !== "fulfilled") return [];
-    const v = settled.value;
-    if (Array.isArray(v)) return v;
-    if (Array.isArray(v?.data)) return v.data;
-    for (const key of preferredKeys) {
-      if (Array.isArray(v?.[key])) return v[key];
-    }
-    const firstArray = Object.values(v).find(Array.isArray);
-    return Array.isArray(firstArray) ? firstArray : [];
-  };
-
   useEffect(() => {
     (async () => {
-      const [requests, apps, envs, groups, locs] = await Promise.all([
+      const [requests, apps, locs] = await Promise.all([
         getServiceRequests(),
         getApplications(),
-        getEnvironments(),
-        getAssignmentGroups(),
         getLocations()
       ])
       setServiceRequests(ensureArray(requests).map(normalizeServiceRequest));
       setApplications(ensureArray(apps));
-      setEnvironments(ensureArray(envs));
-      setAssignmentGroups(ensureArray(groups));
       setLocations(ensureArray(locs.locations));
-
-      const [mods, wfs, rls] = await Promise.allSettled([
-        getApplicationSoftware(),
-        getWorkflows(),
-        getGxpRoles()
-      ]);
-      setAppModules(extractList(mods));
-      setWorkflows(extractList(wfs));
-      setRoles(extractList(rls, ["roles"]));
     })();
   }, [reFetch]);
-
-  const requestTypeOptions = useMemo(
-    () =>
-      applicationServiceRequestTypeOptions.map((opt) => ({
-        label: opt.label,
-        value: opt.value
-      })),
-    []
-  );
 
   const openEditModal = async (requestId: string) => {
     setIsLoadingActive(true);
@@ -204,10 +158,6 @@ const GXPCreateNewServiceRequestPage = () => {
     [applications]
   );
 
-  const workflowLookup = useMemo(
-    () => nameLookup(workflows, "workflowName", "_id"),
-    [workflows]
-  );
   const formatValue = (
     value: string | { _id?: string; [key: string]: any } | null | undefined,
     lookup: Lookup,
@@ -246,7 +196,6 @@ const GXPCreateNewServiceRequestPage = () => {
               {[
                 "shortDescription",
                 "application",
-                "workflow",
                 "priority",
                 "status",
                 "actions"
@@ -269,9 +218,7 @@ const GXPCreateNewServiceRequestPage = () => {
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
                   {formatValue(req.application, applicationLookup, "applicationName")}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
-                  {formatValue(req.workflow, workflowLookup, "workflowName")}
-                </td>
+
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
                   {req.priority}
                 </td>
@@ -325,12 +272,6 @@ const GXPCreateNewServiceRequestPage = () => {
           initialData={activeRequest || undefined}
           optionSets={{
             applications,
-            environments,
-            assignmentGroups,
-            appModules,
-            workflows,
-            roles,
-            requestTypes: requestTypeOptions,
             locations
           }}
         />

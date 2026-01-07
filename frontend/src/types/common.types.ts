@@ -52,6 +52,7 @@ export enum ApplicationServiceRequestType {
   AddMasterDataRequest = "Add Master Data Request",
   EditMasterDataRequest = "Edit Master Data Request",
   RemoveMasterDataRequest = "Remove Master Data Request",
+  OtherRequest = "Other Request",
 }
 
 export const applicationServiceRequestTypeOptions = Object.values(ApplicationServiceRequestType).map(

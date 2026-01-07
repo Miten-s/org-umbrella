@@ -36,6 +36,5 @@ export const getGxpImageUrl = (
 
   const baseUrl = import.meta.env.VITE_GXP_API_BASE_URL;
   const cleanPath = path.startsWith("/uploads") ? path : `/uploads${path}`;
-  console.log("GXP IMAGE URL:", `${baseUrl}${cleanPath}`);
   return `${baseUrl}${cleanPath}`;
 };

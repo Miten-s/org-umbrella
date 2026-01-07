@@ -1,6 +1,15 @@
 import Button from "@/components/ui/button/Button";
 import { t } from "i18next";
-import React, { useState, useEffect, useRef } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { ChipList } from "./chipList";
 
 interface Option {
   value: string;
@@ -29,75 +38,205 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   error,
   hint,
 }) => {
+  const tooltipId = useId();
+
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [selectedOptions, setSelectedOptions] = useState<string[]>(defaultSelected);
+  const inputRef = useRef<HTMLDivElement | null>(null);
+  const chipsAreaRef = useRef<HTMLDivElement | null>(null);
+  const caretRef = useRef<HTMLDivElement | null>(null);
+  const moreRef = useRef<HTMLDivElement | null>(null);
+
+  const [selectedOptions, setSelectedOptions] = useState<string[]>(
+    defaultSelected,
+  );
   const [isOpen, setIsOpen] = useState(false);
+
+  // Tooltip open state for the +X counter
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [newOptionText, setNewOptionText] = useState("");
   const [internalOptions, setInternalOptions] = useState<Option[]>(options);
 
+  const [visibleCount, setVisibleCount] = useState<number>(0);
+
+  // Keep options in sync
   useEffect(() => {
     setInternalOptions(options);
   }, [options]);
 
-  // Close when clicking outside or pressing Escape so multiple dropdowns don't stay open
+  // Keep default selected in sync
+  useEffect(() => {
+    setSelectedOptions(defaultSelected);
+  }, [defaultSelected]);
+
+  // Close dropdown + tooltip on outside click / escape
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (!containerRef.current) return;
-      if (!containerRef.current.contains(event.target as Node)) {
+
+      const target = event.target as Node;
+      // clicking inside tooltip button shouldn't close it
+      if (moreRef.current && moreRef.current.contains(target)) return;
+
+      if (!containerRef.current.contains(target)) {
         setIsOpen(false);
+        setIsMoreOpen(false);
+      } else {
+        // clicking anywhere inside the component closes only tooltip
+        setIsMoreOpen(false);
       }
     };
 
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setIsOpen(false);
+      if (event.key === "Escape") {
+        setIsOpen(false);
+        setIsMoreOpen(false);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside, true);
     document.addEventListener("keydown", handleEscape);
+
     return () => {
       document.removeEventListener("mousedown", handleClickOutside, true);
       document.removeEventListener("keydown", handleEscape);
     };
   }, []);
 
-  const toggleDropdown = () => {
-    if (!disabled) setIsOpen((prev) => !prev);
-  };
+  useEffect(() => {
+    if (!isOpen) setSearchTerm("");
+  }, [isOpen]);
 
-  const handleSelect = (value: string) => {
-    const newSelected = selectedOptions.includes(value)
-      ? selectedOptions.filter((v) => v !== value)
-      : [...selectedOptions, value];
+  const toggleDropdown = useCallback(() => {
+    if (disabled) return;
+    setIsOpen((prev) => !prev);
+    setIsMoreOpen(false);
+  }, [disabled]);
 
-    setSelectedOptions(newSelected);
-    onChange?.(newSelected);
-  };
+  const handleSelect = useCallback(
+    (value: string) => {
+      setSelectedOptions((prev) => {
+        const next = prev.includes(value)
+          ? prev.filter((v) => v !== value)
+          : [...prev, value];
 
-  const removeOption = (value: string) => {
-    const filtered = selectedOptions.filter((v) => v !== value);
-    setSelectedOptions(filtered);
-    onChange?.(filtered);
-  };
+        onChange?.(next);
+        return next;
+      });
+    },
+    [onChange],
+  );
 
-  const handleAddNewOption = () => {
+  const removeOption = useCallback(
+    (value: string) => {
+      setSelectedOptions((prev) => {
+        const next = prev.filter((v) => v !== value);
+        onChange?.(next);
+        return next;
+      });
+    },
+    [onChange],
+  );
+
+  const handleAddNewOption = useCallback(() => {
     if (!newOptionText.trim()) return;
 
     const newOption: Option = {
       value: newOptionText.toLowerCase().replace(/\s+/g, "-"),
-      text: newOptionText,
+      text: newOptionText.trim(),
     };
 
-    const updated = [...internalOptions, newOption];
-    setInternalOptions(updated);
+    setInternalOptions((prev) => [...prev, newOption]);
     handleSelect(newOption.value);
     onAdd?.(newOption);
     setNewOptionText("");
-  };
+  }, [handleSelect, newOptionText, onAdd]);
 
-  const filteredOptions = internalOptions.filter((opt) =>
-    opt.text.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredOptions = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return internalOptions;
+    return internalOptions.filter((opt) =>
+      opt.text.toLowerCase().includes(term),
+    );
+  }, [internalOptions, searchTerm]);
+
+  const selectedLabels = useMemo(() => {
+    const map = new Map(internalOptions.map((o) => [o.value, o.text]));
+    return selectedOptions.map((val) => ({
+      value: val,
+      text: map.get(val) ?? val,
+    }));
+  }, [selectedOptions, internalOptions]);
+
+  // Canvas measurement (fast, accurate for font)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const measureTextPx = useCallback((text: string, font: string) => {
+    if (!canvasRef.current) canvasRef.current = document.createElement("canvas");
+    const ctx = canvasRef.current.getContext("2d");
+    if (!ctx) return text.length * 8;
+    ctx.font = font;
+    return ctx.measureText(text).width;
+  }, []);
+
+  /**
+   * Compute how many chips can fit into the chips area.
+   * - Accounts for chip text width + padding + close button
+   * - Accounts for gaps between chips
+   * - Accounts for the dynamic width of the "+X" chip when there are hidden items
+   */
+  useLayoutEffect(() => {
+    const el = chipsAreaRef.current;
+    if (!el) return;
+
+    const compute = () => {
+      const available = el.clientWidth;
+
+      if (selectedLabels.length === 0 || available <= 0) {
+        setVisibleCount(0);
+        return;
+      }
+
+      const style = window.getComputedStyle(el);
+      const font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+
+      // tune once for your chip styling
+      const chipPaddingAndX = 44; // padding + close icon area
+      const chipGap = 6;
+
+      let used = 0;
+      let count = 0;
+
+      for (let i = 0; i < selectedLabels.length; i++) {
+        const w = measureTextPx(selectedLabels[i].text, font) + chipPaddingAndX;
+        const next = count === 0 ? w : w + chipGap;
+
+        if (used + next <= available) {
+          used += next;
+          count += 1;
+        } else {
+          break;
+        }
+      }
+
+      setVisibleCount(Math.max(1, count));
+    };
+
+    compute();
+    const ro = new ResizeObserver(() => compute());
+    ro.observe(el);
+
+    return () => ro.disconnect();
+  }, [selectedLabels, measureTextPx]);
+
+
+  const visibleSelected = selectedLabels.slice(0, visibleCount);
+  const hiddenSelected = selectedLabels.slice(visibleCount);
+  const hiddenCount = hiddenSelected.length;
+
+  const hiddenNamesText = useMemo(() => {
+    return hiddenSelected.map((x) => x.text).join(", ");
+  }, [hiddenSelected]);
 
   return (
     <div className="w-full" ref={containerRef}>
@@ -111,35 +250,136 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
             className="w-full"
           >
             <div
-              className={`mb-2 flex h-11 rounded-lg border border-gray-300 py-1.5 pl-3 pr-3 shadow-theme-xs outline-hidden transition focus:border-brand-300 focus:shadow-focus-ring dark:border-gray-700 dark:bg-gray-900 dark:focus:border-brand-300 ${
-                error ? "border-red-500 focus:border-red-500 focus:shadow-none" : ""
-              }`}
+              ref={inputRef}
+              className={[
+                "mb-2 flex h-11 rounded-lg border py-1.5 pl-3 pr-3 shadow-theme-xs outline-hidden transition",
+                "border-gray-300 focus:border-brand-300 focus:shadow-focus-ring dark:border-gray-700 dark:bg-gray-900 dark:focus:border-brand-300",
+                disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
+                error ? "border-red-500 focus:border-red-500 focus:shadow-none" : "",
+              ].join(" ")}
+              role="button"
+              tabIndex={disabled ? -1 : 0}
+              onKeyDown={(e) => {
+                if (disabled) return;
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  toggleDropdown();
+                }
+              }}
+              aria-expanded={isOpen}
+              aria-disabled={disabled}
             >
-              <div className="flex flex-wrap flex-auto gap-2">
+              {/* Chips area */}
+              <div
+                ref={chipsAreaRef}
+                className="flex flex-nowrap items-center flex-auto min-w-0 overflow-visible gap-1.5"
+              >
                 {selectedOptions.length > 0 ? (
-                  selectedOptions.map((val, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded px-2 py-1"
-                    >
-                      <span>{internalOptions.find((o) => o.value === val)?.text}</span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeOption(val);
-                        }}
-                        className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  <>
+                    {visibleSelected.map((opt) => (
+                      <div
+                        key={opt.value}
+                        className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 rounded px-2 py-1 min-w-0 max-w-[220px]"
                       >
-                        ✕
-                      </button>
-                    </div>
-                  ))
+                        <span className="truncate text-sm">{opt.text}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeOption(opt.value);
+                          }}
+                          className="shrink-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 leading-none"
+                          aria-label={`Remove ${opt.text}`}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+
+                    {/* +X counter with tooltip */}
+                    {hiddenCount > 0 && (
+                      <div
+                        ref={moreRef}
+                        className="relative shrink-0"
+                        onMouseEnter={() => setIsMoreOpen(true)}
+                        onMouseLeave={() => setIsMoreOpen(false)}
+                      >
+                        <button
+                          type="button"
+                          className="bg-gray-100 dark:bg-gray-800 rounded px-2 py-1 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-300"
+                          aria-describedby={isMoreOpen ? tooltipId : undefined}
+                          onClick={(e) => {
+                            // optional: keep click to toggle tooltip for touch users
+                            e.stopPropagation();
+                            setIsMoreOpen((p) => !p);
+                          }}
+                          onFocus={() => setIsMoreOpen(true)}
+                          onBlur={() => setIsMoreOpen(false)}
+                        >
+                          +{hiddenCount}
+                        </button>
+
+                        {isMoreOpen && (
+                          <div
+                            id={tooltipId}
+                            role="tooltip"
+                            className="absolute right-0 top-full mt-3 z-50"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {/* ===== Notch (bigger + cleaner) ===== */}
+                            {/* Border underlay so notch edge matches tooltip border */}
+                            <div className="absolute right-6 -top-[10px] h-5 w-5 rotate-45 bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-700 shadow-sm" />
+                            {/* Optional soft highlight to make it feel slightly curved */}
+                            <div className="pointer-events-none absolute right-6 -top-[10px] h-5 w-5 rotate-45 rounded-[6px] bg-transparent" />
+
+                            {/* ===== Tooltip Card ===== */}
+                            <div
+                              className={[
+                                "w-[480px] max-w-[85vw]",
+                                "rounded-2xl",
+                                "bg-white/95 dark:bg-slate-900/95 backdrop-blur",
+                                "border border-slate-200 dark:border-slate-700",
+                                // stronger elevation + separation ring
+                                "shadow-2xl shadow-slate-300/40 dark:shadow-black/40",
+                                "ring-1 ring-black/5 dark:ring-white/5",
+                                "p-3",
+                              ].join(" ")}
+                            >
+                              {/* Header */}
+                              <div className="mb-2 flex items-center justify-between">
+                                <div className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                                  Selected ({hiddenCount} more)
+                                </div>
+                                <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                                  Scroll to view
+                                </div>
+                              </div>
+
+                              {/* Items */}
+                              <ChipList
+                                items={hiddenSelected.map((x) => x.text)}
+                                variant="grid"
+                                columns={3}
+                                maxHeightClassName="max-h-44"
+                              />
+
+                            </div>
+                          </div>
+                        )}
+
+                      </div>
+                    )}
+                  </>
                 ) : (
-                  <span className="text-gray-500">Select option</span>
+                  <span className="text-gray-500 text-sm">Select option</span>
                 )}
               </div>
-              <div className="flex items-center py-1 pl-1 pr-1 w-7">
+
+              {/* Caret */}
+              <div
+                ref={caretRef}
+                className="flex items-center py-1 pl-1 pr-1 w-7 shrink-0"
+              >
                 <button
                   type="button"
                   onClick={(e) => {
@@ -147,6 +387,8 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                     toggleDropdown();
                   }}
                   className="w-5 h-5 text-gray-700 dark:text-gray-400"
+                  tabIndex={-1}
+                  aria-hidden="true"
                 >
                   <svg
                     className={`stroke-current transform transition-transform duration-200 ${isOpen ? "rotate-180" : ""
@@ -169,14 +411,13 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
             </div>
           </div>
 
+          {/* Dropdown */}
           {isOpen && (
             <div
               className="absolute left-0 z-10 w-full overflow-y-auto bg-white rounded-lg shadow-lg top-full max-h-[250px] dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Search bar */}
-            {/* this limit is increase in future based on requirement  */}
-              {filteredOptions.length >= 1 && (
+              {internalOptions.length > 0 && (
                 <div className="p-2 border-b border-gray-200 dark:border-gray-700">
                   <input
                     type="text"
@@ -184,9 +425,10 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                     className="w-full p-2 text-sm border rounded-md outline-hidden dark:bg-gray-800 dark:text-white/90"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
+                    autoFocus
                   />
-                </div>)}
-
+                </div>
+              )}
 
               <div className="flex flex-col max-h-[160px] overflow-auto no-scrollbar">
                 {filteredOptions.length === 0 ? (
@@ -194,28 +436,32 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                     No data found
                   </div>
                 ) : (
-                  filteredOptions.map((option, index) => (
-                    <div
-                      key={index}
-                      className={`hover:bg-gray-100 dark:hover:bg-gray-800  w-full cursor-pointer border-b border-gray-200 dark:border-gray-700 last:border-b-0`}
-                      onClick={() => handleSelect(option.value)}
-                    >
+                  filteredOptions.map((option) => {
+                    const isSelected = selectedOptions.includes(option.value);
+                    return (
                       <div
-                        className={`flex items-center p-2 pl-2 ${selectedOptions.includes(option.value)
-                          ? "bg-primary/10"
-                          : ""
-                          }`}
+                        key={option.value}
+                        className="hover:bg-gray-100 dark:hover:bg-gray-800 w-full cursor-pointer border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                        onClick={() => handleSelect(option.value)}
+                        role="option"
+                        aria-selected={isSelected}
                       >
-                        <div className="mx-2 leading-6 text-gray-800 dark:text-white/90 ">
-                          {option.text}
+                        <div
+                          className={[
+                            "flex items-center p-2 pl-2",
+                            isSelected ? "bg-primary/10" : "",
+                          ].join(" ")}
+                        >
+                          <div className="mx-2 leading-6 text-gray-800 dark:text-white/90">
+                            {option.text}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
 
-              {/* Add section */}
               {showAddButton && (
                 <div className="flex items-center gap-2 p-2 border-t border-gray-200 dark:border-gray-700">
                   <input
@@ -223,15 +469,11 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                     onChange={(e) => setNewOptionText(e.target.value)}
                     placeholder="Add new..."
                     className="flex-1 p-3 text-sm border rounded-md dark:bg-gray-800 dark:text-white/90 outline-hidden"
-                  />
-                  <Button
-                    type="button"
-                    variant="primary"
-                    onClick={() => {
-                      handleAddNewOption();
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleAddNewOption();
                     }}
-                  // className="px-3 py-3 text-sm font-medium border bg-brand-500 text-white rounded-md hover:bg-blue-700"
-                  >
+                  />
+                  <Button type="button" variant="primary" onClick={handleAddNewOption}>
                     {t("add")}
                   </Button>
                 </div>
@@ -240,6 +482,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
           )}
         </div>
       </div>
+
       {(error || hint) && (
         <p className={`mt-1 text-xs ${error ? "text-red-500" : "text-gray-500"}`}>
           {error || hint}

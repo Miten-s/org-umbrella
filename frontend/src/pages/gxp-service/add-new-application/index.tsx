@@ -23,22 +23,25 @@ import {
   getApplicationSoftware,
   getApplicationById,
   getApplicationGroups,
+  getServiceTypes,
 } from "@/services/gxp.service";
-import CreateApplicationModal from "./CreateApplicationModal";
+import CreateApplicationModal, { ApplicationPayload } from "./CreateApplicationModal";
 import Switch from "@/components/common/form/switch/Switch";
-import { getDepartments, getUsers } from "@/services/admin.service";
-import type { ApplicationFormOutput } from "@/lib/schema";
+import { getDepartments, getUsers, getRoles } from "@/services/admin.service";
 import type {
   Application,
   ApplicationSoftwareModule,
   AssignmentGroup,
   ApplicationGroup,
+  ApplicationServiceRequestType,
   Department,
   Environment,
   Supplier,
   User,
   Workflow,
 } from "@/types/gxp-service.types";
+
+type Role = { _id: string; name?: string; role?: string; roleName?: string };
 
 const GXPAddNewApplicationPage = () => {
   const { t } = useTranslation();
@@ -60,6 +63,10 @@ const GXPAddNewApplicationPage = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [applicationGroups, setApplicationGroups] = useState<ApplicationGroup[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [serviceRequestTypes, setServiceRequestTypes] = useState<ApplicationServiceRequestType[]>(
+    []
+  );
   const [includeDisabled, setIncludeDisabled] = useState(false);
   const isRecord = (val: unknown): val is Record<string, unknown> =>
     typeof val === "object" && val !== null;
@@ -103,13 +110,15 @@ const GXPAddNewApplicationPage = () => {
       setEnvironments(ensureArray<Environment>(envs));
       setAssignmentGroups(ensureArray<AssignmentGroup>(groups));
       // load option sets (any shape tolerated)
-      const [mods, wfs, us, sups, deps, ags] = await Promise.allSettled([
+      const [mods, wfs, us, sups, deps, ags, rs, srts] = await Promise.allSettled([
         getApplicationSoftware(),
         getWorkflows(),
         getUsers(),
         getSuppliers(),
         getDepartments(),
         getApplicationGroups(),
+        getRoles(),
+        getServiceTypes(),
       ]);
       setAppModules(extractList<ApplicationSoftwareModule>(mods, ["modules", "software", "data"]));
       setWorkflows(extractList<Workflow>(wfs, ["workflows", "data"]));
@@ -117,6 +126,10 @@ const GXPAddNewApplicationPage = () => {
       setSuppliers(extractList<Supplier>(sups, ["suppliers", "data"]));
       setDepartments(extractList<Department>(deps, ["departments", "data"]));
       setApplicationGroups(extractList<ApplicationGroup>(ags, ["applicationGroups", "data"]));
+      setRoles(extractList<Role>(rs, ["roles", "data"]));
+      setServiceRequestTypes(
+        extractList<ApplicationServiceRequestType>(srts, ["service_types", "serviceTypes", "data"])
+      );
     })();
   }, [reFetch, includeDisabled]);
 
@@ -134,14 +147,26 @@ const GXPAddNewApplicationPage = () => {
     }
   };
 
-  const handleSave = async (data: ApplicationFormOutput) => {
+  const handleSave = async (
+    data: ApplicationPayload,
+    newAttachments: File[],
+    existingAttachments: string[]
+  ) => {
+    // File uploads for applications are not yet handled; keep placeholders to satisfy signature.
+    if (newAttachments?.length) {
+      // TODO: wire up upload endpoint for application attachments
+    }
+    const payloadWithAttachments = {
+      ...data,
+      attachments: existingAttachments ?? [],
+    };
     if (activeApplication) {
-      const updated = await updateApplication(activeApplication._id, data);
+      const updated = await updateApplication(activeApplication._id, payloadWithAttachments);
       setApplications((prev) =>
         prev?.map((a) => (a._id === updated._id ? (updated as Application) : a))
       );
     } else {
-      const created = await createApplication(data);
+      const created = await createApplication(payloadWithAttachments);
       setApplications((prev) => [(created as Application), ...prev]);
     }
     setActiveApplication(null);
@@ -287,7 +312,7 @@ const GXPAddNewApplicationPage = () => {
       <Modal
         isOpen={isOpen}
         onClose={closeModal}
-        className="max-w-[70rem] max-h-[45rem] m-4 overflow-y-auto no-scrollbar  bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+        className="max-w-[70rem] max-h-[45rem] overflow-y-auto no-scrollbar  bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
       >
         <CreateApplicationModal
           onClose={closeModal}
@@ -302,6 +327,8 @@ const GXPAddNewApplicationPage = () => {
             users,
             suppliers,
             departments,
+            roles,
+            serviceRequestTypes,
           }}
         />
       </Modal>

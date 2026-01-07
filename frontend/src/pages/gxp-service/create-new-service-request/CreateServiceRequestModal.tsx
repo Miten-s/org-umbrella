@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Controller, SubmitHandler, useForm } from "react-hook-form";
+import { Controller, SubmitHandler, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
 
@@ -14,13 +14,30 @@ import {
   ServiceRequestFormInput,
   ServiceRequestFormOutput
 } from "@/lib/schema";
-import { applicationServiceRequestTypeOptions } from "@/types/common.types";
-import type { ServiceRequest } from "@/types/gxp-service.types";
+import type { Application, ServiceRequest } from "@/types/gxp-service.types";
 import { useGlobalContext } from "@/context";
-import FileUpload from "@/components/common/form/input/FileUpload";
 import { getGxpImageUrl } from "@/services/utils.service";
+import { getApplicationById } from "@/services/gxp.service";
+import { ChipList } from "@/components/common/form/chipList";
 
 type DropdownOption = { label: string; value: string };
+type ExistingAttachment = { id?: string; path: string; name: string };
+type ApplicationDetails = {
+  environmentId: string;
+  environmentName: string;
+  groupId: string;
+  groupName: string;
+  workflowId: string;
+  workflowName: string;
+  moduleIds: string[];
+  moduleNames: string[];
+  serviceTypeIds: string[];
+  serviceTypeNames: string[];
+  roleIds: string[];
+  roleNames: string[];
+  notes: string;
+  attachments: string[];
+};
 
 interface CreateServiceRequestModalProps {
   onClose: () => void;
@@ -32,20 +49,15 @@ interface CreateServiceRequestModalProps {
   initialData?: ServiceRequest | ServiceRequest[] | null;
   optionSets: {
     applications: any[];
-    environments: any[];
-    assignmentGroups: any[];
-    appModules: any[];
-    workflows: any[];
-    roles: any[];
-    requestTypes: DropdownOption[];
     locations: any[];
+    requestTypes?: DropdownOption[];
   };
 }
 
 const normalizeId = (value: any): string => {
   if (!value) return "";
   if (typeof value === "string") return value;
-  return value?._id ?? value?.value ?? value?.name ?? value?.moduleName ?? "";
+  return value?._id ?? value?.value ?? "";
 };
 
 const normalizeInitialValues = (
@@ -66,11 +78,106 @@ const normalizeInitialValues = (
   workflow: normalizeId(data?.workflow),
   requestType: data?.requestType ?? "Applications",
   status: data?.status ?? "New",
-  attachments: data?.attachments ?? [],
+  attachments: (data?.attachments || [])
+    .map((att: any) =>
+      typeof att === "string" ? att : att?.attachment ?? att?.filename ?? ""
+    )
+    .filter(Boolean),
   comments: data?.comments ?? []
 });
 
 const isImageName = (name: string) => /\.(png|jpe?g|gif|bmp|webp|svg)$/i.test(name || "");
+const prettifyAttachmentName = (path: string) => {
+  if (!path) return "";
+  const withoutLeadingSlash = path.replace(/^[/\\]+/, "");
+  const parts = withoutLeadingSlash.split("-");
+  if (parts.length > 1 && /^\d+$/.test(parts[0])) {
+    return parts.slice(1).join("-");
+  }
+  return withoutLeadingSlash;
+};
+
+const toExistingAttachment = (att: any): ExistingAttachment | null => {
+  const path = typeof att === "string" ? att : att?.attachment ?? att?.filename ?? "";
+  if (!path) return null;
+  return {
+    id: typeof att === "string" ? undefined : att?._id,
+    path,
+    name: prettifyAttachmentName(path)
+  };
+};
+
+const getId = (value: any): string => {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  return value?._id ?? "";
+};
+
+const getText = (value: any, preferredKey?: string): string => {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (preferredKey && typeof value?.[preferredKey] === "string") return value[preferredKey];
+  return "";
+};
+
+const mapApplicationToDetails = (app: Application): ApplicationDetails => {
+  const environmentId = getId(app?.applicationEnvironment);
+  const environmentName = getText(app?.applicationEnvironment, "environmentName");
+
+  const groupId = getId(app?.group);
+  const groupName = getText(app?.group, "groupName");
+
+  const workflowId = getId(app?.applicationWorkflow);
+  const workflowName = getText(app?.applicationWorkflow, "workflowName");
+
+  const moduleIds =
+    app?.applicationModules
+      ?.map((m: any) => getId(m) || getText(m, "moduleName"))
+      .filter(Boolean) ?? [];
+  const moduleNames =
+    app?.applicationModules
+      ?.map((m: any) => getText(m, "moduleName") || getId(m))
+      .filter(Boolean) ?? [];
+
+  const serviceTypeIds =
+    app?.applicationServiceRequestTypes?.map((s: any) => getId(s)).filter(Boolean) ?? [];
+  const serviceTypeNames =
+    app?.applicationServiceRequestTypes
+      ?.map((s: any) => getText(s, "service") || getId(s))
+      .filter(Boolean) ?? [];
+
+  const roleIds = app?.applicationRoles?.map((r: any) => getId(r)).filter(Boolean) ?? [];
+  const roleNames =
+    app?.applicationRoles
+      ?.map((r: any) => getText(r, "role") || getText(r, "name") || getId(r))
+      .filter(Boolean) ?? [];
+
+  const attachments =
+    (app?.attachments || [])
+      .map((att: any) =>
+        typeof att === "string"
+          ? att
+          : att?.attachment ?? att?.filename ?? att?.attachmentLink ?? ""
+      )
+      .filter(Boolean) ?? [];
+
+  return {
+    environmentId,
+    environmentName,
+    groupId,
+    groupName,
+    workflowId,
+    workflowName,
+    moduleIds,
+    moduleNames,
+    serviceTypeIds,
+    serviceTypeNames,
+    roleIds,
+    roleNames,
+    notes: app?.notes ?? "",
+    attachments
+  };
+};
 
 const CreateServiceRequestModal = ({
   onClose,
@@ -87,16 +194,10 @@ const CreateServiceRequestModal = ({
   const { t } = useTranslation();
   const {
     applications,
-    environments,
-    assignmentGroups,
-    appModules,
-    workflows,
-    roles,
-    requestTypes,
-    locations
+    locations,
   } = optionSets;
-  const [attachments, setAttachments] = useState<File[]>([]);
-  const [existingAttachments, setExistingAttachments] = useState<string[]>([]);
+  const [existingAttachments, setExistingAttachments] = useState<ExistingAttachment[]>([]);
+  const [appDetails, setAppDetails] = useState<ApplicationDetails | null>(null);
   const {
     control,
     handleSubmit,
@@ -108,10 +209,16 @@ const CreateServiceRequestModal = ({
     defaultValues: normalizedDefaults
   });
 
+  const selectedApplication = useWatch({ control, name: "application" });
+  const showAppFields = !!selectedApplication;
   useEffect(() => {
     reset(normalizedDefaults);
-    setAttachments([]);
-    setExistingAttachments(normalizedDefaults.attachments || []);
+    setExistingAttachments(
+      (resolvedInitial?.attachments || [])
+        .map(toExistingAttachment)
+        .filter(Boolean) as ExistingAttachment[]
+    );
+    setAppDetails(null);
   }, [normalizedDefaults, reset]);
 
   const toDropdown = (item: any, labelKey: string, valueKey: string = "_id"): DropdownOption => ({
@@ -139,29 +246,15 @@ const CreateServiceRequestModal = ({
     { label: t("yes") ?? "Yes", value: "Yes" },
     { label: t("no") ?? "No", value: "No" }
   ];
-
-  const requestTypeOptions: DropdownOption[] = useMemo(() => {
-    const merged = [
-      { label: t("gxpApplications"), value: "Applications" },
-      ...requestTypes,
-      ...applicationServiceRequestTypeOptions.map((opt) => ({
-        label: opt.label,
-        value: opt.value
-      }))
-    ];
-    const seen = new Set<string>();
-    return merged.filter((opt) => {
-      if (!opt?.value || seen.has(opt.value)) return false;
-      seen.add(opt.value);
-      return true;
-    });
-  }, [requestTypes, t]);
-
   const onFormSubmit: SubmitHandler<ServiceRequestFormInput> = async (data) => {
     const parsed: ServiceRequestFormOutput = getServiceRequestSchema.parse(data);
     try {
       toggleLoading(true);
-      await onSubmit(parsed, attachments, existingAttachments);
+      await onSubmit(
+        parsed,
+        [], // new attachments disabled for now
+        existingAttachments.map((att) => att.path)
+      );
     } finally {
       toggleLoading(false);
     }
@@ -169,6 +262,42 @@ const CreateServiceRequestModal = ({
 
   const renderError = (message?: string) =>
     message ? <p className="text-red-500 text-xs mt-1">{message}</p> : null;
+
+  useEffect(() => {
+    const appId = normalizeId(selectedApplication);
+    if (!appId) {
+      setAppDetails(null);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        toggleLoading(true);
+        const app = (await getApplicationById(appId)) as Application;
+        const details = mapApplicationToDetails(app);
+
+        if (cancelled) return;
+
+        setValue("environment", details.environmentId);
+        setValue("group", details.groupId);
+        setValue("workflow", details.workflowId);
+        setValue("module", details.moduleIds[0] ?? "");
+        setValue("requestType", details.serviceTypeNames[0] ?? "Applications");
+        setValue("requestRole", details.roleNames[0] ?? "");
+        setValue("note", details.notes ?? "");
+        setAppDetails(details);
+      } catch (err) {
+        console.error("Failed to load application details", err);
+        if (!cancelled) setAppDetails(null);
+      } finally {
+        toggleLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedApplication, setValue, toggleLoading]);
 
   return (
     <div className="p-6 overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
@@ -218,46 +347,6 @@ const CreateServiceRequestModal = ({
           </div>
 
           <div>
-            <Label htmlFor="module" required>
-              {t("module")}
-            </Label>
-            <Controller
-              name="module"
-              control={control}
-              render={({ field }) => (
-                <SelectDropdown
-                  value={field.value ?? ""}
-                  onChange={(val) => {
-                    if (typeof val === "string") {
-                      field.onChange(val);
-                    }
-                  }}
-                  options={appModules?.map((mod) => toDropdown(mod, "moduleName", "_id"))}
-                  placeholder={t("select", { entity: t("module") })}
-                />
-              )}
-            />
-            {renderError(errors.module?.message)}
-          </div>
-
-          <div>
-            <Label htmlFor="requestType">{t("requestType")}</Label>
-            <Controller
-              name="requestType"
-              control={control}
-              render={({ field }) => (
-                <SelectDropdown
-                  value={field.value ?? ""}
-                  onChange={(val) => field.onChange(val)}
-                  options={requestTypeOptions}
-                  placeholder={t("select", { entity: t("requestType") })}
-                />
-              )}
-            />
-            {renderError(errors.requestType?.message)}
-          </div>
-
-          <div>
             <Label htmlFor="priority" required>
               {t("priority")}
             </Label>
@@ -274,25 +363,6 @@ const CreateServiceRequestModal = ({
               )}
             />
             {renderError(errors.priority?.message)}
-          </div>
-
-          <div>
-            <Label htmlFor="environment" required>
-              {t("environment")}
-            </Label>
-            <Controller
-              name="environment"
-              control={control}
-              render={({ field }) => (
-                <SelectDropdown
-                  value={field.value ?? ""}
-                  onChange={(val) => field.onChange(val)}
-                  options={environments?.map((env) => toDropdown(env, "environmentName", "_id"))}
-                  placeholder={t("select", { entity: t("environment") })}
-                />
-              )}
-            />
-            {renderError(errors.environment?.message)}
           </div>
 
           <div>
@@ -315,61 +385,6 @@ const CreateServiceRequestModal = ({
           </div>
 
           <div>
-            <Label htmlFor="group" required>
-              {t("group")}
-            </Label>
-            <Controller
-              name="group"
-              control={control}
-              render={({ field }) => (
-                <SelectDropdown
-                  value={field.value ?? ""}
-                  onChange={(val) => field.onChange(val)}
-                  options={assignmentGroups?.map((group) =>
-                    toDropdown(group, "groupName", "_id")
-                  )}
-                  placeholder={t("select", { entity: t("group") })}
-                />
-              )}
-            />
-            {renderError(errors.group?.message)}
-          </div>
-
-          <div>
-            <Label htmlFor="requestRole">{t("requestRole")}</Label>
-            <Controller
-              name="requestRole"
-              control={control}
-              render={({ field }) => (
-                <SelectDropdown
-                  value={field.value ?? ""}
-                  onChange={(val) => field.onChange(val)}
-                  options={roles?.map((role) => toDropdown(role, "roleName", "_id"))}
-                  placeholder={t("select", { entity: t("requestRole") })}
-                />
-              )}
-            />
-            {renderError(errors.requestRole?.message as string)}
-          </div>
-
-          <div>
-            <Label htmlFor="workflow" required>{t("workflow")}</Label>
-            <Controller
-              name="workflow"
-              control={control}
-              render={({ field }) => (
-                <SelectDropdown
-                  value={field.value ?? ""}
-                  onChange={(val) => field.onChange(val)}
-                  options={workflows?.map((wf) => toDropdown(wf, "workflowName", "_id"))}
-                  placeholder={t("select", { entity: t("workflow") })}
-                />
-              )}
-            />
-            {renderError(errors.workflow?.message as string)}
-          </div>
-
-          <div>
             <Label htmlFor="esignCheck">{t("esignCheck")}</Label>
             <Controller
               name="esignCheck"
@@ -386,26 +401,6 @@ const CreateServiceRequestModal = ({
             {renderError(errors.esignCheck?.message)}
           </div>
 
-          <div>
-            <Label htmlFor="trainingDone">{t("trainingDone")}</Label>
-            <Controller
-              name="trainingDone"
-              control={control}
-              render={({ field }) => (
-                <div className="flex items-center gap-3 py-2">
-                  <Switch
-                    checked={!!field.value}
-                    onChange={(val) => {
-                      field.onChange(val);
-                      setValue("trainingDone", val);
-                    }}
-                    label={field.value ? t("yes") ?? "Yes" : t("no") ?? "No"}
-                  />
-                </div>
-              )}
-            />
-            {renderError(errors.trainingDone?.message)}
-          </div>
 
           <div >
             <Label htmlFor="status">{t("status")}</Label>
@@ -423,6 +418,7 @@ const CreateServiceRequestModal = ({
             />
             {renderError(errors.status?.message)}
           </div>
+
 
           <div>
             <Label htmlFor="description" required>
@@ -444,23 +440,6 @@ const CreateServiceRequestModal = ({
           </div>
 
           <div>
-            <Label htmlFor="note" required> {t("notes")}</Label>
-            <Controller
-              name="note"
-              control={control}
-              render={({ field }) => (
-                <TextArea
-                  value={field.value ?? ""}
-                  onChange={(val) => field.onChange(val)}
-                  error={!!errors.note}
-                  hint={errors.note?.message}
-                  className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
-                />
-              )}
-            />
-          </div>
-
-          <div>
             <Label htmlFor="comments" required>
               {t("comments")}
             </Label>
@@ -469,7 +448,7 @@ const CreateServiceRequestModal = ({
               control={control}
               render={({ field }) => (
                 <TextArea
-                  value={(field.value || []).join("\n")}
+                  value={(field.value).join("\n")}
                   onChange={(val) => {
                     const lines = (val || "")
                       .split("\n")
@@ -488,64 +467,26 @@ const CreateServiceRequestModal = ({
             />
           </div>
 
-          <div className="md:col-span-2">
-            <Label htmlFor="attachments">
-              {t("attachments", { defaultValue: t("trainingEvidence") ?? "Attachments" })}
-            </Label>
-            {existingAttachments?.length ? (
-              <div className="mb-3 space-y-2">
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {t("previousUploads", { defaultValue: "Previously uploaded" })} (
-                  {existingAttachments.length})
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {existingAttachments.map((name, idx) => (
-                    <div
-                      key={`${name}-${idx}`}
-                      className="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2"
-                      title={name}
-                    >
-                      {isImageName(name) ? (
-                        <img
-                          src={getGxpImageUrl(name)}
-                          alt={name}
-                          className="h-10 w-10 rounded border border-gray-200 dark:border-gray-700 object-cover"
-                        />
-                      ) : (
-                        <div className="h-10 w-10 rounded bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-[10px] font-semibold text-gray-800 dark:text-gray-100">
-                          {(name?.split(".").pop() || "file").toUpperCase().slice(0, 4)}
-                        </div>
-                      )}
-                      <span className="text-xs text-gray-800 dark:text-gray-100 max-w-[220px] truncate">
-                        {name}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setExistingAttachments((prev) =>
-                            prev.filter((_, removeIdx) => removeIdx !== idx)
-                          )
-                        }
-                        className="text-[11px] font-semibold text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                      >
-                        {t("remove", { defaultValue: "Remove" })}
-                      </button>
-                    </div>
-                  ))}
+
+          <div>
+            <Label htmlFor="trainingDone">{t("trainingDone")}</Label>
+            <Controller
+              name="trainingDone"
+              control={control}
+              render={({ field }) => (
+                <div className="flex items-center gap-3 py-2">
+                  <Switch
+                    checked={!!field.value}
+                    onChange={(val) => {
+                      field.onChange(val);
+                      setValue("trainingDone", val);
+                    }}
+                    label={field.value ? t("yes") ?? "Yes" : t("no") ?? "No"}
+                  />
                 </div>
-              </div>
-            ) : null}
-            <FileUpload
-              value={attachments}
-              onChange={(files) => setAttachments(files)}
-              multiple={true}
-              maxFiles={10}
-              maxSizeMB={10}
-              blockAudioVideo={true}
-              // accept not set => allow all (except audio/video via custom rule)
-              title="Upload Training Evidence"
-              description="Upload documents/images. Audio/video not allowed."
+              )}
             />
+            {renderError(errors.trainingDone?.message)}
           </div>
         </div>
 
@@ -558,6 +499,111 @@ const CreateServiceRequestModal = ({
           </Button>
         </div>
       </form>
+      <div className="mt-4">
+        {!showAppFields && (
+          <div className="text-sm text-gray-600 dark:text-gray-400 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-3">
+            {t("select", { entity: t("application") })}{" "}
+            {t("toContinue", { defaultValue: "to load application details." })}
+          </div>
+        )}
+
+        {showAppFields && appDetails && (
+          <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4 space-y-3 max-h-[26rem] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                {t("applicationDetails", { defaultValue: "Application Details" })}
+              </p>
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {t("loadedFromApplication", { defaultValue: "Loaded from application" })}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div>
+                <p className="text-gray-500 dark:text-gray-400">{t("environment")}</p>
+                <p className="text-gray-900 dark:text-gray-100">
+                  {appDetails.environmentName || appDetails.environmentId || "-"}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-500 dark:text-gray-400">{t("group")}</p>
+                <p className="text-gray-900 dark:text-gray-100">
+                  {appDetails.groupName || appDetails.groupId || "-"}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-500 dark:text-gray-400">{t("workflow")}</p>
+                <p className="text-gray-900 dark:text-gray-100">
+                  {appDetails.workflowName || appDetails.workflowId || "-"}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-500 dark:text-gray-400">{t("module")}</p>
+                <div className="mt-1">
+                  <ChipList items={appDetails.moduleNames} variant="grid"
+                    columns={3} />
+                </div>
+              </div>
+
+              <div>
+                <p className="text-gray-500 dark:text-gray-400">{t("requestType")}</p>
+                <div className="mt-1">
+                  <ChipList items={appDetails.serviceTypeNames} variant="grid"
+                    columns={3} />
+                </div>
+              </div>
+
+              <div>
+                <p className="text-gray-500 dark:text-gray-400">{t("requestRole")}</p>
+                <div className="mt-1">
+                  <ChipList items={appDetails.roleNames} variant="grid"
+                    columns={3} />
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <p className="text-gray-500 dark:text-gray-400">{t("notes")}</p>
+                <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap break-words">
+                  {appDetails.notes || "-"}
+                </p>
+              </div>
+              <div className="md:col-span-2">
+                <p className="text-gray-500 dark:text-gray-400">{t("attachments")}</p>
+                {appDetails.attachments?.length ? (
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {appDetails.attachments.map((path: string, idx: number) => {
+                      const name = prettifyAttachmentName(path);
+                      return (
+                        <div
+                          key={`${path}-${idx}`}
+                          className="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2"
+                          title={name}
+                        >
+                          {isImageName(path) ? (
+                            <img
+                              src={getGxpImageUrl(path)}
+                              alt={name}
+                              className="h-10 w-10 rounded border border-gray-200 dark:border-gray-700 object-cover"
+                            />
+                          ) : (
+                            <div className="h-10 w-10 rounded bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-[10px] font-semibold text-gray-800 dark:text-gray-100">
+                              {(path?.split(".").pop() || "file").toUpperCase().slice(0, 4)}
+                            </div>
+                          )}
+                          <span className="text-xs text-gray-800 dark:text-gray-100 max-w-[220px] truncate">
+                            {name}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("noRecordsFound")}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
