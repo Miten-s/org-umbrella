@@ -25,10 +25,6 @@ export const deleteRequest = async (id: string) => {
   return await repo.deleteServiceRequest(id);
 };
 
-export const deleteAttachments = async (id: string) => {
-  return await repo.deleteAttachments(id);
-};
-
 export const getServiceTypes = async (req: Request) => {
   return await repo.getServiceTypes(req);
 };

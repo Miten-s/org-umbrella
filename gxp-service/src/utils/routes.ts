@@ -36,6 +36,7 @@ const API_ROUTES = {
     BY_ID: "/:id",
     ENABLE_BY_ID: "/enable/:id",
     DISABLE_BY_ID: "/disable/:id",
+    DELETE_ATTACHMENTS: "/attachments/:attachmentId",
     GET_APPLICATION_GROUPS: "/application-groups"
   },
   WORKFLOWS: {
@@ -51,7 +52,6 @@ const API_ROUTES = {
     ENABLE_BY_ID: "/enable/:id",
     DISABLE_BY_ID: "/disable/:id",
     UPDATE_STATUS: "/status/:id",
-    DELETE_ATTACHMENTS: "/attachments/:attachmentId",
     GET_SERVICE_TYPES: "/service-types"
   },
   APPLICATION_MODULES: {

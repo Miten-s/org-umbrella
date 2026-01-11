@@ -17,8 +17,9 @@ const deletePermission = async (req: Request) => {
   );
 };
 
-const getPermissions = async () => {
+const getPermissions = async (type?: string) => {
   return await Permission.find({
+    type,
     deletedAt: { $not: null },
     name: { $not: /OPERATE:ALL/i }
   }).lean();

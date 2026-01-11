@@ -1,12 +1,17 @@
+import GxpServiceAppAttachmentModel from "../models/gxp-service-application-attachments.model";
 import GxpServiceAppGroupModel from "../models/gxp-service-application-groups.model";
 import GxpServiceApplicationModel, {
   type IApplication
 } from "../models/gxp-service-applications.model";
 import { fetchUserBasedOnId } from "../services/inter-service-calls.service";
 
-export const createApplication = async (payload: Partial<IApplication>) => {
+export const createApplication = async (
+  payload: Partial<IApplication>,
+  session?: any
+) => {
   const doc = new GxpServiceApplicationModel(payload);
-  return await doc.save();
+  await doc.save({ session });
+  return doc;
 };
 
 export const getApplications = async (
@@ -23,7 +28,6 @@ export const getApplications = async (
 export const findApplicationById = async (id: string) => {
   const POPULATE_FIELDS = [
     "applicationEnvironment",
-    "group",
     "applicationRoles",
     "applicationGroups",
     "applicationServiceRequestTypes",
@@ -106,6 +110,10 @@ export const enableApplication = async (id: string) => {
 
 export const deleteApplcation = async (id: string) => {
   return await GxpServiceApplicationModel.findByIdAndDelete(id);
+};
+
+export const deleteAttachments = async (id: string) => {
+  return await GxpServiceAppAttachmentModel.deleteOne({ _id: id });
 };
 
 export const getApplicationGroups = async () => {

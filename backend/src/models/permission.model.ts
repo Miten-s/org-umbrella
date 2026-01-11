@@ -8,12 +8,21 @@ export interface IPermission extends Document {
   modifiedOn?: Date;
   modifiedBy?: string;
 }
+enum PermissionType {
+  DEFAULT = "default",
+  GXP_SERVICE = "gxp_service"
+}
 
 const PermissionSchema = new Schema(
   {
     name: { type: String, required: true },
     description: { type: String },
     deletedAt: { type: Date, default: null },
+    type: {
+      type: String,
+      enum: PermissionType,
+      default: PermissionType.DEFAULT
+    },
     modifiedOn: { type: Date },
     modifiedBy: { type: Schema.Types.ObjectId, ref: "User" }
   },

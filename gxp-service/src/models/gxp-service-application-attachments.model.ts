@@ -7,7 +7,7 @@ const GxpServiceAppAttachmentSchema = new mongoose.Schema(
       ref: "GxpServiceApplication",
       required: true
     },
-    attachmentLink: {
+    attachment: {
       type: String,
       required: true
     },
@@ -30,6 +30,9 @@ const GxpServiceAppAttachmentModel = mongoose.model(
   GxpServiceAppAttachmentSchema
 );
 
-GxpServiceAppAttachmentSchema.index({ appId: 1 }, { unique: true });
+GxpServiceAppAttachmentSchema.index(
+  { appId: 1, attachment: 1 },
+  { unique: true }
+);
 
 export default GxpServiceAppAttachmentModel;

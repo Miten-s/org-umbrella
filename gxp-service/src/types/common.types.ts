@@ -29,4 +29,5 @@ export interface UpdateApplication
   applicationServiceRequestTypes?: Ids;
   applicationModules?: Ids;
   departments?: Ids;
+  attachments?: string[];
 }

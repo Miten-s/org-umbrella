@@ -37,3 +37,22 @@ export const fetchUserBasedOnId = async (userIds: string[]) => {
     throw new Error("Failed to fetch users: " + error);
   }
 };
+
+export const fetchLocationsFromAuthService = async (ids: string[]) => {
+  if (!db) {
+    throw new Error("Database connection is not established");
+  }
+
+  try {
+    const groupsCollection = db.collection("locations");
+    const objectIds = ids.map((id) => new ObjectId(id));
+    const groups = await groupsCollection
+      .find({ _id: { $in: objectIds } })
+      .project({ _id: 1, locationName: 1, status: 1 })
+      .toArray();
+
+    return groups;
+  } catch (error) {
+    throw new Error("Failed to fetch groups: " + error);
+  }
+};
