@@ -7,9 +7,11 @@ import {
   enableApplication,
   disableApplication,
   deleteApplication,
-  getApplicationGroups
+  getApplicationGroups,
+  deleteAttachments
 } from "../controllers/gxp-service-applications.controller";
 import API_ROUTES from "../utils/routes";
+import upload from "../middlewares/multer.middleware.js";
 
 const router = Router();
 
@@ -26,7 +28,11 @@ router.get(API_ROUTES.APPLICATIONS.BY_ID, getApplicationById);
 
 // ---------------------------------------------------------------------------------------- POST Requests ----------------------------------------------------------------------------------------
 
-router.post(API_ROUTES.APPLICATIONS.ROOT, createApplication);
+router.post(
+  API_ROUTES.APPLICATIONS.ROOT,
+  upload.array("attachments"),
+  createApplication
+);
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
 
@@ -34,9 +40,15 @@ router.patch(API_ROUTES.APPLICATIONS.ENABLE_BY_ID, enableApplication);
 
 router.patch(API_ROUTES.APPLICATIONS.DISABLE_BY_ID, disableApplication);
 
-router.patch(API_ROUTES.APPLICATIONS.BY_ID, updateAppplication);
+router.patch(
+  API_ROUTES.APPLICATIONS.BY_ID,
+  upload.array("attachments"),
+  updateAppplication
+);
 
 // ---------------------------------------------------------------------------------------- DELETE Requests ----------------------------------------------------------------------------------------
+
+router.delete(API_ROUTES.APPLICATIONS.DELETE_ATTACHMENTS, deleteAttachments);
 
 router.delete(API_ROUTES.APPLICATIONS.BY_ID, deleteApplication);
 

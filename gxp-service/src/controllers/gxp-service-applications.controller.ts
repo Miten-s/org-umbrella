@@ -5,10 +5,14 @@ import asyncHandler from "../middlewares/error.middleware";
 export const createApplication = asyncHandler(
   async (req: Request, res: Response) => {
     const currentUser = (req as any).user?.id ?? null;
-    const payload = req.body;
+    const { data: payload } = req.body;
+    const files = req.files as Express.Multer.File[];
+    const attachments = files?.map((file) => file.filename) || [];
+
     const created = await service.createApplication(
-      payload,
-      currentUser ?? undefined
+      JSON.parse(payload),
+      currentUser ?? undefined,
+      attachments
     );
     return res.status(201).json(created);
   }
@@ -35,14 +39,20 @@ export const getApplicationById = asyncHandler(
 export const updateAppplication = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const payload = req.body;
+    const { data: payload } = req.body;
     const currentUser =
       (req as any).user?.username ?? (req.headers["x-user"] as string) ?? null;
+
+    const files = req.files as Express.Multer.File[];
+    const attachments = files?.map((file) => file.filename) || [];
+
     const updated = await service.updateApplication(
       id,
-      payload,
-      currentUser ?? undefined
+      JSON.parse(payload),
+      currentUser ?? undefined,
+      attachments
     );
+
     if (!updated)
       return res.status(404).json({ message: "Application not found" });
     return res.status(200).send(updated);
@@ -92,6 +102,18 @@ export const deleteApplication = asyncHandler(
     return res
       .status(200)
       .send({ message: "Application deleted", application: deleted });
+  }
+);
+
+export const deleteAttachments = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { attachmentId: id } = req.params;
+    if (!id) {
+      return res.status(404).json({ message: "Attachment Id is required" });
+    }
+
+    const result = await service.deleteAttachments(id);
+    res.status(200).send(result);
   }
 );
 

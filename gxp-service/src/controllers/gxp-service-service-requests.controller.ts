@@ -6,14 +6,9 @@ export const createServiceRequest = asyncHandler(
   async (req: Request, res: Response) => {
     const data = req.body;
     const user = (req as any).user.id;
-    const files = req.files as Express.Multer.File[];
-
-    const attachments = files?.map((file) => file.filename) || [];
-
     const newRequest = await service.createServiceRequest({
       ...data,
-      createdBy: user,
-      attachments
+      createdBy: user
     });
 
     res.status(201).send(newRequest);
@@ -47,13 +42,8 @@ export const updateServiceRequest = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
     const data = req.body;
-
-    const files = req.files as Express.Multer.File[];
-
-    const attachments = files?.map((file) => file.filename) || [];
     const result = await service.updateRequest(id, {
-      ...data,
-      attachments
+      ...data
     });
 
     if (!result) return res.status(404).json({ message: "Not Found" });
@@ -80,18 +70,6 @@ export const deleteServiceRequest = asyncHandler(
     const { id } = req.params;
     const result = await service.deleteRequest(id);
     if (!result) return res.status(404).json({ message: "Not Found" });
-    res.status(200).send(result);
-  }
-);
-
-export const deleteAttachments = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { attachmentId: id } = req.params;
-    if (!id)
-      return res.status(404).json({ message: "Attachment Id is required" });
-
-    const result = await service.deleteAttachments(id);
-
     res.status(200).send(result);
   }
 );

@@ -1,9 +1,9 @@
 import { Request } from "express";
-import GxpRequestAttachmentModel from "../models/gxp-service-requests-attachments.model.js";
 import { IServiceRequest } from "../models/gxp-service-service-requests.model.js";
 import { GxpServiceRequestModel } from "../models/gxp-service-service-requests.model.js";
 import { removeUndefinedEntries } from "../utils/common.util.js";
 import GxpServiceAppServiceModel from "../models/gxp-service-application-services.model.js";
+import GxpServiceAppAttachmentModel from "../models/gxp-service-application-attachments.model.js";
 
 export const createServiceRequest = async (data: IServiceRequest) => {
   const request = new GxpServiceRequestModel(data);
@@ -11,42 +11,51 @@ export const createServiceRequest = async (data: IServiceRequest) => {
 };
 
 export const getAllServiceRequests = async () => {
-  const serviceRequest = await GxpServiceRequestModel.find()
+  return await GxpServiceRequestModel.find()
     .populate("application", ["applicationName", "_id"])
     .lean();
-
-  return await Promise.all(
-    serviceRequest.map(async (request) => {
-      const attachments = await GxpRequestAttachmentModel.find(
-        {
-          requestId: request._id
-        },
-        { attachment: 1 }
-      ).lean();
-      return { ...request, attachments };
-    })
-  );
 };
 
 export const getServiceRequestById = async (id: string) => {
   const request = await GxpServiceRequestModel.findById(id)
-    .populate("application", [
-      "applicationName",
-      "_id",
-      "applicationModules",
-      "applicationRoles",
-      "applicationGroups"
-    ])
+    .populate({
+      path: "application",
+      select: [
+        "applicationName",
+        "_id",
+        "applicationModules",
+        "applicationRoles",
+        "applicationGroups",
+        "attachments",
+        "notes"
+      ],
+      populate: [
+        {
+          path: "applicationModules",
+          select: ["moduleName", "_id"]
+        },
+        {
+          path: "applicationRoles",
+          select: ["role", "_id"]
+        },
+        {
+          path: "applicationGroups",
+          select: ["appGroup", "_id"]
+        }
+      ]
+    })
     .lean();
+
+  if (!request) return null;
+
+  const attachments = await GxpServiceAppAttachmentModel.find(
+    { appId: id },
+    { attachment: 1 }
+  ).lean();
 
   return {
     ...request,
-    attachments: await GxpRequestAttachmentModel.find(
-      {
-        requestId: id
-      },
-      { attachment: 1 }
-    ).lean()
+    attachments: attachments.length > 0 ? attachments : undefined
   };
 };
 
@@ -67,11 +76,6 @@ export const updateServiceRequest = async (
 export const deleteServiceRequest = async (id: string) => {
   return await GxpServiceRequestModel.findByIdAndDelete(id);
 };
-
-export const deleteAttachments = async (id: string) => {
-  return await GxpRequestAttachmentModel.deleteOne({ _id: id });
-};
-
 export const getServiceTypes = async (req: Request) => {
   const { name, id } = req.query;
   const filter = removeUndefinedEntries({

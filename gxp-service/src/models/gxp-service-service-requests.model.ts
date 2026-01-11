@@ -7,7 +7,6 @@ const generateSrvId = () => {
 
 export interface IServiceRequest {
   _id: string;
-  group: string;
   priority: "Very High" | "High" | "Medium" | "Low";
   application: string;
   esignCheck: "Yes" | "No";
@@ -17,7 +16,6 @@ export interface IServiceRequest {
   closedOn: Date;
   closedBy: string;
   createdBy: string;
-  location: string;
   status:
     | "New"
     | "In Progress"
@@ -35,7 +33,6 @@ const GxpServicePortalRequestSchema = new Schema<IServiceRequest>(
       type: String,
       default: generateSrvId
     },
-    group: { type: String, required: true }, // From the Auth Service Groups
     priority: {
       type: String,
       enum: ["Very High", "High", "Medium", "Low"],

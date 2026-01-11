@@ -12,11 +12,11 @@ const assignRole = async (req: Request) => {
 };
 
 const createRole = async (req: Request) => {
-  const { name, permissions } = req.body;
+  const { name, permissions, type } = req.body;
   return await Role.create({
     name,
     permissions,
-    type: RoleType.CUSTOM
+    type
   });
 };
 
