@@ -112,7 +112,7 @@ module.exports = {
     await db.collection("permissions").insertMany(
       permissions.map((permission) => ({
         ...permission,
-        type: "gxp-service",
+        type: "gxp_service",
         createdAt: new Date(),
         updatedAt: new Date(),
         deletedAt: null

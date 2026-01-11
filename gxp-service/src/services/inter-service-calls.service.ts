@@ -8,6 +8,7 @@ export let db: Db | null = null;
   if (db) return;
   try {
     const client = new MongoClient(uri, {
+      minPoolSize: 0,
       maxPoolSize: 5,
       serverSelectionTimeoutMS: 5000
     });
@@ -73,5 +74,23 @@ export const fetchDepartmentsFromAuthService = async (ids: string[]) => {
     return groups;
   } catch (error) {
     throw new Error("Failed to fetch groups: " + error);
+  }
+};
+
+export const fetchRolesFromAuthService = async (ids: string[]) => {
+  if (!db) {
+    throw new Error("Database connection is not established");
+  }
+
+  try {
+    const groupsCollection = db.collection("roles");
+    const objectIds = ids.map((id) => new ObjectId(id));
+    const roles = await groupsCollection
+      .find({ _id: { $in: objectIds } })
+      .toArray();
+
+    return roles;
+  } catch (error) {
+    throw new Error("Failed to fetch roles: " + error);
   }
 };

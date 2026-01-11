@@ -16,6 +16,7 @@ export interface IServiceRequest {
   closedOn: Date;
   closedBy: string;
   createdBy: string;
+  assignmentGroup: string;
   status:
     | "New"
     | "In Progress"
@@ -42,6 +43,11 @@ const GxpServicePortalRequestSchema = new Schema<IServiceRequest>(
       type: String,
       ref: "GxpServiceApplication",
       required: true
+    },
+    assignmentGroup: {
+      type: String,
+      ref: "GxpServiceAssignmentGroup",
+      default: null
     },
     esignCheck: { type: String, enum: ["Yes", "No"], default: "No" },
     trainingDone: { type: Boolean, required: true, default: true },

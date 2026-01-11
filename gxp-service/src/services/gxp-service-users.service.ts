@@ -6,13 +6,24 @@ import {
   disableUserRepo,
   enableUserRepo
 } from "../repo/gxp-service-users.repo";
+import { fetchRolesFromAuthService } from "./inter-service-calls.service";
 
 export const createUserService = async (data: any) => {
   return await createUserRepo(data);
 };
 
 export const getAllUsersService = async () => {
-  return await findAllUsersRepo();
+  const users = await findAllUsersRepo();
+  return await Promise.all(
+    users.map(async (user: any) => {
+      return {
+        ...user,
+        roles: await fetchRolesFromAuthService(
+          Array.isArray(user.roles) ? user.roles : [user.roles]
+        )
+      };
+    })
+  );
 };
 
 export const updateUserService = async (id: string, data: any) => {

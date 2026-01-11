@@ -6,8 +6,7 @@ export const createUserRepo = async (data: any) => {
 };
 
 export const findAllUsersRepo = async () => {
-  //temporary fix as role module is not yet ready
-  return await GxpServiceUser.find().lean();;
+  return await GxpServiceUser.find().lean();
 };
 
 export const findUserByIdRepo = async (id: string) => {
