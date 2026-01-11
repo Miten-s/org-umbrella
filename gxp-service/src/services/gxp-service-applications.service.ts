@@ -1,12 +1,14 @@
 import * as repo from "../repo/gxp-service-applications.repo";
 import GxpServiceRolesModel from "../models/gxp-service-application-roles.model";
 import GxpServiceAppGroupModel from "../models/gxp-service-application-groups.model";
-import GxpServiceAppDepartmentModel from "../models/gxp-service-application-departments.model";
 import { GxpServiceAppModuleModel } from "../models/gxp-service-application-modules.model";
 import { UpdateApplication } from "../types/common.types";
 import GxpServiceAppAttachmentModel from "../models/gxp-service-application-attachments.model";
 import mongoose from "mongoose";
-import { fetchLocationsFromAuthService } from "./inter-service-calls.service";
+import {
+  fetchDepartmentsFromAuthService,
+  fetchLocationsFromAuthService
+} from "./inter-service-calls.service";
 
 export const createApplication = async (
   payload: UpdateApplication,
@@ -36,7 +38,6 @@ export const createApplication = async (
     delete toSave.applicationRoles;
     delete toSave.applicationGroups;
     delete toSave.applicationModules;
-    delete toSave.departments;
 
     const exisitingApplication = await repo.getApplications({
       applicationName: payload.applicationName
@@ -106,31 +107,6 @@ export const createApplication = async (
       ];
     }
 
-    // Update application departments from payload
-
-    if (payload.departments) {
-      const modules = payload.departments
-        .filter((department) => !department._id)
-        .map((department) => ({
-          insertOne: {
-            document: {
-              departmentName: department.name,
-              appId: application._id
-            }
-          }
-        }));
-
-      const result = await GxpServiceAppDepartmentModel.bulkWrite(modules, {
-        session
-      });
-      application.departments = [
-        ...Object.values(result?.insertedIds ?? {}).map(String),
-        ...payload.departments
-          .filter((department) => department._id)
-          .map((department) => department._id)
-      ];
-    }
-
     if (attachments?.length) {
       const createdAttachments = await Promise.all(
         attachments.map((attachment) =>
@@ -175,8 +151,11 @@ export const getApplicationById = async (id: string) => {
   const applicaton = await repo.findApplicationById(id);
   return {
     ...applicaton,
+    departments: applicaton?.departments
+      ? await fetchDepartmentsFromAuthService([...applicaton?.departments])
+      : null,
     group: applicaton?.group
-      ? await fetchLocationsFromAuthService([applicaton?.group])
+      ? (await fetchLocationsFromAuthService([applicaton?.group]))[0]
       : null
   };
 };
@@ -256,26 +235,6 @@ export const updateApplication = async (
       ...updates.applicationModules
         .filter((mod) => mod?._id)
         .map((mod) => mod?._id)
-    ];
-  }
-
-  // Update application departments from payload
-
-  if (updates.departments) {
-    const modules = updates.departments
-      .filter((department) => !department._id)
-      .map((department) => ({
-        insertOne: {
-          document: { departmentName: department.name, appId: id }
-        }
-      }));
-
-    const result = await GxpServiceAppDepartmentModel.bulkWrite(modules);
-    modified.departments = [
-      ...Object.values(result?.insertedIds ?? {}).map(String),
-      ...updates.departments
-        .filter((department) => department._id)
-        .map((department) => department._id)
     ];
   }
 
