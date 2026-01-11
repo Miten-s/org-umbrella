@@ -79,6 +79,14 @@ const permissions = [
   },
   { name: "GXP:DELETE:SOFTWARE", description: "Delete a software" },
 
+  { name: "GXP:CREATE:USER", description: "Create a user" },
+  { name: "GXP:VIEW:USER", description: "View user" },
+  {
+    name: "GXP:UPDATE:USER",
+    description: "Update user details"
+  },
+  { name: "GXP:DELETE:USER", description: "Delete a user" },
+
   {
     name: "GXP:CREATE:SERVICE_REQUEST",
     description: "Create a service request"
@@ -112,7 +120,7 @@ module.exports = {
     await db.collection("permissions").insertMany(
       permissions.map((permission) => ({
         ...permission,
-        type: "gxp-service",
+        type: "gxp_service",
         createdAt: new Date(),
         updatedAt: new Date(),
         deletedAt: null

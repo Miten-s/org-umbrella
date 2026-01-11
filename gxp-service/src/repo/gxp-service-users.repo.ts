@@ -6,11 +6,11 @@ export const createUserRepo = async (data: any) => {
 };
 
 export const findAllUsersRepo = async () => {
-  return await GxpServiceUser.find().populate("roles", "name");
+  return await GxpServiceUser.find().lean();
 };
 
 export const findUserByIdRepo = async (id: string) => {
-  return await GxpServiceUser.findById(id).populate("roles", "name");
+  return await GxpServiceUser.findById(id).lean();
 };
 
 export const updateUserRepo = async (id: string, data: any) => {

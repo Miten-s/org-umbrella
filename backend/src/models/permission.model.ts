@@ -29,6 +29,8 @@ const PermissionSchema = new Schema(
   { timestamps: true }
 );
 
+PermissionSchema.index({ name: 1 }, { unique: true });
+
 PermissionSchema.pre(
   ["find", "findOne", "findOneAndUpdate"],
   async function () {

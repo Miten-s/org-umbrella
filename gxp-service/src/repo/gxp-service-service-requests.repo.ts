@@ -3,7 +3,6 @@ import { IServiceRequest } from "../models/gxp-service-service-requests.model.js
 import { GxpServiceRequestModel } from "../models/gxp-service-service-requests.model.js";
 import { removeUndefinedEntries } from "../utils/common.util.js";
 import GxpServiceAppServiceModel from "../models/gxp-service-application-services.model.js";
-import GxpServiceAppAttachmentModel from "../models/gxp-service-application-attachments.model.js";
 
 export const createServiceRequest = async (data: IServiceRequest) => {
   const request = new GxpServiceRequestModel(data);
@@ -17,7 +16,8 @@ export const getAllServiceRequests = async () => {
 };
 
 export const getServiceRequestById = async (id: string) => {
-  const request = await GxpServiceRequestModel.findById(id)
+  return await GxpServiceRequestModel.findById(id)
+    .populate("assignmentGroup", ["groupName", "_id", "isActive"])
     .populate({
       path: "application",
       select: [
@@ -41,22 +41,14 @@ export const getServiceRequestById = async (id: string) => {
         {
           path: "applicationGroups",
           select: ["appGroup", "_id"]
+        },
+        {
+          path: "attachments",
+          select: ["attachment", "_id"]
         }
       ]
     })
     .lean();
-
-  if (!request) return null;
-
-  const attachments = await GxpServiceAppAttachmentModel.find(
-    { appId: id },
-    { attachment: 1 }
-  ).lean();
-
-  return {
-    ...request,
-    attachments: attachments.length > 0 ? attachments : undefined
-  };
 };
 
 export const updateServiceRequest = async (
