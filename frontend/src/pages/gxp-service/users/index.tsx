@@ -8,6 +8,7 @@ import { useGlobalContext } from "@/context";
 
 import CreateGxpUserModal, { GxpUserEntity } from "./CreateGxpUserModal";
 import { getRoles, getUsers } from "@/services/admin.service";
+import { RoleType } from "@/utils/common.constants";
 import {
   getGxpUsers, createGxpUser,
   deleteGxpUser,
@@ -19,6 +20,7 @@ import Switch from "@/components/common/form/switch/Switch";
 
 type Role = { _id: string; name: string };
 type BareUser = { _id: string; fullName?: string; name?: string };
+type RoleRef = string | { _id?: string; name?: string };
 
 const extractList = (v: any, keyCandidates: string[]) => {
   if (!v) return [];
@@ -31,6 +33,28 @@ const extractList = (v: any, keyCandidates: string[]) => {
   return Array.isArray(first) ? first : [];
 };
 
+const normalizeRoles = (roles: RoleRef[] | RoleRef | undefined): string[] => {
+  if (!roles) return [];
+  if (Array.isArray(roles)) {
+    return roles
+      .map((r) => (typeof r === "string" ? r : r?._id ?? ""))
+      .filter(Boolean);
+  }
+  return [typeof roles === "string" ? roles : roles?._id ?? ""].filter(Boolean);
+};
+
+const normalizeGxpUser = (user: any): GxpUserEntity => ({
+  _id: user?._id ?? "",
+  user: {
+    id: user?.user?.id ?? "",
+    name: user?.user?.name ?? ""
+  },
+  userType: user?.userType ?? "User",
+  roles: normalizeRoles(user?.roles),
+  description: user?.description,
+  status: user?.status ?? "enabled"
+});
+
 const GXPUsersPage = () => {
   const { t } = useTranslation();
   const { isOpen, openModal, closeModal } = useModal();
@@ -41,7 +65,6 @@ const GXPUsersPage = () => {
 
   const [selectableUsers, setSelectableUsers] = useState<BareUser[]>([]);
   const [selectableRoles, setSelectableRoles] = useState<Role[]>([]);
-
   const [confirmationModal, setConfirmationModal] = useState(false);
   const [entityToDelete, setEntityToDelete] = useState<GxpUserEntity | null>(null);
 
@@ -49,7 +72,7 @@ const GXPUsersPage = () => {
     (async () => {
       const [usersRes, rolesRes, gxpUsersRes] = await Promise.all([
         getUsers(),
-        getRoles(),
+        getRoles(RoleType.GXP_SERVICE),
         getGxpUsers(),
       ]);
 
@@ -64,7 +87,7 @@ const GXPUsersPage = () => {
         name: r.name,
       })));
 
-      setGxpUsers(extractList(gxpUsersRes, ["gxpUsers", "items"]));
+      setGxpUsers(extractList(gxpUsersRes, ["gxpUsers", "items"]).map(normalizeGxpUser));
     })();
   }, [reFetch]);
 
@@ -76,10 +99,12 @@ const GXPUsersPage = () => {
   const handleSave = async (payload: Partial<GxpUserEntity>) => {
     if (activeUser) {
       const updated = await updateGxpUser(activeUser._id, payload);
-      setGxpUsers((prev) => prev.map((x) => (x._id === updated._id ? updated : x)));
+      const normalized = normalizeGxpUser(updated);
+      setGxpUsers((prev) => prev.map((x) => (x._id === normalized._id ? normalized : x)));
     } else {
       const created = await createGxpUser(payload);
-      setGxpUsers((prev) => [created, ...prev]);
+      const normalized = normalizeGxpUser(created);
+      setGxpUsers((prev) => [normalized, ...prev]);
     }
     setActiveUser(null);
     setReFetch(!reFetch);
@@ -157,10 +182,13 @@ const GXPUsersPage = () => {
                   {u.userType}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
-                  {
-                    // resolve role name from list:
-                    selectableRoles.find((r) => r._id === u.roles)?.name ?? "-"
-                  }
+                  {Array.isArray(u.roles)
+                    ? u.roles
+                        .map((roleId) => selectableRoles.find((r) => r._id === roleId)?.name)
+                        .filter(Boolean)
+                        .join(", ") || "-"
+                        //@ts-ignore
+                    : selectableRoles.find((r) => r._id === u.roles)?.name ?? "-"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
                   {u.description ?? "-"}

@@ -7,7 +7,6 @@ import Input from "@/components/common/form/input/InputField";
 import Label from "@/components/common/form/Label";
 import Button from "@/components/ui/button/Button";
 import TextArea from "@/components/common/form/input/TextArea";
-import MultiSelect from "@/components/common/form/MultiSelect";
 
 import { getWorkflowSchema } from "@/lib/schema";
 import Switch from "@/components/common/form/switch/Switch";
@@ -16,7 +15,6 @@ interface CreateWorkflowModalProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
-  assignmentGroups?: any[];
 }
 
 // If you re-exported type from schema file, import it instead:
@@ -26,7 +24,6 @@ const CreateWorkflowModal = ({
   onClose,
   onSubmit,
   initialData,
-  assignmentGroups = [],
 }: CreateWorkflowModalProps) => {
   const { t } = useTranslation();
 
@@ -42,7 +39,6 @@ const CreateWorkflowModal = ({
       workflowName: initialData?.workflowName || "",
       levels: initialData?.levels?.join(", ") || "",
       description: initialData?.description || "",
-      assignmentGroups: initialData?.assignmentGroups || [],
       status: initialData?.status ?? "enabled", // <-- default to enabled
     },
   });
@@ -102,31 +98,6 @@ const CreateWorkflowModal = ({
               hint={errors.levels?.message}
               className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
             />
-          </div>
-
-          {/* Assignment Groups */}
-          <div>
-            <Label htmlFor="assignmentGroups">{t("gxpAssignmentGroups")}</Label>
-            <Controller
-              name="assignmentGroups"
-              control={control}
-              render={({ field }) => (
-                <MultiSelect
-                  options={assignmentGroups?.map((group) => ({
-                    text: group.name,
-                    value: group._id,
-                  }))}
-                  label={t("selectGroups")}
-                  onChange={field.onChange}
-                  defaultSelected={field.value}
-                />
-              )}
-            />
-            {errors.assignmentGroups && (
-              <p className="text-red-500 text-xs mt-1">
-                {errors.assignmentGroups.message as string}
-              </p>
-            )}
           </div>
 
           {/* Status */}

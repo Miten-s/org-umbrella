@@ -1,9 +1,11 @@
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import Label from '../../../components/common/form/Label';
 import Input from '../../../components/common/form/input/InputField';
 import Button from '../../../components/ui/button/Button';
 import Checkbox from '../../../components/common/form/input/Checkbox';
 import { useTranslation } from 'react-i18next';
+import { PermissionType } from '@/utils/common.constants';
 
 interface CreateRoleModalProps {
   onClose: () => void;
@@ -12,24 +14,47 @@ interface CreateRoleModalProps {
     permissions: string[]
   }) => void;
   permissions: string[];
+  permissionType?: PermissionType;
+  onPermissionTypeChange?: (type: "default" | "gxp_service") => void;
   activeRole?: {
     name: string;
     permissions: { name: string }[]
   } | null;
 }
 
-const groupPermissions = (permissions: string[]): Record<string, string[]> => {
-  const grouped: Record<string, string[]> = {};
+type GroupedPermission = { action: string; key: string };
+
+const groupPermissions = (permissions: string[]): Record<string, GroupedPermission[]> => {
+  const grouped: Record<string, GroupedPermission[]> = {};
   permissions.forEach((perm) => {
-    const [action, entity] = perm.split(':');
+    const parts = perm.split(":");
+    let action = "";
+    let entity = "";
+    if (parts.length >= 3) {
+      action = parts[1];
+      entity = parts[2];
+    } else if (parts.length === 2) {
+      action = parts[0];
+      entity = parts[1];
+    }
     if (!entity || !action) return;
     if (!grouped[entity]) grouped[entity] = [];
-    if (!grouped[entity].includes(action)) grouped[entity].push(action);
+    if (!grouped[entity].some((item) => item.key === perm)) {
+      grouped[entity].push({ action, key: perm });
+    }
   });
   return grouped;
 };
 
-const CreateRoleModal = ({ onClose, onSubmit, permissions: allPermissions, activeRole }: CreateRoleModalProps) => {
+const CreateRoleModal = ({
+  onClose,
+  onSubmit,
+  permissions: allPermissions,
+  permissionType,
+  onPermissionTypeChange,
+  activeRole
+}: CreateRoleModalProps) => {
+  const isFixedType = !onPermissionTypeChange;
   const { register, handleSubmit, watch, setValue } = useForm<{
     name: string;
 
@@ -46,6 +71,12 @@ const CreateRoleModal = ({ onClose, onSubmit, permissions: allPermissions, activ
   const groupedPermissions = groupPermissions(allPermissions);
   const { t } = useTranslation()
 
+  useEffect(() => {
+    const filtered = selectedPermissions.filter((perm) => allPermissions.includes(perm));
+    if (filtered.length === selectedPermissions.length) return;
+    setValue('permissions', filtered);
+  }, [allPermissions, selectedPermissions, setValue]);
+
   const togglePermission = (permission: string) => {
     const updated = selectedPermissions.includes(permission)
       ? selectedPermissions.filter((p) => p !== permission)
@@ -54,7 +85,7 @@ const CreateRoleModal = ({ onClose, onSubmit, permissions: allPermissions, activ
   };
 
   const toggleAllForGroup = (entity: string) => {
-    const perms = groupedPermissions[entity].map((action) => `${action}:${entity}`);
+    const perms = groupedPermissions[entity].map((item) => item.key);
     const hasAll = perms.every((p) => selectedPermissions.includes(p));
     const updated = hasAll
       ? selectedPermissions.filter((p) => !perms.includes(p))
@@ -91,6 +122,30 @@ const CreateRoleModal = ({ onClose, onSubmit, permissions: allPermissions, activ
             />
           </div>
 
+          {!isFixedType && (
+            <div className="flex items-center gap-2">
+              {[
+                { label: t("adminPermissions", { defaultValue: "Admin Permissions" }), value: "default" },
+                { label: t("gxpServicePermissions", { defaultValue: "GXP Services Permissions" }), value: "gxp_service" }
+              ].map((tab) => {
+                const isActive = permissionType === tab.value;
+                return (
+                  <button
+                    key={tab.value}
+                    type="button"
+                    onClick={() => onPermissionTypeChange?.(tab.value as "default" | "gxp_service")}
+                    className={`px-4 py-2 rounded-full text-sm font-medium border transition ${isActive
+                      ? "bg-blue-600 text-white border-blue-600"
+                      : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700"
+                      }`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {/* Permissions */}
           <div>
             <Label className="block">{t('permissions')}</Label>
@@ -99,13 +154,13 @@ const CreateRoleModal = ({ onClose, onSubmit, permissions: allPermissions, activ
               label="Select All Permissions"
               checked={allPermissions.every((perm) => selectedPermissions.includes(perm))}
               onChange={toggleAllPermissions}
-              className="mt-2"
+              className="flex"
             />
 
             {/* Grouped Permissions */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-4">
-              {Object.entries(groupedPermissions).map(([entity, actions]) => {
-                const groupPerms = actions.map((action) => `${action}:${entity}`);
+              {Object.entries(groupedPermissions).map(([entity, items]) => {
+                const groupPerms = items.map((item) => item.key);
                 const allSelected = groupPerms.every((p) => selectedPermissions.includes(p));
 
                 return (
@@ -120,17 +175,14 @@ const CreateRoleModal = ({ onClose, onSubmit, permissions: allPermissions, activ
                       className="mb-2 font-medium"
                     />
                     <div className="mt-2 space-y-2 ml-2">
-                      {actions.map((action) => {
-                        const key = `${action}:${entity}`;
-                        return (
-                          <Checkbox
-                            key={key}
-                            label={action.charAt(0).toUpperCase() + action.slice(1).toLowerCase()}
-                            checked={selectedPermissions.includes(key)}
-                            onChange={() => togglePermission(key)}
-                          />
-                        );
-                      })}
+                      {items.map((item) => (
+                        <Checkbox
+                          key={item.key}
+                          label={item.action.charAt(0).toUpperCase() + item.action.slice(1).toLowerCase()}
+                          checked={selectedPermissions.includes(item.key)}
+                          onChange={() => togglePermission(item.key)}
+                        />
+                      ))}
                     </div>
                   </div>
                 );

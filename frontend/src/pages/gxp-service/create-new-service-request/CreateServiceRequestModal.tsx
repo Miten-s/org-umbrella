@@ -16,17 +16,17 @@ import {
 } from "@/lib/schema";
 import type { Application, ServiceRequest } from "@/types/gxp-service.types";
 import { useGlobalContext } from "@/context";
-import { getGxpImageUrl } from "@/services/utils.service";
 import { getApplicationById } from "@/services/gxp.service";
+import { getGxpImageUrl } from "@/services/utils.service";
 import { ChipList } from "@/components/common/form/chipList";
 
 type DropdownOption = { label: string; value: string };
-type ExistingAttachment = { id?: string; path: string; name: string };
 type ApplicationDetails = {
   environmentId: string;
   environmentName: string;
   groupId: string;
-  groupName: string;
+  locationId: string;
+  locationName: string;
   workflowId: string;
   workflowName: string;
   moduleIds: string[];
@@ -41,15 +41,10 @@ type ApplicationDetails = {
 
 interface CreateServiceRequestModalProps {
   onClose: () => void;
-  onSubmit: (
-    data: ServiceRequestFormOutput,
-    attachments: File[],
-    existingAttachments: string[]
-  ) => void | Promise<void>;
+  onSubmit: (data: ServiceRequestFormOutput) => void | Promise<void>;
   initialData?: ServiceRequest | ServiceRequest[] | null;
   optionSets: {
     applications: any[];
-    locations: any[];
     requestTypes?: DropdownOption[];
   };
 }
@@ -63,26 +58,14 @@ const normalizeId = (value: any): string => {
 const normalizeInitialValues = (
   data?: ServiceRequest | null
 ): ServiceRequestFormInput => ({
-  group: normalizeId(data?.group),
   priority: data?.priority ?? "Medium",
   application: normalizeId(data?.application),
-  environment: normalizeId(data?.environment),
-  module: normalizeId(data?.module),
-  requestRole: normalizeId(data?.requestRole),
   esignCheck: data?.esignCheck ?? "No",
   trainingDone: data?.trainingDone ?? true,
   description: data?.description ?? "",
   shortDescription: data?.shortDescription ?? "",
-  note: data?.note ?? "",
-  location: normalizeId(data?.location),
-  workflow: normalizeId(data?.workflow),
   requestType: data?.requestType ?? "Applications",
   status: data?.status ?? "New",
-  attachments: (data?.attachments || [])
-    .map((att: any) =>
-      typeof att === "string" ? att : att?.attachment ?? att?.filename ?? ""
-    )
-    .filter(Boolean),
   comments: data?.comments ?? []
 });
 
@@ -95,16 +78,6 @@ const prettifyAttachmentName = (path: string) => {
     return parts.slice(1).join("-");
   }
   return withoutLeadingSlash;
-};
-
-const toExistingAttachment = (att: any): ExistingAttachment | null => {
-  const path = typeof att === "string" ? att : att?.attachment ?? att?.filename ?? "";
-  if (!path) return null;
-  return {
-    id: typeof att === "string" ? undefined : att?._id,
-    path,
-    name: prettifyAttachmentName(path)
-  };
 };
 
 const getId = (value: any): string => {
@@ -125,7 +98,8 @@ const mapApplicationToDetails = (app: Application): ApplicationDetails => {
   const environmentName = getText(app?.applicationEnvironment, "environmentName");
 
   const groupId = getId(app?.group);
-  const groupName = getText(app?.group, "groupName");
+  const locationId = groupId;
+  const locationName = getText(app?.group, "locationName") || getText(app?.group, "groupName");
 
   const workflowId = getId(app?.applicationWorkflow);
   const workflowName = getText(app?.applicationWorkflow, "workflowName");
@@ -165,7 +139,8 @@ const mapApplicationToDetails = (app: Application): ApplicationDetails => {
     environmentId,
     environmentName,
     groupId,
-    groupName,
+    locationId,
+    locationName,
     workflowId,
     workflowName,
     moduleIds,
@@ -192,11 +167,7 @@ const CreateServiceRequestModal = ({
   );
   const { toggleLoading, loading } = useGlobalContext();
   const { t } = useTranslation();
-  const {
-    applications,
-    locations,
-  } = optionSets;
-  const [existingAttachments, setExistingAttachments] = useState<ExistingAttachment[]>([]);
+  const { applications } = optionSets;
   const [appDetails, setAppDetails] = useState<ApplicationDetails | null>(null);
   const {
     control,
@@ -213,11 +184,6 @@ const CreateServiceRequestModal = ({
   const showAppFields = !!selectedApplication;
   useEffect(() => {
     reset(normalizedDefaults);
-    setExistingAttachments(
-      (resolvedInitial?.attachments || [])
-        .map(toExistingAttachment)
-        .filter(Boolean) as ExistingAttachment[]
-    );
     setAppDetails(null);
   }, [normalizedDefaults, reset]);
 
@@ -250,11 +216,7 @@ const CreateServiceRequestModal = ({
     const parsed: ServiceRequestFormOutput = getServiceRequestSchema.parse(data);
     try {
       toggleLoading(true);
-      await onSubmit(
-        parsed,
-        [], // new attachments disabled for now
-        existingAttachments.map((att) => att.path)
-      );
+      await onSubmit(parsed);
     } finally {
       toggleLoading(false);
     }
@@ -279,13 +241,7 @@ const CreateServiceRequestModal = ({
 
         if (cancelled) return;
 
-        setValue("environment", details.environmentId);
-        setValue("group", details.groupId);
-        setValue("workflow", details.workflowId);
-        setValue("module", details.moduleIds[0] ?? "");
         setValue("requestType", details.serviceTypeNames[0] ?? "Applications");
-        setValue("requestRole", details.roleNames[0] ?? "");
-        setValue("note", details.notes ?? "");
         setAppDetails(details);
       } catch (err) {
         console.error("Failed to load application details", err);
@@ -363,25 +319,6 @@ const CreateServiceRequestModal = ({
               )}
             />
             {renderError(errors.priority?.message)}
-          </div>
-
-          <div>
-            <Label htmlFor="location" required>
-              {t("location")}
-            </Label>
-            <Controller
-              name="location"
-              control={control}
-              render={({ field }) => (
-                <SelectDropdown
-                  value={field.value ?? ""}
-                  onChange={(val) => field.onChange(val)}
-                  options={locations?.map((loc) => toDropdown(loc, "locationName", "_id"))}
-                  placeholder={t("select", { entity: t("location") })}
-                />
-              )}
-            />
-            {renderError(errors.location?.message)}
           </div>
 
           <div>
@@ -525,9 +462,9 @@ const CreateServiceRequestModal = ({
                 </p>
               </div>
               <div>
-                <p className="text-gray-500 dark:text-gray-400">{t("group")}</p>
+                <p className="text-gray-500 dark:text-gray-400">{t("location")}</p>
                 <p className="text-gray-900 dark:text-gray-100">
-                  {appDetails.groupName || appDetails.groupId || "-"}
+                  {appDetails.locationName || appDetails.locationId || "-"}
                 </p>
               </div>
               <div>
@@ -597,7 +534,9 @@ const CreateServiceRequestModal = ({
                     })}
                   </div>
                 ) : (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t("noRecordsFound")}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {t("noRecordsFound")}
+                  </p>
                 )}
               </div>
             </div>

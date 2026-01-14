@@ -113,5 +113,7 @@
   "deleteEntityPrompt": "¿Estás seguro de que quieres eliminar este {{entityName}}?",
   "noBuiltInRolesAvailable": "No hay roles integrados disponibles",
   "noPermissionMessage": "No tienes permiso para {{action}}",
-  "moduleName": "Nombre del módulo"
+  "moduleName": "Nombre del módulo",
+  "isActive": "Está activo",
+  "active": "Activo"
 }

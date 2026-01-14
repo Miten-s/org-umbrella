@@ -81,7 +81,7 @@ const CreateAssignmentGroupModal = ({
     <div className="p-6 max-h-[120vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <h2 className="text-xl font-semibold">
-          {t(initialData ? "edit" : "create", { entity: t("assignmentGroup") })}
+          {t(initialData ? "edit" : "create", { entity: t("group") })}
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

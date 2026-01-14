@@ -104,7 +104,7 @@ const AssignmentGroups = () => {
               setActiveAssignmentGroup(null);
             }}
           >
-            {t("create", { entity: t("assignmentGroup") })}
+            {t("create", { entity: t("group") })}
           </Button>
         </div>
       </div>

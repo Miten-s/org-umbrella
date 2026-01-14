@@ -13,6 +13,8 @@ import {
 import { toast } from "@/lib/ToastProvider";
 import { useGlobalContext } from "@/context";
 import { useTranslation } from "react-i18next";
+import CountWithTooltip from "@/components/common/CountWithTooltip";
+import { PermissionType } from "@/utils/common.constants";
 
 interface Role {
   _id: string;
@@ -24,7 +26,9 @@ interface Role {
 interface Permission {
   _id: string;
   name: string;
+  type?: string;
 }
+
 
 const RolesAndPermissions = () => {
   const [permissions, setPermissions] = useState<Permission[]>([]);
@@ -34,6 +38,7 @@ const RolesAndPermissions = () => {
   const { reFetch, setReFetch } = useGlobalContext();
   const [confirmationModal, setConfirmationModal] = useState(false);
   const { t } = useTranslation()
+  const [permissionType, setPermissionType] = useState<PermissionType>(PermissionType.DEFAULT);
   const handleCreateRole = async (data: {
     name: string;
     permissions: string[];
@@ -63,20 +68,33 @@ const RolesAndPermissions = () => {
     }
   };
 
-  const fetchData = async () => {
-    const { roles: fetchedRoles } = await getRoles();
-    const { permissions: fetchedPermissions } = await getPermissions();
-
-    setRoles(fetchedRoles);
-    setPermissions(fetchedPermissions);
-  };
+  useEffect(() => {
+    (async () => {
+      const { roles: fetchedRoles } = await getRoles();
+      setRoles(fetchedRoles);
+    })();
+  }, [reFetch]);
 
   useEffect(() => {
-    fetchData();
-  }, [reFetch]);
+    if (!isOpen) return;
+    (async () => {
+      const { permissions: fetchedPermissions } = await getPermissions(permissionType);
+      setPermissions(fetchedPermissions);
+    })();
+  }, [isOpen, permissionType]);
+
+  const resolvePermissionType = (role?: Role | null) =>
+    role?.type === PermissionType.GXP_SERVICE
+      ? PermissionType.GXP_SERVICE
+      : PermissionType.DEFAULT;
+
+  const handlePermissionTypeChange = (type: any) => {
+    setPermissionType(type);
+  };
 
   const handleEdit = (role: Role) => {
     setActiveRole(role);
+    setPermissionType(resolvePermissionType(role));
     openModal();
   };
 
@@ -91,6 +109,7 @@ const RolesAndPermissions = () => {
           permission="CREATE:ROLE"
           onClick={() => {
             setActiveRole(null);
+            setPermissionType(resolvePermissionType(null));
             openModal();
           }}
           tooltipPosition="left"
@@ -111,6 +130,8 @@ const RolesAndPermissions = () => {
           onSubmit={handleCreateRole}
           permissions={permissions.map((p) => p.name)}
           activeRole={activeRole}
+          permissionType={permissionType}
+          onPermissionTypeChange={handlePermissionTypeChange}
         />
       </Modal>
 
@@ -152,9 +173,13 @@ const RolesAndPermissions = () => {
                           </span>
                         ))}
                       {role.permissions.length > 2 && (
-                        <span className="px-2 py-1 bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded-full text-xs">
-                          + {role.permissions.length - 2}
-                        </span>
+                        <CountWithTooltip
+                          count={role.permissions.length - 2}
+                          items={role.permissions.slice(2).map((perm) => perm.name)}
+                          headerLabel={`Permissions (${role.permissions.length - 2} more)`}
+                          buttonLabel={`+ ${role.permissions.length - 2}`}
+                          className="self-center"
+                        />
                       )}
                     </div>
                   </td>

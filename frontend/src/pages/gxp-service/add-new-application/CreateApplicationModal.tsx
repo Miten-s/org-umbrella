@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useState } from "react";
 
-import { Modal } from "@/components/ui/modal";
 import Label from "@/components/common/form/Label";
 import Input from "@/components/common/form/input/InputField";
 import TextArea from "@/components/common/form/input/TextArea";
@@ -26,13 +25,13 @@ import type {
     ApplicationGroup,
     ApplicationServiceRequestType,
     ApplicationSoftwareModule,
-    AssignmentGroup,
     Department,
     Environment,
     Supplier,
     User,
     Workflow,
 } from "@/types/gxp-service.types";
+import type { Location } from "@/types/common.types";
 
 type MultiSelectOption = { text: string; value: string };
 type RoleOption = { _id?: string; name?: string; role?: string; roleName?: string };
@@ -64,7 +63,7 @@ interface CreateApplicationModalProps {
     initialData?: Application | Application[] | null;
     optionSets: {
         environments: Environment[];
-        assignmentGroups: AssignmentGroup[];
+        locations: Location[];
         applicationGroups: ApplicationGroup[];
         appModules: ApplicationSoftwareModule[];
         workflows: Workflow[];
@@ -107,6 +106,16 @@ const normalizeIdArray = (value: unknown): string[] => {
         .filter(Boolean);
 };
 
+const normalizeAttachmentArray = (value: unknown): string[] => {
+    if (!Array.isArray(value)) return [];
+    return value
+        .map((v: any) => {
+            if (typeof v === "string") return v;
+            return v?._id ?? v?.attachment ?? v?.filename ?? v?.attachmentLink ?? v?.path ?? "";
+        })
+        .filter(Boolean);
+};
+
 const isImageName = (name: string) => /\.(png|jpe?g|gif|bmp|webp|svg)$/i.test(name || "");
 const prettifyAttachmentName = (path: string) => {
     if (!path) return "";
@@ -134,7 +143,7 @@ const normalizeInitialValues = (data?: Application | null): ApplicationFormInput
     supplier: normalizeId(data?.supplier),
     departments: normalizeIdArray(data?.departments),
     notes: data?.notes ?? DEFAULT_FORM_VALUES.notes,
-    attachments: data?.attachments ?? DEFAULT_FORM_VALUES.attachments,
+    attachments: normalizeAttachmentArray(data?.attachments ?? DEFAULT_FORM_VALUES.attachments),
     status: data?.status ?? DEFAULT_FORM_VALUES.status,
 });
 
@@ -154,7 +163,7 @@ const CreateApplicationModal = ({
     const initialKey = resolvedInitial?._id ?? "new";
     const {
         environments,
-        assignmentGroups,
+        locations,
         applicationGroups,
         serviceRequestTypes,
         appModules,
@@ -175,14 +184,11 @@ const CreateApplicationModal = ({
         resolver: zodResolver(getApplicationSchema),
         defaultValues: normalizedDefaults,
     });
-
     const notes = useWatch({ control, name: "notes" });
     const [appGroupOptions, setAppGroupOptions] = useState<MultiSelectOption[]>([]);
     const [appModuleOptions, setAppModuleOptions] = useState<MultiSelectOption[]>([]);
     const [attachments, setAttachments] = useState<File[]>([]);
     const [existingAttachments, setExistingAttachments] = useState<ExistingAttachment[]>([]);
-    const [confirmRemoveIdx, setConfirmRemoveIdx] = useState<number | null>(null);
-    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const roleOptions = useMemo<MultiSelectOption[]>(
         () =>
             roles
@@ -213,7 +219,6 @@ const CreateApplicationModal = ({
                             ? att
                             : att?.attachment ??
                             att?.filename ??
-                            att?.attachmentLink ??
                             att?.path ??
                             "";
                     if (!path) return null;
@@ -265,37 +270,28 @@ const CreateApplicationModal = ({
                 parsed.departments,
                 departments.map((d) => ({ text: d.departmentName, value: d._id }))
             ),
-            attachments: existingAttachments.map((att) => att.path),
+            attachments: existingAttachments
+                .map((att) => att.id)
+                .filter((id): id is string => Boolean(id)),
         };
 
         try {
             toggleLoading(true);
-            await onSubmit(payload, attachments, existingAttachments.map((att) => att.path));
+            await onSubmit(
+                payload,
+                attachments,
+                existingAttachments.map((att) => att.id).filter(Boolean) as string[]
+            );
         } finally {
             toggleLoading(false);
         }
     };
 
-
-
-
     const appendUnique = (current: string[] | undefined, next: string) =>
         current?.includes(next) ? current : [...(current || []), next];
 
-    const requestRemoveExistingAttachment = (idx: number) => {
-        setConfirmRemoveIdx(idx);
-        setIsConfirmModalOpen(true);
-    };
-
-    const resetConfirmState = () => {
-        setConfirmRemoveIdx(null);
-        setIsConfirmModalOpen(false);
-    };
-
-    const confirmRemoveExistingAttachment = async () => {
-        if (confirmRemoveIdx === null) return;
-        setExistingAttachments((prev) => prev.filter((_, removeIdx) => removeIdx !== confirmRemoveIdx));
-        resetConfirmState();
+    const removeExistingAttachment = (idx: number) => {
+        setExistingAttachments((prev) => prev.filter((_, removeIdx) => removeIdx !== idx));
     };
 
     return (
@@ -366,9 +362,9 @@ const CreateApplicationModal = ({
                             )}
                         </div>
 
-                        {/* Assignment Group (single) */}
+                        {/* Group / Location (single) */}
                         <div>
-                            <Label htmlFor="group" required>{t("group")}</Label>
+                            <Label htmlFor="group" required>{t("groupLocation", { defaultValue: "Group/Location" })}</Label>
                             <Controller
                                 name="group"
                                 control={control}
@@ -376,11 +372,11 @@ const CreateApplicationModal = ({
                                     <SelectDropdown
                                         value={field.value ?? ""}
                                         onChange={(val) => field.onChange(val)}
-                                        options={assignmentGroups.map((g) => ({
-                                            label: g.groupName,
-                                            value: g._id,
+                                        options={locations.map((loc) => ({
+                                            label: loc.locationName,
+                                            value: loc._id,
                                         }))}
-                                        placeholder={t("select", { entity: t("gxpAssignmentGroups") })}
+                                        placeholder={t("select", { entity: t("groupLocation", { defaultValue: "Group/Location" }) })}
                                     />
                                 )}
                             />
@@ -652,7 +648,7 @@ const CreateApplicationModal = ({
                                                 </span>
                                                 <button
                                                     type="button"
-                                                    onClick={() => requestRemoveExistingAttachment(idx)}
+                                                    onClick={() => removeExistingAttachment(idx)}
                                                     className="text-[11px] font-semibold text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                                                 >
                                                     {t("remove", { defaultValue: "Remove" })}
@@ -713,28 +709,6 @@ const CreateApplicationModal = ({
                     </div>
                 </form>
             </div>
-
-            <Modal
-                isOpen={isConfirmModalOpen}
-                onClose={resetConfirmState}
-                className="max-w-md"
-                showCloseButton={false}
-            >
-                <div className="p-5 flex flex-col gap-4">
-                    <p className="text-gray-900 dark:text-gray-100 text-sm">
-                        {t("deleteEntityPrompt", { entityName: "file" })}
-                    </p>
-                    <div className="flex justify-end gap-2">
-                        <Button variant="outline" onClick={resetConfirmState}>
-                            {t("cancel")}
-                        </Button>
-                        <Button variant="destructive" onClick={confirmRemoveExistingAttachment}>
-                            {t("confirm", { defaultValue: "Confirm" })}
-                        </Button>
-                    </div>
-                </div>
-            </Modal>
-
         </>
     );
 };

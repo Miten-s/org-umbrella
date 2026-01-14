@@ -114,5 +114,7 @@
   "deleteEntityPrompt": "هل أنت متأكد من أنك تريد حذف هذا {{entityName}}؟",
   "noBuiltInRolesAvailable": "لا توجد أدوار مدمجة متاحة",
   "noPermissionMessage": "ليس لديك إذن لـ {{action}}",
-  "moduleName": "اسم الوحدة"
+  "moduleName": "اسم الوحدة",
+  "isActive": "نشط",
+  "active": "نشط"
 }

@@ -3,13 +3,12 @@ import { t } from "i18next";
 import React, {
   useCallback,
   useEffect,
-  useId,
   useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
-import { ChipList } from "./chipList";
+import CountWithTooltip from "@/components/common/CountWithTooltip";
 
 interface Option {
   value: string;
@@ -38,21 +37,15 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   error,
   hint,
 }) => {
-  const tooltipId = useId();
-
   const containerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLDivElement | null>(null);
   const chipsAreaRef = useRef<HTMLDivElement | null>(null);
   const caretRef = useRef<HTMLDivElement | null>(null);
-  const moreRef = useRef<HTMLDivElement | null>(null);
 
   const [selectedOptions, setSelectedOptions] = useState<string[]>(
     defaultSelected,
   );
   const [isOpen, setIsOpen] = useState(false);
-
-  // Tooltip open state for the +X counter
-  const [isMoreOpen, setIsMoreOpen] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [newOptionText, setNewOptionText] = useState("");
@@ -70,28 +63,20 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
     setSelectedOptions(defaultSelected);
   }, [defaultSelected]);
 
-  // Close dropdown + tooltip on outside click / escape
+  // Close dropdown on outside click / escape
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (!containerRef.current) return;
 
       const target = event.target as Node;
-      // clicking inside tooltip button shouldn't close it
-      if (moreRef.current && moreRef.current.contains(target)) return;
-
       if (!containerRef.current.contains(target)) {
         setIsOpen(false);
-        setIsMoreOpen(false);
-      } else {
-        // clicking anywhere inside the component closes only tooltip
-        setIsMoreOpen(false);
       }
     };
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setIsOpen(false);
-        setIsMoreOpen(false);
       }
     };
 
@@ -111,7 +96,6 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   const toggleDropdown = useCallback(() => {
     if (disabled) return;
     setIsOpen((prev) => !prev);
-    setIsMoreOpen(false);
   }, [disabled]);
 
   const handleSelect = useCallback(
@@ -234,10 +218,6 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   const hiddenSelected = selectedLabels.slice(visibleCount);
   const hiddenCount = hiddenSelected.length;
 
-  const hiddenNamesText = useMemo(() => {
-    return hiddenSelected.map((x) => x.text).join(", ");
-  }, [hiddenSelected]);
-
   return (
     <div className="w-full" ref={containerRef}>
       <div className="relative inline-block w-full">
@@ -296,78 +276,13 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                       </div>
                     ))}
 
-                    {/* +X counter with tooltip */}
                     {hiddenCount > 0 && (
-                      <div
-                        ref={moreRef}
-                        className="relative shrink-0"
-                        onMouseEnter={() => setIsMoreOpen(true)}
-                        onMouseLeave={() => setIsMoreOpen(false)}
-                      >
-                        <button
-                          type="button"
-                          className="bg-gray-100 dark:bg-gray-800 rounded px-2 py-1 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-300"
-                          aria-describedby={isMoreOpen ? tooltipId : undefined}
-                          onClick={(e) => {
-                            // optional: keep click to toggle tooltip for touch users
-                            e.stopPropagation();
-                            setIsMoreOpen((p) => !p);
-                          }}
-                          onFocus={() => setIsMoreOpen(true)}
-                          onBlur={() => setIsMoreOpen(false)}
-                        >
-                          +{hiddenCount}
-                        </button>
-
-                        {isMoreOpen && (
-                          <div
-                            id={tooltipId}
-                            role="tooltip"
-                            className="absolute right-0 top-full mt-3 z-50"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {/* ===== Notch (bigger + cleaner) ===== */}
-                            {/* Border underlay so notch edge matches tooltip border */}
-                            <div className="absolute right-6 -top-[10px] h-5 w-5 rotate-45 bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-700 shadow-sm" />
-                            {/* Optional soft highlight to make it feel slightly curved */}
-                            <div className="pointer-events-none absolute right-6 -top-[10px] h-5 w-5 rotate-45 rounded-[6px] bg-transparent" />
-
-                            {/* ===== Tooltip Card ===== */}
-                            <div
-                              className={[
-                                "w-[480px] max-w-[85vw]",
-                                "rounded-2xl",
-                                "bg-white/95 dark:bg-slate-900/95 backdrop-blur",
-                                "border border-slate-200 dark:border-slate-700",
-                                // stronger elevation + separation ring
-                                "shadow-2xl shadow-slate-300/40 dark:shadow-black/40",
-                                "ring-1 ring-black/5 dark:ring-white/5",
-                                "p-3",
-                              ].join(" ")}
-                            >
-                              {/* Header */}
-                              <div className="mb-2 flex items-center justify-between">
-                                <div className="text-xs font-semibold text-slate-700 dark:text-slate-200">
-                                  Selected ({hiddenCount} more)
-                                </div>
-                                <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                                  Scroll to view
-                                </div>
-                              </div>
-
-                              {/* Items */}
-                              <ChipList
-                                items={hiddenSelected.map((x) => x.text)}
-                                variant="grid"
-                                columns={3}
-                                maxHeightClassName="max-h-44"
-                              />
-
-                            </div>
-                          </div>
-                        )}
-
-                      </div>
+                      <CountWithTooltip
+                        count={hiddenCount}
+                        items={hiddenSelected.map((x) => x.text)}
+                        headerLabel={`Selected (${hiddenCount} more)`}
+                        stopPropagation={true}
+                      />
                     )}
                   </>
                 ) : (

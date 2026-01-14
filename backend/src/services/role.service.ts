@@ -34,10 +34,12 @@ const deleteRole = async (req: Request) => {
   );
 };
 
-const getRoles = async (user?: IUser) => {
+const getRoles = async (user?: IUser, type?: string) => {
   let filter: {} = { type: RoleType.CUSTOM };
-  if (isSuperAdmin(user)) {
-    filter = { type: { $in: [RoleType.CUSTOM, RoleType.BUILT_IN] } };
+  if (type) {
+    filter = { type };
+  } else if (isSuperAdmin(user)) {
+    filter = { type: { $in: [RoleType.CUSTOM, RoleType.BUILT_IN, RoleType.GXP_SERVICE] } };
   }
 
   return await Role.find(filter).lean();

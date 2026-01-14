@@ -117,7 +117,6 @@ export const getWorkflowSchema = z.object({
     .min(1, "Workflow name is required")
     .max(20, "Workflow name must not exceed 20 characters"),
   levels: z.string().min(1, "Levels are required"),
-  assignmentGroups: z.array(z.string()).optional(),
   description: z.string().max(50, "Description must not exceed 50 characters").optional(),
   status: z.enum(["enabled", "disabled"]).optional(),
 
@@ -207,7 +206,7 @@ export const getApplicationSoftwareModuleSchema = z.object({
 export const getGxpUserSchema = z.object({
     userId: z.string().min(1, "User ID is required"),
     userType: z.enum(["User", "Resolver"]),
-    roleId: z.string().min(1, "Role ID is required"),
+    roleId: z.array(z.string().min(1, "Role ID is required")).min(1, "Role is required"),
     description: z.string().optional(),
     status: z.enum(["enabled", "disabled"]),
 });
@@ -215,19 +214,12 @@ export type GxpUserFormInput = z.infer<typeof getGxpUserSchema>;
 export type GxpUserFormOutput = z.output<typeof getGxpUserSchema>;
 
 export const getServiceRequestSchema = z.object({
-  group: z.string().min(1, "Group is required"),
   priority: z.enum(["Very High", "High", "Medium", "Low"]),
   application: z.string().min(1, "Application is required"),
-  environment: z.string().min(1, "Environment is required"),
-  module: z.string().min(1, "Module is required"),
-  requestRole: z.string().nullable().optional(),
   esignCheck: z.enum(["Yes", "No"]).default("No"),
   trainingDone: z.boolean().default(true),
   description: z.string().min(1, "Description is required"),
   shortDescription: z.string().min(1, "Short description is required"),
-  location: z.string().min(1, "Location is required"),
-  note: z.string().min(1, "Note is required"),
-  workflow: z.string().min(1, "Workflow is required"),
   requestType: z.string().min(1).default("Applications"),
   status: z
     .enum([
@@ -239,7 +231,6 @@ export const getServiceRequestSchema = z.object({
       "Closed - Skipped",
     ])
     .default("New"),
-  attachments: z.array(z.string()).default([]),
   comments: z
     .array(z.string().min(1, "Comment is required"))
     .min(1, "Comment is required"),

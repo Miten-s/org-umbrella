@@ -1,27 +1,51 @@
+import { useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Input from "@/components/common/form/input/InputField";
 import Label from "@/components/common/form/Label";
 import Button from "@/components/ui/button/Button";
-import { Dropdown } from "@/components/ui/dropdown/Dropdown";
-import { DropdownItem } from "@/components/ui/dropdown/DropdownItem";
 import TextArea from "@/components/common/form/input/TextArea";
+import Checkbox from "@/components/common/form/input/Checkbox";
 
 import { getGxpRoleSchema } from "@/lib/schema";
-import { GxpPermission } from "@/types/common.types";
+import type { GxpPermission } from "@/types/common.types";
 
 interface CreateGxpRoleModalProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
-  permissions?: GxpPermission[];
+  permissions?: Array<GxpPermission | { _id: string; name?: string; description?: string }>;
 }
 
 type CreateGxpRoleForm = z.infer<typeof getGxpRoleSchema>;
+
+type GroupedPermission = { id: string; action: string };
+
+const parsePermissionName = (name: string) => {
+  const parts = (name || "").split(":").filter(Boolean);
+  if (parts.length >= 3) return { action: parts[1], entity: parts[2] };
+  if (parts.length === 2) return { action: parts[0], entity: parts[1] };
+  return { action: name || "Permission", entity: "Other" };
+};
+
+const groupPermissions = (
+  permissions: Array<GxpPermission | { _id: string; name?: string }>
+): Record<string, GroupedPermission[]> => {
+  const grouped: Record<string, GroupedPermission[]> = {};
+  permissions.forEach((perm) => {
+    const label = "permissionName" in perm ? perm.permissionName : perm.name ?? "";
+    const { action, entity } = parsePermissionName(label);
+    if (!entity || !action) return;
+    if (!grouped[entity]) grouped[entity] = [];
+    if (!grouped[entity].some((item) => item.id === perm._id)) {
+      grouped[entity].push({ id: perm._id, action });
+    }
+  });
+  return grouped;
+};
 
 const CreateGxpRoleModal = ({
   onClose,
@@ -40,17 +64,22 @@ const CreateGxpRoleModal = ({
   } = useForm<CreateGxpRoleForm>({
     resolver: zodResolver(getGxpRoleSchema),
     defaultValues: {
-      roleName: initialData?.roleName || "",
+      roleName: initialData?.roleName ?? initialData?.name ?? "",
       permissions: initialData?.permissions || [],
       description: initialData?.description || "",
     },
   });
 
   const description = useWatch({ control, name: "description" });
-
-  const [permissionsDropdownOpen, setPermissionsDropdownOpen] = useState(false);
-
   const selectedPermissionIds = useWatch({ control, name: "permissions" });
+  const allPermissionIds = useMemo(
+    () => permissions.map((perm) => perm._id),
+    [permissions]
+  );
+  const groupedPermissions = useMemo(
+    () => groupPermissions(permissions),
+    [permissions]
+  );
 
   const handlePermissionSelect = (id: string) => {
     const currentPermissions = selectedPermissionIds || [];
@@ -58,6 +87,25 @@ const CreateGxpRoleModal = ({
       ? currentPermissions.filter((permissionId) => permissionId !== id)
       : [...currentPermissions, id];
     setValue("permissions", newPermissions, { shouldValidate: true });
+  };
+
+  const toggleAllPermissions = () => {
+    const hasAll = allPermissionIds.every((id) =>
+      (selectedPermissionIds || []).includes(id)
+    );
+    const updated = hasAll
+      ? (selectedPermissionIds || []).filter((id) => !allPermissionIds.includes(id))
+      : [...new Set([...(selectedPermissionIds || []), ...allPermissionIds])];
+    setValue("permissions", updated, { shouldValidate: true });
+  };
+
+  const toggleAllForGroup = (entity: string) => {
+    const perms = groupedPermissions[entity]?.map((item) => item.id) ?? [];
+    const hasAll = perms.every((id) => (selectedPermissionIds || []).includes(id));
+    const updated = hasAll
+      ? (selectedPermissionIds || []).filter((id) => !perms.includes(id))
+      : [...new Set([...(selectedPermissionIds || []), ...perms])];
+    setValue("permissions", updated, { shouldValidate: true });
   };
 
   return (
@@ -81,46 +129,51 @@ const CreateGxpRoleModal = ({
             />
           </div>
 
-          {/* Permissions Dropdown */}
+          {/* Permissions */}
           <div className="relative col-span-2">
             <Label required>{t("gxpPermissions")}</Label>
             <input type="hidden" {...register("permissions")} />
-            <button
-              type="button"
-              onClick={() => setPermissionsDropdownOpen((prev) => !prev)}
-              className="input flex justify-between items-center dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-            >
-              <span className="text-theme-sm dark:text-gray-400">
-                {selectedPermissionIds?.length > 0
-                  ? `${selectedPermissionIds.length} permissions selected`
-                  : t("select", { entity: t("gxpPermissions") })}
-              </span>
-              <svg className="ml-2 h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M5.5 7l4.5 4.5L14.5 7z" />
-              </svg>
-            </button>
+            <Checkbox
+              label={t("selectAllPermissions", { defaultValue: "Select All Permissions" })}
+              checked={allPermissionIds.every((id) =>
+                (selectedPermissionIds || []).includes(id)
+              )}
+              onChange={toggleAllPermissions}
+              className="flex"
+            />
 
-            <Dropdown
-              isOpen={permissionsDropdownOpen}
-              onClose={() => setPermissionsDropdownOpen(false)}
-              className="absolute z-10 mt-1 w-full rounded-xl border bg-white dark:bg-gray-800 dark:border-gray-700 shadow-md text-gray-900 dark:text-gray-100"
-            >
-              {permissions?.map((permission) => (
-                <DropdownItem
-                  key={permission._id}
-                  onItemClick={() => handlePermissionSelect(permission._id)}
-                  className="hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedPermissionIds?.includes(permission._id)}
-                    readOnly
-                    className="mr-2"
-                  />
-                  {permission.permissionName}
-                </DropdownItem>
-              ))}
-            </Dropdown>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-4">
+              {Object.entries(groupedPermissions).map(([entity, items]) => {
+                const groupPerms = items.map((item) => item.id);
+                const allSelected = groupPerms.every((id) =>
+                  (selectedPermissionIds || []).includes(id)
+                );
+
+                return (
+                  <div
+                    key={entity}
+                    className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900 shadow-sm"
+                  >
+                    <Checkbox
+                      label={`All ${entity}`}
+                      checked={allSelected}
+                      onChange={() => toggleAllForGroup(entity)}
+                      className="mb-2 font-medium"
+                    />
+                    <div className="mt-2 space-y-2 ml-2">
+                      {items.map((item) => (
+                        <Checkbox
+                          key={item.id}
+                          label={item.action.charAt(0).toUpperCase() + item.action.slice(1).toLowerCase()}
+                          checked={(selectedPermissionIds || []).includes(item.id)}
+                          onChange={() => handlePermissionSelect(item.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
 
             {errors.permissions && (
               <p className="text-xs text-error-500 mt-1">

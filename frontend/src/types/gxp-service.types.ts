@@ -6,19 +6,9 @@ export type EntityRef<TName extends string> =
   | null
   | undefined;
 
-export type ServiceRequest = Omit<
-  ServiceRequestFormOutput,
-  "applicationId" | "environment" | "module" | "workflow" | "group" | "requestRole"
-> & {
+export type ServiceRequest = Omit<ServiceRequestFormOutput, "application"> & {
   _id: string;
-  group: EntityRef<"groupName">;
   application: EntityRef<"applicationName">;
-  environment: EntityRef<"environmentName">;
-  module: EntityRef<"moduleName">;
-  requestRole?: EntityRef<"roleName">;
-  workflow?: EntityRef<"workflowName">;
-  location?: EntityRef<"locationName">;
-  attachments?: Array<string | { _id?: string; attachment?: string; filename?: string }>;
   closedOn?: string;
   closedBy?: string;
   __v?: number;

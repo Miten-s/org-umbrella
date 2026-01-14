@@ -157,5 +157,21 @@
   "applicationWorkflow": "Application Workflow",
   "group": "Assignment Group",
   "notes": "Notes",
-  "moduleName": "Module Name"
+  "moduleName": "Module Name",
+  "serviceRequests": "Service Requests",
+  "priority": "Priority",
+  "shortDescription": "Short Description",
+  "requestType": "Request Type",
+  "requestRole": "Request Role",
+  "environment": "Environment",
+  "module": "Module",
+  "application": "Application",
+  "esignCheck": "E-sign Check",
+  "trainingDone": "Training Done",
+  "workflow": "Workflow",
+  "comments": "Comments",
+  "trainingEvidence": "Training Evidence",
+  "attachments": "Attachments",
+  "isActive": "Is Active",
+  "active": "Active"
 }

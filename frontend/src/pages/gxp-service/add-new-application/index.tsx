@@ -17,7 +17,6 @@ import {
   disableApplication,
   // Option datasets (rename if your service names differ)
   getEnvironments,
-  getAssignmentGroups,
   getWorkflows,
   getSuppliers,
   getApplicationSoftware,
@@ -27,19 +26,19 @@ import {
 } from "@/services/gxp.service";
 import CreateApplicationModal, { ApplicationPayload } from "./CreateApplicationModal";
 import Switch from "@/components/common/form/switch/Switch";
-import { getDepartments, getUsers, getRoles } from "@/services/admin.service";
+import { getDepartments, getUsers, getRoles, getLocations } from "@/services/admin.service";
 import type {
   Application,
   ApplicationSoftwareModule,
-  AssignmentGroup,
   ApplicationGroup,
   ApplicationServiceRequestType,
-  Department,
   Environment,
   Supplier,
   User,
   Workflow,
 } from "@/types/gxp-service.types";
+import type { Department, Location } from "@/types/common.types";
+import { RoleType } from "@/utils/common.constants";
 
 type Role = { _id: string; name?: string; role?: string; roleName?: string };
 
@@ -56,7 +55,7 @@ const GXPAddNewApplicationPage = () => {
 
   // Option lists
   const [environments, setEnvironments] = useState<Environment[]>([]);
-  const [assignmentGroups, setAssignmentGroups] = useState<AssignmentGroup[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [appModules, setAppModules] = useState<ApplicationSoftwareModule[]>([]);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -106,9 +105,9 @@ const GXPAddNewApplicationPage = () => {
     (async () => {
       const applications = await getApplications(includeDisabled);
       setApplications(ensureArray<Application>(applications));
-      const [envs, groups] = await Promise.all([getEnvironments(), getAssignmentGroups()]);
+      const [envs, locs] = await Promise.all([getEnvironments(), getLocations()]);
       setEnvironments(ensureArray<Environment>(envs));
-      setAssignmentGroups(ensureArray<AssignmentGroup>(groups));
+      setLocations(ensureArray<Location>(locs?.locations));
       // load option sets (any shape tolerated)
       const [mods, wfs, us, sups, deps, ags, rs, srts] = await Promise.allSettled([
         getApplicationSoftware(),
@@ -117,7 +116,7 @@ const GXPAddNewApplicationPage = () => {
         getSuppliers(),
         getDepartments(),
         getApplicationGroups(),
-        getRoles(),
+        getRoles(RoleType.GXP_SERVICE),
         getServiceTypes(),
       ]);
       setAppModules(extractList<ApplicationSoftwareModule>(mods, ["modules", "software", "data"]));
@@ -152,21 +151,21 @@ const GXPAddNewApplicationPage = () => {
     newAttachments: File[],
     existingAttachments: string[]
   ) => {
-    // File uploads for applications are not yet handled; keep placeholders to satisfy signature.
-    if (newAttachments?.length) {
-      // TODO: wire up upload endpoint for application attachments
-    }
     const payloadWithAttachments = {
       ...data,
       attachments: existingAttachments ?? [],
     };
     if (activeApplication) {
-      const updated = await updateApplication(activeApplication._id, payloadWithAttachments);
+      const updated = await updateApplication(
+        activeApplication._id,
+        payloadWithAttachments,
+        newAttachments
+      );
       setApplications((prev) =>
         prev?.map((a) => (a._id === updated._id ? (updated as Application) : a))
       );
     } else {
-      const created = await createApplication(payloadWithAttachments);
+      const created = await createApplication(payloadWithAttachments, newAttachments);
       setApplications((prev) => [(created as Application), ...prev]);
     }
     setActiveApplication(null);
@@ -320,7 +319,7 @@ const GXPAddNewApplicationPage = () => {
           initialData={activeApplication || undefined}
           optionSets={{
             environments,
-            assignmentGroups,
+            locations,
             applicationGroups,
             appModules,
             workflows,

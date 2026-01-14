@@ -265,14 +265,36 @@ export const getApplicationById = async (id: string) => {
   return response["data"];
 };
 
-export const createApplication = async (payload: Record<string, any>) => {
-  const response = await gxpApi.post(API_ROUTES.gxpApplications, payload);
+const buildApplicationFormData = (payload: Record<string, any>, files?: File[]) => {
+  const formData = new FormData();
+  formData.append("data", JSON.stringify(payload));
+  (files || []).forEach((file) => formData.append("attachments", file));
+  return formData;
+};
+
+export const createApplication = async (
+  payload: Record<string, any>,
+  files?: File[]
+) => {
+  const response = await gxpApi.post(
+    API_ROUTES.gxpApplications,
+    buildApplicationFormData(payload, files),
+    { headers: { "Content-Type": "multipart/form-data" } }
+  );
   toastSuccess(response, "Application created successfully");
   return response["data"];
 };
 
-export const updateApplication = async (id: string, payload: Record<string, any>) => {
-  const response = await gxpApi.patch(`${API_ROUTES.gxpApplications}/${id}`, payload);
+export const updateApplication = async (
+  id: string,
+  payload: Record<string, any>,
+  files?: File[]
+) => {
+  const response = await gxpApi.patch(
+    `${API_ROUTES.gxpApplications}/${id}`,
+    buildApplicationFormData(payload, files),
+    { headers: { "Content-Type": "multipart/form-data" } }
+  );
   toastSuccess(response, "Application updated successfully");
   return response["data"];
 };

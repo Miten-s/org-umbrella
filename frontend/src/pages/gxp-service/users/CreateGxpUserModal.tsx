@@ -7,6 +7,7 @@ import TextArea from "@/components/common/form/input/TextArea";
 import Button from "@/components/ui/button/Button";
 import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
 import Switch from "@/components/common/form/switch/Switch";
+import MultiSelect from "@/components/common/form/MultiSelect";
 import { getGxpUserSchema, GxpUserFormInput, GxpUserFormOutput } from "@/lib/schema";
 
 type Role = { _id: string; name: string };
@@ -16,7 +17,7 @@ export interface GxpUserEntity {
     _id: string;
     user: { id: string; name: string };
     userType: "User" | "Resolver";
-    roles: string;
+    roles: string[];
     description?: string;
     status: "enabled" | "disabled";
 }
@@ -47,7 +48,11 @@ const CreateGxpUserModal = ({
         defaultValues: {
             userId: initialData?.user?.id ?? "",
             userType: initialData?.userType ?? "User",
-            roleId: initialData?.roles ?? "",
+            roleId: Array.isArray(initialData?.roles)
+                ? initialData?.roles
+                : initialData?.roles
+                ? [initialData.roles]
+                : [],
             description: initialData?.description ?? "",
             status: initialData?.status ?? "enabled",
         } satisfies GxpUserFormInput,
@@ -59,8 +64,11 @@ const CreateGxpUserModal = ({
             value: u._id,
         })) ?? [];
 
-    const roleOptions =
-        selectableRoles?.map(r => ({ label: r.name, value: r._id })) ?? [];
+    const normalizeArray = (val: any): string[] => {
+        if (Array.isArray(val)) return val.map(String).filter(Boolean);
+        if (val && typeof val === "object" && "value" in val) return [String(val.value ?? "")].filter(Boolean);
+        return val == null ? [] : [String(val)].filter(Boolean);
+    };
 
     const normalizeScalar = (val: any): string => {
         if (Array.isArray(val)) return val[0] ?? "";
@@ -73,7 +81,7 @@ const CreateGxpUserModal = ({
         const normalized: GxpUserFormInput = {
             userId: normalizeScalar(raw.userId),
             userType: normalizeScalar(raw.userType) as GxpUserFormInput["userType"],
-            roleId: normalizeScalar(raw.roleId),
+            roleId: normalizeArray(raw.roleId),
             description: raw.description ?? "",
             status: normalizeScalar(raw.status) as "enabled" | "disabled",
         };
@@ -145,18 +153,18 @@ const CreateGxpUserModal = ({
                         {errors.userType && <p className="text-red-500 text-xs mt-1">{errors.userType.message as string}</p>}
                     </div>
 
-                    {/* Role */}
+                    {/* Assign Roles */}
                     <div className="md:col-span-2">
-                        <Label htmlFor="roleId" required>{t("gxpAppRoles")}</Label>
+                        <Label htmlFor="roleId" required>{t("assignRoles")}</Label>
                         <Controller
                             name="roleId"
                             control={control}
                             render={({ field }) => (
-                                <SelectDropdown
-                                    value={field.value}
-                                    onChange={(val: string) => field.onChange(val)}
-                                    options={roleOptions}
-                                    placeholder={t("select", { entity: t("gxpAppRoles") })}
+                                <MultiSelect
+                                    options={selectableRoles.map(role => ({ text: role.name, value: role._id }))}
+                                    label={t("selectRoles")}
+                                    onChange={field.onChange}
+                                    defaultSelected={field.value}
                                 />
                             )}
                         />

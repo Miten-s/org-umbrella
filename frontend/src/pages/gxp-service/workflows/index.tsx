@@ -9,7 +9,6 @@ import {
   createWorkflow,
   updateWorkflow,
   deleteWorkflow,
-  getAssignmentGroups,
   enableWorkflow,
   disableWorkflow,
 } from "@/services/gxp.service";
@@ -23,7 +22,6 @@ const Workflows = () => {
   const { reFetch, setReFetch } = useGlobalContext();
 
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
-  const [assignmentGroups, setAssignmentGroups] = useState<any[]>([]);
   const [activeWorkflow, setActiveWorkflow] = useState<Workflow | null>(null);
   const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
   const [confirmationModal, setConfirmationModal] = useState(false);
@@ -32,8 +30,6 @@ const Workflows = () => {
     const fetchInitialData = async () => {
       const workflows = await getWorkflows();
       setWorkflows(workflows);
-      const { data } = await getAssignmentGroups();
-      setAssignmentGroups(data);
     };
     fetchInitialData();
   }, [reFetch]);
@@ -202,7 +198,6 @@ const Workflows = () => {
           onClose={closeModal}
           onSubmit={handleSave}
           initialData={activeWorkflow || undefined}
-          assignmentGroups={assignmentGroups}
         />
       </Modal>
 

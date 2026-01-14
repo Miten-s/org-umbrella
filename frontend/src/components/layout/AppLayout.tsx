@@ -19,7 +19,8 @@ const LayoutContent: React.FC = () => {
         } ${isMobileOpen ? "ml-0" : ""}`}
       >
         <AppHeader />
-        <div className="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6 overflow-hidden">
+        {/* i REMOVE THIS BECAUSE ITS CAUSING ISSUE WITH OUTSIDE TOOLTIPDESIGN (OVERFLOW-HIDDEN) */}
+        <div className="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6 "> 
           <Outlet />
         </div>
       </div>
