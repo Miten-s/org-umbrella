@@ -4,6 +4,7 @@ import {
   CUSTOM_MESSAGES,
   getMessage
 } from "../utils/common.util";
+import ENV from "../utils/environment";
 
 interface CustomError extends Error {
   statusCode?: number;
@@ -26,7 +27,9 @@ export const errorHandler = (
     return next(err);
   }
 
-  console.log(err?.message);
+  if (ENV.NODE_ENV === "development") {
+    console.log(err);
+  }
 
   let statusCode: number;
   let message: string;
