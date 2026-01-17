@@ -1,5 +1,4 @@
 import * as repo from "../repo/gxp-service-applications.repo";
-import GxpServiceRolesModel from "../models/gxp-service-application-roles.model";
 import GxpServiceAppGroupModel from "../models/gxp-service-application-groups.model";
 import { GxpServiceAppModuleModel } from "../models/gxp-service-application-modules.model";
 import { UpdateApplication } from "../types/common.types";
@@ -35,7 +34,6 @@ export const createApplication = async (
       modifiedBy: currentUser ?? null
     };
 
-    delete toSave.applicationRoles;
     delete toSave.applicationGroups;
     delete toSave.applicationModules;
 
@@ -48,22 +46,6 @@ export const createApplication = async (
     }
 
     const application = await repo.createApplication(toSave, session);
-
-    if (payload.applicationRoles) {
-      const roles = payload.applicationRoles
-        .filter((role) => !role._id)
-        .map((role) => ({
-          insertOne: { document: { role: role.name, appId: application._id } }
-        }));
-
-      const result = await GxpServiceRolesModel.bulkWrite(roles, { session });
-      application.applicationRoles = [
-        ...Object.values(result?.insertedIds ?? {}).map(String),
-        ...payload.applicationRoles
-          .filter((role) => role._id)
-          .map((role) => role._id)
-      ];
-    }
 
     // Update application group from payload
 
@@ -179,28 +161,8 @@ export const updateApplication = async (
   };
 
   delete modified.applicationName;
-  delete modified.applicationRoles;
   delete modified.applicationGroups;
   delete modified.applicationModules;
-  delete modified.departments;
-
-  // Update application roles from payload
-
-  if (updates.applicationRoles) {
-    const roles = updates.applicationRoles
-      .filter((role) => !role._id)
-      .map((role) => ({
-        insertOne: { document: { role: role.name, appId: id } }
-      }));
-
-    const result = await GxpServiceRolesModel.bulkWrite(roles);
-    modified.applicationRoles = [
-      ...Object.values(result?.insertedIds ?? {}).map(String),
-      ...updates.applicationRoles
-        .filter((role) => role._id)
-        .map((role) => role._id)
-    ];
-  }
 
   // Update application group from payload
 
