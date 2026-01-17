@@ -1,22 +1,15 @@
 import multer from "multer";
-import path from "path";
 import fs from "fs";
 
-// Set storage for uploaded files
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    // Define the upload directory
-    const uploadDir = path.join(__dirname, "../uploads");
-
-    // Ensure the upload directory exists
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true }); // Creates the directory and any necessary parent directories
+    if (!fs.existsSync("uploads")) {
+      fs.mkdirSync("uploads", { recursive: true });
     }
-
-    cb(null, uploadDir);
+    cb(null, "uploads/");
   },
   filename: (_req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
+    cb(null, `/${Date.now()}-${file.originalname.replace(/\s/g, "-")}`);
   }
 });
 
@@ -26,13 +19,21 @@ const fileFilter = (
   file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ) => {
-  const allowedTypes = /jpeg|jpg|png/;
-  const extName = allowedTypes.test(
-    path.extname(file.originalname).toLowerCase()
-  );
-  const mimeType = allowedTypes.test(file.mimetype);
+  const allowedMimeTypes = [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "text/plain",
+    "image/jpeg",
+    "image/png",
+    "image/jpg"
+  ];
 
-  if (extName && mimeType) {
+  const mimeType = allowedMimeTypes.includes(file.mimetype);
+
+  if (mimeType) {
     cb(null, true);
   } else {
     cb(new Error("Only image files are allowed!"));

@@ -29,6 +29,7 @@ export interface IConditionalUserFields {
   lastLogin?: Date | null;
   createdBy?: string;
   lastPasswords?: string[];
+  signature?: string;
 }
 
 export interface IUser
@@ -82,7 +83,8 @@ const ClientSchema: Record<keyof IConditionalUserFields, any> = {
   passwordExpiryTime: { type: Date },
   lastLogin: { type: Date },
   lastPasswords: [{ type: String }],
-  createdBy: { type: Schema.Types.ObjectId, ref: "User" }
+  createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+  signature: { type: String }
 };
 
 const UserSchema: Schema = new Schema(

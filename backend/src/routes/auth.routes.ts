@@ -12,6 +12,7 @@ import { checkPermissions } from "../middlewares/permission.middleware";
 import { authenticate } from "../middlewares/auth.middleware";
 import { validateDto } from "../middlewares/validate-dto.middleware";
 import { CreateUserDTO } from "../dtos/user.dto";
+import { upload } from "../middlewares/multer.middleware";
 
 const router: Router = Router();
 
@@ -42,6 +43,7 @@ router.post(
   authenticate,
   validateDto(CreateUserDTO),
   checkPermissions(["CREATE:USER"]),
+  upload.single("signature"),
   createUser
 );
 
@@ -52,6 +54,7 @@ router.patch(
   API_ROUTES.AUTH + API_ROUTES.USER + API_ROUTES.PARAMS,
   authenticate,
   checkPermissions(["UPDATE:USER"]),
+  upload.single("signature"),
   updateUser
 );
 

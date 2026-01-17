@@ -23,14 +23,11 @@ router.post(API_ROUTES.APPLICATION_MODULES.ROOT, createApplicationModule);
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
 
-router.patch(
-  API_ROUTES.APPLICATION_MODULES.BY_ID,
-  updateApplicationModuleStatus
-);
+router.patch(API_ROUTES.APPLICATION_MODULES.BY_ID, updateAppplicationModule);
 
 router.patch(
   API_ROUTES.APPLICATION_MODULES.STATUS_BY_ID,
-  updateAppplicationModule
+  updateApplicationModuleStatus
 );
 
 // ---------------------------------------------------------------------------------------- DELETE Requests ----------------------------------------------------------------------------------------
