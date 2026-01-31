@@ -27,20 +27,20 @@ const getUsers = async (user?: IUser) => {
 };
 
 const createUser = async (req: Request) => {
-  const { data } = req.body;
-  const payload = JSON.parse(data);
-  const signature = req.file?.filename;
-  payload["createdBy"] = req?.user?._id;
+    const payload =
+      typeof req.body?.data === "string" ? JSON.parse(req.body.data) : req.body;
+    const signature = req.file?.filename;
+    payload["createdBy"] = req?.user?._id;
 
-  if (signature) {
-    payload["signature"] = signature;
-  }
-  return await User.create(payload);
+    if (signature) {
+      payload["signature"] = signature;
+    }
+    return await User.create(payload);
 };
 
 const updateUser = async (req: Request) => {
-  const { data } = req.body;
-  const payload = JSON.parse(data);
+  const payload =
+    typeof req.body?.data === "string" ? JSON.parse(req.body.data) : req.body;
   const signature = req.file?.filename;
   if (signature) {
     payload["signature"] = signature;
@@ -82,4 +82,4 @@ const getUserDetail = async (id: string) => {
   ).exec();
 };
 
-export default { getUsers, createUser, updateUser, deleteUser, getUserDetail };
+  export default { getUsers, createUser, updateUser, deleteUser, getUserDetail };

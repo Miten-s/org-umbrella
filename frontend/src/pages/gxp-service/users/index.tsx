@@ -11,7 +11,6 @@ import { getRoles, getUsers } from "@/services/admin.service";
 import { RoleType } from "@/utils/common.constants";
 import {
   getGxpUsers, createGxpUser,
-  deleteGxpUser,
   updateGxpUser,
   enableGxpUser,
   disableGxpUser,
@@ -65,8 +64,8 @@ const GXPUsersPage = () => {
 
   const [selectableUsers, setSelectableUsers] = useState<BareUser[]>([]);
   const [selectableRoles, setSelectableRoles] = useState<Role[]>([]);
-  const [confirmationModal, setConfirmationModal] = useState(false);
-  const [entityToDelete, setEntityToDelete] = useState<GxpUserEntity | null>(null);
+  // const [confirmationModal, setConfirmationModal] = useState(false);
+  // const [entityToDelete, setEntityToDelete] = useState<GxpUserEntity | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -111,13 +110,13 @@ const GXPUsersPage = () => {
     closeModal();
   };
 
-  const confirmDelete = async () => {
-    if (!entityToDelete) return;
-    await deleteGxpUser(entityToDelete._id);
-    setGxpUsers((prev) => prev.filter((x) => x._id !== entityToDelete._id));
-    setEntityToDelete(null);
-    setConfirmationModal(false);
-  };
+  // const confirmDelete = async () => {
+  //   if (!entityToDelete) return;
+  //   await deleteGxpUser(entityToDelete._id);
+  //   setGxpUsers((prev) => prev.filter((x) => x._id !== entityToDelete._id));
+  //   setEntityToDelete(null);
+  //   setConfirmationModal(false);
+  // };
   const handleStatusChange = async (user: GxpUserEntity) => {
     const newStatus = user.status === "enabled" ? "disabled" : "enabled";
 
@@ -208,7 +207,7 @@ const GXPUsersPage = () => {
                   >
                     {t("edit")}
                   </Button>
-                  <Button
+                  {/* <Button
                     onClick={() => {
                       setEntityToDelete(u);
                       setConfirmationModal(true);
@@ -217,7 +216,7 @@ const GXPUsersPage = () => {
                     className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                   >
                     {t("delete")}
-                  </Button>
+                  </Button> */}
                 </td>
               </tr>
             ))}
@@ -252,7 +251,7 @@ const GXPUsersPage = () => {
       </Modal>
 
       {/* Delete Confirmation Modal */}
-      <Modal
+      {/* <Modal
         isOpen={confirmationModal}
         onClose={() => setConfirmationModal(false)}
         className="max-w-[500px] min-h-[150px] m-4 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
@@ -271,7 +270,7 @@ const GXPUsersPage = () => {
             </Button>
           </div>
         </div>
-      </Modal>
+      </Modal> */}
     </>
   );
 };

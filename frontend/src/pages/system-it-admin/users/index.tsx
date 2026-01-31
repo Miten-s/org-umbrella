@@ -7,6 +7,7 @@ import { getRoles, getLocations, getDepartments, getDesignations, createUser, up
 import { useEffect, useState } from "react";
 import { useGlobalContext } from "@/context";
 import { LockIcon } from "@/public/icons";
+import { RoleType } from "@/utils/common.constants";
 
 const Users = () => {
   const { isOpen, openModal, closeModal } = useModal();
@@ -29,7 +30,7 @@ const Users = () => {
         { designations: fetchedDesignations },
         { users: fetchedUsers }
       ] = await Promise.all([
-        getRoles(),
+        getRoles(RoleType.CUSTOM),
         getLocations(),
         getDepartments(),
         getDesignations(),
@@ -49,18 +50,33 @@ const Users = () => {
     fetchDetails();
   }, [reFetch]);
 
+  const buildUserFormData = (payload: Record<string, any>) => {
+    const formData = new FormData();
+    const { signature, ...rest } = payload;
+    formData.append("data", JSON.stringify(rest));
+
+    if (signature && typeof signature === "string" && signature.startsWith("data:")) {
+      const [meta, base64] = signature.split(",");
+      const mime = meta.match(/data:(.*);base64/)?.[1] || "image/png";
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i += 1) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: mime });
+      formData.append("signature", blob, "signature.png");
+    }
+
+    return formData;
+  };
+
   const handleCreateUpdateUser = async (data: any) => {
     try {
+      const formData = buildUserFormData(data);
       if (activeUser) {
-        const payload = {
-          ...data,
-        };
-        await updateUser(activeUser._id, payload);
+        await updateUser(activeUser._id, formData);
       } else {
-        const payload = {
-          ...data,
-        };
-        await createUser(payload);
+        await createUser(formData);
       }
       fetchDetails();
       closeModal();

@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import Label from "@/components/common/form/Label";
 import Input from "@/components/common/form/input/InputField";
 import TextArea from "@/components/common/form/input/TextArea";
+import MultiSelect from "@/components/common/form/MultiSelect";
 import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
 import Button from "@/components/ui/button/Button";
 import Switch from "@/components/common/form/switch/Switch";
@@ -16,11 +17,19 @@ import {
 } from "@/lib/schema";
 import type { Application, ServiceRequest } from "@/types/gxp-service.types";
 import { useGlobalContext } from "@/context";
-import { getApplicationById } from "@/services/gxp.service";
+import {
+  getApplicationById,
+  getApplicationSoftware,
+  getEnvironments,
+  getServiceTypes,
+  getWorkflows
+} from "@/services/gxp.service";
+import { getLocations } from "@/services/admin.service";
 import { getGxpImageUrl } from "@/services/utils.service";
 import { ChipList } from "@/components/common/form/chipList";
 
 type DropdownOption = { label: string; value: string };
+type MultiSelectOption = { text: string; value: string };
 type ApplicationDetails = {
   environmentId: string;
   environmentName: string;
@@ -55,6 +64,11 @@ const normalizeId = (value: any): string => {
   return value?._id ?? value?.value ?? "";
 };
 
+const normalizeIdArray = (value: any): string[] => {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => normalizeId(item)).filter(Boolean);
+};
+
 const normalizeInitialValues = (
   data?: ServiceRequest | null
 ): ServiceRequestFormInput => ({
@@ -65,6 +79,13 @@ const normalizeInitialValues = (
   description: data?.description ?? "",
   shortDescription: data?.shortDescription ?? "",
   requestType: data?.requestType ?? "Applications",
+  applicationEnvironment: normalizeId((data as any)?.applicationEnvironment),
+  group: normalizeId((data as any)?.group),
+  applicationWorkflow: normalizeId((data as any)?.applicationWorkflow),
+  applicationModules: normalizeIdArray((data as any)?.applicationModules),
+  applicationServiceRequestTypes: normalizeIdArray((data as any)?.applicationServiceRequestTypes),
+  applicationRoles: normalizeIdArray((data as any)?.applicationRoles),
+  notes: (data as any)?.notes ?? "",
   status: data?.status ?? "New",
   comments: data?.comments ?? []
 });
@@ -154,6 +175,31 @@ const mapApplicationToDetails = (app: Application): ApplicationDetails => {
   };
 };
 
+const mergeUniqueOptions = (
+  base: MultiSelectOption[],
+  extra: MultiSelectOption[]
+): MultiSelectOption[] => {
+  const map = new Map(base.map((opt) => [opt.value, opt]));
+  extra.forEach((opt) => {
+    if (opt.value && opt.text && !map.has(opt.value)) {
+      map.set(opt.value, opt);
+    }
+  });
+  return Array.from(map.values());
+};
+
+const buildOptionsFromPairs = (ids: string[], names: string[]): MultiSelectOption[] => {
+  const results: MultiSelectOption[] = [];
+  const count = Math.max(ids.length, names.length);
+  for (let i = 0; i < count; i += 1) {
+    const value = ids[i] ?? names[i] ?? "";
+    const text = names[i] ?? ids[i] ?? "";
+    if (!value) continue;
+    results.push({ value, text: text || value });
+  }
+  return results;
+};
+
 const CreateServiceRequestModal = ({
   onClose,
   onSubmit,
@@ -169,6 +215,14 @@ const CreateServiceRequestModal = ({
   const { t } = useTranslation();
   const { applications } = optionSets;
   const [appDetails, setAppDetails] = useState<ApplicationDetails | null>(null);
+  const [environmentOptions, setEnvironmentOptions] = useState<DropdownOption[]>([]);
+  const [locationOptions, setLocationOptions] = useState<DropdownOption[]>([]);
+  const [workflowOptions, setWorkflowOptions] = useState<DropdownOption[]>([]);
+  const [moduleBaseOptions, setModuleBaseOptions] = useState<MultiSelectOption[]>([]);
+  const [moduleOptions, setModuleOptions] = useState<MultiSelectOption[]>([]);
+  const [serviceTypeBaseOptions, setServiceTypeBaseOptions] = useState<MultiSelectOption[]>([]);
+  const [serviceTypeOptions, setServiceTypeOptions] = useState<MultiSelectOption[]>([]);
+  const [roleOptions, setRoleOptions] = useState<MultiSelectOption[]>([]);
   const {
     control,
     handleSubmit,
@@ -191,6 +245,18 @@ const CreateServiceRequestModal = ({
     label: item?.[labelKey] ?? item?.name ?? String(item?.[valueKey] ?? ""),
     value: item?.[valueKey] ?? item?._id ?? item?.value ?? ""
   });
+
+  const extractList = <T,>(val: any, preferredKeys: string[] = []): T[] => {
+    if (Array.isArray(val)) return val as T[];
+    if (!val || typeof val !== "object") return [];
+    if (Array.isArray(val.data)) return val.data as T[];
+    for (const key of preferredKeys) {
+      const candidate = (val as any)[key];
+      if (Array.isArray(candidate)) return candidate as T[];
+    }
+    const firstArray = Object.values(val).find(Array.isArray);
+    return Array.isArray(firstArray) ? (firstArray as T[]) : [];
+  };
 
   const statusOptions: DropdownOption[] = [
     { label: "New", value: "New" },
@@ -225,10 +291,98 @@ const CreateServiceRequestModal = ({
   const renderError = (message?: string) =>
     message ? <p className="text-red-500 text-xs mt-1">{message}</p> : null;
 
+  const appendUnique = (current: string[] | undefined, next: string) =>
+    current?.includes(next) ? current : [...(current || []), next];
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [envs, locs, wfs, modules, serviceTypes] = await Promise.all([
+          getEnvironments(),
+          getLocations(),
+          getWorkflows(),
+          getApplicationSoftware(),
+          getServiceTypes()
+        ]);
+
+        if (cancelled) return;
+
+        setEnvironmentOptions(
+          extractList<any>(envs, ["environments", "data"]).map((env) =>
+            toDropdown(env, "environmentName")
+          )
+        );
+        setLocationOptions(
+          extractList<any>(locs, ["locations", "data"]).map((loc) =>
+            toDropdown(loc, "locationName")
+          )
+        );
+        setWorkflowOptions(
+          extractList<any>(wfs, ["workflows", "data"]).map((wf) =>
+            toDropdown(wf, "workflowName")
+          )
+        );
+        const moduleOptionsList = extractList<any>(modules, ["modules", "software", "data"]).map(
+          (mod) => ({
+            text: mod?.moduleName ?? "",
+            value: mod?._id ?? ""
+          })
+        );
+        const serviceTypeOptionsList = extractList<any>(serviceTypes, [
+          "service_types",
+          "serviceTypes",
+          "data"
+        ]).map((serviceType) => ({
+          text: serviceType?.service ?? "",
+          value: serviceType?._id ?? ""
+        }));
+        setModuleBaseOptions(moduleOptionsList.filter((opt) => opt.value && opt.text));
+        setServiceTypeBaseOptions(
+          serviceTypeOptionsList.filter((opt) => opt.value && opt.text)
+        );
+      } catch (err) {
+        console.error("Failed to load service request options", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!appDetails) {
+      setModuleOptions(moduleBaseOptions);
+      setServiceTypeOptions(serviceTypeBaseOptions);
+      setRoleOptions([]);
+      return;
+    }
+    const initialModules = buildOptionsFromPairs(
+      appDetails.moduleIds,
+      appDetails.moduleNames
+    );
+    const initialServiceTypes = buildOptionsFromPairs(
+      appDetails.serviceTypeIds,
+      appDetails.serviceTypeNames
+    );
+    const initialRoles = buildOptionsFromPairs(appDetails.roleIds, appDetails.roleNames);
+
+    setModuleOptions(mergeUniqueOptions(moduleBaseOptions, initialModules));
+    setServiceTypeOptions(mergeUniqueOptions(serviceTypeBaseOptions, initialServiceTypes));
+    setRoleOptions(initialRoles);
+  }, [appDetails, moduleBaseOptions, serviceTypeBaseOptions]);
+
   useEffect(() => {
     const appId = normalizeId(selectedApplication);
     if (!appId) {
       setAppDetails(null);
+      setValue("applicationEnvironment", "");
+      setValue("group", "");
+      setValue("applicationWorkflow", "");
+      setValue("applicationModules", []);
+      setValue("applicationServiceRequestTypes", []);
+      setValue("applicationRoles", []);
+      setValue("notes", "");
       return;
     }
 
@@ -242,6 +396,13 @@ const CreateServiceRequestModal = ({
         if (cancelled) return;
 
         setValue("requestType", details.serviceTypeNames[0] ?? "Applications");
+        setValue("applicationEnvironment", details.environmentId);
+        setValue("group", details.locationId);
+        setValue("applicationWorkflow", details.workflowId);
+        setValue("applicationModules", details.moduleIds);
+        setValue("applicationServiceRequestTypes", details.serviceTypeIds);
+        setValue("applicationRoles", details.roleIds);
+        setValue("notes", details.notes ?? "");
         setAppDetails(details);
       } catch (err) {
         console.error("Failed to load application details", err);
@@ -264,24 +425,6 @@ const CreateServiceRequestModal = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="shortDescription" required>
-              {t("shortDescription")}
-            </Label>
-            <Controller
-              name="shortDescription"
-              control={control}
-              render={({ field }) => (
-                <Input
-                  {...field}
-                  className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
-                  error={!!errors.shortDescription}
-                  hint={errors.shortDescription?.message}
-                />
-              )}
-            />
-          </div>
-
-          <div>
             <Label htmlFor="application" required>
               {t("application")}
             </Label>
@@ -303,6 +446,57 @@ const CreateServiceRequestModal = ({
           </div>
 
           <div>
+            <Label htmlFor="applicationEnvironment">{t("environment")}</Label>
+            <Controller
+              name="applicationEnvironment"
+              control={control}
+              render={({ field }) => (
+                <SelectDropdown
+                  value={field.value ?? ""}
+                  onChange={(val) => field.onChange(val)}
+                  options={environmentOptions}
+                  placeholder={t("select", { entity: t("environment") })}
+                />
+              )}
+            />
+            {renderError(errors.applicationEnvironment?.message as string)}
+          </div>
+
+          <div>
+            <Label htmlFor="group">{t("location")}</Label>
+            <Controller
+              name="group"
+              control={control}
+              render={({ field }) => (
+                <SelectDropdown
+                  value={field.value ?? ""}
+                  onChange={(val) => field.onChange(val)}
+                  options={locationOptions}
+                  placeholder={t("select", { entity: t("location") })}
+                />
+              )}
+            />
+            {renderError(errors.group?.message as string)}
+          </div>
+
+          <div>
+            <Label htmlFor="applicationWorkflow">{t("workflow")}</Label>
+            <Controller
+              name="applicationWorkflow"
+              control={control}
+              render={({ field }) => (
+                <SelectDropdown
+                  value={field.value ?? ""}
+                  onChange={(val) => field.onChange(val)}
+                  options={workflowOptions}
+                  placeholder={t("select", { entity: t("workflow") })}
+                />
+              )}
+            />
+            {renderError(errors.applicationWorkflow?.message as string)}
+          </div>
+
+          <div>
             <Label htmlFor="priority" required>
               {t("priority")}
             </Label>
@@ -319,6 +513,92 @@ const CreateServiceRequestModal = ({
               )}
             />
             {renderError(errors.priority?.message)}
+          </div>
+
+          <div>
+            <Label htmlFor="applicationModules">{t("gxpAppModules")}</Label>
+            <Controller
+              name="applicationModules"
+              control={control}
+              render={({ field }) => (
+                <MultiSelect
+                  options={moduleOptions}
+                  label={t("select", { entity: t("gxpAppModules") })}
+                  onChange={field.onChange}
+                  defaultSelected={field.value}
+                  error={errors.applicationModules?.message as string}
+                  countTooltipPlacement="right"
+                  showAddButton
+                  onAdd={(newOption) => {
+                    const optionToAdd = { text: newOption.text, value: newOption.text };
+                    setModuleOptions((prev) =>
+                      prev.find((opt) => opt.value === optionToAdd.value)
+                        ? prev
+                        : [...prev, optionToAdd]
+                    );
+                    field.onChange(appendUnique(field.value, optionToAdd.value));
+                  }}
+                />
+              )}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="applicationServiceRequestTypes">
+              {t("gxpAppServiceRequestTypes")}
+            </Label>
+            <Controller
+              name="applicationServiceRequestTypes"
+              control={control}
+              render={({ field }) => (
+                <MultiSelect
+                  options={serviceTypeOptions}
+                  label={t("select", { entity: t("gxpAppServiceRequestTypes") })}
+                  onChange={field.onChange}
+                  defaultSelected={field.value}
+                  error={errors.applicationServiceRequestTypes?.message as string}
+                  countTooltipPlacement="right"
+                  showAddButton
+                  onAdd={(newOption) => {
+                    const optionToAdd = { text: newOption.text, value: newOption.text };
+                    setServiceTypeOptions((prev) =>
+                      prev.find((opt) => opt.value === optionToAdd.value)
+                        ? prev
+                        : [...prev, optionToAdd]
+                    );
+                    field.onChange(appendUnique(field.value, optionToAdd.value));
+                  }}
+                />
+              )}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="applicationRoles">{t("gxpAppRoles")}</Label>
+            <Controller
+              name="applicationRoles"
+              control={control}
+              render={({ field }) => (
+                <MultiSelect
+                  options={roleOptions}
+                  label={t("select", { entity: t("gxpAppRoles") })}
+                  onChange={field.onChange}
+                  defaultSelected={field.value}
+                  error={errors.applicationRoles?.message as string}
+                  countTooltipPlacement="right"
+                  showAddButton
+                  onAdd={(newOption) => {
+                    const optionToAdd = { text: newOption.text, value: newOption.text };
+                    setRoleOptions((prev) =>
+                      prev.find((opt) => opt.value === optionToAdd.value)
+                        ? prev
+                        : [...prev, optionToAdd]
+                    );
+                    field.onChange(appendUnique(field.value, optionToAdd.value));
+                  }}
+                />
+              )}
+            />
           </div>
 
           <div>
@@ -354,6 +634,41 @@ const CreateServiceRequestModal = ({
               )}
             />
             {renderError(errors.status?.message)}
+          </div>
+
+          <div>
+            <Label htmlFor="shortDescription" required>
+              {t("shortDescription")}
+            </Label>
+            <Controller
+              name="shortDescription"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
+                  error={!!errors.shortDescription}
+                  hint={errors.shortDescription?.message}
+                />
+              )}
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <Label htmlFor="notes">{t("notes")}</Label>
+            <Controller
+              name="notes"
+              control={control}
+              render={({ field }) => (
+                <TextArea
+                  value={field.value ?? ""}
+                  onChange={(val) => field.onChange(val)}
+                  error={!!errors.notes}
+                  hint={errors.notes?.message}
+                  className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
+                />
+              )}
+            />
           </div>
 
 

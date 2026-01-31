@@ -2,7 +2,7 @@ import { lazy } from "react";
 import AppLayout from "../components/layout/AppLayout";
 import Login from "@/components/sign-in/Login";
 import { PageUrl } from "@/types/utils.types";
-import { PERMISSIONS } from "@/utils/permissions";
+import { ADMIN_PERMISSIONS } from "@/utils/permissions";
 import type { AppRoute } from "./types";
 
 // Dashboard & Access Management
@@ -42,7 +42,7 @@ const routes: AppRoute[] = [
         index: true,
         element: <Dashboard />,
         protection: {
-          requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+          requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
         },
         meta: {
           title: "Dashboard",
@@ -56,7 +56,7 @@ const routes: AppRoute[] = [
             path: PageUrl.Roles.path.replace(`${PageUrl.AccessManagement.path}/`, ""),
             element: <RolesAndPermissions />,
             protection: {
-              requiredPermission: PERMISSIONS.VIEW_ROLE
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_ROLE
             },
             meta: {
               title: "Roles & Permissions",
@@ -74,7 +74,7 @@ const routes: AppRoute[] = [
             path: PageUrl.ProfileInfo.path.replace(`${PageUrl.MySpace.path}/`, ""),
             element: <ProfileInfo />,
             protection: {
-              requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
             },
             meta: {
               title: "Profile Info",
@@ -92,7 +92,7 @@ const routes: AppRoute[] = [
             path: PageUrl.Users.path.replace(`${PageUrl.System.path}/`, ""),
             element: <SysUsers />,
             protection: {
-              requiredPermission: PERMISSIONS.VIEW_USER
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_USER
             },
             meta: {
               title: "Users",
@@ -103,7 +103,7 @@ const routes: AppRoute[] = [
             path: PageUrl.Departments.path.replace(`${PageUrl.System.path}/`, ""),
             element: <SysDepartments />,
             protection: {
-              requiredPermission: PERMISSIONS.VIEW_DEPARTMENT
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_DEPARTMENT
             },
             meta: {
               title: "Departments",
@@ -114,7 +114,7 @@ const routes: AppRoute[] = [
             path: PageUrl.Designations.path.replace(`${PageUrl.System.path}/`, ""),
             element: <SysDesignations />,
             protection: {
-              requiredPermission: PERMISSIONS.VIEW_DESIGNATION
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_DESIGNATION
             },
             meta: {
               title: "Designations",
@@ -125,7 +125,7 @@ const routes: AppRoute[] = [
             path: PageUrl.LocationsGroups.path.replace(`${PageUrl.System.path}/`, ""),
             element: <SysLocations />,
             protection: {
-              requiredPermission: PERMISSIONS.VIEW_LOCATION
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_LOCATION
             },
             meta: {
               title: "Locations",
@@ -140,7 +140,7 @@ const routes: AppRoute[] = [
         path: PageUrl.CompanySettings.path,
         element: <CompanyManagement />,
         protection: {
-          requiredPermission: PERMISSIONS.OPERATE_ALL
+          requiredPermission: ADMIN_PERMISSIONS.OPERATE_ALL
         },
         meta: {
           title: "Company Settings",
@@ -156,7 +156,7 @@ const routes: AppRoute[] = [
             path: PageUrl.GXPUsers.path.replace(`${PageUrl.GXPService.path}/`, ""),
             element: <GXPUsersPage />,
             protection: {
-              requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
             },
             meta: {
               title: "Users",
@@ -167,7 +167,7 @@ const routes: AppRoute[] = [
             path: PageUrl.GXPRolesAndPermissions.path.replace(`${PageUrl.GXPService.path}/`, ""),
             element: <GXPRolesAndPermissionsPage />,
             protection: {
-              requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
             },
             meta: {
               title: "Roles and Permissions",
@@ -178,7 +178,7 @@ const routes: AppRoute[] = [
             path: PageUrl.GXPWorkflows.path.replace(`${PageUrl.GXPService.path}/`, ""),
             element: <GXPWorkflowsPage />,
             protection: {
-              requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
             },
             meta: {
               title: "Workflows",
@@ -189,7 +189,7 @@ const routes: AppRoute[] = [
             path: PageUrl.GXPAssignmentGroups.path.replace(`${PageUrl.GXPService.path}/`, ""),
             element: <GXPAssignmentGroupsPage />,
             protection: {
-              requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
             },
             meta: {
               title: "Assignment Groups",
@@ -200,7 +200,7 @@ const routes: AppRoute[] = [
             path: PageUrl.GXPEnvironments.path.replace(`${PageUrl.GXPService.path}/`, ""),
             element: <GXPEnvironmentsPage />,
             protection: {
-              requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
             },
             meta: {
               title: "Environments",
@@ -211,7 +211,7 @@ const routes: AppRoute[] = [
             path: PageUrl.GXPSuppliers.path.replace(`${PageUrl.GXPService.path}/`, ""),
             element: <GXPSuppliersPage />,
             protection: {
-              requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
             },
             meta: {
               title: "Suppliers",
@@ -222,7 +222,7 @@ const routes: AppRoute[] = [
             path: PageUrl.GXPApplicationSoftwareModule.path.replace(`${PageUrl.GXPService.path}/`, ""),
             element: <GXPApplicationSoftwareModulePage />,
             protection: {
-              requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
             },
             meta: {
               title: "Application/Software Module",
@@ -233,7 +233,7 @@ const routes: AppRoute[] = [
             path: PageUrl.GXPAddNewApplication.path.replace(`${PageUrl.GXPService.path}/`, ""),
             element: <GXPAddNewApplicationPage />,
             protection: {
-              requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
             },
             meta: {
               title: "Add a new GxP Portal Application/Software form",
@@ -244,7 +244,7 @@ const routes: AppRoute[] = [
             path: PageUrl.GXPCreateNewServiceRequest.path.replace(`${PageUrl.GXPService.path}/`, ""),
             element: <GXPCreateNewServiceRequestPage />,
             protection: {
-              requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
             },
             meta: {
               title: "Create a new Service Request",

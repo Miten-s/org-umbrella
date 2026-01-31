@@ -2,12 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import appLogo from "../../public/images/logo-transparant.png";
 import appSmLogo from "../../public/images/umbrella-clipart-cover.jpg";
-import { ChevronDownIcon, UserManagement, GridIcon, HorizontaLDots, UserIcon, CompanyIcon, BoltIcon } from "../../public/icons";
+import { AccessIcon,ChevronDownIcon, UserManagement, GridIcon, HorizontaLDots, UserIcon, CompanyIcon, BoltIcon } from "../../public/icons";
 import { useSidebar } from "../../context/SidebarContext";
-import { AccessIcon } from "../../public/icons";
 import { PageUrl } from "@/types/utils.types";
 import { useAuth } from "@/context/AuthContext";
-import { hasPermission, PERMISSIONS } from "@/utils/permissions";
+import { hasPermission, ADMIN_PERMISSIONS } from "@/utils/permissions";
 import { useTranslation } from "react-i18next";
 
 type NavItem = {
@@ -28,7 +27,7 @@ const AppSidebar: React.FC = () => {
     {
       icon: <GridIcon />,
       name: t('dashboard'),
-      permissions: [PERMISSIONS.VIEW_DASHBOARD],
+      permissions: [ADMIN_PERMISSIONS.VIEW_DASHBOARD],
       subItems: [
         { name: t('allServices'), path: PageUrl.Dashboard.path, pro: false }
       ]
@@ -36,7 +35,7 @@ const AppSidebar: React.FC = () => {
     {
       icon: <AccessIcon />,
       name: t('accessManagement'),
-      permissions: [PERMISSIONS.CREATE_PERMISSION, PERMISSIONS.VIEW_PERMISSION, PERMISSIONS.UPDATE_PERMISSION, PERMISSIONS.DELETE_PERMISSION],
+      permissions: [ADMIN_PERMISSIONS.CREATE_PERMISSION, ADMIN_PERMISSIONS.VIEW_PERMISSION, ADMIN_PERMISSIONS.UPDATE_PERMISSION, ADMIN_PERMISSIONS.DELETE_PERMISSION],
       subItems: [
         { name: t('rolesAndPermissions'), path: PageUrl.Roles.path },
       ]
@@ -44,7 +43,7 @@ const AppSidebar: React.FC = () => {
     {
       icon: <UserManagement />,
       name: t('systemITAdministration'),
-      permissions: [ PERMISSIONS.CREATE_USER, PERMISSIONS.VIEW_USER, PERMISSIONS.UPDATE_USER, PERMISSIONS.DELETE_USER],
+      permissions: [ADMIN_PERMISSIONS.CREATE_USER, ADMIN_PERMISSIONS.VIEW_USER, ADMIN_PERMISSIONS.UPDATE_USER, ADMIN_PERMISSIONS.DELETE_USER],
       subItems: [
         { name: t('users'), path: PageUrl.Users.path },
         { name: t('designations'), path: PageUrl.Designations.path },
@@ -55,7 +54,7 @@ const AppSidebar: React.FC = () => {
     {
       icon: <CompanyIcon />,
       name: t('companySetup'),
-      permissions: [PERMISSIONS.OPERATE_ALL],
+      permissions: [ADMIN_PERMISSIONS.OPERATE_ALL],
       subItems: [
         { name: t('companyInfo'), path: PageUrl.CompanySettings.path }
       ]
@@ -63,7 +62,7 @@ const AppSidebar: React.FC = () => {
     {
       icon: <UserIcon />,
       name: t('mySpace'),
-      permissions: [PERMISSIONS.VIEW_DASHBOARD],
+      permissions: [ADMIN_PERMISSIONS.VIEW_DASHBOARD],
       subItems: [
         { name: t('profileInfo'), path: PageUrl.ProfileInfo.path }
       ]
@@ -71,7 +70,7 @@ const AppSidebar: React.FC = () => {
     {
       icon: <BoltIcon />,
       name: t('gxpService'),
-      permissions: [PERMISSIONS.VIEW_DASHBOARD],
+      permissions: [ADMIN_PERMISSIONS.VIEW_DASHBOARD],
       subItems: [
         { name: t('users'), path: PageUrl.GXPUsers.path },
         { name: t('gxpRolesAndPermissions'), path: PageUrl.GXPRolesAndPermissions.path },

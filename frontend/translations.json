@@ -1,29 +1,29 @@
 {
   "en": {
-    "noBuiltInRolesAvailable": "No built-in roles available"
+    "active": "Active"
   },
   "ar": {
-    "noBuiltInRolesAvailable": "لا توجد أدوار مدمجة متاحة"
+    "active": "نشط"
   },
   "es": {
-    "noBuiltInRolesAvailable": "No hay roles integrados disponibles"
+    "active": "Activo"
   },
   "fr": {
-    "noBuiltInRolesAvailable": "Aucun rôle intégré disponible"
+    "active": "Actif"
   },
   "hi": {
-    "noBuiltInRolesAvailable": "कोई बिल्ट-इन भूमिकाएं उपलब्ध नहीं हैं"
+    "active": "सक्रिय"
   },
   "gu": {
-    "noBuiltInRolesAvailable": "કોઈ બિલ્ટ-ઇન ભૂમિકાઓ ઉપલબ્ધ નથી"
+    "active": "સક્રિય"
   },
   "ta": {
-    "noBuiltInRolesAvailable": "உட்பொதிந்த பாத்திரங்கள் இல்லை"
+    "active": "செயலில்"
   },
   "te": {
-    "noBuiltInRolesAvailable": "ఎటువంటి అంతర్బద్ధమైన పాత్రలు లభ్యమవడంలేదు"
+    "active": "సక్రియం"
   },
   "mr": {
-    "noBuiltInRolesAvailable": "कोणतीही अंगभूत भूमिका उपलब्ध नाही"
+    "active": "सक्रिय"
   }
 }

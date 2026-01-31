@@ -8,7 +8,9 @@ import React, {
   useRef,
   useState,
 } from "react";
-import CountWithTooltip from "@/components/common/CountWithTooltip";
+import CountWithTooltip, {
+  type TooltipPlacementInput,
+} from "@/components/common/CountWithTooltip";
 
 interface Option {
   value: string;
@@ -25,6 +27,7 @@ interface MultiSelectProps {
   onAdd?: (newOption: Option) => void;
   error?: string;
   hint?: string;
+  countTooltipPlacement?: TooltipPlacementInput;
 }
 
 const MultiSelect: React.FC<MultiSelectProps> = ({
@@ -36,6 +39,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   onAdd,
   error,
   hint,
+  countTooltipPlacement,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLDivElement | null>(null);
@@ -124,11 +128,12 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   );
 
   const handleAddNewOption = useCallback(() => {
-    if (!newOptionText.trim()) return;
+    const rawText = newOptionText;
+    if (!rawText.trim()) return;
 
     const newOption: Option = {
-      value: newOptionText.toLowerCase().replace(/\s+/g, "-"),
-      text: newOptionText.trim(),
+      value: rawText,
+      text: rawText,
     };
 
     setInternalOptions((prev) => [...prev, newOption]);
@@ -282,6 +287,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                         items={hiddenSelected.map((x) => x.text)}
                         headerLabel={`Selected (${hiddenCount} more)`}
                         stopPropagation={true}
+                        placement={countTooltipPlacement}
                       />
                     )}
                   </>

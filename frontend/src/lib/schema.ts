@@ -34,7 +34,7 @@ export const getUserAdminSchema = (isUpdate: boolean) => {
       password: isUpdate
         ? z.string().optional()
         : z.string()
-          .min(6, "Password must be at least 6 characters")
+          .min(8, "Password must be at least 8 characters")
           .max(20, "Password must not exceed 20 characters"),
       confirmPassword: isUpdate
         ? z.string().optional()
@@ -43,6 +43,50 @@ export const getUserAdminSchema = (isUpdate: boolean) => {
     .refine((data) => data.password === data.confirmPassword, {
       path: ["confirmPassword"],
       message: "Passwords do not match"
+    })
+    .superRefine((data, ctx) => {
+      if (!isUpdate) {
+        const value = data.password ?? "";
+        const hasUpper = /[A-Z]/.test(value);
+        const hasLower = /[a-z]/.test(value);
+        const hasNumber = /[0-9]/.test(value);
+        const hasSymbol = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(value);
+
+        if (!hasUpper || !hasLower || !hasNumber || !hasSymbol) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["password"],
+            message:
+              "Password must include uppercase, lowercase, number, and symbol",
+          });
+        }
+      }
+
+      if (data.userType === UserTypes.ADMIN) return;
+
+      if (!data.locationGroup) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["locationGroup"],
+          message: "Location is required",
+        });
+      }
+
+      if (!data.designation) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["designation"],
+          message: "Designation is required",
+        });
+      }
+
+      if (!data.department) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["department"],
+          message: "Department is required",
+        });
+      }
     })
 
   return schema;
@@ -221,6 +265,13 @@ export const getServiceRequestSchema = z.object({
   description: z.string().min(1, "Description is required"),
   shortDescription: z.string().min(1, "Short description is required"),
   requestType: z.string().min(1).default("Applications"),
+  applicationEnvironment: z.string().optional().default(""),
+  group: z.string().optional().default(""),
+  applicationWorkflow: z.string().optional().default(""),
+  applicationModules: z.array(z.string()).optional().default([]),
+  applicationServiceRequestTypes: z.array(z.string()).optional().default([]),
+  applicationRoles: z.array(z.string()).optional().default([]),
+  notes: z.string().optional().default(""),
   status: z
     .enum([
       "New",

@@ -1,12 +1,16 @@
 import { useId, useState } from "react";
 import { ChipList } from "@/components/common/form/chipList";
 
+export type TooltipPlacement = "top-right" | "top-left" | "bottom-right" | "bottom-left";
+export type TooltipPlacementInput = TooltipPlacement | "right" | "left";
+
 interface CountWithTooltipProps {
   count: number;
   items: string[];
   buttonLabel?: string;
   headerLabel?: string;
   subLabel?: string;
+  placement?: TooltipPlacementInput;
   className?: string;
   stopPropagation?: boolean;
 }
@@ -17,6 +21,7 @@ const CountWithTooltip = ({
   buttonLabel,
   headerLabel,
   subLabel,
+  placement = "bottom-right",
   className,
   stopPropagation = true
 }: CountWithTooltipProps) => {
@@ -28,6 +33,27 @@ const CountWithTooltip = ({
   const label = buttonLabel ?? `+${count}`;
   const header = headerLabel ?? `Selected (${count} more)`;
   const sub = subLabel ?? "Scroll to view";
+
+  const normalizedPlacement: TooltipPlacement =
+    placement === "right"
+      ? "bottom-right"
+      : placement === "left"
+        ? "bottom-left"
+        : placement;
+
+  const tooltipPositionClasses: Record<TooltipPlacement, string> = {
+    "bottom-right": "absolute left-0 top-full mt-3",
+    "bottom-left": "absolute right-0 top-full mt-3",
+    "top-right": "absolute left-0 bottom-full mb-3",
+    "top-left": "absolute right-0 bottom-full mb-3"
+  };
+
+  const arrowPositionClasses: Record<TooltipPlacement, string> = {
+    "bottom-right": "absolute left-6 -top-[10px]",
+    "bottom-left": "absolute right-6 -top-[10px]",
+    "top-right": "absolute left-6 -bottom-[10px]",
+    "top-left": "absolute right-6 -bottom-[10px]"
+  };
 
   return (
     <div
@@ -53,11 +79,15 @@ const CountWithTooltip = ({
         <div
           id={tooltipId}
           role="tooltip"
-          className="absolute right-0 top-full mt-3 z-50"
+          className={`${tooltipPositionClasses[normalizedPlacement]} z-50`}
           onClick={(e) => stopPropagation && e.stopPropagation()}
         >
-          <div className="absolute right-6 -top-[10px] h-5 w-5 rotate-45 bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-700 shadow-sm" />
-          <div className="pointer-events-none absolute right-6 -top-[10px] h-5 w-5 rotate-45 rounded-[6px] bg-transparent" />
+          <div
+            className={`${arrowPositionClasses[normalizedPlacement]} h-5 w-5 rotate-45 bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-700 shadow-sm`}
+          />
+          <div
+            className={`${arrowPositionClasses[normalizedPlacement]} pointer-events-none h-5 w-5 rotate-45 rounded-[6px] bg-transparent`}
+          />
 
           <div
             className={[

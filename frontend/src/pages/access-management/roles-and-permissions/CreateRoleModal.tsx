@@ -55,7 +55,15 @@ const CreateRoleModal = ({
   activeRole
 }: CreateRoleModalProps) => {
   const isFixedType = !onPermissionTypeChange;
-  const { register, handleSubmit, watch, setValue } = useForm<{
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    setError,
+    clearErrors,
+    formState: { errors },
+  } = useForm<{
     name: string;
 
     permissions: string[];
@@ -76,6 +84,12 @@ const CreateRoleModal = ({
     if (filtered.length === selectedPermissions.length) return;
     setValue('permissions', filtered);
   }, [allPermissions, selectedPermissions, setValue]);
+
+  useEffect(() => {
+    if (selectedPermissions.length > 0) {
+      clearErrors('permissions');
+    }
+  }, [clearErrors, selectedPermissions.length]);
 
   const togglePermission = (permission: string) => {
     const updated = selectedPermissions.includes(permission)
@@ -102,6 +116,15 @@ const CreateRoleModal = ({
   };
 
   const onFormSubmit = (data: { name: string; permissions: string[] }) => {
+    if (!data.permissions?.length) {
+      setError('permissions', {
+        type: 'manual',
+        message: t('selectAtLeastOnePermission', {
+          defaultValue: 'Select at least one permission.',
+        }),
+      });
+      return;
+    }
     onSubmit({ ...data, name: data.name.trim() });
   };
 
@@ -121,7 +144,11 @@ const CreateRoleModal = ({
               className="mt-1 w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm"
             />
           </div>
-
+          {errors.permissions?.message && (
+            <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+              {errors.permissions.message}
+            </p>
+          )}
           {!isFixedType && (
             <div className="flex items-center gap-2">
               {[
@@ -149,6 +176,7 @@ const CreateRoleModal = ({
           {/* Permissions */}
           <div>
             <Label className="block">{t('permissions')}</Label>
+
             {/* Select All */}
             <Checkbox
               label="Select All Permissions"

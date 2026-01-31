@@ -116,6 +116,19 @@ const normalizeAttachmentArray = (value: unknown): string[] => {
         .filter(Boolean);
 };
 
+const mergeUniqueOptions = (
+    base: MultiSelectOption[],
+    extra: MultiSelectOption[]
+): MultiSelectOption[] => {
+    const map = new Map(base.map((opt) => [opt.value, opt]));
+    extra.forEach((opt) => {
+        if (opt.value && opt.text && !map.has(opt.value)) {
+            map.set(opt.value, opt);
+        }
+    });
+    return Array.from(map.values());
+};
+
 const isImageName = (name: string) => /\.(png|jpe?g|gif|bmp|webp|svg)$/i.test(name || "");
 const prettifyAttachmentName = (path: string) => {
     if (!path) return "";
@@ -171,7 +184,6 @@ const CreateApplicationModal = ({
         users,
         suppliers,
         departments,
-        roles,
     } = optionSets;
     const {
         register,
@@ -187,26 +199,20 @@ const CreateApplicationModal = ({
     const notes = useWatch({ control, name: "notes" });
     const [appGroupOptions, setAppGroupOptions] = useState<MultiSelectOption[]>([]);
     const [appModuleOptions, setAppModuleOptions] = useState<MultiSelectOption[]>([]);
+    const [serviceRequestOptionsState, setServiceRequestOptionsState] = useState<
+        MultiSelectOption[]
+    >([]);
     const [attachments, setAttachments] = useState<File[]>([]);
     const [existingAttachments, setExistingAttachments] = useState<ExistingAttachment[]>([]);
-    const roleOptions = useMemo<MultiSelectOption[]>(
-        () =>
-            roles
-                ?.map((role) => ({
-                    text: role?.name || role?.roleName || role?.role || "",
-                    value: role?._id || "",
-                }))
-                .filter((opt) => opt.value && opt.text) || [],
-        [roles]
-    );
+    const [roleOptionsState, setRoleOptionsState] = useState<MultiSelectOption[]>([]);
 
-    const serviceRequestOptions = useMemo<MultiSelectOption[]>(
-        () =>
+    useEffect(() => {
+        setServiceRequestOptionsState(
             serviceRequestTypes
                 ?.filter((s) => (s?.active ?? true) && s?.service && s?._id)
-                .map((s) => ({ text: s.service, value: s._id })) || [],
-        [serviceRequestTypes]
-    );
+                .map((s) => ({ text: s.service, value: s._id })) || []
+        );
+    }, [serviceRequestTypes]);
 
     useEffect(() => {
         reset(normalizedDefaults);
@@ -237,12 +243,19 @@ const CreateApplicationModal = ({
     }, [applicationGroups]);
 
     useEffect(() => {
-        setAppModuleOptions(
+        const base =
             appModules
                 ?.filter((m) => m?._id && m?.moduleName)
-                .map((m) => ({ text: m.moduleName, value: m._id })) || []
-        );
-    }, [appModules]);
+                .map((m) => ({ text: m.moduleName, value: m._id })) || [];
+        const initialModules =
+            resolvedInitial?.applicationModules
+                ?.map((m: any) => ({
+                    text: m?.moduleName || "",
+                    value: m?._id || m || "",
+                }))
+                .filter((opt: MultiSelectOption) => opt.value && opt.text) || [];
+        setAppModuleOptions(mergeUniqueOptions(base, initialModules));
+    }, [appModules, resolvedInitial]);
 
     const onFormSubmit: SubmitHandler<ApplicationFormInput> = async (data) => {
         const parsed: ApplicationFormOutput = getApplicationSchema.parse(data);
@@ -262,7 +275,7 @@ const CreateApplicationModal = ({
         const payload: ApplicationPayload = {
             ...parsed,
             notes: parsed.notes ?? "",
-            applicationRoles: mapToIdObjects(parsed.applicationRoles, roleOptions),
+            applicationRoles: mapToIdObjects(parsed.applicationRoles, roleOptionsState),
             applicationGroups: mapToIdObjects(parsed.applicationGroups, appGroupOptions),
             applicationServiceRequestTypes: parsed.applicationServiceRequestTypes || [],
             applicationModules: mapToIdObjects(parsed.applicationModules, appModuleOptions),
@@ -394,11 +407,27 @@ const CreateApplicationModal = ({
                                 render={({ field }) => (
                                     <MultiSelect
                                         key={`roles-${initialKey}`}
-                                        options={roleOptions}
+                                        options={roleOptionsState}
                                         label={t("select", { entity: t("gxpAppRoles") })}
                                         onChange={field.onChange}
                                         defaultSelected={field.value}
                                         error={errors.applicationRoles?.message as string}
+                                        countTooltipPlacement="right"
+                                        showAddButton
+                                        onAdd={(newOption) => {
+                                            const optionToAdd = {
+                                                text: newOption.text,
+                                                value: newOption.text,
+                                            };
+                                            setRoleOptionsState((prev) =>
+                                                prev.find((opt) => opt.value === optionToAdd.value)
+                                                    ? prev
+                                                    : [...prev, optionToAdd]
+                                            );
+                                            field.onChange(
+                                                appendUnique(field.value, optionToAdd.value)
+                                            );
+                                        }}
                                     />
                                 )}
                             />
@@ -419,6 +448,7 @@ const CreateApplicationModal = ({
                                         defaultSelected={field.value}
                                         error={errors.applicationGroups?.message as string}
                                         showAddButton
+                                        countTooltipPlacement="left"
                                         onAdd={(newOption) => {
                                             const optionToAdd = { text: newOption.text, value: newOption.text };
                                             setAppGroupOptions((prev) =>
@@ -442,11 +472,27 @@ const CreateApplicationModal = ({
                                 render={({ field }) => (
                                     <MultiSelect
                                         key={`services-${initialKey}`}
-                                        options={serviceRequestOptions}
+                                        options={serviceRequestOptionsState}
                                         label={t("select", { entity: t("gxpAppServiceRequestTypes") })}
                                         onChange={field.onChange}
                                         defaultSelected={field.value}
                                         error={errors.applicationServiceRequestTypes?.message as string}
+                                        countTooltipPlacement="right"
+                                        showAddButton
+                                        onAdd={(newOption) => {
+                                            const optionToAdd = {
+                                                text: newOption.text,
+                                                value: newOption.text,
+                                            };
+                                            setServiceRequestOptionsState((prev) =>
+                                                prev.find((opt) => opt.value === optionToAdd.value)
+                                                    ? prev
+                                                    : [...prev, optionToAdd]
+                                            );
+                                            field.onChange(
+                                                appendUnique(field.value, optionToAdd.value)
+                                            );
+                                        }}
                                     />
                                 )}
                             />
@@ -467,6 +513,7 @@ const CreateApplicationModal = ({
                                         defaultSelected={field.value}
                                         error={errors.applicationModules?.message as string}
                                         showAddButton
+                                        countTooltipPlacement="left"
                                         onAdd={(newOption) => {
                                             const optionToAdd = { text: newOption.text, value: newOption.text };
                                             setAppModuleOptions((prev) =>
@@ -598,6 +645,7 @@ const CreateApplicationModal = ({
                                         onChange={field.onChange}
                                         defaultSelected={field.value}
                                         error={errors.departments?.message as string}
+                                        countTooltipPlacement="right"
                                     />
                                 )}
                             />
