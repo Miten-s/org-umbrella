@@ -6,3 +6,5 @@
 .vscode
 redis
 */uploads
+.agent
+.geminiignore

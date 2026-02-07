@@ -37,7 +37,8 @@ const API_ROUTES = {
     ENABLE_BY_ID: "/enable/:id",
     DISABLE_BY_ID: "/disable/:id",
     DELETE_ATTACHMENTS: "/attachments/:attachmentId",
-    GET_APPLICATION_GROUPS: "/application-groups"
+    GET_APPLICATION_GROUPS: "/application-groups",
+    DUPLICATE_BY_ID: "/:id/duplicate"
   },
   WORKFLOWS: {
     ROOT: "/",
