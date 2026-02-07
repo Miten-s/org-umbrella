@@ -4,14 +4,20 @@ import asyncHandler from "../middlewares/error.middleware.js";
 
 export const createServiceRequest = asyncHandler(
   async (req: Request, res: Response) => {
-    const data = req.body;
+    const { data : payload} = req.body;    
     const user = (req as any).user.id;
-    const newRequest = await service.createServiceRequest({
-      ...data,
-      createdBy: user
-    });
+    const files = req.files as Express.Multer.File[];
+    const attachments = files?.map((file) => file.filename) || [];
 
-    res.status(201).send(newRequest);
+    const result = await service.createServiceRequest(
+      {
+        ...JSON.parse(payload),
+        createdBy: user
+      },
+      attachments
+    );
+
+    res.status(201).send(result);
   }
 );
 
@@ -41,10 +47,16 @@ export const getServiceTypes = asyncHandler(
 export const updateServiceRequest = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const data = req.body;
-    const result = await service.updateRequest(id, {
-      ...data
-    });
+    const { data : payload } = req.body;    
+
+    const files = req.files as Express.Multer.File[];
+    const attachments = files?.map((file) => file.filename) || [];
+
+    const result = await service.updateRequest(
+      id,
+      JSON.parse(payload),
+      attachments
+    );
 
     if (!result) return res.status(404).json({ message: "Not Found" });
     res.status(200).send(result);

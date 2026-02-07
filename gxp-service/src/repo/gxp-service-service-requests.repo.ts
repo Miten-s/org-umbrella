@@ -1,10 +1,10 @@
 import { Request } from "express";
-import { IServiceRequest } from "../models/gxp-service-service-requests.model.js";
-import { GxpServiceRequestModel } from "../models/gxp-service-service-requests.model.js";
-import { removeUndefinedEntries } from "../utils/common.util.js";
-import GxpServiceAppServiceModel from "../models/gxp-service-application-services.model.js";
+import { IServiceRequest } from "../models/gxp-service-service-requests.model";
+import { GxpServiceRequestModel } from "../models/gxp-service-service-requests.model";
+import { removeUndefinedEntries } from "../utils/common.util";
+import GxpServiceAppServiceModel from "../models/gxp-service-application-services.model";
 
-export const createServiceRequest = async (data: IServiceRequest) => {
+export const createServiceRequest = async (data: Partial<IServiceRequest>) => {
   const request = new GxpServiceRequestModel(data);
   return await request.save();
 };
@@ -18,13 +18,16 @@ export const getAllServiceRequests = async () => {
 export const getServiceRequestById = async (id: string) => {
   return await GxpServiceRequestModel.findById(id)
     .populate("assignmentGroup", ["groupName", "_id", "isActive"])
+    .populate("workflow", ["workflowName", "_id"])
+    .populate("environment", ["environmentName", "_id"])
+    .populate("modules", ["moduleName", "_id"])
+    .populate("attachments", ["attachment", "_id"])
     .populate({
       path: "application",
       select: [
         "applicationName",
         "_id",
         "applicationModules",
-        "applicationRoles",
         "applicationGroups",
         "attachments",
         "notes"
@@ -33,10 +36,6 @@ export const getServiceRequestById = async (id: string) => {
         {
           path: "applicationModules",
           select: ["moduleName", "_id"]
-        },
-        {
-          path: "applicationRoles",
-          select: ["role", "_id"]
         },
         {
           path: "applicationGroups",

@@ -17,6 +17,10 @@ export const createApplication = async (
   return doc;
 };
 
+export const findApplicationByIdRaw = async (id: string) => {
+  return await GxpServiceApplicationModel.findById(id).lean();
+};
+
 export const getApplications = async (
   filter = {},
   projection = null,
@@ -113,8 +117,8 @@ export const enableApplication = async (id: string) => {
   );
 };
 
-export const deleteApplcation = async (id: string) => {
-  return await GxpServiceApplicationModel.findByIdAndDelete(id);
+export const deleteApplcation = async (id: string, session?: any) => {
+  return await GxpServiceApplicationModel.findByIdAndDelete(id, { session });
 };
 
 export const deleteAttachments = async (id: string) => {

@@ -77,7 +77,7 @@ export const fetchDepartmentsFromAuthService = async (ids: string[]) => {
   }
 };
 
-export const fetchRolesFromAuthService = async (ids: string[]) => {
+export const fetchRolesFromAuthService = async (ids: string[] , project?: any) => {
   if (!db) {
     throw new Error("Database connection is not established");
   }
@@ -86,7 +86,7 @@ export const fetchRolesFromAuthService = async (ids: string[]) => {
     const groupsCollection = db.collection("roles");
     const objectIds = ids.map((id) => new ObjectId(id));
     const roles = await groupsCollection
-      .find({ _id: { $in: objectIds } })
+      .find({ _id: { $in: objectIds } } , { projection : project ?? [] })
       .toArray();
 
     return roles;
@@ -94,3 +94,4 @@ export const fetchRolesFromAuthService = async (ids: string[]) => {
     throw new Error("Failed to fetch roles: " + error);
   }
 };
+

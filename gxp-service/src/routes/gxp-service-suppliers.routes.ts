@@ -10,6 +10,8 @@ import {
   deleteSupplier
 } from "../controllers/gxp-service-suppliers.controller";
 import API_ROUTES from "../utils/routes";
+import { validateDto } from "../middlewares/validate-dto.middleware";
+import { CreateSupplierDto, UpdateSupplierDto } from "../dtos/supplier.dto";
 
 const router = Router();
 
@@ -21,11 +23,19 @@ router.get(API_ROUTES.SUPPLIER.BY_ID, getSupplierById);
 
 // ---------------------------------------------------------------------------------------- POST Requests ----------------------------------------------------------------------------------------
 
-router.post(API_ROUTES.SUPPLIER.ROOT, createSupplier);
+router.post(
+  API_ROUTES.SUPPLIER.ROOT,
+  validateDto(CreateSupplierDto),
+  createSupplier
+);
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
 
-router.patch(API_ROUTES.SUPPLIER.BY_ID, updateSupplier);
+router.patch(
+  API_ROUTES.SUPPLIER.BY_ID,
+  validateDto(UpdateSupplierDto),
+  updateSupplier
+);
 
 router.patch(API_ROUTES.SUPPLIER.DISABLE_BY_ID, disableSupplier);
 

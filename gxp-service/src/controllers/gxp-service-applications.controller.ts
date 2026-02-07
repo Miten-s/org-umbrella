@@ -123,3 +123,17 @@ export const getApplicationGroups = asyncHandler(
     return res.status(200).send({ applicationGroups });
   }
 );
+
+export const duplicateApplication = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const currentUser =
+      (req as any).user?.username;
+
+    const duplicated = await service.duplicateApplication(
+      id,
+      currentUser ?? undefined
+    );
+    return res.status(201).json(duplicated);
+  }
+);

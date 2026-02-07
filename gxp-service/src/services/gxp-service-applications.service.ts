@@ -9,6 +9,7 @@ import {
   fetchDepartmentsFromAuthService,
   fetchLocationsFromAuthService
 } from "./inter-service-calls.service";
+import { GxpServiceRequestModel } from "../models/gxp-service-service-requests.model";
 
 type ResolveIdsOptions = {
   model: mongoose.Model<any>;
@@ -327,7 +328,37 @@ export const enableApplication = async (id: string, currentUser?: string) => {
 };
 
 export const deleteApplication = async (id: string) => {
-  return await repo.deleteApplcation(id);
+  const serviceRequestsCount = await GxpServiceRequestModel.countDocuments({
+    application: id
+  });
+
+  if (serviceRequestsCount > 0) {
+    throw new Error(
+      "Cannot delete Application. It is attached to Service Requests."
+    );
+  }
+
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+
+    // Delete associated groups
+    await GxpServiceAppGroupModel.deleteMany({ appId: id }, { session });
+
+    // Delete associated attachments
+    await GxpServiceAppAttachmentModel.deleteMany({ appId: id }, { session });
+
+    // Delete the application itself
+    const deleted = await repo.deleteApplcation(id, session);
+
+    await session.commitTransaction();
+    return deleted;
+  } catch (error) {
+    session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
 };
 
 export const deleteAttachments = async (id: string) => {
@@ -336,4 +367,123 @@ export const deleteAttachments = async (id: string) => {
 
 export const getApplicationGroups = async () => {
   return await repo.getApplicationGroups();
+};
+
+export const duplicateApplication = async (
+  id: string,
+  currentUser?: string
+) => {
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+
+    const sourceApp = await repo.findApplicationByIdRaw(id);
+    if (!sourceApp) {
+      throw new Error("Application not found");
+    }
+
+    const baseName = sourceApp.applicationName;
+    const regex = new RegExp(
+      `^${baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}-\\((\\d+)\\)$`
+    );
+
+    const similarApps = await repo.getApplications({
+      applicationName: { $regex: regex }
+    });
+
+    let maxIndex = 0;
+    similarApps.forEach((app) => {
+      const match = app.applicationName.match(regex);
+      if (match) {
+        const index = parseInt(match[1], 10);
+        if (index > maxIndex) maxIndex = index;
+      }
+    });
+
+    const newName = `${baseName}-(${maxIndex + 1})`;
+
+    const now = new Date();
+    const toSave: any = {
+      ...sourceApp,
+      _id: new mongoose.Types.ObjectId(),
+      applicationName: newName,
+      createdOn: now,
+      createdBy: currentUser ?? null,
+      modifiedOn: now,
+      modifiedBy: currentUser ?? null,
+      status: "enabled",
+      attachments: [],
+      applicationGroups: []
+    };
+
+    delete toSave.__v;
+    delete toSave.createdAt;
+    delete toSave.updatedAt;
+
+    const newApp = await repo.createApplication(toSave, session);
+
+    if (sourceApp.applicationGroups && sourceApp.applicationGroups.length > 0) {
+      const sourceGroups = await GxpServiceAppGroupModel.find({
+        _id: { $in: sourceApp.applicationGroups }
+      });
+
+      const newGroupsDocs = sourceGroups.map((group) => ({
+        insertOne: {
+          document: {
+            appId: (newApp as any)._id.toString(),
+            appGroup: group.appGroup,
+            active: group.active,
+            createdBy: currentUser ?? null
+          }
+        }
+      }));
+
+      if (newGroupsDocs.length > 0) {
+        const groupResult = await GxpServiceAppGroupModel.bulkWrite(
+          newGroupsDocs,
+          { session }
+        );
+        newApp.applicationGroups = Object.values(
+          groupResult?.insertedIds ?? {}
+        ).map(String);
+      }
+    }
+
+    if (sourceApp.attachments && sourceApp.attachments.length > 0) {
+      const sourceAttachments = await GxpServiceAppAttachmentModel.find({
+        _id: { $in: sourceApp.attachments }
+      });
+
+      const newAttachmentDocs = sourceAttachments.map((att) => ({
+        appId: (newApp as any)._id.toString(),
+        attachment: att.attachment,
+        active: true,
+        createdBy: currentUser ?? null
+      }));
+
+      if (newAttachmentDocs.length > 0) {
+        const createdAttachments = await GxpServiceAppAttachmentModel.create(
+          newAttachmentDocs,
+          { session }
+        );
+        newApp.attachments = createdAttachments.map((doc) =>
+          doc._id.toString()
+        );
+      }
+    }
+
+    if (sourceApp.applicationModules) {
+      newApp.applicationModules = sourceApp.applicationModules;
+    }
+
+    await newApp.save({ session });
+    await session.commitTransaction();
+
+    return newApp;
+  } catch (error) {
+    session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
 };
