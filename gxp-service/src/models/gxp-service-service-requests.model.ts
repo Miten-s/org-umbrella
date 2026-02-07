@@ -6,7 +6,7 @@ const generateSrvId = () => {
 };
 
 export interface IServiceRequest {
-  _id: string;
+  _id?: string;
   priority: "Very High" | "High" | "Medium" | "Low";
   application: string;
   esignCheck: "Yes" | "No";
@@ -26,6 +26,13 @@ export interface IServiceRequest {
     | "Closed - Skipped";
   requestType: string;
   comments: string[];
+  location?: string;
+  environment?: string;
+  workflow?: string;
+  modules?: string[];
+  roles?: string[];
+  notes?: string;
+  attachments?: string[];
 }
 
 const GxpServicePortalRequestSchema = new Schema<IServiceRequest>(
@@ -49,13 +56,34 @@ const GxpServicePortalRequestSchema = new Schema<IServiceRequest>(
       ref: "GxpServiceAssignmentGroup",
       default: null
     },
+    location: {
+      type: String,
+    },
+    environment: {
+      type: String,
+      ref: "GxpServiceEnvironment"
+    },
+    workflow: {
+      type: String,
+      ref: "GxpServiceWorkflow"
+    },
+    modules: {
+      type: [{ type: String, ref: "GxpServiceAppModule" }],
+      default: []
+    },
+    roles: {
+      type: [{ type: String, ref: "GxpServiceAppRoles" }], // Assuming generic string ref or specific model if found later
+      default: []
+    },
+    notes: [{ type: String }],
+    attachments: [{ type: String, ref: "GxpServiceRequestAttachment" }],
     esignCheck: { type: String, enum: ["Yes", "No"], default: "No" },
     trainingDone: { type: Boolean, required: true, default: true },
     description: { type: String, required: true },
     shortDescription: { type: String, required: true },
     closedOn: { type: Date, default: null },
-    closedBy: { type: String, maxlength: 40, default: "" },
-    createdBy: { type: String, maxlength: 40, default: "" },
+    closedBy: { type: String, maxlength: 40, default: null },
+    createdBy: { type: String, maxlength: 40, default: null },
     status: {
       type: String,
       enum: [
