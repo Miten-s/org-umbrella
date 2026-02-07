@@ -9,7 +9,8 @@ import {
   deleteApplication,
   getApplicationGroups,
   deleteAttachments,
-  duplicateApplication
+  duplicateApplication,
+  getApplicationRoles,
 } from "../controllers/gxp-service-applications.controller";
 import API_ROUTES from "../utils/routes";
 import upload from "../middlewares/multer.middleware.js";
@@ -25,6 +26,11 @@ router.get(API_ROUTES.APPLICATIONS.ROOT, getApplications);
 router.get(
   API_ROUTES.APPLICATIONS.GET_APPLICATION_GROUPS,
   getApplicationGroups
+);
+
+router.get(
+  API_ROUTES.APPLICATIONS.GET_APPLICATION_ROLES,
+  getApplicationRoles
 );
 
 router.get(API_ROUTES.APPLICATIONS.BY_ID, getApplicationById);

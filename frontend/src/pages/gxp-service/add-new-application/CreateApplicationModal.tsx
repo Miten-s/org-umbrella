@@ -34,7 +34,7 @@ import type {
 import type { Location } from "@/types/common.types";
 
 type MultiSelectOption = { text: string; value: string };
-type RoleOption = { _id?: string; name?: string; role?: string; roleName?: string };
+type RoleOption = { _id?: string; name?: string; role?: string; roleName?: string ,active?:boolean};
 type IdOrName = { _id?: string; name?: string };
 type ExistingAttachment = { id?: string; path: string; name: string };
 export type ApplicationPayload = Omit<
@@ -184,6 +184,7 @@ const CreateApplicationModal = ({
         users,
         suppliers,
         departments,
+        roles
     } = optionSets;
     const {
         register,
@@ -213,6 +214,17 @@ const CreateApplicationModal = ({
                 .map((s) => ({ text: s.service, value: s._id })) || []
         );
     }, [serviceRequestTypes]);
+
+    useEffect(() => {
+        setRoleOptionsState(
+            roles
+                ?.filter((r) => (r?.active ?? true) && r?._id && (r?.role || r?.name || r?.roleName))
+                .map((r) => ({
+                    text: (r.role ?? r.name ?? r.roleName) as string,
+                    value: r._id as string,
+                })) || []
+        );
+    }, [roles]);
 
     useEffect(() => {
         reset(normalizedDefaults);

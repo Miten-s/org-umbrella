@@ -22,13 +22,15 @@ import {
   getApplicationSoftware,
   getApplicationById,
   getApplicationGroups,
+  getApplicationRoles,
   getServiceTypes,
 } from "@/services/gxp.service";
 import CreateApplicationModal, { ApplicationPayload } from "./CreateApplicationModal";
 import Switch from "@/components/common/form/switch/Switch";
-import { getDepartments, getUsers, getRoles, getLocations } from "@/services/admin.service";
+import { getDepartments, getUsers, getLocations } from "@/services/admin.service";
 import type {
   Application,
+  ApplicationRole,
   ApplicationSoftwareModule,
   ApplicationGroup,
   ApplicationServiceRequestType,
@@ -38,9 +40,7 @@ import type {
   Workflow,
 } from "@/types/gxp-service.types";
 import type { Department, Location } from "@/types/common.types";
-import { RoleType } from "@/utils/common.constants";
-
-type Role = { _id: string; name?: string; role?: string; roleName?: string };
+type Role = ApplicationRole;
 
 const GXPAddNewApplicationPage = () => {
   const { t } = useTranslation();
@@ -116,7 +116,7 @@ const GXPAddNewApplicationPage = () => {
         getSuppliers(),
         getDepartments(),
         getApplicationGroups(),
-        getRoles(RoleType.GXP_SERVICE),
+        getApplicationRoles(),
         getServiceTypes(),
       ]);
       setAppModules(extractList<ApplicationSoftwareModule>(mods, ["modules", "software", "data"]));
@@ -125,7 +125,7 @@ const GXPAddNewApplicationPage = () => {
       setSuppliers(extractList<Supplier>(sups, ["suppliers", "data"]));
       setDepartments(extractList<Department>(deps, ["departments", "data"]));
       setApplicationGroups(extractList<ApplicationGroup>(ags, ["applicationGroups", "data"]));
-      setRoles(extractList<Role>(rs, ["roles", "data"]));
+      setRoles(extractList<Role>(rs, ["applicationRoles", "roles", "data"]));
       setServiceRequestTypes(
         extractList<ApplicationServiceRequestType>(srts, ["service_types", "serviceTypes", "data"])
       );

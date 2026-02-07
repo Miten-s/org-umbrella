@@ -1,12 +1,10 @@
 import GxpServiceAppAttachmentModel from "../models/gxp-service-application-attachments.model";
 import GxpServiceAppGroupModel from "../models/gxp-service-application-groups.model";
+import GxpServiceAppRoleModel from "../models/gxp-service-application-roles.model";
 import GxpServiceApplicationModel, {
   type IApplication
 } from "../models/gxp-service-applications.model";
-import {
-  fetchRolesFromAuthService,
-  fetchUserBasedOnId
-} from "../services/inter-service-calls.service";
+import { fetchUserBasedOnId } from "../services/inter-service-calls.service";
 
 export const createApplication = async (
   payload: Partial<IApplication>,
@@ -35,6 +33,7 @@ export const getApplications = async (
 export const findApplicationById = async (id: string) => {
   const POPULATE_FIELDS = [
     "applicationEnvironment",
+    "applicationRoles",
     "applicationGroups",
     "applicationServiceRequestTypes",
     "applicationModules",
@@ -77,10 +76,6 @@ export const findApplicationById = async (id: string) => {
 
   return {
     ...application,
-    applicationRoles:
-      application.applicationRoles.length > 0
-        ? await fetchRolesFromAuthService(application.applicationRoles)
-        : [],
     applicationSystemOwner:
       applicationSystemOwner && usersMap[applicationSystemOwner.toString()],
     applicationProcessOwner:
@@ -128,4 +123,9 @@ export const deleteAttachments = async (id: string) => {
 export const getApplicationGroups = async () => {
   const groups = await GxpServiceAppGroupModel.find();
   return groups;
+};
+
+export const getApplicationRoles = async () => {
+  const roles = await GxpServiceAppRoleModel.find();
+  return roles;
 };

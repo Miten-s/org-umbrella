@@ -1,6 +1,7 @@
 import * as repo from "../repo/gxp-service-applications.repo";
 import GxpServiceAppGroupModel from "../models/gxp-service-application-groups.model";
 import { GxpServiceAppModuleModel } from "../models/gxp-service-application-modules.model";
+import GxpServiceAppRoleModel from "../models/gxp-service-application-roles.model";
 import GxpServiceAppServiceModel from "../models/gxp-service-application-services.model";
 import { UpdateApplication } from "../types/common.types";
 import GxpServiceAppAttachmentModel from "../models/gxp-service-application-attachments.model";
@@ -146,8 +147,18 @@ export const createApplication = async (
       toSave.applicationServiceRequestTypes = serviceTypeIds;
     }
 
+    const roleIds = await resolveIds(payload.applicationRoles, {
+      model: GxpServiceAppRoleModel,
+      nameField: "role",
+      nameKeys: ["name", "role"],
+      session
+    });
     delete toSave.applicationGroups;
     delete toSave.applicationModules;
+
+    if (roleIds) {
+      toSave.applicationRoles = roleIds;
+    }
 
     const exisitingApplication = await repo.getApplications({
       applicationName: payload.applicationName
@@ -264,6 +275,15 @@ export const updateApplication = async (
   });
   if (serviceTypeIds) {
     modified.applicationServiceRequestTypes = serviceTypeIds;
+  }
+
+  const roleIds = await resolveIds(updates.applicationRoles, {
+    model: GxpServiceAppRoleModel,
+    nameField: "role",
+    nameKeys: ["name", "role"]
+  });
+  if (roleIds) {
+    modified.applicationRoles = roleIds;
   }
 
   const groupIds = await resolveIds(updates.applicationGroups, {
@@ -486,4 +506,8 @@ export const duplicateApplication = async (
   } finally {
     session.endSession();
   }
+};
+
+export const getApplicationRoles = async () => {
+  return await repo.getApplicationRoles();
 };

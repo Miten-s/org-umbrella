@@ -16,6 +16,7 @@ export const API_ROUTES = {
   gxpRoles: "/gxp-roles",
   gxpApplications: "/gxp-applications",
   gxpApplicationGroups: "/gxp-applications/application-groups",
+  gxpApplicationRoles: "/gxp-applications/application-roles",
   gxpApplicationSoftware: "/gxp-application-modules",
   gxpApplicationServices: "/gxp-applications-services",
   gxpUsers: "/gxp-users",
@@ -75,6 +76,11 @@ export const getWorkflows = async () => {
 
 export const getApplicationGroups = async () => {
   const response = await gxpApi.get(API_ROUTES.gxpApplicationGroups);
+  return response["data"];
+};
+
+export const getApplicationRoles = async () => {
+  const response = await gxpApi.get(API_ROUTES.gxpApplicationRoles);
   return response["data"];
 };
 

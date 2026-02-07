@@ -39,7 +39,8 @@ const API_ROUTES = {
     DISABLE_BY_ID: "/disable/:id",
     DELETE_ATTACHMENTS: "/attachments/:attachmentId",
     GET_APPLICATION_GROUPS: "/application-groups",
-    DUPLICATE_BY_ID: "/:id/duplicate"
+    DUPLICATE_BY_ID: "/:id/duplicate",
+    GET_APPLICATION_ROLES: "/application-roles"
   },
   WORKFLOWS: {
     ROOT: "/",

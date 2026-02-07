@@ -137,3 +137,11 @@ export const duplicateApplication = asyncHandler(
     return res.status(201).json(duplicated);
   }
 );
+
+export const getApplicationRoles = asyncHandler(
+  async (_req: Request, res: Response) => {
+    const applicationRoles = await service.getApplicationRoles();
+    return res.status(200).send({ applicationRoles });
+  }
+);
+
