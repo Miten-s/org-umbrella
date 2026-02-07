@@ -13,6 +13,8 @@ import {
 } from "../controllers/gxp-service-applications.controller";
 import API_ROUTES from "../utils/routes";
 import upload from "../middlewares/multer.middleware.js";
+import { validateDto } from "../middlewares/validate-dto.middleware";
+import { CreateApplicationDto, UpdateApplicationDto } from "../dtos/application.dto";
 
 const router = Router();
 
@@ -32,6 +34,7 @@ router.get(API_ROUTES.APPLICATIONS.BY_ID, getApplicationById);
 router.post(
   API_ROUTES.APPLICATIONS.ROOT,
   upload.array("attachments"),
+  validateDto(CreateApplicationDto),
   createApplication
 );
 
@@ -49,6 +52,7 @@ router.post(API_ROUTES.APPLICATIONS.DISABLE_BY_ID, disableApplication);
 router.patch(
   API_ROUTES.APPLICATIONS.BY_ID,
   upload.array("attachments"),
+  validateDto(UpdateApplicationDto),
   updateAppplication
 );
 

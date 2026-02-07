@@ -9,6 +9,8 @@ import {
 } from "../controllers/gxp-service-service-requests.controller.js";
 import upload from "../middlewares/multer.middleware.js";
 import API_ROUTES from "../utils/routes.js";
+import { validateDto } from "../middlewares/validate-dto.middleware.js";
+import { CreateServiceRequestDto, UpdateServiceRequestDto } from "../dtos/service-request.dto.js";
 
 const router = Router();
 
@@ -23,16 +25,16 @@ router.get(API_ROUTES.SERVICE_REQUESTS.BY_ID, getServiceRequestById);
 router.post(
   API_ROUTES.SERVICE_REQUESTS.ROOT,
   upload.array("attachments"),
+  validateDto(CreateServiceRequestDto),
   createServiceRequest
 );
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
 
-// Sanitization is Left for the payload
-
 router.patch(
   API_ROUTES.SERVICE_REQUESTS.BY_ID,
   upload.array("attachments"),
+  validateDto(UpdateServiceRequestDto),
   updateServiceRequest
 );
 

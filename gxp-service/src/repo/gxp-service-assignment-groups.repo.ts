@@ -8,10 +8,6 @@ export const getAllGroups = async () => {
   return await GxpServiceAssignmentGroupModel.find();
 };
 
-export const getGroupByName = async (groupName: string) => {
-  return await GxpServiceAssignmentGroupModel.findOne({ groupName });
-};
-
 export const updateGroup = async (groupName: string, updateData: any) => {
   return await GxpServiceAssignmentGroupModel.findOneAndUpdate(
     { groupName },

@@ -9,6 +9,8 @@ import {
   disableEnvironment
 } from "../controllers/gxp-service-environments.controller";
 import API_ROUTES from "../utils/routes";
+import { validateDto } from "../middlewares/validate-dto.middleware";
+import { CreateEnvironmentDto, UpdateEnvironmentDto } from "../dtos/environment.dto";
 
 const router = Router();
 
@@ -18,11 +20,19 @@ router.get(API_ROUTES.ENVIRONMENT.ROOT, getEnvironments);
 
 // ---------------------------------------------------------------------------------------- POST Requests ----------------------------------------------------------------------------------------
 
-router.post(API_ROUTES.ENVIRONMENT.ROOT, createEnvironment);
+router.post(
+  API_ROUTES.ENVIRONMENT.ROOT,
+  validateDto(CreateEnvironmentDto),
+  createEnvironment
+);
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
 
-router.patch(API_ROUTES.ENVIRONMENT.BY_ID, updateEnvironment);
+router.patch(
+  API_ROUTES.ENVIRONMENT.BY_ID,
+  validateDto(UpdateEnvironmentDto),
+  updateEnvironment
+);
 
 router.patch(API_ROUTES.ENVIRONMENT.ENABLE_BY_ID, enableEnvironment);
 
