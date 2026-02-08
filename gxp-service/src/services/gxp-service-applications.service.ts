@@ -297,10 +297,14 @@ export const duplicateApplication = async (
       throw new Error("Application not found");
     }
 
-    const baseName = sourceApp.applicationName;
-    const regex = new RegExp(
-      `^${baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}-\\((\\d+)\\)$`
-    );
+    let baseName = sourceApp.applicationName;
+    const nameMatch = baseName.match(/^(.*)-\((\d+)\)$/);
+    if (nameMatch) {
+      baseName = nameMatch[1];
+    }
+
+    const escapedBaseName = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`^${escapedBaseName}(?:-\\((\\d+)\\))?$`);
 
     const similarApps = await repo.getApplications({
       applicationName: { $regex: regex }
@@ -309,7 +313,7 @@ export const duplicateApplication = async (
     let maxIndex = 0;
     similarApps.forEach((app) => {
       const match = app.applicationName.match(regex);
-      if (match) {
+      if (match && match[1]) {
         const index = parseInt(match[1], 10);
         if (index > maxIndex) maxIndex = index;
       }
@@ -377,12 +381,17 @@ export const duplicateApplication = async (
       }));
 
       if (newAttachmentDocs.length > 0) {
-        const createdAttachments = await GxpServiceAppAttachmentModel.create(
-          newAttachmentDocs,
+        const attachmentOps = newAttachmentDocs.map((doc) => ({
+          insertOne: { document: doc }
+        }));
+
+        const result = await GxpServiceAppAttachmentModel.bulkWrite(
+          attachmentOps,
           { session }
         );
-        newApp.attachments = createdAttachments.map((doc) =>
-          doc._id.toString()
+
+        newApp.attachments = Object.values(result?.insertedIds ?? {}).map(
+          String
         );
       }
     }
