@@ -116,5 +116,6 @@
   "noPermissionMessage": "ليس لديك إذن لـ {{action}}",
   "moduleName": "اسم الوحدة",
   "isActive": "نشط",
-  "active": "نشط"
+  "active": "نشط",
+  "duplicate": "مكرر"
 }

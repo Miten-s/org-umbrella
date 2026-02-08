@@ -116,5 +116,6 @@
   "noPermissionMessage": "Vous n'avez pas la permission de {{action}}",
   "moduleName": "Nom du module",
   "isActive": "Est actif",
-  "active": "Actif"
+  "active": "Actif",
+  "duplicate": "Dupliquer"
 }

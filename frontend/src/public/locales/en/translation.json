@@ -173,5 +173,6 @@
   "trainingEvidence": "Training Evidence",
   "attachments": "Attachments",
   "isActive": "Is Active",
-  "active": "Active"
+  "active": "Active",
+  "duplicate": "Duplicate"
 }

@@ -118,5 +118,6 @@
   "noPermissionMessage": "आपको {{action}} की अनुमति नहीं है",
   "moduleName": "मॉड्यूल नाम",
   "isActive": "सक्रिय है",
-  "active": "सक्रिय"
+  "active": "सक्रिय",
+  "duplicate": "डुप्लिकेट"
 }

@@ -13,6 +13,7 @@ import {
   createApplication,
   updateApplication,
   deleteApplication,
+  duplicateApplication,
   enableApplication,
   disableApplication,
   // Option datasets (rename if your service names differ)
@@ -202,6 +203,20 @@ const GXPAddNewApplicationPage = () => {
     setAppToDelete(null);
   };
 
+  const handleDuplicate = async (id: string) => {
+    setIsLoadingActive(true);
+    try {
+      await duplicateApplication(id);
+      const refreshed = await getApplications(includeDisabled);
+      setApplications(ensureArray<Application>(refreshed));
+      setReFetch(!reFetch);
+    } catch (e) {
+      console.error("Application duplication failed:", e);
+    } finally {
+      setIsLoadingActive(false);
+    }
+  };
+
   return (
     <>
       {/* Header & Create */}
@@ -234,7 +249,7 @@ const GXPAddNewApplicationPage = () => {
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-800">
             <tr>
-              {["applicationName", "applicationType", "applicationEnvironment", "applicationGroups", "status", "actions"].map(key => (
+              {["applicationName", "applicationType", "applicationEnvironment", "status", "actions"].map(key => (
                 <th
                   key={key}
                   className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
@@ -261,9 +276,10 @@ const GXPAddNewApplicationPage = () => {
                 {/* <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
                   {app.group ?? "-"}
                 </td> */}
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
+                {/* remove as of now */}
+                {/* <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
                   {app.applicationGroups?.map((g) => g.appGroup).join(", ") || "-"}
-                </td>
+                </td> */}
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                   <Switch
                     label={app.status === "enabled" ? t("enabled") : t("disabled")}
@@ -279,6 +295,14 @@ const GXPAddNewApplicationPage = () => {
                     className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
                   >
                     {t("edit")}
+                  </Button>
+                  <Button
+                    onClick={() => handleDuplicate(app._id)}
+                    disabled={isLoadingActive}
+                    variant="outline"
+                    className="text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300 mr-3"
+                  >
+                    {t("duplicate")}
                   </Button>
                   <Button
                     onClick={() => {

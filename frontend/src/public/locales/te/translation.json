@@ -118,5 +118,6 @@
   "noPermissionMessage": "మీకు {{action}} కి అనుమతి లేదు",
   "moduleName": "మాడ్యూల్ పేరు",
   "isActive": "సక్రియంగా ఉంది",
-  "active": "సక్రియం"
+  "active": "సక్రియం",
+  "duplicate": "నకలు"
 }

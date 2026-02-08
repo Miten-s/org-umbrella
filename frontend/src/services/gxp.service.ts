@@ -311,6 +311,12 @@ export const deleteApplication = async (id: string) => {
   return response["data"];
 };
 
+export const duplicateApplication = async (id: string) => {
+  const response = await gxpApi.post(`${API_ROUTES.gxpApplications}/${id}/duplicate`);
+  toastSuccess(response, "Application duplicated successfully");
+  return response["data"];
+};
+
 export const enableApplication = async (id: string) => {
   const response = await gxpApi.patch(`${API_ROUTES.gxpApplications}/enable/${id}`);
   toastSuccess(response, "Application enabled successfully");

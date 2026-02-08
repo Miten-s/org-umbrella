@@ -118,5 +118,6 @@
   "noPermissionMessage": "உங்களுக்கு {{action}} க்கான அனுமதி இல்லை",
   "moduleName": "கூறு பெயர்",
   "isActive": "செயலில் உள்ளது",
-  "active": "செயலில்"
+  "active": "செயலில்",
+  "duplicate": "நகல்"
 }
