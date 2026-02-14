@@ -4,7 +4,7 @@ import asyncHandler from "../middlewares/error.middleware.js";
 
 export const createServiceRequest = asyncHandler(
   async (req: Request, res: Response) => {
-    const { data : payload} = req.body;    
+    const { data: payload } = req.body;
     const user = (req as any).user.id;
     const files = req.files as Express.Multer.File[];
     const attachments = files?.map((file) => file.filename) || [];
@@ -31,7 +31,7 @@ export const getAllSeviceRequests = asyncHandler(
 export const getServiceRequestById = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const result = await service.fetchRequestById(id);
+    const result = await service.fetchRequestById(id as string);
     if (!result) return res.status(404).json({ message: "Not Found" });
     res.status(200).send(result);
   }
@@ -47,13 +47,13 @@ export const getServiceTypes = asyncHandler(
 export const updateServiceRequest = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { data : payload } = req.body;    
+    const { data: payload } = req.body;
 
     const files = req.files as Express.Multer.File[];
     const attachments = files?.map((file) => file.filename) || [];
 
     const result = await service.updateRequest(
-      id,
+      id as string,
       JSON.parse(payload),
       attachments
     );
@@ -70,7 +70,10 @@ export const updateStatusOfRequest = asyncHandler(
 
     if (!status) return res.status(400).json({ message: "Status Not Found" });
 
-    const result = await service.updateRequest(id, { status, comments });
+    const result = await service.updateRequest(id as string, {
+      status,
+      comments
+    });
 
     if (!result) return res.status(404).json({ message: "Not Found" });
     res.status(200).send(result);
@@ -80,7 +83,7 @@ export const updateStatusOfRequest = asyncHandler(
 export const deleteServiceRequest = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const result = await service.deleteRequest(id);
+    const result = await service.deleteRequest(id as string);
     if (!result) return res.status(404).json({ message: "Not Found" });
     res.status(200).send(result);
   }

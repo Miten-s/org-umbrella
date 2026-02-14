@@ -23,14 +23,14 @@ export const getAllGroups = asyncHandler(
 
 export const updateGroup = asyncHandler(async (req: Request, res: Response) => {
   const { groupName } = req.params;
-  const result = await update(groupName, req.body);
+  const result = await update(groupName as string, req.body);
   res.json(result);
 });
 
 export const disableGroup = asyncHandler(
   async (req: Request, res: Response) => {
     const { groupName } = req.params;
-    const result = await disable(groupName);
+    const result = await disable(groupName as string);
     res.json(result);
   }
 );

@@ -21,7 +21,11 @@ export const updateEnvironment = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
     const currentUser = (req as any).user?.id ?? null;
-    const result = await service.updateEnvironment(id, req.body, currentUser);
+    const result = await service.updateEnvironment(
+      id as string,
+      req.body,
+      currentUser
+    );
     res.status(200).send(result);
   }
 );
@@ -29,7 +33,7 @@ export const updateEnvironment = asyncHandler(
 export const disableEnvironment = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const result = await service.disableEnvironment(id);
+    const result = await service.disableEnvironment(id as string);
     res.status(200).send(result);
   }
 );
@@ -37,7 +41,7 @@ export const disableEnvironment = asyncHandler(
 export const enableEnvironment = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const result = await service.restoreEnvironment(id);
+    const result = await service.restoreEnvironment(id as string);
     res.status(200).send(result);
   }
 );
@@ -45,7 +49,7 @@ export const enableEnvironment = asyncHandler(
 export const deleteEnvironment = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const result = await service.deleteEnvironment(id);
+    const result = await service.deleteEnvironment(id as string);
     res.status(200).send(result);
   }
 );

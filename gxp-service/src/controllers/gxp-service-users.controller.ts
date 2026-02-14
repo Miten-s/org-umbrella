@@ -22,7 +22,7 @@ export const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
 export const updateUser = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const data = req.body;
-  const result = await updateUserService(id, data);
+  const result = await updateUserService(id as string, data);
   res.status(200).send(result);
 });
 

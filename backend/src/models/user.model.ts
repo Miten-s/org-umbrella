@@ -36,7 +36,6 @@ export interface IUser
   extends Document,
     IBasicUserFields,
     IConditionalUserFields {
-  _id: string;
   isRecentPassword: (password: string) => Promise<boolean>;
 }
 

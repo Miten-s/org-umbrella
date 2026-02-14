@@ -48,7 +48,7 @@ export const authenticate = async (
 
     // Cache the user data in Redis
     // await cacheResponse({ key: userId, value: JSON.stringify(fetchedUser) });
-    req.user = fetchedUser;
+    req.user = fetchedUser as any;
 
     next();
   } catch {
