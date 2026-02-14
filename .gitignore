@@ -5,3 +5,7 @@
 */logs/*
 .vscode
 redis
+*/uploads
+.agent
+.geminiignore
+ecosystem.config.js

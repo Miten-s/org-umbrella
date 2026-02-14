@@ -1,7 +1,6 @@
 import { Schema, model, Document } from "mongoose";
 
 export interface IDesignation extends Document {
-  _id: string;
   designationName: string;
   description?: string;
   status: "active" | "disabled";

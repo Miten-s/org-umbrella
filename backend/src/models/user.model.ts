@@ -29,13 +29,13 @@ export interface IConditionalUserFields {
   lastLogin?: Date | null;
   createdBy?: string;
   lastPasswords?: string[];
+  signature?: string;
 }
 
 export interface IUser
   extends Document,
-  IBasicUserFields,
-  IConditionalUserFields {
-  _id: string;
+    IBasicUserFields,
+    IConditionalUserFields {
   isRecentPassword: (password: string) => Promise<boolean>;
 }
 
@@ -49,18 +49,18 @@ const AdminSchema: Record<keyof IBasicUserFields, any> = {
   currentLanguage: {
     type: String,
     enum: [
-      'en',
-      'ar',
-      'de',
-      'es',
-      'fr',
-      'he',
-      'it',
-      'hi',
-      'gu',
-      'ta',
-      'te',
-      'mr',
+      "en",
+      "ar",
+      "de",
+      "es",
+      "fr",
+      "he",
+      "it",
+      "hi",
+      "gu",
+      "ta",
+      "te",
+      "mr"
     ],
     default: "en"
   },
@@ -82,7 +82,8 @@ const ClientSchema: Record<keyof IConditionalUserFields, any> = {
   passwordExpiryTime: { type: Date },
   lastLogin: { type: Date },
   lastPasswords: [{ type: String }],
-  createdBy: { type: Schema.Types.ObjectId, ref: "User" }
+  createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+  signature: { type: String }
 };
 
 const UserSchema: Schema = new Schema(

@@ -24,7 +24,7 @@ app.use(
   })
 );
 
-import "./configs/redis.config";
+// import "./configs/redis.config";
 
 app.use(cookierParser());
 
@@ -35,9 +35,6 @@ connectDB();
 app.use(express.json());
 
 // app.use(express.urlencoded({ extended: true }));
-
-// Static folder for serving uploaded images
-app.use("/uploads", express.static("dist/uploads"));
 
 app.get(API_ROUTES.HEALTH, (_req, res) => {
   res.status(200).json({ message: CUSTOM_MESSAGES.HEALTHY_MESSAGE });
