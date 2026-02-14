@@ -1,7 +1,7 @@
 import { toast } from "@/lib/ToastProvider";
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 
-const BASE_URL = "http://localhost:9001/v1/api";
+const BASE_URL = import.meta.env.VITE_API_GXP_BASE_URL ?? "http://localhost:9001/v1/api";
 
 const gxpApi = axios.create({
   baseURL: BASE_URL,
