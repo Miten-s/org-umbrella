@@ -23,7 +23,7 @@ const syncModels = async (modelsFolderPath: string): Promise<void> => {
 
 export const connectDB = async (): Promise<void> => {
   try {
-    await mongoose.connect(process.env.MONGO_URI!);
+    await mongoose.connect(process.env.AUTH_MONGO_URI!);
     await syncModels(path.join(__dirname, "../models"));
     console.log("MongoDB connected!");
   } catch (error) {
