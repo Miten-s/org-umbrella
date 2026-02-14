@@ -21,12 +21,15 @@ export const getServiceRequestById = async (id: string) => {
     .populate("workflow", ["workflowName", "_id"])
     .populate("environment", ["environmentName", "_id"])
     .populate("modules", ["moduleName", "_id"])
+    .populate("roles", ["role", "_id", "active"])
+    .populate("requestTypes", ["service", "_id", "active"])
     .populate("attachments", ["attachment", "_id"])
     .populate({
       path: "application",
       select: [
         "applicationName",
         "_id",
+        "applicationServiceRequestTypes",
         "applicationModules",
         "applicationGroups",
         "attachments",
@@ -40,6 +43,10 @@ export const getServiceRequestById = async (id: string) => {
         {
           path: "applicationGroups",
           select: ["appGroup", "_id"]
+        },
+        {
+          path: "applicationServiceRequestTypes",
+          select: ["service", "_id", "active"]
         },
         {
           path: "attachments",

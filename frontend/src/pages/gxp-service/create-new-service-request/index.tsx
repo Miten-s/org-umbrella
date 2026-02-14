@@ -35,28 +35,60 @@ const GXPCreateNewServiceRequestPage = () => {
   const ensureArray = (val: any) =>
     Array.isArray(val) ? val : (val?.data && Array.isArray(val.data) ? val.data : []);
 
-  const normalizeServiceRequest = (req: any): ServiceRequest => ({
-    _id: req?._id ?? "",
-    priority: req?.priority ?? "Medium",
-    application: req?.application?? "",
-    esignCheck: req?.esignCheck ?? "No",
-    trainingDone: req?.trainingDone ?? true,
-    description: req?.description ?? "",
-    shortDescription: req?.shortDescription ?? "",
-    requestType: req?.requestType ?? "Applications",
-    applicationEnvironment: req?.applicationEnvironment ?? "",
-    group: req?.group ?? "",
-    applicationWorkflow: req?.applicationWorkflow ?? "",
-    applicationModules: req?.applicationModules ?? [],
-    applicationServiceRequestTypes: req?.applicationServiceRequestTypes ?? [],
-    applicationRoles: req?.applicationRoles ?? [],
-    notes: req?.notes ?? "",
-    status: req?.status ?? "New",
-    comments: req?.comments ?? [],
-    createdBy: req?.createdBy,
-    createdAt: req?.createdAt,
-    updatedAt: req?.updatedAt
-  });
+  const normalizeServiceRequest = (req: any): ServiceRequest => {
+    const rawRequestTypes = req?.requestTypes;
+    const normalizedApplication =
+      req?.application && typeof req.application === "object"
+        ? {
+            ...req.application,
+            applicationServiceRequestTypes:
+              req.application.applicationServiceRequestTypes ??
+              (Array.isArray(rawRequestTypes)
+                ? rawRequestTypes
+                : rawRequestTypes
+                  ? [rawRequestTypes]
+                  : [])
+          }
+        : req?.application ?? "";
+
+    return {
+      _id: req?._id ?? "",
+      priority: req?.priority ?? "Medium",
+      application: normalizedApplication,
+      esignCheck: req?.esignCheck ?? "No",
+      trainingDone: req?.trainingDone ?? true,
+      description: req?.description ?? "",
+      shortDescription: req?.shortDescription ?? "",
+      requestType: req?.requestType ?? "Applications",
+      applicationEnvironment: req?.environment ?? req?.applicationEnvironment ?? "",
+      group: req?.assignmentGroup ?? req?.group ?? req?.location ?? "",
+      applicationWorkflow: req?.applicationWorkflow ?? req?.workflow ?? "",
+      applicationModules: req?.applicationModules ?? req?.modules ?? [],
+      applicationServiceRequestTypes: (() => {
+        const serviceValue =
+          req?.applicationServiceRequestTypes ??
+          req?.requestTypes ??
+          req?.requestType;
+        if (Array.isArray(serviceValue)) {
+          if (!serviceValue.length) return "";
+          const first = serviceValue[0];
+          if (typeof first === "string") return first;
+          return first?._id ?? first?.service ?? "";
+        }
+        if (typeof serviceValue === "string") return serviceValue;
+        return serviceValue?._id ?? serviceValue?.service ?? "";
+      })(),
+      requestTypes: rawRequestTypes,
+      applicationRoles: req?.roles ?? req?.applicationRoles ?? [],
+      notes: Array.isArray(req?.notes) ? req.notes.join("\n") : (req?.notes ?? ""),
+      status: req?.status ?? "New",
+      comments: req?.comments ?? [],
+      attachments: req?.attachments ?? [],
+      createdBy: req?.createdBy,
+      createdAt: req?.createdAt,
+      updatedAt: req?.updatedAt
+    };
+  };
   useEffect(() => {
     (async () => {
       const [requests, apps] = await Promise.all([
@@ -81,17 +113,53 @@ const GXPCreateNewServiceRequestPage = () => {
     }
   };
 
-  const handleSave = async (data: ServiceRequestFormOutput) => {
+  const toServiceRequestPayload = (
+    data: ServiceRequestFormOutput,
+    existingAttachmentIds: string[]
+  ) => {
+    const selectedServiceType = data.applicationServiceRequestTypes?.trim() || "";
+
+    return {
+    priority: data.priority,
+    application: data.application,
+    assignmentGroup: data.group || undefined,
+    environment: data.applicationEnvironment || undefined,
+    workflow: data.applicationWorkflow || undefined,
+    modules: data.applicationModules || [],
+    roles: data.applicationRoles || [],
+    requestType: selectedServiceType || undefined,
+    requestTypes: selectedServiceType || undefined,
+    notes: data.notes ? [data.notes] : [],
+    esignCheck: data.esignCheck,
+    trainingDone: data.trainingDone,
+    description: data.description,
+    shortDescription: data.shortDescription,
+    status: data.status,
+    comments: data.comments || [],
+    attachments: existingAttachmentIds
+    };
+  };
+
+  const handleSave = async (
+    data: ServiceRequestFormOutput,
+    newAttachments: File[],
+    existingAttachmentIds: string[]
+  ) => {
     try {
+      const payload = toServiceRequestPayload(data, existingAttachmentIds);
       if (activeRequest) {
-        const updated = await updateServiceRequest(activeRequest._id, data);
+        const updated = await updateServiceRequest(
+          activeRequest._id,
+          payload,
+          newAttachments
+        );
         setServiceRequests((prev) =>
           prev.map((req) =>
             req._id === updated?._id ? normalizeServiceRequest(updated) : req
           )
         );
       } else {
-        const created = await createServiceRequest(data);
+        const created = await createServiceRequest(payload, newAttachments);
         setServiceRequests((prev) => [normalizeServiceRequest(created), ...(prev || [])]);
       }
       setActiveRequest(null);

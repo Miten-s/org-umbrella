@@ -1,29 +1,29 @@
 {
   "en": {
-    "active": "Active"
+    "duplicate": "Duplicate"
   },
   "ar": {
-    "active": "نشط"
+    "duplicate": "مكرر"
   },
   "es": {
-    "active": "Activo"
+    "duplicate": "Duplicado"
   },
   "fr": {
-    "active": "Actif"
+    "duplicate": "Dupliquer"
   },
   "hi": {
-    "active": "सक्रिय"
+    "duplicate": "डुप्लिकेट"
   },
   "gu": {
-    "active": "સક્રિય"
+    "duplicate": "ડુપ્લિકેટ"
   },
   "ta": {
-    "active": "செயலில்"
+    "duplicate": "நகல்"
   },
   "te": {
-    "active": "సక్రియం"
+    "duplicate": "నకలు"
   },
   "mr": {
-    "active": "सक्रिय"
+    "duplicate": "डुप्लिकेट"
   }
 }

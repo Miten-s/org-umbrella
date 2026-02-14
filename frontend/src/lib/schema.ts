@@ -269,7 +269,7 @@ export const getServiceRequestSchema = z.object({
   group: z.string().optional().default(""),
   applicationWorkflow: z.string().optional().default(""),
   applicationModules: z.array(z.string()).optional().default([]),
-  applicationServiceRequestTypes: z.array(z.string()).optional().default([]),
+  applicationServiceRequestTypes: z.string().optional().default(""),
   applicationRoles: z.array(z.string()).optional().default([]),
   notes: z.string().optional().default(""),
   status: z

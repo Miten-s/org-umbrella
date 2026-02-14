@@ -20,6 +20,12 @@ import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
 import { applicationTypeOptions } from "@/types/common.types";
 import { useGlobalContext } from "@/context";
 import { getGxpImageUrl } from "@/services/utils.service";
+import {
+    appendUniqueString,
+    mapToIdOrNameArray,
+    normalizeMixedId,
+    normalizeMixedIdArray,
+} from "@/utils/mixed-value";
 import type {
     Application,
     ApplicationGroup,
@@ -49,7 +55,7 @@ export type ApplicationPayload = Omit<
     applicationGroups: IdOrName[];
     applicationServiceRequestTypes: string[];
     applicationModules: IdOrName[];
-    departments: IdOrName[];
+    departments: string[];
     attachments: string[];
 };
 
@@ -94,18 +100,6 @@ const DEFAULT_FORM_VALUES: ApplicationFormInput = {
     status: "enabled",
 };
 
-const normalizeId = (value: string | { _id: string } | null | undefined): string => {
-    if (!value) return "";
-    return typeof value === "string" ? value : value._id;
-};
-
-const normalizeIdArray = (value: unknown): string[] => {
-    if (!Array.isArray(value)) return [];
-    return value
-        .map((v: any) => (typeof v === "string" ? v : v?._id))
-        .filter(Boolean);
-};
-
 const normalizeAttachmentArray = (value: unknown): string[] => {
     if (!Array.isArray(value)) return [];
     return value
@@ -144,17 +138,17 @@ const normalizeInitialValues = (data?: Application | null): ApplicationFormInput
     ...DEFAULT_FORM_VALUES,
     applicationName: data?.applicationName ?? DEFAULT_FORM_VALUES.applicationName,
     applicationType: data?.applicationType ?? DEFAULT_FORM_VALUES.applicationType,
-    applicationEnvironment: normalizeId(data?.applicationEnvironment),
-    group: normalizeId(data?.group),
-    applicationRoles: normalizeIdArray(data?.applicationRoles),
-    applicationGroups: normalizeIdArray(data?.applicationGroups),
-    applicationServiceRequestTypes: normalizeIdArray(data?.applicationServiceRequestTypes),
-    applicationModules: normalizeIdArray(data?.applicationModules),
-    applicationWorkflow: normalizeId(data?.applicationWorkflow),
-    applicationSystemOwner: normalizeId(data?.applicationSystemOwner),
-    applicationProcessOwner: normalizeId(data?.applicationProcessOwner),
-    supplier: normalizeId(data?.supplier),
-    departments: normalizeIdArray(data?.departments),
+    applicationEnvironment: normalizeMixedId(data?.applicationEnvironment),
+    group: normalizeMixedId(data?.group),
+    applicationRoles: normalizeMixedIdArray(data?.applicationRoles),
+    applicationGroups: normalizeMixedIdArray(data?.applicationGroups),
+    applicationServiceRequestTypes: normalizeMixedIdArray(data?.applicationServiceRequestTypes),
+    applicationModules: normalizeMixedIdArray(data?.applicationModules),
+    applicationWorkflow: normalizeMixedId(data?.applicationWorkflow),
+    applicationSystemOwner: normalizeMixedId(data?.applicationSystemOwner),
+    applicationProcessOwner: normalizeMixedId(data?.applicationProcessOwner),
+    supplier: normalizeMixedId(data?.supplier),
+    departments: normalizeMixedIdArray(data?.departments),
     notes: data?.notes ?? DEFAULT_FORM_VALUES.notes,
     attachments: normalizeAttachmentArray(data?.attachments ?? DEFAULT_FORM_VALUES.attachments),
     status: data?.status ?? DEFAULT_FORM_VALUES.status,
@@ -244,7 +238,7 @@ const CreateApplicationModal = ({
                 })
                 .filter(Boolean) as ExistingAttachment[]
         );
-    }, [normalizedDefaults, reset]);
+    }, [normalizedDefaults, reset, resolvedInitial?.attachments]);
 
     useEffect(() => {
         setAppGroupOptions(
@@ -271,30 +265,16 @@ const CreateApplicationModal = ({
 
     const onFormSubmit: SubmitHandler<ApplicationFormInput> = async (data) => {
         const parsed: ApplicationFormOutput = getApplicationSchema.parse(data);
-        const mapToIdObjects = (
-            values: string[] | undefined,
-            options: MultiSelectOption[]
-        ): IdOrName[] => {
-            if (!values?.length) return [];
-            const optionMap = new Map(options.map((opt) => [opt.value, opt.text]));
-            return values.map((val) => {
-                const text = optionMap.get(val);
-                if (text && text !== val) return { _id: val, name: text };
-                return { name: text ?? val };
-            });
-        };
 
         const payload: ApplicationPayload = {
             ...parsed,
             notes: parsed.notes ?? "",
-            applicationRoles: mapToIdObjects(parsed.applicationRoles, roleOptionsState),
-            applicationGroups: mapToIdObjects(parsed.applicationGroups, appGroupOptions),
+            applicationRoles: mapToIdOrNameArray(parsed.applicationRoles, roleOptionsState),
+            applicationGroups: mapToIdOrNameArray(parsed.applicationGroups, appGroupOptions),
             applicationServiceRequestTypes: parsed.applicationServiceRequestTypes || [],
-            applicationModules: mapToIdObjects(parsed.applicationModules, appModuleOptions),
-            departments: mapToIdObjects(
-                parsed.departments,
-                departments.map((d) => ({ text: d.departmentName, value: d._id }))
-            ),
+            applicationModules: mapToIdOrNameArray(parsed.applicationModules, appModuleOptions),
+            // Departments are select-only (no free text), so send pure IDs.
+            departments: parsed.departments || [],
             attachments: existingAttachments
                 .map((att) => att.id)
                 .filter((id): id is string => Boolean(id)),
@@ -311,9 +291,6 @@ const CreateApplicationModal = ({
             toggleLoading(false);
         }
     };
-
-    const appendUnique = (current: string[] | undefined, next: string) =>
-        current?.includes(next) ? current : [...(current || []), next];
 
     const removeExistingAttachment = (idx: number) => {
         setExistingAttachments((prev) => prev.filter((_, removeIdx) => removeIdx !== idx));
@@ -437,7 +414,7 @@ const CreateApplicationModal = ({
                                                     : [...prev, optionToAdd]
                                             );
                                             field.onChange(
-                                                appendUnique(field.value, optionToAdd.value)
+                                                appendUniqueString(field.value, optionToAdd.value)
                                             );
                                         }}
                                     />
@@ -468,7 +445,7 @@ const CreateApplicationModal = ({
                                                     ? prev
                                                     : [...prev, optionToAdd]
                                             );
-                                            field.onChange(appendUnique(field.value, optionToAdd.value));
+                                            field.onChange(appendUniqueString(field.value, optionToAdd.value));
                                         }}
                                     />
                                 )}
@@ -502,7 +479,7 @@ const CreateApplicationModal = ({
                                                     : [...prev, optionToAdd]
                                             );
                                             field.onChange(
-                                                appendUnique(field.value, optionToAdd.value)
+                                                appendUniqueString(field.value, optionToAdd.value)
                                             );
                                         }}
                                     />
@@ -533,7 +510,7 @@ const CreateApplicationModal = ({
                                                     ? prev
                                                     : [...prev, optionToAdd]
                                             );
-                                            field.onChange(appendUnique(field.value, optionToAdd.value));
+                                            field.onChange(appendUniqueString(field.value, optionToAdd.value));
                                         }}
                                     />
                                 )}

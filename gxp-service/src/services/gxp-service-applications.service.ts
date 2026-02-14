@@ -12,7 +12,7 @@ import {
 } from "./inter-service-calls.service";
 import { GxpServiceRequestModel } from "../models/gxp-service-service-requests.model";
 
-type ResolveIdsOptions = {
+export type ResolveIdsOptions = {
   model: mongoose.Model<any>;
   nameField: string;
   nameKeys: string[];
@@ -27,7 +27,7 @@ type ResolveIdsOptions = {
  * Creates missing records for new names using bulkWrite.
  * Returns a de-duplicated list of resolved ObjectId strings.
  */
-const resolveIds = async (
+export const resolveIds = async (
   rawValues: unknown,
   options: ResolveIdsOptions
 ): Promise<string[] | undefined> => {
@@ -137,12 +137,15 @@ export const createApplication = async (
       modifiedBy: currentUser ?? null
     };
 
-    const serviceTypeIds = await resolveIds(payload.applicationServiceRequestTypes, {
-      model: GxpServiceAppServiceModel,
-      nameField: "service",
-      nameKeys: ["name", "service"],
-      session
-    });
+    const serviceTypeIds = await resolveIds(
+      payload.applicationServiceRequestTypes,
+      {
+        model: GxpServiceAppServiceModel,
+        nameField: "service",
+        nameKeys: ["name", "service"],
+        session
+      }
+    );
     if (serviceTypeIds) {
       toSave.applicationServiceRequestTypes = serviceTypeIds;
     }
@@ -268,11 +271,14 @@ export const updateApplication = async (
   delete modified.applicationGroups;
   delete modified.applicationModules;
 
-  const serviceTypeIds = await resolveIds(updates.applicationServiceRequestTypes, {
-    model: GxpServiceAppServiceModel,
-    nameField: "service",
-    nameKeys: ["name", "service"]
-  });
+  const serviceTypeIds = await resolveIds(
+    updates.applicationServiceRequestTypes,
+    {
+      model: GxpServiceAppServiceModel,
+      nameField: "service",
+      nameKeys: ["name", "service"]
+    }
+  );
   if (serviceTypeIds) {
     modified.applicationServiceRequestTypes = serviceTypeIds;
   }

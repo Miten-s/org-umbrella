@@ -10,7 +10,7 @@ export const createApplication = asyncHandler(
     const attachments = files?.map((file) => file.filename) || [];
 
     const created = await service.createApplication(
-      JSON.parse(payload),
+      payload,
       currentUser ?? undefined,
       attachments
     );
@@ -48,7 +48,7 @@ export const updateAppplication = asyncHandler(
 
     const updated = await service.updateApplication(
       id,
-      JSON.parse(payload),
+      payload,
       currentUser ?? undefined,
       attachments
     );
@@ -127,8 +127,7 @@ export const getApplicationGroups = asyncHandler(
 export const duplicateApplication = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const currentUser =
-      (req as any).user?.username;
+    const currentUser = (req as any).user?.username;
 
     const duplicated = await service.duplicateApplication(
       id,
@@ -144,4 +143,3 @@ export const getApplicationRoles = asyncHandler(
     return res.status(200).send({ applicationRoles });
   }
 );
-

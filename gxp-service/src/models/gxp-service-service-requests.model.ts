@@ -24,7 +24,7 @@ export interface IServiceRequest {
     | "Closed - Incomplete"
     | "Closed - Complete"
     | "Closed - Skipped";
-  requestType: string;
+  requestTypes?: string;
   comments: string[];
   location?: string;
   environment?: string;
@@ -57,7 +57,7 @@ const GxpServicePortalRequestSchema = new Schema<IServiceRequest>(
       default: null
     },
     location: {
-      type: String,
+      type: String
     },
     environment: {
       type: String,
@@ -96,7 +96,11 @@ const GxpServicePortalRequestSchema = new Schema<IServiceRequest>(
       ],
       default: "New"
     },
-    requestType: { type: String, default: "Applications" },
+    requestTypes: {
+      type: String,
+      ref: "GxpServiceAppService",
+      default: null
+    },
     comments: [{ type: String }]
   },
   { timestamps: true, _id: false, collection: "gxp-service-service-requests" }

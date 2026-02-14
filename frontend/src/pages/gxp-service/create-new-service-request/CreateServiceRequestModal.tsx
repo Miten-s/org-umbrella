@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, SubmitHandler, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
@@ -7,6 +7,8 @@ import Label from "@/components/common/form/Label";
 import Input from "@/components/common/form/input/InputField";
 import TextArea from "@/components/common/form/input/TextArea";
 import MultiSelect from "@/components/common/form/MultiSelect";
+import FileUpload from "@/components/common/form/input/FileUpload";
+import Radio from "@/components/common/form/input/Radio";
 import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
 import Button from "@/components/ui/button/Button";
 import Switch from "@/components/common/form/switch/Switch";
@@ -19,25 +21,27 @@ import type { Application, ServiceRequest } from "@/types/gxp-service.types";
 import { useGlobalContext } from "@/context";
 import {
   getApplicationById,
+  getApplicationRoles,
   getApplicationSoftware,
+  getAssignmentGroups,
   getEnvironments,
-  getServiceTypes,
   getWorkflows
 } from "@/services/gxp.service";
-import { getLocations } from "@/services/admin.service";
 import { getGxpImageUrl } from "@/services/utils.service";
-import { ChipList } from "@/components/common/form/chipList";
+import {
+  appendUniqueString,
+  normalizeMixedId,
+  normalizeMixedIdArray
+} from "@/utils/mixed-value";
 
 type DropdownOption = { label: string; value: string };
 type MultiSelectOption = { text: string; value: string };
+type ExistingAttachment = { id?: string; path: string; name: string };
+type RoleOption = { _id?: string; role?: string; name?: string; roleName?: string; active?: boolean };
 type ApplicationDetails = {
   environmentId: string;
-  environmentName: string;
-  groupId: string;
-  locationId: string;
-  locationName: string;
+  assignmentGroupId: string;
   workflowId: string;
-  workflowName: string;
   moduleIds: string[];
   moduleNames: string[];
   serviceTypeIds: string[];
@@ -45,12 +49,15 @@ type ApplicationDetails = {
   roleIds: string[];
   roleNames: string[];
   notes: string;
-  attachments: string[];
 };
 
 interface CreateServiceRequestModalProps {
   onClose: () => void;
-  onSubmit: (data: ServiceRequestFormOutput) => void | Promise<void>;
+  onSubmit: (
+    data: ServiceRequestFormOutput,
+    attachments: File[],
+    existingAttachments: string[]
+  ) => void | Promise<void>;
   initialData?: ServiceRequest | ServiceRequest[] | null;
   optionSets: {
     applications: any[];
@@ -58,34 +65,46 @@ interface CreateServiceRequestModalProps {
   };
 }
 
-const normalizeId = (value: any): string => {
-  if (!value) return "";
-  if (typeof value === "string") return value;
-  return value?._id ?? value?.value ?? "";
-};
-
-const normalizeIdArray = (value: any): string[] => {
-  if (!Array.isArray(value)) return [];
-  return value.map((item) => normalizeId(item)).filter(Boolean);
-};
-
 const normalizeInitialValues = (
   data?: ServiceRequest | null
 ): ServiceRequestFormInput => ({
   priority: data?.priority ?? "Medium",
-  application: normalizeId(data?.application),
+  application: normalizeMixedId(data?.application),
   esignCheck: data?.esignCheck ?? "No",
   trainingDone: data?.trainingDone ?? true,
   description: data?.description ?? "",
   shortDescription: data?.shortDescription ?? "",
   requestType: data?.requestType ?? "Applications",
-  applicationEnvironment: normalizeId((data as any)?.applicationEnvironment),
-  group: normalizeId((data as any)?.group),
-  applicationWorkflow: normalizeId((data as any)?.applicationWorkflow),
-  applicationModules: normalizeIdArray((data as any)?.applicationModules),
-  applicationServiceRequestTypes: normalizeIdArray((data as any)?.applicationServiceRequestTypes),
-  applicationRoles: normalizeIdArray((data as any)?.applicationRoles),
-  notes: (data as any)?.notes ?? "",
+  applicationEnvironment: normalizeMixedId(
+    (data as any)?.applicationEnvironment ?? (data as any)?.environment
+  ),
+  group: normalizeMixedId((data as any)?.assignmentGroup ?? (data as any)?.group),
+  applicationWorkflow: normalizeMixedId(
+    (data as any)?.applicationWorkflow ?? (data as any)?.workflow
+  ),
+  applicationModules: normalizeMixedIdArray(
+    (data as any)?.applicationModules ?? (data as any)?.modules
+  ),
+  applicationServiceRequestTypes: (() => {
+    const serviceValue =
+      (data as any)?.applicationServiceRequestTypes ??
+      (data as any)?.requestTypes ??
+      (data as any)?.requestType;
+    if (Array.isArray(serviceValue)) {
+      const first = serviceValue[0];
+      if (!first) return "";
+      if (typeof first === "string") return first;
+      return normalizeMixedId(first) || first?.service || first?.name || "";
+    }
+    if (typeof serviceValue === "string") return serviceValue;
+    return normalizeMixedId(serviceValue) || serviceValue?.service || serviceValue?.name || "";
+  })(),
+  applicationRoles: normalizeMixedIdArray(
+    (data as any)?.applicationRoles ?? (data as any)?.roles
+  ),
+  notes: Array.isArray((data as any)?.notes)
+    ? ((data as any)?.notes || []).join("\n")
+    : ((data as any)?.notes ?? ""),
   status: data?.status ?? "New",
   comments: data?.comments ?? []
 });
@@ -116,14 +135,10 @@ const getText = (value: any, preferredKey?: string): string => {
 
 const mapApplicationToDetails = (app: Application): ApplicationDetails => {
   const environmentId = getId(app?.applicationEnvironment);
-  const environmentName = getText(app?.applicationEnvironment, "environmentName");
 
-  const groupId = getId(app?.group);
-  const locationId = groupId;
-  const locationName = getText(app?.group, "locationName") || getText(app?.group, "groupName");
+  const assignmentGroupId = getId(app?.group);
 
   const workflowId = getId(app?.applicationWorkflow);
-  const workflowName = getText(app?.applicationWorkflow, "workflowName");
 
   const moduleIds =
     app?.applicationModules
@@ -140,38 +155,23 @@ const mapApplicationToDetails = (app: Application): ApplicationDetails => {
     app?.applicationServiceRequestTypes
       ?.map((s: any) => getText(s, "service") || getId(s))
       .filter(Boolean) ?? [];
-
   const roleIds = app?.applicationRoles?.map((r: any) => getId(r)).filter(Boolean) ?? [];
   const roleNames =
     app?.applicationRoles
       ?.map((r: any) => getText(r, "role") || getText(r, "name") || getId(r))
       .filter(Boolean) ?? [];
 
-  const attachments =
-    (app?.attachments || [])
-      .map((att: any) =>
-        typeof att === "string"
-          ? att
-          : att?.attachment ?? att?.filename ?? att?.attachmentLink ?? ""
-      )
-      .filter(Boolean) ?? [];
-
   return {
     environmentId,
-    environmentName,
-    groupId,
-    locationId,
-    locationName,
+    assignmentGroupId,
     workflowId,
-    workflowName,
     moduleIds,
     moduleNames,
     serviceTypeIds,
     serviceTypeNames,
     roleIds,
     roleNames,
-    notes: app?.notes ?? "",
-    attachments
+    notes: app?.notes ?? ""
   };
 };
 
@@ -182,6 +182,26 @@ const mergeUniqueOptions = (
   const map = new Map(base.map((opt) => [opt.value, opt]));
   extra.forEach((opt) => {
     if (opt.value && opt.text && !map.has(opt.value)) {
+      map.set(opt.value, opt);
+    }
+  });
+  return Array.from(map.values());
+};
+
+const mergeUniqueDropdownOptions = (
+  base: DropdownOption[],
+  extra: DropdownOption[]
+): DropdownOption[] => {
+  const map = new Map(base.map((opt) => [opt.value, opt]));
+  extra.forEach((opt) => {
+    if (!opt.value || !opt.label) return;
+    const existing = map.get(opt.value);
+    if (!existing) {
+      map.set(opt.value, opt);
+      return;
+    }
+    // Prefer human-friendly label over raw id label.
+    if (existing.label === existing.value && opt.label !== opt.value) {
       map.set(opt.value, opt);
     }
   });
@@ -200,6 +220,21 @@ const buildOptionsFromPairs = (ids: string[], names: string[]): MultiSelectOptio
   return results;
 };
 
+const buildRoleOptionsFromValues = (values: any): MultiSelectOption[] => {
+  if (!Array.isArray(values)) return [];
+  return values
+    .map((r: any) => {
+      const value = normalizeMixedId(r);
+      const text =
+        (typeof r === "object" &&
+          (r?.role || r?.name || r?.roleName || r?.label || r?.value)) ||
+        value;
+      if (!value) return null;
+      return { value, text } as MultiSelectOption;
+    })
+    .filter(Boolean) as MultiSelectOption[];
+};
+
 const CreateServiceRequestModal = ({
   onClose,
   onSubmit,
@@ -214,14 +249,18 @@ const CreateServiceRequestModal = ({
   const { toggleLoading, loading } = useGlobalContext();
   const { t } = useTranslation();
   const { applications } = optionSets;
+  const initialApplicationIdRef = useRef<string>(normalizedDefaults.application ?? "");
+  const hasUserChangedApplicationRef = useRef(false);
   const [appDetails, setAppDetails] = useState<ApplicationDetails | null>(null);
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [existingAttachments, setExistingAttachments] = useState<ExistingAttachment[]>([]);
   const [environmentOptions, setEnvironmentOptions] = useState<DropdownOption[]>([]);
-  const [locationOptions, setLocationOptions] = useState<DropdownOption[]>([]);
+  const [assignmentGroupOptions, setAssignmentGroupOptions] = useState<DropdownOption[]>([]);
   const [workflowOptions, setWorkflowOptions] = useState<DropdownOption[]>([]);
   const [moduleBaseOptions, setModuleBaseOptions] = useState<MultiSelectOption[]>([]);
   const [moduleOptions, setModuleOptions] = useState<MultiSelectOption[]>([]);
-  const [serviceTypeBaseOptions, setServiceTypeBaseOptions] = useState<MultiSelectOption[]>([]);
-  const [serviceTypeOptions, setServiceTypeOptions] = useState<MultiSelectOption[]>([]);
+  const [serviceTypeOptions, setServiceTypeOptions] = useState<DropdownOption[]>([]);
+  const [roleBaseOptions, setRoleBaseOptions] = useState<MultiSelectOption[]>([]);
   const [roleOptions, setRoleOptions] = useState<MultiSelectOption[]>([]);
   const {
     control,
@@ -235,11 +274,29 @@ const CreateServiceRequestModal = ({
   });
 
   const selectedApplication = useWatch({ control, name: "application" });
-  const showAppFields = !!selectedApplication;
+  const selectedServiceRequestTypes = useWatch({
+    control,
+    name: "applicationServiceRequestTypes"
+  });
   useEffect(() => {
     reset(normalizedDefaults);
+    initialApplicationIdRef.current = normalizedDefaults.application ?? "";
+    hasUserChangedApplicationRef.current = false;
     setAppDetails(null);
-  }, [normalizedDefaults, reset]);
+    setAttachments([]);
+    setExistingAttachments(
+      ((resolvedInitial as any)?.attachments || [])
+        .map((att: any) => {
+          const path =
+            typeof att === "string"
+              ? att
+              : att?.attachment ?? att?.filename ?? att?.path ?? "";
+          if (!path) return null;
+          return { id: att?._id, path, name: prettifyAttachmentName(path) };
+        })
+        .filter(Boolean) as ExistingAttachment[]
+    );
+  }, [normalizedDefaults, reset, resolvedInitial]);
 
   const toDropdown = (item: any, labelKey: string, valueKey: string = "_id"): DropdownOption => ({
     label: item?.[labelKey] ?? item?.name ?? String(item?.[valueKey] ?? ""),
@@ -258,6 +315,24 @@ const CreateServiceRequestModal = ({
     return Array.isArray(firstArray) ? (firstArray as T[]) : [];
   };
 
+  const getServiceTypeOptionsFromApplication = (app: any): DropdownOption[] => {
+    const appServiceTypes = Array.isArray(app?.applicationServiceRequestTypes)
+      ? app.applicationServiceRequestTypes
+      : [];
+
+    return appServiceTypes
+      .map((serviceType: any) => {
+        const value = normalizeMixedId(serviceType);
+        const label =
+          (typeof serviceType === "object" &&
+            (serviceType?.service || serviceType?.name || serviceType?.value)) ||
+          value;
+        if (!value) return null;
+        return { value, label: String(label || value) } as DropdownOption;
+      })
+      .filter(Boolean) as DropdownOption[];
+  };
+
   const statusOptions: DropdownOption[] = [
     { label: "New", value: "New" },
     { label: "In Progress", value: "In Progress" },
@@ -274,15 +349,15 @@ const CreateServiceRequestModal = ({
     { label: "Low", value: "Low" }
   ];
 
-  const esignOptions: DropdownOption[] = [
-    { label: t("yes") ?? "Yes", value: "Yes" },
-    { label: t("no") ?? "No", value: "No" }
-  ];
   const onFormSubmit: SubmitHandler<ServiceRequestFormInput> = async (data) => {
     const parsed: ServiceRequestFormOutput = getServiceRequestSchema.parse(data);
     try {
       toggleLoading(true);
-      await onSubmit(parsed);
+      await onSubmit(
+        parsed,
+        attachments,
+        existingAttachments.map((att) => att.id).filter(Boolean) as string[]
+      );
     } finally {
       toggleLoading(false);
     }
@@ -291,37 +366,89 @@ const CreateServiceRequestModal = ({
   const renderError = (message?: string) =>
     message ? <p className="text-red-500 text-xs mt-1">{message}</p> : null;
 
-  const appendUnique = (current: string[] | undefined, next: string) =>
-    current?.includes(next) ? current : [...(current || []), next];
+  const removeExistingAttachment = (idx: number) => {
+    setExistingAttachments((prev) => prev.filter((_, removeIdx) => removeIdx !== idx));
+  };
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [envs, locs, wfs, modules, serviceTypes] = await Promise.all([
+        const [envs, groups, wfs, modules, appRoles] = await Promise.all([
           getEnvironments(),
-          getLocations(),
+          getAssignmentGroups(),
           getWorkflows(),
           getApplicationSoftware(),
-          getServiceTypes()
+          getApplicationRoles()
         ]);
 
         if (cancelled) return;
 
-        setEnvironmentOptions(
-          extractList<any>(envs, ["environments", "data"]).map((env) =>
-            toDropdown(env, "environmentName")
-          )
+        const baseEnvironmentOptions = extractList<any>(envs, ["environments", "data"]).map(
+          (env) => toDropdown(env, "environmentName")
         );
-        setLocationOptions(
-          extractList<any>(locs, ["locations", "data"]).map((loc) =>
-            toDropdown(loc, "locationName")
-          )
+        const baseAssignmentGroupOptions = extractList<any>(groups, [
+          "assignmentGroups",
+          "data"
+        ]).map((group) => toDropdown(group, "groupName"));
+        const baseWorkflowOptions = extractList<any>(wfs, ["workflows", "data"]).map((wf) =>
+          toDropdown(wf, "workflowName")
+        );
+
+        const initialEnvironment = (resolvedInitial as any)?.environment ??
+          (resolvedInitial as any)?.applicationEnvironment;
+        const initialAssignmentGroup = (resolvedInitial as any)?.assignmentGroup ??
+          (resolvedInitial as any)?.group;
+        const initialWorkflow = (resolvedInitial as any)?.workflow ??
+          (resolvedInitial as any)?.applicationWorkflow;
+
+        const extraEnvironmentOptions: DropdownOption[] = [];
+        const initialEnvironmentId = normalizeMixedId(initialEnvironment);
+        const initialEnvironmentLabel =
+          (initialEnvironment && typeof initialEnvironment === "object"
+            ? (initialEnvironment.environmentName ?? initialEnvironment.name)
+            : "") || initialEnvironmentId;
+        if (initialEnvironmentId) {
+          extraEnvironmentOptions.push({
+            value: initialEnvironmentId,
+            label: String(initialEnvironmentLabel)
+          });
+        }
+
+        const extraAssignmentGroupOptions: DropdownOption[] = [];
+        const initialAssignmentGroupId = normalizeMixedId(initialAssignmentGroup);
+        const initialAssignmentGroupLabel =
+          (initialAssignmentGroup && typeof initialAssignmentGroup === "object"
+            ? (initialAssignmentGroup.groupName ?? initialAssignmentGroup.name)
+            : "") || initialAssignmentGroupId;
+        if (initialAssignmentGroupId) {
+          extraAssignmentGroupOptions.push({
+            value: initialAssignmentGroupId,
+            label: String(initialAssignmentGroupLabel)
+          });
+        }
+
+        const extraWorkflowOptions: DropdownOption[] = [];
+        const initialWorkflowId = normalizeMixedId(initialWorkflow);
+        const initialWorkflowLabel =
+          (initialWorkflow && typeof initialWorkflow === "object"
+            ? (initialWorkflow.workflowName ?? initialWorkflow.name)
+            : "") || initialWorkflowId;
+        if (initialWorkflowId) {
+          extraWorkflowOptions.push({
+            value: initialWorkflowId,
+            label: String(initialWorkflowLabel)
+          });
+        }
+
+        setEnvironmentOptions(
+          mergeUniqueDropdownOptions(baseEnvironmentOptions, extraEnvironmentOptions)
+        );
+        setAssignmentGroupOptions(
+          mergeUniqueDropdownOptions(baseAssignmentGroupOptions, extraAssignmentGroupOptions)
         );
         setWorkflowOptions(
-          extractList<any>(wfs, ["workflows", "data"]).map((wf) =>
-            toDropdown(wf, "workflowName")
-          )
+          mergeUniqueDropdownOptions(baseWorkflowOptions, extraWorkflowOptions)
         );
         const moduleOptionsList = extractList<any>(modules, ["modules", "software", "data"]).map(
           (mod) => ({
@@ -329,17 +456,14 @@ const CreateServiceRequestModal = ({
             value: mod?._id ?? ""
           })
         );
-        const serviceTypeOptionsList = extractList<any>(serviceTypes, [
-          "service_types",
-          "serviceTypes",
-          "data"
-        ]).map((serviceType) => ({
-          text: serviceType?.service ?? "",
-          value: serviceType?._id ?? ""
-        }));
         setModuleBaseOptions(moduleOptionsList.filter((opt) => opt.value && opt.text));
-        setServiceTypeBaseOptions(
-          serviceTypeOptionsList.filter((opt) => opt.value && opt.text)
+        setRoleBaseOptions(
+          extractList<RoleOption>(appRoles, ["applicationRoles", "roles", "data"])
+            .filter((r) => (r?.active ?? true) && r?._id && (r?.role || r?.name || r?.roleName))
+            .map((r) => ({
+              text: (r.role ?? r.name ?? r.roleName) as string,
+              value: r._id as string
+            }))
         );
       } catch (err) {
         console.error("Failed to load service request options", err);
@@ -348,41 +472,95 @@ const CreateServiceRequestModal = ({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [resolvedInitial]);
 
   useEffect(() => {
     if (!appDetails) {
       setModuleOptions(moduleBaseOptions);
-      setServiceTypeOptions(serviceTypeBaseOptions);
-      setRoleOptions([]);
+      const initialRoleOptions = buildRoleOptionsFromValues(
+        (resolvedInitial as any)?.roles ?? (resolvedInitial as any)?.applicationRoles
+      );
+      setRoleOptions(mergeUniqueOptions(roleBaseOptions, initialRoleOptions));
       return;
     }
     const initialModules = buildOptionsFromPairs(
       appDetails.moduleIds,
       appDetails.moduleNames
     );
+    const initialRoles = buildOptionsFromPairs(appDetails.roleIds, appDetails.roleNames);
     const initialServiceTypes = buildOptionsFromPairs(
       appDetails.serviceTypeIds,
       appDetails.serviceTypeNames
     );
-    const initialRoles = buildOptionsFromPairs(appDetails.roleIds, appDetails.roleNames);
 
     setModuleOptions(mergeUniqueOptions(moduleBaseOptions, initialModules));
-    setServiceTypeOptions(mergeUniqueOptions(serviceTypeBaseOptions, initialServiceTypes));
-    setRoleOptions(initialRoles);
-  }, [appDetails, moduleBaseOptions, serviceTypeBaseOptions]);
+    setServiceTypeOptions(
+      initialServiceTypes.map((serviceType) => ({
+        value: serviceType.value,
+        label: serviceType.text
+      }))
+    );
+    setRoleOptions(mergeUniqueOptions(roleBaseOptions, initialRoles));
+  }, [
+    appDetails,
+    moduleBaseOptions,
+    resolvedInitial,
+    roleBaseOptions
+  ]);
 
   useEffect(() => {
-    const appId = normalizeId(selectedApplication);
+    const selectedAppId = normalizeMixedId(selectedApplication);
+    const selectedApp = applications?.find((app: any) => app?._id === selectedAppId);
+    const initialApp =
+      resolvedInitial && typeof (resolvedInitial as any)?.application === "object"
+        ? (resolvedInitial as any).application
+        : null;
+    const initialAppMatchesSelection =
+      initialApp && normalizeMixedId(initialApp) === selectedAppId;
+
+    const fromSelectedApp = getServiceTypeOptionsFromApplication(selectedApp);
+    const fromInitialApp = initialAppMatchesSelection
+      ? getServiceTypeOptionsFromApplication(initialApp)
+      : [];
+
+    setServiceTypeOptions(mergeUniqueDropdownOptions(fromSelectedApp, fromInitialApp));
+  }, [applications, resolvedInitial, selectedApplication]);
+
+  useEffect(() => {
+    const currentValue = (selectedServiceRequestTypes || "").trim();
+    if (!currentValue || !serviceTypeOptions.length) return;
+    if (serviceTypeOptions.some((opt) => opt.value === currentValue)) return;
+
+    const matchedByLabel = serviceTypeOptions.find(
+      (opt) => opt.label.toLowerCase() === currentValue.toLowerCase()
+    );
+    if (matchedByLabel) {
+      setValue("applicationServiceRequestTypes", matchedByLabel.value);
+    }
+  }, [selectedServiceRequestTypes, serviceTypeOptions, setValue]);
+
+  useEffect(() => {
+    const appId = normalizeMixedId(selectedApplication);
     if (!appId) {
       setAppDetails(null);
       setValue("applicationEnvironment", "");
       setValue("group", "");
       setValue("applicationWorkflow", "");
       setValue("applicationModules", []);
-      setValue("applicationServiceRequestTypes", []);
+      setValue("applicationServiceRequestTypes", "");
       setValue("applicationRoles", []);
       setValue("notes", "");
+      return;
+    }
+
+    const isEditMode = Boolean((resolvedInitial as any)?._id);
+    const initialApplicationId = initialApplicationIdRef.current;
+    if (
+      isEditMode &&
+      !hasUserChangedApplicationRef.current &&
+      appId === initialApplicationId
+    ) {
+      setAppDetails(null);
       return;
     }
 
@@ -395,12 +573,12 @@ const CreateServiceRequestModal = ({
 
         if (cancelled) return;
 
-        setValue("requestType", details.serviceTypeNames[0] ?? "Applications");
+        setValue("requestType", details.serviceTypeIds[0] ?? "Applications");
         setValue("applicationEnvironment", details.environmentId);
-        setValue("group", details.locationId);
+        setValue("group", details.assignmentGroupId);
         setValue("applicationWorkflow", details.workflowId);
         setValue("applicationModules", details.moduleIds);
-        setValue("applicationServiceRequestTypes", details.serviceTypeIds);
+        setValue("applicationServiceRequestTypes", details.serviceTypeIds[0] ?? "");
         setValue("applicationRoles", details.roleIds);
         setValue("notes", details.notes ?? "");
         setAppDetails(details);
@@ -414,7 +592,7 @@ const CreateServiceRequestModal = ({
     return () => {
       cancelled = true;
     };
-  }, [selectedApplication, setValue, toggleLoading]);
+  }, [resolvedInitial, selectedApplication, setValue, toggleLoading]);
 
   return (
     <div className="p-6 overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
@@ -434,7 +612,12 @@ const CreateServiceRequestModal = ({
               render={({ field }) => (
                 <SelectDropdown
                   value={field.value ?? ""}
-                  onChange={(val) => field.onChange(val)}
+                  onChange={(val) => {
+                    if (val !== initialApplicationIdRef.current) {
+                      hasUserChangedApplicationRef.current = true;
+                    }
+                    field.onChange(val);
+                  }}
                   options={applications?.map((app) =>
                     toDropdown(app, "applicationName", "_id")
                   )}
@@ -463,7 +646,7 @@ const CreateServiceRequestModal = ({
           </div>
 
           <div>
-            <Label htmlFor="group">{t("location")}</Label>
+            <Label htmlFor="group">{t("group")}</Label>
             <Controller
               name="group"
               control={control}
@@ -471,8 +654,8 @@ const CreateServiceRequestModal = ({
                 <SelectDropdown
                   value={field.value ?? ""}
                   onChange={(val) => field.onChange(val)}
-                  options={locationOptions}
-                  placeholder={t("select", { entity: t("location") })}
+                  options={assignmentGroupOptions}
+                  placeholder={t("select", { entity: t("group") })}
                 />
               )}
             />
@@ -536,7 +719,9 @@ const CreateServiceRequestModal = ({
                         ? prev
                         : [...prev, optionToAdd]
                     );
-                    field.onChange(appendUnique(field.value, optionToAdd.value));
+                    field.onChange(
+                      appendUniqueString(field.value, optionToAdd.value)
+                    );
                   }}
                 />
               )}
@@ -551,26 +736,15 @@ const CreateServiceRequestModal = ({
               name="applicationServiceRequestTypes"
               control={control}
               render={({ field }) => (
-                <MultiSelect
+                <SelectDropdown
+                  value={field.value ?? ""}
+                  onChange={(val) => field.onChange(val ?? "")}
                   options={serviceTypeOptions}
-                  label={t("select", { entity: t("gxpAppServiceRequestTypes") })}
-                  onChange={field.onChange}
-                  defaultSelected={field.value}
-                  error={errors.applicationServiceRequestTypes?.message as string}
-                  countTooltipPlacement="right"
-                  showAddButton
-                  onAdd={(newOption) => {
-                    const optionToAdd = { text: newOption.text, value: newOption.text };
-                    setServiceTypeOptions((prev) =>
-                      prev.find((opt) => opt.value === optionToAdd.value)
-                        ? prev
-                        : [...prev, optionToAdd]
-                    );
-                    field.onChange(appendUnique(field.value, optionToAdd.value));
-                  }}
+                  placeholder={t("select", { entity: t("gxpAppServiceRequestTypes") })}
                 />
               )}
             />
+            {renderError(errors.applicationServiceRequestTypes?.message as string)}
           </div>
 
           <div>
@@ -594,7 +768,9 @@ const CreateServiceRequestModal = ({
                         ? prev
                         : [...prev, optionToAdd]
                     );
-                    field.onChange(appendUnique(field.value, optionToAdd.value));
+                    field.onChange(
+                      appendUniqueString(field.value, optionToAdd.value)
+                    );
                   }}
                 />
               )}
@@ -607,12 +783,24 @@ const CreateServiceRequestModal = ({
               name="esignCheck"
               control={control}
               render={({ field }) => (
-                <SelectDropdown
-                  value={field.value ?? ""}
-                  onChange={(val) => field.onChange(val)}
-                  options={esignOptions}
-                  placeholder={t("select", { entity: t("esignCheck") })}
-                />
+                <div className="flex items-center gap-6 py-2">
+                  <Radio
+                    id="esignCheckYes"
+                    name="esignCheck"
+                    value="Yes"
+                    label={t("yes") ?? "Yes"}
+                    checked={field.value === "Yes"}
+                    onChange={(val) => field.onChange(val)}
+                  />
+                  <Radio
+                    id="esignCheckNo"
+                    name="esignCheck"
+                    value="No"
+                    label={t("no") ?? "No"}
+                    checked={field.value === "No"}
+                    onChange={(val) => field.onChange(val)}
+                  />
+                </div>
               )}
             />
             {renderError(errors.esignCheck?.message)}
@@ -652,6 +840,26 @@ const CreateServiceRequestModal = ({
                 />
               )}
             />
+          </div>
+          <div>
+            <Label htmlFor="trainingDone">{t("trainingDone")}</Label>
+            <Controller
+              name="trainingDone"
+              control={control}
+              render={({ field }) => (
+                <div className="flex items-center gap-3 py-2">
+                  <Switch
+                    checked={!!field.value}
+                    onChange={(val) => {
+                      field.onChange(val);
+                      setValue("trainingDone", val);
+                    }}
+                    label={field.value ? t("yes") ?? "Yes" : t("no") ?? "No"}
+                  />
+                </div>
+              )}
+            />
+            {renderError(errors.trainingDone?.message)}
           </div>
 
           <div className="md:col-span-2">
@@ -719,27 +927,66 @@ const CreateServiceRequestModal = ({
             />
           </div>
 
-
-          <div>
-            <Label htmlFor="trainingDone">{t("trainingDone")}</Label>
-            <Controller
-              name="trainingDone"
-              control={control}
-              render={({ field }) => (
-                <div className="flex items-center gap-3 py-2">
-                  <Switch
-                    checked={!!field.value}
-                    onChange={(val) => {
-                      field.onChange(val);
-                      setValue("trainingDone", val);
-                    }}
-                    label={field.value ? t("yes") ?? "Yes" : t("no") ?? "No"}
-                  />
+          <div className="md:col-span-2">
+            <Label htmlFor="attachments">
+              {t("attachments", { defaultValue: t("trainingEvidence") ?? "Attachments" })}
+            </Label>
+            {existingAttachments?.length ? (
+              <div className="mb-3 space-y-2">
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  {t("previousUploads", { defaultValue: "Previously uploaded" })} (
+                  {existingAttachments.length})
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {existingAttachments?.map((attachment, idx) => (
+                    <div
+                      key={`${attachment.path}-${idx}`}
+                      className="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2"
+                      title={attachment.name}
+                    >
+                      {isImageName(attachment.path) ? (
+                        <img
+                          src={getGxpImageUrl(attachment.path)}
+                          alt={attachment.name}
+                          className="h-10 w-10 rounded border border-gray-200 dark:border-gray-700 object-cover"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-[10px] font-semibold text-gray-800 dark:text-gray-100">
+                          {(attachment?.path?.split(".").pop() || "file")
+                            .toUpperCase()
+                            .slice(0, 4)}
+                        </div>
+                      )}
+                      <span className="text-xs text-gray-800 dark:text-gray-100 max-w-[220px] truncate">
+                        {attachment.name}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeExistingAttachment(idx)}
+                        className="text-[11px] font-semibold text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                      >
+                        {t("remove", { defaultValue: "Remove" })}
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              )}
+              </div>
+            ) : null}
+            <FileUpload
+              value={attachments}
+              onChange={(files) => setAttachments(files)}
+              multiple={true}
+              maxFiles={10}
+              maxSizeMB={10}
+              blockAudioVideo={true}
+              title={t("attachments", { defaultValue: "Attachments" })}
+              description={t("uploadDescription", {
+                defaultValue: "Upload documents/images. Audio/video not allowed."
+              })}
             />
-            {renderError(errors.trainingDone?.message)}
           </div>
+
+
         </div>
 
         <div className="flex justify-end gap-2 mt-4">
@@ -751,113 +998,6 @@ const CreateServiceRequestModal = ({
           </Button>
         </div>
       </form>
-      <div className="mt-4">
-        {!showAppFields && (
-          <div className="text-sm text-gray-600 dark:text-gray-400 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-3">
-            {t("select", { entity: t("application") })}{" "}
-            {t("toContinue", { defaultValue: "to load application details." })}
-          </div>
-        )}
-
-        {showAppFields && appDetails && (
-          <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4 space-y-3 max-h-[26rem] overflow-y-auto">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                {t("applicationDetails", { defaultValue: "Application Details" })}
-              </p>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {t("loadedFromApplication", { defaultValue: "Loaded from application" })}
-              </span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-              <div>
-                <p className="text-gray-500 dark:text-gray-400">{t("environment")}</p>
-                <p className="text-gray-900 dark:text-gray-100">
-                  {appDetails.environmentName || appDetails.environmentId || "-"}
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-500 dark:text-gray-400">{t("location")}</p>
-                <p className="text-gray-900 dark:text-gray-100">
-                  {appDetails.locationName || appDetails.locationId || "-"}
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-500 dark:text-gray-400">{t("workflow")}</p>
-                <p className="text-gray-900 dark:text-gray-100">
-                  {appDetails.workflowName || appDetails.workflowId || "-"}
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-500 dark:text-gray-400">{t("module")}</p>
-                <div className="mt-1">
-                  <ChipList items={appDetails.moduleNames} variant="grid"
-                    columns={3} />
-                </div>
-              </div>
-
-              <div>
-                <p className="text-gray-500 dark:text-gray-400">{t("requestType")}</p>
-                <div className="mt-1">
-                  <ChipList items={appDetails.serviceTypeNames} variant="grid"
-                    columns={3} />
-                </div>
-              </div>
-
-              <div>
-                <p className="text-gray-500 dark:text-gray-400">{t("requestRole")}</p>
-                <div className="mt-1">
-                  <ChipList items={appDetails.roleNames} variant="grid"
-                    columns={3} />
-                </div>
-              </div>
-
-              <div className="md:col-span-2">
-                <p className="text-gray-500 dark:text-gray-400">{t("notes")}</p>
-                <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap break-words">
-                  {appDetails.notes || "-"}
-                </p>
-              </div>
-              <div className="md:col-span-2">
-                <p className="text-gray-500 dark:text-gray-400">{t("attachments")}</p>
-                {appDetails.attachments?.length ? (
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {appDetails.attachments.map((path: string, idx: number) => {
-                      const name = prettifyAttachmentName(path);
-                      return (
-                        <div
-                          key={`${path}-${idx}`}
-                          className="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2"
-                          title={name}
-                        >
-                          {isImageName(path) ? (
-                            <img
-                              src={getGxpImageUrl(path)}
-                              alt={name}
-                              className="h-10 w-10 rounded border border-gray-200 dark:border-gray-700 object-cover"
-                            />
-                          ) : (
-                            <div className="h-10 w-10 rounded bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-[10px] font-semibold text-gray-800 dark:text-gray-100">
-                              {(path?.split(".").pop() || "file").toUpperCase().slice(0, 4)}
-                            </div>
-                          )}
-                          <span className="text-xs text-gray-800 dark:text-gray-100 max-w-[220px] truncate">
-                            {name}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {t("noRecordsFound")}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 };

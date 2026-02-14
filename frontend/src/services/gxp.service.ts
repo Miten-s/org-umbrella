@@ -437,30 +437,44 @@ export const getServiceRequestById = async (id: string) => {
   return response["data"];
 };
 
-export const createServiceRequest = async (payload: FormData | Record<string, any>) => {
-  const config =
-    payload instanceof FormData
-      ? {
-          headers: {
-            "Content-Type": "multipart/form-data"
-          }
-        }
-      : undefined;
-  const response = await gxpApi.post(API_ROUTES.gxpServiceRequests, payload, config);
+const buildServiceRequestFormData = (payload: Record<string, any>, files?: File[]) => {
+  const formData = new FormData();
+  formData.append("data", JSON.stringify(payload));
+  (files || []).forEach((file) => formData.append("attachments", file));
+  return formData;
+};
+
+export const createServiceRequest = async (
+  payload: Record<string, any>,
+  files?: File[]
+) => {
+  const response = await gxpApi.post(
+    API_ROUTES.gxpServiceRequests,
+    buildServiceRequestFormData(payload, files),
+    {
+      headers: {
+        "Content-Type": "multipart/form-data"
+      }
+    }
+  );
   toastSuccess(response, "Service request created successfully");
   return response["data"];
 };
 
-export const updateServiceRequest = async (id: string, payload: Record<string, any>) => {
-  const config =
-    payload instanceof FormData
-      ? {
-          headers: {
-            "Content-Type": "multipart/form-data"
-          }
-        }
-      : undefined;
-  const response = await gxpApi.patch(`${API_ROUTES.gxpServiceRequests}/${id}`, payload, config);
+export const updateServiceRequest = async (
+  id: string,
+  payload: Record<string, any>,
+  files?: File[]
+) => {
+  const response = await gxpApi.patch(
+    `${API_ROUTES.gxpServiceRequests}/${id}`,
+    buildServiceRequestFormData(payload, files),
+    {
+      headers: {
+        "Content-Type": "multipart/form-data"
+      }
+    }
+  );
   toastSuccess(response, "Service request updated successfully");
   return response["data"];
 };

@@ -1,4 +1,11 @@
-import { IsArray, IsBoolean, IsEnum, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import {
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString
+} from "class-validator";
 
 export class CreateServiceRequestDto {
   @IsString()
@@ -42,7 +49,7 @@ export class CreateServiceRequestDto {
   notes?: string[];
 
   // Attachments are handled by multer but we can validate if passed as strings? usually not in body.
-  
+
   @IsString()
   @IsOptional()
   @IsEnum(["Yes", "No"])
@@ -62,7 +69,7 @@ export class CreateServiceRequestDto {
 
   @IsString()
   @IsOptional()
-  requestType?: string;
+  requestTypes?: string;
 }
 
 export class UpdateServiceRequestDto {
@@ -74,7 +81,7 @@ export class UpdateServiceRequestDto {
   @IsString()
   @IsOptional()
   assignmentGroup?: string;
-  
+
   @IsString()
   @IsOptional()
   @IsEnum([
@@ -91,4 +98,8 @@ export class UpdateServiceRequestDto {
   @IsString({ each: true })
   @IsOptional()
   comments?: string[];
+
+  @IsString()
+  @IsOptional()
+  requestTypes?: string;
 }
