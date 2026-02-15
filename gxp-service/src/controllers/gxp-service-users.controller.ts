@@ -34,7 +34,7 @@ export const disableUser = asyncHandler(async (req: Request, res: Response) => {
 
 export const enableUser = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { comments } = req.body;
+  const comments = req.body?.comments ?? null;
   const result = await enableUserService(id, comments);
   res.status(200).send(result);
 });

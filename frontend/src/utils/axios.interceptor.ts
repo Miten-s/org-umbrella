@@ -1,7 +1,8 @@
 import { toast } from "@/lib/ToastProvider";
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 
-const BASE_URL = "http://localhost:9000/v1/api";
+const BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:9000/v1/api";
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -33,7 +34,8 @@ api.interceptors.response.use(
 
     if (
       error.response?.status === 401 &&
-      (error?.response?.data as { message?: string })?.message === "Token Expired" &&
+      (error?.response?.data as { message?: string })?.message ===
+        "Token Expired" &&
       !originalRequest._retry
     ) {
       if (isRefreshing) {
@@ -64,10 +66,14 @@ api.interceptors.response.use(
 
     if (
       error.response?.status !== 404 &&
-      (error.response?.data as { message?: string })?.message !== "Token not found"
+      (error.response?.data as { message?: string })?.message !==
+        "Token not found"
     ) {
-      const data = error.response?.data as { message?: string; error?: string } | undefined;
-      const errorMessage = data?.message ?? data?.error ?? "Something went wrong";  //Getting error message either from message or error
+      const data = error.response?.data as
+        | { message?: string; error?: string }
+        | undefined;
+      const errorMessage =
+        data?.message ?? data?.error ?? "Something went wrong"; //Getting error message either from message or error
       toast(errorMessage, "error");
     }
     return Promise.reject(error);

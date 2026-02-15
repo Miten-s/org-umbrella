@@ -13,6 +13,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import Switch from "@/components/common/form/switch/Switch";
 import { UserTypes } from "@/utils/common.constants";
 import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
+import { CheckCircleIcon, CloseIcon } from "@/public/icons";
+import { getImageUrl } from "@/services/utils.service";
 
 interface Role {
   _id: string;
@@ -81,6 +83,16 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
 
   // Watch for role changes to determine if user is admin
   const isAdmin = watch("userType") === UserTypes.ADMIN;
+  const passwordValue = watch("password") ?? "";
+  const passwordChecks = [
+    { label: "Uppercase letters (A-Z)", ok: /[A-Z]/.test(passwordValue) },
+    { label: "Lowercase letters (a-z)", ok: /[a-z]/.test(passwordValue) },
+    { label: "Numbers (0-9)", ok: /[0-9]/.test(passwordValue) },
+    { label: "Symbols (!@#$%^&*)", ok: /[!@#$%^&*]/.test(passwordValue) },
+    { label: "Minimum 8 characters", ok: passwordValue.length >= 8 },
+  ];
+  const signatureUrl = getImageUrl(activeUser?.signature);
+  console.log(' signatureUrl', signatureUrl);
 
   const handleFormSubmit = (data: any) => {
     if (signatureRef.current && !signatureRef.current.isEmpty()) {
@@ -141,6 +153,37 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
             />
           </div>
 
+          <div className="relative">
+            <Label htmlFor="userType" required>
+              {t("userType")}
+            </Label>
+
+            <Controller
+              name="userType"
+              control={control}
+              render={({ field }) => (
+                <SelectDropdown
+                  value={field.value}
+                  onChange={(val) => {
+                    field.onChange(val);
+                  }} placeholder={t("selectEntity", { entity: t("userType") })}
+                  options={Object.entries(UserTypes).map(([key, value]) => ({
+                    label: key,
+                    value: value,
+                  }))}
+
+                />
+              )}
+            />
+
+
+            {errors.userType && (
+              <p className="text-red-500 text-xs mt-1">
+                {errors.userType.message as string}
+              </p>
+            )}
+          </div>
+
           <div>
             <Label htmlFor="email" required>{t("email")}</Label>
             <Input
@@ -165,6 +208,7 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
                   label={t("selectRoles")}
                   onChange={field.onChange}
                   defaultSelected={field.value}
+                  countTooltipPlacement="left"
                 />
               )}
             />
@@ -182,6 +226,22 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
               hint={errors.password?.message as string}
               maxLength={20}
             />
+            {!activeUser && (
+              <div className="mt-2 text-xs text-gray-600 dark:text-gray-300 space-y-1">
+                {passwordChecks.map((item) => (
+                  <div key={item.label} className="flex items-center gap-2">
+                    {item.ok ? (
+                      <CheckCircleIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    ) : (
+                      <CloseIcon className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                    )}
+                    <span className={item.ok ? "text-gray-800 dark:text-gray-100" : ""}>
+                      {item.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div>
@@ -197,36 +257,7 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
             />
           </div>
 
-          <div className="relative">
-            <Label htmlFor="userType" required>
-              {t("userType")}
-            </Label>
 
-            <Controller
-              name="userType"
-              control={control}
-              render={({ field }) => (
-                <SelectDropdown
-                  value={field.value}
-                  onChange={(val) => {
-                    field.onChange(val);
-                  }} placeholder={t("selectEntity", { entity: t("userType") })}
-                  options={Object.entries(UserTypes).map(([key, value]) => ({
-                    label: key,
-                    value: value,
-                  }))}
-                  
-                />
-              )}
-            />
-
-
-            {errors.userType && (
-              <p className="text-red-500 text-xs mt-1">
-                {errors.userType.message as string}
-              </p>
-            )}
-          </div>
 
           <div>
             <Label htmlFor="status" className="whitespace-nowrap">Status</Label>
@@ -374,9 +405,22 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
                   <Checkbox
                     checked={showSignature}
                     onChange={(e) => setShowSignature(e)}
-                    label="Add Signature"
+                    label={signatureUrl ? "Replace Signature" : "Add Signature"}
                   />
                 </div>
+
+                {signatureUrl && (
+                  <div className="mb-4">
+                    <Label>Signature</Label>
+                    <div className="rounded-xl border shadow-sm p-4 bg-white dark:bg-gray-800 dark:border-gray-700">
+                      <img
+                        src={signatureUrl}
+                        alt="Signature"
+                        className="h-[120px] w-full max-w-[520px] object-contain"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {showSignature && (
                   <div className="mt-4">

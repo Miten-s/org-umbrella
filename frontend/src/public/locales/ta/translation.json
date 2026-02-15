@@ -115,5 +115,9 @@
   "logo": "லோகோ",
   "deleteEntityPrompt": "இந்த {{entityName}}-ஐ நிச்சயமாக நீக்க விரும்புகிறீர்களா?",
   "noBuiltInRolesAvailable": "உட்பொதிந்த பாத்திரங்கள் இல்லை",
-  "noPermissionMessage": "உங்களுக்கு {{action}} க்கான அனுமதி இல்லை"
+  "noPermissionMessage": "உங்களுக்கு {{action}} க்கான அனுமதி இல்லை",
+  "moduleName": "கூறு பெயர்",
+  "isActive": "செயலில் உள்ளது",
+  "active": "செயலில்",
+  "duplicate": "நகல்"
 }

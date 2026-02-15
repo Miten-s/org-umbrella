@@ -28,3 +28,13 @@ export const getImageUrl = (path?: string | null): string | undefined => {
   const cleanPath = path.startsWith("/uploads") ? path : `/uploads${path}`;
   return `${baseUrl}${cleanPath}`;
 };
+
+export const getGxpImageUrl = (
+  path?: string | null
+): string | undefined => {
+  if (!path) return undefined;
+
+  const baseUrl = import.meta.env.VITE_GXP_API_BASE_URL;
+  const cleanPath = path.startsWith("/uploads") ? path : `/uploads${path}`;
+  return `${baseUrl}${cleanPath}`;
+};

@@ -1,29 +1,29 @@
 {
   "en": {
-    "noBuiltInRolesAvailable": "No built-in roles available"
+    "duplicate": "Duplicate"
   },
   "ar": {
-    "noBuiltInRolesAvailable": "لا توجد أدوار مدمجة متاحة"
+    "duplicate": "مكرر"
   },
   "es": {
-    "noBuiltInRolesAvailable": "No hay roles integrados disponibles"
+    "duplicate": "Duplicado"
   },
   "fr": {
-    "noBuiltInRolesAvailable": "Aucun rôle intégré disponible"
+    "duplicate": "Dupliquer"
   },
   "hi": {
-    "noBuiltInRolesAvailable": "कोई बिल्ट-इन भूमिकाएं उपलब्ध नहीं हैं"
+    "duplicate": "डुप्लिकेट"
   },
   "gu": {
-    "noBuiltInRolesAvailable": "કોઈ બિલ્ટ-ઇન ભૂમિકાઓ ઉપલબ્ધ નથી"
+    "duplicate": "ડુપ્લિકેટ"
   },
   "ta": {
-    "noBuiltInRolesAvailable": "உட்பொதிந்த பாத்திரங்கள் இல்லை"
+    "duplicate": "நகல்"
   },
   "te": {
-    "noBuiltInRolesAvailable": "ఎటువంటి అంతర్బద్ధమైన పాత్రలు లభ్యమవడంలేదు"
+    "duplicate": "నకలు"
   },
   "mr": {
-    "noBuiltInRolesAvailable": "कोणतीही अंगभूत भूमिका उपलब्ध नाही"
+    "duplicate": "डुप्लिकेट"
   }
 }

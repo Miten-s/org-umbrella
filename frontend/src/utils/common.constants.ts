@@ -20,3 +20,14 @@ export const UserTypes = {
   ADMIN: "Admin",
   USER: "User",
 }
+
+export enum RoleType {
+  CUSTOM = "Custom",
+  BUILT_IN = "Built_In",
+  GXP_SERVICE = "Gxp_Service"
+}
+
+export enum PermissionType {
+  DEFAULT = "default",
+  GXP_SERVICE = "gxp_service"
+}

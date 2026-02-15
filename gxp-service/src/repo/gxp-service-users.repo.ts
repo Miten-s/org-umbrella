@@ -14,9 +14,13 @@ export const findUserByIdRepo = async (id: string) => {
 };
 
 export const updateUserRepo = async (id: string, data: any) => {
+  try {
   return await GxpServiceUser.findByIdAndUpdate(id, data, {
     new: true
-  }).populate("roles", "name");
+  }).lean();
+} catch (error) {
+  throw error;
+}
 };
 
 export const disableUserRepo = async (id: string) => {

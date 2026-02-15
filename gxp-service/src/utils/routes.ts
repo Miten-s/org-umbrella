@@ -10,6 +10,7 @@ const API_ROUTES = {
   GXP_APPLICATION_MODULES: "/gxp-application-modules",
   GXP_WORKFLOWS: "/gxp-workflows",
   GXP_SERVICES_REQUESTS: "/gxp-service-requests",
+  GXP_ASSIGNMENT_GROUPS: "/gxp-assignment-groups",
   HEALTH: "/health",
   USER: {
     ROOT: "/",
@@ -38,7 +39,8 @@ const API_ROUTES = {
     DISABLE_BY_ID: "/disable/:id",
     DELETE_ATTACHMENTS: "/attachments/:attachmentId",
     GET_APPLICATION_GROUPS: "/application-groups",
-    DUPLICATE_BY_ID: "/:id/duplicate"
+    DUPLICATE_BY_ID: "/:id/duplicate",
+    GET_APPLICATION_ROLES: "/application-roles"
   },
   WORKFLOWS: {
     ROOT: "/",
@@ -54,6 +56,13 @@ const API_ROUTES = {
     DISABLE_BY_ID: "/disable/:id",
     UPDATE_STATUS: "/status/:id",
     GET_SERVICE_TYPES: "/service-types"
+  },
+  ASSIGNMENT_GROUPS: {
+    ROOT: "/",
+    SEARCH: "/search",
+    BY_ID: "/:id",
+    ENABLE_BY_ID: "/enable/:groupName",
+    DISABLE_BY_ID: "/disable/:groupName",
   },
   APPLICATION_MODULES: {
     ROOT: "/",

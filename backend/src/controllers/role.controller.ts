@@ -31,7 +31,11 @@ export const updateRole = asyncHandler(
 
 export const getRoles = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const roles = await userService.getRoles(req.user);
+    const { type } = req.query;
+    const roles = await userService.getRoles(
+      req.user,
+      type ? type.toString() : undefined
+    );
     res.status(200).json({ roles });
   }
 );

@@ -33,7 +33,7 @@ const fileFilter = (_req: Request, file: Express.Multer.File, cb: any) => {
   } else {
     cb(
       new Error(
-        "Invalid file type. Only PDF, Word, Excel, and Text files are allowed."
+        "Invalid file type. Only PDF, Word, Excel, Text, and JPEG images are allowed."
       ),
       false
     );

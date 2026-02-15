@@ -7,7 +7,10 @@ export const validateDto = (
   type?: "body" | "query" | "params"
 ): any => {
   return async (req: Request, res: Response, next: NextFunction) => {
-    const dtoObject = plainToInstance(dtoClass, req[type ?? "body"]);
+    const source = req[type ?? "body"];
+    const payload =
+      typeof source?.data === "string" ? JSON.parse(source.data) : source;
+    const dtoObject = plainToInstance(dtoClass, payload);
     const errors = await validate(dtoObject);
 
     if (errors.length > 0) {

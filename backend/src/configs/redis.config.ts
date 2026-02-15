@@ -6,14 +6,15 @@ const redisClient = createClient({
   password: ENV.REDIS_SERVER_PASSWORD // Use the same password set in redis.conf
 });
 
-// (async () => {
-//   try {
-//     await redisClient.connect();
-//     console.log("Connected to Redis with authentication");
-//   } catch (error) {
-//     console.error("Redis connection error:", error);
-//   }
-// })();
+export const connectRedis = async (): Promise<void> => {
+  if (redisClient.isOpen) return;
+  try {
+    await redisClient.connect();
+    console.log("Connected to Redis with authentication");
+  } catch (error) {
+    console.error("Redis connection error:", error);
+  }
+};
 
 // Cache methods
 export const cacheResponse = async ({
@@ -26,6 +27,7 @@ export const cacheResponse = async ({
   ttl?: number;
 }): Promise<void> => {
   try {
+    await connectRedis();
     await redisClient.set(key, JSON.stringify(value), { EX: ttl });
     console.log(`Cached response for key: ${key}`);
   } catch (error) {
@@ -35,6 +37,7 @@ export const cacheResponse = async ({
 
 export const getCachedResponse = async (key: string): Promise<any | null> => {
   try {
+    await connectRedis();
     const data = await redisClient.get(key);
     return data ? JSON.parse(data) : null;
   } catch (error) {
@@ -45,6 +48,7 @@ export const getCachedResponse = async (key: string): Promise<any | null> => {
 
 export const deleteCache = async (key: string): Promise<void> => {
   try {
+    await connectRedis();
     await redisClient.del(key);
     console.log(`Deleted cache for key: ${key}`);
   } catch (error) {

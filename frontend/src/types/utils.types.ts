@@ -106,6 +106,59 @@ export const PageUrl: PageUrlType = {
     path: "/client/company/settings",
     matchPattern: /^\/client\/company\/settings$/i,
     pageTitle: "Company Settings"
+  },
+  // #endregion
+
+  // #region GXP Service
+  GXPService: {
+    path: "/gxp-service",
+    matchPattern: /^\/gxp-service$/i,
+    pageTitle: "GXP Service"
+  },
+  GXPUsers: {
+    path: "/gxp-service/users",
+    matchPattern: /^\/gxp-service\/users$/i,
+    pageTitle: "Users"
+  },
+  GXPRolesAndPermissions: {
+    path: "/gxp-service/roles-and-permissions",
+    matchPattern: /^\/gxp-service\/roles-and-permissions$/i,
+    pageTitle: "Roles and Permissions"
+  },
+  GXPWorkflows: {
+    path: "/gxp-service/workflows",
+    matchPattern: /^\/gxp-service\/workflows$/i,
+    pageTitle: "Workflows"
+  },
+  GXPAssignmentGroups: {
+    path: "/gxp-service/assignment-groups",
+    matchPattern: /^\/gxp-service\/assignment-groups$/i,
+    pageTitle: "Assignment Groups"
+  },
+  GXPEnvironments: {
+    path: "/gxp-service/environments",
+    matchPattern: /^\/gxp-service\/environments$/i,
+    pageTitle: "Environments"
+  },
+  GXPSuppliers: {
+    path: "/gxp-service/suppliers",
+    matchPattern: /^\/gxp-service\/suppliers$/i,
+    pageTitle: "Suppliers"
+  },
+  GXPApplicationSoftwareModule: {
+    path: "/gxp-service/application-software-module",
+    matchPattern: /^\/gxp-service\/application-software-module$/i,
+    pageTitle: "Application/Software Module"
+  },
+  GXPAddNewApplication: {
+    path: "/gxp-service/add-new-application",
+    matchPattern: /^\/gxp-service\/add-new-application$/i,
+    pageTitle: "Add a new GxP Portal Application/Software form"
+  },
+  GXPCreateNewServiceRequest: {
+    path: "/gxp-service/create-new-service-request",
+    matchPattern: /^\/gxp-service\/create-new-service-request$/i,
+    pageTitle: "Create a new Service Request"
   }
   // #endregion
 };

@@ -25,7 +25,7 @@ export const getPermissions = asyncHandler(
   async (_req: Request, res: Response): Promise<void> => {
     const { type } = _req.query;
     const permissions = await permissionService.getPermissions(
-      type ? type?.toString() : undefined
+      type ? type?.toString() : 'default'
     );
     res.status(200).json({ permissions });
   }

@@ -41,9 +41,9 @@ router.post(API_ROUTES.AUTH + API_ROUTES.LOGIN, login);
 router.post(
   API_ROUTES.AUTH + API_ROUTES.USER,
   authenticate,
-  validateDto(CreateUserDTO),
   checkPermissions(["CREATE:USER"]),
   upload.single("signature"),
+  validateDto(CreateUserDTO),
   createUser
 );
 

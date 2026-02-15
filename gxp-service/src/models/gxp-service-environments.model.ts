@@ -42,7 +42,7 @@ const GxpServiceEnvironmentSchema = new Schema(
     status: {
       type: String,
       enum: STATUS,
-      default: true
+      default: 'enabled'
     }
   },
   { timestamps: false, collection: "gxp-service-enironments" }

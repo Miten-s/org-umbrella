@@ -1,0 +1,541 @@
+import { toast } from "@/lib/ToastProvider";
+import gxpApi from "../utils/gxp.axios.interceptor";
+
+const getSuccessMessage = (response: any, fallback: string) =>
+  response?.data?.message || response?.message || fallback;
+
+const toastSuccess = (response: any, fallback: string) =>
+  toast(getSuccessMessage(response, fallback), "success");
+
+export const API_ROUTES = {
+  suppliers: "/gxp-suppliers",
+  workflows: "/gxp-workflows",
+  assignmentGroups: "/gxp-assignment-groups",
+  environments: "/gxp-environments",
+  gxpPermissions: "/gxp-permissions",
+  gxpRoles: "/gxp-roles",
+  gxpApplications: "/gxp-applications",
+  gxpApplicationGroups: "/gxp-applications/application-groups",
+  gxpApplicationRoles: "/gxp-applications/application-roles",
+  gxpApplicationSoftware: "/gxp-application-modules",
+  gxpApplicationServices: "/gxp-applications-services",
+  gxpUsers: "/gxp-users",
+  gxpServiceRequests: "/gxp-service-requests",
+  gxpServiceTypes: "/gxp-service-requests/service-types"
+};
+
+// #region Supplier
+
+export const getSuppliers = async (includeDisabled: boolean = false) => {
+  let url = API_ROUTES.suppliers;
+  if (includeDisabled) {
+    url = `${API_ROUTES.suppliers}?includeDisabled=true`;
+  }
+  const response = await gxpApi.get(url);
+  return response["data"];
+};
+
+export const createSupplier = async (payload: Record<string, any>) => {
+  const response = await gxpApi.post(API_ROUTES.suppliers, payload);
+  toastSuccess(response, "Supplier created successfully");
+  return response["data"];
+};
+
+export const updateSupplier = async (id: string, payload: Record<string, any>) => {
+  const response = await gxpApi.patch(`${API_ROUTES.suppliers}/${id}`, payload);
+  toastSuccess(response, "Supplier updated successfully");
+  return response["data"];
+};
+
+export const deleteSupplier = async (id: string) => {
+  const response = await gxpApi.delete(`${API_ROUTES.suppliers}/${id}`);
+  toastSuccess(response, "Supplier deleted successfully");
+  return response["data"];
+};
+
+export const enableSupplier = async (id: string) => {
+  const response = await gxpApi.patch(`${API_ROUTES.suppliers}/enable/${id}`);
+  toastSuccess(response, "Supplier enabled successfully");
+  return response["data"];
+};
+
+export const disableSupplier = async (id: string) => {
+  const response = await gxpApi.patch(`${API_ROUTES.suppliers}/disable/${id}`);
+  toastSuccess(response, "Supplier disabled successfully");
+  return response["data"];
+};
+
+// #endregion
+
+// #region Workflow
+
+export const getWorkflows = async () => {
+  const response = await gxpApi.get(API_ROUTES.workflows);
+  return response["data"];
+};
+
+export const getApplicationGroups = async () => {
+  const response = await gxpApi.get(API_ROUTES.gxpApplicationGroups);
+  return response["data"];
+};
+
+export const getApplicationRoles = async () => {
+  const response = await gxpApi.get(API_ROUTES.gxpApplicationRoles);
+  return response["data"];
+};
+
+export const createWorkflow = async (payload: Record<string, any>) => {
+  const response = await gxpApi.post(API_ROUTES.workflows, payload);
+  toastSuccess(response, "Workflow created successfully");
+  return response["data"];
+};
+
+export const updateWorkflow = async (id: string, payload: Record<string, any>) => {
+  const response = await gxpApi.patch(`${API_ROUTES.workflows}/${id}`, payload);
+  toastSuccess(response, "Workflow updated successfully");
+  return response["data"];
+};
+
+export const deleteWorkflow = async (id: string) => {
+  const response = await gxpApi.delete(`${API_ROUTES.workflows}/${id}`);
+  toastSuccess(response, "Workflow deleted successfully");
+  return response["data"];
+};
+
+export const enableWorkflow = async (id: string) => {
+  const response = await gxpApi.patch(`${API_ROUTES.workflows}/enable/${id}`);
+  toastSuccess(response, "Workflow enabled successfully");
+  return response["data"];
+}
+
+export const disableWorkflow = async (id: string) => {
+  const response = await gxpApi.patch(`${API_ROUTES.workflows}/disable/${id}`);
+  toastSuccess(response, "Workflow disabled successfully");
+  return response["data"];
+}
+
+// #endregion
+
+// #region Assignment Group
+
+export const getAssignmentGroups = async (includeInactive: boolean = false) => {
+  let url = API_ROUTES.assignmentGroups;
+  if (includeInactive) {
+    url = `${API_ROUTES.assignmentGroups}?includeInactive=true`;
+  }
+  const response = await gxpApi.get(url);
+  return response["data"];
+};
+
+export const createAssignmentGroup = async (payload: Record<string, any>) => {
+  const response = await gxpApi.post(API_ROUTES.assignmentGroups, payload);
+  toastSuccess(response, "Assignment group created successfully");
+  return response["data"];
+};
+
+export const updateAssignmentGroup = async (id: string, payload: Record<string, any>) => {
+  const response = await gxpApi.patch(`${API_ROUTES.assignmentGroups}/${id}`, payload);
+  toastSuccess(response, "Assignment group updated successfully");
+  return response["data"];
+};
+
+export const deleteAssignmentGroup = async (id: string) => {
+  const response = await gxpApi.delete(`${API_ROUTES.assignmentGroups}/${id}`);
+  toastSuccess(response, "Assignment group deleted successfully");
+  return response["data"];
+};
+
+export const enableAssignmentGroup = async (groupName: string) => {
+  const response = await gxpApi.patch(`${API_ROUTES.assignmentGroups}/enable/${groupName}`);
+  toastSuccess(response, "Assignment group enabled successfully");
+  return response["data"];
+};
+
+export const disableAssignmentGroup = async (groupName: string) => {
+  const response = await gxpApi.patch(`${API_ROUTES.assignmentGroups}/disable/${groupName}`);
+  toastSuccess(response, "Assignment group disabled successfully");
+  return response["data"];
+};
+
+// #endregion
+
+// #region Environment
+
+export const getEnvironments = async (includeDisabled: boolean = false) => {
+  let url = API_ROUTES.environments;
+  if (includeDisabled) {
+    url = `${API_ROUTES.environments}?includeDisabled=true`;
+  }
+  const response = await gxpApi.get(url);
+  return response["data"];
+};
+
+export const createEnvironment = async (payload: Record<string, any>) => {
+  const response = await gxpApi.post(API_ROUTES.environments, payload);
+  toastSuccess(response, "Environment created successfully");
+  return response["data"];
+};
+
+export const updateEnvironment = async (id: string, payload: Record<string, any>) => {
+  const response = await gxpApi.patch(`${API_ROUTES.environments}/${id}`, payload);
+  toastSuccess(response, "Environment updated successfully");
+  return response["data"];
+};
+
+export const deleteEnvironment = async (id: string) => {
+  const response = await gxpApi.delete(`${API_ROUTES.environments}/${id}`);
+  toastSuccess(response, "Environment deleted successfully");
+  return response["data"];
+};
+
+export const enableEnvironment = async (id: string) => {
+  const response = await gxpApi.patch(`${API_ROUTES.environments}/enable/${id}`);
+  toastSuccess(response, "Environment enabled successfully");
+  return response["data"];
+};
+
+export const disableEnvironment = async (id: string) => {
+  const response = await gxpApi.patch(`${API_ROUTES.environments}/disable/${id}`);
+  toastSuccess(response, "Environment disabled successfully");
+  return response["data"];
+};
+
+
+// #region GXP-Application-Software
+export const getApplicationSoftware = async (includeDisabled: boolean = false) => {
+  let url = API_ROUTES.gxpApplicationSoftware;
+  if (includeDisabled) {
+    url = `${API_ROUTES.gxpApplicationSoftware}?includeDisabled=true`;
+  }
+  const response = await gxpApi.get(url);
+  return response["data"];
+};
+
+// Create new Application Software record
+export const createApplicationSoftware = async (payload: Record<string, any>) => {
+  const response = await gxpApi.post(API_ROUTES.gxpApplicationSoftware, payload);
+  toastSuccess(response, "Application software created successfully");
+  return response["data"];
+};
+
+// Update existing Application Software record
+export const updateApplicationSoftware = async (id: string, payload: Record<string, any>) => {
+  const response = await gxpApi.patch(`${API_ROUTES.gxpApplicationSoftware}/${id}`, payload);
+  toastSuccess(response, "Application software updated successfully");
+  return response["data"];
+};
+
+// Delete Application Software record
+export const deleteApplicationSoftware = async (id: string) => {
+  const response = await gxpApi.delete(`${API_ROUTES.gxpApplicationSoftware}/${id}`);
+  toastSuccess(response, "Application software deleted successfully");
+  return response["data"];
+};
+
+// Enable Application Software
+export const enableApplicationSoftware = async (id: string) => {
+  const response = await gxpApi.patch(
+    `${API_ROUTES.gxpApplicationSoftware}/status/${id}`,
+    { status: "enabled" }
+  );
+  toastSuccess(response, "Application software enabled successfully");
+  return response["data"];
+};
+
+// Disable Application Software
+export const disableApplicationSoftware = async (id: string) => {
+  const response = await gxpApi.patch(
+    `${API_ROUTES.gxpApplicationSoftware}/status/${id}`,
+    { status: "disabled" }
+  );
+  toastSuccess(response, "Application software disabled successfully");
+  return response["data"];
+};
+// #endregion
+
+
+// #endregion
+
+// #region Raise-Application
+export const getApplications = async (includeDisabled: boolean = false) => {
+  let url = API_ROUTES.gxpApplications;
+  if (includeDisabled) {
+    url = `${API_ROUTES.gxpApplications}?includeDisabled=true`;
+  }
+  const response = await gxpApi.get(url);
+  return response["data"];
+};
+
+export const getApplicationById = async (id: string) => {
+  const response = await gxpApi.get(`${API_ROUTES.gxpApplications}/${id}`);
+  return response["data"];
+};
+
+const buildApplicationFormData = (payload: Record<string, any>, files?: File[]) => {
+  const formData = new FormData();
+  formData.append("data", JSON.stringify(payload));
+  (files || []).forEach((file) => formData.append("attachments", file));
+  return formData;
+};
+
+export const createApplication = async (
+  payload: Record<string, any>,
+  files?: File[]
+) => {
+  const response = await gxpApi.post(
+    API_ROUTES.gxpApplications,
+    buildApplicationFormData(payload, files),
+    { headers: { "Content-Type": "multipart/form-data" } }
+  );
+  toastSuccess(response, "Application created successfully");
+  return response["data"];
+};
+
+export const updateApplication = async (
+  id: string,
+  payload: Record<string, any>,
+  files?: File[]
+) => {
+  const response = await gxpApi.patch(
+    `${API_ROUTES.gxpApplications}/${id}`,
+    buildApplicationFormData(payload, files),
+    { headers: { "Content-Type": "multipart/form-data" } }
+  );
+  toastSuccess(response, "Application updated successfully");
+  return response["data"];
+};
+
+export const deleteApplication = async (id: string) => {
+  const response = await gxpApi.delete(`${API_ROUTES.gxpApplications}/${id}`);
+  toastSuccess(response, "Application deleted successfully");
+  return response["data"];
+};
+
+export const duplicateApplication = async (id: string) => {
+  const response = await gxpApi.post(`${API_ROUTES.gxpApplications}/${id}/duplicate`);
+  toastSuccess(response, "Application duplicated successfully");
+  return response["data"];
+};
+
+export const enableApplication = async (id: string) => {
+  const response = await gxpApi.patch(`${API_ROUTES.gxpApplications}/enable/${id}`);
+  toastSuccess(response, "Application enabled successfully");
+  return response["data"];
+};
+
+export const disableApplication = async (id: string) => {
+  const response = await gxpApi.patch(`${API_ROUTES.gxpApplications}/disable/${id}`);
+  toastSuccess(response, "Application disabled successfully");
+  return response["data"];
+};
+
+// #endregion
+
+// #region GXP Permission
+
+export const getGxpPermissions = async () => {
+  const response = await gxpApi.get(API_ROUTES.gxpPermissions);
+  return response["data"];
+};
+
+export const createGxpPermission = async (payload: Record<string, any>) => {
+  const response = await gxpApi.post(API_ROUTES.gxpPermissions, payload);
+  toastSuccess(response, "Permission created successfully");
+  return response["data"];
+};
+
+export const updateGxpPermission = async (id: string, payload: Record<string, any>) => {
+  const response = await gxpApi.patch(`${API_ROUTES.gxpPermissions}/${id}`, payload);
+  toastSuccess(response, "Permission updated successfully");
+  return response["data"];
+};
+
+export const deleteGxpPermission = async (id: string) => {
+  const response = await gxpApi.delete(`${API_ROUTES.gxpPermissions}/${id}`);
+  toastSuccess(response, "Permission deleted successfully");
+  return response["data"];
+};
+
+// #endregion
+
+// #region GXP Role
+
+export const getGxpRoles = async () => {
+  const response = await gxpApi.get(API_ROUTES.gxpRoles);
+  return response["data"];
+};
+
+export const createGxpRole = async (payload: Record<string, any>) => {
+  const response = await gxpApi.post(API_ROUTES.gxpRoles, payload);
+  toastSuccess(response, "Role created successfully");
+  return response["data"];
+};
+
+export const updateGxpRole = async (id: string, payload: Record<string, any>) => {
+  const response = await gxpApi.patch(`${API_ROUTES.gxpRoles}/${id}`, payload);
+  toastSuccess(response, "Role updated successfully");
+  return response["data"];
+};
+
+export const deleteGxpRole = async (id: string) => {
+  const response = await gxpApi.delete(`${API_ROUTES.gxpRoles}/${id}`);
+  toastSuccess(response, "Role deleted successfully");
+  return response["data"];
+};
+
+// #endregion
+
+// #region Application Services
+export const getApplicationServices = async (includeDisabled: boolean = false) => {
+  let url = API_ROUTES.gxpApplicationServices;
+  if (includeDisabled) {
+    url = `${API_ROUTES.gxpApplicationServices}?includeDisabled=true`;
+  }
+  const response = await gxpApi.get(url);
+  return response["data"];
+};
+
+export const createApplicationService = async (payload: Record<string, any>) => {
+  const response = await gxpApi.post(API_ROUTES.gxpApplicationServices, payload);
+  toastSuccess(response, "Application service created successfully");
+  return response["data"];
+};
+
+export const updateApplicationService = async (id: string, payload: Record<string, any>) => {
+  const response = await gxpApi.patch(`${API_ROUTES.gxpApplicationServices}/${id}`, payload);
+  toastSuccess(response, "Application service updated successfully");
+  return response["data"];
+};
+
+export const deleteApplicationService = async (id: string) => {
+  const response = await gxpApi.delete(`${API_ROUTES.gxpApplicationServices}/${id}`);
+  toastSuccess(response, "Application service deleted successfully");
+  return response["data"];
+};
+
+export const enableApplicationService = async (id: string) => {
+  const response = await gxpApi.patch(`${API_ROUTES.gxpApplicationServices}/enable/${id}`);
+  toastSuccess(response, "Application service enabled successfully");
+  return response["data"];
+};
+
+export const disableApplicationService = async (id: string) => {
+  const response = await gxpApi.patch(`${API_ROUTES.gxpApplicationServices}/disable/${id}`);
+  toastSuccess(response, "Application service disabled successfully");
+  return response["data"];
+};
+// #endregion
+
+// #region Service Requests
+export const getServiceRequests = async () => {
+  const response = await gxpApi.get(API_ROUTES.gxpServiceRequests);
+  return response["data"];
+};
+
+export const getServiceRequestById = async (id: string) => {
+  const response = await gxpApi.get(`${API_ROUTES.gxpServiceRequests}/${id}`);
+  return response["data"];
+};
+
+const buildServiceRequestFormData = (payload: Record<string, any>, files?: File[]) => {
+  const formData = new FormData();
+  formData.append("data", JSON.stringify(payload));
+  (files || []).forEach((file) => formData.append("attachments", file));
+  return formData;
+};
+
+export const createServiceRequest = async (
+  payload: Record<string, any>,
+  files?: File[]
+) => {
+  const response = await gxpApi.post(
+    API_ROUTES.gxpServiceRequests,
+    buildServiceRequestFormData(payload, files),
+    {
+      headers: {
+        "Content-Type": "multipart/form-data"
+      }
+    }
+  );
+  toastSuccess(response, "Service request created successfully");
+  return response["data"];
+};
+
+export const updateServiceRequest = async (
+  id: string,
+  payload: Record<string, any>,
+  files?: File[]
+) => {
+  const response = await gxpApi.patch(
+    `${API_ROUTES.gxpServiceRequests}/${id}`,
+    buildServiceRequestFormData(payload, files),
+    {
+      headers: {
+        "Content-Type": "multipart/form-data"
+      }
+    }
+  );
+  toastSuccess(response, "Service request updated successfully");
+  return response["data"];
+};
+
+export const deleteServiceRequest = async (id: string) => {
+  const response = await gxpApi.delete(`${API_ROUTES.gxpServiceRequests}/${id}`);
+  toastSuccess(response, "Service request deleted successfully");
+  return response["data"];
+};
+
+export const deleteServiceRequestAttachment = async (attachmentId: string) => {
+  const response = await gxpApi.delete(
+    `${API_ROUTES.gxpServiceRequests}/attachments/${attachmentId}`
+  );
+  toastSuccess(response, "Attachment removed successfully");
+  return response["data"];
+};
+
+export const getServiceTypes = async () => {
+  const response = await gxpApi.get(API_ROUTES.gxpServiceTypes);
+  return response["data"];
+};
+// #endregion
+
+// #region GXP Users
+export const getGxpUsers = async (includeDisabled: boolean = false) => {
+  let url = API_ROUTES.gxpUsers;
+  if (includeDisabled) {
+    url = `${API_ROUTES.gxpUsers}?includeDisabled=true`;
+  }
+  const response = await gxpApi.get(url);
+  return response["data"];
+};
+
+export const createGxpUser = async (payload: Record<string, any>) => {
+  const response = await gxpApi.post(API_ROUTES.gxpUsers, payload);
+  toastSuccess(response, "User created successfully");
+  return response["data"];
+};
+
+export const updateGxpUser = async (id: string, payload: Record<string, any>) => {
+  const response = await gxpApi.patch(`${API_ROUTES.gxpUsers}/${id}`, payload);
+  toastSuccess(response, "User updated successfully");
+  return response["data"];
+};
+
+export const deleteGxpUser = async (id: string) => {
+  const response = await gxpApi.delete(`${API_ROUTES.gxpUsers}/${id}`);
+  toastSuccess(response, "User deleted successfully");
+  return response["data"];
+};
+
+export const enableGxpUser = async (id: string) => {
+  const response = await gxpApi.patch(`${API_ROUTES.gxpUsers}/enable/${id}`);
+  toastSuccess(response, "User enabled successfully");
+  return response["data"];
+};
+
+export const disableGxpUser = async (id: string) => {
+  const response = await gxpApi.patch(`${API_ROUTES.gxpUsers}/disable/${id}`);
+  toastSuccess(response, "User disabled successfully");
+  return response["data"];
+};
+// #endregion

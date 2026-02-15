@@ -36,6 +36,11 @@ export const authenticate = async (
     //   req.user = JSON.parse(cachedUser) as IUser;
     //   return next();
     // }
+    // const cachedUser = await getCachedResponse(userId);
+    // if (cachedUser) {
+    //   req.user = JSON.parse(cachedUser) as IUser;
+    //   return next();
+    // }
 
     const fetchedUser = await User.findById(userId)
       .populate("roles", ["permissions"])
