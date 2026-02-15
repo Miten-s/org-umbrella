@@ -47,7 +47,7 @@ export const updateAppplication = asyncHandler(
     const attachments = files?.map((file) => file.filename) || [];
 
     const updated = await service.updateApplication(
-      id,
+      id as string,
       payload,
       currentUser ?? undefined,
       attachments

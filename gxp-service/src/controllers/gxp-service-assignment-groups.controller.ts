@@ -38,7 +38,7 @@ export const disableGroup = asyncHandler(
 export const enableGroup = asyncHandler(
   async (req: Request, res: Response) => {
     const { groupName } = req.params;
-    const result = await enable(groupName);
+    const result = await enable(groupName as string);
     res.json(result);
   }
 );
@@ -46,7 +46,7 @@ export const enableGroup = asyncHandler(
 export const restoreGroup = asyncHandler(
   async (req: Request, res: Response) => {
     const { groupName } = req.body;
-    const result = await enable(groupName);
+    const result = await enable(groupName as string);
     res.json(result);
   }
 );
