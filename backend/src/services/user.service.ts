@@ -27,13 +27,25 @@ const getUsers = async (user?: IUser) => {
 };
 
 const createUser = async (req: Request) => {
-  const payload = req.body;
-  payload["createdBy"] = req.user?._id;
-  return await User.create(payload);
+    const payload =
+      typeof req.body?.data === "string" ? JSON.parse(req.body.data) : req.body;
+    const signature = req.file?.filename;
+    payload["createdBy"] = req?.user?._id;
+
+    if (signature) {
+      payload["signature"] = signature;
+    }
+    return await User.create(payload);
 };
 
 const updateUser = async (req: Request) => {
-  return await User.updateOne({ _id: req.params.id }, req.body);
+  const payload =
+    typeof req.body?.data === "string" ? JSON.parse(req.body.data) : req.body;
+  const signature = req.file?.filename;
+  if (signature) {
+    payload["signature"] = signature;
+  }
+  return await User.updateOne({ _id: req.params.id }, { $set: payload });
 };
 
 const deleteUser = async (req: Request) => {
@@ -70,4 +82,4 @@ const getUserDetail = async (id: string) => {
   ).exec();
 };
 
-export default { getUsers, createUser, updateUser, deleteUser, getUserDetail };
+  export default { getUsers, createUser, updateUser, deleteUser, getUserDetail };

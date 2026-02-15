@@ -1,6 +1,7 @@
 import express, { Application } from "express";
 import dotenv from "dotenv";
 import rateLimit from "express-rate-limit";
+import path from "path";
 
 dotenv.config();
 
@@ -24,7 +25,7 @@ app.use(
   })
 );
 
-import "./configs/redis.config";
+// import "./configs/redis.config";
 
 app.use(cookierParser());
 
@@ -34,10 +35,11 @@ connectDB();
 
 app.use(express.json());
 
-// app.use(express.urlencoded({ extended: true }));
-
-// Static folder for serving uploaded images
-app.use("/uploads", express.static("dist/uploads"));
+// Serve uploaded assets
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "uploads"))
+);
 
 app.get(API_ROUTES.HEALTH, (_req, res) => {
   res.status(200).json({ message: CUSTOM_MESSAGES.HEALTHY_MESSAGE });

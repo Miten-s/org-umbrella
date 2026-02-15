@@ -70,7 +70,7 @@ const Button: React.FC<ButtonProps> = ({
     return hasPermission(user, permission);
   };
 
-  const getMissingPermissions = (user: any, permission: string | string[] | undefined, logic: 'all' | 'any') => {
+  const getMissingPermissions = (user: any, permission: string | string[] | undefined) => {
     if (!permission) return [];
     if (Array.isArray(permission)) {
       return permission.filter(p => !hasPermission(user, p));
@@ -79,7 +79,7 @@ const Button: React.FC<ButtonProps> = ({
   };
 
   const userHasPermission = checkPermissions(user, permission, permissionLogic);
-  const missingPermissions = getMissingPermissions(user, permission, permissionLogic);
+  const missingPermissions = getMissingPermissions(user, permission);
   const isDisabled = disabled || (permission && !userHasPermission);
 
   const handleClick = () => {

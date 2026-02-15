@@ -1,11 +1,10 @@
 module.exports = {
-  async up(db, client) {
+  async up(db) {
     const permissionNames = [
       "CREATE:USER",
       "VIEW:USER",
       "UPDATE:USER",
       "DELETE:USER",
-
       "CREATE:PERMISSION",
       "VIEW:PERMISSION",
       "UPDATE:PERMISSION",
@@ -70,7 +69,7 @@ module.exports = {
     console.log("Built-in Admin and User roles created with permissions");
   },
 
-  async down(db, client) {
+  async down(db) {
     await db.collection("roles").deleteMany({
       name: { $in: ["Admin", "User"] },
       type: "Built_In"

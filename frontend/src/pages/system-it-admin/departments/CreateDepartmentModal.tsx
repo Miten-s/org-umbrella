@@ -133,7 +133,7 @@ const CreateDepartmentModal = ({
               onClose={() => setManagerDropdownOpen(false)}
               className="absolute z-10 mt-1 w-full rounded-xl border bg-white dark:bg-gray-800 dark:border-gray-700 shadow-md text-gray-900 dark:text-gray-100"
             >
-              {managers.map((manager) => (
+              {managers?.map((manager) => (
                 <DropdownItem
                   key={manager._id}
                   onItemClick={() => handleManagerSelect(manager._id)}
@@ -174,7 +174,7 @@ const CreateDepartmentModal = ({
               onClose={() => setLocationDropdownOpen(false)}
               className="absolute z-10 mt-1 w-full rounded-xl border bg-white dark:bg-gray-800 dark:border-gray-700 shadow-md text-gray-900 dark:text-gray-100"
             >
-              {locations.map((loc) => (
+              {locations?.map((loc) => (
                 <DropdownItem
                   key={loc._id}
                   onItemClick={() => handleLocationSelect(loc._id)}

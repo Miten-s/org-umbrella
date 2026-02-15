@@ -23,7 +23,10 @@ export const updatePermissions = asyncHandler(
 
 export const getPermissions = asyncHandler(
   async (_req: Request, res: Response): Promise<void> => {
-    const permissions = await permissionService.getPermissions();
+    const { type } = _req.query;
+    const permissions = await permissionService.getPermissions(
+      type ? type?.toString() : 'default'
+    );
     res.status(200).json({ permissions });
   }
 );

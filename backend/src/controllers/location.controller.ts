@@ -24,7 +24,9 @@ export const getAllLocations = asyncHandler(
 
 export const getLocationById = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
-    const location = await locationService.getLocationById(req.params.id);
+    const location = await locationService.getLocationById(
+      req.params.id as string
+    );
     if (!location)
       return res.status(404).json({ error: "Location/Group not found" });
     res.status(200).json({ location });
@@ -34,7 +36,7 @@ export const getLocationById = asyncHandler(
 export const updateLocation = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
     const location = await locationService.updateLocation(
-      req.params.id,
+      req.params.id as string,
       req.body
     );
     if (!location)
@@ -50,7 +52,9 @@ export const updateLocation = asyncHandler(
 
 export const deleteLocation = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
-    const location = await locationService.deleteLocation(req.params.id);
+    const location = await locationService.deleteLocation(
+      req.params.id as string
+    );
     if (!location)
       return res.status(404).json({ error: "Location/Group not found" });
     res.status(200).json({

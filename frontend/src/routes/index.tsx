@@ -2,7 +2,7 @@ import { lazy } from "react";
 import AppLayout from "../components/layout/AppLayout";
 import Login from "@/components/sign-in/Login";
 import { PageUrl } from "@/types/utils.types";
-import { PERMISSIONS } from "@/utils/permissions";
+import { ADMIN_PERMISSIONS } from "@/utils/permissions";
 import type { AppRoute } from "./types";
 
 // Dashboard & Access Management
@@ -21,6 +21,17 @@ const SysLocations = lazy(() => import("../pages/system-it-admin/locations"));
 // Company
 const CompanyManagement = lazy(() => import("../pages/company-management"));
 
+// GXP Service
+const GXPUsersPage = lazy(() => import("../pages/gxp-service/users"));
+const GXPRolesAndPermissionsPage = lazy(() => import("../pages/gxp-service/roles-and-permissions"));
+const GXPWorkflowsPage = lazy(() => import("../pages/gxp-service/workflows"));
+const GXPAssignmentGroupsPage = lazy(() => import("../pages/gxp-service/assignment-groups"));
+const GXPEnvironmentsPage = lazy(() => import("../pages/gxp-service/environments"));
+const GXPSuppliersPage = lazy(() => import("../pages/gxp-service/suppliers"));
+const GXPApplicationSoftwareModulePage = lazy(() => import("../pages/gxp-service/application-software-module"));
+const GXPAddNewApplicationPage = lazy(() => import("../pages/gxp-service/add-new-application"));
+const GXPCreateNewServiceRequestPage = lazy(() => import("../pages/gxp-service/create-new-service-request"));
+
 const routes: AppRoute[] = [
   {
     path: "/",
@@ -31,7 +42,7 @@ const routes: AppRoute[] = [
         index: true,
         element: <Dashboard />,
         protection: {
-          requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+          requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
         },
         meta: {
           title: "Dashboard",
@@ -45,7 +56,7 @@ const routes: AppRoute[] = [
             path: PageUrl.Roles.path.replace(`${PageUrl.AccessManagement.path}/`, ""),
             element: <RolesAndPermissions />,
             protection: {
-              requiredPermission: PERMISSIONS.VIEW_ROLE
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_ROLE
             },
             meta: {
               title: "Roles & Permissions",
@@ -63,7 +74,7 @@ const routes: AppRoute[] = [
             path: PageUrl.ProfileInfo.path.replace(`${PageUrl.MySpace.path}/`, ""),
             element: <ProfileInfo />,
             protection: {
-              requiredPermission: PERMISSIONS.VIEW_DASHBOARD
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
             },
             meta: {
               title: "Profile Info",
@@ -81,7 +92,7 @@ const routes: AppRoute[] = [
             path: PageUrl.Users.path.replace(`${PageUrl.System.path}/`, ""),
             element: <SysUsers />,
             protection: {
-              requiredPermission: PERMISSIONS.VIEW_USER
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_USER
             },
             meta: {
               title: "Users",
@@ -92,7 +103,7 @@ const routes: AppRoute[] = [
             path: PageUrl.Departments.path.replace(`${PageUrl.System.path}/`, ""),
             element: <SysDepartments />,
             protection: {
-              requiredPermission: PERMISSIONS.VIEW_DEPARTMENT
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_DEPARTMENT
             },
             meta: {
               title: "Departments",
@@ -103,7 +114,7 @@ const routes: AppRoute[] = [
             path: PageUrl.Designations.path.replace(`${PageUrl.System.path}/`, ""),
             element: <SysDesignations />,
             protection: {
-              requiredPermission: PERMISSIONS.VIEW_DESIGNATION
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_DESIGNATION
             },
             meta: {
               title: "Designations",
@@ -114,7 +125,7 @@ const routes: AppRoute[] = [
             path: PageUrl.LocationsGroups.path.replace(`${PageUrl.System.path}/`, ""),
             element: <SysLocations />,
             protection: {
-              requiredPermission: PERMISSIONS.VIEW_LOCATION
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_LOCATION
             },
             meta: {
               title: "Locations",
@@ -129,12 +140,118 @@ const routes: AppRoute[] = [
         path: PageUrl.CompanySettings.path,
         element: <CompanyManagement />,
         protection: {
-          requiredPermission: PERMISSIONS.OPERATE_ALL
+          requiredPermission: ADMIN_PERMISSIONS.OPERATE_ALL
         },
         meta: {
           title: "Company Settings",
           icon: "company"
         }
+      },
+
+      // GXP Service
+      {
+        path: PageUrl.GXPService.path,
+        children: [
+          {
+            path: PageUrl.GXPUsers.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            element: <GXPUsersPage />,
+            protection: {
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
+            },
+            meta: {
+              title: "Users",
+              icon: "users"
+            }
+          },
+          {
+            path: PageUrl.GXPRolesAndPermissions.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            element: <GXPRolesAndPermissionsPage />,
+            protection: {
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
+            },
+            meta: {
+              title: "Roles and Permissions",
+              icon: "roles"
+            }
+          },
+          {
+            path: PageUrl.GXPWorkflows.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            element: <GXPWorkflowsPage />,
+            protection: {
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
+            },
+            meta: {
+              title: "Workflows",
+              icon: "workflows"
+            }
+          },
+          {
+            path: PageUrl.GXPAssignmentGroups.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            element: <GXPAssignmentGroupsPage />,
+            protection: {
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
+            },
+            meta: {
+              title: "Assignment Groups",
+              icon: "assignment-groups"
+            }
+          },
+          {
+            path: PageUrl.GXPEnvironments.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            element: <GXPEnvironmentsPage />,
+            protection: {
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
+            },
+            meta: {
+              title: "Environments",
+              icon: "environments"
+            }
+          },
+          {
+            path: PageUrl.GXPSuppliers.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            element: <GXPSuppliersPage />,
+            protection: {
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
+            },
+            meta: {
+              title: "Suppliers",
+              icon: "suppliers"
+            }
+          },
+          {
+            path: PageUrl.GXPApplicationSoftwareModule.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            element: <GXPApplicationSoftwareModulePage />,
+            protection: {
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
+            },
+            meta: {
+              title: "Application/Software Module",
+              icon: "application-software-module"
+            }
+          },
+          {
+            path: PageUrl.GXPAddNewApplication.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            element: <GXPAddNewApplicationPage />,
+            protection: {
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
+            },
+            meta: {
+              title: "Add a new GxP Portal Application/Software form",
+              icon: "add-new-application"
+            }
+          },
+          {
+            path: PageUrl.GXPCreateNewServiceRequest.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            element: <GXPCreateNewServiceRequestPage />,
+            protection: {
+              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
+            },
+            meta: {
+              title: "Create a new Service Request",
+              icon: "create-new-service-request"
+            }
+          }
+        ]
       }
     ]
   },

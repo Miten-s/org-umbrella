@@ -1,7 +1,6 @@
 import { Schema, model, Document } from "mongoose";
 
 export interface ILocation extends Document {
-  _id: string;
   locationName: string;
   description?: string;
   comments?: string;
