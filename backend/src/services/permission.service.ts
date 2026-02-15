@@ -12,13 +12,14 @@ const updatePermission = async (req: Request) => {
 
 const deletePermission = async (req: Request) => {
   return await Permission.updateOne(
-    { _id: new ObjectId(req.params.id) },
+    { _id: new ObjectId(req.params.id as string) },
     { $set: { deletedAt: new Date() } }
   );
 };
 
-const getPermissions = async () => {
+const getPermissions = async (type?: string) => {
   return await Permission.find({
+    type,
     deletedAt: { $not: null },
     name: { $not: /OPERATE:ALL/i }
   }).lean();

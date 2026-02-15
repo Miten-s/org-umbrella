@@ -24,7 +24,7 @@ module.exports = {
       { name: "CREATE:ROLE", description: "Create a new role" },
       { name: "VIEW:ROLE", description: "Read role data" },
       { name: "UPDATE:ROLE", description: "Update role details" },
-      { name: "DELETE:ROLE", description: "Delete a role" },
+      { name: "DELETE:ROLE", description: "Delete a role" }
     ];
 
     // 1. Insert Permissions
@@ -49,7 +49,7 @@ module.exports = {
 
     // 2. Create Super Admin Role
     const roleInsertResult = await db.collection("roles").insertOne({
-      name: "Super Admin",   // This field is used in frontend for checking if user is super admin or not so do not change it
+      name: "Super Admin", // This field is used in frontend for checking if user is super admin or not so do not change it
       type: "Built_In",
       permissions: [operateAllPermissionId],
       createdAt: new Date(),
@@ -97,48 +97,43 @@ module.exports = {
   },
 
   async down(db) {
-    // Remove Super Admin User
-    await db.collection("users").deleteOne({ fullName: "superadmin" });
-
-    // Remove Super Admin Role
-    await db.collection("roles").deleteOne({ name: "Super Admin" });
-
-    // Remove Permissions
-    const permissionNames = [
-      "CREATE:USER",
-      "VIEW:USER",
-      "UPDATE:USER",
-      "DELETE:USER",
-      "CREATE:PERMISSION",
-      "VIEW:PERMISSION",
-      "UPDATE:PERMISSION",
-      "DELETE:PERMISSION",
-      "VIEW:DASHBOARD",
-      "OPERATE:ALL",
-      "CREATE:LOCATION",
-      "VIEW:LOCATION",
-      "UPDATE:LOCATION",
-      "DELETE:LOCATION",
-      "CREATE:DEPARTMENT",
-      "VIEW:DEPARTMENT",
-      "UPDATE:DEPARTMENT",
-      "DELETE:DEPARTMENT",
-      "CREATE:DESIGNATION",
-      "VIEW:DESIGNATION",
-      "UPDATE:DESIGNATION",
-      "DELETE:DESIGNATION",
-      "CREATE:ROLE",
-      "VIEW:ROLE",
-      "UPDATE:ROLE",
-      "DELETE:ROLE"
-    ];
-
-    await db
-      .collection("permissions")
-      .deleteMany({ name: { $in: permissionNames } });
-
-    await db.collection("company").deleteOne({ name: "Super Admin Company" });
-
-    console.log("Super Admin user, role, and permissions removed");
+    // // Remove Super Admin User
+    // await db.collection("users").deleteOne({ fullName: "superadmin" });
+    // // Remove Super Admin Role
+    // await db.collection("roles").deleteOne({ name: "Super Admin" });
+    // // Remove Permissions
+    // const permissionNames = [
+    //   "CREATE:USER",
+    //   "VIEW:USER",
+    //   "UPDATE:USER",
+    //   "DELETE:USER",
+    //   "CREATE:PERMISSION",
+    //   "VIEW:PERMISSION",
+    //   "UPDATE:PERMISSION",
+    //   "DELETE:PERMISSION",
+    //   "VIEW:DASHBOARD",
+    //   "OPERATE:ALL",
+    //   "CREATE:LOCATION",
+    //   "VIEW:LOCATION",
+    //   "UPDATE:LOCATION",
+    //   "DELETE:LOCATION",
+    //   "CREATE:DEPARTMENT",
+    //   "VIEW:DEPARTMENT",
+    //   "UPDATE:DEPARTMENT",
+    //   "DELETE:DEPARTMENT",
+    //   "CREATE:DESIGNATION",
+    //   "VIEW:DESIGNATION",
+    //   "UPDATE:DESIGNATION",
+    //   "DELETE:DESIGNATION",
+    //   "CREATE:ROLE",
+    //   "VIEW:ROLE",
+    //   "UPDATE:ROLE",
+    //   "DELETE:ROLE"
+    // ];
+    // await db
+    //   .collection("permissions")
+    //   .deleteMany({ name: { $in: permissionNames } });
+    // await db.collection("company").deleteOne({ name: "Super Admin Company" });
+    // console.log("Super Admin user, role, and permissions removed");
   }
 };
