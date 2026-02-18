@@ -1,7 +1,6 @@
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IPermission extends Document {
-  _id: string;
   name: string;
   description: string;
   deletedAt: Date;

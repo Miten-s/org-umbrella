@@ -25,7 +25,7 @@ export const getAllDesignations = asyncHandler(
 export const getDesignationByName = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
     const designation = await designationService.getDesignationById(
-      req.params.id
+      req.params.id as string
     );
     if (!designation)
       return res.status(404).json({ error: "Designation not found" });
@@ -36,7 +36,7 @@ export const getDesignationByName = asyncHandler(
 export const updateDesignation = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
     const designation = await designationService.updateDesignation(
-      req.params.id,
+      req.params.id as string,
       req.body
     );
     if (!designation)
@@ -53,7 +53,7 @@ export const updateDesignation = asyncHandler(
 export const deleteDesignation = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
     const designation = await designationService.deleteDesignation(
-      req.params.id
+      req.params.id as string
     );
     if (!designation)
       return res.status(404).json({ error: "Designation not found" });

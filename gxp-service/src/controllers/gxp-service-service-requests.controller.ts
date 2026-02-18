@@ -31,7 +31,7 @@ export const getAllSeviceRequests = asyncHandler(
 export const getServiceRequestById = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const result = await service.fetchRequestById(id);
+    const result = await service.fetchRequestById(id as string);
     if (!result) return res.status(404).json({ message: "Not Found" });
     res.status(200).send(result);
   }
@@ -66,7 +66,10 @@ export const updateStatusOfRequest = asyncHandler(
 
     if (!status) return res.status(400).json({ message: "Status Not Found" });
 
-    const result = await service.updateRequest(id, { status, comments });
+    const result = await service.updateRequest(id as string, {
+      status,
+      comments
+    });
 
     if (!result) return res.status(404).json({ message: "Not Found" });
     res.status(200).send(result);
@@ -76,7 +79,7 @@ export const updateStatusOfRequest = asyncHandler(
 export const deleteServiceRequest = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const result = await service.deleteRequest(id);
+    const result = await service.deleteRequest(id as string);
     if (!result) return res.status(404).json({ message: "Not Found" });
     res.status(200).send(result);
   }

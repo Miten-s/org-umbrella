@@ -7,7 +7,6 @@ export enum RoleType {
   GXP_SERVICE = "Gxp_Service"
 }
 export interface IRole extends Document {
-  _id: string;
   name: string;
   permissions: IPermission[];
 }

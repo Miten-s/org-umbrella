@@ -12,7 +12,7 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
 export const getUserDetail = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const { _id: userId } = req.user as IUser;
-    const user = await userService.getUserDetail(userId);
+    const user = await userService.getUserDetail(userId.toString());
     res.status(200).json({ user });
   }
 );

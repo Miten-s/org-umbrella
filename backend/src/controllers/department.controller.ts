@@ -24,7 +24,9 @@ export const getAllDepartments = asyncHandler(
 
 export const getDepartmentById = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
-    const department = await departmentService.getDepartmentById(req.params.id);
+    const department = await departmentService.getDepartmentById(
+      req.params.id as string
+    );
     if (!department)
       return res.status(404).json({ error: "Department not found" });
     res.status(200).json({ department });
@@ -34,7 +36,7 @@ export const getDepartmentById = asyncHandler(
 export const updateDepartment = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
     const department = await departmentService.updateDepartment(
-      req.params.id,
+      req.params.id as string,
       req.body,
       req.user?._id
     );
@@ -51,7 +53,9 @@ export const updateDepartment = asyncHandler(
 
 export const deleteDepartment = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
-    const department = await departmentService.deleteDepartment(req.params.id);
+    const department = await departmentService.deleteDepartment(
+      req.params.id as string
+    );
 
     if (!department)
       return res.status(404).json({ error: "Department not found" });

@@ -29,7 +29,7 @@ export const getApplications = asyncHandler(
 export const getApplicationById = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const item = await service.getApplicationById(id);
+    const item = await service.getApplicationById(id as string);
     if (!item)
       return res.status(404).json({ message: "Application not found" });
     return res.status(200).send(item);
@@ -65,7 +65,7 @@ export const disableApplication = asyncHandler(
     const currentUser =
       (req as any).user?.username ?? (req.headers["x-user"] as string) ?? null;
     const disabled = await service.disableApplication(
-      id,
+      id as string,
       currentUser ?? undefined
     );
     if (!disabled)
@@ -82,7 +82,7 @@ export const enableApplication = asyncHandler(
     const currentUser =
       (req as any).user?.username ?? (req.headers["x-user"] as string) ?? null;
     const restored = await service.enableApplication(
-      id,
+      id as string,
       currentUser ?? undefined
     );
     if (!restored)
@@ -96,7 +96,7 @@ export const enableApplication = asyncHandler(
 export const deleteApplication = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const deleted = await service.deleteApplication(id);
+    const deleted = await service.deleteApplication(id as string);
     if (!deleted)
       return res.status(404).json({ message: "Application not found" });
     return res
@@ -112,7 +112,7 @@ export const deleteAttachments = asyncHandler(
       return res.status(404).json({ message: "Attachment Id is required" });
     }
 
-    const result = await service.deleteAttachments(id);
+    const result = await service.deleteAttachments(id as string);
     res.status(200).send(result);
   }
 );
@@ -130,7 +130,7 @@ export const duplicateApplication = asyncHandler(
     const currentUser = (req as any).user?.username;
 
     const duplicated = await service.duplicateApplication(
-      id,
+      id as string,
       currentUser ?? undefined
     );
     return res.status(201).json(duplicated);

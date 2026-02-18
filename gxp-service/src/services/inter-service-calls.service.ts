@@ -94,4 +94,3 @@ export const fetchRolesFromAuthService = async (ids: string[] , project?: any) =
     throw new Error("Failed to fetch roles: " + error);
   }
 };
-

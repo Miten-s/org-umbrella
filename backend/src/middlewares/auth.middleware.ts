@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import ENV from "../utils/environment";
 import { IUser, User } from "../models/user.model";
 import API_ROUTES from "../utils/routes";
-import { cacheResponse, getCachedResponse } from "../configs/redis.config";
+// import { cacheResponse, getCachedResponse } from "../configs/redis.config";
 
 export const authenticate = async (
   req: Request,
@@ -31,6 +31,11 @@ export const authenticate = async (
     const userId = decoded.id;
 
     // Attempt to fetch the user from Redis
+    // const cachedUser = await getCachedResponse(userId);
+    // if (cachedUser) {
+    //   req.user = JSON.parse(cachedUser) as IUser;
+    //   return next();
+    // }
     // const cachedUser = await getCachedResponse(userId);
     // if (cachedUser) {
     //   req.user = JSON.parse(cachedUser) as IUser;

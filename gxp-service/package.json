@@ -53,6 +53,10 @@
     "express-async-handler": "^1.2.0",
     "express-rate-limit": "^7.5.0",
     "jsonwebtoken": "^9.0.2",
+<<<<<<< HEAD
+=======
+    "mongodb": "^7.1.0",
+>>>>>>> 9542dac762c630ac28eb1d9bb06bc82d0f21bf34
     "multer": "^2.0.0",
     "redis": "^5.1.1",
     "winston": "^3.17.0",
