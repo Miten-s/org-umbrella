@@ -11,7 +11,7 @@ export const login = async (
   try {
     const token = await loginService(req.body);
     res.cookie("accessToken", token);
-    res.json({ message: CUSTOM_MESSAGES.LOGIN_SUCCESSFUL });
+    res.json({ message: CUSTOM_MESSAGES.LOGIN_SUCCESSFUL, accessToken: token });
     logInfo(CUSTOM_MESSAGES.LOGIN_SUCCESSFUL, null, "auth.controller/login");
   } catch (error: unknown) {
     logError(

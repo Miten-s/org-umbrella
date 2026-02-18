@@ -9,3 +9,5 @@ redis
 .agent
 .geminiignore
 ecosystem.config.js
+
+*/.env.*
