@@ -1,12 +1,12 @@
 import { toast } from "@/lib/ToastProvider";
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
+import { AUTH_TOKEN_KEY } from "./common.constants";
 
-const BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:9000/v1/api";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:9000/v1/api";
 
 const api = axios.create({
   baseURL: BASE_URL,
-  withCredentials: true
+  withCredentials: false
 });
 
 // Track refresh state and queue
@@ -25,6 +25,19 @@ const processQueue = (error: AxiosError | null) => {
 };
 
 // Interceptors
+api.interceptors.request.use((config) => {
+  const token =
+    sessionStorage.getItem(AUTH_TOKEN_KEY) ??
+    localStorage.getItem(AUTH_TOKEN_KEY);
+
+  if (token) {
+    config.headers = config.headers ?? {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
+
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError) => {
@@ -57,6 +70,8 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError as AxiosError);
+        sessionStorage.removeItem(AUTH_TOKEN_KEY);
+        localStorage.removeItem(AUTH_TOKEN_KEY);
         window.location.href = "/login";
         return Promise.reject(refreshError);
       } finally {
