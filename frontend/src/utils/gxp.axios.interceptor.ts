@@ -1,11 +1,12 @@
 import { toast } from "@/lib/ToastProvider";
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
+import { AUTH_TOKEN_KEY } from "./common.constants";
 
 const BASE_URL = import.meta.env.VITE_API_GXP_BASE_URL ?? "http://localhost:9001/v1/api";
 
 const gxpApi = axios.create({
   baseURL: BASE_URL,
-  withCredentials: true
+  withCredentials: false
 });
 
 // Track refresh state and queue
@@ -24,6 +25,19 @@ const processQueue = (error: AxiosError | null) => {
 };
 
 // Interceptors
+gxpApi.interceptors.request.use((config) => {
+  const token =
+    sessionStorage.getItem(AUTH_TOKEN_KEY) ??
+    localStorage.getItem(AUTH_TOKEN_KEY);
+
+  if (token) {
+    config.headers = config.headers ?? {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
+
 gxpApi.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError) => {
@@ -55,6 +69,8 @@ gxpApi.interceptors.response.use(
         return gxpApi(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError as AxiosError);
+        sessionStorage.removeItem(AUTH_TOKEN_KEY);
+        localStorage.removeItem(AUTH_TOKEN_KEY);
         window.location.href = "/login";
         return Promise.reject(refreshError);
       } finally {

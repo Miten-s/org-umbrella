@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema } from "@/lib/schema";
 import { loginUser } from "@/services/admin.service";
 import { useNavigate } from "react-router-dom";
-import { SYSTEM_ROUTES } from "@/utils/common.constants";
+import { AUTH_TOKEN_KEY, SYSTEM_ROUTES } from "@/utils/common.constants";
 import { useAuth } from "@/context/AuthContext";
 import Label from "../common/form/Label";
 import Input from "../common/form/input/InputField";
@@ -26,7 +26,10 @@ const Login = () => {
 
   const navigate = useNavigate();
   const onSubmit = async (data: LoginFormData) => {
-    await loginUser(data);
+    const response = await loginUser(data);
+    if (response?.accessToken) {
+      sessionStorage.setItem(AUTH_TOKEN_KEY, response.accessToken);
+    }
     setIsAuthenticated((prev: boolean) => !prev);
     navigate(SYSTEM_ROUTES.DASHBOARD);
   };

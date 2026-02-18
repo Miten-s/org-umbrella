@@ -4,6 +4,8 @@ export const SYSTEM_ROUTES = {
   DASHBOARD: "/dashboard"
 }
 
+export const AUTH_TOKEN_KEY = "auth_access_token";
+
 export const MESSAGES = {
   SUCCESS: {
     ENTITY_ADDED: "Successfully added {{ entity }}",

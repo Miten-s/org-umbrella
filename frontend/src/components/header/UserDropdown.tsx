@@ -4,7 +4,7 @@ import { Dropdown } from "../ui/dropdown/Dropdown";
 import { logoutUser } from "@/services/admin.service";
 import { toast } from "@/lib/ToastProvider";
 import { useNavigate } from "react-router-dom";
-import { SYSTEM_ROUTES } from "@/utils/common.constants";
+import { AUTH_TOKEN_KEY, SYSTEM_ROUTES } from "@/utils/common.constants";
 import { useAuth } from "@/context/AuthContext";
 import { useTranslation } from "react-i18next";
 import { PageUrl } from "@/types/utils.types";
@@ -30,6 +30,8 @@ export default function UserDropdown() {
       setIsAuthenticated(false);
       setUser({});
       setCurrentCompany({});
+      sessionStorage.removeItem(AUTH_TOKEN_KEY);
+      localStorage.removeItem(AUTH_TOKEN_KEY);
       
       // Navigate to login
       navigate(SYSTEM_ROUTES.LOGIN, { replace: true });
