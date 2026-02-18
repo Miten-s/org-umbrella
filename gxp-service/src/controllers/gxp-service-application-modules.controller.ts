@@ -25,7 +25,7 @@ export const getApplicationModules = asyncHandler(
 export const getApplicationModuleById = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const item = await service.getApplicationModuleById(id);
+    const item = await service.getApplicationModuleById(id as string);
     if (!item)
       return res.status(404).json({ message: "Application not found" });
     return res.status(200).send(item);
@@ -36,7 +36,10 @@ export const updateAppplicationModule = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
     const payload = req.body;
-    const updated = await service.updateApplicationModule(id, payload);
+    const updated = await service.updateApplicationModule(
+      id as string,
+      payload
+    );
     if (!updated)
       return res.status(404).json({ message: "Application not found" });
     return res.status(200).send(updated);
@@ -48,7 +51,7 @@ export const updateApplicationModuleStatus = asyncHandler(
     const { id } = req.params;
     const status = req.body?.status;
 
-    const updated = await service.updateApplicationModule(id, {
+    const updated = await service.updateApplicationModule(id as string, {
       status
     });
     if (!updated)
@@ -60,7 +63,7 @@ export const updateApplicationModuleStatus = asyncHandler(
 export const deleteApplicationModule = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const deleted = await service.deleteApplicationModule(id);
+    const deleted = await service.deleteApplicationModule(id as string);
     if (!deleted)
       return res.status(404).json({ message: "Application not found" });
     return res

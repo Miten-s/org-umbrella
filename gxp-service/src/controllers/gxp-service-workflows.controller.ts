@@ -21,7 +21,11 @@ export const updateWorkflow = asyncHandler(
   async (req: Request, res: Response) => {
     const { workflowId } = req.params;
     const user = (req as any).user?.id;
-    const result = await service.updateWorkflow(workflowId, req.body, user);
+    const result = await service.updateWorkflow(
+      workflowId as string,
+      req.body,
+      user
+    );
     res.status(200).send(result);
   }
 );
@@ -30,7 +34,7 @@ export const disableWorkflow = asyncHandler(
   async (req: Request, res: Response) => {
     const { workflowId } = req.params;
     const user = (req as any).user?.id;
-    const result = await service.disableWorkflow(workflowId, user);
+    const result = await service.disableWorkflow(workflowId as string, user);
     res.status(200).send(result);
   }
 );
@@ -39,7 +43,7 @@ export const enableWorkflow = asyncHandler(
   async (req: Request, res: Response) => {
     const { workflowId } = req.params;
     const user = (req as any).user?.id;
-    const result = await service.enableWorkflow(workflowId, user);
+    const result = await service.enableWorkflow(workflowId as string, user);
     res.status(200).send(result);
   }
 );
@@ -47,7 +51,7 @@ export const enableWorkflow = asyncHandler(
 export const deleteWorkflow = asyncHandler(
   async (req: Request, res: Response) => {
     const { workflowId } = req.params;
-    const result = await service.deleteWorkflow(workflowId);
+    const result = await service.deleteWorkflow(workflowId as string);
     res.status(200).send(result);
   }
 );

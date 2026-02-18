@@ -26,7 +26,7 @@ export const getSuppliers = asyncHandler(
 export const getSupplierById = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const item = await service.getSupplier(id);
+    const item = await service.getSupplier(id as string);
     if (!item) return res.status(404).json({ message: "Supplier not found" });
     return res.json(item);
   }
@@ -39,7 +39,7 @@ export const updateSupplier = asyncHandler(
     const currentUser =
       (req as any).user?.username ?? (req.headers["x-user"] as string) ?? null;
     const updated = await service.updateSupplier(
-      id,
+      id as string,
       payload,
       currentUser ?? undefined
     );
@@ -55,7 +55,7 @@ export const disableSupplier = asyncHandler(
     const currentUser =
       (req as any).user?.username ?? (req.headers["x-user"] as string) ?? null;
     const disabled = await service.disableSupplier(
-      id,
+      id as string,
       currentUser ?? undefined
     );
     if (!disabled)
@@ -70,7 +70,10 @@ export const enableSupplier = asyncHandler(
     const comments = req.body?.comments ?? null;
     const currentUser =
       (req as any).user?.username ?? (req.headers["x-user"] as string) ?? null;
-    const restored = await service.enableSupplier(id, currentUser ?? undefined);
+    const restored = await service.enableSupplier(
+      id as string,
+      currentUser ?? undefined
+    );
     if (!restored)
       return res.status(404).json({ message: "Supplier not found" });
     return res.json({
@@ -84,7 +87,7 @@ export const enableSupplier = asyncHandler(
 export const deleteSupplier = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const deleted = await service.deleteSupplier(id);
+    const deleted = await service.deleteSupplier(id as string);
     if (!deleted)
       return res.status(404).json({ message: "Supplier not found" });
     return res.json({ message: "Supplier deleted", supplier: deleted });
