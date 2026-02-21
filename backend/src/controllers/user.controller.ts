@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import userService from "../services/user.service";
 import { CUSTOM_MESSAGES } from "../utils/common.util";
-import { IUser } from "../models/user.model";
 import asyncHandler from "../middlewares/error.middleware";
 
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
@@ -11,8 +10,8 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
 
 export const getUserDetail = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const { _id: userId } = req.user as IUser;
-    const user = await userService.getUserDetail(userId.toString());
+    const userId = req.user?.id;
+    const user = await userService.getUserDetail(userId as string);
     res.status(200).json({ user });
   }
 );
