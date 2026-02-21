@@ -52,7 +52,7 @@ export const updateServiceRequest = asyncHandler(
     const files = req.files as Express.Multer.File[];
     const attachments = files?.map((file) => file.filename) || [];
 
-    const result = await service.updateRequest(id, payload, attachments);
+    const result = await service.updateRequest(id as string, payload, attachments);
 
     if (!result) return res.status(404).json({ message: "Not Found" });
     res.status(200).send(result);

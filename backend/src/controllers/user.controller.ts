@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import userService from "../services/user.service";
 import { CUSTOM_MESSAGES } from "../utils/common.util";
-import { IUser } from "../models/user.model";
 import asyncHandler from "../middlewares/error.middleware";
+import { IUser } from "../models/user.model";
 
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
   const users = await userService.getUsers(req?.user);
@@ -11,8 +11,12 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
 
 export const getUserDetail = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const { _id: userId } = req.user as IUser;
-    const user = await userService.getUserDetail(userId.toString());
+    const userId = (req.user as IUser)?._id;
+    if (!userId) {
+      res.status(401).json({ error: "Invalid token" });
+      return;
+    }
+    const user = await userService.getUserDetail(String(userId));
     res.status(200).json({ user });
   }
 );
