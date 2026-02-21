@@ -9,7 +9,6 @@ import {
 } from "react";
 import { useDispatch } from "react-redux";
 import { setCurrentUser } from "@/redux/slices/userSlice";
-import { useNavigate, useLocation } from "react-router-dom";
 
 interface AuthContextType {
   user: Record<string, string | any>;
@@ -38,9 +37,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentCompany, setCurrentCompany] = useState<Record<string, string>>({});
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-
-  const navigate = useNavigate();
-  const location = useLocation();
   const dispatch = useDispatch();
 
   const fetchUser = async () => {
@@ -58,8 +54,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsAuthenticated(false);
       dispatch(setCurrentUser(null));
       // Only redirect to login if not already on login page and not on public routes
-      if (location.pathname !== SYSTEM_ROUTES.LOGIN && !location.pathname.includes('/public')) {
-        navigate(SYSTEM_ROUTES.LOGIN, { replace: true });
+      const currentPath = window.location.pathname;
+      if (currentPath !== SYSTEM_ROUTES.LOGIN && !currentPath.includes("/public")) {
+        window.location.replace(SYSTEM_ROUTES.LOGIN);
       }
     } finally {
       setIsLoading(false);
