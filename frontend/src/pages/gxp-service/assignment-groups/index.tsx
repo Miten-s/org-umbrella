@@ -156,8 +156,8 @@ const AssignmentGroups = () => {
                   >
                     {t("edit")}
                   </Button>
-                  <Button
-                    // permission="DELETE:ASSIGNMENT_GROUP" // Placeholder for permission
+                  {/* <Button
+                    permission="DELETE:ASSIGNMENT_GROUP" // Placeholder for permission
                     onClick={() => {
                       setAssignmentGroupToDelete(group);
                       setConfirmationModal(true);
@@ -166,7 +166,7 @@ const AssignmentGroups = () => {
                     className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                   >
                     {t("delete")}
-                  </Button>
+                  </Button> */}
                 </td>
               </tr>
             ))}
