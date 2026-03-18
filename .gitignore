@@ -8,6 +8,7 @@ redis
 */uploads
 .agent
 .geminiignore
-ecosystem.config.js
+.ecosystem.config.js
+deploy.sh
 
 */.env.*
