@@ -1,10 +1,23 @@
 import GxpServiceApplicationModel from "../models/gxp-service-applications.model";
-import * as repo from "../repo/gxp-service-application-modules.repo";
 import { IGxpServiceAppModule } from "../models/gxp-service-application-modules.model";
+import * as repo from "../repo/gxp-service-application-modules.repo";
 import { toObjectIdString } from "./mixed-id-resolution.service";
 
 const escapeRegExp = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const normalizeModuleIdSegment = (value: string) =>
+  value
+    .trim()
+    .replace(/\s+/g, "-")
+    .toLowerCase();
+
+// Intentionally uses application NAME (not ID)
+const buildModuleId = (moduleName: string, applicationName?: string) => {
+  const left = normalizeModuleIdSegment(moduleName || "");
+  const right = normalizeModuleIdSegment(applicationName || "unassigned");
+  return `${left}_${right}`;
+};
 
 const unassignedApplicationFilter = {
   $or: [
@@ -31,43 +44,81 @@ const parseApplicationId = (value: unknown): string | undefined => {
   return undefined;
 };
 
+const parseApplicationName = (value: unknown): string | undefined => {
+  if (!value || typeof value !== "object") return undefined;
+  const candidate = (value as Record<string, unknown>).applicationName;
+  return typeof candidate === "string" && candidate.trim()
+    ? candidate.trim()
+    : undefined;
+};
+
+const resolveApplicationName = async (
+  applicationId?: string,
+  fallbackName?: string
+): Promise<string | undefined> => {
+  if (fallbackName?.trim()) return fallbackName.trim();
+  if (!applicationId) return undefined;
+
+  const app = await GxpServiceApplicationModel.findById(applicationId)
+    .select("applicationName")
+    .lean();
+
+  const name = (app as any)?.applicationName;
+  return typeof name === "string" && name.trim() ? name.trim() : undefined;
+};
+
 const syncApplicationModulesFromModuleChange = async (
-  moduleId: string,
+  moduleMongoId: string,
   previousApplicationId?: string,
   nextApplicationId?: string
 ) => {
   if (previousApplicationId && previousApplicationId !== nextApplicationId) {
     await GxpServiceApplicationModel.updateOne(
       { _id: previousApplicationId },
-      { $pull: { applicationModules: moduleId } }
+      { $pull: { applicationModules: moduleMongoId } }
     );
   }
 
   if (nextApplicationId) {
     await GxpServiceApplicationModel.updateOne(
       { _id: nextApplicationId },
-      { $addToSet: { applicationModules: moduleId } }
+      { $addToSet: { applicationModules: moduleMongoId } }
     );
   }
 };
 
 const findDuplicateForApplication = async (
   moduleName: string,
-  application?: string,
+  applicationId: string | undefined,
+  moduleId: string,
   excludeId?: string
 ) => {
-  const filter: Record<string, unknown> = {
+  const fallbackFilter: Record<string, unknown> = {
     moduleName: new RegExp(`^${escapeRegExp(moduleName)}$`, "i")
   };
 
-  if (application) {
-    filter.application = application;
+  if (applicationId) {
+    fallbackFilter.application = applicationId;
   } else {
-    filter.$or = (unassignedApplicationFilter as any).$or;
+    fallbackFilter.$or = (unassignedApplicationFilter as any).$or;
   }
 
-  const matches = await repo.getApplicationModules(filter);
+  const matches = await repo.getApplicationModules({
+    $or: [{ moduleId }, fallbackFilter]
+  });
+
   return matches.find((item: any) => String(item?._id) !== String(excludeId ?? ""));
+};
+
+const toPlain = (value: any) =>
+  value && typeof value.toObject === "function" ? value.toObject() : value;
+
+const stripLegacyUniqueName = (value: any) => {
+  const plain = toPlain(value);
+  if (plain && typeof plain === "object") {
+    delete plain.uniqueName;
+  }
+  return plain;
 };
 
 export const createApplicationModule = async (
@@ -75,10 +126,20 @@ export const createApplicationModule = async (
   currentUser: string
 ) => {
   const moduleName = (payload.moduleName ?? "").trim();
-  const applicationValue = (payload.application ?? "").trim();
-  const application = applicationValue || undefined;
+  const application = parseApplicationId(payload.application);
+  const applicationName = await resolveApplicationName(application);
 
-  const existing = await findDuplicateForApplication(moduleName, application);
+  if (application && !applicationName) {
+    throw new Error("Application name not found for selected application");
+  }
+
+  const moduleId = buildModuleId(moduleName, applicationName);
+
+  const existing = await findDuplicateForApplication(
+    moduleName,
+    application,
+    moduleId
+  );
   if (existing) {
     throw new Error(
       application
@@ -88,26 +149,30 @@ export const createApplicationModule = async (
   }
 
   const created = await repo.createApplicationModule(
-    { ...payload, moduleName, application },
+    { ...payload, moduleName, application, moduleId },
     currentUser
   );
 
-  const moduleId = String((created as any)?._id ?? "");
-  if (moduleId && application) {
-    await syncApplicationModulesFromModuleChange(moduleId, undefined, application);
+  const moduleMongoId = String((created as any)?._id ?? "");
+  if (moduleMongoId && application) {
+    await syncApplicationModulesFromModuleChange(moduleMongoId, undefined, application);
   }
 
-  return created;
+  return stripLegacyUniqueName(created);
 };
 
 export const getApplicationModules = async (includeDisabled = false) => {
   const filter: any = {};
-  if (!includeDisabled) filter["status"] = "enabled";
-  return await repo.getApplicationModules(filter);
+  if (!includeDisabled) filter.status = "enabled";
+
+  const items = await repo.getApplicationModules(filter);
+  return (items || []).map((item: any) => stripLegacyUniqueName(item));
 };
 
 export const getApplicationModuleById = async (id: string) => {
-  return await repo.findApplicationModulesById(id);
+  const item = await repo.findApplicationModulesById(id);
+  if (!item) return item;
+  return stripLegacyUniqueName(item);
 };
 
 export const updateApplicationModule = async (
@@ -120,19 +185,32 @@ export const updateApplicationModule = async (
   }
 
   const previousApplicationId = parseApplicationId((existing as any).application);
+  const previousApplicationName = parseApplicationName((existing as any).application);
 
   const moduleName =
     updates.moduleName !== undefined
       ? updates.moduleName.trim()
       : String((existing as any).moduleName ?? "").trim();
 
-  const applicationValue =
+  const application =
     updates.application !== undefined
-      ? updates.application.trim()
-      : String(previousApplicationId ?? "").trim();
-  const application = applicationValue || undefined;
+      ? parseApplicationId(updates.application)
+      : previousApplicationId;
 
-  const isDuplicate = await findDuplicateForApplication(moduleName, application, id);
+  const applicationName = await resolveApplicationName(application, previousApplicationName);
+
+  if (application && !applicationName) {
+    throw new Error("Application name not found for selected application");
+  }
+
+  const moduleId = buildModuleId(moduleName, applicationName);
+
+  const isDuplicate = await findDuplicateForApplication(
+    moduleName,
+    application,
+    moduleId,
+    id
+  );
   if (isDuplicate) {
     throw new Error(
       application
@@ -144,14 +222,15 @@ export const updateApplicationModule = async (
   const updated = await repo.updateApplicationModule(id, {
     ...updates,
     moduleName,
-    application
+    application,
+    moduleId
   });
 
   if (updated) {
     await syncApplicationModulesFromModuleChange(id, previousApplicationId, application);
   }
 
-  return updated;
+  return stripLegacyUniqueName(updated);
 };
 
 export const deleteApplicationModule = async (id: string) => {

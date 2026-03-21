@@ -15,6 +15,10 @@ export class CreateApplicationDto {
   applicationEnvironment?: string;
 
   @IsString()
+  @IsNotEmpty()
+  assignmentGroup!: string;
+
+  @IsString()
   @IsOptional()
   group?: string;
 
@@ -82,6 +86,10 @@ export class UpdateApplicationDto {
   @IsString()
   @IsOptional()
   applicationEnvironment?: string;
+
+  @IsString()
+  @IsOptional()
+  assignmentGroup?: string;
 
   @IsString()
   @IsOptional()

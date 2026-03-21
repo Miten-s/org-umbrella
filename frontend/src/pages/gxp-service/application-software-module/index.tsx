@@ -183,7 +183,7 @@ const GXPApplicationSoftwareModulePage = () => {
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-800">
             <tr>
-              {["moduleName", "application", "status", "actions"].map((key) => (
+              {["moduleName", "moduleId", "application", "status", "actions"].map((key) => (
                 <th
                   key={key}
                   className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
@@ -199,6 +199,9 @@ const GXPApplicationSoftwareModulePage = () => {
               <tr key={module._id}>
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 dark:text-white">
                   {module.moduleName}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
+                  {module.moduleId || "-"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
                   {getReferenceName(module.application, applicationNameMap) || "-"}
@@ -235,7 +238,7 @@ const GXPApplicationSoftwareModulePage = () => {
             {modules?.length === 0 && (
               <tr>
                 <td
-                  colSpan={4}
+                  colSpan={5}
                   className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-300"
                 >
                   {t("noRecordsFound")}

@@ -9,6 +9,7 @@ export interface IGxpServiceAppModule {
   _id: string;
   moduleName: string;
   application?: string;
+  moduleId?: string;
   status: STATUS;
   createdBy: string;
 }
@@ -22,6 +23,11 @@ const GxpServiceAppModuleSchema = new mongoose.Schema(
     application: {
       type: String,
       ref: "GxpServiceApplication"
+    },
+    // Intentionally generated in service as: moduleName_applicationName
+    moduleId: {
+      type: String,
+      required: true
     },
     status: {
       type: String,
@@ -44,4 +50,5 @@ export const GxpServiceAppModuleModel = mongoose.model(
 );
 
 void GxpServiceAppModuleModel.collection.dropIndex("moduleName_1").catch(() => undefined);
+void GxpServiceAppModuleModel.collection.dropIndex("uniqueName_1").catch(() => undefined);
 void GxpServiceAppModuleModel.updateMany({ application: "" }, { $unset: { application: 1 } }).catch(() => undefined);

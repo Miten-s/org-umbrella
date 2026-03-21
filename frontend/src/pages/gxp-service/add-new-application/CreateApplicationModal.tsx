@@ -27,6 +27,7 @@ import {
 } from "@/utils/mixed-value";
 import type {
     Application,
+    AssignmentGroup,
     ApplicationGroup,
     ApplicationServiceRequestType,
     ApplicationSoftwareModule,
@@ -68,6 +69,7 @@ interface CreateApplicationModalProps {
     optionSets: {
         environments: Environment[];
         locations: Location[];
+        assignmentGroups: AssignmentGroup[];
         applicationGroups: ApplicationGroup[];
         appModules: ApplicationSoftwareModule[];
         workflows: Workflow[];
@@ -84,6 +86,7 @@ const DEFAULT_FORM_VALUES: ApplicationFormInput = {
     applicationType: "GxP",
     applicationEnvironment: "",
     group: "",
+    assignmentGroup: "",
     applicationRoles: [],
     applicationGroups: [],
     applicationServiceRequestTypes: [],
@@ -157,6 +160,7 @@ const normalizeInitialValues = (data?: Application | null): ApplicationFormInput
     applicationType: data?.applicationType ?? DEFAULT_FORM_VALUES.applicationType,
     applicationEnvironment: normalizeMixedId(data?.applicationEnvironment),
     group: normalizeMixedId(data?.group),
+    assignmentGroup: normalizeMixedId(data?.assignmentGroup),
     applicationRoles: normalizeMixedIdArray(data?.applicationRoles),
     applicationGroups: normalizeMixedIdArray(data?.applicationGroups),
     applicationServiceRequestTypes: normalizeMixedIdArray(data?.applicationServiceRequestTypes),
@@ -188,6 +192,7 @@ const CreateApplicationModal = ({
     const {
         environments,
         locations,
+        assignmentGroups,
         applicationGroups,
         serviceRequestTypes,
         appModules,
@@ -409,6 +414,31 @@ const CreateApplicationModal = ({
                             />
                             {errors.group && (
                                 <p className="text-red-500 text-xs mt-1">{errors.group.message as string}</p>
+                            )}
+                        </div>
+
+                        {/* Assignment Group (single) */}
+                        <div>
+                            <Label htmlFor="assignmentGroup" required>{t("group")}</Label>
+                            <Controller
+                                name="assignmentGroup"
+                                control={control}
+                                render={({ field }) => (
+                                    <SelectDropdown
+                                        value={field.value ?? ""}
+                                        onChange={(val) => field.onChange(val)}
+                                        options={assignmentGroups.map((assignmentGroup) => ({
+                                            label: assignmentGroup.groupName,
+                                            value: assignmentGroup._id,
+                                        }))}
+                                        placeholder={t("select", { entity: t("group") })}
+                                    />
+                                )}
+                            />
+                            {errors.assignmentGroup && (
+                                <p className="text-red-500 text-xs mt-1">
+                                    {errors.assignmentGroup.message as string}
+                                </p>
                             )}
                         </div>
 

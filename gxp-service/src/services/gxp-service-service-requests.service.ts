@@ -54,6 +54,9 @@ export const createServiceRequest = async (
   payload.assignmentGroup = extractSingleId(
     payload.assignmentGroup ?? payload.group
   );
+  payload.location = extractSingleId(
+    payload.location ?? payload.groupLocation
+  );
 
   const moduleIds = await resolveIds(
     payload.modules ?? payload.applicationModules,
@@ -92,6 +95,7 @@ export const createServiceRequest = async (
 
   delete payload.applicationEnvironment;
   delete payload.group;
+  delete payload.groupLocation;
   delete payload.applicationWorkflow;
   delete payload.applicationModules;
   delete payload.applicationServiceRequestTypes;
@@ -173,6 +177,11 @@ export const updateRequest = async (
       payload.assignmentGroup ?? payload.group
     );
   }
+  if ("location" in payload || "groupLocation" in payload) {
+    payload.location = extractSingleId(
+      payload.location ?? payload.groupLocation
+    );
+  }
 
   if ("modules" in payload || "applicationModules" in payload) {
     const moduleIds = await resolveIds(
@@ -226,6 +235,7 @@ export const updateRequest = async (
 
   delete payload.applicationEnvironment;
   delete payload.group;
+  delete payload.groupLocation;
   delete payload.applicationWorkflow;
   delete payload.applicationModules;
   delete payload.applicationServiceRequestTypes;

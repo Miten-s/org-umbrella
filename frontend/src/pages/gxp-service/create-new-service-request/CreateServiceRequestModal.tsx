@@ -19,6 +19,7 @@ import {
 } from "@/lib/schema";
 import type { Application, ServiceRequest } from "@/types/gxp-service.types";
 import { useGlobalContext } from "@/context";
+import { getLocations } from "@/services/admin.service";
 import {
   getApplicationById,
   getApplicationRoles,
@@ -41,6 +42,8 @@ type RoleOption = { _id?: string; role?: string; name?: string; roleName?: strin
 type ApplicationDetails = {
   environmentId: string;
   assignmentGroupId: string;
+  groupLocationId: string;
+  groupLocationName: string;
   workflowId: string;
   moduleIds: string[];
   moduleNames: string[];
@@ -78,7 +81,8 @@ const normalizeInitialValues = (
   applicationEnvironment: normalizeMixedId(
     (data as any)?.applicationEnvironment ?? (data as any)?.environment
   ),
-  group: normalizeMixedId((data as any)?.assignmentGroup ?? (data as any)?.group),
+  assignmentGroup: normalizeMixedId((data as any)?.assignmentGroup ?? (data as any)?.group),
+  groupLocation: ((data as any)?.groupLocation ?? (data as any)?.location ?? "") as string,
   applicationWorkflow: normalizeMixedId(
     (data as any)?.applicationWorkflow ?? (data as any)?.workflow
   ),
@@ -128,7 +132,7 @@ const getId = (value: any): string => {
 
 const getText = (value: any, preferredKey?: string): string => {
   if (!value) return "";
-  if (typeof value === "string") return value;
+  if (typeof value === "string") return preferredKey ? "" : value;
   if (preferredKey && typeof value?.[preferredKey] === "string") return value[preferredKey];
   return "";
 };
@@ -136,7 +140,13 @@ const getText = (value: any, preferredKey?: string): string => {
 const mapApplicationToDetails = (app: Application): ApplicationDetails => {
   const environmentId = getId(app?.applicationEnvironment);
 
-  const assignmentGroupId = getId(app?.group);
+  const assignmentGroupId = getId(app?.assignmentGroup);
+
+  const groupLocationId = getId((app as any)?.group);
+  const groupLocationName =
+    getText((app as any)?.group, "locationName") ||
+    getText((app as any)?.group, "name") ||
+    "";
 
   const workflowId = getId(app?.applicationWorkflow);
 
@@ -164,6 +174,8 @@ const mapApplicationToDetails = (app: Application): ApplicationDetails => {
   return {
     environmentId,
     assignmentGroupId,
+    groupLocationId,
+    groupLocationName,
     workflowId,
     moduleIds,
     moduleNames,
@@ -262,6 +274,7 @@ const CreateServiceRequestModal = ({
   const [serviceTypeOptions, setServiceTypeOptions] = useState<DropdownOption[]>([]);
   const [roleBaseOptions, setRoleBaseOptions] = useState<MultiSelectOption[]>([]);
   const [roleOptions, setRoleOptions] = useState<MultiSelectOption[]>([]);
+  const [locationNameById, setLocationNameById] = useState<Record<string, string>>({});
   const {
     control,
     handleSubmit,
@@ -278,6 +291,48 @@ const CreateServiceRequestModal = ({
     control,
     name: "applicationServiceRequestTypes"
   });
+  const selectedGroupLocation = useWatch({ control, name: "groupLocation" });
+
+  const selectedServiceTypeLabel = useMemo(() => {
+    const selectedValue = (selectedServiceRequestTypes || "").trim();
+    if (!selectedValue) return "";
+    const exact = serviceTypeOptions.find((opt) => opt.value === selectedValue);
+    if (exact?.label) return exact.label;
+    const byLabel = serviceTypeOptions.find(
+      (opt) => opt.label.toLowerCase() === selectedValue.toLowerCase()
+    );
+    return byLabel?.label || selectedValue;
+  }, [selectedServiceRequestTypes, serviceTypeOptions]);
+
+  const selectedServiceTypeName = selectedServiceTypeLabel.toLowerCase();
+  const isProvideAccessRequest = selectedServiceTypeName === "provide access";
+  const isModifyAccessRequest = selectedServiceTypeName === "modify access";
+
+  const selectedApplicationLocationLabel = useMemo(() => {
+    const selectedAppId = normalizeMixedId(selectedApplication);
+    if (!selectedAppId) return "";
+    const selectedApp = applications?.find((app: any) => app?._id === selectedAppId);
+    const selectedAppGroupId = normalizeMixedId((selectedApp as any)?.group);
+    return (
+      getText((selectedApp as any)?.group, "locationName") ||
+      getText((selectedApp as any)?.group, "name") ||
+      (selectedAppGroupId ? locationNameById[selectedAppGroupId] ?? "" : "")
+    );
+  }, [applications, locationNameById, selectedApplication]);
+
+  useEffect(() => {
+    const raw = (selectedGroupLocation || "").trim();
+    if (!raw) return;
+    const mapped = locationNameById[raw];
+    if (mapped && mapped !== raw) {
+      setValue("groupLocation", mapped);
+    }
+  }, [locationNameById, selectedGroupLocation, setValue]);
+
+  useEffect(() => {
+    if (isProvideAccessRequest || isModifyAccessRequest) return;
+    setValue("applicationRoles", []);
+  }, [isProvideAccessRequest, isModifyAccessRequest, setValue]);
   useEffect(() => {
     reset(normalizedDefaults);
     initialApplicationIdRef.current = normalizedDefaults.application ?? "";
@@ -333,6 +388,13 @@ const CreateServiceRequestModal = ({
       .filter(Boolean) as DropdownOption[];
   };
 
+  const priorityOptions: DropdownOption[] = [
+    { label: "Very High", value: "Very High" },
+    { label: "High", value: "High" },
+    { label: "Medium", value: "Medium" },
+    { label: "Low", value: "Low" }
+  ];
+
   const statusOptions: DropdownOption[] = [
     { label: "New", value: "New" },
     { label: "In Progress", value: "In Progress" },
@@ -342,19 +404,17 @@ const CreateServiceRequestModal = ({
     { label: "Closed - Skipped", value: "Closed - Skipped" }
   ];
 
-  const priorityOptions: DropdownOption[] = [
-    { label: "Very High", value: "Very High" },
-    { label: "High", value: "High" },
-    { label: "Medium", value: "Medium" },
-    { label: "Low", value: "Low" }
-  ];
-
   const onFormSubmit: SubmitHandler<ServiceRequestFormInput> = async (data) => {
     const parsed: ServiceRequestFormOutput = getServiceRequestSchema.parse(data);
+    const payload: ServiceRequestFormOutput = {
+      ...parsed,
+      status: resolvedInitial ? parsed.status : "New"
+    };
+
     try {
       toggleLoading(true);
       await onSubmit(
-        parsed,
+        payload,
         attachments,
         existingAttachments.map((att) => att.id).filter(Boolean) as string[]
       );
@@ -374,15 +434,25 @@ const CreateServiceRequestModal = ({
     let cancelled = false;
     (async () => {
       try {
-        const [envs, groups, wfs, modules, appRoles] = await Promise.all([
+        const [envs, groups, wfs, modules, appRoles, locs] = await Promise.all([
           getEnvironments(),
           getAssignmentGroups(),
           getWorkflows(),
           getApplicationSoftware(),
-          getApplicationRoles()
+          getApplicationRoles(),
+          getLocations()
         ]);
 
         if (cancelled) return;
+
+        const locationList = extractList<any>(locs, ["locations", "data"]);
+        const nextLocationNameById = locationList.reduce<Record<string, string>>((acc, loc: any) => {
+          const id = normalizeMixedId(loc);
+          const name = loc?.locationName ?? loc?.name ?? "";
+          if (id && name) acc[id] = String(name);
+          return acc;
+        }, {});
+        setLocationNameById(nextLocationNameById);
 
         const baseEnvironmentOptions = extractList<any>(envs, ["environments", "data"]).map(
           (env) => toDropdown(env, "environmentName")
@@ -478,7 +548,9 @@ const CreateServiceRequestModal = ({
     if (!appDetails) {
       setModuleOptions(moduleBaseOptions);
       const initialRoleOptions = buildRoleOptionsFromValues(
-        (resolvedInitial as any)?.roles ?? (resolvedInitial as any)?.applicationRoles
+        (resolvedInitial as any)?.application?.applicationRoles ??
+          (resolvedInitial as any)?.roles ??
+          (resolvedInitial as any)?.applicationRoles
       );
       setRoleOptions(mergeUniqueOptions(roleBaseOptions, initialRoleOptions));
       return;
@@ -539,12 +611,14 @@ const CreateServiceRequestModal = ({
     }
   }, [selectedServiceRequestTypes, serviceTypeOptions, setValue]);
 
+
   useEffect(() => {
     const appId = normalizeMixedId(selectedApplication);
     if (!appId) {
       setAppDetails(null);
       setValue("applicationEnvironment", "");
-      setValue("group", "");
+      setValue("assignmentGroup", "");
+      setValue("groupLocation", "");
       setValue("applicationWorkflow", "");
       setValue("applicationModules", []);
       setValue("applicationServiceRequestTypes", "");
@@ -575,7 +649,13 @@ const CreateServiceRequestModal = ({
 
         setValue("requestType", details.serviceTypeIds[0] ?? "Applications");
         setValue("applicationEnvironment", details.environmentId);
-        setValue("group", details.assignmentGroupId);
+        setValue("assignmentGroup", details.assignmentGroupId);
+        // Intentionally store location NAME (not ID) for service requests to match business expectation.
+        setValue(
+          "groupLocation",
+          details.groupLocationName ||
+            (details.groupLocationId ? locationNameById[details.groupLocationId] ?? "" : "")
+        );
         setValue("applicationWorkflow", details.workflowId);
         setValue("applicationModules", details.moduleIds);
         setValue("applicationServiceRequestTypes", details.serviceTypeIds[0] ?? "");
@@ -592,7 +672,7 @@ const CreateServiceRequestModal = ({
     return () => {
       cancelled = true;
     };
-  }, [resolvedInitial, selectedApplication, setValue, toggleLoading]);
+  }, [locationNameById, resolvedInitial, selectedApplication, setValue, toggleLoading]);
 
   return (
     <div className="p-6 overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
@@ -638,6 +718,7 @@ const CreateServiceRequestModal = ({
                   value={field.value ?? ""}
                   onChange={(val) => field.onChange(val)}
                   options={environmentOptions}
+                  disabled
                   placeholder={t("select", { entity: t("environment") })}
                 />
               )}
@@ -646,20 +727,43 @@ const CreateServiceRequestModal = ({
           </div>
 
           <div>
-            <Label htmlFor="group">{t("group")}</Label>
+            <Label htmlFor="assignmentGroup">
+              {t("assignmentGroup", { defaultValue: "Assignment Group" })}
+            </Label>
             <Controller
-              name="group"
+              name="assignmentGroup"
               control={control}
               render={({ field }) => (
                 <SelectDropdown
                   value={field.value ?? ""}
                   onChange={(val) => field.onChange(val)}
                   options={assignmentGroupOptions}
+                  disabled
                   placeholder={t("select", { entity: t("group") })}
                 />
               )}
             />
-            {renderError(errors.group?.message as string)}
+            {renderError(errors.assignmentGroup?.message as string)}
+          </div>
+
+          <div>
+            <Label htmlFor="groupLocation">
+              {t("groupLocation", { defaultValue: "Group/Location" })}
+            </Label>
+            <Controller
+              name="groupLocation"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  value={appDetails?.groupLocationName || selectedApplicationLocationLabel || locationNameById[field.value ?? ""] || (typeof field.value === "string" && field.value.length === 24 ? "" : (field.value ?? ""))}
+                  onChange={field.onChange}
+                  readOnly
+                  disabled
+                  className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
+                />
+              )}
+            />
+            {renderError(errors.groupLocation?.message as string)}
           </div>
 
           <div>
@@ -672,6 +776,7 @@ const CreateServiceRequestModal = ({
                   value={field.value ?? ""}
                   onChange={(val) => field.onChange(val)}
                   options={workflowOptions}
+                  disabled
                   placeholder={t("select", { entity: t("workflow") })}
                 />
               )}
@@ -698,6 +803,25 @@ const CreateServiceRequestModal = ({
             {renderError(errors.priority?.message)}
           </div>
 
+          {resolvedInitial && (
+            <div>
+              <Label htmlFor="status">{t("status")}</Label>
+              <Controller
+                name="status"
+                control={control}
+                render={({ field }) => (
+                  <SelectDropdown
+                    value={field.value ?? "New"}
+                    onChange={(val) => field.onChange(val)}
+                    options={statusOptions}
+                    placeholder={t("select", { entity: t("status") })}
+                  />
+                )}
+              />
+              {renderError(errors.status?.message)}
+            </div>
+          )}
+
           <div>
             <Label htmlFor="applicationModules">{t("gxpAppModules")}</Label>
             <Controller
@@ -710,6 +834,7 @@ const CreateServiceRequestModal = ({
                   onChange={field.onChange}
                   defaultSelected={field.value}
                   error={errors.applicationModules?.message as string}
+                  disabled
                   countTooltipPlacement="right"
                   showAddButton
                   onAdd={(newOption) => {
@@ -747,35 +872,35 @@ const CreateServiceRequestModal = ({
             {renderError(errors.applicationServiceRequestTypes?.message as string)}
           </div>
 
-          <div>
-            <Label htmlFor="applicationRoles">{t("gxpAppRoles")}</Label>
-            <Controller
-              name="applicationRoles"
-              control={control}
-              render={({ field }) => (
-                <MultiSelect
-                  options={roleOptions}
-                  label={t("select", { entity: t("gxpAppRoles") })}
-                  onChange={field.onChange}
-                  defaultSelected={field.value}
-                  error={errors.applicationRoles?.message as string}
-                  countTooltipPlacement="right"
-                  showAddButton
-                  onAdd={(newOption) => {
-                    const optionToAdd = { text: newOption.text, value: newOption.text };
-                    setRoleOptions((prev) =>
-                      prev.find((opt) => opt.value === optionToAdd.value)
-                        ? prev
-                        : [...prev, optionToAdd]
-                    );
-                    field.onChange(
-                      appendUniqueString(field.value, optionToAdd.value)
-                    );
-                  }}
-                />
-              )}
-            />
-          </div>
+          {(isProvideAccessRequest || isModifyAccessRequest) && roleOptions.length > 0 && (
+            <div>
+              <Label htmlFor="applicationRoles">{t("gxpAppRoles")}</Label>
+              <Controller
+                name="applicationRoles"
+                control={control}
+                render={({ field }) => (
+                  <MultiSelect
+                    options={roleOptions}
+                    label={t("select", { entity: t("gxpAppRoles") })}
+                    onChange={field.onChange}
+                    defaultSelected={field.value}
+                    error={errors.applicationRoles?.message as string}
+                    countTooltipPlacement="right"
+                    showAddButton
+                    onAdd={(newOption) => {
+                      const optionToAdd = { text: newOption.text, value: newOption.text };
+                      setRoleOptions((prev) =>
+                        prev.find((opt) => opt.value === optionToAdd.value)
+                          ? prev
+                          : [...prev, optionToAdd]
+                      );
+                      field.onChange(appendUniqueString(field.value, optionToAdd.value));
+                    }}
+                  />
+                )}
+              />
+            </div>
+          )}
 
           <div>
             <Label htmlFor="esignCheck">{t("esignCheck")}</Label>
@@ -805,25 +930,6 @@ const CreateServiceRequestModal = ({
             />
             {renderError(errors.esignCheck?.message)}
           </div>
-
-
-          <div >
-            <Label htmlFor="status">{t("status")}</Label>
-            <Controller
-              name="status"
-              control={control}
-              render={({ field }) => (
-                <SelectDropdown
-                  value={field.value ?? "New"}
-                  onChange={(val) => field.onChange(val)}
-                  options={statusOptions}
-                  placeholder={t("select", { entity: t("status") })}
-                />
-              )}
-            />
-            {renderError(errors.status?.message)}
-          </div>
-
           <div>
             <Label htmlFor="shortDescription" required>
               {t("shortDescription")}
@@ -957,7 +1063,7 @@ const CreateServiceRequestModal = ({
                             .slice(0, 4)}
                         </div>
                       )}
-                      <span className="text-xs text-gray-800 dark:text-gray-100 max-w-[220px] truncate">
+                      <span className="text-xs text-gray-800 dark:text-gray-100 truncate">
                         {attachment.name}
                       </span>
                       <button

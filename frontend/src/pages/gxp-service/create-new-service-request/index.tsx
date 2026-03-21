@@ -61,7 +61,8 @@ const GXPCreateNewServiceRequestPage = () => {
       shortDescription: req?.shortDescription ?? "",
       requestType: req?.requestType ?? "Applications",
       applicationEnvironment: req?.environment ?? req?.applicationEnvironment ?? "",
-      group: req?.assignmentGroup ?? req?.group ?? req?.location ?? "",
+      assignmentGroup: req?.assignmentGroup ?? req?.group ?? "",
+      groupLocation: req?.location ?? req?.groupLocation ?? "",
       applicationWorkflow: req?.applicationWorkflow ?? req?.workflow ?? "",
       applicationModules: req?.applicationModules ?? req?.modules ?? [],
       applicationServiceRequestTypes: (() => {
@@ -122,7 +123,8 @@ const GXPCreateNewServiceRequestPage = () => {
     return {
     priority: data.priority,
     application: data.application,
-    assignmentGroup: data.group || undefined,
+    assignmentGroup: data.assignmentGroup || undefined,
+    location: data.groupLocation || undefined,
     environment: data.applicationEnvironment || undefined,
     workflow: data.applicationWorkflow || undefined,
     modules: data.applicationModules || [],
@@ -134,7 +136,7 @@ const GXPCreateNewServiceRequestPage = () => {
     trainingDone: data.trainingDone,
     description: data.description,
     shortDescription: data.shortDescription,
-    status: data.status,
+    status: activeRequest ? data.status : "New",
     comments: data.comments || [],
     attachments: existingAttachmentIds
     };

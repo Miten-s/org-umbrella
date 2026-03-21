@@ -26,6 +26,9 @@ export interface UpdateApplication
     | "modifiedOn"
     | "modifiedBy"
   > {
+  applicationEnvironment?: string;
+  group?: string;
+  assignmentGroup?: string;
   applicationRoles?: Ids;
   applicationGroups?: Ids;
   applicationServiceRequestTypes?: Ids;

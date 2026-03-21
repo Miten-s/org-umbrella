@@ -5,6 +5,7 @@ export interface IApplication extends Document {
   applicationType: "GxP" | "Non-GxP";
   applicationEnvironment?: string;
   group: string;
+  assignmentGroup: string;
   applicationRoles: string[];
   applicationGroups: string[];
   applicationServiceRequestTypes: string[];
@@ -31,7 +32,12 @@ const GxpServiceApplicationSchema = new Schema<IApplication>(
       type: String,
       ref: "GxpServiceEnvironment"
     },
-    group: { type: String, ref: "GxpServiceAssignmentGroup" },
+    group: { type: String, required: true, trim: true },
+    assignmentGroup: {
+      type: String,
+      ref: "GxpServiceAssignmentGroup",
+      required: true
+    },
     applicationRoles: {
       type: [{ type: String, ref: "GxpServiceAppRoles" }],
       default: []

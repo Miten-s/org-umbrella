@@ -8,6 +8,7 @@ import { fetchUserBasedOnId } from "../services/inter-service-calls.service";
 
 const POPULATE_FIELDS = [
   "applicationEnvironment",
+  "assignmentGroup",
   "applicationRoles",
   "applicationGroups",
   "applicationServiceRequestTypes",
@@ -44,6 +45,7 @@ export const getApplications = async (
   return await GxpServiceApplicationModel.find(filter, projection, options)
     .populate("applicationGroups", ["appGroup", "active"])
     .populate("applicationEnvironment", ["environmentName"])
+    .populate("assignmentGroup", ["groupName", "isActive"])
     .lean();
 };
 

@@ -217,6 +217,7 @@ export const getApplicationSchema = z.object({
   applicationType: z.enum(["GxP", "Non-GxP"]),
   applicationEnvironment: z.string().min(1, "Application environment is required"),
   group: z.string().min(1, "Group is required"),
+  assignmentGroup: z.string().min(1, "Assignment group is required"),
   applicationRoles: z.array(z.string()).default([]),
   applicationGroups: z.array(z.string()).default([]),
   applicationServiceRequestTypes: z
@@ -267,7 +268,8 @@ export const getServiceRequestSchema = z.object({
   shortDescription: z.string().min(1, "Short description is required"),
   requestType: z.string().min(1).default("Applications"),
   applicationEnvironment: z.string().optional().default(""),
-  group: z.string().optional().default(""),
+  assignmentGroup: z.string().optional().default(""),
+  groupLocation: z.string().optional().default(""),
   applicationWorkflow: z.string().optional().default(""),
   applicationModules: z.array(z.string()).optional().default([]),
   applicationServiceRequestTypes: z.string().optional().default(""),

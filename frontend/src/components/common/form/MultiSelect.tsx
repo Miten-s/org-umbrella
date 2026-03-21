@@ -271,10 +271,17 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
+                            if (disabled) return;
                             removeOption(opt.value);
                           }}
-                          className="shrink-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 leading-none"
-                          aria-label={`Remove ${opt.text}`}
+                          disabled={disabled}
+                          className={[
+                            "shrink-0 leading-none",
+                            disabled
+                              ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                              : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                          ].join(" ")}
+                          aria-label="Remove selected option"
                         >
                           ✕
                         </button>

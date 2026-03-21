@@ -40,6 +40,7 @@ export type Workflow = {
 export type ApplicationSoftwareModule = {
   _id: string;
   moduleName: string;
+  moduleId?: string;
   application?: EntityRef<"applicationName">;
   status?: "enabled" | "disabled";
 };
@@ -93,6 +94,7 @@ export type Application = Omit<
   ApplicationFormOutput,
   | "applicationEnvironment"
   | "group"
+  | "assignmentGroup"
   | "applicationWorkflow"
   | "applicationSystemOwner"
   | "applicationProcessOwner"
@@ -106,6 +108,7 @@ export type Application = Omit<
   _id: string;
   applicationEnvironment?: EntityRef<"environmentName">;
   group?: EntityRef<"groupName">;
+  assignmentGroup?: EntityRef<"groupName">;
   applicationRoles?: ApplicationRole[];
   applicationGroups?: ApplicationGroup[];
   applicationServiceRequestTypes?: ApplicationServiceRequestType[];

@@ -8,13 +8,15 @@ interface SelectDropdownProps {
   value?: string;
   onChange: (val: string) => void;
   placeholder: string;
+  disabled?: boolean;
 }
 
 export const SelectDropdown: React.FC<SelectDropdownProps> = ({
   options,
   value,
   onChange,
-  placeholder
+  placeholder,
+  disabled = false
 }) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -45,12 +47,25 @@ export const SelectDropdown: React.FC<SelectDropdownProps> = ({
     if (!open) setSearch("");
   }, [open]);
 
+  useEffect(() => {
+    if (disabled && open) {
+      setOpen(false);
+    }
+  }, [disabled, open]);
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
         type="button"
-        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-left dark:text-gray-100 flex justify-between items-center min-h-[42px]"
-        onClick={() => setOpen((prev) => !prev)}
+        disabled={disabled}
+        className={[
+          "w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-left dark:text-gray-100 flex justify-between items-center min-h-[42px]",
+          disabled ? "cursor-not-allowed opacity-60" : ""
+        ].join(" ")}
+        onClick={() => {
+          if (disabled) return;
+          setOpen((prev) => !prev);
+        }}
       >
         <span className="flex flex-wrap gap-2 items-center">
           {selectedOption ? (
@@ -64,44 +79,46 @@ export const SelectDropdown: React.FC<SelectDropdownProps> = ({
         <ChevronDownIcon className={`w-4 h-4 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
-      <Dropdown
-        isOpen={open}
-        onClose={() => setOpen(false)}
-        className="w-full max-h-[250px] overflow-hidden"
-      >
-        {options.length > 0 && (
-          <div className="px-3 pb-2">
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search..."
-              className="w-full rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-2 py-2 text-sm text-gray-800 dark:text-gray-100 outline-none"
-            />
-          </div>
-        )}
-
-        <div className="max-h-[180px] overflow-auto">
-          {filteredOptions.length === 0 ? (
-            <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-300">No data found</div>
-          ) : (
-            filteredOptions.map((opt) => (
-              <DropdownItem
-                key={opt.value}
-                onClick={() => {
-                  onChange(opt.value);
-                  setOpen(false);
-                }}
-                className={`${
-                  value === opt.value ? "bg-gray-100 dark:bg-gray-700 font-medium" : ""
-                }`}
-              >
-                {opt.label}
-              </DropdownItem>
-            ))
+      {!disabled && (
+        <Dropdown
+          isOpen={open}
+          onClose={() => setOpen(false)}
+          className="w-full max-h-[250px] overflow-hidden"
+        >
+          {options.length > 0 && (
+            <div className="px-3 pb-2">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search..."
+                className="w-full rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-2 py-2 text-sm text-gray-800 dark:text-gray-100 outline-none"
+              />
+            </div>
           )}
-        </div>
-      </Dropdown>
+
+          <div className="max-h-[180px] overflow-auto">
+            {filteredOptions.length === 0 ? (
+              <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-300">No data found</div>
+            ) : (
+              filteredOptions.map((opt) => (
+                <DropdownItem
+                  key={opt.value}
+                  onClick={() => {
+                    onChange(opt.value);
+                    setOpen(false);
+                  }}
+                  className={`${
+                    value === opt.value ? "bg-gray-100 dark:bg-gray-700 font-medium" : ""
+                  }`}
+                >
+                  {opt.label}
+                </DropdownItem>
+              ))
+            )}
+          </div>
+        </Dropdown>
+      )}
     </div>
   );
 };
