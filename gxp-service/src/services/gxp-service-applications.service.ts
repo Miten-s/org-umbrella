@@ -1,6 +1,5 @@
 import * as repo from "../repo/gxp-service-applications.repo";
 import GxpServiceAppGroupModel from "../models/gxp-service-application-groups.model";
-import { GxpServiceAppModuleModel } from "../models/gxp-service-application-modules.model";
 import GxpServiceAppRoleModel from "../models/gxp-service-application-roles.model";
 import GxpServiceAppServiceModel from "../models/gxp-service-application-services.model";
 import { UpdateApplication } from "../types/common.types";
@@ -11,98 +10,14 @@ import {
   fetchLocationsFromAuthService
 } from "./inter-service-calls.service";
 import { GxpServiceRequestModel } from "../models/gxp-service-service-requests.model";
-
-export type ResolveIdsOptions = {
-  model: mongoose.Model<any>;
-  nameField: string;
-  nameKeys: string[];
-  createExtra?: Record<string, unknown>;
-  queryExtra?: Record<string, unknown>;
-  session?: mongoose.ClientSession;
-};
-
-/**
- * Handles mixed inputs (ObjectIds, names, or objects with _id/name fields).
- * Reuses existing records by resolving IDs from the database.
- * Creates missing records for new names using bulkWrite.
- * Returns a de-duplicated list of resolved ObjectId strings.
- */
-export const resolveIds = async (
-  rawValues: unknown,
-  options: ResolveIdsOptions
-): Promise<string[] | undefined> => {
-  if (!Array.isArray(rawValues)) return undefined;
-
-  const ids: string[] = [];
-  const names: string[] = [];
-
-  for (const item of rawValues) {
-    if (!item) continue;
-    if (typeof item === "string") {
-      if (mongoose.isValidObjectId(item)) {
-        ids.push(item);
-      } else {
-        names.push(item.trim());
-      }
-      continue;
-    }
-
-    if (typeof item === "object") {
-      const asRecord = item as Record<string, unknown> & { _id?: string };
-      if (asRecord._id) {
-        ids.push(String(asRecord._id));
-        continue;
-      }
-
-      for (const key of options.nameKeys) {
-        const val = asRecord[key];
-        if (typeof val === "string" && val.trim()) {
-          names.push(val.trim());
-          break;
-        }
-      }
-    }
-  }
-
-  const cleanedNames = Array.from(new Set(names.filter(Boolean)));
-  if (cleanedNames.length) {
-    const queryFilter = {
-      ...(options.queryExtra ?? {}),
-      [options.nameField]: { $in: cleanedNames }
-    };
-
-    let query = options.model.find(queryFilter);
-    if (options.session) {
-      query = query.session(options.session);
-    }
-    const existing = await query.lean();
-
-    const existingNameSet = new Set(
-      existing.map((doc: Record<string, any>) => doc[options.nameField])
-    );
-    ids.push(...existing.map((doc: Record<string, any>) => String(doc._id)));
-
-    const toCreate = cleanedNames.filter((name) => !existingNameSet.has(name));
-    if (toCreate.length) {
-      const inserts = toCreate.map((name) => ({
-        insertOne: {
-          document: {
-            [options.nameField]: name,
-            ...(options.createExtra ?? {})
-          }
-        }
-      }));
-
-      const result = await options.model.bulkWrite(inserts, {
-        session: options.session
-      });
-
-      ids.push(...Object.values(result?.insertedIds ?? {}).map(String));
-    }
-  }
-
-  return Array.from(new Set(ids));
-};
+import {
+  resolveModuleIdsForApplication,
+  syncModuleOwnership
+} from "./application-module-linking.service";
+import {
+  resolveIds,
+  toObjectIdString
+} from "./mixed-id-resolution.service";
 
 const getIdString = (doc: { _id?: unknown }) => {
   const rawId = doc?._id;
@@ -186,14 +101,15 @@ export const createApplication = async (
       application.applicationGroups = groupIds;
     }
 
-    const moduleIds = await resolveIds(payload.applicationModules, {
-      model: GxpServiceAppModuleModel,
-      nameField: "moduleName",
-      nameKeys: ["name", "moduleName"],
+    // Module resolution and ownership sync are centralized to keep application service orchestration-focused.
+    const moduleIds = await resolveModuleIdsForApplication(
+      payload.applicationModules,
+      applicationId,
       session
-    });
+    );
     if (moduleIds) {
       application.applicationModules = moduleIds;
+      await syncModuleOwnership(applicationId, moduleIds, [], session);
     }
 
     if (attachments?.length) {
@@ -237,14 +153,16 @@ export const getApplications = async (includeDisabled = false) => {
 };
 
 export const getApplicationById = async (id: string) => {
-  const applicaton = await repo.findApplicationById(id);
+  const application = (await repo.findApplicationById(id)) as any;
+  if (!application) return null;
+
   return {
-    ...applicaton,
-    departments: applicaton?.departments
-      ? await fetchDepartmentsFromAuthService([...applicaton?.departments])
+    ...application,
+    departments: application.departments
+      ? await fetchDepartmentsFromAuthService([...application.departments])
       : null,
-    group: applicaton?.group
-      ? (await fetchLocationsFromAuthService([applicaton?.group]))[0]
+    group: application.group
+      ? (await fetchLocationsFromAuthService([application.group]))[0]
       : null
   };
 };
@@ -255,11 +173,21 @@ export const updateApplication = async (
   currentUser?: string,
   attachments?: string[]
 ) => {
-  const isApplicationExist = await repo.findApplicationById(id);
+  const isApplicationExist = (await repo.findApplicationById(id)) as any;
 
   if (!isApplicationExist) {
     throw new Error("Application not found");
   }
+
+  const existingModuleIds = (isApplicationExist.applicationModules ?? [])
+    .map((moduleRef: unknown) =>
+      toObjectIdString(
+        moduleRef && typeof moduleRef === "object"
+          ? (moduleRef as Record<string, unknown>)._id ?? moduleRef
+          : moduleRef
+      )
+    )
+    .filter((moduleId: string | undefined): moduleId is string => Boolean(moduleId));
 
   const modified = {
     ...JSON.parse(JSON.stringify(updates)),
@@ -303,13 +231,11 @@ export const updateApplication = async (
     modified.applicationGroups = groupIds;
   }
 
-  const moduleIds = await resolveIds(updates.applicationModules, {
-    model: GxpServiceAppModuleModel,
-    nameField: "moduleName",
-    nameKeys: ["name", "moduleName"]
-  });
+  // Reuse shared module-linking rules for update as well, so create/update stay consistent.
+  const moduleIds = await resolveModuleIdsForApplication(updates.applicationModules, id);
   if (moduleIds) {
     modified.applicationModules = moduleIds;
+    await syncModuleOwnership(id, moduleIds, existingModuleIds);
   }
 
   if (attachments?.length) {

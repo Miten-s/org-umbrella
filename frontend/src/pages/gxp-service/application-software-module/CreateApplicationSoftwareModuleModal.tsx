@@ -2,11 +2,14 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
+
 import Label from "@/components/common/form/Label";
 import Input from "@/components/common/form/input/InputField";
 import Button from "@/components/ui/button/Button";
 import Switch from "@/components/common/form/switch/Switch";
+import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
 import { getApplicationSoftwareModuleSchema } from "@/lib/schema";
+import type { Application } from "@/types/gxp-service.types";
 
 type AppSoftwareModuleFormInput = z.input<typeof getApplicationSoftwareModuleSchema>;
 type AppSoftwareModuleFormOutput = z.output<typeof getApplicationSoftwareModuleSchema>;
@@ -15,12 +18,14 @@ interface CreateApplicationSoftwareModuleModalProps {
     onClose: () => void;
     onSubmit: (data: Partial<AppSoftwareModuleFormOutput>) => void;
     initialData?: Partial<AppSoftwareModuleFormOutput>;
+    applications: Application[];
 }
 
 const CreateApplicationSoftwareModuleModal = ({
     onClose,
     onSubmit,
     initialData,
+    applications,
 }: CreateApplicationSoftwareModuleModalProps) => {
     const { t } = useTranslation();
 
@@ -33,13 +38,17 @@ const CreateApplicationSoftwareModuleModal = ({
         resolver: zodResolver(getApplicationSoftwareModuleSchema),
         defaultValues: {
             moduleName: initialData?.moduleName ?? "",
+            application: initialData?.application ?? "",
             status: initialData?.status ?? "enabled",
         },
     });
 
     const onFormSubmit = (data: AppSoftwareModuleFormInput) => {
         const parsed = getApplicationSoftwareModuleSchema.parse(data);
-        onSubmit(parsed);
+        onSubmit({
+            ...parsed,
+            application: parsed.application || undefined,
+        });
     };
 
     return (
@@ -49,9 +58,8 @@ const CreateApplicationSoftwareModuleModal = ({
                     {t(initialData ? "edit" : "create", { entity: t("gxpAppModules") })}
                 </h2>
 
-                <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-                    {/* Module Name */}
-                    <div>
+                <div className="grid grid-cols-2 md:grid-cols-1 gap-4">
+                    <div className="md:col-span-2">
                         <Label htmlFor="moduleName" required>{t("moduleName")}</Label>
                         <Input
                             {...register("moduleName")}
@@ -61,7 +69,30 @@ const CreateApplicationSoftwareModuleModal = ({
                         />
                     </div>
 
-                    {/* Active */}
+                    <div className="md:col-span-2">
+                        <Label htmlFor="application">{t("application")}</Label>
+                        <Controller
+                            name="application"
+                            control={control}
+                            render={({ field }) => (
+                                <SelectDropdown
+                                    value={field.value ?? ""}
+                                    onChange={(value) => field.onChange(value)}
+                                    options={applications.map((app) => ({
+                                        label: app.applicationName,
+                                        value: app._id,
+                                    }))}
+                                    placeholder={t("select", { entity: t("application") })}
+                                />
+                            )}
+                        />
+                        {errors.application && (
+                            <p className="text-red-500 text-xs mt-1">
+                                {errors.application.message as string}
+                            </p>
+                        )}
+                    </div>
+
                     <div className="md:col-span-2">
                         <Label htmlFor="status">{t("status")}</Label>
                         <Controller

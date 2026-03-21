@@ -244,6 +244,7 @@ export const getApplicationSoftwareModuleSchema = z.object({
     .string()
     .min(1, "Module name is required")
     .max(100, "Module name must be less than 100 characters"),
+  application: z.string().optional().default(""),
   status: z.enum(["enabled", "disabled"]).default("enabled"),
 });
 

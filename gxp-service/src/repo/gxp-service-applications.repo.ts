@@ -6,6 +6,23 @@ import GxpServiceApplicationModel, {
 } from "../models/gxp-service-applications.model";
 import { fetchUserBasedOnId } from "../services/inter-service-calls.service";
 
+const POPULATE_FIELDS = [
+  "applicationEnvironment",
+  "applicationRoles",
+  "applicationGroups",
+  "applicationServiceRequestTypes",
+  "applicationModules",
+  "applicationWorkflow",
+  "supplier",
+  "attachments"
+] as const;
+
+const POPULATE_PROJECTION = {
+  __v: 0,
+  createdAt: 0,
+  updatedAt: 0
+} as const;
+
 export const createApplication = async (
   payload: Partial<IApplication>,
   session?: any
@@ -31,23 +48,6 @@ export const getApplications = async (
 };
 
 export const findApplicationById = async (id: string) => {
-  const POPULATE_FIELDS = [
-    "applicationEnvironment",
-    "applicationRoles",
-    "applicationGroups",
-    "applicationServiceRequestTypes",
-    "applicationModules",
-    "applicationWorkflow",
-    "supplier",
-    "attachments"
-  ];
-
-  const POPULATE_PROJECTION = {
-    __v: 0,
-    createdAt: 0,
-    updatedAt: 0
-  };
-
   const application = await GxpServiceApplicationModel.findById(id)
     .populate(
       POPULATE_FIELDS.map((field) => ({
@@ -61,14 +61,12 @@ export const findApplicationById = async (id: string) => {
 
   const { applicationSystemOwner, applicationProcessOwner } = application;
 
-  // Deduplicate user IDs
   const userIds = Array.from(
     new Set([applicationSystemOwner, applicationProcessOwner].filter(Boolean))
   );
 
   const users = await fetchUserBasedOnId(userIds as string[]);
 
-  // Create lookup map
   const usersMap = users.reduce<Record<string, any>>((acc, user) => {
     acc[user._id.toString()] = user;
     return acc;

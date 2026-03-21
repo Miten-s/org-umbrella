@@ -5,7 +5,7 @@ import GxpServiceRequestAttachmentModel from "../models/gxp-service-request-atta
 import { GxpServiceAppModuleModel } from "../models/gxp-service-application-modules.model";
 import GxpServiceAppRoleModel from "../models/gxp-service-application-roles.model";
 import GxpServiceAppServiceModel from "../models/gxp-service-application-services.model";
-import { resolveIds } from "./gxp-service-applications.service";
+import { resolveIds } from "./mixed-id-resolution.service";
 
 const extractSingleId = (field: unknown): string | undefined => {
   if (!field) return undefined;

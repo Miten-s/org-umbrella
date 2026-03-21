@@ -22,7 +22,6 @@ import { useGlobalContext } from "@/context";
 import { getGxpImageUrl } from "@/services/utils.service";
 import {
     appendUniqueString,
-    mapToIdOrNameArray,
     normalizeMixedId,
     normalizeMixedIdArray,
 } from "@/utils/mixed-value";
@@ -40,8 +39,7 @@ import type {
 import type { Location } from "@/types/common.types";
 
 type MultiSelectOption = { text: string; value: string };
-type RoleOption = { _id?: string; name?: string; role?: string; roleName?: string ,active?:boolean};
-type IdOrName = { _id?: string; name?: string };
+type RoleOption = { _id?: string; name?: string; role?: string; roleName?: string, active?: boolean };
 type ExistingAttachment = { id?: string; path: string; name: string };
 export type ApplicationPayload = Omit<
     ApplicationFormOutput,
@@ -51,10 +49,10 @@ export type ApplicationPayload = Omit<
     | "applicationModules"
     | "departments"
 > & {
-    applicationRoles: IdOrName[];
-    applicationGroups: IdOrName[];
+    applicationRoles: string[];
+    applicationGroups: string[];
     applicationServiceRequestTypes: string[];
-    applicationModules: IdOrName[];
+    applicationModules: string[];
     departments: string[];
     attachments: string[];
 };
@@ -132,6 +130,25 @@ const prettifyAttachmentName = (path: string) => {
         return parts.slice(1).join("-");
     }
     return withoutLeadingSlash;
+};
+
+const getModuleApplicationId = (module?: ApplicationSoftwareModule | null): string => {
+    const application = module?.application;
+    if (typeof application === "string") return application;
+    return application?._id  ?? "";
+};
+
+const normalizeMultiSelectValues = (values: string[] | undefined): string[] => {
+    if (!Array.isArray(values)) return [];
+
+    const unique = new Set<string>();
+    values.forEach((value) => {
+        if (typeof value !== "string") return;
+        const normalized = value.trim();
+        if (normalized) unique.add(normalized);
+    });
+
+    return Array.from(unique);
 };
 
 const normalizeInitialValues = (data?: Application | null): ApplicationFormInput => ({
@@ -249,10 +266,18 @@ const CreateApplicationModal = ({
     }, [applicationGroups]);
 
     useEffect(() => {
+        const selectedModuleIds = new Set(
+            normalizeMixedIdArray(resolvedInitial?.applicationModules).filter(Boolean)
+        );
         const base =
             appModules
-                ?.filter((m) => m?._id && m?.moduleName)
-                .map((m) => ({ text: m.moduleName, value: m._id })) || [];
+                ?.filter(
+                    (module) =>
+                        module?._id &&
+                        module?.moduleName &&
+                        (getModuleApplicationId(module) === "" || selectedModuleIds.has(module._id))
+                )
+                .map((module) => ({ text: module.moduleName, value: module._id })) || [];
         const initialModules =
             resolvedInitial?.applicationModules
                 ?.map((m: any) => ({
@@ -269,12 +294,12 @@ const CreateApplicationModal = ({
         const payload: ApplicationPayload = {
             ...parsed,
             notes: parsed.notes ?? "",
-            applicationRoles: mapToIdOrNameArray(parsed.applicationRoles, roleOptionsState),
-            applicationGroups: mapToIdOrNameArray(parsed.applicationGroups, appGroupOptions),
-            applicationServiceRequestTypes: parsed.applicationServiceRequestTypes || [],
-            applicationModules: mapToIdOrNameArray(parsed.applicationModules, appModuleOptions),
+            applicationRoles: normalizeMultiSelectValues(parsed.applicationRoles),
+            applicationGroups: normalizeMultiSelectValues(parsed.applicationGroups),
+            applicationServiceRequestTypes: normalizeMultiSelectValues(parsed.applicationServiceRequestTypes),
+            applicationModules: normalizeMultiSelectValues(parsed.applicationModules),
             // Departments are select-only (no free text), so send pure IDs.
-            departments: parsed.departments || [],
+            departments: normalizeMultiSelectValues(parsed.departments),
             attachments: existingAttachments
                 .map((att) => att.id)
                 .filter((id): id is string => Boolean(id)),

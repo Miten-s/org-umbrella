@@ -12,7 +12,9 @@ export enum STATUS {
   DISABLED = "disabled"
 }
 
-export type Ids = { _id: string; name: string }[];
+export type IdItem = string | { _id?: string; name?: string; moduleName?: string; service?: string; role?: string; appGroup?: string };
+
+export type Ids = IdItem[];
 
 export interface UpdateApplication
   extends Pick<
@@ -28,6 +30,6 @@ export interface UpdateApplication
   applicationGroups?: Ids;
   applicationServiceRequestTypes?: Ids;
   applicationModules?: Ids;
-  departments?: Ids;
+  departments?: string[];
   attachments?: string[];
 }

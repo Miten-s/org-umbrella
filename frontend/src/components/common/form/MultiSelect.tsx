@@ -335,7 +335,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
           {/* Dropdown */}
           {isOpen && (
             <div
-              className="absolute left-0 z-10 w-full overflow-y-auto bg-white rounded-lg shadow-lg top-full max-h-[250px] dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
+              className="absolute left-0 z-10 w-full overflow-hidden bg-white rounded-lg shadow-lg top-full max-h-[250px] dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
               onClick={(e) => e.stopPropagation()}
             >
               {internalOptions.length > 0 && (
@@ -351,7 +351,10 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                 </div>
               )}
 
-              <div className="flex flex-col max-h-[160px] overflow-auto no-scrollbar">
+              <div
+                className={[
+                  "flex flex-col max-h-[160px] overflow-y-auto overscroll-contain scroll-smooth no-scrollbar", showAddButton ? "pb-10" : "",].join(" ")}
+              >
                 {filteredOptions.length === 0 ? (
                   <div className="p-2 text-center text-gray-500 dark:text-white/70">
                     No data found

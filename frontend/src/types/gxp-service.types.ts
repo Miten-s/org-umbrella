@@ -40,6 +40,7 @@ export type Workflow = {
 export type ApplicationSoftwareModule = {
   _id: string;
   moduleName: string;
+  application?: EntityRef<"applicationName">;
   status?: "enabled" | "disabled";
 };
 
