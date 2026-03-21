@@ -1,13 +1,13 @@
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import SignatureCanvas from "react-signature-canvas";
 import Input from "@/components/common/form/input/InputField";
 import Label from "@/components/common/form/Label";
 import Button from "@/components/ui/button/Button";
 import Checkbox from "@/components/common/form/input/Checkbox";
 import TextArea from "@/components/common/form/input/TextArea";
-import MultiSelect from "@/components/common/form/MultiSelect";
+// import MultiSelect from "@/components/common/form/MultiSelect";
 import { getUserAdminSchema } from "@/lib/schema";
 import { zodResolver } from '@hookform/resolvers/zod';
 import Switch from "@/components/common/form/switch/Switch";
@@ -16,11 +16,13 @@ import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
 import { CheckCircleIcon, CloseIcon } from "@/public/icons";
 import { getImageUrl } from "@/services/utils.service";
 
-interface Role {
-  _id: string;
-  name: string;
-  type: string;
-}
+// Requirement added on 15 March 2026:
+// hide role assignment from this modal, but keep the previous code here for reference.
+// interface Role {
+//   _id: string;
+//   name: string;
+//   type: string;
+// }
 
 interface Location {
   _id: string;
@@ -39,7 +41,7 @@ interface Designation {
 
 interface CreateUserModalProps {
   onClose: () => void;
-  roles: Role[];
+  roles?: unknown[];
   locations: Location[];
   departments: Department[];
   designations: Designation[];
@@ -47,11 +49,14 @@ interface CreateUserModalProps {
   activeUser: any | null;
 }
 
-const CreateUserModal = ({ onClose, roles, locations, departments, designations, onSubmit, activeUser }: CreateUserModalProps) => {
+const CreateUserModal = ({ onClose, locations, departments, designations, onSubmit, activeUser }: CreateUserModalProps) => {
   const { t } = useTranslation();
   const [showSignature, setShowSignature] = useState(false);
   const signatureRef = useRef<any>(null);
-  const customRoles = useMemo(() => roles.filter(role => role.type !== "Built_In"), [roles]);
+  // const customRoles = useMemo(
+  //   () => roles.filter((role) => role.type !== "Built_In"),
+  //   [roles]
+  // );
 
   const { register, handleSubmit, control, setValue, watch, formState: { errors } } = useForm({
     resolver: zodResolver(getUserAdminSchema(!!activeUser)),
@@ -62,7 +67,10 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
       locationGroup: activeUser?.location?._id || '',
       designation: activeUser?.designation?._id || '',
       department: activeUser?.department?._id || '',
-      assignRole: activeUser?.roles?.filter((role: Role) => role.name !== "Admin" && role.name !== "User").map((role: Role) => role._id) || [],
+      // assignRole:
+      //   activeUser?.roles
+      //     ?.filter((role: Role) => role.name !== "Admin" && role.name !== "User")
+      //     .map((role: Role) => role._id) || [],
       description: activeUser?.description || '',
       status: activeUser?.status === 'active' ? true : false,
       password: '',
@@ -92,8 +100,6 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
     { label: "Minimum 8 characters", ok: passwordValue.length >= 8 },
   ];
   const signatureUrl = getImageUrl(activeUser?.signature);
-  console.log(' signatureUrl', signatureUrl);
-
   const handleFormSubmit = (data: any) => {
     if (signatureRef.current && !signatureRef.current.isEmpty()) {
       const trimmedDataURL = signatureRef.current.toDataURL("image/png");
@@ -102,15 +108,15 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
       data.signature = '';
     }
 
-    const userTypeRole = roles.find(role => role.name === data.userType);
-    const assignRoleIds = data.assignRole || [];
+    // const userTypeRole = roles.find((role: Role) => role.name === data.userType);
+    // const assignRoleIds = data.assignRole || [];
 
     const payload: any = {
       fullName: data.fullName,
       name: data.fullName,
       email: data.email,
       userType: data.userType,
-      roles: userTypeRole ? [userTypeRole._id, ...assignRoleIds] : [...assignRoleIds],
+      // roles: userTypeRole ? [userTypeRole._id, ...assignRoleIds] : [...assignRoleIds],
       status: data.status ? "active" : "disabled",
     };
 
@@ -198,24 +204,30 @@ const CreateUserModal = ({ onClose, roles, locations, departments, designations,
           </div>
 
           <div>
-            <Label htmlFor="assignRole">{t("assignRoles")}</Label>
-            <Controller
-              name="assignRole"
-              control={control}
-              render={({ field }) => (
-                <MultiSelect
-                  options={customRoles.map(role => ({ text: role.name, value: role._id }))}
-                  label={t("selectRoles")}
-                  onChange={field.onChange}
-                  defaultSelected={field.value}
-                  countTooltipPlacement="left"
-                />
-              )}
-            />
-            {errors.assignRole && <p className="text-red-500 text-xs mt-1">{errors.assignRole.message as string}</p>}
-          </div>
+            {/*
+              Requirement added on 15 March 2026:
+              hide assign role from the user modal for now.
 
-          <div>
+              <Label htmlFor="assignRole">{t("assignRoles")}</Label>
+              <Controller
+                name="assignRole"
+                control={control}
+                render={({ field }) => (
+                  <MultiSelect
+                    options={customRoles.map((role) => ({ text: role.name, value: role._id }))}
+                    label={t("selectRoles")}
+                    onChange={field.onChange}
+                    defaultSelected={field.value}
+                    countTooltipPlacement="left"
+                  />
+                )}
+              />
+              {errors.assignRole && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.assignRole.message as string}
+                </p>
+              )}
+            */}
             <Label htmlFor="password" required>{t("password")}</Label>
             <Input
               id="password"

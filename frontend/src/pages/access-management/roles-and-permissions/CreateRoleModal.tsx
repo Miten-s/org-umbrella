@@ -130,7 +130,9 @@ const CreateRoleModal = ({
 
   return (
     <div className="p-6 max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100">
-      <h2 className="text-xl font-semibold mb-4">{t('createNewRole')}</h2>
+      <h2 className="text-xl font-semibold">
+        {t(activeRole ? "edit" : "create", { entity: t("role") })}
+      </h2>
       <form onSubmit={handleSubmit(onFormSubmit)}>
         <div className="space-y-6">
           {/* Role Name */}

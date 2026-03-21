@@ -7,6 +7,7 @@ import { ThemeToggleButton } from "../common/ThemeToggleButton";
 import UserDropdown from "../header/UserDropdown";
 import LanguageDropdown from "../header/LanguageDropdown";
 import appLogo from "../../public/images/umbrella-clipart-cover.jpg";
+import { PageUrl } from "@/types/utils.types";
 
 const AppHeader: React.FC = () => {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
@@ -86,7 +87,7 @@ const AppHeader: React.FC = () => {
             {/* Cross Icon */}
           </button>
 
-          <Link to="/" className="lg:hidden">
+          <Link to={PageUrl.Dashboard.path} className="lg:hidden">
             <img
               src={appLogo}
               alt="Logo"

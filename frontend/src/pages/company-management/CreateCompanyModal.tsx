@@ -55,6 +55,7 @@ const CreateCompanyModal = ({ onClose, initialData, onSubmit }: CreateCompanyMod
     if (initialData?.logo) {
       if (typeof initialData.logo === "string") {
         const fullUrl = getImageUrl(initialData.logo);
+        console.log('fullUrl', fullUrl);
         setLogoPreview(fullUrl || null);
         setValue("logo", initialData.logo);
       }

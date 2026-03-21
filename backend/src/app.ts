@@ -2,6 +2,7 @@ import express, { Application } from "express";
 import dotenv from "dotenv";
 import rateLimit from "express-rate-limit";
 import path from "path";
+import fs from "fs";
 
 dotenv.config();
 
@@ -35,11 +36,15 @@ connectDB();
 
 app.use(express.json());
 
-// Serve uploaded assets
-app.use(
-  "/uploads",
-  express.static(path.join(__dirname, "uploads"))
-);
+// Serve uploaded assets from the same directory multer writes to.
+const uploadDirCandidates = [
+  path.resolve(process.cwd(), "uploads"),
+  path.resolve(__dirname, "../uploads")
+];
+const uploadDir =
+  uploadDirCandidates.find((dir) => fs.existsSync(dir)) ?? uploadDirCandidates[0];
+
+app.use("/uploads", express.static(uploadDir));
 
 app.get(API_ROUTES.HEALTH, (_req, res) => {
   res.status(200).json({ message: CUSTOM_MESSAGES.HEALTHY_MESSAGE });

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import appLogo from "../../public/images/logo-transparant.png";
 import appSmLogo from "../../public/images/umbrella-clipart-cover.jpg";
-import { AccessIcon,ChevronDownIcon, UserManagement, GridIcon, HorizontaLDots, UserIcon, CompanyIcon, BoltIcon } from "../../public/icons";
+import { AccessIcon, ChevronDownIcon, UserManagement, GridIcon, HorizontaLDots, UserIcon, CompanyIcon, BoltIcon } from "../../public/icons";
 import { useSidebar } from "../../context/SidebarContext";
 import { PageUrl } from "@/types/utils.types";
 import { useAuth } from "@/context/AuthContext";
@@ -32,14 +32,15 @@ const AppSidebar: React.FC = () => {
         { name: t('allServices'), path: PageUrl.Dashboard.path, pro: false }
       ]
     },
-    {
-      icon: <AccessIcon />,
-      name: t('accessManagement'),
-      permissions: [ADMIN_PERMISSIONS.CREATE_PERMISSION, ADMIN_PERMISSIONS.VIEW_PERMISSION, ADMIN_PERMISSIONS.UPDATE_PERMISSION, ADMIN_PERMISSIONS.DELETE_PERMISSION],
-      subItems: [
-        { name: t('rolesAndPermissions'), path: PageUrl.Roles.path },
-      ]
-    },
+    //hide this menu as  requirement added - 15th march 2026
+    // {
+    //   icon: <AccessIcon />,
+    //   name: t('accessManagement'),
+    //   permissions: [ADMIN_PERMISSIONS.CREATE_PERMISSION, ADMIN_PERMISSIONS.VIEW_PERMISSION, ADMIN_PERMISSIONS.UPDATE_PERMISSION, ADMIN_PERMISSIONS.DELETE_PERMISSION],
+    //   subItems: [
+    //     { name: t('rolesAndPermissions'), path: PageUrl.Roles.path },
+    //   ]
+    // },
     {
       icon: <UserManagement />,
       name: t('systemITAdministration'),
@@ -49,6 +50,22 @@ const AppSidebar: React.FC = () => {
         { name: t('designations'), path: PageUrl.Designations.path },
         { name: t('locationsGroups'), path: PageUrl.LocationsGroups.path },
         { name: t('departments'), path: PageUrl.Departments.path },
+      ]
+    },
+    {
+      icon: <BoltIcon />,
+      name: t('gxpService'),
+      permissions: [ADMIN_PERMISSIONS.VIEW_DASHBOARD],
+      subItems: [
+        { name: t('gxpAddNewApplication'), path: PageUrl.GXPAddNewApplication.path },
+        { name: t('gxpApplicationSoftwareModule'), path: PageUrl.GXPApplicationSoftwareModule.path },
+        { name: t('gxpAssignmentGroups'), path: PageUrl.GXPAssignmentGroups.path },
+        { name: t('gxpSuppliers'), path: PageUrl.GXPSuppliers.path },
+        { name: t('gxpEnvironments'), path: PageUrl.GXPEnvironments.path },
+        { name: t('gxpWorkflows'), path: PageUrl.GXPWorkflows.path },
+        { name: t('users'), path: PageUrl.GXPUsers.path },
+        { name: t('gxpRolesAndPermissions'), path: PageUrl.GXPRolesAndPermissions.path },
+        { name: t('gxpCreateNewServiceRequest'), path: PageUrl.GXPCreateNewServiceRequest.path },
       ]
     },
     {
@@ -67,22 +84,7 @@ const AppSidebar: React.FC = () => {
         { name: t('profileInfo'), path: PageUrl.ProfileInfo.path }
       ]
     },
-    {
-      icon: <BoltIcon />,
-      name: t('gxpService'),
-      permissions: [ADMIN_PERMISSIONS.VIEW_DASHBOARD],
-      subItems: [
-        { name: t('users'), path: PageUrl.GXPUsers.path },
-        { name: t('gxpRolesAndPermissions'), path: PageUrl.GXPRolesAndPermissions.path },
-        { name: t('gxpAssignmentGroups'), path: PageUrl.GXPAssignmentGroups.path },
-        { name: t('gxpWorkflows'), path: PageUrl.GXPWorkflows.path },
-        { name: t('gxpEnvironments'), path: PageUrl.GXPEnvironments.path },
-        { name: t('gxpSuppliers'), path: PageUrl.GXPSuppliers.path },
-        { name: t('gxpApplicationSoftwareModule'), path: PageUrl.GXPApplicationSoftwareModule.path },
-        { name: t('gxpAddNewApplication'), path: PageUrl.GXPAddNewApplication.path },
-        { name: t('gxpCreateNewServiceRequest'), path: PageUrl.GXPCreateNewServiceRequest.path },
-      ]
-    },
+
   ], [t, i18n.language]);
 
   const restrictedFilteredNavItems = useMemo(() => {
@@ -270,7 +272,7 @@ const AppSidebar: React.FC = () => {
         className={`py-4 flex ${!isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
           }`}
       >
-        <Link to="/">
+        <Link to={PageUrl.Dashboard.path} className="flex items-center gap-2">
           {isExpanded || isHovered || isMobileOpen ? (
             <>
               <img src={appLogo} alt="Logo" width={150} height={30} />

@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { PencilIcon } from "@/public/icons";
 import { useAuth } from "@/context/AuthContext";
+import { getImageUrl } from "@/services/utils.service";
 
 const modules = [
   {
@@ -39,7 +40,7 @@ const modules = [
 const Dashboard = () => {
   const navigate = useNavigate();
   const { currentCompany } = useAuth()
-
+  const companyLogoUrl = getImageUrl(currentCompany?.logo);
   return (
     <div className="flex flex-col gap-4">
       <div className="mb-10">
@@ -49,7 +50,7 @@ const Dashboard = () => {
           </h1>
           {currentCompany?.logo && (
             <img
-              src={`${import.meta.env.VITE_API_BASE_URL}/uploads/${currentCompany.logo}`}
+              src={companyLogoUrl}
               alt="Organization Logo"
               className="h-32 w-44 object-contain rounded-md shadow"
             />

@@ -24,9 +24,13 @@ export const getPageTitle = (
 
 export const getImageUrl = (path?: string | null): string | undefined => {
   if (!path) return undefined;
+  if (/^https?:\/\//i.test(path)) return path;
+
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
+  const assetBaseUrl = baseUrl?.replace(/\/v\d+\/api\/?$/, "").replace(/\/$/, "");
   const cleanPath = path.startsWith("/uploads") ? path : `/uploads${path}`;
-  return `${baseUrl}${cleanPath}`;
+
+  return assetBaseUrl ? `${assetBaseUrl}${cleanPath}` : cleanPath;
 };
 
 export const getGxpImageUrl = (
@@ -34,7 +38,11 @@ export const getGxpImageUrl = (
 ): string | undefined => {
   if (!path) return undefined;
 
+  if (/^https?:\/\//i.test(path)) return path;
+
   const baseUrl = import.meta.env.VITE_GXP_API_BASE_URL;
+  const assetBaseUrl = baseUrl?.replace(/\/v\d+\/api\/?$/, "").replace(/\/$/, "");
   const cleanPath = path.startsWith("/uploads") ? path : `/uploads${path}`;
-  return `${baseUrl}${cleanPath}`;
+
+  return assetBaseUrl ? `${assetBaseUrl}${cleanPath}` : cleanPath;
 };

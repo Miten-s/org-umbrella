@@ -264,7 +264,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                     {visibleSelected.map((opt) => (
                       <div
                         key={opt.value}
-                        className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 rounded px-2 py-1 min-w-0 max-w-[220px]"
+                        className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 rounded px-2 py-1 min-w-0"
                       >
                         <span className="truncate text-sm">{opt.text}</span>
                         <button
@@ -384,7 +384,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
               </div>
 
               {showAddButton && (
-                <div className="flex items-center gap-2 p-2 border-t border-gray-200 dark:border-gray-700">
+                <div className="sticky bottom-0 z-10 flex items-center gap-2 border-t border-gray-200 bg-white p-2 dark:border-gray-700 dark:bg-gray-900">
                   <input
                     value={newOptionText}
                     onChange={(e) => setNewOptionText(e.target.value)}
