@@ -115,6 +115,21 @@ const AppSidebar: React.FC = () => {
     [location.pathname]
   );
 
+  const findOpenSubmenuForPath = useCallback(
+    (items: NavItem[], menuType: "main" | "others") => {
+      const matchingIndex = items.findIndex((item) =>
+        item.subItems?.some((subItem) => isActive(subItem.path))
+      );
+
+      if (matchingIndex === -1) {
+        return null;
+      }
+
+      return { type: menuType, index: matchingIndex } as const;
+    },
+    [isActive]
+  );
+
   useEffect(() => {
     if (openSubmenu !== null) {
       const key = `${openSubmenu.type}-${openSubmenu.index}`;
@@ -126,6 +141,24 @@ const AppSidebar: React.FC = () => {
       }
     }
   }, [openSubmenu]);
+
+  useEffect(() => {
+    const nextOpenSubmenu = findOpenSubmenuForPath(
+      restrictedFilteredNavItems,
+      "main"
+    );
+
+    setOpenSubmenu((currentOpenSubmenu) => {
+      if (
+        currentOpenSubmenu?.type === nextOpenSubmenu?.type &&
+        currentOpenSubmenu?.index === nextOpenSubmenu?.index
+      ) {
+        return currentOpenSubmenu;
+      }
+
+      return nextOpenSubmenu;
+    });
+  }, [findOpenSubmenuForPath, restrictedFilteredNavItems, location.pathname]);
 
   const handleSubmenuToggle = (index: number, menuType: "main" | "others") => {
     setOpenSubmenu((prevOpenSubmenu) => {
