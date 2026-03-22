@@ -20,6 +20,8 @@ export interface UpdateApplication
   extends Pick<
     IApplication,
     | "applicationName"
+    | "applicationType"
+    | "applicationId"
     | "status"
     | "createdOn"
     | "createdBy"

@@ -37,6 +37,23 @@ export const findApplicationByIdRaw = async (id: string) => {
   return await GxpServiceApplicationModel.findById(id).lean();
 };
 
+export const isApplicationNameTaken = async (
+  applicationName: string,
+  excludeId?: string
+): Promise<boolean> => {
+  const normalizedName = String(applicationName ?? "").trim();
+  if (!normalizedName) return false;
+
+  const filter: Record<string, unknown> = { applicationName: normalizedName };
+  if (excludeId) filter._id = { $ne: excludeId };
+
+  const existing = await GxpServiceApplicationModel.findOne(filter)
+    .select({ _id: 1 })
+    .lean();
+
+  return Boolean(existing);
+};
+
 export const getApplications = async (
   filter = {},
   projection = null,

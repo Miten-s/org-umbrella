@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IApplication extends Document {
   applicationName: string;
+  applicationId?: string;
   applicationType: "GxP" | "Non-GxP";
   applicationEnvironment?: string;
   group: string;
@@ -27,6 +28,7 @@ export interface IApplication extends Document {
 const GxpServiceApplicationSchema = new Schema<IApplication>(
   {
     applicationName: { type: String, required: true, trim: true },
+    applicationId: { type: String, trim: true },
     applicationType: { type: String, enum: ["GxP", "Non-GxP"], required: true },
     applicationEnvironment: {
       type: String,

@@ -254,7 +254,7 @@ const GXPAddNewApplicationPage = () => {
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-800">
             <tr>
-              {["applicationName", "applicationType", "applicationEnvironment", "status", "actions"].map(key => (
+              {["applicationName", "applicationId", "applicationType", "applicationEnvironment", "status", "actions"].map(key => (
                 <th
                   key={key}
                   className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
@@ -269,6 +269,9 @@ const GXPAddNewApplicationPage = () => {
               <tr key={app._id}>
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 dark:text-white">
                   {app.applicationName}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
+                  {(app as Application & { applicationId?: string }).applicationId ?? "-"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
                   {app.applicationType}

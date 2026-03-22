@@ -27,6 +27,43 @@ const getIdString = (doc: { _id?: unknown }) => {
   return String(rawId ?? "");
 };
 
+const OBJECT_ID_REGEX = /^[a-f\d]{24}$/i;
+
+const normalizeApplicationIdSegment = (value: unknown): string =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const resolveLocationNameFromGroup = async (group: unknown): Promise<string> => {
+  const raw = String(group ?? "").trim();
+  if (!raw) return "";
+  if (!OBJECT_ID_REGEX.test(raw)) return raw;
+
+  try {
+    const locations = await fetchLocationsFromAuthService([raw]);
+    const locationName = locations?.[0]?.locationName;
+    return String(locationName ?? raw).trim() || raw;
+  } catch {
+    return raw;
+  }
+};
+
+const buildApplicationId = (
+  applicationName: unknown,
+  applicationType: unknown,
+  locationName: unknown
+): string =>
+  [
+    normalizeApplicationIdSegment(applicationName),
+    normalizeApplicationIdSegment(applicationType),
+    normalizeApplicationIdSegment(locationName)
+  ]
+    .filter(Boolean)
+    .join("-");
+
 export const createApplication = async (
   payload: UpdateApplication,
   currentUser?: string,
@@ -51,6 +88,13 @@ export const createApplication = async (
       modifiedOn: new Date(),
       modifiedBy: currentUser ?? null
     };
+
+    const locationName = await resolveLocationNameFromGroup(payload.group);
+    toSave.applicationId = buildApplicationId(
+      payload.applicationName,
+      payload.applicationType,
+      locationName
+    );
 
     const serviceTypeIds = await resolveIds(
       payload.applicationServiceRequestTypes,
@@ -179,6 +223,24 @@ export const updateApplication = async (
     throw new Error("Application not found");
   }
 
+  const nextApplicationName = String(
+    updates.applicationName ?? isApplicationExist.applicationName ?? ""
+  ).trim();
+  if (!nextApplicationName) {
+    throw new Error("Application name is required");
+  }
+
+  const currentApplicationName = String(
+    isApplicationExist.applicationName ?? ""
+  ).trim();
+
+  if (nextApplicationName !== currentApplicationName) {
+    const isNameTaken = await repo.isApplicationNameTaken(nextApplicationName, id);
+    if (isNameTaken) {
+      throw new Error("Application name must be unique");
+    }
+  }
+
   const existingModuleIds = (isApplicationExist.applicationModules ?? [])
     .map((moduleRef: unknown) =>
       toObjectIdString(
@@ -188,14 +250,22 @@ export const updateApplication = async (
       )
     )
     .filter((moduleId: string | undefined): moduleId is string => Boolean(moduleId));
-
   const modified = {
     ...JSON.parse(JSON.stringify(updates)),
     modifiedOn: new Date(),
     modifiedBy: currentUser ?? null
   };
 
-  delete modified.applicationName;
+  modified.applicationName = nextApplicationName;
+
+  const locationName = await resolveLocationNameFromGroup(
+    updates.group ?? isApplicationExist.group
+  );
+  modified.applicationId = buildApplicationId(
+    nextApplicationName,
+    updates.applicationType ?? isApplicationExist.applicationType,
+    locationName
+  );
   delete modified.applicationGroups;
   delete modified.applicationModules;
 
@@ -258,7 +328,14 @@ export const updateApplication = async (
     ];
   }
 
-  return await repo.updateApplication(id, modified);
+  try {
+    return await repo.updateApplication(id, modified);
+  } catch (error: any) {
+    if (error?.code === 11000 && error?.keyPattern?.applicationName) {
+      throw new Error("Application name must be unique");
+    }
+    throw error;
+  }
 };
 
 export const disableApplication = async (id: string, currentUser?: string) => {
