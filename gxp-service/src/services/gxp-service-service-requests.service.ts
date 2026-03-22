@@ -6,6 +6,7 @@ import { GxpServiceAppModuleModel } from "../models/gxp-service-application-modu
 import GxpServiceAppRoleModel from "../models/gxp-service-application-roles.model";
 import GxpServiceAppServiceModel from "../models/gxp-service-application-services.model";
 import { resolveIds } from "./mixed-id-resolution.service";
+import GxpServiceApplicationModel from "../models/gxp-service-applications.model";
 
 const extractSingleId = (field: unknown): string | undefined => {
   if (!field) return undefined;
@@ -37,6 +38,21 @@ const normalizeNotes = (rawNotes: unknown): string[] | undefined => {
 const extractSingleRequestType = (value: unknown): unknown => {
   if (Array.isArray(value)) return value[0];
   return value;
+};
+
+const normalizeServiceRequestCodeSegment = (value: unknown): string =>
+  String(value ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+const buildServiceRequestId = (applicationName: string, sequence: number): string => {
+  const normalizedAppName =
+    normalizeServiceRequestCodeSegment(applicationName) || "APP";
+  const paddedSequence = String(sequence).padStart(4, "0");
+  return `SR_${normalizedAppName}_${paddedSequence}`;
 };
 
 export const createServiceRequest = async (
@@ -101,6 +117,28 @@ export const createServiceRequest = async (
   delete payload.applicationServiceRequestTypes;
   delete payload.applicationRoles;
   delete payload.requestType;
+  delete payload.serviceRequestId;
+
+  const applicationId = extractSingleId(payload.application);
+  if (!applicationId) {
+    throw new Error("Application is required");
+  }
+
+  const applicationRecord = await GxpServiceApplicationModel.findById(
+    applicationId
+  )
+    .select({ applicationName: 1 })
+    .lean();
+
+  if (!applicationRecord?.applicationName) {
+    throw new Error("Application not found");
+  }
+
+  const nextSequence = await repo.getNextServiceRequestSequence(applicationId);
+  payload.serviceRequestId = buildServiceRequestId(
+    applicationRecord.applicationName,
+    nextSequence
+  );
 
   const newRequest = await repo.createServiceRequest(payload);
 
@@ -161,6 +199,13 @@ export const updateRequest = async (
   attachments?: string[]
 ) => {
   const payload = { ...data } as Record<string, any>;
+
+  const existingRequest = (await repo.getServiceRequestIdentityById(id)) as
+    | { _id?: string; application?: unknown; serviceRequestId?: string }
+    | null;
+  if (!existingRequest) {
+    throw new Error("Service Request not found");
+  }
 
   if ("environment" in payload || "applicationEnvironment" in payload) {
     payload.environment = extractSingleId(
@@ -241,6 +286,32 @@ export const updateRequest = async (
   delete payload.applicationServiceRequestTypes;
   delete payload.applicationRoles;
   delete payload.requestType;
+  delete payload.serviceRequestId;
+
+  if (!existingRequest.serviceRequestId) {
+    const applicationId = extractSingleId(
+      payload.application ?? existingRequest.application
+    );
+    if (!applicationId) {
+      throw new Error("Application is required");
+    }
+
+    const applicationRecord = await GxpServiceApplicationModel.findById(
+      applicationId
+    )
+      .select({ applicationName: 1 })
+      .lean();
+
+    if (!applicationRecord?.applicationName) {
+      throw new Error("Application not found");
+    }
+
+    const nextSequence = await repo.getNextServiceRequestSequence(applicationId);
+    payload.serviceRequestId = buildServiceRequestId(
+      applicationRecord.applicationName,
+      nextSequence
+    );
+  }
 
   // Attachments
   if (attachments?.length) {

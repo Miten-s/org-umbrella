@@ -9,7 +9,7 @@ import Button from "@/components/ui/button/Button";
 import Switch from "@/components/common/form/switch/Switch";
 import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
 import { getApplicationSoftwareModuleSchema } from "@/lib/schema";
-import type { Application } from "@/types/gxp-service.types";
+import type { Application, ApplicationSoftwareModule } from "@/types/gxp-service.types";
 
 type AppSoftwareModuleFormInput = z.input<typeof getApplicationSoftwareModuleSchema>;
 type AppSoftwareModuleFormOutput = z.output<typeof getApplicationSoftwareModuleSchema>;
@@ -17,7 +17,7 @@ type AppSoftwareModuleFormOutput = z.output<typeof getApplicationSoftwareModuleS
 interface CreateApplicationSoftwareModuleModalProps {
     onClose: () => void;
     onSubmit: (data: Partial<AppSoftwareModuleFormOutput>) => void;
-    initialData?: Partial<AppSoftwareModuleFormOutput>;
+    initialData?: Partial<AppSoftwareModuleFormOutput> & Pick<Partial<ApplicationSoftwareModule>, "moduleId">;
     applications: Application[];
 }
 
@@ -28,6 +28,7 @@ const CreateApplicationSoftwareModuleModal = ({
     applications,
 }: CreateApplicationSoftwareModuleModalProps) => {
     const { t } = useTranslation();
+    const moduleIdentity = initialData?.moduleId?.trim() || "-";
 
     const {
         register,
@@ -59,6 +60,16 @@ const CreateApplicationSoftwareModuleModal = ({
                 </h2>
 
                 <div className="grid grid-cols-2 md:grid-cols-1 gap-4">
+                    <div className="md:col-span-2">
+                        <Label htmlFor="identity">{t("identity", { defaultValue: "Identity" })}</Label>
+                        <Input
+                            id="identity"
+                            value={moduleIdentity}
+                            readOnly
+                            disabled
+                            className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
+                        />
+                    </div>
                     <div className="md:col-span-2">
                         <Label htmlFor="moduleName" required>{t("moduleName")}</Label>
                         <Input

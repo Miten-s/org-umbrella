@@ -254,6 +254,7 @@ const CreateServiceRequestModal = ({
   optionSets
 }: CreateServiceRequestModalProps) => {
   const resolvedInitial = Array.isArray(initialData) ? initialData[0] : initialData;
+  const serviceRequestIdentity = String(resolvedInitial?.serviceRequestId ?? "").trim();
   const normalizedDefaults = useMemo(
     () => normalizeInitialValues(resolvedInitial),
     [resolvedInitial]
@@ -682,6 +683,16 @@ const CreateServiceRequestModal = ({
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:col-span-2">
+            <Label htmlFor="identity">{t("identity", { defaultValue: "Identity" })}</Label>
+            <Input
+              id="identity"
+              value={serviceRequestIdentity || "-"}
+              readOnly
+              disabled
+              className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
+            />
+          </div>
           <div>
             <Label htmlFor="application" required>
               {t("application")}

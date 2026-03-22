@@ -64,6 +64,77 @@ const buildApplicationId = (
     .filter(Boolean)
     .join("-");
 
+const normalizeServiceRequestIdAppSegment = (value: unknown): string =>
+  String(value ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+const renameServiceRequestIdentitiesForApplication = async (
+  applicationId: string,
+  nextApplicationName: string
+) => {
+  const nextSegment = normalizeServiceRequestIdAppSegment(nextApplicationName);
+  if (!nextSegment) return;
+
+  const nextPrefix = `SR_${nextSegment}_`;
+  const relatedRequests = await GxpServiceRequestModel.find({
+    application: applicationId
+  })
+    .select({ _id: 1, serviceRequestId: 1 })
+    .lean();
+
+  if (!relatedRequests.length) return;
+
+  const renameTargets = relatedRequests
+    .map((request, index) => {
+      const currentServiceRequestId = String((request as any)?.serviceRequestId ?? "");
+      const fallbackSequence = String(index + 1).padStart(4, "0");
+      const rawSequence = currentServiceRequestId.split("_").pop() ?? "";
+      const sequencePart = /^\d+$/.test(rawSequence)
+        ? rawSequence
+        : fallbackSequence;
+
+      return {
+        _id: String((request as any)?._id ?? ""),
+        nextServiceRequestId: `${nextPrefix}${sequencePart}`
+      };
+    })
+    .filter(
+      (
+        target
+      ): target is {
+        _id: string;
+        nextServiceRequestId: string;
+      } => Boolean(target?._id && target?.nextServiceRequestId)
+    );
+
+  if (!renameTargets.length) return;
+
+  const conflictingRequest = await GxpServiceRequestModel.findOne({
+    _id: { $nin: renameTargets.map((target) => target._id) },
+    serviceRequestId: { $in: renameTargets.map((target) => target.nextServiceRequestId) }
+  })
+    .select({ _id: 1 })
+    .lean();
+
+  if (conflictingRequest) {
+    throw new Error(
+      "Unable to rename related service request identities due to existing duplicates"
+    );
+  }
+
+  await GxpServiceRequestModel.bulkWrite(
+    renameTargets.map((target) => ({
+      updateOne: {
+        filter: { _id: target._id },
+        update: { $set: { serviceRequestId: target.nextServiceRequestId } }
+      }
+    }))
+  );
+};
 export const createApplication = async (
   payload: UpdateApplication,
   currentUser?: string,
@@ -234,7 +305,9 @@ export const updateApplication = async (
     isApplicationExist.applicationName ?? ""
   ).trim();
 
-  if (nextApplicationName !== currentApplicationName) {
+  const applicationNameChanged = nextApplicationName !== currentApplicationName;
+
+  if (applicationNameChanged) {
     const isNameTaken = await repo.isApplicationNameTaken(nextApplicationName, id);
     if (isNameTaken) {
       throw new Error("Application name must be unique");
@@ -329,10 +402,22 @@ export const updateApplication = async (
   }
 
   try {
-    return await repo.updateApplication(id, modified);
+    const updatedApplication = await repo.updateApplication(id, modified);
+
+    if (applicationNameChanged) {
+      await renameServiceRequestIdentitiesForApplication(
+        id,
+        nextApplicationName
+      );
+    }
+
+    return updatedApplication;
   } catch (error: any) {
     if (error?.code === 11000 && error?.keyPattern?.applicationName) {
       throw new Error("Application name must be unique");
+    }
+    if (error?.code === 11000 && error?.keyPattern?.serviceRequestId) {
+      throw new Error("Unable to rename related service request identities due to existing duplicates");
     }
     throw error;
   }

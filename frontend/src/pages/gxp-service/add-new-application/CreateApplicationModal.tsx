@@ -182,6 +182,7 @@ const CreateApplicationModal = ({
     optionSets,
 }: CreateApplicationModalProps) => {
     const resolvedInitial = Array.isArray(initialData) ? initialData[0] : initialData;
+    const applicationIdentity = String(((resolvedInitial as any)?.applicationId ?? "")).trim();
     const { t } = useTranslation();
     const { toggleLoading, loading } = useGlobalContext();
     const normalizedDefaults = useMemo<ApplicationFormInput>(
@@ -336,6 +337,16 @@ const CreateApplicationModal = ({
                     </h2>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2">
+                            <Label htmlFor="identity">{t("identity", { defaultValue: "Identity" })}</Label>
+                            <Input
+                                id="identity"
+                                value={applicationIdentity || "-"}
+                                readOnly
+                                disabled
+                                className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
+                            />
+                        </div>
                         {/* Application Name */}
                         <div>
                             <Label htmlFor="applicationName" required>{t("applicationName")}</Label>

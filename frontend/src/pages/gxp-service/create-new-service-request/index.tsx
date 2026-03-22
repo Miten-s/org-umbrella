@@ -53,6 +53,7 @@ const GXPCreateNewServiceRequestPage = () => {
 
     return {
       _id: req?._id ?? "",
+      serviceRequestId: req?.serviceRequestId ?? "",
       priority: req?.priority ?? "Medium",
       application: normalizedApplication,
       esignCheck: req?.esignCheck ?? "No",
@@ -229,6 +230,7 @@ const GXPCreateNewServiceRequestPage = () => {
           <thead className="bg-gray-50 dark:bg-gray-800">
             <tr>
               {[
+                "serviceRequestId",
                 "shortDescription",
                 "application",
                 "priority",
@@ -247,6 +249,9 @@ const GXPCreateNewServiceRequestPage = () => {
           <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
             {serviceRequests?.map((req) => (
               <tr key={req._id}>
+                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 dark:text-white">
+                  {req.serviceRequestId ?? "-"}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 dark:text-white">
                   {req.shortDescription}
                 </td>

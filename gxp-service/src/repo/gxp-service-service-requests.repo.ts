@@ -3,10 +3,21 @@ import { IServiceRequest } from "../models/gxp-service-service-requests.model";
 import { GxpServiceRequestModel } from "../models/gxp-service-service-requests.model";
 import { removeUndefinedEntries } from "../utils/common.util";
 import GxpServiceAppServiceModel from "../models/gxp-service-application-services.model";
+import GxpServiceRequestCounterModel from "../models/gxp-service-service-request-counters.model";
 
 export const createServiceRequest = async (data: Partial<IServiceRequest>) => {
   const request = new GxpServiceRequestModel(data);
   return await request.save();
+};
+
+export const getNextServiceRequestSequence = async (application: string) => {
+  const updated = await GxpServiceRequestCounterModel.findOneAndUpdate(
+    { application },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true, setDefaultsOnInsert: true }
+  ).lean();
+
+  return updated?.seq ?? 1;
 };
 
 export const getAllServiceRequests = async () => {
@@ -54,6 +65,12 @@ export const getServiceRequestById = async (id: string) => {
         }
       ]
     })
+    .lean();
+};
+
+export const getServiceRequestIdentityById = async (id: string) => {
+  return await GxpServiceRequestModel.findById(id)
+    .select({ _id: 1, application: 1, serviceRequestId: 1 })
     .lean();
 };
 

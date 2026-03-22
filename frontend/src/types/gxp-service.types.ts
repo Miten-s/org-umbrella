@@ -8,6 +8,7 @@ export type EntityRef<TName extends string> =
 
 export type ServiceRequest = Omit<ServiceRequestFormOutput, "application"> & {
   _id: string;
+  serviceRequestId?: string;
   application: EntityRef<"applicationName">;
   requestTypes?:
     | string
