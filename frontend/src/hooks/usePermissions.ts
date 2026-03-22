@@ -1,12 +1,14 @@
 import { useAuth } from '@/context/AuthContext';
-import { 
-  hasPermission, 
-  hasRole, 
-  hasAnyRole, 
+import { UserTypes } from '@/utils/common.constants';
+import {
+  hasPermission,
+  hasRole,
+  hasAnyRole,
   hasAnyPermission,
   getUserPermissions,
   getUserRoles,
-  ROLES
+  ROLES,
+  ADMIN_PERMISSIONS
 } from '@/utils/permissions';
 
 export const usePermissions = () => {
@@ -30,6 +32,13 @@ export const usePermissions = () => {
 
   const userPermissions = getUserPermissions(user);
   const userRoles = getUserRoles(user);
+  const hasOperateAllPermission = user?.roles?.some((role: any) =>
+    role.permissions?.some((perm: any) => perm.name === ADMIN_PERMISSIONS.OPERATE_ALL)
+  );
+  const isSuperAdmin =
+    !!hasOperateAllPermission ||
+    hasRole(user, ROLES.SUPER_ADMIN)
+  const isAdmin = isSuperAdmin || hasRole(user, ROLES.ADMIN) || user?.userType === UserTypes.ADMIN;
 
   return {
     can,
@@ -39,9 +48,9 @@ export const usePermissions = () => {
     userPermissions,
     userRoles,
     isAuthenticated: !!user && Object.keys(user).length > 0,
-    isAdmin: hasRole(user, ROLES.ADMIN) || hasRole(user, ROLES.SUPER_ADMIN),
-    isSuperAdmin: hasRole(user, ROLES.SUPER_ADMIN),
+    isAdmin,
+    isSuperAdmin,
   };
 };
 
-export default usePermissions; 
+export default usePermissions;

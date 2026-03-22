@@ -2,11 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import appLogo from "../../public/images/logo-transparant.png";
 import appSmLogo from "../../public/images/umbrella-clipart-cover.jpg";
-import { AccessIcon, ChevronDownIcon, UserManagement, GridIcon, HorizontaLDots, UserIcon, CompanyIcon, BoltIcon } from "../../public/icons";
+import { ChevronDownIcon, UserManagement, GridIcon, HorizontaLDots, UserIcon, CompanyIcon, BoltIcon } from "../../public/icons";
 import { useSidebar } from "../../context/SidebarContext";
 import { PageUrl } from "@/types/utils.types";
 import { useAuth } from "@/context/AuthContext";
-import { hasPermission, ADMIN_PERMISSIONS } from "@/utils/permissions";
+import { hasPermission, ADMIN_PERMISSIONS, GXP_PERMISSIONS } from "@/utils/permissions";
 import { useTranslation } from "react-i18next";
 
 type NavItem = {
@@ -55,7 +55,48 @@ const AppSidebar: React.FC = () => {
     {
       icon: <BoltIcon />,
       name: t('gxpService'),
-      permissions: [ADMIN_PERMISSIONS.VIEW_DASHBOARD],
+      permissions: [
+        GXP_PERMISSIONS.CREATE_PERMISSION,
+        GXP_PERMISSIONS.VIEW_PERMISSION,
+        GXP_PERMISSIONS.UPDATE_PERMISSION,
+        GXP_PERMISSIONS.DELETE_PERMISSION,
+        GXP_PERMISSIONS.CREATE_ROLE,
+        GXP_PERMISSIONS.VIEW_ROLE,
+        GXP_PERMISSIONS.UPDATE_ROLE,
+        GXP_PERMISSIONS.DELETE_ROLE,
+        GXP_PERMISSIONS.CREATE_USER,
+        GXP_PERMISSIONS.VIEW_USER,
+        GXP_PERMISSIONS.UPDATE_USER,
+        GXP_PERMISSIONS.DELETE_USER,
+        GXP_PERMISSIONS.CREATE_ASSIGNMENT_GROUP,
+        GXP_PERMISSIONS.VIEW_ASSIGNMENT_GROUP,
+        GXP_PERMISSIONS.UPDATE_ASSIGNMENT_GROUP,
+        GXP_PERMISSIONS.DELETE_ASSIGNMENT_GROUP,
+        GXP_PERMISSIONS.CREATE_WORKFLOW,
+        GXP_PERMISSIONS.VIEW_WORKFLOW,
+        GXP_PERMISSIONS.UPDATE_WORKFLOW,
+        GXP_PERMISSIONS.DELETE_WORKFLOW,
+        GXP_PERMISSIONS.CREATE_ENVIRONMENT,
+        GXP_PERMISSIONS.VIEW_ENVIRONMENT,
+        GXP_PERMISSIONS.UPDATE_ENVIRONMENT,
+        GXP_PERMISSIONS.DELETE_ENVIRONMENT,
+        GXP_PERMISSIONS.CREATE_SUPPLIERS,
+        GXP_PERMISSIONS.VIEW_SUPPLIERS,
+        GXP_PERMISSIONS.UPDATE_SUPPLIERS,
+        GXP_PERMISSIONS.DELETE_SUPPLIERS,
+        GXP_PERMISSIONS.CREATE_SOFTWARE_MODULES,
+        GXP_PERMISSIONS.VIEW_SOFTWARE_MODULES,
+        GXP_PERMISSIONS.UPDATE_SOFTWARE_MODULES,
+        GXP_PERMISSIONS.DELETE_SOFTWARE_MODULES,
+        GXP_PERMISSIONS.CREATE_SOFTWARE,
+        GXP_PERMISSIONS.VIEW_SOFTWARE,
+        GXP_PERMISSIONS.UPDATE_SOFTWARE,
+        GXP_PERMISSIONS.DELETE_SOFTWARE,
+        GXP_PERMISSIONS.CREATE_SERVICE_REQUEST,
+        GXP_PERMISSIONS.VIEW_SERVICE_REQUEST,
+        GXP_PERMISSIONS.UPDATE_SERVICE_REQUEST,
+        GXP_PERMISSIONS.DELETE_SERVICE_REQUEST
+      ],
       subItems: [
         { name: t('gxpAddNewApplication'), path: PageUrl.GXPAddNewApplication.path },
         { name: t('gxpApplicationSoftwareModule'), path: PageUrl.GXPApplicationSoftwareModule.path },

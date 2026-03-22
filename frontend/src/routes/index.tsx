@@ -6,6 +6,7 @@ import { ADMIN_PERMISSIONS } from "@/utils/permissions";
 import type { AppRoute } from "./types";
 
 // Dashboard & Access Management
+const Home = lazy(() => import("../pages/home"));
 const Dashboard = lazy(() => import("../pages/dashboard"));
 const RolesAndPermissions = lazy(() => import("../pages/access-management/roles-and-permissions"));
 
@@ -38,8 +39,15 @@ const routes: AppRoute[] = [
     element: <AppLayout />,
     children: [
       {
+        path: "",
+        element: <Home />,
+        meta: {
+          title: "Home",
+          icon: "home"
+        }
+      },
+      {
         path: PageUrl.Dashboard.path,
-        index: true,
         element: <Dashboard />,
         protection: {
           requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
