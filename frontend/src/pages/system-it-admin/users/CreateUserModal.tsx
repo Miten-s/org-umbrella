@@ -47,12 +47,22 @@ interface CreateUserModalProps {
   designations: Designation[];
   onSubmit: (data: any) => Promise<void>;
   activeUser: any | null;
+  mode?: "create" | "edit" | "view";
 }
 
-const CreateUserModal = ({ onClose, locations, departments, designations, onSubmit, activeUser }: CreateUserModalProps) => {
+const CreateUserModal = ({
+  onClose,
+  locations,
+  departments,
+  designations,
+  onSubmit,
+  activeUser,
+  mode = "create"
+}: CreateUserModalProps) => {
   const { t } = useTranslation();
   const [showSignature, setShowSignature] = useState(false);
   const signatureRef = useRef<any>(null);
+  const isReadOnly = mode === "view";
   // const customRoles = useMemo(
   //   () => roles.filter((role) => role.type !== "Built_In"),
   //   [roles]
@@ -61,7 +71,7 @@ const CreateUserModal = ({ onClose, locations, departments, designations, onSubm
   const { register, handleSubmit, control, setValue, watch, formState: { errors } } = useForm({
     resolver: zodResolver(getUserAdminSchema(!!activeUser)),
     defaultValues: {
-      fullName: activeUser?.name || '',
+      fullName: activeUser?.fullName || activeUser?.name || '',
       email: activeUser?.email || '',
       mobileNumber: activeUser?.phone || '',
       locationGroup: activeUser?.location?._id || '',
@@ -145,7 +155,11 @@ const CreateUserModal = ({ onClose, locations, departments, designations, onSubm
     <div className="p-6 max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
         <h2 className="text-xl font-semibold">
-          {activeUser ? t("update", { entity: t("user") }) : t("create", { entity: t("user") })}
+          {isReadOnly
+            ? t("view", { entity: t("user") })
+            : activeUser
+              ? t("update", { entity: t("user") })
+              : t("create", { entity: t("user") })}
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -153,6 +167,7 @@ const CreateUserModal = ({ onClose, locations, departments, designations, onSubm
             <Label required>{t("fullName")}</Label>
             <Input
               {...register("fullName")}
+              disabled={isReadOnly}
               error={!!errors.fullName}
               hint={errors.fullName?.message as string}
               maxLength={30}
@@ -169,6 +184,7 @@ const CreateUserModal = ({ onClose, locations, departments, designations, onSubm
               control={control}
               render={({ field }) => (
                 <SelectDropdown
+                  disabled={isReadOnly}
                   value={field.value}
                   onChange={(val) => {
                     field.onChange(val);
@@ -196,7 +212,7 @@ const CreateUserModal = ({ onClose, locations, departments, designations, onSubm
               id="email"
               type="email"
               {...register("email")}
-              disabled={!!activeUser}
+              disabled={isReadOnly || !!activeUser}
               error={!!errors.email}
               hint={errors.email?.message as string}
               maxLength={30}
@@ -232,13 +248,13 @@ const CreateUserModal = ({ onClose, locations, departments, designations, onSubm
             <Input
               id="password"
               type="password"
-              disabled={!!activeUser}
+              disabled={isReadOnly || !!activeUser}
               {...register("password")}
               error={!!errors.password}
               hint={errors.password?.message as string}
               maxLength={20}
             />
-            {!activeUser && (
+            {!activeUser && !isReadOnly && (
               <div className="mt-2 text-xs text-gray-600 dark:text-gray-300 space-y-1">
                 {passwordChecks.map((item) => (
                   <div key={item.label} className="flex items-center gap-2">
@@ -261,7 +277,7 @@ const CreateUserModal = ({ onClose, locations, departments, designations, onSubm
             <Input
               id="confirmPassword"
               type="password"
-              disabled={!!activeUser}
+              disabled={isReadOnly || !!activeUser}
               {...register("confirmPassword")}
               error={!!errors.confirmPassword}
               hint={errors.confirmPassword?.message as string}
@@ -281,6 +297,7 @@ const CreateUserModal = ({ onClose, locations, departments, designations, onSubm
                 <Switch
                   label=""
                   checked={value ?? false}
+                  disabled={isReadOnly}
                   onChange={onChange}
                 />
               )}
@@ -298,6 +315,7 @@ const CreateUserModal = ({ onClose, locations, departments, designations, onSubm
                     render={({ field: { value, onChange } }) => (
                       <Checkbox
                         checked={value ?? false}
+                        disabled={isReadOnly}
                         onChange={onChange}
                         label={t("yes")}
                       />
@@ -314,6 +332,7 @@ const CreateUserModal = ({ onClose, locations, departments, designations, onSubm
                     render={({ field: { value, onChange } }) => (
                       <Checkbox
                         checked={value ?? false}
+                        disabled={isReadOnly}
                         onChange={onChange}
                         label={t("yes")}
                       />
@@ -326,6 +345,7 @@ const CreateUserModal = ({ onClose, locations, departments, designations, onSubm
                 <Label>{t("mobileNumber")}</Label>
                 <Input
                   {...register("mobileNumber")}
+                  disabled={isReadOnly}
                   error={!!errors.mobileNumber}
                   hint={errors.mobileNumber?.message as string}
                   maxLength={12}
@@ -339,6 +359,7 @@ const CreateUserModal = ({ onClose, locations, departments, designations, onSubm
                   control={control}
                   render={({ field }) => (
                     <SelectDropdown
+                      disabled={isReadOnly}
                       value={field.value}
                       onChange={(val) => field.onChange(val)}
                       placeholder={t("select", { entity: t("location") })}
@@ -360,6 +381,7 @@ const CreateUserModal = ({ onClose, locations, departments, designations, onSubm
                   control={control}
                   render={({ field }) => (
                     <SelectDropdown
+                      disabled={isReadOnly}
                       value={field.value}
                       onChange={(val) => field.onChange(val)}
                       placeholder={t("select", { entity: t("designation") })}
@@ -382,6 +404,7 @@ const CreateUserModal = ({ onClose, locations, departments, designations, onSubm
                   control={control}
                   render={({ field }) => (
                     <SelectDropdown
+                      disabled={isReadOnly}
                       value={field.value}
                       onChange={(val) => field.onChange(val)}
                       placeholder={t("select", { entity: t("department") })}
@@ -403,6 +426,7 @@ const CreateUserModal = ({ onClose, locations, departments, designations, onSubm
                   control={control}
                   render={({ field }) => (
                     <TextArea
+                      disabled={isReadOnly}
                       value={field.value}
                       onChange={field.onChange}
                       className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700"
@@ -416,6 +440,7 @@ const CreateUserModal = ({ onClose, locations, departments, designations, onSubm
                 <div className="flex items-center gap-2 mb-2">
                   <Checkbox
                     checked={showSignature}
+                    disabled={isReadOnly}
                     onChange={(e) => setShowSignature(e)}
                     label={signatureUrl ? "Replace Signature" : "Add Signature"}
                   />
@@ -449,6 +474,7 @@ const CreateUserModal = ({ onClose, locations, departments, designations, onSubm
                         <Button
                           type="button"
                           variant="outline"
+                          disabled={isReadOnly}
                           onClick={handleClearSignature}
                         >
                           Clear
@@ -466,9 +492,11 @@ const CreateUserModal = ({ onClose, locations, departments, designations, onSubm
           <Button variant="outline" type="button" onClick={onClose}>
             {t("cancel")}
           </Button>
-          <Button type="submit" variant="primary">
-            {t("save")}
-          </Button>
+          {!isReadOnly ? (
+            <Button type="submit" variant="primary">
+              {t("save")}
+            </Button>
+          ) : null}
         </div>
       </form>
     </div>

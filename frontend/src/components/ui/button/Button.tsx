@@ -9,6 +9,7 @@ interface ButtonProps {
   variant?: "primary" | "outline" | "secondary" | "destructive";
   startIcon?: ReactNode;
   endIcon?: ReactNode;
+  title?: string;
   onClick?: () => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
@@ -27,6 +28,7 @@ const Button: React.FC<ButtonProps> = ({
   variant = "primary",
   startIcon,
   endIcon,
+  title,
   onClick,
   onMouseEnter,
   onMouseLeave,
@@ -163,6 +165,7 @@ const Button: React.FC<ButtonProps> = ({
     <div className="relative inline-block" ref={buttonRef}>
       <button
         type={type}
+        title={title}
         className={`inline-flex items-center justify-center gap-2 rounded-lg transition ${className} ${sizeClasses[size]
           } ${variantClasses[variant]} ${isDisabled ? "cursor-not-allowed opacity-50" : ""
           }`}

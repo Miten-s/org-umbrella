@@ -1,11 +1,16 @@
 // Dropdown.tsx
-import { useEffect, useRef } from "react";
+import { CSSProperties, MouseEventHandler, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 
 interface DropdownProps {
   isOpen: boolean;
   onClose: () => void;
   children: React.ReactNode;
   className?: string;
+  position?: "absolute" | "fixed";
+  portal?: boolean;
+  style?: CSSProperties;
+  onMouseDown?: MouseEventHandler<HTMLDivElement>;
 }
 
 export const Dropdown: React.FC<DropdownProps> = ({
@@ -13,6 +18,10 @@ export const Dropdown: React.FC<DropdownProps> = ({
   onClose,
   children,
   className = "",
+  position = "absolute",
+  portal = false,
+  style,
+  onMouseDown
 }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -33,12 +42,20 @@ export const Dropdown: React.FC<DropdownProps> = ({
 
   if (!isOpen) return null;
 
-  return (
+  const content = (
     <div
       ref={dropdownRef}
-      className={`absolute z-50 mt-2 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg animate-fadeIn ${className}`}
+      className={`${position} z-[1200] mt-2 rounded-xl border border-gray-200 bg-white shadow-lg animate-fadeIn dark:border-gray-700 dark:bg-gray-800 ${className}`}
+      style={style}
+      onMouseDown={onMouseDown}
     >
       <ul className="py-2">{children}</ul>
     </div>
   );
+
+  if (portal && typeof document !== "undefined") {
+    return createPortal(content, document.body);
+  }
+
+  return content;
 };

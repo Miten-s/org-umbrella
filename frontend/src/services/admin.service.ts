@@ -64,9 +64,14 @@ export const updateUser = async (id: string, payload: Record<string, any> | Form
   return response["data"];
 };
 
-export const deleteUser = async (id: string) => {
+export const deleteUser = async (
+  id: string,
+  options?: { silent?: boolean }
+) => {
   const response = await api.delete(`${API_ROUTES.users}/${id}`);
-  toast(response.data.message, "success");
+  if (!options?.silent) {
+    toast(response.data.message, "success");
+  }
   return response["data"];
 };
 

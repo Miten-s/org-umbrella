@@ -91,8 +91,9 @@ const LanguageDropdown: React.FC<LanguageDropdownProps> = ({
             >
                 <ul className="flex flex-col h-auto overflow-y-auto custom-scrollbar">
                     <li>
-                        <div className="p-2 font-semibold border-b border-gray-100">
-                            {t('changeLanguage')}
+                        <div className="p-2 font-semibold border-b border-gray-100 dark:border-gray-100">
+                            <span className='dark:text-white text-black'>  {t('changeLanguage')}
+                            </span>
                         </div>
                         {filteredLanguages.map((lang) => (
                             <DropdownItem

@@ -422,6 +422,110 @@ layer(base);
   @apply h-auto! pt-0! text-lg! font-medium! text-gray-800! dark:text-white/90!;
 }
 
+.app-data-table .ag-root-wrapper {
+  border: 1px solid var(--color-gray-200);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.dark .app-data-table .ag-root-wrapper {
+  border-color: #344054;
+}
+
+.app-data-table .ag-header {
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+.dark .app-data-table .ag-header {
+  border-bottom-color: #344054;
+}
+
+.app-data-table .ag-cell,
+.app-data-table .ag-header-cell {
+  border-right: none;
+}
+
+.app-data-table .ag-row:last-child .ag-cell {
+  border-bottom: none;
+}
+
+.app-data-table .ag-paging-panel {
+  border-top: 1px solid var(--color-gray-200);
+  min-height: 64px;
+  padding: 0 16px;
+}
+
+.dark .app-data-table .ag-paging-panel {
+  border-top-color: #344054;
+}
+
+.app-data-table .ag-paging-row-summary-panel,
+.app-data-table .ag-paging-page-summary-panel,
+.app-data-table .ag-label {
+  color: #475467;
+  font-family: Outfit, sans-serif;
+  font-size: 14px;
+}
+
+.dark .app-data-table .ag-paging-row-summary-panel,
+.dark .app-data-table .ag-paging-page-summary-panel,
+.dark .app-data-table .ag-label {
+  color: #d0d5dd;
+}
+
+.app-data-table .ag-paging-button {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--color-gray-200);
+  border-radius: 10px;
+  display: inline-flex;
+  height: 36px;
+  justify-content: center;
+  min-width: 36px;
+}
+
+.app-data-table .ag-paging-button[disabled] {
+  opacity: 0.45;
+}
+
+.dark .app-data-table .ag-paging-button {
+  background: #101828;
+  border-color: #344054;
+}
+
+.app-data-table .ag-picker-field-wrapper {
+  border-radius: 10px;
+  min-height: 36px;
+}
+
+.app-data-table__plain-cell {
+  display: flex;
+  align-items: center;
+}
+
+.app-data-table__actions-cell {
+  justify-content: flex-end;
+  overflow: visible !important;
+  position: relative;
+  z-index: 2;
+}
+
+.app-data-table__actions-cell .ag-cell-wrapper,
+.app-data-table__actions-cell .ag-cell-value,
+.app-data-table__actions-wrap {
+  overflow: visible !important;
+}
+
+.app-data-table__empty-message {
+  color: #667085;
+  font-family: Outfit, sans-serif;
+  font-size: 14px;
+}
+
+.dark .app-data-table__empty-message {
+  color: #98a2b3;
+}
+
 .flatpickr-prev-month,
 .flatpickr-next-month {
   @apply p-0!;
