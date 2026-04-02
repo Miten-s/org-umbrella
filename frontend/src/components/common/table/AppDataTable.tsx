@@ -693,10 +693,10 @@ const AppDataTable = <T extends object>({
               })}
 
               <Button
-                className="h-9 w-9 !rounded-none !bg-transparent !px-0 !py-0 shadow-none ring-0"
+                className="h-9 w-9  shadow-none ring-0"
                 size="sm"
                 title="Clear selection"
-                variant="secondary"
+                variant="outline"
                 startIcon={<CloseLineIcon className="h-[18px] w-[18px]" />}
                 onClick={() => {
                   gridApi?.deselectAll();

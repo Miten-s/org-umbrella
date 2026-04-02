@@ -186,9 +186,14 @@ export const updateDesignation = async (id: string, payload: Record<string, any>
   return response["data"];
 };
 
-export const deleteDesignation = async (id: string) => {
+export const deleteDesignation = async (
+  id: string,
+  options?: { silent?: boolean }
+) => {
   const response = await api.delete(`${API_ROUTES.designations}/${id}`);
-  toast(response.data.message, "success");
+  if (!options?.silent) {
+    toast(response.data.message, "success");
+  }
   return response["data"];
 };
 

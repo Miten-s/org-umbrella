@@ -12,12 +12,19 @@ interface CreateDesignationModalProps {
   onClose: () => void;
   onSubmit: (data: CreateDesignationForm) => void;
   initialData?: Partial<CreateDesignationForm>;
+  mode?: "create" | "edit" | "view";
 }
 
 type CreateDesignationForm = z.infer<typeof getDesignationSchema>;
 
-const CreateDesignationModal = ({ onClose, initialData, onSubmit }: CreateDesignationModalProps) => {
+const CreateDesignationModal = ({
+  onClose,
+  initialData,
+  onSubmit,
+  mode = "create"
+}: CreateDesignationModalProps) => {
   const { t } = useTranslation();
+  const isReadOnly = mode === "view";
 
   const {
     register,
@@ -39,7 +46,11 @@ const CreateDesignationModal = ({ onClose, initialData, onSubmit }: CreateDesign
     <div className="p-6 max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-          {t("create", { entity: t("designation") })}
+          {isReadOnly
+            ? t("view", { entity: t("designation") })
+            : initialData
+              ? t("update", { entity: t("designation") })
+              : t("create", { entity: t("designation") })}
         </h2>
 
         <div className="grid grid-cols-1 gap-4">
@@ -48,6 +59,7 @@ const CreateDesignationModal = ({ onClose, initialData, onSubmit }: CreateDesign
             <Label required>{t("designationName")}</Label>
             <Input
               {...register("designationName")}
+              disabled={isReadOnly}
               placeholder={t("enterDesignationName")}
               error={!!errors.designationName}
               hint={errors.designationName?.message}
@@ -59,6 +71,7 @@ const CreateDesignationModal = ({ onClose, initialData, onSubmit }: CreateDesign
           <div>
             <Label>{t("description")}</Label>
             <TextArea
+              disabled={isReadOnly}
               value={watch("description") || ""}
               onChange={(event) =>
                 setValue("description", event, { shouldValidate: true })
@@ -75,9 +88,11 @@ const CreateDesignationModal = ({ onClose, initialData, onSubmit }: CreateDesign
           <Button variant="outline" type="button" onClick={onClose}>
             {t("cancel")}
           </Button>
-          <Button type="submit" variant="primary">
-            {t("save")}
-          </Button>
+          {!isReadOnly ? (
+            <Button type="submit" variant="primary">
+              {t("save")}
+            </Button>
+          ) : null}
         </div>
       </form>
     </div>
