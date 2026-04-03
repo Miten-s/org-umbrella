@@ -1,16 +1,82 @@
-import { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { Modal } from "@/components/ui/modal";
+import AppDataTable, {
+  AppDataTableBulkAction,
+  AppDataTableRowAction,
+  AppDataTableToolbarAction
+} from "@/components/common/table/AppDataTable";
 import Button from "@/components/ui/button/Button";
+import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
-import CreateLocationModal from "./CreateLocationModal";
+import { toast } from "@/lib/ToastProvider";
 import {
-  getLocations,
+  CheckLineIcon,
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashBinIcon
+} from "@/public/icons";
+import {
   createLocation,
-  updateLocation,
-  deleteLocation
+  deleteLocation,
+  getLocations,
+  updateLocation
 } from "@/services/admin.service";
 import { Location as LocationObj } from "@/types/common.types";
+import { ColDef, ICellRendererParams } from "ag-grid-community";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import CreateLocationModal from "./CreateLocationModal";
+
+type LocationModalMode = "create" | "edit" | "view";
+
+const getInitials = (value: string) =>
+  value
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((segment) => segment[0]?.toUpperCase() ?? "")
+    .join("") || "L";
+
+const copyLocationsToClipboard = async (rows: LocationObj[]) => {
+  if (!rows.length) {
+    return;
+  }
+
+  const content = [
+    "Location\tDescription",
+    ...rows.map(
+      (location) => `${location.locationName}\t${location.description ?? ""}`
+    )
+  ].join("\n");
+
+  try {
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(content);
+    } else if (typeof document !== "undefined") {
+      const textarea = document.createElement("textarea");
+      textarea.value = content;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "absolute";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    } else {
+      throw new Error("Clipboard unavailable");
+    }
+
+    toast(
+      rows.length > 1
+        ? `${rows.length} locations copied to clipboard.`
+        : "Location copied to clipboard.",
+      "success"
+    );
+  } catch (error) {
+    console.error("Error copying locations:", error);
+    toast("Failed to copy location details. Please try again.", "error");
+  }
+};
 
 const Location = () => {
   const { isOpen, openModal, closeModal } = useModal();
@@ -18,136 +84,321 @@ const Location = () => {
 
   const [locations, setLocations] = useState<LocationObj[]>([]);
   const [activeLocation, setActiveLocation] = useState<LocationObj | null>(null);
+  const [locationModalMode, setLocationModalMode] =
+    useState<LocationModalMode>("create");
   const [refresh, setRefresh] = useState(false);
+  const [pendingDeleteLocations, setPendingDeleteLocations] = useState<
+    LocationObj[]
+  >([]);
+  const [isTableLoading, setIsTableLoading] = useState(true);
+  const [tableError, setTableError] = useState<string | null>(null);
 
-  const [confirmationModal, setConfirmationModal] = useState(false);
-  const [locationToDelete, setLocationToDelete] = useState<LocationObj | null>(null);
+  const handleCloseModal = () => {
+    closeModal();
+    setActiveLocation(null);
+    setLocationModalMode("create");
+  };
 
   const fetchLocations = async () => {
-    const { locations: fetchedLocations } = await getLocations();
-    setLocations(fetchedLocations);
+    try {
+      setIsTableLoading(true);
+      setTableError(null);
+
+      const { locations: fetchedLocations } = await getLocations();
+      setLocations(fetchedLocations ?? []);
+    } catch (error) {
+      console.error("Error fetching locations:", error);
+      setTableError("Failed to load locations. Please try again.");
+    } finally {
+      setIsTableLoading(false);
+    }
   };
 
   useEffect(() => {
-    fetchLocations();
+    void fetchLocations();
   }, [refresh]);
 
   const handleSave = async (data: Partial<LocationObj>) => {
-    if (activeLocation) {
-      await updateLocation(activeLocation._id, data);
-    } else {
-      await createLocation(data);
+    try {
+      if (activeLocation) {
+        await updateLocation(activeLocation._id, data);
+      } else {
+        await createLocation(data);
+      }
+
+      handleCloseModal();
+      setRefresh((prev) => !prev);
+    } catch (error) {
+      console.error("Error saving location:", error);
+      toast("Failed to save location. Please try again.", "error");
     }
-    setActiveLocation(null);
-    setRefresh((prev) => !prev);
-    closeModal();
   };
 
-  const confirmDelete = async () => {
-    if (locationToDelete) {
-      await deleteLocation(locationToDelete._id);
+  const handleDeleteConfirmed = async () => {
+    if (!pendingDeleteLocations.length) {
+      return;
+    }
+
+    try {
+      const results = await Promise.allSettled(
+        pendingDeleteLocations.map((location) =>
+          deleteLocation(location._id, { silent: true })
+        )
+      );
+      const failedDeletes = results.filter(
+        (result) => result.status === "rejected"
+      ).length;
+      const successfulDeletes = pendingDeleteLocations.length - failedDeletes;
+
+      if (successfulDeletes > 0 && failedDeletes === 0) {
+        toast(
+          successfulDeletes > 1
+            ? `${successfulDeletes} locations deleted successfully.`
+            : "Location deleted successfully.",
+          "success"
+        );
+      } else if (successfulDeletes > 0) {
+        toast(
+          `${successfulDeletes} locations deleted, ${failedDeletes} failed.`,
+          "error"
+        );
+      } else {
+        toast("Failed to delete selected locations. Please try again.", "error");
+      }
+
+      setPendingDeleteLocations([]);
       setRefresh((prev) => !prev);
-      setConfirmationModal(false);
-      setLocationToDelete(null);
+    } catch (error) {
+      console.error("Error deleting location:", error);
+      toast("Failed to delete selected locations. Please try again.", "error");
     }
   };
+
+  const toolbarActions = useMemo<AppDataTableToolbarAction<LocationObj>[]>(
+    () => [
+      {
+        key: "create-location",
+        label: t("create", { entity: t("location") }),
+        className: "whitespace-nowrap",
+        icon: PlusIcon,
+        onClick: () => {
+          setActiveLocation(null);
+          setLocationModalMode("create");
+          openModal();
+        },
+        permission: "CREATE:LOCATION",
+        variant: "primary"
+      }
+    ],
+    [openModal, t]
+  );
+
+  const bulkActions = useMemo<AppDataTableBulkAction<LocationObj>[]>(
+    () => [
+      {
+        key: "copy-selected",
+        label: (selectedRows) =>
+          selectedRows.length > 1 ? "Copy locations" : "Copy location",
+        icon: CopyIcon,
+        variant: "outline",
+        onClick: (selectedRows) => copyLocationsToClipboard(selectedRows)
+      },
+      {
+        key: "delete-selected",
+        label: (selectedRows) =>
+          selectedRows.length > 1 ? "Delete locations" : "Delete location",
+        icon: TrashBinIcon,
+        permission: "DELETE:LOCATION",
+        variant: "destructive",
+        onClick: (selectedRows) => setPendingDeleteLocations(selectedRows)
+      }
+    ],
+    []
+  );
+
+  const rowActions = useMemo<AppDataTableRowAction<LocationObj>[]>(
+    () => [
+      {
+        key: "view",
+        label: "View location",
+        tooltip: "View location",
+        icon: EyeIcon,
+        placement: "inline",
+        permission: "VIEW:LOCATION",
+        onClick: (location) => {
+          setActiveLocation(location);
+          setLocationModalMode("view");
+          openModal();
+        }
+      },
+      {
+        key: "edit",
+        label: "Edit location",
+        tooltip: "Edit location",
+        icon: PencilIcon,
+        placement: "inline",
+        permission: "UPDATE:LOCATION",
+        onClick: (location) => {
+          setActiveLocation(location);
+          setLocationModalMode("edit");
+          openModal();
+        }
+      },
+      {
+        key: "copy",
+        label: "Copy location",
+        tooltip: "Copy location",
+        icon: CopyIcon,
+        placement: "menu",
+        onClick: async (location) => copyLocationsToClipboard([location])
+      },
+      {
+        key: "delete",
+        label: "Delete location",
+        tooltip: "Delete location",
+        icon: TrashBinIcon,
+        placement: "menu",
+        permission: "DELETE:LOCATION",
+        tone: "danger",
+        onClick: (location) => setPendingDeleteLocations([location])
+      }
+    ],
+    [openModal]
+  );
+
+  const columnDefs = useMemo<ColDef<LocationObj>[]>(
+    () => [
+      {
+        field: "locationName",
+        flex: 1,
+        headerName: t("locationName"),
+        minWidth: 260,
+        cellRenderer: (params: ICellRendererParams<LocationObj>) => {
+          const data = params.data;
+
+          if (!data) {
+            return null;
+          }
+
+          const initials = getInitials(data.locationName);
+
+          return (
+            <div className="flex items-center gap-3 py-1.5">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700 dark:bg-brand-500/20 dark:text-brand-200">
+                {initials}
+              </div>
+              <div className="min-w-0 truncate text-sm font-semibold text-gray-900 dark:text-white">
+                {data.locationName}
+              </div>
+            </div>
+          );
+        }
+      },
+      {
+        field: "description",
+        flex: 1.2,
+        headerName: t("description"),
+        minWidth: 280,
+        cellRenderer: (params: ICellRendererParams<LocationObj>) => (
+          <div className="truncate py-1.5 text-sm text-gray-600 dark:text-gray-300">
+            {params.value || "-"}
+          </div>
+        )
+      }
+    ],
+    [t]
+  );
 
   return (
     <>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-          {t("locationsGroups")}
-        </h1>
-        <Button
-          permission="CREATE:LOCATION"
-          tooltipPosition="left"
-          onClick={() => {
-            setActiveLocation(null);
-            openModal();
-          }}
-        >
-          {t("create", { entity: t("location") })}
-        </Button>
+      <div className="flex flex-col lg:h-[calc(100dvh-132px)] lg:min-h-0">
+        <AppDataTable<LocationObj>
+          actionsColumnHeader={t("actions")}
+          bulkActions={bulkActions}
+          columnDefs={columnDefs}
+          defaultColDef={{ flex: 1, minWidth: 180 }}
+          emptyMessage="No locations found"
+          enableSelection
+          errorMessage={tableError}
+          fillAvailableHeight
+          fitContentHeight
+          fitContentHeightMaxRows={8}
+          fontSize={13}
+          getRowId={(location) => location._id}
+          headerHeight={46}
+          loading={isTableLoading}
+          maxInlineRowActions={2}
+          pageSize={20}
+          pageSizeOptions={[20, 50, 100]}
+          rowActions={rowActions}
+          rowData={locations}
+          rowHeight={64}
+          searchAccessor={(location) =>
+            [location.locationName, location.description].filter(Boolean).join(" ")
+          }
+          searchPlaceholder="Search locations..."
+          tableName={t("locationsGroups")}
+          toolbarActions={toolbarActions}
+          totalLabel={`${locations.length} total`}
+        />
       </div>
 
-      {/* List of Location Groups */}
-      <ul className="space-y-2">
-        {locations.map((loc) => (
-          <li
-            key={loc._id}
-            className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm flex justify-between items-center"
-          >
-            <div>
-              <div className="font-medium text-gray-900 dark:text-white">
-                {loc.locationName}
-              </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                {loc.description}
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                permission="UPDATE:LOCATION"
-                onClick={() => {
-                  setActiveLocation(loc);
-                  openModal();
-                }}
-                variant="outline"
-              >
-                {t("edit")}
-              </Button>
-              <Button
-                permission="DELETE:LOCATION"
-                onClick={() => {
-                  setLocationToDelete(loc);
-                  setConfirmationModal(true);
-                }}
-                variant="destructive"
-              >
-                {t("delete")}
-              </Button>
-            </div>
-          </li>
-        ))}
-      </ul>
-
-      {/* Create/Edit Modal */}
       <Modal
         isOpen={isOpen}
-        onClose={closeModal}
-        className="max-w-[900px] max-h-[90vh] m-4 overflow-y-auto"
+        onClose={handleCloseModal}
+        className="m-4 max-h-[90vh] max-w-[900px] overflow-y-auto"
       >
         <CreateLocationModal
-          onClose={closeModal}
+          onClose={handleCloseModal}
           onSubmit={handleSave}
           initialData={activeLocation || undefined}
+          mode={locationModalMode}
         />
       </Modal>
 
-      {/* Delete Confirmation Modal */}
       <Modal
-        isOpen={confirmationModal}
-        onClose={() => setConfirmationModal(false)}
-        className="max-w-[600px] min-h-[150px] m-4"
+        isOpen={pendingDeleteLocations.length > 0}
+        onClose={() => setPendingDeleteLocations([])}
+        className="m-4 min-h-[150px] max-w-[600px]"
         showCloseButton={false}
       >
-        <div className="h-full p-5 flex flex-col justify-between bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
+        <div className="flex h-full flex-col justify-between bg-white p-5 text-gray-900 dark:bg-gray-900 dark:text-white">
           <div className="py-2">
-            {`${t("deleteEntityPrompt", {
-              entityName: locationToDelete?.locationName,
-            })}`}
+            {pendingDeleteLocations.length > 1
+              ? `Are you sure you want to delete these ${pendingDeleteLocations.length} locations?`
+              : `${t("deleteEntityPrompt", {
+                  entityName: pendingDeleteLocations[0]?.locationName
+                })} ?`}
           </div>
+
+          {pendingDeleteLocations.length ? (
+            <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
+              {pendingDeleteLocations.slice(0, 5).map((location) => (
+                <div key={location._id} className="truncate py-0.5">
+                  {location.locationName}
+                </div>
+              ))}
+              {pendingDeleteLocations.length > 5 ? (
+                <div className="pt-1 text-xs text-gray-500 dark:text-gray-400">
+                  + {pendingDeleteLocations.length - 5} more
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           <div className="flex justify-end gap-2 pt-4">
             <Button
-              variant="outline"
-              onClick={() => setConfirmationModal(false)}
-              className="px-4 py-2"
+              variant="secondary"
+              onClick={() => setPendingDeleteLocations([])}
+              className="flex items-center px-4 py-2 text-white"
             >
               {t("cancel")}
             </Button>
+
             <Button
-              onClick={confirmDelete}
-              className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700"
+              startIcon={<CheckLineIcon className="h-4 w-4" />}
+              onClick={() => void handleDeleteConfirmed()}
+              className="flex items-center px-4 py-2"
             >
               {t("confirm")}
             </Button>
@@ -155,7 +406,6 @@ const Location = () => {
         </div>
       </Modal>
     </>
-
   );
 };
 

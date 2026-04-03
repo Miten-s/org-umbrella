@@ -132,9 +132,14 @@ export const updateDepartment = async (id: string, payload: Record<string, any>)
   return response["data"];
 };
 
-export const deleteDepartment = async (id: string) => {
+export const deleteDepartment = async (
+  id: string,
+  options?: { silent?: boolean }
+) => {
   const response = await api.delete(`${API_ROUTES.departments}/${id}`);
-  toast(response.data.message, "success");
+  if (!options?.silent) {
+    toast(response.data.message, "success");
+  }
   return response["data"];
 };
 
@@ -159,9 +164,14 @@ export const updateLocation = async (id: string, payload: Record<string, any>) =
   return response["data"];
 };
 
-export const deleteLocation = async (id: string) => {
+export const deleteLocation = async (
+  id: string,
+  options?: { silent?: boolean }
+) => {
   const response = await api.delete(`${API_ROUTES.locations}/${id}`);
-  toast(response.data.message, "success");
+  if (!options?.silent) {
+    toast(response.data.message, "success");
+  }
   return response["data"];
 };
 

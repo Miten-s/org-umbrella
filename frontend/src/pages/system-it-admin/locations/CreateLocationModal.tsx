@@ -12,6 +12,7 @@ interface CreateLocationModalProps {
   onClose: () => void;
   onSubmit: (data: CreateLocationForm) => void;
   initialData?: Partial<CreateLocationForm>;
+  mode?: "create" | "edit" | "view";
 }
 
 type CreateLocationForm = z.infer<typeof getLocationSchema>;
@@ -19,9 +20,11 @@ type CreateLocationForm = z.infer<typeof getLocationSchema>;
 const CreateLocationModal = ({
   onClose,
   onSubmit,
-  initialData
+  initialData,
+  mode = "create"
 }: CreateLocationModalProps) => {
   const { t } = useTranslation();
+  const isReadOnly = mode === "view";
 
   const {
     register,
@@ -41,7 +44,11 @@ const CreateLocationModal = ({
   <div className="p-6 max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
   <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
     <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-      {t(initialData ? "edit" : "create", { entity: t("location") })}
+      {isReadOnly
+        ? t("view", { entity: t("location") })
+        : initialData
+          ? t("update", { entity: t("location") })
+          : t("create", { entity: t("location") })}
     </h2>
 
     <div className="grid grid-cols-1 gap-4">
@@ -50,6 +57,7 @@ const CreateLocationModal = ({
         <Label required>{t("locationName")}</Label>
         <Input
           {...register("locationName")}
+          disabled={isReadOnly}
           placeholder={t("enterEntity", { entity: t("locationName") })}
           error={!!errors.locationName}
           hint={errors.locationName?.message}
@@ -61,6 +69,7 @@ const CreateLocationModal = ({
       <div>
         <Label>{t("description")}</Label>
         <TextArea
+          disabled={isReadOnly}
           value={watch("description") || ""}
           onChange={(e) =>
             setValue("description", e, { shouldValidate: true })
@@ -77,9 +86,11 @@ const CreateLocationModal = ({
       <Button variant="outline" type="button" onClick={onClose}>
         {t("cancel")}
       </Button>
-      <Button type="submit" variant="primary">
-        {t("save")}
-      </Button>
+      {!isReadOnly ? (
+        <Button type="submit" variant="primary">
+          {t("save")}
+        </Button>
+      ) : null}
     </div>
   </form>
 </div>
