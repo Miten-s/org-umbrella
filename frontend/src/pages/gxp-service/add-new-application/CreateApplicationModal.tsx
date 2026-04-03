@@ -66,6 +66,7 @@ interface CreateApplicationModalProps {
         existingAttachments: string[]
     ) => void | Promise<void>;
     initialData?: Application | Application[] | null;
+    mode?: "create" | "edit" | "view";
     optionSets: {
         environments: Environment[];
         locations: Location[];
@@ -179,12 +180,14 @@ const CreateApplicationModal = ({
     onClose,
     onSubmit,
     initialData,
+    mode = "create",
     optionSets,
 }: CreateApplicationModalProps) => {
     const resolvedInitial = Array.isArray(initialData) ? initialData[0] : initialData;
     const applicationIdentity = String(((resolvedInitial as any)?.applicationId ?? "")).trim();
     const { t } = useTranslation();
     const { toggleLoading, loading } = useGlobalContext();
+    const isReadOnly = mode === "view";
     const normalizedDefaults = useMemo<ApplicationFormInput>(
         () => normalizeInitialValues(resolvedInitial),
         [resolvedInitial]
@@ -333,10 +336,13 @@ const CreateApplicationModal = ({
             <div className="p-6  overflow-y-auto no-scrollbar bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
                 <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
                     <h2 className="text-xl font-semibold">
-                        {t(resolvedInitial ? "edit" : "create", { entity: t("gxpApplications") })}
+                        {isReadOnly
+                            ? t("view", { entity: t("gxpApplications") })
+                            : t(resolvedInitial ? "edit" : "create", { entity: t("gxpApplications") })}
                     </h2>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className={isReadOnly ? "pointer-events-none opacity-80" : ""}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="md:col-span-2">
                             <Label htmlFor="identity">{t("identity", { defaultValue: "Identity" })}</Label>
                             <Input
@@ -800,15 +806,18 @@ const CreateApplicationModal = ({
                                 </p>
                             )}
                         </div>
+                        </div>
                     </div>
 
                     <div className="flex justify-end gap-2 mt-4">
                         <Button variant="outline" type="button" onClick={onClose}>
                             {t("cancel")}
                         </Button>
-                        <Button type="submit" variant="primary" disabled={loading}>
-                            {t("save")}
-                        </Button>
+                        {!isReadOnly ? (
+                            <Button type="submit" variant="primary" disabled={loading}>
+                                {t("save")}
+                            </Button>
+                        ) : null}
                     </div>
                 </form>
             </div>

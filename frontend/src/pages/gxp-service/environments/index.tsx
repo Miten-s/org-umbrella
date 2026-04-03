@@ -1,172 +1,408 @@
-import { useEffect, useState } from "react";
-import { Modal } from "@/components/ui/modal";
+import AppDataTable, {
+  AppDataTableBulkAction,
+  AppDataTableRowAction,
+  AppDataTableToolbarAction
+} from "@/components/common/table/AppDataTable";
 import Button from "@/components/ui/button/Button";
-import { useModal } from "@/hooks/useModal";
-import { useTranslation } from "react-i18next";
-import {
-  getEnvironments,
-  createEnvironment,
-  updateEnvironment,
-  deleteEnvironment,
-} from "@/services/gxp.service";
+import { Modal } from "@/components/ui/modal";
 import { useGlobalContext } from "@/context";
+import { useModal } from "@/hooks/useModal";
+import { toast } from "@/lib/ToastProvider";
+import {
+  CheckLineIcon,
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashBinIcon
+} from "@/public/icons";
+import {
+  createEnvironment,
+  deleteEnvironment,
+  getEnvironments,
+  updateEnvironment
+} from "@/services/gxp.service";
+import { GXP_PERMISSIONS } from "@/utils/permissions";
+import { ColDef, ICellRendererParams } from "ag-grid-community";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import CreateEnvironmentModal from "./CreateEnvironmentModal";
 
-interface Environment {
+interface EnvironmentRecord {
   _id: string;
   environmentName: string;
-  description: string;
+  description?: string;
 }
+
+type EnvironmentModalMode = "create" | "edit" | "view";
+
+const getInitials = (value: string) =>
+  value
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((segment) => segment[0]?.toUpperCase() ?? "")
+    .join("") || "E";
+
+const copyEnvironmentsToClipboard = async (rows: EnvironmentRecord[]) => {
+  if (!rows.length) {
+    return;
+  }
+
+  const content = [
+    "Environment\tDescription",
+    ...rows.map(
+      (environment) =>
+        `${environment.environmentName}\t${environment.description ?? ""}`
+    )
+  ].join("\n");
+
+  try {
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(content);
+    } else if (typeof document !== "undefined") {
+      const textarea = document.createElement("textarea");
+      textarea.value = content;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "absolute";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    } else {
+      throw new Error("Clipboard unavailable");
+    }
+
+    toast(
+      rows.length > 1
+        ? `${rows.length} environments copied to clipboard.`
+        : "Environment copied to clipboard.",
+      "success"
+    );
+  } catch (error) {
+    console.error("Error copying environments:", error);
+    toast("Failed to copy environment details. Please try again.", "error");
+  }
+};
 
 const Environments = () => {
   const { isOpen, openModal, closeModal } = useModal();
   const { t } = useTranslation();
   const { reFetch, setReFetch } = useGlobalContext();
-  const [environments, setEnvironments] = useState<Environment[]>([]);
-  const [activeEnvironment, setActiveEnvironment] = useState<Environment | null>(null);
-  const [environmentToDelete, setEnvironmentToDelete] = useState<Environment | null>(null);
-  const [confirmationModal, setConfirmationModal] = useState(false);
+  const [environments, setEnvironments] = useState<EnvironmentRecord[]>([]);
+  const [activeEnvironment, setActiveEnvironment] =
+    useState<EnvironmentRecord | null>(null);
+  const [environmentModalMode, setEnvironmentModalMode] =
+    useState<EnvironmentModalMode>("create");
+  const [pendingDeleteEnvironments, setPendingDeleteEnvironments] = useState<
+    EnvironmentRecord[]
+  >([]);
+  const [isTableLoading, setIsTableLoading] = useState(true);
+  const [tableError, setTableError] = useState<string | null>(null);
 
+  const handleCloseModal = () => {
+    closeModal();
+    setActiveEnvironment(null);
+    setEnvironmentModalMode("create");
+  };
 
   useEffect(() => {
     const fetchEnvironments = async () => {
-      const environments = await getEnvironments();
-      setEnvironments(environments);
+      try {
+        setIsTableLoading(true);
+        setTableError(null);
+        const fetchedEnvironments = await getEnvironments();
+        setEnvironments(fetchedEnvironments ?? []);
+      } catch (error) {
+        console.error("Error fetching environments:", error);
+        setTableError("Failed to load environments. Please try again.");
+      } finally {
+        setIsTableLoading(false);
+      }
     };
 
-    fetchEnvironments();
+    void fetchEnvironments();
   }, [reFetch]);
 
-  const handleSave = async (data: Partial<Environment>) => {
-    const payload = {
-      ...data,
-    };
-    if (activeEnvironment) {
-      await updateEnvironment(activeEnvironment._id, payload);
-    } else {
-      await createEnvironment(payload);
+  const handleSave = async (data: Partial<EnvironmentRecord>) => {
+    try {
+      if (activeEnvironment) {
+        await updateEnvironment(activeEnvironment._id, data);
+      } else {
+        await createEnvironment(data);
+      }
+      handleCloseModal();
+      setReFetch(!reFetch);
+    } catch (error) {
+      console.error("Error saving environment:", error);
+      toast("Failed to save environment. Please try again.", "error");
     }
-    setReFetch(!reFetch);
-    closeModal();
-    setActiveEnvironment(null);
   };
 
-  const confirmDelete = async () => {
-    if (!environmentToDelete) return;
+  const handleDeleteConfirmed = async () => {
+    if (!pendingDeleteEnvironments.length) {
+      return;
+    }
 
-    await deleteEnvironment(environmentToDelete._id);
-    setEnvironments((prev) => prev.filter((d) => d._id !== environmentToDelete._id));
+    try {
+      const results = await Promise.allSettled(
+        pendingDeleteEnvironments.map((environment) =>
+          deleteEnvironment(environment._id, { silent: true })
+        )
+      );
+      const failedDeletes = results.filter(
+        (result) => result.status === "rejected"
+      ).length;
+      const successfulDeletes =
+        pendingDeleteEnvironments.length - failedDeletes;
 
-    setConfirmationModal(false);
-    setEnvironmentToDelete(null);
+      if (successfulDeletes > 0 && failedDeletes === 0) {
+        toast(
+          successfulDeletes > 1
+            ? `${successfulDeletes} environments deleted successfully.`
+            : "Environment deleted successfully.",
+          "success"
+        );
+      } else if (successfulDeletes > 0) {
+        toast(
+          `${successfulDeletes} environments deleted, ${failedDeletes} failed.`,
+          "error"
+        );
+      } else {
+        toast("Failed to delete selected environments. Please try again.", "error");
+      }
+
+      setPendingDeleteEnvironments([]);
+      setReFetch(!reFetch);
+    } catch (error) {
+      console.error("Error deleting environment:", error);
+      toast("Failed to delete selected environments. Please try again.", "error");
+    }
   };
 
-  const openEditModal = (environment: Environment) => {
-    setActiveEnvironment(environment);
-    openModal();
-  };
+  const toolbarActions = useMemo<AppDataTableToolbarAction<EnvironmentRecord>[]>(
+    () => [
+      {
+        key: "create-environment",
+        label: t("create", { entity: t("environment") }),
+        className: "whitespace-nowrap",
+        icon: PlusIcon,
+        onClick: () => {
+          setActiveEnvironment(null);
+          setEnvironmentModalMode("create");
+          openModal();
+        },
+        permission: GXP_PERMISSIONS.CREATE_ENVIRONMENT,
+        variant: "primary"
+      }
+    ],
+    [openModal, t]
+  );
 
+  const bulkActions = useMemo<AppDataTableBulkAction<EnvironmentRecord>[]>(
+    () => [
+      {
+        key: "copy-selected",
+        label: (selectedRows) =>
+          selectedRows.length > 1 ? "Copy environments" : "Copy environment",
+        icon: CopyIcon,
+        variant: "outline",
+        onClick: (selectedRows) => copyEnvironmentsToClipboard(selectedRows)
+      },
+      {
+        key: "delete-selected",
+        label: (selectedRows) =>
+          selectedRows.length > 1 ? "Delete environments" : "Delete environment",
+        icon: TrashBinIcon,
+        permission: GXP_PERMISSIONS.DELETE_ENVIRONMENT,
+        variant: "destructive",
+        onClick: (selectedRows) => setPendingDeleteEnvironments(selectedRows)
+      }
+    ],
+    []
+  );
 
+  const rowActions = useMemo<AppDataTableRowAction<EnvironmentRecord>[]>(
+    () => [
+      {
+        key: "view",
+        label: "View environment",
+        tooltip: "View environment",
+        icon: EyeIcon,
+        placement: "inline",
+        permission: GXP_PERMISSIONS.VIEW_ENVIRONMENT,
+        onClick: (environment) => {
+          setActiveEnvironment(environment);
+          setEnvironmentModalMode("view");
+          openModal();
+        }
+      },
+      {
+        key: "edit",
+        label: "Edit environment",
+        tooltip: "Edit environment",
+        icon: PencilIcon,
+        placement: "inline",
+        permission: GXP_PERMISSIONS.UPDATE_ENVIRONMENT,
+        onClick: (environment) => {
+          setActiveEnvironment(environment);
+          setEnvironmentModalMode("edit");
+          openModal();
+        }
+      },
+      {
+        key: "copy",
+        label: "Copy environment",
+        tooltip: "Copy environment",
+        icon: CopyIcon,
+        placement: "menu",
+        onClick: async (environment) => copyEnvironmentsToClipboard([environment])
+      },
+      {
+        key: "delete",
+        label: "Delete environment",
+        tooltip: "Delete environment",
+        icon: TrashBinIcon,
+        placement: "menu",
+        permission: GXP_PERMISSIONS.DELETE_ENVIRONMENT,
+        tone: "danger",
+        onClick: (environment) => setPendingDeleteEnvironments([environment])
+      }
+    ],
+    [openModal]
+  );
+
+  const columnDefs = useMemo<ColDef<EnvironmentRecord>[]>(
+    () => [
+      {
+        field: "environmentName",
+        flex: 1,
+        headerName: t("environmentName"),
+        minWidth: 260,
+        cellRenderer: (params: ICellRendererParams<EnvironmentRecord>) => {
+          const data = params.data;
+          if (!data) return null;
+
+          return (
+            <div className="flex items-center gap-3 py-1.5">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700 dark:bg-brand-500/20 dark:text-brand-200">
+                {getInitials(data.environmentName)}
+              </div>
+              <div className="min-w-0 truncate text-sm font-semibold text-gray-900 dark:text-white">
+                {data.environmentName}
+              </div>
+            </div>
+          );
+        }
+      },
+      {
+        field: "description",
+        flex: 1.2,
+        headerName: t("description"),
+        minWidth: 280,
+        cellRenderer: (params: ICellRendererParams<EnvironmentRecord>) => (
+          <div className="truncate py-1.5 text-sm text-gray-600 dark:text-gray-300">
+            {params.value || "-"}
+          </div>
+        )
+      }
+    ],
+    [t]
+  );
 
   return (
     <>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-          {t("gxpEnvironments")}
-        </h1>
-        <div className="flex items-center gap-4">
-
-          <Button
-            onClick={() => {
-              setActiveEnvironment(null);
-              openModal();
-            }}
-          >
-            {t("create", { entity: t("environment") })}
-          </Button>
-        </div>
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-800">
-            <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
-                {t("environmentName")}
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
-                {t("description")}
-              </th>
-
-              <th scope="col" className="relative px-6 py-3">
-                <span className="sr-only">{t("actions")}</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700">
-            {environments?.map((environment) => (
-              <tr key={environment._id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                  {environment.environmentName}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                  {environment.description}
-                </td>
-
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <div className="flex gap-2 justify-end">
-                    <Button
-                      onClick={() => openEditModal(environment)}
-                      variant="outline"
-                    >
-                      {t("edit")}
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setEnvironmentToDelete(environment);
-                        setConfirmationModal(true);
-                      }}
-                      variant="destructive"
-                    >
-                      {t("delete")}
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="flex flex-col lg:h-[calc(100dvh-132px)] lg:min-h-0">
+        <AppDataTable<EnvironmentRecord>
+          actionsColumnHeader={t("actions")}
+          bulkActions={bulkActions}
+          columnDefs={columnDefs}
+          defaultColDef={{ flex: 1, minWidth: 180 }}
+          emptyMessage="No environments found"
+          enableSelection
+          errorMessage={tableError}
+          fillAvailableHeight
+          fitContentHeight
+          fitContentHeightMaxRows={8}
+          fontSize={13}
+          getRowId={(environment) => environment._id}
+          headerHeight={46}
+          loading={isTableLoading}
+          maxInlineRowActions={2}
+          pageSize={20}
+          pageSizeOptions={[20, 50, 100]}
+          rowActions={rowActions}
+          rowData={environments}
+          rowHeight={64}
+          searchAccessor={(environment) =>
+            [environment.environmentName, environment.description]
+              .filter(Boolean)
+              .join(" ")
+          }
+          searchPlaceholder="Search environments..."
+          tableName={t("gxpEnvironments")}
+          toolbarActions={toolbarActions}
+          totalLabel={`${environments.length} total`}
+        />
       </div>
 
       <Modal
         isOpen={isOpen}
-        onClose={closeModal}
+        onClose={handleCloseModal}
         className="max-w-[900px] max-h-[100rem] m-4 overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
       >
         <CreateEnvironmentModal
-          onClose={closeModal}
+          onClose={handleCloseModal}
           onSubmit={handleSave}
           initialData={activeEnvironment || undefined}
+          mode={environmentModalMode}
         />
       </Modal>
 
       <Modal
-        isOpen={confirmationModal}
-        onClose={() => setConfirmationModal(false)}
+        isOpen={pendingDeleteEnvironments.length > 0}
+        onClose={() => setPendingDeleteEnvironments([])}
         className="max-w-[500px] min-h-[150px] m-4 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
         showCloseButton={false}
       >
         <div className="h-full p-5 flex flex-col justify-between">
           <div className="py-2 text-gray-800 dark:text-gray-300">
-            {t("deleteEntityPrompt", {
-              entityName: environmentToDelete?.environmentName,
-            })}
+            {pendingDeleteEnvironments.length > 1
+              ? `Are you sure you want to delete these ${pendingDeleteEnvironments.length} environments?`
+              : `${t("deleteEntityPrompt", {
+                  entityName: pendingDeleteEnvironments[0]?.environmentName
+                })} ?`}
           </div>
+
+          {pendingDeleteEnvironments.length ? (
+            <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
+              {pendingDeleteEnvironments.slice(0, 5).map((environment) => (
+                <div key={environment._id} className="truncate py-0.5">
+                  {environment.environmentName}
+                </div>
+              ))}
+              {pendingDeleteEnvironments.length > 5 ? (
+                <div className="pt-1 text-xs text-gray-500 dark:text-gray-400">
+                  + {pendingDeleteEnvironments.length - 5} more
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={() => setConfirmationModal(false)}>
+            <Button
+              variant="secondary"
+              onClick={() => setPendingDeleteEnvironments([])}
+              className="flex items-center px-4 py-2 text-white"
+            >
               {t("cancel")}
             </Button>
-            <Button onClick={confirmDelete} variant="destructive">
+            <Button
+              startIcon={<CheckLineIcon className="h-4 w-4" />}
+              onClick={() => void handleDeleteConfirmed()}
+              className="flex items-center px-4 py-2"
+            >
               {t("confirm")}
             </Button>
           </div>

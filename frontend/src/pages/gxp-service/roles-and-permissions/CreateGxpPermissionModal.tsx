@@ -14,6 +14,7 @@ interface CreateGxpPermissionModalProps {
   onClose: () => void;
   onSubmit: (data: CreateGxpPermissionForm) => void;
   initialData?: any;
+  mode?: "create" | "edit" | "view";
 }
 
 type CreateGxpPermissionForm = z.infer<typeof getGxpPermissionSchema>;
@@ -22,8 +23,10 @@ const CreateGxpPermissionModal = ({
   onClose,
   onSubmit,
   initialData,
+  mode = "create",
 }: CreateGxpPermissionModalProps) => {
   const { t } = useTranslation();
+  const isReadOnly = mode === "view";
 
   const {
     register,
@@ -45,7 +48,9 @@ const CreateGxpPermissionModal = ({
     <div className="p-6 max-h-[120vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <h2 className="text-xl font-semibold">
-          {t(initialData ? "edit" : "create", { entity: t("gxpPermissions") })}
+          {isReadOnly
+            ? t("view", { entity: t("gxpPermissions") })
+            : t(initialData ? "edit" : "create", { entity: t("gxpPermissions") })}
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -56,6 +61,7 @@ const CreateGxpPermissionModal = ({
             </Label>
             <Input
               {...register("permissionName")}
+              disabled={isReadOnly}
               error={!!errors.permissionName}
               hint={errors.permissionName?.message}
               className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
@@ -67,6 +73,7 @@ const CreateGxpPermissionModal = ({
             <Label>{t("description")}</Label>
             <TextArea
               value={description || ""}
+              disabled={isReadOnly}
               onChange={(val) => setValue("description", val)}
               error={!!errors.description}
               hint={errors.description?.message}
@@ -80,9 +87,11 @@ const CreateGxpPermissionModal = ({
           <Button variant="outline" type="button" onClick={onClose}>
             {t("cancel")}
           </Button>
-          <Button type="submit" variant="primary">
-            {t("save")}
-          </Button>
+          {!isReadOnly ? (
+            <Button type="submit" variant="primary">
+              {t("save")}
+            </Button>
+          ) : null}
         </div>
       </form>
     </div>

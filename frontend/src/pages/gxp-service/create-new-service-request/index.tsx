@@ -1,23 +1,183 @@
-import { useEffect, useMemo, useState } from "react";
-import { useTranslation } from "react-i18next";
-
-import { Modal } from "@/components/ui/modal";
+import AppDataTable, {
+  AppDataTableBulkAction,
+  AppDataTableRowAction,
+  AppDataTableToolbarAction
+} from "@/components/common/table/AppDataTable";
 import Button from "@/components/ui/button/Button";
-import { useModal } from "@/hooks/useModal";
+import { Modal } from "@/components/ui/modal";
 import { useGlobalContext } from "@/context";
+import { useModal } from "@/hooks/useModal";
+import { toast } from "@/lib/ToastProvider";
 import {
-  getServiceRequests,
+  CheckLineIcon,
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashBinIcon
+} from "@/public/icons";
+import {
   createServiceRequest,
-  updateServiceRequest,
   deleteServiceRequest,
-  getServiceRequestById,
   getApplications,
+  getServiceRequestById,
+  getServiceRequests,
+  updateServiceRequest
 } from "@/services/gxp.service";
 import { ServiceRequestFormOutput } from "@/lib/schema";
-import CreateServiceRequestModal from "./CreateServiceRequestModal";
 import { ServiceRequest } from "@/types/gxp-service.types";
+import { GXP_PERMISSIONS } from "@/utils/permissions";
+import { ColDef, ICellRendererParams } from "ag-grid-community";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import CreateServiceRequestModal from "./CreateServiceRequestModal";
 
 type Lookup = Record<string, string>;
+type ServiceRequestModalMode = "create" | "edit" | "view";
+
+const ensureArray = (value: any) =>
+  Array.isArray(value)
+    ? value
+    : value?.data && Array.isArray(value.data)
+      ? value.data
+      : [];
+
+const getInitials = (value: string) =>
+  value
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((segment) => segment[0]?.toUpperCase() ?? "")
+    .join("") || "SR";
+
+const normalizeServiceRequest = (request: any): ServiceRequest => {
+  const rawRequestTypes = request?.requestTypes;
+  const normalizedApplication =
+    request?.application && typeof request.application === "object"
+      ? {
+          ...request.application,
+          applicationServiceRequestTypes:
+            request.application.applicationServiceRequestTypes ??
+            (Array.isArray(rawRequestTypes)
+              ? rawRequestTypes
+              : rawRequestTypes
+                ? [rawRequestTypes]
+                : [])
+        }
+      : request?.application ?? "";
+
+  return {
+    _id: request?._id ?? "",
+    serviceRequestId: request?.serviceRequestId ?? "",
+    priority: request?.priority ?? "Medium",
+    application: normalizedApplication,
+    esignCheck: request?.esignCheck ?? "No",
+    trainingDone: request?.trainingDone ?? true,
+    description: request?.description ?? "",
+    shortDescription: request?.shortDescription ?? "",
+    requestType: request?.requestType ?? "Applications",
+    applicationEnvironment: request?.environment ?? request?.applicationEnvironment ?? "",
+    assignmentGroup: request?.assignmentGroup ?? request?.group ?? "",
+    groupLocation: request?.location ?? request?.groupLocation ?? "",
+    applicationWorkflow: request?.applicationWorkflow ?? request?.workflow ?? "",
+    applicationModules: request?.applicationModules ?? request?.modules ?? [],
+    applicationServiceRequestTypes: (() => {
+      const serviceValue =
+        request?.applicationServiceRequestTypes ??
+        request?.requestTypes ??
+        request?.requestType;
+      if (Array.isArray(serviceValue)) {
+        if (!serviceValue.length) return "";
+        const first = serviceValue[0];
+        if (typeof first === "string") return first;
+        return first?._id ?? first?.service ?? "";
+      }
+      if (typeof serviceValue === "string") return serviceValue;
+      return serviceValue?._id ?? serviceValue?.service ?? "";
+    })(),
+    requestTypes: rawRequestTypes,
+    applicationRoles: request?.roles ?? request?.applicationRoles ?? [],
+    notes: Array.isArray(request?.notes) ? request.notes.join("\n") : (request?.notes ?? ""),
+    status: request?.status ?? "New",
+    comments: request?.comments ?? [],
+    attachments: request?.attachments ?? [],
+    createdBy: request?.createdBy,
+    createdAt: request?.createdAt,
+    updatedAt: request?.updatedAt
+  };
+};
+
+const nameLookup = (items: any[], nameKey: string, valueKey: string = "_id"): Lookup =>
+  items.reduce((acc: Lookup, item: any) => {
+    const value = item?.[valueKey];
+    const label = item?.[nameKey] ?? item?.name ?? value;
+    if (value) acc[String(value)] = String(label);
+    return acc;
+  }, {});
+
+const formatValue = (
+  value: string | { _id?: string; [key: string]: any } | null | undefined,
+  lookup: Lookup,
+  nameKey?: string
+) => {
+  if (!value) return "-";
+  if (typeof value === "string") return lookup[value] ?? value;
+  const name = nameKey ? value?.[nameKey] : undefined;
+  const id = value?._id;
+  if (name) return name;
+  if (id) return lookup[id] ?? id;
+  return "-";
+};
+
+const copyServiceRequestsToClipboard = async (
+  rows: ServiceRequest[],
+  applicationLookup: Lookup
+) => {
+  if (!rows.length) {
+    return;
+  }
+
+  const content = [
+    "Service Request\tShort Description\tApplication\tPriority\tStatus",
+    ...rows.map((request) =>
+      [
+        request.serviceRequestId ?? "",
+        request.shortDescription ?? "",
+        formatValue(request.application, applicationLookup, "applicationName"),
+        request.priority ?? "",
+        request.status ?? ""
+      ].join("\t")
+    )
+  ].join("\n");
+
+  try {
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(content);
+    } else if (typeof document !== "undefined") {
+      const textarea = document.createElement("textarea");
+      textarea.value = content;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "absolute";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    } else {
+      throw new Error("Clipboard unavailable");
+    }
+
+    toast(
+      rows.length > 1
+        ? `${rows.length} service requests copied to clipboard.`
+        : "Service request copied to clipboard.",
+      "success"
+    );
+  } catch (error) {
+    console.error("Error copying service requests:", error);
+    toast("Failed to copy service request details. Please try again.", "error");
+  }
+};
 
 const GXPCreateNewServiceRequestPage = () => {
   const { t } = useTranslation();
@@ -25,91 +185,58 @@ const GXPCreateNewServiceRequestPage = () => {
   const { reFetch, setReFetch } = useGlobalContext();
 
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
-  const [activeRequest, setActiveRequest] = useState<ServiceRequest | null>(null);
-  const [isLoadingActive, setIsLoadingActive] = useState(false);
-  const [confirmationModal, setConfirmationModal] = useState(false);
-  const [requestToDelete, setRequestToDelete] = useState<ServiceRequest | null>(null);
-
   const [applications, setApplications] = useState<any[]>([]);
+  const [activeRequest, setActiveRequest] = useState<ServiceRequest | null>(null);
+  const [requestModalMode, setRequestModalMode] =
+    useState<ServiceRequestModalMode>("create");
+  const [isLoadingActive, setIsLoadingActive] = useState(false);
+  const [pendingDeleteRequests, setPendingDeleteRequests] = useState<ServiceRequest[]>([]);
+  const [isTableLoading, setIsTableLoading] = useState(true);
+  const [tableError, setTableError] = useState<string | null>(null);
 
-  const ensureArray = (val: any) =>
-    Array.isArray(val) ? val : (val?.data && Array.isArray(val.data) ? val.data : []);
+  const applicationLookup = useMemo(
+    () => nameLookup(applications, "applicationName", "_id"),
+    [applications]
+  );
 
-  const normalizeServiceRequest = (req: any): ServiceRequest => {
-    const rawRequestTypes = req?.requestTypes;
-    const normalizedApplication =
-      req?.application && typeof req.application === "object"
-        ? {
-            ...req.application,
-            applicationServiceRequestTypes:
-              req.application.applicationServiceRequestTypes ??
-              (Array.isArray(rawRequestTypes)
-                ? rawRequestTypes
-                : rawRequestTypes
-                  ? [rawRequestTypes]
-                  : [])
-          }
-        : req?.application ?? "";
-
-    return {
-      _id: req?._id ?? "",
-      serviceRequestId: req?.serviceRequestId ?? "",
-      priority: req?.priority ?? "Medium",
-      application: normalizedApplication,
-      esignCheck: req?.esignCheck ?? "No",
-      trainingDone: req?.trainingDone ?? true,
-      description: req?.description ?? "",
-      shortDescription: req?.shortDescription ?? "",
-      requestType: req?.requestType ?? "Applications",
-      applicationEnvironment: req?.environment ?? req?.applicationEnvironment ?? "",
-      assignmentGroup: req?.assignmentGroup ?? req?.group ?? "",
-      groupLocation: req?.location ?? req?.groupLocation ?? "",
-      applicationWorkflow: req?.applicationWorkflow ?? req?.workflow ?? "",
-      applicationModules: req?.applicationModules ?? req?.modules ?? [],
-      applicationServiceRequestTypes: (() => {
-        const serviceValue =
-          req?.applicationServiceRequestTypes ??
-          req?.requestTypes ??
-          req?.requestType;
-        if (Array.isArray(serviceValue)) {
-          if (!serviceValue.length) return "";
-          const first = serviceValue[0];
-          if (typeof first === "string") return first;
-          return first?._id ?? first?.service ?? "";
-        }
-        if (typeof serviceValue === "string") return serviceValue;
-        return serviceValue?._id ?? serviceValue?.service ?? "";
-      })(),
-      requestTypes: rawRequestTypes,
-      applicationRoles: req?.roles ?? req?.applicationRoles ?? [],
-      notes: Array.isArray(req?.notes) ? req.notes.join("\n") : (req?.notes ?? ""),
-      status: req?.status ?? "New",
-      comments: req?.comments ?? [],
-      attachments: req?.attachments ?? [],
-      createdBy: req?.createdBy,
-      createdAt: req?.createdAt,
-      updatedAt: req?.updatedAt
-    };
+  const handleCloseModal = () => {
+    closeModal();
+    setActiveRequest(null);
+    setRequestModalMode("create");
   };
+
   useEffect(() => {
-    (async () => {
-      const [requests, apps] = await Promise.all([
-        getServiceRequests(),
-        getApplications()
-      ]);
-      setServiceRequests(ensureArray(requests).map(normalizeServiceRequest));
-      setApplications(ensureArray(apps));
-    })();
+    const fetchData = async () => {
+      try {
+        setIsTableLoading(true);
+        setTableError(null);
+        const [requests, apps] = await Promise.all([getServiceRequests(), getApplications()]);
+        setServiceRequests(ensureArray(requests).map(normalizeServiceRequest));
+        setApplications(ensureArray(apps));
+      } catch (error) {
+        console.error("Error fetching service requests:", error);
+        setTableError("Failed to load service requests. Please try again.");
+      } finally {
+        setIsTableLoading(false);
+      }
+    };
+
+    void fetchData();
   }, [reFetch]);
 
-  const openEditModal = async (requestId: string) => {
+  const handleOpenRequestModal = async (
+    requestId: string,
+    mode: ServiceRequestModalMode
+  ) => {
     setIsLoadingActive(true);
     try {
       const full = await getServiceRequestById(requestId);
       setActiveRequest(normalizeServiceRequest(full));
+      setRequestModalMode(mode);
       openModal();
-    } catch (e) {
-      console.error("Failed to load service request details", e);
+    } catch (error) {
+      console.error("Failed to load service request details", error);
+      toast("Failed to load service request details. Please try again.", "error");
     } finally {
       setIsLoadingActive(false);
     }
@@ -122,24 +249,24 @@ const GXPCreateNewServiceRequestPage = () => {
     const selectedServiceType = data.applicationServiceRequestTypes?.trim() || "";
 
     return {
-    priority: data.priority,
-    application: data.application,
-    assignmentGroup: data.assignmentGroup || undefined,
-    location: data.groupLocation || undefined,
-    environment: data.applicationEnvironment || undefined,
-    workflow: data.applicationWorkflow || undefined,
-    modules: data.applicationModules || [],
-    roles: data.applicationRoles || [],
-    requestType: selectedServiceType || undefined,
-    requestTypes: selectedServiceType || undefined,
-    notes: data.notes ? [data.notes] : [],
-    esignCheck: data.esignCheck,
-    trainingDone: data.trainingDone,
-    description: data.description,
-    shortDescription: data.shortDescription,
-    status: activeRequest ? data.status : "New",
-    comments: data.comments || [],
-    attachments: existingAttachmentIds
+      priority: data.priority,
+      application: data.application,
+      assignmentGroup: data.assignmentGroup || undefined,
+      location: data.groupLocation || undefined,
+      environment: data.applicationEnvironment || undefined,
+      workflow: data.applicationWorkflow || undefined,
+      modules: data.applicationModules || [],
+      roles: data.applicationRoles || [],
+      requestType: selectedServiceType || undefined,
+      requestTypes: selectedServiceType || undefined,
+      notes: data.notes ? [data.notes] : [],
+      esignCheck: data.esignCheck,
+      trainingDone: data.trainingDone,
+      description: data.description,
+      shortDescription: data.shortDescription,
+      status: activeRequest ? data.status : "New",
+      comments: data.comments || [],
+      attachments: existingAttachmentIds
     };
   };
 
@@ -151,165 +278,278 @@ const GXPCreateNewServiceRequestPage = () => {
     try {
       const payload = toServiceRequestPayload(data, existingAttachmentIds);
       if (activeRequest) {
-        const updated = await updateServiceRequest(
-          activeRequest._id,
-          payload,
-          newAttachments
-        );
-        setServiceRequests((prev) =>
-          prev.map((req) =>
-            req._id === updated?._id ? normalizeServiceRequest(updated) : req
-          )
-        );
+        await updateServiceRequest(activeRequest._id, payload, newAttachments);
       } else {
-        const created = await createServiceRequest(payload, newAttachments);
-        setServiceRequests((prev) => [normalizeServiceRequest(created), ...(prev || [])]);
+        await createServiceRequest(payload, newAttachments);
       }
-      setActiveRequest(null);
+      handleCloseModal();
       setReFetch(!reFetch);
-      closeModal();
-    } catch (e) {
-      console.error("Failed to save service request", e);
+    } catch (error) {
+      console.error("Failed to save service request", error);
+      toast("Failed to save service request. Please try again.", "error");
     }
   };
 
-  const confirmDelete = async () => {
-    if (!requestToDelete) return;
-    await deleteServiceRequest(requestToDelete._id);
-    setServiceRequests((prev) => prev.filter((req) => req._id !== requestToDelete._id));
-    setConfirmationModal(false);
-    setRequestToDelete(null);
+  const handleDeleteConfirmed = async () => {
+    if (!pendingDeleteRequests.length) {
+      return;
+    }
+
+    try {
+      const results = await Promise.allSettled(
+        pendingDeleteRequests.map((request) =>
+          deleteServiceRequest(request._id, { silent: true })
+        )
+      );
+      const failedDeletes = results.filter(
+        (result) => result.status === "rejected"
+      ).length;
+      const successfulDeletes = pendingDeleteRequests.length - failedDeletes;
+
+      if (successfulDeletes > 0 && failedDeletes === 0) {
+        toast(
+          successfulDeletes > 1
+            ? `${successfulDeletes} service requests deleted successfully.`
+            : "Service request deleted successfully.",
+          "success"
+        );
+      } else if (successfulDeletes > 0) {
+        toast(
+          `${successfulDeletes} service requests deleted, ${failedDeletes} failed.`,
+          "error"
+        );
+      } else {
+        toast("Failed to delete selected service requests. Please try again.", "error");
+      }
+
+      setPendingDeleteRequests([]);
+      setReFetch(!reFetch);
+    } catch (error) {
+      console.error("Error deleting service requests:", error);
+      toast("Failed to delete selected service requests. Please try again.", "error");
+    }
   };
 
-  const nameLookup = (items: any[], nameKey: string, valueKey: string = "_id"): Lookup =>
-    items.reduce((acc: Lookup, item: any) => {
-      const value = item?.[valueKey];
-      const label = item?.[nameKey] ?? item?.name ?? value;
-      if (value) acc[String(value)] = String(label);
-      return acc;
-    }, {});
-
-  const applicationLookup = useMemo(
-    () => nameLookup(applications, "applicationName", "_id"),
-    [applications]
+  const toolbarActions = useMemo<AppDataTableToolbarAction<ServiceRequest>[]>(
+    () => [
+      {
+        key: "create-service-request",
+        label: t("create", { entity: t("serviceRequests") }),
+        className: "whitespace-nowrap",
+        disabled: isLoadingActive,
+        icon: PlusIcon,
+        onClick: () => {
+          setActiveRequest(null);
+          setRequestModalMode("create");
+          openModal();
+        },
+        permission: GXP_PERMISSIONS.CREATE_SERVICE_REQUEST,
+        variant: "primary"
+      }
+    ],
+    [isLoadingActive, openModal, t]
   );
 
-  const formatValue = (
-    value: string | { _id?: string; [key: string]: any } | null | undefined,
-    lookup: Lookup,
-    nameKey?: string
-  ) => {
-    if (!value) return "-";
-    if (typeof value === "string") return lookup[value] ?? value;
-    const name = nameKey ? value?.[nameKey] : undefined;
-    const id = value?._id;
-    if (name) return name;
-    if (id) return lookup[id] ?? id;
-    return "-";
-  };
+  const bulkActions = useMemo<AppDataTableBulkAction<ServiceRequest>[]>(
+    () => [
+      {
+        key: "copy-selected",
+        label: (selectedRows) =>
+          selectedRows.length > 1 ? "Copy service requests" : "Copy service request",
+        icon: CopyIcon,
+        variant: "outline",
+        onClick: (selectedRows) =>
+          copyServiceRequestsToClipboard(selectedRows, applicationLookup)
+      },
+      {
+        key: "delete-selected",
+        label: (selectedRows) =>
+          selectedRows.length > 1 ? "Delete service requests" : "Delete service request",
+        icon: TrashBinIcon,
+        permission: GXP_PERMISSIONS.DELETE_SERVICE_REQUEST,
+        variant: "destructive",
+        onClick: (selectedRows) => setPendingDeleteRequests(selectedRows)
+      }
+    ],
+    [applicationLookup]
+  );
+
+  const rowActions = useMemo<AppDataTableRowAction<ServiceRequest>[]>(
+    () => [
+      {
+        key: "view",
+        label: "View service request",
+        tooltip: "View service request",
+        disabled: isLoadingActive,
+        icon: EyeIcon,
+        placement: "inline",
+        permission: GXP_PERMISSIONS.VIEW_SERVICE_REQUEST,
+        onClick: (request) => handleOpenRequestModal(request._id, "view")
+      },
+      {
+        key: "edit",
+        label: "Edit service request",
+        tooltip: "Edit service request",
+        disabled: isLoadingActive,
+        icon: PencilIcon,
+        placement: "inline",
+        permission: GXP_PERMISSIONS.UPDATE_SERVICE_REQUEST,
+        onClick: (request) => handleOpenRequestModal(request._id, "edit")
+      },
+      {
+        key: "copy",
+        label: "Copy service request",
+        tooltip: "Copy service request",
+        icon: CopyIcon,
+        placement: "menu",
+        onClick: async (request) =>
+          copyServiceRequestsToClipboard([request], applicationLookup)
+      },
+      {
+        key: "delete",
+        label: "Delete service request",
+        tooltip: "Delete service request",
+        icon: TrashBinIcon,
+        placement: "menu",
+        permission: GXP_PERMISSIONS.DELETE_SERVICE_REQUEST,
+        tone: "danger",
+        onClick: (request) => setPendingDeleteRequests([request])
+      }
+    ],
+    [applicationLookup, isLoadingActive]
+  );
+
+  const columnDefs = useMemo<ColDef<ServiceRequest>[]>(
+    () => [
+      {
+        field: "serviceRequestId",
+        flex: 0.9,
+        headerName: t("serviceRequestId"),
+        minWidth: 220,
+        cellRenderer: (params: ICellRendererParams<ServiceRequest>) => {
+          const data = params.data;
+          if (!data) return null;
+
+          const identity = data.serviceRequestId || data.shortDescription || "Request";
+
+          return (
+            <div className="flex items-center gap-3 py-1.5">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700 dark:bg-brand-500/20 dark:text-brand-200">
+                {getInitials(identity)}
+              </div>
+              <div className="min-w-0 truncate text-sm font-semibold text-gray-900 dark:text-white">
+                {data.serviceRequestId || "-"}
+              </div>
+            </div>
+          );
+        }
+      },
+      {
+        field: "shortDescription",
+        flex: 1.3,
+        headerName: t("shortDescription"),
+        minWidth: 260,
+        cellRenderer: (params: ICellRendererParams<ServiceRequest>) => (
+          <div className="line-clamp-2 py-1.5 text-sm text-gray-600 dark:text-gray-300">
+            {params.data?.shortDescription || "-"}
+          </div>
+        )
+      },
+      {
+        field: "application",
+        flex: 1,
+        headerName: t("application"),
+        minWidth: 220,
+        valueGetter: ({ data }) =>
+          formatValue(data?.application, applicationLookup, "applicationName"),
+        cellRenderer: (params: ICellRendererParams<ServiceRequest>) => (
+          <div className="line-clamp-2 py-1.5 text-sm text-gray-600 dark:text-gray-300">
+            {formatValue(params.data?.application, applicationLookup, "applicationName")}
+          </div>
+        )
+      },
+      {
+        field: "priority",
+        flex: 0,
+        headerName: t("priority"),
+        minWidth: 140,
+        maxWidth: 160,
+        cellRenderer: (params: ICellRendererParams<ServiceRequest>) => (
+          <div className="py-1.5 text-sm text-gray-600 dark:text-gray-300">
+            {params.data?.priority || "-"}
+          </div>
+        )
+      },
+      {
+        field: "status",
+        flex: 0,
+        headerName: t("status"),
+        minWidth: 170,
+        maxWidth: 200,
+        cellRenderer: (params: ICellRendererParams<ServiceRequest>) => (
+          <div className="py-1.5">
+            <span className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+              {params.data?.status || "-"}
+            </span>
+          </div>
+        )
+      }
+    ],
+    [applicationLookup, t]
+  );
 
   return (
     <>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-          {t("gxpCreateNewServiceRequest")}
-        </h1>
-        <Button
-          onClick={() => {
-            setActiveRequest(null);
-            openModal();
-          }}
-          disabled={isLoadingActive}
-        >
-          {t("create", { entity: t("serviceRequests") })}
-        </Button>
-      </div>
-
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow overflow-auto">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-800">
-            <tr>
-              {[
-                "serviceRequestId",
-                "shortDescription",
-                "application",
-                "priority",
-                "status",
-                "actions"
-              ].map((key) => (
-                <th
-                  key={key}
-                  className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  {t(key)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-            {serviceRequests?.map((req) => (
-              <tr key={req._id}>
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 dark:text-white">
-                  {req.serviceRequestId ?? "-"}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 dark:text-white">
-                  {req.shortDescription}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
-                  {formatValue(req.application, applicationLookup, "applicationName")}
-                </td>
-
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
-                  {req.priority}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
-                  {req.status}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500 dark:text-gray-300">
-                  <Button
-                    onClick={() => openEditModal(req._id)}
-                    disabled={isLoadingActive}
-                    variant="outline"
-                    className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
-                  >
-                    {t("edit")}
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setRequestToDelete(req);
-                      setConfirmationModal(true);
-                    }}
-                    variant="destructive"
-                    className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                  >
-                    {t("delete")}
-                  </Button>
-                </td>
-              </tr>
-            ))}
-            {serviceRequests?.length === 0 && (
-              <tr>
-                <td
-                  colSpan={6}
-                  className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-300"
-                >
-                  {t("noRecordsFound")}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="flex flex-col lg:h-[calc(100dvh-132px)] lg:min-h-0">
+        <AppDataTable<ServiceRequest>
+          actionsColumnHeader={t("actions")}
+          bulkActions={bulkActions}
+          columnDefs={columnDefs}
+          defaultColDef={{ flex: 1, minWidth: 180 }}
+          emptyMessage="No service requests found"
+          enableSelection
+          errorMessage={tableError}
+          fillAvailableHeight
+          fitContentHeight
+          fitContentHeightMaxRows={8}
+          fontSize={13}
+          getRowId={(request) => request._id}
+          headerHeight={46}
+          loading={isTableLoading}
+          maxInlineRowActions={2}
+          pageSize={20}
+          pageSizeOptions={[20, 50, 100]}
+          rowActions={rowActions}
+          rowData={serviceRequests}
+          rowHeight={64}
+          searchAccessor={(request) =>
+            [
+              request.serviceRequestId,
+              request.shortDescription,
+              formatValue(request.application, applicationLookup, "applicationName"),
+              request.priority,
+              request.status
+            ]
+              .filter(Boolean)
+              .join(" ")
+          }
+          searchPlaceholder="Search service requests..."
+          tableName={t("gxpCreateNewServiceRequest")}
+          toolbarActions={toolbarActions}
+          totalLabel={`${serviceRequests.length} total`}
+        />
       </div>
 
       <Modal
         isOpen={isOpen}
-        onClose={closeModal}
+        onClose={handleCloseModal}
         className="max-w-[70rem] max-h-[45rem] m-4 overflow-y-auto no-scrollbar bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
       >
         <CreateServiceRequestModal
-          onClose={closeModal}
+          onClose={handleCloseModal}
           onSubmit={handleSave}
           initialData={activeRequest || undefined}
+          mode={requestModalMode}
           optionSets={{
             applications
           }}
@@ -317,20 +557,50 @@ const GXPCreateNewServiceRequestPage = () => {
       </Modal>
 
       <Modal
-        isOpen={confirmationModal}
-        onClose={() => setConfirmationModal(false)}
+        isOpen={pendingDeleteRequests.length > 0}
+        onClose={() => setPendingDeleteRequests([])}
         className="max-w-[500px] min-h-[150px] m-4 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
         showCloseButton={false}
       >
         <div className="h-full p-5 flex flex-col justify-between">
           <div className="py-2 text-gray-800 dark:text-gray-300">
-            {t("deleteEntityPrompt", { entityName: requestToDelete?.shortDescription })}
+            {pendingDeleteRequests.length > 1
+              ? `Are you sure you want to delete these ${pendingDeleteRequests.length} service requests?`
+              : `${t("deleteEntityPrompt", {
+                  entityName:
+                    pendingDeleteRequests[0]?.serviceRequestId ||
+                    pendingDeleteRequests[0]?.shortDescription
+                })} ?`}
           </div>
+
+          {pendingDeleteRequests.length ? (
+            <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
+              {pendingDeleteRequests.slice(0, 5).map((request) => (
+                <div key={request._id} className="truncate py-0.5">
+                  {request.serviceRequestId || request.shortDescription}
+                </div>
+              ))}
+              {pendingDeleteRequests.length > 5 ? (
+                <div className="pt-1 text-xs text-gray-500 dark:text-gray-400">
+                  + {pendingDeleteRequests.length - 5} more
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={() => setConfirmationModal(false)}>
+            <Button
+              variant="secondary"
+              onClick={() => setPendingDeleteRequests([])}
+              className="flex items-center px-4 py-2 text-white"
+            >
               {t("cancel")}
             </Button>
-            <Button onClick={confirmDelete} variant="destructive">
+            <Button
+              startIcon={<CheckLineIcon className="h-4 w-4" />}
+              onClick={() => void handleDeleteConfirmed()}
+              className="flex items-center px-4 py-2"
+            >
               {t("confirm")}
             </Button>
           </div>

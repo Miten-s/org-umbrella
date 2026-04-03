@@ -47,9 +47,14 @@ export const updateSupplier = async (id: string, payload: Record<string, any>) =
   return response["data"];
 };
 
-export const deleteSupplier = async (id: string) => {
+export const deleteSupplier = async (
+  id: string,
+  options?: { silent?: boolean }
+) => {
   const response = await gxpApi.delete(`${API_ROUTES.suppliers}/${id}`);
-  toastSuccess(response, "Supplier deleted successfully");
+  if (!options?.silent) {
+    toastSuccess(response, "Supplier deleted successfully");
+  }
   return response["data"];
 };
 
@@ -96,9 +101,14 @@ export const updateWorkflow = async (id: string, payload: Record<string, any>) =
   return response["data"];
 };
 
-export const deleteWorkflow = async (id: string) => {
+export const deleteWorkflow = async (
+  id: string,
+  options?: { silent?: boolean }
+) => {
   const response = await gxpApi.delete(`${API_ROUTES.workflows}/${id}`);
-  toastSuccess(response, "Workflow deleted successfully");
+  if (!options?.silent) {
+    toastSuccess(response, "Workflow deleted successfully");
+  }
   return response["data"];
 };
 
@@ -139,9 +149,14 @@ export const updateAssignmentGroup = async (id: string, payload: Record<string, 
   return response["data"];
 };
 
-export const deleteAssignmentGroup = async (id: string) => {
+export const deleteAssignmentGroup = async (
+  id: string,
+  options?: { silent?: boolean }
+) => {
   const response = await gxpApi.delete(`${API_ROUTES.assignmentGroups}/${id}`);
-  toastSuccess(response, "Assignment group deleted successfully");
+  if (!options?.silent) {
+    toastSuccess(response, "Assignment group deleted successfully");
+  }
   return response["data"];
 };
 
@@ -182,9 +197,14 @@ export const updateEnvironment = async (id: string, payload: Record<string, any>
   return response["data"];
 };
 
-export const deleteEnvironment = async (id: string) => {
+export const deleteEnvironment = async (
+  id: string,
+  options?: { silent?: boolean }
+) => {
   const response = await gxpApi.delete(`${API_ROUTES.environments}/${id}`);
-  toastSuccess(response, "Environment deleted successfully");
+  if (!options?.silent) {
+    toastSuccess(response, "Environment deleted successfully");
+  }
   return response["data"];
 };
 
@@ -226,9 +246,14 @@ export const updateApplicationSoftware = async (id: string, payload: Record<stri
 };
 
 // Delete Application Software record
-export const deleteApplicationSoftware = async (id: string) => {
+export const deleteApplicationSoftware = async (
+  id: string,
+  options?: { silent?: boolean }
+) => {
   const response = await gxpApi.delete(`${API_ROUTES.gxpApplicationSoftware}/${id}`);
-  toastSuccess(response, "Application software deleted successfully");
+  if (!options?.silent) {
+    toastSuccess(response, "Application software deleted successfully");
+  }
   return response["data"];
 };
 
@@ -305,15 +330,25 @@ export const updateApplication = async (
   return response["data"];
 };
 
-export const deleteApplication = async (id: string) => {
+export const deleteApplication = async (
+  id: string,
+  options?: { silent?: boolean }
+) => {
   const response = await gxpApi.delete(`${API_ROUTES.gxpApplications}/${id}`);
-  toastSuccess(response, "Application deleted successfully");
+  if (!options?.silent) {
+    toastSuccess(response, "Application deleted successfully");
+  }
   return response["data"];
 };
 
-export const duplicateApplication = async (id: string) => {
+export const duplicateApplication = async (
+  id: string,
+  options?: { silent?: boolean }
+) => {
   const response = await gxpApi.post(`${API_ROUTES.gxpApplications}/${id}/duplicate`);
-  toastSuccess(response, "Application duplicated successfully");
+  if (!options?.silent) {
+    toastSuccess(response, "Application duplicated successfully");
+  }
   return response["data"];
 };
 
@@ -350,9 +385,14 @@ export const updateGxpPermission = async (id: string, payload: Record<string, an
   return response["data"];
 };
 
-export const deleteGxpPermission = async (id: string) => {
+export const deleteGxpPermission = async (
+  id: string,
+  options?: { silent?: boolean }
+) => {
   const response = await gxpApi.delete(`${API_ROUTES.gxpPermissions}/${id}`);
-  toastSuccess(response, "Permission deleted successfully");
+  if (!options?.silent) {
+    toastSuccess(response, "Permission deleted successfully");
+  }
   return response["data"];
 };
 
@@ -479,9 +519,14 @@ export const updateServiceRequest = async (
   return response["data"];
 };
 
-export const deleteServiceRequest = async (id: string) => {
+export const deleteServiceRequest = async (
+  id: string,
+  options?: { silent?: boolean }
+) => {
   const response = await gxpApi.delete(`${API_ROUTES.gxpServiceRequests}/${id}`);
-  toastSuccess(response, "Service request deleted successfully");
+  if (!options?.silent) {
+    toastSuccess(response, "Service request deleted successfully");
+  }
   return response["data"];
 };
 
@@ -521,9 +566,14 @@ export const updateGxpUser = async (id: string, payload: Record<string, any>) =>
   return response["data"];
 };
 
-export const deleteGxpUser = async (id: string) => {
+export const deleteGxpUser = async (
+  id: string,
+  options?: { silent?: boolean }
+) => {
   const response = await gxpApi.delete(`${API_ROUTES.gxpUsers}/${id}`);
-  toastSuccess(response, "User deleted successfully");
+  if (!options?.silent) {
+    toastSuccess(response, "User deleted successfully");
+  }
   return response["data"];
 };
 

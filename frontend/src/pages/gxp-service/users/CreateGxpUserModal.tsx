@@ -28,6 +28,7 @@ interface CreateGxpUserModalProps {
     initialData?: GxpUserEntity;
     selectableUsers: BareUser[];
     selectableRoles: Role[];
+    mode?: "create" | "edit" | "view";
 }
 
 const CreateGxpUserModal = ({
@@ -36,8 +37,10 @@ const CreateGxpUserModal = ({
     initialData,
     selectableUsers,
     selectableRoles,
+    mode = "create",
 }: CreateGxpUserModalProps) => {
     const { t } = useTranslation();
+    const isReadOnly = mode === "view";
 
     const {
         control,
@@ -110,7 +113,11 @@ const CreateGxpUserModal = ({
         <div className="p-6 max-h-[120vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
             <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
                 <h2 className="text-xl font-semibold">
-                    {t(initialData ? "edit" : "create", { entity: t("gxpUsers") })}
+                    {isReadOnly
+                        ? t("view", { entity: t("gxpUsers") })
+                        : initialData
+                            ? t("update", { entity: t("gxpUsers") })
+                            : t("create", { entity: t("gxpUsers") })}
                 </h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -122,6 +129,7 @@ const CreateGxpUserModal = ({
                             control={control}
                             render={({ field }) => (
                                 <SelectDropdown
+                                    disabled={isReadOnly}
                                     value={field.value}
                                     onChange={(val: string) => field.onChange(val)}
                                     options={userOptions}
@@ -140,6 +148,7 @@ const CreateGxpUserModal = ({
                             control={control}
                             render={({ field }) => (
                                 <SelectDropdown
+                                    disabled={isReadOnly}
                                     value={field.value}
                                     onChange={(val: string) => field.onChange(val)}
                                     options={[
@@ -161,6 +170,7 @@ const CreateGxpUserModal = ({
                             control={control}
                             render={({ field }) => (
                                 <MultiSelect
+                                    disabled={isReadOnly}
                                     options={selectableRoles.map(role => ({ text: role.name, value: role._id }))}
                                     label={t("selectRoles")}
                                     onChange={field.onChange}
@@ -179,6 +189,7 @@ const CreateGxpUserModal = ({
                             control={control}
                             render={({ field }) => (
                                 <TextArea
+                                    disabled={isReadOnly}
                                     value={field.value}
                                     onChange={field.onChange}
                                     className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-700"
@@ -200,6 +211,7 @@ const CreateGxpUserModal = ({
                                     <div className="flex items-center gap-3 py-2">
                                         <Switch
                                             checked={on}
+                                            disabled={isReadOnly}
                                             onChange={(val: boolean) => field.onChange(val ? "enabled" : "disabled")}
                                             label={on ? t("enabled") : t("disabled")}
                                         />
@@ -215,9 +227,11 @@ const CreateGxpUserModal = ({
                     <Button variant="outline" type="button" onClick={onClose}>
                         {t("cancel")}
                     </Button>
-                    <Button type="submit" variant="primary">
-                        {t("save")}
-                    </Button>
+                    {!isReadOnly ? (
+                        <Button type="submit" variant="primary">
+                            {t("save")}
+                        </Button>
+                    ) : null}
                 </div>
             </form>
         </div>

@@ -19,14 +19,17 @@ interface CreateEnvironmentModalProps {
   onClose: () => void;
   onSubmit: (data: CreateEnvironmentForm) => void;
   initialData?: any;
+  mode?: "create" | "edit" | "view";
 }
 
 const CreateEnvironmentModal = ({
   onClose,
   onSubmit,
   initialData,
+  mode = "create"
 }: CreateEnvironmentModalProps) => {
   const { t } = useTranslation();
+  const isReadOnly = mode === "view";
 
   const {
     register,
@@ -49,7 +52,11 @@ const CreateEnvironmentModal = ({
     <div className="p-6 max-h-[120vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <h2 className="text-xl font-semibold">
-          {t(initialData ? "edit" : "create", { entity: t("environment") })}
+          {isReadOnly
+            ? t("view", { entity: t("environment") })
+            : initialData
+              ? t("update", { entity: t("environment") })
+              : t("create", { entity: t("environment") })}
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-32">
@@ -59,6 +66,7 @@ const CreateEnvironmentModal = ({
             </Label>
             <Input
               {...register("environmentName")}
+              disabled={isReadOnly}
               error={!!errors.environmentName}
               hint={errors.environmentName?.message}
               className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
@@ -68,6 +76,7 @@ const CreateEnvironmentModal = ({
           <div>
             <Label>{t("description")}</Label>
             <TextArea
+              disabled={isReadOnly}
               value={description || ""}
               onChange={(val) => setValue("description", val)}
               className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
@@ -81,9 +90,11 @@ const CreateEnvironmentModal = ({
           <Button variant="outline" type="button" onClick={onClose}>
             {t("cancel")}
           </Button>
-          <Button type="submit" variant="primary">
-            {t("save")}
-          </Button>
+          {!isReadOnly ? (
+            <Button type="submit" variant="primary">
+              {t("save")}
+            </Button>
+          ) : null}
         </div>
       </form>
     </div>

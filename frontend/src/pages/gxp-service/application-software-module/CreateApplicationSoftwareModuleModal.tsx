@@ -19,6 +19,7 @@ interface CreateApplicationSoftwareModuleModalProps {
     onSubmit: (data: Partial<AppSoftwareModuleFormOutput>) => void;
     initialData?: Partial<AppSoftwareModuleFormOutput> & Pick<Partial<ApplicationSoftwareModule>, "moduleId">;
     applications: Application[];
+    mode?: "create" | "edit" | "view";
 }
 
 const CreateApplicationSoftwareModuleModal = ({
@@ -26,8 +27,10 @@ const CreateApplicationSoftwareModuleModal = ({
     onSubmit,
     initialData,
     applications,
+    mode = "create",
 }: CreateApplicationSoftwareModuleModalProps) => {
     const { t } = useTranslation();
+    const isReadOnly = mode === "view";
     const moduleIdentity = initialData?.moduleId?.trim() || "-";
 
     const {
@@ -56,7 +59,11 @@ const CreateApplicationSoftwareModuleModal = ({
         <div className="p-6 max-h-[120vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
             <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
                 <h2 className="text-xl font-semibold">
-                    {t(initialData ? "edit" : "create", { entity: t("gxpAppModules") })}
+                    {isReadOnly
+                        ? t("view", { entity: t("gxpAppModules") })
+                        : initialData
+                            ? t("update", { entity: t("gxpAppModules") })
+                            : t("create", { entity: t("gxpAppModules") })}
                 </h2>
 
                 <div className="grid grid-cols-2 md:grid-cols-1 gap-4">
@@ -74,6 +81,7 @@ const CreateApplicationSoftwareModuleModal = ({
                         <Label htmlFor="moduleName" required>{t("moduleName")}</Label>
                         <Input
                             {...register("moduleName")}
+                            disabled={isReadOnly}
                             error={!!errors.moduleName}
                             hint={errors.moduleName?.message}
                             className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
@@ -87,6 +95,7 @@ const CreateApplicationSoftwareModuleModal = ({
                             control={control}
                             render={({ field }) => (
                                 <SelectDropdown
+                                    disabled={isReadOnly}
                                     value={field.value ?? ""}
                                     onChange={(value) => field.onChange(value)}
                                     options={applications.map((app) => ({
@@ -115,6 +124,7 @@ const CreateApplicationSoftwareModuleModal = ({
                                     <div className="flex items-center gap-3 py-2">
                                         <Switch
                                             checked={on}
+                                            disabled={isReadOnly}
                                             onChange={(val: boolean) =>
                                                 field.onChange(val ? "enabled" : "disabled")
                                             }
@@ -131,9 +141,11 @@ const CreateApplicationSoftwareModuleModal = ({
                     <Button variant="outline" type="button" onClick={onClose}>
                         {t("cancel")}
                     </Button>
-                    <Button type="submit" variant="primary">
-                        {t("save")}
-                    </Button>
+                    {!isReadOnly ? (
+                        <Button type="submit" variant="primary">
+                            {t("save")}
+                        </Button>
+                    ) : null}
                 </div>
             </form>
         </div>

@@ -98,9 +98,14 @@ export const updateRole = async (id: string, payload: { name: string; permission
   return response["data"];
 };
 
-export const deleteRole = async (id: string) => {
+export const deleteRole = async (
+  id: string,
+  options?: { silent?: boolean }
+) => {
   const response = await api.delete(`${API_ROUTES.roles}/${id}`);
-  toast(response.data.message, "success");
+  if (!options?.silent) {
+    toast(response.data.message, "success");
+  }
   return response["data"];
 };
 

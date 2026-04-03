@@ -1,224 +1,457 @@
-import { useEffect, useState } from "react";
-import { Modal } from "@/components/ui/modal";
+import AppDataTable, {
+  AppDataTableBulkAction,
+  AppDataTableRowAction,
+  AppDataTableToolbarAction
+} from "@/components/common/table/AppDataTable";
+import Switch from "@/components/common/form/switch/Switch";
 import Button from "@/components/ui/button/Button";
+import { Modal } from "@/components/ui/modal";
+import { useGlobalContext } from "@/context";
 import { useModal } from "@/hooks/useModal";
-import { useTranslation } from "react-i18next";
-import CreateWorkflowModal from "./CreateWorkflowModal";
+import { toast } from "@/lib/ToastProvider";
 import {
-  getWorkflows,
+  CheckLineIcon,
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashBinIcon
+} from "@/public/icons";
+import {
   createWorkflow,
-  updateWorkflow,
   deleteWorkflow,
-  enableWorkflow,
   disableWorkflow,
+  enableWorkflow,
+  getWorkflows,
+  updateWorkflow
 } from "@/services/gxp.service";
 import { Workflow } from "@/types/common.types";
-import { useGlobalContext } from "@/context";
-import Switch from "@/components/common/form/switch/Switch";
+import { GXP_PERMISSIONS } from "@/utils/permissions";
+import { ColDef, ICellRendererParams } from "ag-grid-community";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import CreateWorkflowModal from "./CreateWorkflowModal";
+
+type WorkflowModalMode = "create" | "edit" | "view";
+
+const getInitials = (value: string) =>
+  value
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((segment) => segment[0]?.toUpperCase() ?? "")
+    .join("") || "W";
+
+const copyWorkflowsToClipboard = async (rows: Workflow[]) => {
+  if (!rows.length) {
+    return;
+  }
+
+  const content = [
+    "Workflow\tLevels\tDescription\tStatus",
+    ...rows.map(
+      (workflow) =>
+        `${workflow.workflowName}\t${workflow.levels?.join(", ") ?? ""}\t${workflow.description ?? ""}\t${workflow.status ?? ""}`
+    )
+  ].join("\n");
+
+  try {
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(content);
+    } else if (typeof document !== "undefined") {
+      const textarea = document.createElement("textarea");
+      textarea.value = content;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "absolute";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    } else {
+      throw new Error("Clipboard unavailable");
+    }
+
+    toast(
+      rows.length > 1
+        ? `${rows.length} workflows copied to clipboard.`
+        : "Workflow copied to clipboard.",
+      "success"
+    );
+  } catch (error) {
+    console.error("Error copying workflows:", error);
+    toast("Failed to copy workflow details. Please try again.", "error");
+  }
+};
 
 const Workflows = () => {
   const { isOpen, openModal, closeModal } = useModal();
   const { t } = useTranslation();
   const { reFetch, setReFetch } = useGlobalContext();
-
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [activeWorkflow, setActiveWorkflow] = useState<Workflow | null>(null);
-  const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
-  const [confirmationModal, setConfirmationModal] = useState(false);
+  const [workflowModalMode, setWorkflowModalMode] =
+    useState<WorkflowModalMode>("create");
+  const [pendingDeleteWorkflows, setPendingDeleteWorkflows] = useState<
+    Workflow[]
+  >([]);
+  const [isTableLoading, setIsTableLoading] = useState(true);
+  const [tableError, setTableError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      const workflows = await getWorkflows();
-      setWorkflows(workflows);
-    };
-    fetchInitialData();
-  }, [reFetch]);
-
-  // Create or Update
-  const handleSave = async (data: Partial<Workflow>) => {
-    if (activeWorkflow) {
-      const updated = await updateWorkflow(activeWorkflow._id, data);
-      setWorkflows((prev) =>
-        prev.map((wf) => (wf._id === updated._id ? updated : wf))
-      );
-    } else {
-      const created = await createWorkflow(data);
-      setWorkflows((prev) => [created, ...prev]);
-    }
-    setReFetch(!reFetch);
+  const handleCloseModal = () => {
     closeModal();
     setActiveWorkflow(null);
+    setWorkflowModalMode("create");
   };
 
-  // Toggle Status (enabled/disabled)
-  const handleStatusChange = async (wf: Workflow) => {
-    const newStatus = wf.status === "enabled" ? "disabled" : "enabled";
-    setWorkflows((prev) =>
-      prev.map((w) => (w._id === wf._id ? { ...w, status: newStatus } : w))
-    );
-    try {
-      if (newStatus === "enabled") {
-        await enableWorkflow(wf._id);
-      } else {
-        await disableWorkflow(wf._id);
+  useEffect(() => {
+    const fetchWorkflows = async () => {
+      try {
+        setIsTableLoading(true);
+        setTableError(null);
+        const fetchedWorkflows = await getWorkflows();
+        setWorkflows(fetchedWorkflows ?? []);
+      } catch (error) {
+        console.error("Error fetching workflows:", error);
+        setTableError("Failed to load workflows. Please try again.");
+      } finally {
+        setIsTableLoading(false);
       }
-    } catch (err) {
-      setWorkflows((prev) =>
-        prev.map((w) => (w._id === wf._id ? { ...w, status: wf.status } : w))
-      );
-      console.error("Workflow status update failed:", err);
+    };
+
+    void fetchWorkflows();
+  }, [reFetch]);
+
+  const handleSave = async (data: Partial<Workflow>) => {
+    try {
+      if (activeWorkflow) {
+        await updateWorkflow(activeWorkflow._id, data);
+      } else {
+        await createWorkflow(data);
+      }
+      handleCloseModal();
+      setReFetch(!reFetch);
+    } catch (error) {
+      console.error("Error saving workflow:", error);
+      toast("Failed to save workflow. Please try again.", "error");
     }
   };
 
+  const handleStatusChange = async (workflow: Workflow) => {
+    const nextStatus = workflow.status === "enabled" ? "disabled" : "enabled";
 
-  // Confirm Delete
-  const confirmDelete = async () => {
-    if (!workflowToDelete) return;
-    await deleteWorkflow(workflowToDelete._id);
-    setWorkflows((prev) => prev.filter((wf) => wf._id !== workflowToDelete._id));
-    setConfirmationModal(false);
-    setWorkflowToDelete(null);
+    setWorkflows((prev) =>
+      prev.map((item) =>
+        item._id === workflow._id ? { ...item, status: nextStatus } : item
+      )
+    );
+
+    try {
+      if (nextStatus === "enabled") {
+        await enableWorkflow(workflow._id);
+      } else {
+        await disableWorkflow(workflow._id);
+      }
+    } catch (error) {
+      console.error("Workflow status update failed:", error);
+      setWorkflows((prev) =>
+        prev.map((item) =>
+          item._id === workflow._id ? { ...item, status: workflow.status } : item
+        )
+      );
+    }
   };
 
-  const openEditModal = (workflow: Workflow) => {
-    setActiveWorkflow(workflow);
-    openModal();
+  const handleDeleteConfirmed = async () => {
+    if (!pendingDeleteWorkflows.length) {
+      return;
+    }
+
+    try {
+      const results = await Promise.allSettled(
+        pendingDeleteWorkflows.map((workflow) =>
+          deleteWorkflow(workflow._id, { silent: true })
+        )
+      );
+      const failedDeletes = results.filter(
+        (result) => result.status === "rejected"
+      ).length;
+      const successfulDeletes = pendingDeleteWorkflows.length - failedDeletes;
+
+      if (successfulDeletes > 0 && failedDeletes === 0) {
+        toast(
+          successfulDeletes > 1
+            ? `${successfulDeletes} workflows deleted successfully.`
+            : "Workflow deleted successfully.",
+          "success"
+        );
+      } else if (successfulDeletes > 0) {
+        toast(
+          `${successfulDeletes} workflows deleted, ${failedDeletes} failed.`,
+          "error"
+        );
+      } else {
+        toast("Failed to delete selected workflows. Please try again.", "error");
+      }
+
+      setPendingDeleteWorkflows([]);
+      setReFetch(!reFetch);
+    } catch (error) {
+      console.error("Error deleting workflow:", error);
+      toast("Failed to delete selected workflows. Please try again.", "error");
+    }
   };
+
+  const toolbarActions = useMemo<AppDataTableToolbarAction<Workflow>[]>(
+    () => [
+      {
+        key: "create-workflow",
+        label: t("create", { entity: t("gxpWorkflows") }),
+        className: "whitespace-nowrap",
+        icon: PlusIcon,
+        onClick: () => {
+          setActiveWorkflow(null);
+          setWorkflowModalMode("create");
+          openModal();
+        },
+        permission: GXP_PERMISSIONS.CREATE_WORKFLOW,
+        variant: "primary"
+      }
+    ],
+    [openModal, t]
+  );
+
+  const bulkActions = useMemo<AppDataTableBulkAction<Workflow>[]>(
+    () => [
+      {
+        key: "copy-selected",
+        label: (selectedRows) =>
+          selectedRows.length > 1 ? "Copy workflows" : "Copy workflow",
+        icon: CopyIcon,
+        variant: "outline",
+        onClick: (selectedRows) => copyWorkflowsToClipboard(selectedRows)
+      },
+      {
+        key: "delete-selected",
+        label: (selectedRows) =>
+          selectedRows.length > 1 ? "Delete workflows" : "Delete workflow",
+        icon: TrashBinIcon,
+        permission: GXP_PERMISSIONS.DELETE_WORKFLOW,
+        variant: "destructive",
+        onClick: (selectedRows) => setPendingDeleteWorkflows(selectedRows)
+      }
+    ],
+    []
+  );
+
+  const rowActions = useMemo<AppDataTableRowAction<Workflow>[]>(
+    () => [
+      {
+        key: "view",
+        label: "View workflow",
+        tooltip: "View workflow",
+        icon: EyeIcon,
+        placement: "inline",
+        permission: GXP_PERMISSIONS.VIEW_WORKFLOW,
+        onClick: (workflow) => {
+          setActiveWorkflow(workflow);
+          setWorkflowModalMode("view");
+          openModal();
+        }
+      },
+      {
+        key: "edit",
+        label: "Edit workflow",
+        tooltip: "Edit workflow",
+        icon: PencilIcon,
+        placement: "inline",
+        permission: GXP_PERMISSIONS.UPDATE_WORKFLOW,
+        onClick: (workflow) => {
+          setActiveWorkflow(workflow);
+          setWorkflowModalMode("edit");
+          openModal();
+        }
+      },
+      {
+        key: "copy",
+        label: "Copy workflow",
+        tooltip: "Copy workflow",
+        icon: CopyIcon,
+        placement: "menu",
+        onClick: async (workflow) => copyWorkflowsToClipboard([workflow])
+      },
+      {
+        key: "delete",
+        label: "Delete workflow",
+        tooltip: "Delete workflow",
+        icon: TrashBinIcon,
+        placement: "menu",
+        permission: GXP_PERMISSIONS.DELETE_WORKFLOW,
+        tone: "danger",
+        onClick: (workflow) => setPendingDeleteWorkflows([workflow])
+      }
+    ],
+    [openModal]
+  );
+
+  const columnDefs = useMemo<ColDef<Workflow>[]>(
+    () => [
+      {
+        field: "workflowName",
+        flex: 1,
+        headerName: t("workflowName"),
+        minWidth: 240,
+        cellRenderer: (params: ICellRendererParams<Workflow>) => {
+          const data = params.data;
+          if (!data) return null;
+
+          return (
+            <div className="flex items-center gap-3 py-1.5">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700 dark:bg-brand-500/20 dark:text-brand-200">
+                {getInitials(data.workflowName)}
+              </div>
+              <div className="min-w-0 truncate text-sm font-semibold text-gray-900 dark:text-white">
+                {data.workflowName}
+              </div>
+            </div>
+          );
+        }
+      },
+      {
+        field: "numberOfLevels",
+        flex: 0,
+        headerName: t("numberOfLevels"),
+        minWidth: 140,
+        maxWidth: 170,
+        valueGetter: ({ data }) => data?.numberOfLevels ?? data?.levels?.length ?? 0,
+        cellRenderer: (params: ICellRendererParams<Workflow>) => (
+          <div className="py-1.5 text-sm text-gray-600 dark:text-gray-300">
+            {params.value}
+          </div>
+        )
+      },
+      {
+        field: "status",
+        flex: 0,
+        headerName: t("status"),
+        minWidth: 170,
+        maxWidth: 190,
+        cellRenderer: (params: ICellRendererParams<Workflow>) => {
+          const data = params.data;
+          if (!data) return null;
+
+          return (
+            <div className="py-1.5">
+              <Switch
+                label={data.status === "enabled" ? t("enabled") : t("disabled")}
+                checked={data.status === "enabled"}
+                onChange={() => handleStatusChange(data)}
+              />
+            </div>
+          );
+        }
+      }
+    ],
+    [t]
+  );
 
   return (
     <>
-      {/* Header and Create Button */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-          {t("gxpWorkflows")}
-        </h1>
-        <Button
-          onClick={() => {
-            setActiveWorkflow(null);
-            openModal();
-          }}
-        >
-          {t("create", { entity: t("gxpWorkflows") })}
-        </Button>
+      <div className="flex flex-col lg:h-[calc(100dvh-132px)] lg:min-h-0">
+        <AppDataTable<Workflow>
+          actionsColumnHeader={t("actions")}
+          bulkActions={bulkActions}
+          columnDefs={columnDefs}
+          defaultColDef={{ flex: 1, minWidth: 180 }}
+          emptyMessage="No workflows found"
+          enableSelection
+          errorMessage={tableError}
+          fillAvailableHeight
+          fitContentHeight
+          fitContentHeightMaxRows={8}
+          fontSize={13}
+          getRowId={(workflow) => workflow._id}
+          headerHeight={46}
+          loading={isTableLoading}
+          maxInlineRowActions={2}
+          pageSize={20}
+          pageSizeOptions={[20, 50, 100]}
+          rowActions={rowActions}
+          rowData={workflows}
+          rowHeight={64}
+          searchAccessor={(workflow) =>
+            [
+              workflow.workflowName,
+              workflow.description,
+              workflow.levels?.join(" "),
+              workflow.status
+            ]
+              .filter(Boolean)
+              .join(" ")
+          }
+          searchPlaceholder="Search workflows..."
+          tableName={t("gxpWorkflows")}
+          toolbarActions={toolbarActions}
+          totalLabel={`${workflows.length} total`}
+        />
       </div>
 
-      {/* Workflow Table */}
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow overflow-auto">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-800">
-            <tr>
-              {[
-                "workflowName",
-                "numberOfLevels",
-                "levels",
-                "description",
-                "status",
-                "actions",
-              ].map((key) => (
-                <th
-                  key={key}
-                  className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  {t(key)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-
-          <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-            {workflows?.map((wf) => (
-              <tr key={wf._id}>
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 dark:text-white">
-                  {wf.workflowName}
-                </td>
-
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
-                  {wf.numberOfLevels ?? wf.levels?.length ?? 0}
-                </td>
-
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
-                  {Array.isArray(wf.levels) ? wf.levels.join(", ") : "-"}
-                </td>
-
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
-                  {wf.description ?? "-"}
-                </td>
-
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                  <Switch
-                    label={wf.status === "enabled" ? t("enabled") : t("disabled")}
-                    checked={wf.status === "enabled"}
-                    onChange={() => handleStatusChange(wf)}
-                  />
-                </td>
-
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500 dark:text-gray-300">
-                  <Button
-                    onClick={() => openEditModal(wf)}
-                    variant="outline"
-                    className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
-                  >
-                    {t("edit")}
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setWorkflowToDelete(wf);
-                      setConfirmationModal(true);
-                    }}
-                    variant="destructive"
-                    className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                  >
-                    {t("delete")}
-                  </Button>
-                </td>
-              </tr>
-            ))}
-
-            {workflows?.length === 0 && (
-              <tr>
-                <td
-                  colSpan={6}
-                  className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-300"
-                >
-                  {t("noRecordsFound")}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Create/Edit Workflow Modal */}
       <Modal
         isOpen={isOpen}
-        onClose={closeModal}
+        onClose={handleCloseModal}
         className="max-w-[900px] max-h-[100rem] m-4 overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
       >
         <CreateWorkflowModal
-          onClose={closeModal}
+          onClose={handleCloseModal}
           onSubmit={handleSave}
           initialData={activeWorkflow || undefined}
+          mode={workflowModalMode}
         />
       </Modal>
 
-      {/* Delete Confirmation Modal */}
       <Modal
-        isOpen={confirmationModal}
-        onClose={() => setConfirmationModal(false)}
+        isOpen={pendingDeleteWorkflows.length > 0}
+        onClose={() => setPendingDeleteWorkflows([])}
         className="max-w-[500px] min-h-[150px] m-4 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
         showCloseButton={false}
       >
         <div className="h-full p-5 flex flex-col justify-between">
           <div className="py-2 text-gray-800 dark:text-gray-300">
-            {t("deleteEntityPrompt", {
-              entityName: workflowToDelete?.workflowName,
-            })}
+            {pendingDeleteWorkflows.length > 1
+              ? `Are you sure you want to delete these ${pendingDeleteWorkflows.length} workflows?`
+              : `${t("deleteEntityPrompt", {
+                  entityName: pendingDeleteWorkflows[0]?.workflowName
+                })} ?`}
           </div>
+
+          {pendingDeleteWorkflows.length ? (
+            <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
+              {pendingDeleteWorkflows.slice(0, 5).map((workflow) => (
+                <div key={workflow._id} className="truncate py-0.5">
+                  {workflow.workflowName}
+                </div>
+              ))}
+              {pendingDeleteWorkflows.length > 5 ? (
+                <div className="pt-1 text-xs text-gray-500 dark:text-gray-400">
+                  + {pendingDeleteWorkflows.length - 5} more
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={() => setConfirmationModal(false)}>
+            <Button
+              variant="secondary"
+              onClick={() => setPendingDeleteWorkflows([])}
+              className="flex items-center px-4 py-2 text-white"
+            >
               {t("cancel")}
             </Button>
-            <Button onClick={confirmDelete} variant="destructive">
+            <Button
+              startIcon={<CheckLineIcon className="h-4 w-4" />}
+              onClick={() => void handleDeleteConfirmed()}
+              className="flex items-center px-4 py-2"
+            >
               {t("confirm")}
             </Button>
           </div>

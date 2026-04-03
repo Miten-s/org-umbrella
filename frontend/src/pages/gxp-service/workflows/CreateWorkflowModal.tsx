@@ -15,6 +15,7 @@ interface CreateWorkflowModalProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  mode?: "create" | "edit" | "view";
 }
 
 // If you re-exported type from schema file, import it instead:
@@ -24,8 +25,10 @@ const CreateWorkflowModal = ({
   onClose,
   onSubmit,
   initialData,
+  mode = "create"
 }: CreateWorkflowModalProps) => {
   const { t } = useTranslation();
+  const isReadOnly = mode === "view";
 
   const {
     register,
@@ -70,7 +73,11 @@ const CreateWorkflowModal = ({
     <div className="p-6 max-h-[120vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
         <h2 className="text-xl font-semibold">
-          {t(initialData ? "edit" : "create", { entity: t("gxpWorkflows") })}
+          {isReadOnly
+            ? t("view", { entity: t("gxpWorkflows") })
+            : initialData
+              ? t("update", { entity: t("gxpWorkflows") })
+              : t("create", { entity: t("gxpWorkflows") })}
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -81,6 +88,7 @@ const CreateWorkflowModal = ({
             </Label>
             <Input
               {...register("workflowName")}
+              disabled={isReadOnly}
               error={!!errors.workflowName}
               hint={errors.workflowName?.message}
               className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
@@ -94,6 +102,7 @@ const CreateWorkflowModal = ({
             </Label>
             <Input
               {...register("levels")}
+              disabled={isReadOnly}
               error={!!errors.levels}
               hint={errors.levels?.message}
               className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
@@ -113,6 +122,7 @@ const CreateWorkflowModal = ({
                     <div className="flex items-center gap-3 py-2">
                       <Switch
                         checked={checked}
+                        disabled={isReadOnly}
                         onChange={(val: boolean) =>
                           field.onChange(val ? "enabled" : "disabled")
                         }
@@ -134,6 +144,7 @@ const CreateWorkflowModal = ({
           <div className="col-span-2">
             <Label>{t("description")}</Label>
             <TextArea
+              disabled={isReadOnly}
               value={description || ""}
               onChange={(val) => setValue("description", val)}
               error={!!errors.description}
@@ -148,9 +159,11 @@ const CreateWorkflowModal = ({
           <Button variant="outline" type="button" onClick={onClose}>
             {t("cancel")}
           </Button>
-          <Button type="submit" variant="primary">
-            {t("save")}
-          </Button>
+          {!isReadOnly ? (
+            <Button type="submit" variant="primary">
+              {t("save")}
+            </Button>
+          ) : null}
         </div>
       </form>
     </div>

@@ -1,42 +1,65 @@
-import { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
-
-import { Modal } from "@/components/ui/modal";
-import Button from "@/components/ui/button/Button";
-import { useModal } from "@/hooks/useModal";
-import { useGlobalContext } from "@/context";
-
-import CreateGxpUserModal, { GxpUserEntity } from "./CreateGxpUserModal";
-import { getRoles, getUsers } from "@/services/admin.service";
-import { RoleType } from "@/utils/common.constants";
-import {
-  getGxpUsers, createGxpUser,
-  updateGxpUser,
-  enableGxpUser,
-  disableGxpUser,
-} from "@/services/gxp.service";
+import AppDataTable, {
+  AppDataTableBulkAction,
+  AppDataTableRowAction,
+  AppDataTableToolbarAction
+} from "@/components/common/table/AppDataTable";
 import Switch from "@/components/common/form/switch/Switch";
+import Button from "@/components/ui/button/Button";
+import { Modal } from "@/components/ui/modal";
+import { useGlobalContext } from "@/context";
+import { useModal } from "@/hooks/useModal";
+import { toast } from "@/lib/ToastProvider";
+import {
+  CheckLineIcon,
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashBinIcon
+} from "@/public/icons";
+import { getRoles, getUsers } from "@/services/admin.service";
+import {
+  createGxpUser,
+  deleteGxpUser,
+  disableGxpUser,
+  enableGxpUser,
+  getGxpUsers,
+  updateGxpUser
+} from "@/services/gxp.service";
+import { GXP_PERMISSIONS } from "@/utils/permissions";
+import { RoleType } from "@/utils/common.constants";
+import { ColDef, ICellRendererParams } from "ag-grid-community";
+import { ReactNode, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import CreateGxpUserModal, { GxpUserEntity } from "./CreateGxpUserModal";
 
 type Role = { _id: string; name: string };
 type BareUser = { _id: string; fullName?: string; name?: string };
 type RoleRef = string | { _id?: string; name?: string };
+type GxpUserModalMode = "create" | "edit" | "view";
 
-const extractList = (v: any, keyCandidates: string[]) => {
-  if (!v) return [];
-  if (Array.isArray(v)) return v;
-  for (const k of keyCandidates) {
-    if (Array.isArray(v?.[k])) return v[k];
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const extractList = <T,>(value: unknown, keyCandidates: string[]) => {
+  if (!value) return [];
+  if (Array.isArray(value)) return value as T[];
+  if (!isRecord(value)) return [];
+
+  for (const key of keyCandidates) {
+    if (Array.isArray(value[key])) return value[key] as T[];
   }
-  if (Array.isArray(v?.data)) return v.data;
-  const first = Object.values(v).find(Array.isArray);
-  return Array.isArray(first) ? first : [];
+
+  if (Array.isArray(value.data)) return value.data as T[];
+  const first = Object.values(value).find(Array.isArray);
+  return Array.isArray(first) ? (first as T[]) : [];
 };
 
 const normalizeRoles = (roles: RoleRef[] | RoleRef | undefined): string[] => {
   if (!roles) return [];
   if (Array.isArray(roles)) {
     return roles
-      .map((r) => (typeof r === "string" ? r : r?._id ?? ""))
+      .map((role) => (typeof role === "string" ? role : role?._id ?? ""))
       .filter(Boolean);
   }
   return [typeof roles === "string" ? roles : roles?._id ?? ""].filter(Boolean);
@@ -54,6 +77,65 @@ const normalizeGxpUser = (user: any): GxpUserEntity => ({
   status: user?.status ?? "enabled"
 });
 
+const getInitials = (value: string) =>
+  value
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((segment) => segment[0]?.toUpperCase() ?? "")
+    .join("") || "U";
+
+const copyUsersToClipboard = async (
+  rows: GxpUserEntity[],
+  roleNameMap: Map<string, string>
+) => {
+  if (!rows.length) {
+    return;
+  }
+
+  const content = [
+    "User\tType\tRoles\tDescription\tStatus",
+    ...rows.map((user) =>
+      [
+        user.user?.name ?? "",
+        user.userType,
+        user.roles
+          .map((roleId) => roleNameMap.get(roleId) ?? roleId)
+          .filter(Boolean)
+          .join(", "),
+        user.description ?? "",
+        user.status
+      ].join("\t")
+    )
+  ].join("\n");
+
+  try {
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(content);
+    } else if (typeof document !== "undefined") {
+      const textarea = document.createElement("textarea");
+      textarea.value = content;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "absolute";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    } else {
+      throw new Error("Clipboard unavailable");
+    }
+
+    toast(
+      rows.length > 1 ? `${rows.length} GXP users copied to clipboard.` : "GXP user copied to clipboard.",
+      "success"
+    );
+  } catch (error) {
+    console.error("Error copying GXP users:", error);
+    toast("Failed to copy GXP user details. Please try again.", "error");
+  }
+};
+
 const GXPUsersPage = () => {
   const { t } = useTranslation();
   const { isOpen, openModal, closeModal } = useModal();
@@ -61,216 +143,447 @@ const GXPUsersPage = () => {
 
   const [gxpUsers, setGxpUsers] = useState<GxpUserEntity[]>([]);
   const [activeUser, setActiveUser] = useState<GxpUserEntity | null>(null);
-
+  const [userModalMode, setUserModalMode] = useState<GxpUserModalMode>("create");
+  const [pendingDeleteUsers, setPendingDeleteUsers] = useState<GxpUserEntity[]>([]);
   const [selectableUsers, setSelectableUsers] = useState<BareUser[]>([]);
   const [selectableRoles, setSelectableRoles] = useState<Role[]>([]);
-  // const [confirmationModal, setConfirmationModal] = useState(false);
-  // const [entityToDelete, setEntityToDelete] = useState<GxpUserEntity | null>(null);
+  const [includeDisabled, setIncludeDisabled] = useState(false);
+  const [isTableLoading, setIsTableLoading] = useState(true);
+  const [tableError, setTableError] = useState<string | null>(null);
+
+  const roleNameMap = useMemo(
+    () => new Map(selectableRoles.map((role) => [role._id, role.name])),
+    [selectableRoles]
+  );
+
+  const handleCloseModal = () => {
+    closeModal();
+    setActiveUser(null);
+    setUserModalMode("create");
+  };
+
+  const getUserRoleNames = (user: GxpUserEntity) =>
+    user.roles
+      .map((roleId) => roleNameMap.get(roleId) ?? roleId)
+      .filter(Boolean);
 
   useEffect(() => {
-    (async () => {
-      const [usersRes, rolesRes, gxpUsersRes] = await Promise.all([
-        getUsers(),
-        getRoles(RoleType.GXP_SERVICE),
-        getGxpUsers(),
-      ]);
+    const fetchData = async () => {
+      try {
+        setIsTableLoading(true);
+        setTableError(null);
 
-      setSelectableUsers(extractList(usersRes, ["users"]).map((u: any) => ({
-        _id: u._id,
-        fullName: u.fullName ?? u.name,
-        name: u.fullName ?? u.name,
-      })));
+        const [usersRes, rolesRes, gxpUsersRes] = await Promise.all([
+          getUsers(),
+          getRoles(RoleType.GXP_SERVICE),
+          getGxpUsers(includeDisabled)
+        ]);
 
-      setSelectableRoles(extractList(rolesRes, ["roles"]).map((r: any) => ({
-        _id: r._id,
-        name: r.name,
-      })));
+        setSelectableUsers(
+          extractList<any>(usersRes, ["users"]).map((user) => ({
+            _id: user._id,
+            fullName: user.fullName ?? user.name,
+            name: user.fullName ?? user.name
+          }))
+        );
 
-      setGxpUsers(extractList(gxpUsersRes, ["gxpUsers", "items"]).map(normalizeGxpUser));
-    })();
-  }, [reFetch]);
+        setSelectableRoles(
+          extractList<any>(rolesRes, ["roles"]).map((role) => ({
+            _id: role._id,
+            name: role.name
+          }))
+        );
 
-  const openEditModal = (u: GxpUserEntity) => {
-    setActiveUser(u);
-    openModal();
-  };
+        setGxpUsers(
+          extractList<any>(gxpUsersRes, ["gxpUsers", "users", "items"]).map(
+            normalizeGxpUser
+          )
+        );
+      } catch (error) {
+        console.error("Error fetching GXP users:", error);
+        setTableError("Failed to load GXP users. Please try again.");
+      } finally {
+        setIsTableLoading(false);
+      }
+    };
+
+    void fetchData();
+  }, [includeDisabled, reFetch]);
 
   const handleSave = async (payload: Partial<GxpUserEntity>) => {
-    if (activeUser) {
-      const updated = await updateGxpUser(activeUser._id, payload);
-      const normalized = normalizeGxpUser(updated);
-      setGxpUsers((prev) => prev.map((x) => (x._id === normalized._id ? normalized : x)));
-    } else {
-      const created = await createGxpUser(payload);
-      const normalized = normalizeGxpUser(created);
-      setGxpUsers((prev) => [normalized, ...prev]);
+    try {
+      if (activeUser) {
+        await updateGxpUser(activeUser._id, payload);
+      } else {
+        await createGxpUser(payload);
+      }
+      handleCloseModal();
+      setReFetch(!reFetch);
+    } catch (error) {
+      console.error("Error saving GXP user:", error);
+      toast("Failed to save GXP user. Please try again.", "error");
     }
-    setActiveUser(null);
-    setReFetch(!reFetch);
-    closeModal();
   };
 
-  // const confirmDelete = async () => {
-  //   if (!entityToDelete) return;
-  //   await deleteGxpUser(entityToDelete._id);
-  //   setGxpUsers((prev) => prev.filter((x) => x._id !== entityToDelete._id));
-  //   setEntityToDelete(null);
-  //   setConfirmationModal(false);
-  // };
-  const handleStatusChange = async (user: GxpUserEntity) => {
-    const newStatus = user.status === "enabled" ? "disabled" : "enabled";
+  const handleDeleteConfirmed = async () => {
+    if (!pendingDeleteUsers.length) {
+      return;
+    }
 
-    // optimistic UI
+    try {
+      const results = await Promise.allSettled(
+        pendingDeleteUsers.map((user) => deleteGxpUser(user._id, { silent: true }))
+      );
+      const failedDeletes = results.filter(
+        (result) => result.status === "rejected"
+      ).length;
+      const successfulDeletes = pendingDeleteUsers.length - failedDeletes;
+
+      if (successfulDeletes > 0 && failedDeletes === 0) {
+        toast(
+          successfulDeletes > 1
+            ? `${successfulDeletes} GXP users deleted successfully.`
+            : "GXP user deleted successfully.",
+          "success"
+        );
+      } else if (successfulDeletes > 0) {
+        toast(
+          `${successfulDeletes} GXP users deleted, ${failedDeletes} failed.`,
+          "error"
+        );
+      } else {
+        toast("Failed to delete selected GXP users. Please try again.", "error");
+      }
+
+      setPendingDeleteUsers([]);
+      setReFetch(!reFetch);
+    } catch (error) {
+      console.error("Error deleting GXP users:", error);
+      toast("Failed to delete selected GXP users. Please try again.", "error");
+    }
+  };
+
+  const handleStatusChange = async (user: GxpUserEntity) => {
+    const nextStatus = user.status === "enabled" ? "disabled" : "enabled";
+
     setGxpUsers((prev) =>
-      prev.map((u) => (u._id === user._id ? { ...u, status: newStatus } : u))
+      prev.map((item) =>
+        item._id === user._id ? { ...item, status: nextStatus } : item
+      )
     );
 
     try {
-      if (newStatus === "enabled") {
+      if (nextStatus === "enabled") {
         await enableGxpUser(user._id);
       } else {
         await disableGxpUser(user._id);
       }
-    } catch (err) {
-      console.error("Failed to update status", err);
-      // rollback
+    } catch (error) {
+      console.error("Failed to update GXP user status", error);
       setGxpUsers((prev) =>
-        prev.map((u) => (u._id === user._id ? { ...u, status: user.status } : u))
+        prev.map((item) =>
+          item._id === user._id ? { ...item, status: user.status } : item
+        )
       );
     }
   };
+
+  const titleExtra = useMemo<ReactNode>(
+    () => (
+      <Switch
+        label={t("includeDisabled")}
+        checked={includeDisabled}
+        onChange={() => setIncludeDisabled((prev) => !prev)}
+      />
+    ),
+    [includeDisabled, t]
+  );
+
+  const toolbarActions = useMemo<AppDataTableToolbarAction<GxpUserEntity>[]>(
+    () => [
+      {
+        key: "create-gxp-user",
+        label: t("create", { entity: t("gxpUsers") }),
+        className: "whitespace-nowrap",
+        icon: PlusIcon,
+        onClick: () => {
+          setActiveUser(null);
+          setUserModalMode("create");
+          openModal();
+        },
+        permission: GXP_PERMISSIONS.CREATE_USER,
+        variant: "primary"
+      }
+    ],
+    [openModal, t]
+  );
+
+  const bulkActions = useMemo<AppDataTableBulkAction<GxpUserEntity>[]>(
+    () => [
+      {
+        key: "copy-selected",
+        label: (selectedRows) =>
+          selectedRows.length > 1 ? "Copy GXP users" : "Copy GXP user",
+        icon: CopyIcon,
+        variant: "outline",
+        onClick: (selectedRows) => copyUsersToClipboard(selectedRows, roleNameMap)
+      },
+      {
+        key: "delete-selected",
+        label: (selectedRows) =>
+          selectedRows.length > 1 ? "Delete GXP users" : "Delete GXP user",
+        icon: TrashBinIcon,
+        permission: GXP_PERMISSIONS.DELETE_USER,
+        variant: "destructive",
+        onClick: (selectedRows) => setPendingDeleteUsers(selectedRows)
+      }
+    ],
+    [roleNameMap]
+  );
+
+  const rowActions = useMemo<AppDataTableRowAction<GxpUserEntity>[]>(
+    () => [
+      {
+        key: "view",
+        label: "View GXP user",
+        tooltip: "View GXP user",
+        icon: EyeIcon,
+        placement: "inline",
+        permission: GXP_PERMISSIONS.VIEW_USER,
+        onClick: (user) => {
+          setActiveUser(user);
+          setUserModalMode("view");
+          openModal();
+        }
+      },
+      {
+        key: "edit",
+        label: "Edit GXP user",
+        tooltip: "Edit GXP user",
+        icon: PencilIcon,
+        placement: "inline",
+        permission: GXP_PERMISSIONS.UPDATE_USER,
+        onClick: (user) => {
+          setActiveUser(user);
+          setUserModalMode("edit");
+          openModal();
+        }
+      },
+      {
+        key: "copy",
+        label: "Copy GXP user",
+        tooltip: "Copy GXP user",
+        icon: CopyIcon,
+        placement: "menu",
+        onClick: async (user) => copyUsersToClipboard([user], roleNameMap)
+      },
+      {
+        key: "delete",
+        label: "Delete GXP user",
+        tooltip: "Delete GXP user",
+        icon: TrashBinIcon,
+        placement: "menu",
+        permission: GXP_PERMISSIONS.DELETE_USER,
+        tone: "danger",
+        onClick: (user) => setPendingDeleteUsers([user])
+      }
+    ],
+    [openModal, roleNameMap]
+  );
+
+  const columnDefs = useMemo<ColDef<GxpUserEntity>[]>(
+    () => [
+      {
+        field: "user",
+        flex: 1,
+        headerName: t("userName"),
+        minWidth: 240,
+        valueGetter: ({ data }) => data?.user?.name ?? "-",
+        cellRenderer: (params: ICellRendererParams<GxpUserEntity>) => {
+          const data = params.data;
+          if (!data) return null;
+
+          const userName = data.user?.name ?? "-";
+
+          return (
+            <div className="flex items-center gap-3 py-1.5">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700 dark:bg-brand-500/20 dark:text-brand-200">
+                {getInitials(userName)}
+              </div>
+              <div className="min-w-0 truncate text-sm font-semibold text-gray-900 dark:text-white">
+                {userName}
+              </div>
+            </div>
+          );
+        }
+      },
+      {
+        field: "userType",
+        flex: 0,
+        headerName: t("userType"),
+        minWidth: 140,
+        maxWidth: 170,
+        cellRenderer: (params: ICellRendererParams<GxpUserEntity>) => (
+          <div className="py-1.5 text-sm text-gray-600 dark:text-gray-300">
+            {params.data?.userType ?? "-"}
+          </div>
+        )
+      },
+      {
+        field: "roles",
+        flex: 1.1,
+        headerName: t("gxpAppRoles"),
+        minWidth: 240,
+        sortable: false,
+        valueGetter: ({ data }) => getUserRoleNames(data as GxpUserEntity).join(", "),
+        cellRenderer: (params: ICellRendererParams<GxpUserEntity>) => (
+          <div className="line-clamp-2 py-1.5 text-sm text-gray-600 dark:text-gray-300">
+            {getUserRoleNames(params.data as GxpUserEntity).join(", ") || "-"}
+          </div>
+        )
+      },
+      {
+        field: "description",
+        flex: 1.2,
+        headerName: t("description"),
+        minWidth: 260,
+        cellRenderer: (params: ICellRendererParams<GxpUserEntity>) => (
+          <div className="line-clamp-2 py-1.5 text-sm text-gray-600 dark:text-gray-300">
+            {params.data?.description || "-"}
+          </div>
+        )
+      },
+      {
+        field: "status",
+        flex: 0,
+        headerName: t("status"),
+        minWidth: 170,
+        maxWidth: 190,
+        cellRenderer: (params: ICellRendererParams<GxpUserEntity>) => {
+          const data = params.data;
+          if (!data) return null;
+
+          return (
+            <div className="py-1.5">
+              <Switch
+                label={data.status === "enabled" ? t("enabled") : t("disabled")}
+                checked={data.status === "enabled"}
+                onChange={() => handleStatusChange(data)}
+              />
+            </div>
+          );
+        }
+      }
+    ],
+    [roleNameMap, t]
+  );
+
   return (
     <>
-      {/* Header & Create */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-          {t("gxpUsers")}
-        </h1>
-        <Button
-          onClick={() => {
-            setActiveUser(null);
-            openModal();
-          }}
-        >
-          {t("create", { entity: t("gxpUsers") })}
-        </Button>
+      <div className="flex flex-col lg:h-[calc(100dvh-132px)] lg:min-h-0">
+        <AppDataTable<GxpUserEntity>
+          actionsColumnHeader={t("actions")}
+          bulkActions={bulkActions}
+          columnDefs={columnDefs}
+          defaultColDef={{ flex: 1, minWidth: 180 }}
+          emptyMessage="No GXP users found"
+          enableSelection
+          errorMessage={tableError}
+          fillAvailableHeight
+          fitContentHeight
+          fitContentHeightMaxRows={8}
+          fontSize={13}
+          getRowId={(user) => user._id}
+          headerHeight={46}
+          loading={isTableLoading}
+          maxInlineRowActions={2}
+          pageSize={20}
+          pageSizeOptions={[20, 50, 100]}
+          rowActions={rowActions}
+          rowData={gxpUsers}
+          rowHeight={64}
+          searchAccessor={(user) =>
+            [
+              user.user?.name,
+              user.userType,
+              getUserRoleNames(user).join(" "),
+              user.description,
+              user.status
+            ]
+              .filter(Boolean)
+              .join(" ")
+          }
+          searchPlaceholder="Search GXP users..."
+          tableName={t("users")}
+          titleExtra={titleExtra}
+          toolbarActions={toolbarActions}
+          totalLabel={`${gxpUsers.length} total`}
+        />
       </div>
 
-      {/* Table */}
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow overflow-auto">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead>
-            <tr>
-              {["userName", "userType", "gxpAppRoles", "description", "status", "actions"].map((key) => (
-                <th
-                  key={key}
-                  className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  {t(key)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-            {gxpUsers?.map((u) => (
-              <tr key={u._id}>
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 dark:text-white">
-                  {u.user?.name}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
-                  {u.userType}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
-                  {Array.isArray(u.roles)
-                    ? u.roles
-                        .map((roleId) => selectableRoles.find((r) => r._id === roleId)?.name)
-                        .filter(Boolean)
-                        .join(", ") || "-"
-                        //@ts-ignore
-                    : selectableRoles.find((r) => r._id === u.roles)?.name ?? "-"}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-white">
-                  {u.description ?? "-"}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                  <Switch
-                    label={u.status === "enabled" ? t("enabled") : t("disabled")}
-                    checked={u.status === "enabled"}
-                    onChange={() => handleStatusChange(u)}
-                  />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500 dark:text-gray-300">
-                  <Button
-                    onClick={() => openEditModal(u)}
-                    variant="outline"
-                    className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
-                  >
-                    {t("edit")}
-                  </Button>
-                  {/* <Button
-                    onClick={() => {
-                      setEntityToDelete(u);
-                      setConfirmationModal(true);
-                    }}
-                    variant="destructive"
-                    className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                  >
-                    {t("delete")}
-                  </Button> */}
-                </td>
-              </tr>
-            ))}
-
-            {gxpUsers?.length === 0 && (
-              <tr>
-                <td
-                  colSpan={5}
-                  className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-300"
-                >
-                  {t("noRecordsFound")}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Create/Edit Modal */}
       <Modal
         isOpen={isOpen}
-        onClose={closeModal}
+        onClose={handleCloseModal}
         className="max-w-[720px] max-h-[100rem] m-4 overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
       >
         <CreateGxpUserModal
-          onClose={closeModal}
+          onClose={handleCloseModal}
           onSubmit={handleSave}
           initialData={activeUser || undefined}
+          mode={userModalMode}
           selectableUsers={selectableUsers}
           selectableRoles={selectableRoles}
         />
       </Modal>
 
-      {/* Delete Confirmation Modal */}
-      {/* <Modal
-        isOpen={confirmationModal}
-        onClose={() => setConfirmationModal(false)}
+      <Modal
+        isOpen={pendingDeleteUsers.length > 0}
+        onClose={() => setPendingDeleteUsers([])}
         className="max-w-[500px] min-h-[150px] m-4 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
         showCloseButton={false}
       >
         <div className="h-full p-5 flex flex-col justify-between">
           <div className="py-2 text-gray-800 dark:text-gray-300">
-            {t("deleteEntityPrompt", { entityName: entityToDelete?.user?.name })}
+            {pendingDeleteUsers.length > 1
+              ? `Are you sure you want to delete these ${pendingDeleteUsers.length} GXP users?`
+              : `${t("deleteEntityPrompt", {
+                  entityName: pendingDeleteUsers[0]?.user?.name
+                })} ?`}
           </div>
+
+          {pendingDeleteUsers.length ? (
+            <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
+              {pendingDeleteUsers.slice(0, 5).map((user) => (
+                <div key={user._id} className="truncate py-0.5">
+                  {user.user?.name}
+                </div>
+              ))}
+              {pendingDeleteUsers.length > 5 ? (
+                <div className="pt-1 text-xs text-gray-500 dark:text-gray-400">
+                  + {pendingDeleteUsers.length - 5} more
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={() => setConfirmationModal(false)}>
+            <Button
+              variant="secondary"
+              onClick={() => setPendingDeleteUsers([])}
+              className="flex items-center px-4 py-2 text-white"
+            >
               {t("cancel")}
             </Button>
-            <Button onClick={confirmDelete} variant="destructive">
+            <Button
+              startIcon={<CheckLineIcon className="h-4 w-4" />}
+              onClick={() => void handleDeleteConfirmed()}
+              className="flex items-center px-4 py-2"
+            >
               {t("confirm")}
             </Button>
           </div>
         </div>
-      </Modal> */}
+      </Modal>
     </>
   );
 };

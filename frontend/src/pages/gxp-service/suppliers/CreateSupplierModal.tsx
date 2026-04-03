@@ -16,6 +16,7 @@ interface CreateSupplierModalProps {
   onClose: () => void;
   onSubmit: (data: CreateSupplierForm) => void;
   initialData?: any;
+  mode?: "create" | "edit" | "view";
 }
 
 type CreateSupplierForm = z.infer<typeof getSupplierSchema>;
@@ -24,8 +25,10 @@ const CreateSupplierModal = ({
   onClose,
   onSubmit,
   initialData,
+  mode = "create"
 }: CreateSupplierModalProps) => {
   const { t } = useTranslation();
+  const isReadOnly = mode === "view";
 
   const {
     register,
@@ -51,7 +54,11 @@ const CreateSupplierModal = ({
     <div className="p-6 max-h-[120vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <h2 className="text-xl font-semibold">
-          {t(initialData ? "edit" : "create", { entity: t("supplier") })}
+          {isReadOnly
+            ? t("view", { entity: t("supplier") })
+            : initialData
+              ? t("update", { entity: t("supplier") })
+              : t("create", { entity: t("supplier") })}
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -62,6 +69,7 @@ const CreateSupplierModal = ({
             </Label>
             <Input
               {...register("supplierName")}
+              disabled={isReadOnly}
               error={!!errors.supplierName}
               hint={errors.supplierName?.message}
               className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
@@ -75,6 +83,7 @@ const CreateSupplierModal = ({
             </Label>
             <Input
               {...register("typeOfSupplier")}
+              disabled={isReadOnly}
               error={!!errors.typeOfSupplier}
               hint={errors.typeOfSupplier?.message}
               className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
@@ -88,6 +97,7 @@ const CreateSupplierModal = ({
             </Label>
             <Input
               {...register("product")}
+              disabled={isReadOnly}
               error={!!errors.product}
               hint={errors.product?.message}
               className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
@@ -98,6 +108,7 @@ const CreateSupplierModal = ({
           <div>
             <Label>{t("description")}</Label>
             <TextArea
+              disabled={isReadOnly}
               value={description || ""}
               onChange={(val) => setValue("description", val)}
               error={!!errors.description}
@@ -112,6 +123,7 @@ const CreateSupplierModal = ({
             <Switch
               label={status === "enabled" ? t("enabled") : t("disabled")}
               checked={status === "enabled"}
+              disabled={isReadOnly}
               onChange={(checked) => setValue("status", checked ? "enabled" : "disabled")}
             />
           </div>
@@ -122,9 +134,11 @@ const CreateSupplierModal = ({
           <Button variant="outline" type="button" onClick={onClose}>
             {t("cancel")}
           </Button>
-          <Button type="submit" variant="primary">
-            {t("save")}
-          </Button>
+          {!isReadOnly ? (
+            <Button type="submit" variant="primary">
+              {t("save")}
+            </Button>
+          ) : null}
         </div>
       </form>
     </div>

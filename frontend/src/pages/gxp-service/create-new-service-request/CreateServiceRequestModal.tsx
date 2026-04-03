@@ -62,6 +62,7 @@ interface CreateServiceRequestModalProps {
     existingAttachments: string[]
   ) => void | Promise<void>;
   initialData?: ServiceRequest | ServiceRequest[] | null;
+  mode?: "create" | "edit" | "view";
   optionSets: {
     applications: any[];
     requestTypes?: DropdownOption[];
@@ -251,6 +252,7 @@ const CreateServiceRequestModal = ({
   onClose,
   onSubmit,
   initialData,
+  mode = "create",
   optionSets
 }: CreateServiceRequestModalProps) => {
   const resolvedInitial = Array.isArray(initialData) ? initialData[0] : initialData;
@@ -261,6 +263,7 @@ const CreateServiceRequestModal = ({
   );
   const { toggleLoading, loading } = useGlobalContext();
   const { t } = useTranslation();
+  const isReadOnly = mode === "view";
   const { applications } = optionSets;
   const initialApplicationIdRef = useRef<string>(normalizedDefaults.application ?? "");
   const hasUserChangedApplicationRef = useRef(false);
@@ -679,10 +682,15 @@ const CreateServiceRequestModal = ({
     <div className="p-6 overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
         <h2 className="text-xl font-semibold">
-          {resolvedInitial ? t("edit") : t("gxpCreateNewServiceRequest")}
+          {isReadOnly
+            ? t("view", { entity: t("serviceRequests") })
+            : resolvedInitial
+              ? t("edit")
+              : t("gxpCreateNewServiceRequest")}
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className={isReadOnly ? "pointer-events-none opacity-80" : ""}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
             <Label htmlFor="identity">{t("identity", { defaultValue: "Identity" })}</Label>
             <Input
@@ -1104,15 +1112,18 @@ const CreateServiceRequestModal = ({
           </div>
 
 
+          </div>
         </div>
 
         <div className="flex justify-end gap-2 mt-4">
           <Button variant="outline" type="button" onClick={onClose}>
             {t("cancel")}
           </Button>
-          <Button type="submit" variant="primary" disabled={loading}>
-            {t("save")}
-          </Button>
+          {!isReadOnly ? (
+            <Button type="submit" variant="primary" disabled={loading}>
+              {t("save")}
+            </Button>
+          ) : null}
         </div>
       </form>
     </div>

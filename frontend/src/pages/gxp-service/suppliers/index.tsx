@@ -1,20 +1,88 @@
-import { useEffect, useState } from "react";
-import { Modal } from "@/components/ui/modal";
-import Button from "@/components/ui/button/Button";
-import { useModal } from "@/hooks/useModal";
-import { useTranslation } from "react-i18next";
-import CreateSupplierModal from "./CreateSupplierModal";
+import AppDataTable, {
+  AppDataTableBulkAction,
+  AppDataTableRowAction,
+  AppDataTableToolbarAction
+} from "@/components/common/table/AppDataTable";
 import Switch from "@/components/common/form/switch/Switch";
+import Button from "@/components/ui/button/Button";
+import { Modal } from "@/components/ui/modal";
+import { useGlobalContext } from "@/context";
+import { useModal } from "@/hooks/useModal";
+import { toast } from "@/lib/ToastProvider";
 import {
-  getSuppliers,
+  CheckLineIcon,
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashBinIcon
+} from "@/public/icons";
+import {
   createSupplier,
-  updateSupplier,
   deleteSupplier,
-  enableSupplier,
   disableSupplier,
+  enableSupplier,
+  getSuppliers,
+  updateSupplier
 } from "@/services/gxp.service";
 import { Supplier } from "@/types/common.types";
-import { useGlobalContext } from "@/context";
+import { GXP_PERMISSIONS } from "@/utils/permissions";
+import { ColDef, ICellRendererParams } from "ag-grid-community";
+import { ReactNode, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import CreateSupplierModal from "./CreateSupplierModal";
+
+type SupplierModalMode = "create" | "edit" | "view";
+
+const getInitials = (value: string) =>
+  value
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((segment) => segment[0]?.toUpperCase() ?? "")
+    .join("") || "S";
+
+const copySuppliersToClipboard = async (rows: Supplier[]) => {
+  if (!rows.length) {
+    return;
+  }
+
+  const content = [
+    "Supplier\tProduct\tDescription\tStatus",
+    ...rows.map(
+      (supplier) =>
+        `${supplier.supplierName}\t${supplier.product ?? ""}\t${supplier.description ?? ""}\t${supplier.status ?? ""}`
+    )
+  ].join("\n");
+
+  try {
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(content);
+    } else if (typeof document !== "undefined") {
+      const textarea = document.createElement("textarea");
+      textarea.value = content;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "absolute";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    } else {
+      throw new Error("Clipboard unavailable");
+    }
+
+    toast(
+      rows.length > 1
+        ? `${rows.length} suppliers copied to clipboard.`
+        : "Supplier copied to clipboard.",
+      "success"
+    );
+  } catch (error) {
+    console.error("Error copying suppliers:", error);
+    toast("Failed to copy supplier details. Please try again.", "error");
+  }
+};
 
 const Suppliers = () => {
   const { isOpen, openModal, closeModal } = useModal();
@@ -22,208 +90,386 @@ const Suppliers = () => {
   const { reFetch, setReFetch } = useGlobalContext();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [activeSupplier, setActiveSupplier] = useState<Supplier | null>(null);
-  const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
+  const [supplierModalMode, setSupplierModalMode] =
+    useState<SupplierModalMode>("create");
+  const [pendingDeleteSuppliers, setPendingDeleteSuppliers] = useState<
+    Supplier[]
+  >([]);
   const [includeDisabled, setIncludeDisabled] = useState(false);
+  const [isTableLoading, setIsTableLoading] = useState(true);
+  const [tableError, setTableError] = useState<string | null>(null);
 
-  const [confirmationModal, setConfirmationModal] = useState(false);
-
-  useEffect(() => {
-
-      const fetchInitialData = async () => {
-
-        const suppliers = await getSuppliers(includeDisabled);
-
-        setSuppliers(suppliers);
-
-      };
-
-      fetchInitialData();
-
-    }, [reFetch, includeDisabled]);
-
-  // Create or Update
-  const handleSave = async (data: Partial<Supplier>) => {
-    if (activeSupplier) {
-      const updated = await updateSupplier(activeSupplier._id, data);
-      setSuppliers((prev) =>
-        prev.map((sup) => (sup._id === updated._id ? updated : sup))
-      );
-    } else {
-      const created = await createSupplier(data);
-      setSuppliers((prev) => [created, ...prev]);
-    }
-    setReFetch(!reFetch);
+  const handleCloseModal = () => {
     closeModal();
     setActiveSupplier(null);
+    setSupplierModalMode("create");
   };
 
-  // Confirm Delete
-  const confirmDelete = async () => {
-    if (!supplierToDelete) return;
+  useEffect(() => {
+    const fetchSuppliers = async () => {
+      try {
+        setIsTableLoading(true);
+        setTableError(null);
+        const fetchedSuppliers = await getSuppliers(includeDisabled);
+        setSuppliers(fetchedSuppliers ?? []);
+      } catch (error) {
+        console.error("Error fetching suppliers:", error);
+        setTableError("Failed to load suppliers. Please try again.");
+      } finally {
+        setIsTableLoading(false);
+      }
+    };
 
-    await deleteSupplier(supplierToDelete._id);
-    setSuppliers((prev) => prev.filter((s) => s._id !== supplierToDelete._id));
+    void fetchSuppliers();
+  }, [includeDisabled, reFetch]);
 
-    setConfirmationModal(false);
-    setSupplierToDelete(null);
+  const handleSave = async (data: Partial<Supplier>) => {
+    try {
+      if (activeSupplier) {
+        await updateSupplier(activeSupplier._id, data);
+      } else {
+        await createSupplier(data);
+      }
+      handleCloseModal();
+      setReFetch(!reFetch);
+    } catch (error) {
+      console.error("Error saving supplier:", error);
+      toast("Failed to save supplier. Please try again.", "error");
+    }
+  };
+
+  const handleDeleteConfirmed = async () => {
+    if (!pendingDeleteSuppliers.length) {
+      return;
+    }
+
+    try {
+      const results = await Promise.allSettled(
+        pendingDeleteSuppliers.map((supplier) =>
+          deleteSupplier(supplier._id, { silent: true })
+        )
+      );
+      const failedDeletes = results.filter(
+        (result) => result.status === "rejected"
+      ).length;
+      const successfulDeletes = pendingDeleteSuppliers.length - failedDeletes;
+
+      if (successfulDeletes > 0 && failedDeletes === 0) {
+        toast(
+          successfulDeletes > 1
+            ? `${successfulDeletes} suppliers deleted successfully.`
+            : "Supplier deleted successfully.",
+          "success"
+        );
+      } else if (successfulDeletes > 0) {
+        toast(
+          `${successfulDeletes} suppliers deleted, ${failedDeletes} failed.`,
+          "error"
+        );
+      } else {
+        toast("Failed to delete selected suppliers. Please try again.", "error");
+      }
+
+      setPendingDeleteSuppliers([]);
+      setReFetch(!reFetch);
+    } catch (error) {
+      console.error("Error deleting supplier:", error);
+      toast("Failed to delete selected suppliers. Please try again.", "error");
+    }
   };
 
   const handleStatusChange = async (supplier: Supplier) => {
-    const newStatus = supplier.status === "enabled" ? "disabled" : "enabled";
-    if (newStatus === "enabled") {
-      await enableSupplier(supplier._id);
-    } else {
-      await disableSupplier(supplier._id);
-    }
+    const nextStatus = supplier.status === "enabled" ? "disabled" : "enabled";
+
     setSuppliers((prev) =>
-      prev.map((s) =>
-        s._id === supplier._id ? { ...s, status: newStatus } : s
+      prev.map((item) =>
+        item._id === supplier._id ? { ...item, status: nextStatus } : item
       )
     );
+
+    try {
+      if (nextStatus === "enabled") {
+        await enableSupplier(supplier._id);
+      } else {
+        await disableSupplier(supplier._id);
+      }
+    } catch (error) {
+      console.error("Error updating supplier status:", error);
+      setSuppliers((prev) =>
+        prev.map((item) =>
+          item._id === supplier._id ? { ...item, status: supplier.status } : item
+        )
+      );
+    }
   };
 
-  const openEditModal = (supplier: Supplier) => {
-    setActiveSupplier(supplier);
-    openModal();
-  };
+  const titleExtra = useMemo<ReactNode>(
+    () => (
+      <Switch
+        label={t("includeDisabled")}
+        checked={includeDisabled}
+        onChange={() => setIncludeDisabled((prev) => !prev)}
+      />
+    ),
+    [includeDisabled, t]
+  );
+
+  const toolbarActions = useMemo<AppDataTableToolbarAction<Supplier>[]>(
+    () => [
+      {
+        key: "create-supplier",
+        label: t("create", { entity: t("supplier") }),
+        className: "whitespace-nowrap",
+        icon: PlusIcon,
+        onClick: () => {
+          setActiveSupplier(null);
+          setSupplierModalMode("create");
+          openModal();
+        },
+        permission: GXP_PERMISSIONS.CREATE_SUPPLIERS,
+        variant: "primary"
+      }
+    ],
+    [openModal, t]
+  );
+
+  const bulkActions = useMemo<AppDataTableBulkAction<Supplier>[]>(
+    () => [
+      {
+        key: "copy-selected",
+        label: (selectedRows) =>
+          selectedRows.length > 1 ? "Copy suppliers" : "Copy supplier",
+        icon: CopyIcon,
+        variant: "outline",
+        onClick: (selectedRows) => copySuppliersToClipboard(selectedRows)
+      },
+      {
+        key: "delete-selected",
+        label: (selectedRows) =>
+          selectedRows.length > 1 ? "Delete suppliers" : "Delete supplier",
+        icon: TrashBinIcon,
+        permission: GXP_PERMISSIONS.DELETE_SUPPLIERS,
+        variant: "destructive",
+        onClick: (selectedRows) => setPendingDeleteSuppliers(selectedRows)
+      }
+    ],
+    []
+  );
+
+  const rowActions = useMemo<AppDataTableRowAction<Supplier>[]>(
+    () => [
+      {
+        key: "view",
+        label: "View supplier",
+        tooltip: "View supplier",
+        icon: EyeIcon,
+        placement: "inline",
+        permission: GXP_PERMISSIONS.VIEW_SUPPLIERS,
+        onClick: (supplier) => {
+          setActiveSupplier(supplier);
+          setSupplierModalMode("view");
+          openModal();
+        }
+      },
+      {
+        key: "edit",
+        label: "Edit supplier",
+        tooltip: "Edit supplier",
+        icon: PencilIcon,
+        placement: "inline",
+        permission: GXP_PERMISSIONS.UPDATE_SUPPLIERS,
+        onClick: (supplier) => {
+          setActiveSupplier(supplier);
+          setSupplierModalMode("edit");
+          openModal();
+        }
+      },
+      {
+        key: "copy",
+        label: "Copy supplier",
+        tooltip: "Copy supplier",
+        icon: CopyIcon,
+        placement: "menu",
+        onClick: async (supplier) => copySuppliersToClipboard([supplier])
+      },
+      {
+        key: "delete",
+        label: "Delete supplier",
+        tooltip: "Delete supplier",
+        icon: TrashBinIcon,
+        placement: "menu",
+        permission: GXP_PERMISSIONS.DELETE_SUPPLIERS,
+        tone: "danger",
+        onClick: (supplier) => setPendingDeleteSuppliers([supplier])
+      }
+    ],
+    [openModal]
+  );
+
+  const columnDefs = useMemo<ColDef<Supplier>[]>(
+    () => [
+      {
+        field: "supplierName",
+        flex: 1,
+        headerName: t("supplierName"),
+        minWidth: 260,
+        cellRenderer: (params: ICellRendererParams<Supplier>) => {
+          const data = params.data;
+          if (!data) return null;
+
+          return (
+            <div className="flex items-center gap-3 py-1.5">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700 dark:bg-brand-500/20 dark:text-brand-200">
+                {getInitials(data.supplierName)}
+              </div>
+              <div className="min-w-0 truncate text-sm font-semibold text-gray-900 dark:text-white">
+                {data.supplierName}
+              </div>
+            </div>
+          );
+        }
+      },
+      {
+        field: "product",
+        flex: 1,
+        headerName: t("product"),
+        minWidth: 220,
+        cellRenderer: (params: ICellRendererParams<Supplier>) => (
+          <div className="truncate py-1.5 text-sm text-gray-600 dark:text-gray-300">
+            {params.value || "-"}
+          </div>
+        )
+      },
+      {
+        field: "status",
+        flex: 0,
+        headerName: t("status"),
+        minWidth: 170,
+        maxWidth: 190,
+        cellRenderer: (params: ICellRendererParams<Supplier>) => {
+          const data = params.data;
+          if (!data) return null;
+
+          return (
+            <div className="py-1.5">
+              <Switch
+                label={data.status === "enabled" ? t("enabled") : t("disabled")}
+                checked={data.status === "enabled"}
+                onChange={() => handleStatusChange(data)}
+              />
+            </div>
+          );
+        }
+      }
+    ],
+    [t]
+  );
 
   return (
     <>
-      {/* Header and Create Button */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-          {t("gxpSuppliers")}
-        </h1>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Switch
-              label={t("includeDisabled")}
-              checked={includeDisabled}
-              onChange={() => setIncludeDisabled(!includeDisabled)}
-            />
-          </div>
-          <Button
-            // permission="CREATE:SUPPLIER"
-            tooltipPosition="left"
-            onClick={() => {
-              setActiveSupplier(null);
-              openModal();
-            }}
-          >
-            {t("create", { entity: t("supplier") })}
-          </Button>
-        </div>
+      <div className="flex flex-col lg:h-[calc(100dvh-132px)] lg:min-h-0">
+        <AppDataTable<Supplier>
+          actionsColumnHeader={t("actions")}
+          bulkActions={bulkActions}
+          columnDefs={columnDefs}
+          defaultColDef={{ flex: 1, minWidth: 180 }}
+          emptyMessage="No suppliers found"
+          enableSelection
+          errorMessage={tableError}
+          fillAvailableHeight
+          fitContentHeight
+          fitContentHeightMaxRows={8}
+          fontSize={13}
+          getRowId={(supplier) => supplier._id}
+          headerHeight={46}
+          loading={isTableLoading}
+          maxInlineRowActions={2}
+          pageSize={20}
+          pageSizeOptions={[20, 50, 100]}
+          rowActions={rowActions}
+          rowData={suppliers}
+          rowHeight={64}
+          searchAccessor={(supplier) =>
+            [
+              supplier.supplierName,
+              supplier.product,
+              supplier.typeOfSupplier,
+              supplier.description,
+              supplier.status
+            ]
+              .filter(Boolean)
+              .join(" ")
+          }
+          searchPlaceholder="Search suppliers..."
+          tableName={t("gxpSuppliers")}
+          titleExtra={titleExtra}
+          toolbarActions={toolbarActions}
+          totalLabel={`${suppliers.length} total`}
+        />
       </div>
 
-      {/* Supplier Table */}
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow overflow-auto">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-800">
-            <tr>
-              {['supplierName', 'product', 'status', 'actions'].map((key) => (
-                <th
-                  key={key}
-                  className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  {t(key)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-
-          <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-            {suppliers?.map((s) => (
-              <tr key={s._id}>
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 dark:text-white">
-                  {s.supplierName}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 dark:text-white">
-                  {s.product}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                  <Switch
-                    label={s.status === "enabled" ? t("enabled") : t("disabled")}
-                    checked={s.status === "enabled"}
-                    onChange={() => handleStatusChange(s)}
-                  />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500 dark:text-gray-300">
-                  <Button
-                    // permission="UPDATE:SUPPLIER"
-                    onClick={() => openEditModal(s)}
-                    variant="outline"
-                    className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
-                  >
-                    {t("edit")}
-                  </Button>
-                  <Button
-                    // permission="DELETE:SUPPLIER"
-                    onClick={() => {
-                      setSupplierToDelete(s);
-                      setConfirmationModal(true);
-                    }}
-                    variant="destructive"
-                    className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                  >
-                    {t("delete")}
-                  </Button>
-                </td>
-              </tr>
-            ))}
-
-            {suppliers?.length === 0 && (
-              <tr>
-                <td
-                  colSpan={4}
-                  className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-300"
-                >
-                  {t("noRecordsFound")}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Create/Edit Supplier Modal */}
       <Modal
         isOpen={isOpen}
-        onClose={closeModal}
+        onClose={handleCloseModal}
         className="max-w-[900px] max-h-[100rem]  m-4 overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
       >
-
         <CreateSupplierModal
-          onClose={closeModal}
+          onClose={handleCloseModal}
           onSubmit={handleSave}
           initialData={activeSupplier || undefined}
+          mode={supplierModalMode}
         />
       </Modal>
 
-      {/* Delete Confirmation Modal */}
       <Modal
-        isOpen={confirmationModal}
-        onClose={() => setConfirmationModal(false)}
+        isOpen={pendingDeleteSuppliers.length > 0}
+        onClose={() => setPendingDeleteSuppliers([])}
         className="max-w-[500px] min-h-[150px] m-4 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
         showCloseButton={false}
       >
         <div className="h-full p-5 flex flex-col justify-between">
           <div className="py-2 text-gray-800 dark:text-gray-300">
-            {t("deleteEntityPrompt", {
-              entityName: supplierToDelete?.supplierName,
-            })}
+            {pendingDeleteSuppliers.length > 1
+              ? `Are you sure you want to delete these ${pendingDeleteSuppliers.length} suppliers?`
+              : `${t("deleteEntityPrompt", {
+                  entityName: pendingDeleteSuppliers[0]?.supplierName
+                })} ?`}
           </div>
+
+          {pendingDeleteSuppliers.length ? (
+            <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
+              {pendingDeleteSuppliers.slice(0, 5).map((supplier) => (
+                <div key={supplier._id} className="truncate py-0.5">
+                  {supplier.supplierName}
+                </div>
+              ))}
+              {pendingDeleteSuppliers.length > 5 ? (
+                <div className="pt-1 text-xs text-gray-500 dark:text-gray-400">
+                  + {pendingDeleteSuppliers.length - 5} more
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={() => setConfirmationModal(false)}>
+            <Button
+              variant="secondary"
+              onClick={() => setPendingDeleteSuppliers([])}
+              className="flex items-center px-4 py-2 text-white"
+            >
               {t("cancel")}
             </Button>
-            <Button onClick={confirmDelete} variant="destructive">
+            <Button
+              startIcon={<CheckLineIcon className="h-4 w-4" />}
+              onClick={() => void handleDeleteConfirmed()}
+              className="flex items-center px-4 py-2"
+            >
               {t("confirm")}
             </Button>
           </div>
         </div>
       </Modal>
     </>
-
   );
 };
 
