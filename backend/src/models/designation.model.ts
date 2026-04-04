@@ -33,8 +33,9 @@ const DesignationSchema = new Schema<IDesignation>(
 );
 
 DesignationSchema.pre(
-  ["find", "findOne", "findOneAndUpdate"],
+  ["find", "findOne", "findOneAndUpdate", "countDocuments"],
   async function () {
+    if (this.getOptions()?.includeDeleted) return;
     this.where({ deletedAt: null });
   }
 );

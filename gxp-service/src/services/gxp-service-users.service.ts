@@ -7,15 +7,17 @@ import {
   enableUserRepo
 } from "../repo/gxp-service-users.repo";
 import { fetchRolesFromAuthService } from "./inter-service-calls.service";
+import { PaginationOptions } from "../utils/pagination.util";
 
 export const createUserService = async (data: any) => {
   return await createUserRepo(data);
 };
 
-export const getAllUsersService = async () => {
-  const users = await findAllUsersRepo();
-  return await Promise.all(
-    users.map(async (user: any) => {
+
+export const getAllUsersService = async (options: PaginationOptions) => {
+  const result = await findAllUsersRepo(options);
+  const usersWithRoles = await Promise.all(
+    result.data.map(async (user: any) => {
       return {
         ...user,
         roles: await fetchRolesFromAuthService(
@@ -24,6 +26,7 @@ export const getAllUsersService = async () => {
       };
     })
   );
+  return { ...result, data: usersWithRoles };
 };
 
 export const updateUserService = async (id: string, data: any) => {

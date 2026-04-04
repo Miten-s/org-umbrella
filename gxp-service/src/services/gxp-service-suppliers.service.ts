@@ -1,5 +1,6 @@
 import * as repo from "../repo/gxp-service-suppliers.repo";
 import { IGxpSupplier } from "../models/gxp-service-suppliers.model";
+import { PaginationOptions } from "../utils/pagination.util";
 
 export const createSupplier = async (
   payload: Partial<IGxpSupplier>,
@@ -17,10 +18,11 @@ export const createSupplier = async (
   return await repo.createSupplier(toSave);
 };
 
-export const listSuppliers = async (includeDisabled = false) => {
+
+export const listSuppliers = async (options: PaginationOptions, includeDisabled = false) => {
   const filter: any = {};
   if (!includeDisabled) filter.status = "enabled";
-  return await repo.findAllSuppliers(filter);
+  return await repo.findAllSuppliers(filter, options);
 };
 
 export const getSupplier = async (id: string) => {

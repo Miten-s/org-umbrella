@@ -1,3 +1,4 @@
+import { PaginationOptions, escapeRegex } from "../utils/pagination.util";
 import {
   GxpSupplierModel,
   IGxpSupplier
@@ -8,12 +9,33 @@ export const createSupplier = async (payload: Partial<IGxpSupplier>) => {
   return await doc.save();
 };
 
+
 export const findAllSuppliers = async (
-  filter = {},
-  projection = null,
-  options = {}
+  filter: any = {},
+  options: PaginationOptions
 ) => {
-  return await GxpSupplierModel.find(filter, projection, options).lean();
+  const { page = 1, limit = 10, skip = 0, search } = options;
+  if (search) {
+    const sanitizedSearch = escapeRegex(search);
+    if (!filter.$or) filter.$or = [];
+    filter.$or.push(
+      { supplierName: { $regex: sanitizedSearch, $options: "i" } },
+      { description: { $regex: sanitizedSearch, $options: "i" } }
+    );
+  }
+  const [data, totalCount] = await Promise.all([
+    GxpSupplierModel.find(filter).skip(skip).limit(limit).lean(),
+    GxpSupplierModel.countDocuments(filter).exec()
+  ]);
+  return {
+    data,
+    metadata: {
+      totalCount,
+      currentPage: page,
+      limit,
+      totalPages: Math.ceil(totalCount / limit)
+    }
+  };
 };
 
 export const findSupplierById = async (id: string) => {

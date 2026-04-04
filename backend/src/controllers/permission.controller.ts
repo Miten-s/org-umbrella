@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import permissionService from "../services/permission.service";
 import { CUSTOM_MESSAGES } from "../utils/common.util";
 import asyncHandler from "../middlewares/error.middleware";
+import { getPaginationOptions } from "../utils/pagination.util";
 
 export const createPermissions = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
@@ -21,13 +22,16 @@ export const updatePermissions = asyncHandler(
   }
 );
 
+
 export const getPermissions = asyncHandler(
-  async (_req: Request, res: Response): Promise<void> => {
-    const { type } = _req.query;
-    const permissions = await permissionService.getPermissions(
+  async (req: Request, res: Response): Promise<void> => {
+    const { type } = req.query;
+    const paginationOptions = getPaginationOptions(req.query);
+    const result = await permissionService.getPermissions(
+      paginationOptions,
       type ? type?.toString() : 'default'
     );
-    res.status(200).json({ permissions });
+    res.status(200).json(result);
   }
 );
 

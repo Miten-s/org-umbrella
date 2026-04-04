@@ -7,6 +7,7 @@ import {
   enableUserService
 } from "../services/gxp-service-users.service";
 import asyncHandler from "../middlewares/error.middleware";
+import { getPaginationOptions } from "../utils/pagination.util";
 
 export const createUser = asyncHandler(async (req: Request, res: Response) => {
   const data = req.body;
@@ -14,8 +15,10 @@ export const createUser = asyncHandler(async (req: Request, res: Response) => {
   res.status(201).json(result);
 });
 
+
 export const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
-  const result = await getAllUsersService();
+  const paginationOptions = getPaginationOptions(req.query);
+  const result = await getAllUsersService(paginationOptions);
   res.status(200).send(result);
 });
 

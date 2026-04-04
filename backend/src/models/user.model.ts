@@ -135,9 +135,13 @@ UserSchema.methods.isRecentPassword = async function (
   return false;
 };
 
-UserSchema.pre(["find", "findOne", "findOneAndUpdate"], async function () {
-  this.where({ deletedAt: null });
-  this.populate("createdBy", "fullName");
-});
+UserSchema.pre(
+  ["find", "findOne", "findOneAndUpdate", "countDocuments"],
+  async function () {
+    if (this.getOptions()?.includeDeleted) return;
+    this.where({ deletedAt: null });
+    this.populate("createdBy", "fullName");
+  }
+);
 
 export const User = mongoose.model<IUser>("User", UserSchema);

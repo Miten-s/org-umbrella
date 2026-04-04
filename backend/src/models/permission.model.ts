@@ -31,8 +31,9 @@ const PermissionSchema = new Schema(
 PermissionSchema.index({ name: 1 }, { unique: true });
 
 PermissionSchema.pre(
-  ["find", "findOne", "findOneAndUpdate"],
+  ["find", "findOne", "findOneAndUpdate", "countDocuments"],
   async function () {
+    if (this.getOptions()?.includeDeleted) return;
     this.where({ deletedAt: null });
   }
 );

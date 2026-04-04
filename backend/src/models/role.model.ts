@@ -26,11 +26,13 @@ const RoleSchema = new Schema(
   { timestamps: true }
 );
 
-RoleSchema.pre(["find", "findOne", "findOneAndUpdate"], async function () {
-  this.where({
-    deletedAt: null
-  });
-  this.populate("permissions", "name description");
-});
+RoleSchema.pre(
+  ["find", "findOne", "findOneAndUpdate", "countDocuments"],
+  async function () {
+    if (this.getOptions()?.includeDeleted) return;
+    this.where({ deletedAt: null });
+    this.populate("permissions", "name description");
+  }
+);
 
 export const Role = mongoose.model<IRole>("Role", RoleSchema);

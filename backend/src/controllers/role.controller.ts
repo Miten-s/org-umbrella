@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import userService from "../services/role.service";
 import { CUSTOM_MESSAGES } from "../utils/common.util";
 import asyncHandler from "../middlewares/error.middleware";
+import { getPaginationOptions } from "../utils/pagination.util";
 
 export const createRole = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
@@ -29,14 +30,17 @@ export const updateRole = asyncHandler(
   }
 );
 
+
 export const getRoles = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const { type } = req.query;
-    const roles = await userService.getRoles(
+    const paginationOptions = getPaginationOptions(req.query);
+    const result = await userService.getRoles(
+      paginationOptions,
       req.user,
       type ? type.toString() : undefined
     );
-    res.status(200).json({ roles });
+    res.status(200).json(result);
   }
 );
 

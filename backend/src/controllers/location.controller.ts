@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import * as locationService from "../services/location.service";
 import asyncHandler from "../middlewares/error.middleware";
 import { CUSTOM_MESSAGES } from "../utils/common.util";
+import { getPaginationOptions } from "../utils/pagination.util";
 
 export const createLocation = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
@@ -16,9 +17,10 @@ export const createLocation = asyncHandler(
 );
 
 export const getAllLocations = asyncHandler(
-  async (_req: Request, res: Response): Promise<any> => {
-    const locations = await locationService.getAllLocations();
-    res.status(200).json({ locations });
+  async (req: Request, res: Response): Promise<any> => {
+    const paginationOptions = getPaginationOptions(req.query);
+    const result = await locationService.getAllLocations(paginationOptions);
+    res.status(200).json(result);
   }
 );
 

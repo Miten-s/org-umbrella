@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import * as service from "../services/gxp-service-environments.service";
 import asyncHandler from "../middlewares/error.middleware";
+import { getPaginationOptions } from "../utils/pagination.util";
 
 export const createEnvironment = asyncHandler(
   async (req: Request, res: Response) => {
@@ -10,9 +11,11 @@ export const createEnvironment = asyncHandler(
   }
 );
 
+
 export const getEnvironments = asyncHandler(
-  async (_req: Request, res: Response) => {
-    const result = await service.getAllEnvironments();
+  async (req: Request, res: Response) => {
+    const paginationOptions = getPaginationOptions(req.query);
+    const result = await service.getAllEnvironments(paginationOptions);
     res.status(200).send(result);
   }
 );

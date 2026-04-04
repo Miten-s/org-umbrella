@@ -1,12 +1,35 @@
 import { GxpServiceWorkFlowModel } from "../models/gxp-service-workflows.model";
 import { STATUS } from "../types/common.types";
+import { PaginationOptions, escapeRegex } from "../utils/pagination.util";
 
 export const createWorkflow = async (data: any) => {
   return await GxpServiceWorkFlowModel.create(data);
 };
 
-export const getAllWorkflows = async () => {
-  return await GxpServiceWorkFlowModel.find().lean();
+
+export const getAllWorkflows = async (options: PaginationOptions) => {
+  const { page, limit, skip, search } = options;
+  const filter: any = {};
+  if (search) {
+    const sanitizedSearch = escapeRegex(search);
+    filter.$or = [
+      { workflowName: { $regex: sanitizedSearch, $options: "i" } },
+      { description: { $regex: sanitizedSearch, $options: "i" } }
+    ];
+  }
+  const [data, totalCount] = await Promise.all([
+    GxpServiceWorkFlowModel.find(filter).skip(skip).limit(limit).lean(),
+    GxpServiceWorkFlowModel.countDocuments(filter).exec()
+  ]);
+  return {
+    data,
+    metadata: {
+      totalCount,
+      currentPage: page,
+      limit,
+      totalPages: Math.ceil(totalCount / limit)
+    }
+  };
 };
 
 export const getWorkflowById = async (workflowId: string) => {

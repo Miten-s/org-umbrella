@@ -14,6 +14,7 @@ import {
   resolveModuleIdsForApplication,
   syncModuleOwnership
 } from "./application-module-linking.service";
+import { PaginationOptions } from "../utils/pagination.util";
 import {
   resolveIds,
   toObjectIdString
@@ -193,11 +194,11 @@ export const createApplication = async (
       toSave.applicationRoles = roleIds;
     }
 
-    const exisitingApplication = await repo.getApplications({
+    const exisitingApplicationResult = await repo.getApplications({
       applicationName: payload.applicationName
     });
 
-    if (exisitingApplication.length > 0) {
+    if (exisitingApplicationResult.data.length > 0) {
       throw new Error("Application with the same name already exists");
     }
 
@@ -261,10 +262,11 @@ export const createApplication = async (
   }
 };
 
-export const getApplications = async (includeDisabled = false) => {
+
+export const getApplications = async (options: PaginationOptions, includeDisabled = false) => {
   const filter: any = {};
   if (!includeDisabled) filter.status = "enabled";
-  return await repo.getApplications(filter);
+  return await repo.getApplications(filter, options);
 };
 
 export const getApplicationById = async (id: string) => {
@@ -505,12 +507,12 @@ export const duplicateApplication = async (
     const escapedBaseName = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const regex = new RegExp(`^${escapedBaseName}(?:-\\((\\d+)\\))?$`);
 
-    const similarApps = await repo.getApplications({
+    const similarAppsResult = await repo.getApplications({
       applicationName: { $regex: regex }
     });
 
     let maxIndex = 0;
-    similarApps.forEach((app) => {
+    similarAppsResult.data.forEach((app: any) => {
       const match = app.applicationName.match(regex);
       if (match && match[1]) {
         const index = parseInt(match[1], 10);

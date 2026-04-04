@@ -1,4 +1,5 @@
 import { Department, IDepartment } from "../models/department.model";
+import { PaginationOptions, escapeRegex } from "../utils/pagination.util";
 
 const createDepartment = async (data: IDepartment, user: any) => {
   const newDepartment = new Department({
@@ -11,10 +12,36 @@ const createDepartment = async (data: IDepartment, user: any) => {
   return await newDepartment.save();
 };
 
-const getAllDepartments = async () => {
-  return await Department.find()
-    .populate("departmentManager", "_id name")
-    .exec();
+const getAllDepartments = async (options: PaginationOptions) => {
+  const { page, limit, skip, search } = options;
+  const filter: any = {};
+
+  if (search) {
+    const sanitizedSearch = escapeRegex(search);
+    filter.$or = [
+      { departmentName: { $regex: sanitizedSearch, $options: "i" } },
+      { description: { $regex: sanitizedSearch, $options: "i" } }
+    ];
+  }
+
+  const [data, totalCount] = await Promise.all([
+    Department.find(filter)
+      .populate("departmentManager", "_id name")
+      .skip(skip)
+      .limit(limit)
+      .exec(),
+    Department.countDocuments(filter).exec()
+  ]);
+
+  return {
+    departments: data,
+    metadata: {
+      totalCount,
+      currentPage: page,
+      limit,
+      totalPages: Math.ceil(totalCount / limit)
+    }
+  };
 };
 
 const getDepartmentById = async (id: string) => {

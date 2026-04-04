@@ -4,6 +4,7 @@ import { GxpServiceRequestModel } from "../models/gxp-service-service-requests.m
 import { removeUndefinedEntries } from "../utils/common.util";
 import GxpServiceAppServiceModel from "../models/gxp-service-application-services.model";
 import GxpServiceRequestCounterModel from "../models/gxp-service-service-request-counters.model";
+import { PaginationOptions, escapeRegex } from "../utils/pagination.util";
 
 export const createServiceRequest = async (data: Partial<IServiceRequest>) => {
   const request = new GxpServiceRequestModel(data);
@@ -20,10 +21,35 @@ export const getNextServiceRequestSequence = async (application: string) => {
   return updated?.seq ?? 1;
 };
 
-export const getAllServiceRequests = async () => {
-  return await GxpServiceRequestModel.find()
-    .populate("application", ["applicationName", "_id"])
-    .lean();
+
+export const getAllServiceRequests = async (options: PaginationOptions) => {
+  const { page, limit, skip, search } = options;
+  const filter: any = {};
+  if (search) {
+    const sanitizedSearch = escapeRegex(search);
+    filter.$or = [
+      { serviceRequestId: { $regex: sanitizedSearch, $options: "i" } },
+      { shortDescription: { $regex: sanitizedSearch, $options: "i" } },
+      { description: { $regex: sanitizedSearch, $options: "i" } }
+    ];
+  }
+  const [data, totalCount] = await Promise.all([
+    GxpServiceRequestModel.find(filter)
+      .populate("application", ["applicationName", "_id"])
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    GxpServiceRequestModel.countDocuments(filter).exec()
+  ]);
+  return {
+    data,
+    metadata: {
+      totalCount,
+      currentPage: page,
+      limit,
+      totalPages: Math.ceil(totalCount / limit)
+    }
+  };
 };
 
 export const getServiceRequestById = async (id: string) => {

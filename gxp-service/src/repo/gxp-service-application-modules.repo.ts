@@ -1,3 +1,4 @@
+import { PaginationOptions, escapeRegex } from "../utils/pagination.util";
 import {
   GxpServiceAppModuleModel,
   type IGxpServiceAppModule
@@ -20,14 +21,36 @@ export const createApplicationModule = async (
   return await saved.populate(moduleApplicationPopulate);
 };
 
+
 export const getApplicationModules = async (
-  filter = {},
-  projection = null,
-  options = {}
+  filter: any = {},
+  options: PaginationOptions
 ) => {
-  return await GxpServiceAppModuleModel.find(filter, projection, options)
-    .populate(moduleApplicationPopulate)
-    .lean();
+  const { page = 1, limit = 10, skip = 0, search } = options;
+  if (search) {
+    const sanitizedSearch = escapeRegex(search);
+    if (!filter.$or) filter.$or = [];
+    filter.$or.push(
+      { moduleName: { $regex: sanitizedSearch, $options: "i" } }
+    );
+  }
+  const [data, totalCount] = await Promise.all([
+    GxpServiceAppModuleModel.find(filter)
+      .populate(moduleApplicationPopulate)
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    GxpServiceAppModuleModel.countDocuments(filter).exec()
+  ]);
+  return {
+    data,
+    metadata: {
+      totalCount,
+      currentPage: page,
+      limit,
+      totalPages: Math.ceil(totalCount / limit)
+    }
+  };
 };
 
 export const findApplicationModulesById = async (id: string) => {

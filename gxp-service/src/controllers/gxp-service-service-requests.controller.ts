@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
-import * as service from "../services/gxp-service-service-requests.service.js";
-import asyncHandler from "../middlewares/error.middleware.js";
+import * as service from "../services/gxp-service-service-requests.service";
+import asyncHandler from "../middlewares/error.middleware";
+import { getPaginationOptions } from "../utils/pagination.util";
 
 export const createServiceRequest = asyncHandler(
   async (req: Request, res: Response) => {
@@ -22,8 +23,9 @@ export const createServiceRequest = asyncHandler(
 );
 
 export const getAllSeviceRequests = asyncHandler(
-  async (_req: Request, res: Response) => {
-    const result = await service.fetchAllRequests();
+  async (req: Request, res: Response) => {
+    const paginationOptions = getPaginationOptions(req.query);
+    const result = await service.fetchAllRequests(paginationOptions);
     res.status(200).send(result);
   }
 );

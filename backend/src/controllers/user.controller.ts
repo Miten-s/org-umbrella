@@ -3,10 +3,12 @@ import userService from "../services/user.service";
 import { CUSTOM_MESSAGES } from "../utils/common.util";
 import asyncHandler from "../middlewares/error.middleware";
 import { IUser } from "../models/user.model";
+import { getPaginationOptions } from "../utils/pagination.util";
 
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
-  const users = await userService.getUsers(req?.user);
-  res.status(200).json({ users });
+  const paginationOptions = getPaginationOptions(req.query);
+  const result = await userService.getUsers(paginationOptions, req?.user);
+  res.status(200).json(result);
 };
 
 export const getUserDetail = asyncHandler(

@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import * as departmentService from "../services/department.service";
 import asyncHandler from "../middlewares/error.middleware";
 import { CUSTOM_MESSAGES } from "../utils/common.util";
+import { getPaginationOptions } from "../utils/pagination.util";
 
 export const createDepartment = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
@@ -16,9 +17,10 @@ export const createDepartment = asyncHandler(
 );
 
 export const getAllDepartments = asyncHandler(
-  async (_req: Request, res: Response): Promise<any> => {
-    const departments = await departmentService.getAllDepartments();
-    res.status(200).json({ departments });
+  async (req: Request, res: Response): Promise<any> => {
+    const paginationOptions = getPaginationOptions(req.query);
+    const result = await departmentService.getAllDepartments(paginationOptions);
+    res.status(200).json(result);
   }
 );
 

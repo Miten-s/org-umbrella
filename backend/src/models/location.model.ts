@@ -37,9 +37,13 @@ const LocationSchema = new Schema<ILocation>(
   { timestamps: true }
 );
 
-LocationSchema.pre(["find", "findOne", "findOneAndUpdate"], async function () {
-  this.where({ deletedAt: null });
-});
+LocationSchema.pre(
+  ["find", "findOne", "findOneAndUpdate", "countDocuments"],
+  async function () {
+    if (this.getOptions()?.includeDeleted) return;
+    this.where({ deletedAt: null });
+  }
+);
 
 LocationSchema.pre("save", async function () {
   this.set("modifiedOn", new Date());

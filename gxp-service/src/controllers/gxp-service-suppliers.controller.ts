@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import * as service from "../services/gxp-service-suppliers.service";
 import asyncHandler from "../middlewares/error.middleware";
+import { getPaginationOptions } from "../utils/pagination.util";
 
 export const createSupplier = asyncHandler(
   async (req: Request, res: Response) => {
@@ -18,7 +19,8 @@ export const createSupplier = asyncHandler(
 export const getSuppliers = asyncHandler(
   async (req: Request, res: Response) => {
     const includeDisabled = req.query.includeDisabled === "true";
-    const items = await service.listSuppliers(includeDisabled);
+    const paginationOptions = getPaginationOptions(req.query);
+    const items = await service.listSuppliers(paginationOptions, includeDisabled);
     return res.json(items);
   }
 );

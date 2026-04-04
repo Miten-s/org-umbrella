@@ -1,4 +1,5 @@
 import * as repo from "../repo/gxp-service-environments.repo";
+import { PaginationOptions } from "../utils/pagination.util";
 
 export const addNewEnvironment = async (data: any, user: any) => {
   const environmentToCreate = {
@@ -13,8 +14,9 @@ export const addNewEnvironment = async (data: any, user: any) => {
   return await repo.createEnvironment(environmentToCreate);
 };
 
-export const getAllEnvironments = async () => {
-  return await repo.findAllEnvironments();
+
+export const getAllEnvironments = async (options: PaginationOptions) => {
+  return await repo.findAllEnvironments(options);
 };
 
 export const updateEnvironment = async (

@@ -1,4 +1,5 @@
 import * as repo from "../repo/gxp-service-workflows.repo";
+import { PaginationOptions } from "../utils/pagination.util";
 
 export const addWorkflow = async (workflowData: any, user: string) => {
   const newWorkflow = {
@@ -12,8 +13,9 @@ export const addWorkflow = async (workflowData: any, user: string) => {
   return await repo.createWorkflow(newWorkflow);
 };
 
-export const getWorkflows = async () => {
-  return await repo.getAllWorkflows();
+
+export const getWorkflows = async (options: PaginationOptions) => {
+  return await repo.getAllWorkflows(options);
 };
 
 export const updateWorkflow = async (

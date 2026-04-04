@@ -8,15 +8,18 @@ import {
   search
 } from "../services/gxp-service-assignment-groups.service";
 import asyncHandler from "../middlewares/error.middleware";
+import { getPaginationOptions } from "../utils/pagination.util";
 
 export const createGroup = asyncHandler(async (req: Request, res: Response) => {
   const result = await addGroup(req.body);
   res.status(201).json(result);
 });
 
+
 export const getAllGroups = asyncHandler(
-  async (_req: Request, res: Response) => {
-    const result = await getAll();
+  async (req: Request, res: Response) => {
+    const paginationOptions = getPaginationOptions(req.query);
+    const result = await getAll(paginationOptions);
     res.json(result);
   }
 );

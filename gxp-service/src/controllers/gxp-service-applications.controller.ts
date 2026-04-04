@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import * as service from "../services/gxp-service-applications.service";
 import asyncHandler from "../middlewares/error.middleware";
+import { getPaginationOptions } from "../utils/pagination.util";
 
 export const createApplication = asyncHandler(
   async (req: Request, res: Response) => {
@@ -18,10 +19,12 @@ export const createApplication = asyncHandler(
   }
 );
 
+
 export const getApplications = asyncHandler(
   async (req: Request, res: Response) => {
     const includeDisabled = req.query.includeDisabled === "true";
-    const items = await service.getApplications(includeDisabled);
+    const paginationOptions = getPaginationOptions(req.query);
+    const items = await service.getApplications(paginationOptions, includeDisabled);
     return res.status(200).send(items);
   }
 );

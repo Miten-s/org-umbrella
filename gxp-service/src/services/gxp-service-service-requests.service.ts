@@ -7,6 +7,7 @@ import GxpServiceAppRoleModel from "../models/gxp-service-application-roles.mode
 import GxpServiceAppServiceModel from "../models/gxp-service-application-services.model";
 import { resolveIds } from "./mixed-id-resolution.service";
 import GxpServiceApplicationModel from "../models/gxp-service-applications.model";
+import { PaginationOptions } from "../utils/pagination.util";
 
 const extractSingleId = (field: unknown): string | undefined => {
   if (!field) return undefined;
@@ -165,8 +166,9 @@ export const createServiceRequest = async (
   return newRequest;
 };
 
-export const fetchAllRequests = async () => {
-  return await repo.getAllServiceRequests();
+
+export const fetchAllRequests = async (options: PaginationOptions) => {
+  return await repo.getAllServiceRequests(options);
 };
 
 export const fetchRequestById = async (id: string) => {

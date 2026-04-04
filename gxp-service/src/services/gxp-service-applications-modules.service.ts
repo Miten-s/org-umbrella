@@ -2,6 +2,7 @@ import GxpServiceApplicationModel from "../models/gxp-service-applications.model
 import { IGxpServiceAppModule } from "../models/gxp-service-application-modules.model";
 import * as repo from "../repo/gxp-service-application-modules.repo";
 import { toObjectIdString } from "./mixed-id-resolution.service";
+import { PaginationOptions } from "../utils/pagination.util";
 
 const escapeRegExp = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -103,9 +104,10 @@ const findDuplicateForApplication = async (
     fallbackFilter.$or = (unassignedApplicationFilter as any).$or;
   }
 
-  const matches = await repo.getApplicationModules({
+  const matchesResult = await repo.getApplicationModules({
     $or: [{ moduleId }, fallbackFilter]
   });
+  const matches = Array.isArray(matchesResult) ? matchesResult : matchesResult.data;
 
   return matches.find((item: any) => String(item?._id) !== String(excludeId ?? ""));
 };
@@ -161,12 +163,17 @@ export const createApplicationModule = async (
   return stripLegacyUniqueName(created);
 };
 
-export const getApplicationModules = async (includeDisabled = false) => {
+
+export const getApplicationModules = async (options: PaginationOptions, includeDisabled = false) => {
   const filter: any = {};
   if (!includeDisabled) filter.status = "enabled";
 
-  const items = await repo.getApplicationModules(filter);
-  return (items || []).map((item: any) => stripLegacyUniqueName(item));
+  const result = await repo.getApplicationModules(filter, options);
+  if (result && (result as any).data && Array.isArray((result as any).data)) {
+    (result as any).data = (result as any).data.map((item: any) => stripLegacyUniqueName(item));
+    return result;
+  }
+  return result;
 };
 
 export const getApplicationModuleById = async (id: string) => {

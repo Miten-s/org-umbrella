@@ -1,3 +1,4 @@
+import { PaginationOptions } from "../utils/pagination.util";
 import {
   createGroup,
   disableGroup,
@@ -18,8 +19,9 @@ export const addGroup = async (data: any) => {
   return await createGroup(newGroup);
 };
 
-export const getAll = async () => {
-  return await getAllGroups();
+
+export const getAll = async (options: PaginationOptions) => {
+  return await getAllGroups(options);
 };
 
 export const update = async (groupName: string, updateData: any) => {

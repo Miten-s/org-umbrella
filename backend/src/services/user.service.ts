@@ -1,6 +1,7 @@
 import { Request } from "express";
 import { IUser, User } from "../models/user.model";
 import { Role, RoleType } from "../models/role.model";
+import { PaginationOptions, escapeRegex } from "../utils/pagination.util";
 
 // 15th aprile 2026
 // If userType is Admin, it ensures the Admin built-in role is attached. If userType is User, it now does the same for the User built-in role. Any roles already passed in the payload are preserved and deduplicated.
@@ -26,8 +27,20 @@ const assignDefaultRole = async (payload: Record<string, any>) => {
   return payload;
 };
 
-const getUsers = async (user?: IUser) => {
-  let filter = { fullName: { $nin: ["superadmin", user?.fullName] } };
+
+const getUsers = async (options: PaginationOptions, user?: IUser) => {
+  const { page, limit, skip, search } = options;
+  let filter: any = { fullName: { $nin: ["superadmin", user?.fullName] } };
+  
+  if (search) {
+    const sanitizedSearch = escapeRegex(search);
+    filter.$or = [
+      { fullName: { $regex: sanitizedSearch, $options: "i" } },
+      { email: { $regex: sanitizedSearch, $options: "i" } },
+      { name: { $regex: sanitizedSearch, $options: "i" } }
+    ];
+  }
+
   let populatation = {
     populate: [
       {
@@ -48,7 +61,23 @@ const getUsers = async (user?: IUser) => {
       }
     ]
   };
-  return await User.find(filter, null, populatation).exec();
+
+  const queryOptions = { ...populatation, skip, limit };
+
+  const [data, totalCount] = await Promise.all([
+    User.find(filter, null, queryOptions).exec(),
+    User.countDocuments(filter).exec()
+  ]);
+
+  return {
+    users: data,
+    metadata: {
+      totalCount,
+      currentPage: page,
+      limit,
+      totalPages: Math.ceil(totalCount / limit)
+    }
+  };
 };
 
 const createUser = async (req: Request) => {

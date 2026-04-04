@@ -5,6 +5,7 @@ import GxpServiceApplicationModel, {
   type IApplication
 } from "../models/gxp-service-applications.model";
 import { fetchUserBasedOnId } from "../services/inter-service-calls.service";
+import { PaginationOptions, escapeRegex } from "../utils/pagination.util";
 
 const POPULATE_FIELDS = [
   "applicationEnvironment",
@@ -54,16 +55,39 @@ export const isApplicationNameTaken = async (
   return Boolean(existing);
 };
 
+
 export const getApplications = async (
-  filter = {},
-  projection = null,
-  options = {}
+  filter: any = {},
+  options: PaginationOptions
 ) => {
-  return await GxpServiceApplicationModel.find(filter, projection, options)
-    .populate("applicationGroups", ["appGroup", "active"])
-    .populate("applicationEnvironment", ["environmentName"])
-    .populate("assignmentGroup", ["groupName", "isActive"])
-    .lean();
+  const { page = 1, limit = 10, skip = 0, search } = options;
+  if (search) {
+    const sanitizedSearch = escapeRegex(search);
+    if (!filter.$or) filter.$or = [];
+    filter.$or.push(
+      { applicationName: { $regex: sanitizedSearch, $options: "i" } },
+      { applicationId: { $regex: sanitizedSearch, $options: "i" } }
+    );
+  }
+  const [data, totalCount] = await Promise.all([
+    GxpServiceApplicationModel.find(filter)
+      .populate("applicationGroups", ["appGroup", "active"])
+      .populate("applicationEnvironment", ["environmentName"])
+      .populate("assignmentGroup", ["groupName", "isActive"])
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    GxpServiceApplicationModel.countDocuments(filter).exec()
+  ]);
+  return {
+    data,
+    metadata: {
+      totalCount,
+      currentPage: page,
+      limit,
+      totalPages: Math.ceil(totalCount / limit)
+    }
+  };
 };
 
 export const findApplicationById = async (id: string) => {

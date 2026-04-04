@@ -1,12 +1,37 @@
 import { Designation, IDesignation } from "../models/designation.model";
+import { PaginationOptions, escapeRegex } from "../utils/pagination.util";
 
 const createDesignation = async (data: IDesignation) => {
   const newDesignation = new Designation(data);
   return await newDesignation.save();
 };
 
-const getAllDesignations = async () => {
-  return await Designation.find().exec();
+const getAllDesignations = async (options: PaginationOptions) => {
+  const { page, limit, skip, search } = options;
+  const filter: any = {};
+
+  if (search) {
+    const sanitizedSearch = escapeRegex(search);
+    filter.$or = [
+      { designationName: { $regex: sanitizedSearch, $options: "i" } },
+      { description: { $regex: sanitizedSearch, $options: "i" } }
+    ];
+  }
+
+  const [data, totalCount] = await Promise.all([
+    Designation.find(filter).skip(skip).limit(limit).exec(),
+    Designation.countDocuments(filter).exec()
+  ]);
+
+  return {
+    designations: data,
+    metadata: {
+      totalCount,
+      currentPage: page,
+      limit,
+      totalPages: Math.ceil(totalCount / limit)
+    }
+  };
 };
 
 const getDesignationById = async (_id: string) => {

@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import * as service from "../services/gxp-service-workflows.service";
 import asyncHandler from "../middlewares/error.middleware";
+import { getPaginationOptions } from "../utils/pagination.util";
 
 export const createWorkflow = asyncHandler(
   async (req: Request, res: Response) => {
@@ -10,9 +11,11 @@ export const createWorkflow = asyncHandler(
   }
 );
 
+
 export const getAllWorkflows = asyncHandler(
-  async (_req: Request, res: Response) => {
-    const workflows = await service.getWorkflows();
+  async (req: Request, res: Response) => {
+    const paginationOptions = getPaginationOptions(req.query);
+    const workflows = await service.getWorkflows(paginationOptions);
     res.status(200).send(workflows);
   }
 );

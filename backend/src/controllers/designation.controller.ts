@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import * as designationService from "../services/designation.service";
 import asyncHandler from "../middlewares/error.middleware";
 import { CUSTOM_MESSAGES } from "../utils/common.util";
+import { getPaginationOptions } from "../utils/pagination.util";
 
 export const createDesignation = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
@@ -16,9 +17,10 @@ export const createDesignation = asyncHandler(
 );
 
 export const getAllDesignations = asyncHandler(
-  async (_req: Request, res: Response): Promise<any> => {
-    const designations = await designationService.getAllDesignations();
-    res.status(200).json({ designations });
+  async (req: Request, res: Response): Promise<any> => {
+    const paginationOptions = getPaginationOptions(req.query);
+    const result = await designationService.getAllDesignations(paginationOptions);
+    res.status(200).json(result);
   }
 );
 
