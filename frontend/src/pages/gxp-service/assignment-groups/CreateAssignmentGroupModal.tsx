@@ -63,7 +63,7 @@ const CreateAssignmentGroupModal = ({
   const isActive = useWatch({ control, name: "isActive" });
   useEffect(() => {
     const fetchUsers = async () => {
-      const { users } = await getUsers();
+      const { users } = await getUsers({ limit: 100 });
       setAllUsers(users);
       setAdminUsers(users.filter((user: User) => user.userType === UserTypes.ADMIN));
     };

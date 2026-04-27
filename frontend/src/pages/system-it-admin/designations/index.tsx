@@ -5,6 +5,7 @@ import AppDataTable, {
 } from "@/components/common/table/AppDataTable";
 import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
+import { useServerPagination } from "@/hooks/useServerPagination";
 import { useModal } from "@/hooks/useModal";
 import { toast } from "@/lib/ToastProvider";
 import {
@@ -23,7 +24,7 @@ import {
 } from "@/services/admin.service";
 import { Designation as DesignationObj } from "@/types/common.types";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import CreateDesignationModal from "./CreateDesignationModal";
 
@@ -83,7 +84,6 @@ const Designation = () => {
   const { isOpen, openModal, closeModal } = useModal();
   const { t } = useTranslation();
 
-  const [designations, setDesignations] = useState<DesignationObj[]>([]);
   const [activeDesignation, setActiveDesignation] =
     useState<DesignationObj | null>(null);
   const [designationModalMode, setDesignationModalMode] =
@@ -92,33 +92,19 @@ const Designation = () => {
   const [pendingDeleteDesignations, setPendingDeleteDesignations] = useState<
     DesignationObj[]
   >([]);
-  const [isTableLoading, setIsTableLoading] = useState(true);
-  const [tableError, setTableError] = useState<string | null>(null);
+  const paginatedDesignations = useServerPagination<DesignationObj>({
+    dataKeys: ["designations"],
+    dependencies: [refresh],
+    errorMessage: "Failed to load designations. Please try again.",
+    fetchPage: getDesignations
+  });
+  const designations = paginatedDesignations.rows;
 
   const handleCloseModal = () => {
     closeModal();
     setActiveDesignation(null);
     setDesignationModalMode("create");
   };
-
-  const fetchDesignations = async () => {
-    try {
-      setIsTableLoading(true);
-      setTableError(null);
-
-      const { designations: fetchedDesignations } = await getDesignations();
-      setDesignations(fetchedDesignations ?? []);
-    } catch (error) {
-      console.error("Error fetching designations:", error);
-      setTableError("Failed to load designations. Please try again.");
-    } finally {
-      setIsTableLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void fetchDesignations();
-  }, [refresh]);
 
   const handleSave = async (data: Partial<DesignationObj>) => {
     try {
@@ -323,17 +309,15 @@ const Designation = () => {
           defaultColDef={{ flex: 1, minWidth: 180 }}
           emptyMessage="No designations found"
           enableSelection
-          errorMessage={tableError}
+          errorMessage={paginatedDesignations.error}
           fillAvailableHeight
           fitContentHeight
           fitContentHeightMaxRows={8}
           fontSize={13}
           getRowId={(designation) => designation._id}
           headerHeight={46}
-          loading={isTableLoading}
+          loading={paginatedDesignations.isLoading}
           maxInlineRowActions={2}
-          pageSize={20}
-          pageSizeOptions={[20, 50, 100]}
           rowActions={rowActions}
           rowData={designations}
           rowHeight={64}
@@ -348,8 +332,8 @@ const Designation = () => {
           }
           searchPlaceholder="Search designations..."
           tableName={t("designations")}
+          {...paginatedDesignations.tablePaginationProps}
           toolbarActions={toolbarActions}
-          totalLabel={`${designations.length} total`}
         />
       </div>
 

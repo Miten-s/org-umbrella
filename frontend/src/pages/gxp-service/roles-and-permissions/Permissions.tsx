@@ -7,6 +7,7 @@ import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
 import { useGlobalContext } from "@/context";
 import { useModal } from "@/hooks/useModal";
+import { useServerPagination } from "@/hooks/useServerPagination";
 import { toast } from "@/lib/ToastProvider";
 import {
   CheckLineIcon,
@@ -25,7 +26,7 @@ import {
 import { GxpPermission } from "@/types/common.types";
 import { GXP_PERMISSIONS } from "@/utils/permissions";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import CreateGxpPermissionModal from "./CreateGxpPermissionModal";
 
@@ -84,37 +85,23 @@ const Permissions = () => {
   const { isOpen, openModal, closeModal } = useModal();
   const { t } = useTranslation();
   const { reFetch, setReFetch } = useGlobalContext();
-  const [permissions, setPermissions] = useState<GxpPermission[]>([]);
+  const paginatedPermissions = useServerPagination<GxpPermission>({
+    dataKeys: ["permissions", "data"],
+    dependencies: [reFetch],
+    errorMessage: "Failed to load permissions. Please try again.",
+    fetchPage: getGxpPermissions
+  });
+  const permissions = paginatedPermissions.rows;
   const [activePermission, setActivePermission] = useState<GxpPermission | null>(null);
   const [permissionModalMode, setPermissionModalMode] =
     useState<PermissionModalMode>("create");
   const [pendingDeletePermissions, setPendingDeletePermissions] = useState<GxpPermission[]>([]);
-  const [isTableLoading, setIsTableLoading] = useState(true);
-  const [tableError, setTableError] = useState<string | null>(null);
 
   const handleCloseModal = () => {
     closeModal();
     setActivePermission(null);
     setPermissionModalMode("create");
   };
-
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        setIsTableLoading(true);
-        setTableError(null);
-        const response = await getGxpPermissions();
-        setPermissions(response?.permissions ?? []);
-      } catch (error) {
-        console.error("Error fetching GXP permissions:", error);
-        setTableError("Failed to load permissions. Please try again.");
-      } finally {
-        setIsTableLoading(false);
-      }
-    };
-
-    void fetchInitialData();
-  }, [reFetch]);
 
   const handleSave = async (data: Partial<GxpPermission>) => {
     try {
@@ -311,17 +298,15 @@ const Permissions = () => {
           defaultColDef={{ flex: 1, minWidth: 180 }}
           emptyMessage="No permissions found"
           enableSelection
-          errorMessage={tableError}
+          errorMessage={paginatedPermissions.error}
           fillAvailableHeight
           fitContentHeight
           fitContentHeightMaxRows={8}
           fontSize={13}
           getRowId={(permission) => permission._id}
           headerHeight={46}
-          loading={isTableLoading}
+          loading={paginatedPermissions.isLoading}
           maxInlineRowActions={2}
-          pageSize={20}
-          pageSizeOptions={[20, 50, 100]}
           rowActions={rowActions}
           rowData={permissions}
           rowHeight={64}
@@ -330,8 +315,8 @@ const Permissions = () => {
           }
           searchPlaceholder="Search permissions..."
           tableName={t("gxpPermissions")}
+          {...paginatedPermissions.tablePaginationProps}
           toolbarActions={toolbarActions}
-          totalLabel={`${permissions.length} total`}
         />
       </div>
 

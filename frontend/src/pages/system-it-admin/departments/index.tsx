@@ -7,6 +7,7 @@ import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
 import { useGlobalContext } from "@/context";
 import { useModal } from "@/hooks/useModal";
+import { useServerPagination } from "@/hooks/useServerPagination";
 import { toast } from "@/lib/ToastProvider";
 import {
   CheckLineIcon,
@@ -26,7 +27,7 @@ import {
 } from "@/services/admin.service";
 import { Department, Location } from "@/types/common.types";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import CreateDepartmentModal from "./CreateDepartmentModal";
 
@@ -104,7 +105,6 @@ const Departments = () => {
   const { isOpen, openModal, closeModal } = useModal();
   const { t } = useTranslation();
   const { reFetch, setReFetch } = useGlobalContext();
-  const [departments, setDepartments] = useState<DepartmentRecord[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [managers, setManagers] = useState<ManagerOption[]>([]);
   const [activeDepartment, setActiveDepartment] =
@@ -114,8 +114,13 @@ const Departments = () => {
   const [pendingDeleteDepartments, setPendingDeleteDepartments] = useState<
     DepartmentRecord[]
   >([]);
-  const [isTableLoading, setIsTableLoading] = useState(true);
-  const [tableError, setTableError] = useState<string | null>(null);
+  const paginatedDepartments = useServerPagination<DepartmentRecord>({
+    dataKeys: ["departments"],
+    dependencies: [reFetch],
+    errorMessage: "Failed to load departments. Please try again.",
+    fetchPage: getDepartments
+  });
+  const departments = paginatedDepartments.rows;
 
   const handleCloseModal = () => {
     closeModal();
@@ -152,31 +157,23 @@ const Departments = () => {
     );
   };
 
-  const fetchDetails = async () => {
+  const fetchReferences = useCallback(async () => {
     try {
-      setIsTableLoading(true);
-      setTableError(null);
-
       const [
-        { departments: fetchedDepartments },
         { locations: fetchedLocations },
         { users: fetchedUsers }
-      ] = await Promise.all([getDepartments(), getLocations(), getUsers()]);
+      ] = await Promise.all([getLocations({ limit: 100 }), getUsers({ limit: 100 })]);
 
-      setDepartments((fetchedDepartments ?? []) as DepartmentRecord[]);
       setLocations(fetchedLocations ?? []);
       setManagers(fetchedUsers ?? []);
     } catch (error) {
-      console.error("Error fetching departments:", error);
-      setTableError("Failed to load departments. Please try again.");
-    } finally {
-      setIsTableLoading(false);
+      console.error("Error fetching department references:", error);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    void fetchDetails();
-  }, [reFetch]);
+    void fetchReferences();
+  }, [fetchReferences, reFetch]);
 
   const handleSave = async (data: Partial<DepartmentRecord>) => {
     try {
@@ -381,17 +378,15 @@ const Departments = () => {
           defaultColDef={{ flex: 1, minWidth: 180 }}
           emptyMessage="No departments found"
           enableSelection
-          errorMessage={tableError}
+          errorMessage={paginatedDepartments.error}
           fillAvailableHeight
           fitContentHeight
           fitContentHeightMaxRows={8}
           fontSize={13}
           getRowId={(department) => department._id}
           headerHeight={46}
-          loading={isTableLoading}
+          loading={paginatedDepartments.isLoading}
           maxInlineRowActions={2}
-          pageSize={20}
-          pageSizeOptions={[20, 50, 100]}
           rowActions={rowActions}
           rowData={departments}
           rowHeight={64}
@@ -407,8 +402,8 @@ const Departments = () => {
           }
           searchPlaceholder="Search departments..."
           tableName={t("departments")}
+          {...paginatedDepartments.tablePaginationProps}
           toolbarActions={toolbarActions}
-          totalLabel={`${departments.length} total`}
         />
       </div>
 

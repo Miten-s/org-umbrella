@@ -8,6 +8,7 @@ import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
 import { useGlobalContext } from "@/context";
 import { useModal } from "@/hooks/useModal";
+import { useServerPagination } from "@/hooks/useServerPagination";
 import { toast } from "@/lib/ToastProvider";
 import {
   CheckLineIcon,
@@ -28,6 +29,7 @@ import {
 } from "@/services/gxp.service";
 import { GXP_PERMISSIONS } from "@/utils/permissions";
 import { RoleType } from "@/utils/common.constants";
+import { extractList } from "@/utils/listResponse";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -37,23 +39,6 @@ type Role = { _id: string; name: string };
 type BareUser = { _id: string; fullName?: string; name?: string };
 type RoleRef = string | { _id?: string; name?: string };
 type GxpUserModalMode = "create" | "edit" | "view";
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
-
-const extractList = <T,>(value: unknown, keyCandidates: string[]) => {
-  if (!value) return [];
-  if (Array.isArray(value)) return value as T[];
-  if (!isRecord(value)) return [];
-
-  for (const key of keyCandidates) {
-    if (Array.isArray(value[key])) return value[key] as T[];
-  }
-
-  if (Array.isArray(value.data)) return value.data as T[];
-  const first = Object.values(value).find(Array.isArray);
-  return Array.isArray(first) ? (first as T[]) : [];
-};
 
 const normalizeRoles = (roles: RoleRef[] | RoleRef | undefined): string[] => {
   if (!roles) return [];
@@ -141,15 +126,21 @@ const GXPUsersPage = () => {
   const { isOpen, openModal, closeModal } = useModal();
   const { reFetch, setReFetch } = useGlobalContext();
 
-  const [gxpUsers, setGxpUsers] = useState<GxpUserEntity[]>([]);
+  const [includeDisabled, setIncludeDisabled] = useState(false);
+  const paginatedGxpUsers = useServerPagination<GxpUserEntity>({
+    dataKeys: ["gxpUsers", "users", "items", "data"],
+    dependencies: [includeDisabled, reFetch],
+    errorMessage: "Failed to load GXP users. Please try again.",
+    fetchPage: (params) => getGxpUsers(includeDisabled, params),
+    mapItems: (items) => items.map(normalizeGxpUser)
+  });
+  const gxpUsers = paginatedGxpUsers.rows;
+  const setGxpUsers = paginatedGxpUsers.setRows;
   const [activeUser, setActiveUser] = useState<GxpUserEntity | null>(null);
   const [userModalMode, setUserModalMode] = useState<GxpUserModalMode>("create");
   const [pendingDeleteUsers, setPendingDeleteUsers] = useState<GxpUserEntity[]>([]);
   const [selectableUsers, setSelectableUsers] = useState<BareUser[]>([]);
   const [selectableRoles, setSelectableRoles] = useState<Role[]>([]);
-  const [includeDisabled, setIncludeDisabled] = useState(false);
-  const [isTableLoading, setIsTableLoading] = useState(true);
-  const [tableError, setTableError] = useState<string | null>(null);
 
   const roleNameMap = useMemo(
     () => new Map(selectableRoles.map((role) => [role._id, role.name])),
@@ -170,13 +161,9 @@ const GXPUsersPage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setIsTableLoading(true);
-        setTableError(null);
-
-        const [usersRes, rolesRes, gxpUsersRes] = await Promise.all([
-          getUsers(),
-          getRoles(RoleType.GXP_SERVICE),
-          getGxpUsers(includeDisabled)
+        const [usersRes, rolesRes] = await Promise.all([
+          getUsers({ limit: 100 }),
+          getRoles(RoleType.GXP_SERVICE, { limit: 100 })
         ]);
 
         setSelectableUsers(
@@ -194,21 +181,13 @@ const GXPUsersPage = () => {
           }))
         );
 
-        setGxpUsers(
-          extractList<any>(gxpUsersRes, ["gxpUsers", "users", "items"]).map(
-            normalizeGxpUser
-          )
-        );
       } catch (error) {
-        console.error("Error fetching GXP users:", error);
-        setTableError("Failed to load GXP users. Please try again.");
-      } finally {
-        setIsTableLoading(false);
+        console.error("Error fetching GXP user references:", error);
       }
     };
 
     void fetchData();
-  }, [includeDisabled, reFetch]);
+  }, [reFetch]);
 
   const handleSave = async (payload: Partial<GxpUserEntity>) => {
     try {
@@ -488,17 +467,15 @@ const GXPUsersPage = () => {
           defaultColDef={{ flex: 1, minWidth: 180 }}
           emptyMessage="No GXP users found"
           enableSelection
-          errorMessage={tableError}
+          errorMessage={paginatedGxpUsers.error}
           fillAvailableHeight
           fitContentHeight
           fitContentHeightMaxRows={8}
           fontSize={13}
           getRowId={(user) => user._id}
           headerHeight={46}
-          loading={isTableLoading}
+          loading={paginatedGxpUsers.isLoading}
           maxInlineRowActions={2}
-          pageSize={20}
-          pageSizeOptions={[20, 50, 100]}
           rowActions={rowActions}
           rowData={gxpUsers}
           rowHeight={64}
@@ -516,8 +493,8 @@ const GXPUsersPage = () => {
           searchPlaceholder="Search GXP users..."
           tableName={t("users")}
           titleExtra={titleExtra}
+          {...paginatedGxpUsers.tablePaginationProps}
           toolbarActions={toolbarActions}
-          totalLabel={`${gxpUsers.length} total`}
         />
       </div>
 

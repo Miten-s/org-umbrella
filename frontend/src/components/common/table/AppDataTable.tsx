@@ -4,7 +4,7 @@ import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { DropdownItem } from "@/components/ui/dropdown/DropdownItem";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import { CloseLineIcon, MoreDotIcon } from "@/public/icons";
+import { ChevronLeftIcon, CloseLineIcon, MoreDotIcon } from "@/public/icons";
 import { hasPermission } from "@/utils/permissions";
 import {
   AllCommunityModule,
@@ -75,6 +75,15 @@ export interface AppDataTableBulkAction<T> {
   className?: string;
 }
 
+export interface AppDataTableServerPagination {
+  currentPage: number;
+  pageSize: number;
+  totalRows: number;
+  totalPages?: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
+}
+
 export interface AppDataTableRowAction<T> {
   key: string;
   label: ResolvableText<T>;
@@ -111,6 +120,8 @@ interface AppDataTableProps<T> {
   pageSize?: number;
   pageSizeOptions?: number[] | false;
   paginateChildRows?: boolean;
+  serverPagination?: AppDataTableServerPagination;
+  onSearchChange?: (searchTerm: string) => void;
   gridHeight?: number;
   rowHeight?: number;
   headerHeight?: number;
@@ -183,6 +194,8 @@ const AppDataTable = <T extends object>({
   pageSize = 10,
   pageSizeOptions = [10, 20, 50, 100],
   paginateChildRows = true,
+  serverPagination,
+  onSearchChange,
   gridHeight = 440,
   rowHeight = 68,
   headerHeight = 50,
@@ -199,6 +212,7 @@ const AppDataTable = <T extends object>({
   const [selectedRows, setSelectedRows] = useState<T[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const hasServerPagination = Boolean(serverPagination);
   const initialTabKey = defaultTabKey ?? tabs[0]?.key ?? "all";
   const [activeTabKey, setActiveTabKey] = useState(initialTabKey);
 
@@ -209,6 +223,10 @@ const AppDataTable = <T extends object>({
 
     return () => window.clearTimeout(timeout);
   }, [searchTerm]);
+
+  useEffect(() => {
+    onSearchChange?.(debouncedSearchTerm);
+  }, [debouncedSearchTerm, onSearchChange]);
 
   const tabMap = useMemo(
     () =>
@@ -227,19 +245,22 @@ const AppDataTable = <T extends object>({
   const currentTab = tabMap.get(activeTabKey);
 
   const filteredRows = useMemo(() => {
+    const shouldUseClientSearch =
+      !onSearchChange && Boolean(debouncedSearchTerm) && Boolean(searchAccessor);
+
     return rowData.filter((row) => {
       const matchesTab = currentTab?.predicate ? currentTab.predicate(row) : true;
       if (!matchesTab) {
         return false;
       }
 
-      if (!debouncedSearchTerm || !searchAccessor) {
+      if (!shouldUseClientSearch || !searchAccessor) {
         return true;
       }
 
       return searchAccessor(row).toLowerCase().includes(debouncedSearchTerm);
     });
-  }, [currentTab, debouncedSearchTerm, rowData, searchAccessor]);
+  }, [currentTab, debouncedSearchTerm, onSearchChange, rowData, searchAccessor]);
 
   const tableActionContext = useMemo<AppDataTableActionContext<T>>(
     () => ({
@@ -253,6 +274,26 @@ const AppDataTable = <T extends object>({
   const totalCountLabel = totalLabel ?? `${rowData.length} total`;
   const shouldFitContentHeight =
     fitContentHeight && filteredRows.length <= fitContentHeightMaxRows;
+  const serverTotalPages = serverPagination
+    ? Math.max(
+        1,
+        serverPagination.totalPages ??
+          Math.ceil(serverPagination.totalRows / serverPagination.pageSize)
+      )
+    : 1;
+  const serverCurrentPage = serverPagination
+    ? Math.min(Math.max(1, serverPagination.currentPage), serverTotalPages)
+    : 1;
+  const serverFirstRow =
+    serverPagination && serverPagination.totalRows
+      ? (serverCurrentPage - 1) * serverPagination.pageSize + 1
+      : 0;
+  const serverLastRow = serverPagination
+    ? Math.min(
+        serverCurrentPage * serverPagination.pageSize,
+        serverPagination.totalRows
+      )
+    : 0;
 
   useEffect(() => {
     if (!gridApi) {
@@ -281,6 +322,20 @@ const AppDataTable = <T extends object>({
 
     gridApi.hideOverlay();
   }, [filteredRows.length, gridApi, loading]);
+
+  useEffect(() => {
+    if (!gridApi || !hasServerPagination) {
+      return;
+    }
+
+    gridApi.deselectAll();
+    setSelectedRows([]);
+  }, [
+    gridApi,
+    hasServerPagination,
+    serverPagination?.currentPage,
+    serverPagination?.pageSize
+  ]);
 
   const tableTheme = useMemo(
     () =>
@@ -723,11 +778,16 @@ const AppDataTable = <T extends object>({
         ].join(" ")}
       >
         <div
-          className="app-data-table"
+          className={[
+            "app-data-table",
+            serverPagination && fillAvailableHeight ? "min-h-0 flex-1" : ""
+          ].join(" ")}
           style={
             shouldFitContentHeight
               ? undefined
-              : { height: fillAvailableHeight ? "100%" : gridHeight }
+              : serverPagination && fillAvailableHeight
+                ? undefined
+                : { height: fillAvailableHeight ? "100%" : gridHeight }
           }
         >
           <AgGridReact<T>
@@ -741,7 +801,7 @@ const AppDataTable = <T extends object>({
             noRowsOverlayComponentParams={{}}
             overlayNoRowsTemplate={`<span class="app-data-table__empty-message">${emptyMessage}</span>`}
             paginateChildRows={paginateChildRows}
-            pagination
+            pagination={!serverPagination}
             paginationPageSize={pageSize}
             paginationPageSizeSelector={pageSizeOptions}
             rowData={filteredRows}
@@ -783,6 +843,82 @@ const AppDataTable = <T extends object>({
             }
           />
         </div>
+
+        {serverPagination ? (
+          <div className="flex min-h-16 flex-col gap-3 border-t border-gray-200 px-4 py-3 text-sm text-gray-700 dark:border-gray-800 dark:text-gray-300 sm:flex-row sm:items-center sm:justify-end">
+            {pageSizeOptions !== false && serverPagination.onPageSizeChange ? (
+              <label className="flex items-center justify-end gap-2">
+                <span>Page Size:</span>
+                <select
+                  className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none transition-colors hover:bg-gray-50 focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+                  value={serverPagination.pageSize}
+                  onChange={(event) =>
+                    serverPagination.onPageSizeChange?.(Number(event.target.value))
+                  }
+                >
+                  {pageSizeOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+
+            <span className="text-right">
+              {serverFirstRow} to {serverLastRow} of {serverPagination.totalRows}
+            </span>
+
+            <span className="text-right font-medium">
+              Page {serverCurrentPage} of {serverTotalPages}
+            </span>
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                className="inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+                disabled={serverCurrentPage <= 1 || loading}
+                onClick={() => serverPagination.onPageChange(1)}
+                aria-label="First page"
+                title="First page"
+              >
+                <ChevronLeftIcon className="h-4 w-4" />
+                <ChevronLeftIcon className="-ml-2 h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                className="inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+                disabled={serverCurrentPage <= 1 || loading}
+                onClick={() => serverPagination.onPageChange(serverCurrentPage - 1)}
+                aria-label="Previous page"
+                title="Previous page"
+              >
+                <ChevronLeftIcon className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                className="inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+                disabled={serverCurrentPage >= serverTotalPages || loading}
+                onClick={() => serverPagination.onPageChange(serverCurrentPage + 1)}
+                aria-label="Next page"
+                title="Next page"
+              >
+                <ChevronLeftIcon className="h-4 w-4 rotate-180" />
+              </button>
+              <button
+                type="button"
+                className="inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+                disabled={serverCurrentPage >= serverTotalPages || loading}
+                onClick={() => serverPagination.onPageChange(serverTotalPages)}
+                aria-label="Last page"
+                title="Last page"
+              >
+                <ChevronLeftIcon className="h-4 w-4 rotate-180" />
+                <ChevronLeftIcon className="-ml-2 h-4 w-4 rotate-180" />
+              </button>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

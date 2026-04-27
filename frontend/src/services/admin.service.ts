@@ -1,6 +1,10 @@
 import { toast } from "@/lib/ToastProvider";
 import api from "../utils/axios.interceptor";
 import { RoleType } from "@/utils/common.constants";
+import {
+  ListQueryParams,
+  withDefaultListParams
+} from "@/utils/listResponse";
 
 export const API_ROUTES = {
   login: "/auth/sign-in",
@@ -41,8 +45,10 @@ export const getUserDetail = async () => {
 
 // #region User Management
 
-export const getUsers = async () => {
-  const response = await api.get(API_ROUTES.users);
+export const getUsers = async (params?: ListQueryParams) => {
+  const response = await api.get(API_ROUTES.users, {
+    params: withDefaultListParams(params)
+  });
   return response["data"];
 };
 
@@ -79,9 +85,12 @@ export const deleteUser = async (
 
 // #region Roles & Permissions
 
-export const getRoles = async (type?: RoleType) => {
+export const getRoles = async (type?: RoleType, params?: ListQueryParams) => {
   const response = await api.get(API_ROUTES.roles, {
-    params: type ? { type } : undefined
+    params: withDefaultListParams({
+      ...(type ? { type } : {}),
+      ...params
+    })
   });
   return response["data"];
 };
@@ -109,9 +118,12 @@ export const deleteRole = async (
   return response["data"];
 };
 
-export const getPermissions = async (type?: string) => {
+export const getPermissions = async (type?: string, params?: ListQueryParams) => {
   const response = await api.get(API_ROUTES.permissions, {
-    params: type ? { type } : undefined
+    params: withDefaultListParams({
+      ...(type ? { type } : {}),
+      ...params
+    })
   });
   return response["data"];
 };
@@ -120,8 +132,10 @@ export const getPermissions = async (type?: string) => {
 
 // #region Department
 
-export const getDepartments = async () => {
-  const response = await api.get(API_ROUTES.departments);
+export const getDepartments = async (params?: ListQueryParams) => {
+  const response = await api.get(API_ROUTES.departments, {
+    params: withDefaultListParams(params)
+  });
   return response["data"];
 };
 
@@ -152,8 +166,10 @@ export const deleteDepartment = async (
 
 // #region Location 
 
-export const getLocations = async () => {
-  const response = await api.get(API_ROUTES.locations);
+export const getLocations = async (params?: ListQueryParams) => {
+  const response = await api.get(API_ROUTES.locations, {
+    params: withDefaultListParams(params)
+  });
   return response["data"];
 };
 
@@ -184,8 +200,10 @@ export const deleteLocation = async (
 
 // #region Designation
 
-export const getDesignations = async () => {
-  const response = await api.get(API_ROUTES.designations);
+export const getDesignations = async (params?: ListQueryParams) => {
+  const response = await api.get(API_ROUTES.designations, {
+    params: withDefaultListParams(params)
+  });
   return response["data"];
 };
 

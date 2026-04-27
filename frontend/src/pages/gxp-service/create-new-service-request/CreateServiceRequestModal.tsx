@@ -439,12 +439,12 @@ const CreateServiceRequestModal = ({
     (async () => {
       try {
         const [envs, groups, wfs, modules, appRoles, locs] = await Promise.all([
-          getEnvironments(),
-          getAssignmentGroups(),
-          getWorkflows(),
-          getApplicationSoftware(),
-          getApplicationRoles(),
-          getLocations()
+          getEnvironments(false, { limit: 100 }),
+          getAssignmentGroups(false, { limit: 100 }),
+          getWorkflows({ limit: 100 }),
+          getApplicationSoftware(false, { limit: 100 }),
+          getApplicationRoles({ limit: 100 }),
+          getLocations({ limit: 100 })
         ]);
 
         if (cancelled) return;

@@ -9,6 +9,7 @@ import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
 import { useGlobalContext } from "@/context";
 import { useModal } from "@/hooks/useModal";
+import { useServerPagination } from "@/hooks/useServerPagination";
 import { toast } from "@/lib/ToastProvider";
 import {
   CheckLineIcon,
@@ -29,38 +30,11 @@ import {
 import { AssignmentGroup } from "@/types/common.types";
 import { GXP_PERMISSIONS } from "@/utils/permissions";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { ReactNode, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import CreateAssignmentGroupModal from "./CreateAssignmentGroupModal";
 
 type AssignmentGroupModalMode = "create" | "edit" | "view";
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
-
-const extractList = <T,>(value: unknown, preferredKeys: string[] = []) => {
-  if (Array.isArray(value)) {
-    return value as T[];
-  }
-
-  if (!isRecord(value)) {
-    return [];
-  }
-
-  if (Array.isArray(value.data)) {
-    return value.data as T[];
-  }
-
-  for (const key of preferredKeys) {
-    const candidate = value[key];
-    if (Array.isArray(candidate)) {
-      return candidate as T[];
-    }
-  }
-
-  const firstArray = Object.values(value).find(Array.isArray);
-  return Array.isArray(firstArray) ? (firstArray as T[]) : [];
-};
 
 const getInitials = (value: string) =>
   value
@@ -124,46 +98,27 @@ const AssignmentGroups = () => {
   const { isOpen, openModal, closeModal } = useModal();
   const { t } = useTranslation();
   const { reFetch, setReFetch } = useGlobalContext();
-  const [assignmentGroups, setAssignmentGroups] = useState<AssignmentGroup[]>([]);
+  const [includeInactive, setIncludeInactive] = useState(false);
+  const paginatedAssignmentGroups = useServerPagination<AssignmentGroup>({
+    dataKeys: ["assignmentGroups", "groups", "data"],
+    dependencies: [includeInactive, reFetch],
+    errorMessage: "Failed to load assignment groups. Please try again.",
+    fetchPage: (params) => getAssignmentGroups(includeInactive, params)
+  });
+  const assignmentGroups = paginatedAssignmentGroups.rows;
+  const setAssignmentGroups = paginatedAssignmentGroups.setRows;
   const [activeAssignmentGroup, setActiveAssignmentGroup] =
     useState<AssignmentGroup | null>(null);
   const [assignmentGroupModalMode, setAssignmentGroupModalMode] =
     useState<AssignmentGroupModalMode>("create");
   const [pendingDeleteAssignmentGroups, setPendingDeleteAssignmentGroups] =
     useState<AssignmentGroup[]>([]);
-  const [includeInactive, setIncludeInactive] = useState(false);
-  const [isTableLoading, setIsTableLoading] = useState(true);
-  const [tableError, setTableError] = useState<string | null>(null);
 
   const handleCloseModal = () => {
     closeModal();
     setActiveAssignmentGroup(null);
     setAssignmentGroupModalMode("create");
   };
-
-  useEffect(() => {
-    const fetchAssignmentGroups = async () => {
-      try {
-        setIsTableLoading(true);
-        setTableError(null);
-        const response = await getAssignmentGroups(includeInactive);
-        setAssignmentGroups(
-          extractList<AssignmentGroup>(response, [
-            "assignmentGroups",
-            "groups",
-            "data"
-          ])
-        );
-      } catch (error) {
-        console.error("Error fetching assignment groups:", error);
-        setTableError("Failed to load assignment groups. Please try again.");
-      } finally {
-        setIsTableLoading(false);
-      }
-    };
-
-    void fetchAssignmentGroups();
-  }, [includeInactive, reFetch]);
 
   const handleSave = async (data: Partial<AssignmentGroup>) => {
     try {
@@ -477,17 +432,15 @@ const AssignmentGroups = () => {
           defaultColDef={{ flex: 1, minWidth: 180 }}
           emptyMessage="No assignment groups found"
           enableSelection
-          errorMessage={tableError}
+          errorMessage={paginatedAssignmentGroups.error}
           fillAvailableHeight
           fitContentHeight
           fitContentHeightMaxRows={8}
           fontSize={13}
           getRowId={(group) => group._id}
           headerHeight={46}
-          loading={isTableLoading}
+          loading={paginatedAssignmentGroups.isLoading}
           maxInlineRowActions={2}
-          pageSize={20}
-          pageSizeOptions={[20, 50, 100]}
           rowActions={rowActions}
           rowData={assignmentGroups}
           rowHeight={64}
@@ -505,8 +458,8 @@ const AssignmentGroups = () => {
           searchPlaceholder="Search assignment groups..."
           tableName={t("gxpAssignmentGroups")}
           titleExtra={titleExtra}
+          {...paginatedAssignmentGroups.tablePaginationProps}
           toolbarActions={toolbarActions}
-          totalLabel={`${assignmentGroups.length} total`}
         />
       </div>
 

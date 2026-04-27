@@ -8,6 +8,7 @@ import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
 import { useGlobalContext } from "@/context";
 import { useModal } from "@/hooks/useModal";
+import { useServerPagination } from "@/hooks/useServerPagination";
 import { toast } from "@/lib/ToastProvider";
 import {
   CheckLineIcon,
@@ -28,7 +29,7 @@ import {
 import { Workflow } from "@/types/common.types";
 import { GXP_PERMISSIONS } from "@/utils/permissions";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import CreateWorkflowModal from "./CreateWorkflowModal";
 
@@ -88,39 +89,26 @@ const Workflows = () => {
   const { isOpen, openModal, closeModal } = useModal();
   const { t } = useTranslation();
   const { reFetch, setReFetch } = useGlobalContext();
-  const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const paginatedWorkflows = useServerPagination<Workflow>({
+    dataKeys: ["workflows", "data"],
+    dependencies: [reFetch],
+    errorMessage: "Failed to load workflows. Please try again.",
+    fetchPage: getWorkflows
+  });
+  const workflows = paginatedWorkflows.rows;
+  const setWorkflows = paginatedWorkflows.setRows;
   const [activeWorkflow, setActiveWorkflow] = useState<Workflow | null>(null);
   const [workflowModalMode, setWorkflowModalMode] =
     useState<WorkflowModalMode>("create");
   const [pendingDeleteWorkflows, setPendingDeleteWorkflows] = useState<
     Workflow[]
   >([]);
-  const [isTableLoading, setIsTableLoading] = useState(true);
-  const [tableError, setTableError] = useState<string | null>(null);
 
   const handleCloseModal = () => {
     closeModal();
     setActiveWorkflow(null);
     setWorkflowModalMode("create");
   };
-
-  useEffect(() => {
-    const fetchWorkflows = async () => {
-      try {
-        setIsTableLoading(true);
-        setTableError(null);
-        const fetchedWorkflows = await getWorkflows();
-        setWorkflows(fetchedWorkflows ?? []);
-      } catch (error) {
-        console.error("Error fetching workflows:", error);
-        setTableError("Failed to load workflows. Please try again.");
-      } finally {
-        setIsTableLoading(false);
-      }
-    };
-
-    void fetchWorkflows();
-  }, [reFetch]);
 
   const handleSave = async (data: Partial<Workflow>) => {
     try {
@@ -365,17 +353,15 @@ const Workflows = () => {
           defaultColDef={{ flex: 1, minWidth: 180 }}
           emptyMessage="No workflows found"
           enableSelection
-          errorMessage={tableError}
+          errorMessage={paginatedWorkflows.error}
           fillAvailableHeight
           fitContentHeight
           fitContentHeightMaxRows={8}
           fontSize={13}
           getRowId={(workflow) => workflow._id}
           headerHeight={46}
-          loading={isTableLoading}
+          loading={paginatedWorkflows.isLoading}
           maxInlineRowActions={2}
-          pageSize={20}
-          pageSizeOptions={[20, 50, 100]}
           rowActions={rowActions}
           rowData={workflows}
           rowHeight={64}
@@ -391,8 +377,8 @@ const Workflows = () => {
           }
           searchPlaceholder="Search workflows..."
           tableName={t("gxpWorkflows")}
+          {...paginatedWorkflows.tablePaginationProps}
           toolbarActions={toolbarActions}
-          totalLabel={`${workflows.length} total`}
         />
       </div>
 

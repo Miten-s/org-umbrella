@@ -70,7 +70,7 @@ const RolesAndPermissions = () => {
 
   useEffect(() => {
     (async () => {
-      const { roles: fetchedRoles } = await getRoles();
+      const { roles: fetchedRoles } = await getRoles(undefined, { limit: 100 });
       setRoles(fetchedRoles);
     })();
   }, [reFetch]);
@@ -78,7 +78,9 @@ const RolesAndPermissions = () => {
   useEffect(() => {
     if (!isOpen) return;
     (async () => {
-      const { permissions: fetchedPermissions } = await getPermissions(permissionType);
+      const { permissions: fetchedPermissions } = await getPermissions(permissionType, {
+        limit: 100
+      });
       setPermissions(fetchedPermissions);
     })();
   }, [isOpen, permissionType]);

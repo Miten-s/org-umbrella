@@ -7,6 +7,7 @@ import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
 import { useGlobalContext } from "@/context";
 import { useModal } from "@/hooks/useModal";
+import { useServerPagination } from "@/hooks/useServerPagination";
 import { toast } from "@/lib/ToastProvider";
 import {
   CheckLineIcon,
@@ -24,7 +25,7 @@ import {
 } from "@/services/gxp.service";
 import { GXP_PERMISSIONS } from "@/utils/permissions";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import CreateEnvironmentModal from "./CreateEnvironmentModal";
 
@@ -90,7 +91,13 @@ const Environments = () => {
   const { isOpen, openModal, closeModal } = useModal();
   const { t } = useTranslation();
   const { reFetch, setReFetch } = useGlobalContext();
-  const [environments, setEnvironments] = useState<EnvironmentRecord[]>([]);
+  const paginatedEnvironments = useServerPagination<EnvironmentRecord>({
+    dataKeys: ["environments", "data"],
+    dependencies: [reFetch],
+    errorMessage: "Failed to load environments. Please try again.",
+    fetchPage: (params) => getEnvironments(false, params)
+  });
+  const environments = paginatedEnvironments.rows;
   const [activeEnvironment, setActiveEnvironment] =
     useState<EnvironmentRecord | null>(null);
   const [environmentModalMode, setEnvironmentModalMode] =
@@ -98,32 +105,12 @@ const Environments = () => {
   const [pendingDeleteEnvironments, setPendingDeleteEnvironments] = useState<
     EnvironmentRecord[]
   >([]);
-  const [isTableLoading, setIsTableLoading] = useState(true);
-  const [tableError, setTableError] = useState<string | null>(null);
 
   const handleCloseModal = () => {
     closeModal();
     setActiveEnvironment(null);
     setEnvironmentModalMode("create");
   };
-
-  useEffect(() => {
-    const fetchEnvironments = async () => {
-      try {
-        setIsTableLoading(true);
-        setTableError(null);
-        const fetchedEnvironments = await getEnvironments();
-        setEnvironments(fetchedEnvironments ?? []);
-      } catch (error) {
-        console.error("Error fetching environments:", error);
-        setTableError("Failed to load environments. Please try again.");
-      } finally {
-        setIsTableLoading(false);
-      }
-    };
-
-    void fetchEnvironments();
-  }, [reFetch]);
 
   const handleSave = async (data: Partial<EnvironmentRecord>) => {
     try {
@@ -321,17 +308,15 @@ const Environments = () => {
           defaultColDef={{ flex: 1, minWidth: 180 }}
           emptyMessage="No environments found"
           enableSelection
-          errorMessage={tableError}
+          errorMessage={paginatedEnvironments.error}
           fillAvailableHeight
           fitContentHeight
           fitContentHeightMaxRows={8}
           fontSize={13}
           getRowId={(environment) => environment._id}
           headerHeight={46}
-          loading={isTableLoading}
+          loading={paginatedEnvironments.isLoading}
           maxInlineRowActions={2}
-          pageSize={20}
-          pageSizeOptions={[20, 50, 100]}
           rowActions={rowActions}
           rowData={environments}
           rowHeight={64}
@@ -342,8 +327,8 @@ const Environments = () => {
           }
           searchPlaceholder="Search environments..."
           tableName={t("gxpEnvironments")}
+          {...paginatedEnvironments.tablePaginationProps}
           toolbarActions={toolbarActions}
-          totalLabel={`${environments.length} total`}
         />
       </div>
 

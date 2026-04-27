@@ -7,6 +7,7 @@ import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
 import { useGlobalContext } from "@/context";
 import { useModal } from "@/hooks/useModal";
+import { useServerPagination } from "@/hooks/useServerPagination";
 import { toast } from "@/lib/ToastProvider";
 import {
   CheckLineIcon,
@@ -184,15 +185,20 @@ const GXPCreateNewServiceRequestPage = () => {
   const { isOpen, openModal, closeModal } = useModal();
   const { reFetch, setReFetch } = useGlobalContext();
 
-  const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
+  const paginatedServiceRequests = useServerPagination<ServiceRequest>({
+    dataKeys: ["serviceRequests", "requests", "data"],
+    dependencies: [reFetch],
+    errorMessage: "Failed to load service requests. Please try again.",
+    fetchPage: getServiceRequests,
+    mapItems: (items) => items.map(normalizeServiceRequest)
+  });
+  const serviceRequests = paginatedServiceRequests.rows;
   const [applications, setApplications] = useState<any[]>([]);
   const [activeRequest, setActiveRequest] = useState<ServiceRequest | null>(null);
   const [requestModalMode, setRequestModalMode] =
     useState<ServiceRequestModalMode>("create");
   const [isLoadingActive, setIsLoadingActive] = useState(false);
   const [pendingDeleteRequests, setPendingDeleteRequests] = useState<ServiceRequest[]>([]);
-  const [isTableLoading, setIsTableLoading] = useState(true);
-  const [tableError, setTableError] = useState<string | null>(null);
 
   const applicationLookup = useMemo(
     () => nameLookup(applications, "applicationName", "_id"),
@@ -208,16 +214,10 @@ const GXPCreateNewServiceRequestPage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setIsTableLoading(true);
-        setTableError(null);
-        const [requests, apps] = await Promise.all([getServiceRequests(), getApplications()]);
-        setServiceRequests(ensureArray(requests).map(normalizeServiceRequest));
+        const apps = await getApplications(false, { limit: 100 });
         setApplications(ensureArray(apps));
       } catch (error) {
-        console.error("Error fetching service requests:", error);
-        setTableError("Failed to load service requests. Please try again.");
-      } finally {
-        setIsTableLoading(false);
+        console.error("Error fetching service request references:", error);
       }
     };
 
@@ -508,17 +508,15 @@ const GXPCreateNewServiceRequestPage = () => {
           defaultColDef={{ flex: 1, minWidth: 180 }}
           emptyMessage="No service requests found"
           enableSelection
-          errorMessage={tableError}
+          errorMessage={paginatedServiceRequests.error}
           fillAvailableHeight
           fitContentHeight
           fitContentHeightMaxRows={8}
           fontSize={13}
           getRowId={(request) => request._id}
           headerHeight={46}
-          loading={isTableLoading}
+          loading={paginatedServiceRequests.isLoading}
           maxInlineRowActions={2}
-          pageSize={20}
-          pageSizeOptions={[20, 50, 100]}
           rowActions={rowActions}
           rowData={serviceRequests}
           rowHeight={64}
@@ -535,8 +533,8 @@ const GXPCreateNewServiceRequestPage = () => {
           }
           searchPlaceholder="Search service requests..."
           tableName={t("gxpCreateNewServiceRequest")}
+          {...paginatedServiceRequests.tablePaginationProps}
           toolbarActions={toolbarActions}
-          totalLabel={`${serviceRequests.length} total`}
         />
       </div>
 

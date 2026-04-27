@@ -8,6 +8,7 @@ import AppDataTable, {
 import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
 import { useGlobalContext } from "@/context";
+import { useServerPagination } from "@/hooks/useServerPagination";
 import { toast } from "@/lib/ToastProvider";
 import {
   CheckLineIcon,
@@ -29,7 +30,7 @@ import {
   updateUser
 } from "@/services/admin.service";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useModal } from "@/hooks/useModal";
 import { RoleType } from "@/utils/common.constants";
@@ -95,13 +96,17 @@ const Users = () => {
   const [locations, setLocations] = useState<LocationOption[]>([]);
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
   const [designations, setDesignations] = useState<DesignationOption[]>([]);
-  const [users, setUsers] = useState<UserRecord[]>([]);
   const [activeUser, setActiveUser] = useState<UserRecord | null>(null);
   const [userModalMode, setUserModalMode] = useState<UserModalMode>("create");
   const [pendingDeleteUsers, setPendingDeleteUsers] = useState<UserRecord[]>([]);
-  const [isTableLoading, setIsTableLoading] = useState(true);
-  const [tableError, setTableError] = useState<string | null>(null);
   const { reFetch, setReFetch } = useGlobalContext();
+  const paginatedUsers = useServerPagination<UserRecord>({
+    dataKeys: ["users"],
+    dependencies: [reFetch],
+    errorMessage: "Failed to load users. Please try again.",
+    fetchPage: getUsers
+  });
+  const users = paginatedUsers.rows;
 
   const showComingSoonToast = (label: string) => {
     toast(
@@ -110,41 +115,32 @@ const Users = () => {
     );
   };
 
-  const fetchDetails = async () => {
+  const fetchReferenceDetails = useCallback(async () => {
     try {
-      setIsTableLoading(true);
-      setTableError(null);
-
       const [
         { roles: fetchedRoles },
         { locations: fetchedLocations },
         { departments: fetchedDepartments },
-        { designations: fetchedDesignations },
-        { users: fetchedUsers }
+        { designations: fetchedDesignations }
       ] = await Promise.all([
-        getRoles(RoleType.CUSTOM),
-        getLocations(),
-        getDepartments(),
-        getDesignations(),
-        getUsers()
+        getRoles(RoleType.CUSTOM, { limit: 100 }),
+        getLocations({ limit: 100 }),
+        getDepartments({ limit: 100 }),
+        getDesignations({ limit: 100 })
       ]);
 
       setRoles(fetchedRoles ?? []);
       setLocations(fetchedLocations ?? []);
       setDepartments(fetchedDepartments ?? []);
       setDesignations(fetchedDesignations ?? []);
-      setUsers(fetchedUsers ?? []);
     } catch (error) {
-      console.error("Error fetching data:", error);
-      setTableError("Failed to load users. Please try again.");
-    } finally {
-      setIsTableLoading(false);
+      console.error("Error fetching user form data:", error);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    void fetchDetails();
-  }, [reFetch]);
+    void fetchReferenceDetails();
+  }, [fetchReferenceDetails, reFetch]);
 
   const buildUserFormData = (payload: Record<string, unknown>) => {
     const formData = new FormData();
@@ -506,17 +502,15 @@ const Users = () => {
           defaultColDef={{ flex: 1, minWidth: 190 }}
           emptyMessage={t("noAdminsFound")}
           enableSelection
-          errorMessage={tableError}
+          errorMessage={paginatedUsers.error}
           fillAvailableHeight
           fitContentHeight
           fitContentHeightMaxRows={8}
           fontSize={13}
           getRowId={(user) => user._id}
           headerHeight={46}
-          loading={isTableLoading}
+          loading={paginatedUsers.isLoading}
           maxInlineRowActions={2}
-          pageSize={20}
-          pageSizeOptions={[20, 50, 100]}
           paginateChildRows
           rowActions={rowActions}
           rowData={users}
@@ -536,8 +530,8 @@ const Users = () => {
           searchPlaceholder="Search users..."
           tableName={t("users")}
           tabs={tableTabs}
+          {...paginatedUsers.tablePaginationProps}
           toolbarActions={toolbarActions}
-          totalLabel={`${users.length} total`}
         />
       </div>
 

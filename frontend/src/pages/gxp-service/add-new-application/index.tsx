@@ -9,6 +9,7 @@ import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
 import { useGlobalContext } from "@/context";
 import { useModal } from "@/hooks/useModal";
+import { useServerPagination } from "@/hooks/useServerPagination";
 import { toast } from "@/lib/ToastProvider";
 import {
   CheckLineIcon,
@@ -125,8 +126,7 @@ const getApplicationIdentity = (application: Application) =>
 
 const duplicateApplications = async (
   rows: Application[],
-  includeDisabled: boolean,
-  refreshApplications: (applications: Application[]) => void,
+  refreshApplications: () => void,
   setReFetch: (value: boolean) => void,
   reFetch: boolean
 ) => {
@@ -155,8 +155,7 @@ const duplicateApplications = async (
     }
 
     if (successfulCopies > 0) {
-      const refreshed = await getApplications(includeDisabled);
-      refreshApplications(ensureArray<Application>(refreshed));
+      refreshApplications();
       setReFetch(!reFetch);
     }
   } catch (error) {
@@ -170,14 +169,20 @@ const GXPAddNewApplicationPage = () => {
   const { isOpen, openModal, closeModal } = useModal();
   const { reFetch, setReFetch } = useGlobalContext();
 
-  const [applications, setApplications] = useState<Application[]>([]);
+  const [includeDisabled, setIncludeDisabled] = useState(false);
+  const paginatedApplications = useServerPagination<Application>({
+    dataKeys: ["applications", "data"],
+    dependencies: [includeDisabled, reFetch],
+    errorMessage: "Failed to load applications. Please try again.",
+    fetchPage: (params) => getApplications(includeDisabled, params)
+  });
+  const applications = paginatedApplications.rows;
+  const setApplications = paginatedApplications.setRows;
   const [activeApplication, setActiveApplication] = useState<Application | null>(null);
   const [applicationModalMode, setApplicationModalMode] =
     useState<ApplicationModalMode>("create");
   const [isLoadingActive, setIsLoadingActive] = useState(false);
   const [pendingDeleteApplications, setPendingDeleteApplications] = useState<Application[]>([]);
-  const [isTableLoading, setIsTableLoading] = useState(true);
-  const [tableError, setTableError] = useState<string | null>(null);
 
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -190,7 +195,6 @@ const GXPAddNewApplicationPage = () => {
   const [applicationGroups, setApplicationGroups] = useState<ApplicationGroup[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [serviceRequestTypes, setServiceRequestTypes] = useState<ApplicationServiceRequestType[]>([]);
-  const [includeDisabled, setIncludeDisabled] = useState(false);
 
   const handleCloseModal = () => {
     closeModal();
@@ -201,30 +205,24 @@ const GXPAddNewApplicationPage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setIsTableLoading(true);
-        setTableError(null);
-
-        const applicationsResponse = await getApplications(includeDisabled);
-        setApplications(ensureArray<Application>(applicationsResponse));
-
         const [environmentsResponse, locationsResponse] = await Promise.all([
-          getEnvironments(),
-          getLocations()
+          getEnvironments(false, { limit: 100 }),
+          getLocations({ limit: 100 })
         ]);
 
         setEnvironments(ensureArray<Environment>(environmentsResponse));
         setLocations(ensureArray<Location>(locationsResponse?.locations));
 
         const settledResults = await Promise.allSettled([
-          getApplicationSoftware(),
-          getWorkflows(),
-          getUsers(),
-          getSuppliers(),
-          getDepartments(),
-          getAssignmentGroups(),
-          getApplicationGroups(),
-          getApplicationRoles(),
-          getServiceTypes()
+          getApplicationSoftware(false, { limit: 100 }),
+          getWorkflows({ limit: 100 }),
+          getUsers({ limit: 100 }),
+          getSuppliers(false, { limit: 100 }),
+          getDepartments({ limit: 100 }),
+          getAssignmentGroups(false, { limit: 100 }),
+          getApplicationGroups({ limit: 100 }),
+          getApplicationRoles({ limit: 100 }),
+          getServiceTypes({ limit: 100 })
         ]);
 
         const [mods, workflowsResult, usersResult, suppliersResult, departmentsResult, assignmentGroupsResult, applicationGroupsResult, rolesResult, serviceTypesResult] =
@@ -252,15 +250,12 @@ const GXPAddNewApplicationPage = () => {
           ])
         );
       } catch (error) {
-        console.error("Error fetching applications:", error);
-        setTableError("Failed to load applications. Please try again.");
-      } finally {
-        setIsTableLoading(false);
+        console.error("Error fetching application references:", error);
       }
     };
 
     void fetchData();
-  }, [includeDisabled, reFetch]);
+  }, [reFetch]);
 
   const handleOpenApplicationModal = async (
     applicationId: string,
@@ -414,8 +409,7 @@ const GXPAddNewApplicationPage = () => {
         onClick: (selectedRows) =>
           duplicateApplications(
             selectedRows,
-            includeDisabled,
-            setApplications,
+            paginatedApplications.refresh,
             setReFetch,
             reFetch
           )
@@ -430,7 +424,7 @@ const GXPAddNewApplicationPage = () => {
         onClick: (selectedRows) => setPendingDeleteApplications(selectedRows)
       }
     ],
-    [includeDisabled, isLoadingActive, reFetch, setReFetch]
+    [isLoadingActive, paginatedApplications.refresh, reFetch, setReFetch]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<Application>[]>(
@@ -468,8 +462,7 @@ const GXPAddNewApplicationPage = () => {
         onClick: async (application) =>
           duplicateApplications(
             [application],
-            includeDisabled,
-            setApplications,
+            paginatedApplications.refresh,
             setReFetch,
             reFetch
           )
@@ -485,7 +478,7 @@ const GXPAddNewApplicationPage = () => {
         onClick: (application) => setPendingDeleteApplications([application])
       }
     ],
-    [includeDisabled, isLoadingActive, reFetch]
+    [isLoadingActive, paginatedApplications.refresh, reFetch, setReFetch]
   );
 
   const columnDefs = useMemo<ColDef<Application>[]>(
@@ -584,17 +577,15 @@ const GXPAddNewApplicationPage = () => {
           defaultColDef={{ flex: 1, minWidth: 180 }}
           emptyMessage="No applications found"
           enableSelection
-          errorMessage={tableError}
+          errorMessage={paginatedApplications.error}
           fillAvailableHeight
           fitContentHeight
           fitContentHeightMaxRows={8}
           fontSize={13}
           getRowId={(application) => application._id}
           headerHeight={46}
-          loading={isTableLoading}
+          loading={paginatedApplications.isLoading}
           maxInlineRowActions={2}
-          pageSize={20}
-          pageSizeOptions={[20, 50, 100]}
           rowActions={rowActions}
           rowData={applications}
           rowHeight={64}
@@ -612,8 +603,8 @@ const GXPAddNewApplicationPage = () => {
           searchPlaceholder="Search applications..."
           tableName={t("gxpApplications")}
           titleExtra={titleExtra}
+          {...paginatedApplications.tablePaginationProps}
           toolbarActions={toolbarActions}
-          totalLabel={`${applications.length} total`}
         />
       </div>
 

@@ -8,6 +8,7 @@ import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
 import { useGlobalContext } from "@/context";
 import { useModal } from "@/hooks/useModal";
+import { useServerPagination } from "@/hooks/useServerPagination";
 import { toast } from "@/lib/ToastProvider";
 import {
   CheckLineIcon,
@@ -95,13 +96,17 @@ const Roles = () => {
   const { isOpen, openModal, closeModal } = useModal();
   const { t } = useTranslation();
   const { reFetch, setReFetch } = useGlobalContext();
-  const [roles, setRoles] = useState<RoleRecord[]>([]);
+  const paginatedRoles = useServerPagination<RoleRecord>({
+    dataKeys: ["roles"],
+    dependencies: [reFetch],
+    errorMessage: "Failed to load roles. Please try again.",
+    fetchPage: (params) => getRoles(RoleType.GXP_SERVICE, params)
+  });
+  const roles = paginatedRoles.rows;
   const [permissions, setPermissions] = useState<Array<{ _id: string; name: string }>>([]);
   const [activeRole, setActiveRole] = useState<RoleRecord | null>(null);
   const [roleModalMode, setRoleModalMode] = useState<RoleModalMode>("create");
   const [pendingDeleteRoles, setPendingDeleteRoles] = useState<RoleRecord[]>([]);
-  const [isTableLoading, setIsTableLoading] = useState(true);
-  const [tableError, setTableError] = useState<string | null>(null);
 
   const handleCloseModal = () => {
     closeModal();
@@ -112,19 +117,12 @@ const Roles = () => {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        setIsTableLoading(true);
-        setTableError(null);
-        const [{ roles }, { permissions }] = await Promise.all([
-          getRoles(RoleType.GXP_SERVICE),
-          getPermissions(PermissionType.GXP_SERVICE)
-        ]);
-        setRoles(roles ?? []);
+        const { permissions } = await getPermissions(PermissionType.GXP_SERVICE, {
+          limit: 100
+        });
         setPermissions(permissions ?? []);
       } catch (error) {
-        console.error("Error fetching GXP roles:", error);
-        setTableError("Failed to load roles. Please try again.");
-      } finally {
-        setIsTableLoading(false);
+        console.error("Error fetching GXP role permissions:", error);
       }
     };
 
@@ -363,17 +361,15 @@ const Roles = () => {
           defaultColDef={{ flex: 1, minWidth: 180 }}
           emptyMessage="No roles found"
           enableSelection
-          errorMessage={tableError}
+          errorMessage={paginatedRoles.error}
           fillAvailableHeight
           fitContentHeight
           fitContentHeightMaxRows={8}
           fontSize={13}
           getRowId={(role) => role._id}
           headerHeight={46}
-          loading={isTableLoading}
+          loading={paginatedRoles.isLoading}
           maxInlineRowActions={2}
-          pageSize={20}
-          pageSizeOptions={[20, 50, 100]}
           rowActions={rowActions}
           rowData={roles}
           rowHeight={64}
@@ -382,8 +378,8 @@ const Roles = () => {
           }
           searchPlaceholder="Search roles..."
           tableName={t("rolesAndPermissions")}
+          {...paginatedRoles.tablePaginationProps}
           toolbarActions={toolbarActions}
-          totalLabel={`${roles.length} total`}
         />
       </div>
 

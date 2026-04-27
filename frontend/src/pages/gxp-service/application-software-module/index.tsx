@@ -8,6 +8,7 @@ import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
 import { useGlobalContext } from "@/context";
 import { useModal } from "@/hooks/useModal";
+import { useServerPagination } from "@/hooks/useServerPagination";
 import { toast } from "@/lib/ToastProvider";
 import {
   CheckLineIcon,
@@ -142,7 +143,15 @@ const GXPApplicationSoftwareModulePage = () => {
   const { isOpen, openModal, closeModal } = useModal();
   const { reFetch, setReFetch } = useGlobalContext();
 
-  const [modules, setModules] = useState<ApplicationSoftwareModule[]>([]);
+  const [includeDisabled, setIncludeDisabled] = useState(false);
+  const paginatedModules = useServerPagination<ApplicationSoftwareModule>({
+    dataKeys: ["modules", "software", "data"],
+    dependencies: [includeDisabled, reFetch],
+    errorMessage: "Failed to load application modules. Please try again.",
+    fetchPage: (params) => getApplicationSoftware(includeDisabled, params)
+  });
+  const modules = paginatedModules.rows;
+  const setModules = paginatedModules.setRows;
   const [applications, setApplications] = useState<Application[]>([]);
   const [activeModule, setActiveModule] = useState<ApplicationSoftwareModule | null>(null);
   const [moduleModalMode, setModuleModalMode] =
@@ -150,9 +159,6 @@ const GXPApplicationSoftwareModulePage = () => {
   const [pendingDeleteModules, setPendingDeleteModules] = useState<
     ApplicationSoftwareModule[]
   >([]);
-  const [includeDisabled, setIncludeDisabled] = useState(false);
-  const [isTableLoading, setIsTableLoading] = useState(true);
-  const [tableError, setTableError] = useState<string | null>(null);
 
   const applicationNameMap = useMemo(
     () => new Map(applications.map((application) => [application._id, application.applicationName])),
@@ -168,24 +174,15 @@ const GXPApplicationSoftwareModulePage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setIsTableLoading(true);
-        setTableError(null);
-        const [modulesResponse, applicationsResponse] = await Promise.all([
-          getApplicationSoftware(includeDisabled),
-          getApplications(true)
-        ]);
-        setModules(ensureArray<ApplicationSoftwareModule>(modulesResponse));
+        const applicationsResponse = await getApplications(true, { limit: 100 });
         setApplications(ensureArray<Application>(applicationsResponse));
       } catch (error) {
-        console.error("Error fetching application modules:", error);
-        setTableError("Failed to load application modules. Please try again.");
-      } finally {
-        setIsTableLoading(false);
+        console.error("Error fetching applications:", error);
       }
     };
 
     void fetchData();
-  }, [includeDisabled, reFetch]);
+  }, [reFetch]);
 
   const handleSave = async (data: Partial<ApplicationSoftwareModule>) => {
     const nextModuleName = normalizeModuleName(data.moduleName);
@@ -476,17 +473,15 @@ const GXPApplicationSoftwareModulePage = () => {
           defaultColDef={{ flex: 1, minWidth: 180 }}
           emptyMessage="No application modules found"
           enableSelection
-          errorMessage={tableError}
+          errorMessage={paginatedModules.error}
           fillAvailableHeight
           fitContentHeight
           fitContentHeightMaxRows={8}
           fontSize={13}
           getRowId={(module) => module._id}
           headerHeight={46}
-          loading={isTableLoading}
+          loading={paginatedModules.isLoading}
           maxInlineRowActions={2}
-          pageSize={20}
-          pageSizeOptions={[20, 50, 100]}
           rowActions={rowActions}
           rowData={modules}
           rowHeight={64}
@@ -503,8 +498,8 @@ const GXPApplicationSoftwareModulePage = () => {
           searchPlaceholder="Search application modules..."
           tableName={t("gxpApplicationSoftwareModule")}
           titleExtra={titleExtra}
+          {...paginatedModules.tablePaginationProps}
           toolbarActions={toolbarActions}
-          totalLabel={`${modules.length} total`}
         />
       </div>
 

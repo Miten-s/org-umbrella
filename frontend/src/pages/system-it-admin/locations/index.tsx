@@ -5,6 +5,7 @@ import AppDataTable, {
 } from "@/components/common/table/AppDataTable";
 import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
+import { useServerPagination } from "@/hooks/useServerPagination";
 import { useModal } from "@/hooks/useModal";
 import { toast } from "@/lib/ToastProvider";
 import {
@@ -23,7 +24,7 @@ import {
 } from "@/services/admin.service";
 import { Location as LocationObj } from "@/types/common.types";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import CreateLocationModal from "./CreateLocationModal";
 
@@ -82,7 +83,6 @@ const Location = () => {
   const { isOpen, openModal, closeModal } = useModal();
   const { t } = useTranslation();
 
-  const [locations, setLocations] = useState<LocationObj[]>([]);
   const [activeLocation, setActiveLocation] = useState<LocationObj | null>(null);
   const [locationModalMode, setLocationModalMode] =
     useState<LocationModalMode>("create");
@@ -90,33 +90,19 @@ const Location = () => {
   const [pendingDeleteLocations, setPendingDeleteLocations] = useState<
     LocationObj[]
   >([]);
-  const [isTableLoading, setIsTableLoading] = useState(true);
-  const [tableError, setTableError] = useState<string | null>(null);
+  const paginatedLocations = useServerPagination<LocationObj>({
+    dataKeys: ["locations"],
+    dependencies: [refresh],
+    errorMessage: "Failed to load locations. Please try again.",
+    fetchPage: getLocations
+  });
+  const locations = paginatedLocations.rows;
 
   const handleCloseModal = () => {
     closeModal();
     setActiveLocation(null);
     setLocationModalMode("create");
   };
-
-  const fetchLocations = async () => {
-    try {
-      setIsTableLoading(true);
-      setTableError(null);
-
-      const { locations: fetchedLocations } = await getLocations();
-      setLocations(fetchedLocations ?? []);
-    } catch (error) {
-      console.error("Error fetching locations:", error);
-      setTableError("Failed to load locations. Please try again.");
-    } finally {
-      setIsTableLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void fetchLocations();
-  }, [refresh]);
 
   const handleSave = async (data: Partial<LocationObj>) => {
     try {
@@ -319,17 +305,15 @@ const Location = () => {
           defaultColDef={{ flex: 1, minWidth: 180 }}
           emptyMessage="No locations found"
           enableSelection
-          errorMessage={tableError}
+          errorMessage={paginatedLocations.error}
           fillAvailableHeight
           fitContentHeight
           fitContentHeightMaxRows={8}
           fontSize={13}
           getRowId={(location) => location._id}
           headerHeight={46}
-          loading={isTableLoading}
+          loading={paginatedLocations.isLoading}
           maxInlineRowActions={2}
-          pageSize={20}
-          pageSizeOptions={[20, 50, 100]}
           rowActions={rowActions}
           rowData={locations}
           rowHeight={64}
@@ -338,8 +322,8 @@ const Location = () => {
           }
           searchPlaceholder="Search locations..."
           tableName={t("locationsGroups")}
+          {...paginatedLocations.tablePaginationProps}
           toolbarActions={toolbarActions}
-          totalLabel={`${locations.length} total`}
         />
       </div>
 

@@ -8,6 +8,7 @@ import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
 import { useGlobalContext } from "@/context";
 import { useModal } from "@/hooks/useModal";
+import { useServerPagination } from "@/hooks/useServerPagination";
 import { toast } from "@/lib/ToastProvider";
 import {
   CheckLineIcon,
@@ -28,7 +29,7 @@ import {
 import { Supplier } from "@/types/common.types";
 import { GXP_PERMISSIONS } from "@/utils/permissions";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { ReactNode, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import CreateSupplierModal from "./CreateSupplierModal";
 
@@ -88,40 +89,27 @@ const Suppliers = () => {
   const { isOpen, openModal, closeModal } = useModal();
   const { t } = useTranslation();
   const { reFetch, setReFetch } = useGlobalContext();
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [includeDisabled, setIncludeDisabled] = useState(false);
+  const paginatedSuppliers = useServerPagination<Supplier>({
+    dataKeys: ["suppliers", "data"],
+    dependencies: [includeDisabled, reFetch],
+    errorMessage: "Failed to load suppliers. Please try again.",
+    fetchPage: (params) => getSuppliers(includeDisabled, params)
+  });
+  const suppliers = paginatedSuppliers.rows;
+  const setSuppliers = paginatedSuppliers.setRows;
   const [activeSupplier, setActiveSupplier] = useState<Supplier | null>(null);
   const [supplierModalMode, setSupplierModalMode] =
     useState<SupplierModalMode>("create");
   const [pendingDeleteSuppliers, setPendingDeleteSuppliers] = useState<
     Supplier[]
   >([]);
-  const [includeDisabled, setIncludeDisabled] = useState(false);
-  const [isTableLoading, setIsTableLoading] = useState(true);
-  const [tableError, setTableError] = useState<string | null>(null);
 
   const handleCloseModal = () => {
     closeModal();
     setActiveSupplier(null);
     setSupplierModalMode("create");
   };
-
-  useEffect(() => {
-    const fetchSuppliers = async () => {
-      try {
-        setIsTableLoading(true);
-        setTableError(null);
-        const fetchedSuppliers = await getSuppliers(includeDisabled);
-        setSuppliers(fetchedSuppliers ?? []);
-      } catch (error) {
-        console.error("Error fetching suppliers:", error);
-        setTableError("Failed to load suppliers. Please try again.");
-      } finally {
-        setIsTableLoading(false);
-      }
-    };
-
-    void fetchSuppliers();
-  }, [includeDisabled, reFetch]);
 
   const handleSave = async (data: Partial<Supplier>) => {
     try {
@@ -375,17 +363,15 @@ const Suppliers = () => {
           defaultColDef={{ flex: 1, minWidth: 180 }}
           emptyMessage="No suppliers found"
           enableSelection
-          errorMessage={tableError}
+          errorMessage={paginatedSuppliers.error}
           fillAvailableHeight
           fitContentHeight
           fitContentHeightMaxRows={8}
           fontSize={13}
           getRowId={(supplier) => supplier._id}
           headerHeight={46}
-          loading={isTableLoading}
+          loading={paginatedSuppliers.isLoading}
           maxInlineRowActions={2}
-          pageSize={20}
-          pageSizeOptions={[20, 50, 100]}
           rowActions={rowActions}
           rowData={suppliers}
           rowHeight={64}
@@ -403,8 +389,8 @@ const Suppliers = () => {
           searchPlaceholder="Search suppliers..."
           tableName={t("gxpSuppliers")}
           titleExtra={titleExtra}
+          {...paginatedSuppliers.tablePaginationProps}
           toolbarActions={toolbarActions}
-          totalLabel={`${suppliers.length} total`}
         />
       </div>
 

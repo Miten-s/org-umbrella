@@ -1,4 +1,8 @@
 import { toast } from "@/lib/ToastProvider";
+import {
+  ListQueryParams,
+  withDefaultListParams
+} from "@/utils/listResponse";
 import gxpApi from "../utils/gxp.axios.interceptor";
 
 const getSuccessMessage = (response: any, fallback: string) =>
@@ -6,6 +10,15 @@ const getSuccessMessage = (response: any, fallback: string) =>
 
 const toastSuccess = (response: any, fallback: string) =>
   toast(getSuccessMessage(response, fallback), "success");
+
+const buildListParams = (
+  params?: ListQueryParams,
+  extraParams: Record<string, unknown> = {}
+) =>
+  withDefaultListParams({
+    ...extraParams,
+    ...params
+  });
 
 export const API_ROUTES = {
   suppliers: "/gxp-suppliers",
@@ -26,12 +39,13 @@ export const API_ROUTES = {
 
 // #region Supplier
 
-export const getSuppliers = async (includeDisabled: boolean = false) => {
-  let url = API_ROUTES.suppliers;
-  if (includeDisabled) {
-    url = `${API_ROUTES.suppliers}?includeDisabled=true`;
-  }
-  const response = await gxpApi.get(url);
+export const getSuppliers = async (
+  includeDisabled: boolean = false,
+  params?: ListQueryParams
+) => {
+  const response = await gxpApi.get(API_ROUTES.suppliers, {
+    params: buildListParams(params, includeDisabled ? { includeDisabled: true } : {})
+  });
   return response["data"];
 };
 
@@ -74,18 +88,24 @@ export const disableSupplier = async (id: string) => {
 
 // #region Workflow
 
-export const getWorkflows = async () => {
-  const response = await gxpApi.get(API_ROUTES.workflows);
+export const getWorkflows = async (params?: ListQueryParams) => {
+  const response = await gxpApi.get(API_ROUTES.workflows, {
+    params: buildListParams(params)
+  });
   return response["data"];
 };
 
-export const getApplicationGroups = async () => {
-  const response = await gxpApi.get(API_ROUTES.gxpApplicationGroups);
+export const getApplicationGroups = async (params?: ListQueryParams) => {
+  const response = await gxpApi.get(API_ROUTES.gxpApplicationGroups, {
+    params: buildListParams(params)
+  });
   return response["data"];
 };
 
-export const getApplicationRoles = async () => {
-  const response = await gxpApi.get(API_ROUTES.gxpApplicationRoles);
+export const getApplicationRoles = async (params?: ListQueryParams) => {
+  const response = await gxpApi.get(API_ROUTES.gxpApplicationRoles, {
+    params: buildListParams(params)
+  });
   return response["data"];
 };
 
@@ -128,12 +148,13 @@ export const disableWorkflow = async (id: string) => {
 
 // #region Assignment Group
 
-export const getAssignmentGroups = async (includeInactive: boolean = false) => {
-  let url = API_ROUTES.assignmentGroups;
-  if (includeInactive) {
-    url = `${API_ROUTES.assignmentGroups}?includeInactive=true`;
-  }
-  const response = await gxpApi.get(url);
+export const getAssignmentGroups = async (
+  includeInactive: boolean = false,
+  params?: ListQueryParams
+) => {
+  const response = await gxpApi.get(API_ROUTES.assignmentGroups, {
+    params: buildListParams(params, includeInactive ? { includeInactive: true } : {})
+  });
   return response["data"];
 };
 
@@ -176,12 +197,13 @@ export const disableAssignmentGroup = async (groupName: string) => {
 
 // #region Environment
 
-export const getEnvironments = async (includeDisabled: boolean = false) => {
-  let url = API_ROUTES.environments;
-  if (includeDisabled) {
-    url = `${API_ROUTES.environments}?includeDisabled=true`;
-  }
-  const response = await gxpApi.get(url);
+export const getEnvironments = async (
+  includeDisabled: boolean = false,
+  params?: ListQueryParams
+) => {
+  const response = await gxpApi.get(API_ROUTES.environments, {
+    params: buildListParams(params, includeDisabled ? { includeDisabled: true } : {})
+  });
   return response["data"];
 };
 
@@ -222,12 +244,13 @@ export const disableEnvironment = async (id: string) => {
 
 
 // #region GXP-Application-Software
-export const getApplicationSoftware = async (includeDisabled: boolean = false) => {
-  let url = API_ROUTES.gxpApplicationSoftware;
-  if (includeDisabled) {
-    url = `${API_ROUTES.gxpApplicationSoftware}?includeDisabled=true`;
-  }
-  const response = await gxpApi.get(url);
+export const getApplicationSoftware = async (
+  includeDisabled: boolean = false,
+  params?: ListQueryParams
+) => {
+  const response = await gxpApi.get(API_ROUTES.gxpApplicationSoftware, {
+    params: buildListParams(params, includeDisabled ? { includeDisabled: true } : {})
+  });
   return response["data"];
 };
 
@@ -282,12 +305,13 @@ export const disableApplicationSoftware = async (id: string) => {
 // #endregion
 
 // #region Raise-Application
-export const getApplications = async (includeDisabled: boolean = false) => {
-  let url = API_ROUTES.gxpApplications;
-  if (includeDisabled) {
-    url = `${API_ROUTES.gxpApplications}?includeDisabled=true`;
-  }
-  const response = await gxpApi.get(url);
+export const getApplications = async (
+  includeDisabled: boolean = false,
+  params?: ListQueryParams
+) => {
+  const response = await gxpApi.get(API_ROUTES.gxpApplications, {
+    params: buildListParams(params, includeDisabled ? { includeDisabled: true } : {})
+  });
   return response["data"];
 };
 
@@ -368,8 +392,10 @@ export const disableApplication = async (id: string) => {
 
 // #region GXP Permission
 
-export const getGxpPermissions = async () => {
-  const response = await gxpApi.get(API_ROUTES.gxpPermissions);
+export const getGxpPermissions = async (params?: ListQueryParams) => {
+  const response = await gxpApi.get(API_ROUTES.gxpPermissions, {
+    params: buildListParams(params)
+  });
   return response["data"];
 };
 
@@ -400,8 +426,10 @@ export const deleteGxpPermission = async (
 
 // #region GXP Role
 
-export const getGxpRoles = async () => {
-  const response = await gxpApi.get(API_ROUTES.gxpRoles);
+export const getGxpRoles = async (params?: ListQueryParams) => {
+  const response = await gxpApi.get(API_ROUTES.gxpRoles, {
+    params: buildListParams(params)
+  });
   return response["data"];
 };
 
@@ -426,12 +454,13 @@ export const deleteGxpRole = async (id: string) => {
 // #endregion
 
 // #region Application Services
-export const getApplicationServices = async (includeDisabled: boolean = false) => {
-  let url = API_ROUTES.gxpApplicationServices;
-  if (includeDisabled) {
-    url = `${API_ROUTES.gxpApplicationServices}?includeDisabled=true`;
-  }
-  const response = await gxpApi.get(url);
+export const getApplicationServices = async (
+  includeDisabled: boolean = false,
+  params?: ListQueryParams
+) => {
+  const response = await gxpApi.get(API_ROUTES.gxpApplicationServices, {
+    params: buildListParams(params, includeDisabled ? { includeDisabled: true } : {})
+  });
   return response["data"];
 };
 
@@ -467,8 +496,10 @@ export const disableApplicationService = async (id: string) => {
 // #endregion
 
 // #region Service Requests
-export const getServiceRequests = async () => {
-  const response = await gxpApi.get(API_ROUTES.gxpServiceRequests);
+export const getServiceRequests = async (params?: ListQueryParams) => {
+  const response = await gxpApi.get(API_ROUTES.gxpServiceRequests, {
+    params: buildListParams(params)
+  });
   return response["data"];
 };
 
@@ -538,19 +569,22 @@ export const deleteServiceRequestAttachment = async (attachmentId: string) => {
   return response["data"];
 };
 
-export const getServiceTypes = async () => {
-  const response = await gxpApi.get(API_ROUTES.gxpServiceTypes);
+export const getServiceTypes = async (params?: ListQueryParams) => {
+  const response = await gxpApi.get(API_ROUTES.gxpServiceTypes, {
+    params: buildListParams(params)
+  });
   return response["data"];
 };
 // #endregion
 
 // #region GXP Users
-export const getGxpUsers = async (includeDisabled: boolean = false) => {
-  let url = API_ROUTES.gxpUsers;
-  if (includeDisabled) {
-    url = `${API_ROUTES.gxpUsers}?includeDisabled=true`;
-  }
-  const response = await gxpApi.get(url);
+export const getGxpUsers = async (
+  includeDisabled: boolean = false,
+  params?: ListQueryParams
+) => {
+  const response = await gxpApi.get(API_ROUTES.gxpUsers, {
+    params: buildListParams(params, includeDisabled ? { includeDisabled: true } : {})
+  });
   return response["data"];
 };
 
