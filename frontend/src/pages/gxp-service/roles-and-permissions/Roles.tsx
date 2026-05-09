@@ -9,7 +9,7 @@ import { Modal } from "@/components/ui/modal";
 import { useGlobalContext } from "@/context";
 import { useModal } from "@/hooks/useModal";
 import { useServerPagination } from "@/hooks/useServerPagination";
-import { toast } from "@/lib/ToastProvider";
+import { toast } from "@/lib/toast";
 import {
   CheckLineIcon,
   CopyIcon,
@@ -51,7 +51,7 @@ const getInitials = (value: string) =>
 const getPermissionNames = (role: RoleRecord) =>
   (role.permissions ?? [])
     .map((permission) =>
-      typeof permission === "string" ? permission : permission?.name ?? ""
+      typeof permission === "string" ? permission : (permission?.name ?? "")
     )
     .filter(Boolean);
 
@@ -62,7 +62,9 @@ const copyRolesToClipboard = async (rows: RoleRecord[]) => {
 
   const content = [
     "Role\tPermissions",
-    ...rows.map((role) => [role.name, getPermissionNames(role).join(", ")].join("\t"))
+    ...rows.map((role) =>
+      [role.name, getPermissionNames(role).join(", ")].join("\t")
+    )
   ].join("\n");
 
   try {
@@ -83,7 +85,9 @@ const copyRolesToClipboard = async (rows: RoleRecord[]) => {
     }
 
     toast(
-      rows.length > 1 ? `${rows.length} roles copied to clipboard.` : "Role copied to clipboard.",
+      rows.length > 1
+        ? `${rows.length} roles copied to clipboard.`
+        : "Role copied to clipboard.",
       "success"
     );
   } catch (error) {
@@ -103,10 +107,14 @@ const Roles = () => {
     fetchPage: (params) => getRoles(RoleType.GXP_SERVICE, params)
   });
   const roles = paginatedRoles.rows;
-  const [permissions, setPermissions] = useState<Array<{ _id: string; name: string }>>([]);
+  const [permissions, setPermissions] = useState<
+    Array<{ _id: string; name: string }>
+  >([]);
   const [activeRole, setActiveRole] = useState<RoleRecord | null>(null);
   const [roleModalMode, setRoleModalMode] = useState<RoleModalMode>("create");
-  const [pendingDeleteRoles, setPendingDeleteRoles] = useState<RoleRecord[]>([]);
+  const [pendingDeleteRoles, setPendingDeleteRoles] = useState<RoleRecord[]>(
+    []
+  );
 
   const handleCloseModal = () => {
     closeModal();
@@ -117,9 +125,12 @@ const Roles = () => {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const { permissions } = await getPermissions(PermissionType.GXP_SERVICE, {
-          limit: 100
-        });
+        const { permissions } = await getPermissions(
+          PermissionType.GXP_SERVICE,
+          {
+            limit: 100
+          }
+        );
         setPermissions(permissions ?? []);
       } catch (error) {
         console.error("Error fetching GXP role permissions:", error);
@@ -129,11 +140,17 @@ const Roles = () => {
     void fetchInitialData();
   }, [reFetch]);
 
-  const handleSave = async (data: { roleName: string; permissions: string[] }) => {
+  const handleSave = async (data: {
+    roleName: string;
+    permissions: string[];
+  }) => {
     const permissionIds = data.permissions
-      .map((permissionName) => permissions.find((permission) => permission.name === permissionName))
+      .map((permissionName) =>
+        permissions.find((permission) => permission.name === permissionName)
+      )
       .filter(
-        (permission): permission is { _id: string; name: string } => permission !== undefined
+        (permission): permission is { _id: string; name: string } =>
+          permission !== undefined
       )
       .map((permission) => permission._id);
 
@@ -179,7 +196,10 @@ const Roles = () => {
           "success"
         );
       } else if (successfulDeletes > 0) {
-        toast(`${successfulDeletes} roles deleted, ${failedDeletes} failed.`, "error");
+        toast(
+          `${successfulDeletes} roles deleted, ${failedDeletes} failed.`,
+          "error"
+        );
       } else {
         toast("Failed to delete selected roles. Please try again.", "error");
       }
@@ -215,14 +235,16 @@ const Roles = () => {
     () => [
       {
         key: "copy-selected",
-        label: (selectedRows) => (selectedRows.length > 1 ? "Copy roles" : "Copy role"),
+        label: (selectedRows) =>
+          selectedRows.length > 1 ? "Copy roles" : "Copy role",
         icon: CopyIcon,
         variant: "outline",
         onClick: (selectedRows) => copyRolesToClipboard(selectedRows)
       },
       {
         key: "delete-selected",
-        label: (selectedRows) => (selectedRows.length > 1 ? "Delete roles" : "Delete role"),
+        label: (selectedRows) =>
+          selectedRows.length > 1 ? "Delete roles" : "Delete role",
         icon: TrashBinIcon,
         permission: GXP_PERMISSIONS.DELETE_ROLE,
         variant: "destructive",
@@ -311,7 +333,8 @@ const Roles = () => {
         headerName: t("permissions"),
         minWidth: 320,
         sortable: false,
-        valueGetter: ({ data }) => getPermissionNames(data as RoleRecord).join(", "),
+        valueGetter: ({ data }) =>
+          getPermissionNames(data as RoleRecord).join(", "),
         cellRenderer: (params: ICellRendererParams<RoleRecord>) => {
           const data = params.data;
           if (!data) return null;
@@ -321,7 +344,9 @@ const Roles = () => {
 
           if (!permissionNames.length) {
             return (
-              <div className="py-1.5 text-sm text-gray-600 dark:text-gray-300">-</div>
+              <div className="py-1.5 text-sm text-gray-600 dark:text-gray-300">
+                -
+              </div>
             );
           }
 
@@ -374,7 +399,9 @@ const Roles = () => {
           rowData={roles}
           rowHeight={64}
           searchAccessor={(role) =>
-            [role.name, getPermissionNames(role).join(" ")].filter(Boolean).join(" ")
+            [role.name, getPermissionNames(role).join(" ")]
+              .filter(Boolean)
+              .join(" ")
           }
           searchPlaceholder="Search roles..."
           tableName={t("rolesAndPermissions")}
@@ -400,9 +427,14 @@ const Roles = () => {
             activeRole
               ? {
                   name: activeRole.name,
-                  permissions: (activeRole.permissions ?? []).map((permission) => ({
-                    name: typeof permission === "string" ? permission : permission?.name ?? ""
-                  }))
+                  permissions: (activeRole.permissions ?? []).map(
+                    (permission) => ({
+                      name:
+                        typeof permission === "string"
+                          ? permission
+                          : (permission?.name ?? "")
+                    })
+                  )
                 }
               : undefined
           }

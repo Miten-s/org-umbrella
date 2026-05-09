@@ -14,7 +14,9 @@ export type ServiceRequest = Omit<ServiceRequestFormOutput, "application"> & {
     | string
     | { _id?: string; service?: string; name?: string }
     | Array<string | { _id?: string; service?: string; name?: string }>;
-  attachments?: string[] | Array<{ _id?: string; attachment?: string; filename?: string }>;
+  attachments?:
+    | string[]
+    | Array<{ _id?: string; attachment?: string; filename?: string }>;
   closedOn?: string;
   closedBy?: string;
   __v?: number;

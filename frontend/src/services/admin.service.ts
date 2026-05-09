@@ -1,10 +1,7 @@
-import { toast } from "@/lib/ToastProvider";
+import { toast } from "@/lib/toast";
 import api from "../utils/axios.interceptor";
 import { RoleType } from "@/utils/common.constants";
-import {
-  ListQueryParams,
-  withDefaultListParams
-} from "@/utils/listResponse";
+import { ListQueryParams, withDefaultListParams } from "@/utils/listResponse";
 
 export const API_ROUTES = {
   login: "/auth/sign-in",
@@ -19,8 +16,7 @@ export const API_ROUTES = {
   locations: "/locations",
   designations: "/designations",
 
-  company: "/company",
-
+  company: "/company"
 };
 
 // #region Auth
@@ -28,17 +24,17 @@ export const API_ROUTES = {
 export const loginUser = async (payload: Record<string, string>) => {
   const response = await api.post(API_ROUTES.login, payload);
   toast(response.data.message, "success");
-  return response["data"]
+  return response["data"];
 };
 
 export const logoutUser = async () => {
   const response = await api.post(API_ROUTES.logout);
-  return response["data"]
+  return response["data"];
 };
 
 export const getUserDetail = async () => {
   const response = await api.get(API_ROUTES.me);
-  return response["data"]
+  return response["data"];
 };
 
 // #endregion
@@ -53,18 +49,27 @@ export const getUsers = async (params?: ListQueryParams) => {
 };
 
 export const createUser = async (payload: Record<string, any> | FormData) => {
-  const response = await api.post(API_ROUTES.users, payload, payload instanceof FormData
-    ? { headers: { "Content-Type": "multipart/form-data" } }
-    : undefined
+  const response = await api.post(
+    API_ROUTES.users,
+    payload,
+    payload instanceof FormData
+      ? { headers: { "Content-Type": "multipart/form-data" } }
+      : undefined
   );
   toast(response.data.message, "success");
   return response["data"];
 };
 
-export const updateUser = async (id: string, payload: Record<string, any> | FormData) => {
-  const response = await api.patch(`${API_ROUTES.users}/${id}`, payload, payload instanceof FormData
-    ? { headers: { "Content-Type": "multipart/form-data" } }
-    : undefined
+export const updateUser = async (
+  id: string,
+  payload: Record<string, any> | FormData
+) => {
+  const response = await api.patch(
+    `${API_ROUTES.users}/${id}`,
+    payload,
+    payload instanceof FormData
+      ? { headers: { "Content-Type": "multipart/form-data" } }
+      : undefined
   );
   toast(response.data.message, "success");
   return response["data"];
@@ -95,13 +100,20 @@ export const getRoles = async (type?: RoleType, params?: ListQueryParams) => {
   return response["data"];
 };
 
-export const createRole = async (payload: { name: string; permissions: string[]; type?: string }) => {
+export const createRole = async (payload: {
+  name: string;
+  permissions: string[];
+  type?: string;
+}) => {
   const response = await api.post(API_ROUTES.roles, payload);
   toast(response.data.message, "success");
   return response["data"];
 };
 
-export const updateRole = async (id: string, payload: { name: string; permissions: string[]; type?: string }) => {
+export const updateRole = async (
+  id: string,
+  payload: { name: string; permissions: string[]; type?: string }
+) => {
   const response = await api.patch(`${API_ROUTES.roles}/${id}`, payload);
   toast(response.data.message, "success");
   return response["data"];
@@ -118,7 +130,10 @@ export const deleteRole = async (
   return response["data"];
 };
 
-export const getPermissions = async (type?: string, params?: ListQueryParams) => {
+export const getPermissions = async (
+  type?: string,
+  params?: ListQueryParams
+) => {
   const response = await api.get(API_ROUTES.permissions, {
     params: withDefaultListParams({
       ...(type ? { type } : {}),
@@ -145,7 +160,10 @@ export const createDepartment = async (payload: Record<string, any>) => {
   return response["data"];
 };
 
-export const updateDepartment = async (id: string, payload: Record<string, any>) => {
+export const updateDepartment = async (
+  id: string,
+  payload: Record<string, any>
+) => {
   const response = await api.patch(`${API_ROUTES.departments}/${id}`, payload);
   toast(response.data.message, "success");
   return response["data"];
@@ -164,7 +182,7 @@ export const deleteDepartment = async (
 
 // #endregion
 
-// #region Location 
+// #region Location
 
 export const getLocations = async (params?: ListQueryParams) => {
   const response = await api.get(API_ROUTES.locations, {
@@ -179,7 +197,10 @@ export const createLocation = async (payload: Record<string, any>) => {
   return response["data"];
 };
 
-export const updateLocation = async (id: string, payload: Record<string, any>) => {
+export const updateLocation = async (
+  id: string,
+  payload: Record<string, any>
+) => {
   const response = await api.patch(`${API_ROUTES.locations}/${id}`, payload);
   toast(response.data.message, "success");
   return response["data"];
@@ -213,7 +234,10 @@ export const createDesignation = async (payload: Record<string, any>) => {
   return response["data"];
 };
 
-export const updateDesignation = async (id: string, payload: Record<string, any>) => {
+export const updateDesignation = async (
+  id: string,
+  payload: Record<string, any>
+) => {
   const response = await api.patch(`${API_ROUTES.designations}/${id}`, payload);
   toast(response.data.message, "success");
   return response["data"];
@@ -241,12 +265,11 @@ export const getCompany = async () => {
 export const updateCompany = async (id: string, payload: FormData) => {
   const response = await api.patch(`${API_ROUTES.company}/${id}`, payload, {
     headers: {
-      "Content-Type": "multipart/form-data",
-    },
+      "Content-Type": "multipart/form-data"
+    }
   });
   toast(response.data.message, "success");
   return response.data;
 };
-
 
 // #endregion

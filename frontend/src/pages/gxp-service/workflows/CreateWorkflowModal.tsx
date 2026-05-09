@@ -35,15 +35,15 @@ const CreateWorkflowModal = ({
     handleSubmit,
     setValue,
     control,
-    formState: { errors },
+    formState: { errors }
   } = useForm<CreateWorkflowForm>({
     resolver: zodResolver(getWorkflowSchema),
     defaultValues: {
       workflowName: initialData?.workflowName || "",
       levels: initialData?.levels?.join(", ") || "",
       description: initialData?.description || "",
-      status: initialData?.status ?? "enabled", // <-- default to enabled
-    },
+      status: initialData?.status ?? "enabled" // <-- default to enabled
+    }
   });
 
   const description = useWatch({ control, name: "description" });
@@ -62,7 +62,7 @@ const CreateWorkflowModal = ({
     const submissionData = {
       ...data,
       levels: levelsArray,
-      numberOfLevels: levelsArray.length,
+      numberOfLevels: levelsArray.length
       // status already in `data.status`
     };
 

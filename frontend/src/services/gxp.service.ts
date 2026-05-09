@@ -1,8 +1,5 @@
-import { toast } from "@/lib/ToastProvider";
-import {
-  ListQueryParams,
-  withDefaultListParams
-} from "@/utils/listResponse";
+import { toast } from "@/lib/toast";
+import { ListQueryParams, withDefaultListParams } from "@/utils/listResponse";
 import gxpApi from "../utils/gxp.axios.interceptor";
 
 const getSuccessMessage = (response: any, fallback: string) =>
@@ -44,7 +41,10 @@ export const getSuppliers = async (
   params?: ListQueryParams
 ) => {
   const response = await gxpApi.get(API_ROUTES.suppliers, {
-    params: buildListParams(params, includeDisabled ? { includeDisabled: true } : {})
+    params: buildListParams(
+      params,
+      includeDisabled ? { includeDisabled: true } : {}
+    )
   });
   return response["data"];
 };
@@ -55,7 +55,10 @@ export const createSupplier = async (payload: Record<string, any>) => {
   return response["data"];
 };
 
-export const updateSupplier = async (id: string, payload: Record<string, any>) => {
+export const updateSupplier = async (
+  id: string,
+  payload: Record<string, any>
+) => {
   const response = await gxpApi.patch(`${API_ROUTES.suppliers}/${id}`, payload);
   toastSuccess(response, "Supplier updated successfully");
   return response["data"];
@@ -115,7 +118,10 @@ export const createWorkflow = async (payload: Record<string, any>) => {
   return response["data"];
 };
 
-export const updateWorkflow = async (id: string, payload: Record<string, any>) => {
+export const updateWorkflow = async (
+  id: string,
+  payload: Record<string, any>
+) => {
   const response = await gxpApi.patch(`${API_ROUTES.workflows}/${id}`, payload);
   toastSuccess(response, "Workflow updated successfully");
   return response["data"];
@@ -136,13 +142,13 @@ export const enableWorkflow = async (id: string) => {
   const response = await gxpApi.patch(`${API_ROUTES.workflows}/enable/${id}`);
   toastSuccess(response, "Workflow enabled successfully");
   return response["data"];
-}
+};
 
 export const disableWorkflow = async (id: string) => {
   const response = await gxpApi.patch(`${API_ROUTES.workflows}/disable/${id}`);
   toastSuccess(response, "Workflow disabled successfully");
   return response["data"];
-}
+};
 
 // #endregion
 
@@ -153,7 +159,10 @@ export const getAssignmentGroups = async (
   params?: ListQueryParams
 ) => {
   const response = await gxpApi.get(API_ROUTES.assignmentGroups, {
-    params: buildListParams(params, includeInactive ? { includeInactive: true } : {})
+    params: buildListParams(
+      params,
+      includeInactive ? { includeInactive: true } : {}
+    )
   });
   return response["data"];
 };
@@ -164,8 +173,14 @@ export const createAssignmentGroup = async (payload: Record<string, any>) => {
   return response["data"];
 };
 
-export const updateAssignmentGroup = async (id: string, payload: Record<string, any>) => {
-  const response = await gxpApi.patch(`${API_ROUTES.assignmentGroups}/${id}`, payload);
+export const updateAssignmentGroup = async (
+  id: string,
+  payload: Record<string, any>
+) => {
+  const response = await gxpApi.patch(
+    `${API_ROUTES.assignmentGroups}/${id}`,
+    payload
+  );
   toastSuccess(response, "Assignment group updated successfully");
   return response["data"];
 };
@@ -182,13 +197,17 @@ export const deleteAssignmentGroup = async (
 };
 
 export const enableAssignmentGroup = async (groupName: string) => {
-  const response = await gxpApi.patch(`${API_ROUTES.assignmentGroups}/enable/${groupName}`);
+  const response = await gxpApi.patch(
+    `${API_ROUTES.assignmentGroups}/enable/${groupName}`
+  );
   toastSuccess(response, "Assignment group enabled successfully");
   return response["data"];
 };
 
 export const disableAssignmentGroup = async (groupName: string) => {
-  const response = await gxpApi.patch(`${API_ROUTES.assignmentGroups}/disable/${groupName}`);
+  const response = await gxpApi.patch(
+    `${API_ROUTES.assignmentGroups}/disable/${groupName}`
+  );
   toastSuccess(response, "Assignment group disabled successfully");
   return response["data"];
 };
@@ -202,7 +221,10 @@ export const getEnvironments = async (
   params?: ListQueryParams
 ) => {
   const response = await gxpApi.get(API_ROUTES.environments, {
-    params: buildListParams(params, includeDisabled ? { includeDisabled: true } : {})
+    params: buildListParams(
+      params,
+      includeDisabled ? { includeDisabled: true } : {}
+    )
   });
   return response["data"];
 };
@@ -213,8 +235,14 @@ export const createEnvironment = async (payload: Record<string, any>) => {
   return response["data"];
 };
 
-export const updateEnvironment = async (id: string, payload: Record<string, any>) => {
-  const response = await gxpApi.patch(`${API_ROUTES.environments}/${id}`, payload);
+export const updateEnvironment = async (
+  id: string,
+  payload: Record<string, any>
+) => {
+  const response = await gxpApi.patch(
+    `${API_ROUTES.environments}/${id}`,
+    payload
+  );
   toastSuccess(response, "Environment updated successfully");
   return response["data"];
 };
@@ -231,17 +259,20 @@ export const deleteEnvironment = async (
 };
 
 export const enableEnvironment = async (id: string) => {
-  const response = await gxpApi.patch(`${API_ROUTES.environments}/enable/${id}`);
+  const response = await gxpApi.patch(
+    `${API_ROUTES.environments}/enable/${id}`
+  );
   toastSuccess(response, "Environment enabled successfully");
   return response["data"];
 };
 
 export const disableEnvironment = async (id: string) => {
-  const response = await gxpApi.patch(`${API_ROUTES.environments}/disable/${id}`);
+  const response = await gxpApi.patch(
+    `${API_ROUTES.environments}/disable/${id}`
+  );
   toastSuccess(response, "Environment disabled successfully");
   return response["data"];
 };
-
 
 // #region GXP-Application-Software
 export const getApplicationSoftware = async (
@@ -249,21 +280,35 @@ export const getApplicationSoftware = async (
   params?: ListQueryParams
 ) => {
   const response = await gxpApi.get(API_ROUTES.gxpApplicationSoftware, {
-    params: buildListParams(params, includeDisabled ? { includeDisabled: true } : {})
+    params: buildListParams(
+      params,
+      includeDisabled ? { includeDisabled: true } : {}
+    )
   });
   return response["data"];
 };
 
 // Create new Application Software record
-export const createApplicationSoftware = async (payload: Record<string, any>) => {
-  const response = await gxpApi.post(API_ROUTES.gxpApplicationSoftware, payload);
+export const createApplicationSoftware = async (
+  payload: Record<string, any>
+) => {
+  const response = await gxpApi.post(
+    API_ROUTES.gxpApplicationSoftware,
+    payload
+  );
   toastSuccess(response, "Application software created successfully");
   return response["data"];
 };
 
 // Update existing Application Software record
-export const updateApplicationSoftware = async (id: string, payload: Record<string, any>) => {
-  const response = await gxpApi.patch(`${API_ROUTES.gxpApplicationSoftware}/${id}`, payload);
+export const updateApplicationSoftware = async (
+  id: string,
+  payload: Record<string, any>
+) => {
+  const response = await gxpApi.patch(
+    `${API_ROUTES.gxpApplicationSoftware}/${id}`,
+    payload
+  );
   toastSuccess(response, "Application software updated successfully");
   return response["data"];
 };
@@ -273,7 +318,9 @@ export const deleteApplicationSoftware = async (
   id: string,
   options?: { silent?: boolean }
 ) => {
-  const response = await gxpApi.delete(`${API_ROUTES.gxpApplicationSoftware}/${id}`);
+  const response = await gxpApi.delete(
+    `${API_ROUTES.gxpApplicationSoftware}/${id}`
+  );
   if (!options?.silent) {
     toastSuccess(response, "Application software deleted successfully");
   }
@@ -301,7 +348,6 @@ export const disableApplicationSoftware = async (id: string) => {
 };
 // #endregion
 
-
 // #endregion
 
 // #region Raise-Application
@@ -310,7 +356,10 @@ export const getApplications = async (
   params?: ListQueryParams
 ) => {
   const response = await gxpApi.get(API_ROUTES.gxpApplications, {
-    params: buildListParams(params, includeDisabled ? { includeDisabled: true } : {})
+    params: buildListParams(
+      params,
+      includeDisabled ? { includeDisabled: true } : {}
+    )
   });
   return response["data"];
 };
@@ -320,7 +369,10 @@ export const getApplicationById = async (id: string) => {
   return response["data"];
 };
 
-const buildApplicationFormData = (payload: Record<string, any>, files?: File[]) => {
+const buildApplicationFormData = (
+  payload: Record<string, any>,
+  files?: File[]
+) => {
   const formData = new FormData();
   formData.append("data", JSON.stringify(payload));
   (files || []).forEach((file) => formData.append("attachments", file));
@@ -369,7 +421,9 @@ export const duplicateApplication = async (
   id: string,
   options?: { silent?: boolean }
 ) => {
-  const response = await gxpApi.post(`${API_ROUTES.gxpApplications}/${id}/duplicate`);
+  const response = await gxpApi.post(
+    `${API_ROUTES.gxpApplications}/${id}/duplicate`
+  );
   if (!options?.silent) {
     toastSuccess(response, "Application duplicated successfully");
   }
@@ -377,13 +431,17 @@ export const duplicateApplication = async (
 };
 
 export const enableApplication = async (id: string) => {
-  const response = await gxpApi.patch(`${API_ROUTES.gxpApplications}/enable/${id}`);
+  const response = await gxpApi.patch(
+    `${API_ROUTES.gxpApplications}/enable/${id}`
+  );
   toastSuccess(response, "Application enabled successfully");
   return response["data"];
 };
 
 export const disableApplication = async (id: string) => {
-  const response = await gxpApi.patch(`${API_ROUTES.gxpApplications}/disable/${id}`);
+  const response = await gxpApi.patch(
+    `${API_ROUTES.gxpApplications}/disable/${id}`
+  );
   toastSuccess(response, "Application disabled successfully");
   return response["data"];
 };
@@ -405,8 +463,14 @@ export const createGxpPermission = async (payload: Record<string, any>) => {
   return response["data"];
 };
 
-export const updateGxpPermission = async (id: string, payload: Record<string, any>) => {
-  const response = await gxpApi.patch(`${API_ROUTES.gxpPermissions}/${id}`, payload);
+export const updateGxpPermission = async (
+  id: string,
+  payload: Record<string, any>
+) => {
+  const response = await gxpApi.patch(
+    `${API_ROUTES.gxpPermissions}/${id}`,
+    payload
+  );
   toastSuccess(response, "Permission updated successfully");
   return response["data"];
 };
@@ -439,7 +503,10 @@ export const createGxpRole = async (payload: Record<string, any>) => {
   return response["data"];
 };
 
-export const updateGxpRole = async (id: string, payload: Record<string, any>) => {
+export const updateGxpRole = async (
+  id: string,
+  payload: Record<string, any>
+) => {
   const response = await gxpApi.patch(`${API_ROUTES.gxpRoles}/${id}`, payload);
   toastSuccess(response, "Role updated successfully");
   return response["data"];
@@ -459,37 +526,57 @@ export const getApplicationServices = async (
   params?: ListQueryParams
 ) => {
   const response = await gxpApi.get(API_ROUTES.gxpApplicationServices, {
-    params: buildListParams(params, includeDisabled ? { includeDisabled: true } : {})
+    params: buildListParams(
+      params,
+      includeDisabled ? { includeDisabled: true } : {}
+    )
   });
   return response["data"];
 };
 
-export const createApplicationService = async (payload: Record<string, any>) => {
-  const response = await gxpApi.post(API_ROUTES.gxpApplicationServices, payload);
+export const createApplicationService = async (
+  payload: Record<string, any>
+) => {
+  const response = await gxpApi.post(
+    API_ROUTES.gxpApplicationServices,
+    payload
+  );
   toastSuccess(response, "Application service created successfully");
   return response["data"];
 };
 
-export const updateApplicationService = async (id: string, payload: Record<string, any>) => {
-  const response = await gxpApi.patch(`${API_ROUTES.gxpApplicationServices}/${id}`, payload);
+export const updateApplicationService = async (
+  id: string,
+  payload: Record<string, any>
+) => {
+  const response = await gxpApi.patch(
+    `${API_ROUTES.gxpApplicationServices}/${id}`,
+    payload
+  );
   toastSuccess(response, "Application service updated successfully");
   return response["data"];
 };
 
 export const deleteApplicationService = async (id: string) => {
-  const response = await gxpApi.delete(`${API_ROUTES.gxpApplicationServices}/${id}`);
+  const response = await gxpApi.delete(
+    `${API_ROUTES.gxpApplicationServices}/${id}`
+  );
   toastSuccess(response, "Application service deleted successfully");
   return response["data"];
 };
 
 export const enableApplicationService = async (id: string) => {
-  const response = await gxpApi.patch(`${API_ROUTES.gxpApplicationServices}/enable/${id}`);
+  const response = await gxpApi.patch(
+    `${API_ROUTES.gxpApplicationServices}/enable/${id}`
+  );
   toastSuccess(response, "Application service enabled successfully");
   return response["data"];
 };
 
 export const disableApplicationService = async (id: string) => {
-  const response = await gxpApi.patch(`${API_ROUTES.gxpApplicationServices}/disable/${id}`);
+  const response = await gxpApi.patch(
+    `${API_ROUTES.gxpApplicationServices}/disable/${id}`
+  );
   toastSuccess(response, "Application service disabled successfully");
   return response["data"];
 };
@@ -508,7 +595,10 @@ export const getServiceRequestById = async (id: string) => {
   return response["data"];
 };
 
-const buildServiceRequestFormData = (payload: Record<string, any>, files?: File[]) => {
+const buildServiceRequestFormData = (
+  payload: Record<string, any>,
+  files?: File[]
+) => {
   const formData = new FormData();
   formData.append("data", JSON.stringify(payload));
   (files || []).forEach((file) => formData.append("attachments", file));
@@ -554,7 +644,9 @@ export const deleteServiceRequest = async (
   id: string,
   options?: { silent?: boolean }
 ) => {
-  const response = await gxpApi.delete(`${API_ROUTES.gxpServiceRequests}/${id}`);
+  const response = await gxpApi.delete(
+    `${API_ROUTES.gxpServiceRequests}/${id}`
+  );
   if (!options?.silent) {
     toastSuccess(response, "Service request deleted successfully");
   }
@@ -583,7 +675,10 @@ export const getGxpUsers = async (
   params?: ListQueryParams
 ) => {
   const response = await gxpApi.get(API_ROUTES.gxpUsers, {
-    params: buildListParams(params, includeDisabled ? { includeDisabled: true } : {})
+    params: buildListParams(
+      params,
+      includeDisabled ? { includeDisabled: true } : {}
+    )
   });
   return response["data"];
 };
@@ -594,7 +689,10 @@ export const createGxpUser = async (payload: Record<string, any>) => {
   return response["data"];
 };
 
-export const updateGxpUser = async (id: string, payload: Record<string, any>) => {
+export const updateGxpUser = async (
+  id: string,
+  payload: Record<string, any>
+) => {
   const response = await gxpApi.patch(`${API_ROUTES.gxpUsers}/${id}`, payload);
   toastSuccess(response, "User updated successfully");
   return response["data"];

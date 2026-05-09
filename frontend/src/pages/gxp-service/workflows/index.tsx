@@ -9,7 +9,7 @@ import { Modal } from "@/components/ui/modal";
 import { useGlobalContext } from "@/context";
 import { useModal } from "@/hooks/useModal";
 import { useServerPagination } from "@/hooks/useServerPagination";
-import { toast } from "@/lib/ToastProvider";
+import { toast } from "@/lib/toast";
 import {
   CheckLineIcon,
   CopyIcon,
@@ -29,7 +29,7 @@ import {
 import { Workflow } from "@/types/common.types";
 import { GXP_PERMISSIONS } from "@/utils/permissions";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import CreateWorkflowModal from "./CreateWorkflowModal";
 
@@ -125,30 +125,35 @@ const Workflows = () => {
     }
   };
 
-  const handleStatusChange = async (workflow: Workflow) => {
-    const nextStatus = workflow.status === "enabled" ? "disabled" : "enabled";
+  const handleStatusChange = useCallback(
+    async (workflow: Workflow) => {
+      const nextStatus = workflow.status === "enabled" ? "disabled" : "enabled";
 
-    setWorkflows((prev) =>
-      prev.map((item) =>
-        item._id === workflow._id ? { ...item, status: nextStatus } : item
-      )
-    );
-
-    try {
-      if (nextStatus === "enabled") {
-        await enableWorkflow(workflow._id);
-      } else {
-        await disableWorkflow(workflow._id);
-      }
-    } catch (error) {
-      console.error("Workflow status update failed:", error);
       setWorkflows((prev) =>
         prev.map((item) =>
-          item._id === workflow._id ? { ...item, status: workflow.status } : item
+          item._id === workflow._id ? { ...item, status: nextStatus } : item
         )
       );
-    }
-  };
+
+      try {
+        if (nextStatus === "enabled") {
+          await enableWorkflow(workflow._id);
+        } else {
+          await disableWorkflow(workflow._id);
+        }
+      } catch (error) {
+        console.error("Workflow status update failed:", error);
+        setWorkflows((prev) =>
+          prev.map((item) =>
+            item._id === workflow._id
+              ? { ...item, status: workflow.status }
+              : item
+          )
+        );
+      }
+    },
+    [setWorkflows]
+  );
 
   const handleDeleteConfirmed = async () => {
     if (!pendingDeleteWorkflows.length) {
@@ -179,7 +184,10 @@ const Workflows = () => {
           "error"
         );
       } else {
-        toast("Failed to delete selected workflows. Please try again.", "error");
+        toast(
+          "Failed to delete selected workflows. Please try again.",
+          "error"
+        );
       }
 
       setPendingDeleteWorkflows([]);
@@ -311,7 +319,8 @@ const Workflows = () => {
         headerName: t("numberOfLevels"),
         minWidth: 140,
         maxWidth: 170,
-        valueGetter: ({ data }) => data?.numberOfLevels ?? data?.levels?.length ?? 0,
+        valueGetter: ({ data }) =>
+          data?.numberOfLevels ?? data?.levels?.length ?? 0,
         cellRenderer: (params: ICellRendererParams<Workflow>) => (
           <div className="py-1.5 text-sm text-gray-600 dark:text-gray-300">
             {params.value}
@@ -340,7 +349,7 @@ const Workflows = () => {
         }
       }
     ],
-    [t]
+    [handleStatusChange, t]
   );
 
   return (

@@ -27,7 +27,7 @@ interface UseServerPaginationOptions<T> {
 const EMPTY_DATA_KEYS: string[] = [];
 const EMPTY_DEPENDENCIES: DependencyList = [];
 
-export const useServerPagination = <T,>({
+export const useServerPagination = <T>({
   fetchPage,
   dataKeys = EMPTY_DATA_KEYS,
   dependencies = EMPTY_DEPENDENCIES,
@@ -39,6 +39,9 @@ export const useServerPagination = <T,>({
   const mapItemsRef = useRef(mapItems);
   const dataKeysRef = useRef(dataKeys);
   const dataKeysKey = dataKeys.join("|");
+  const dependenciesKey = dependencies
+    .map((dependency) => String(dependency))
+    .join("|");
   const [rows, setRows] = useState<T[]>([]);
   const [pagination, setPagination] = useState<PaginationMetadata>({
     totalCount: 0,
@@ -113,7 +116,15 @@ export const useServerPagination = <T,>({
     return () => {
       cancelled = true;
     };
-  }, [dataKeysKey, errorMessage, page, pageSize, refreshToken, searchTerm, ...dependencies]);
+  }, [
+    dataKeysKey,
+    dependenciesKey,
+    errorMessage,
+    page,
+    pageSize,
+    refreshToken,
+    searchTerm
+  ]);
 
   const handleSearchChange = useCallback((value: string) => {
     setPage(1);

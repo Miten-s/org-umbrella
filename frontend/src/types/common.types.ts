@@ -6,7 +6,56 @@ export type Permission = {
   updatedAt: string;
   isDeleted: boolean;
   deletedAt: string | null;
-}
+};
+
+export type UserRolePermission = {
+  _id?: string;
+  name: string;
+};
+
+export type UserRole = {
+  _id?: string;
+  name: string;
+  permissions?: UserRolePermission[];
+};
+
+export type UserEntityReference = {
+  _id?: string;
+  departmentName?: string;
+  designationName?: string;
+  locationName?: string;
+  name?: string;
+  [key: string]: unknown;
+};
+
+export type AuthenticatedUser = {
+  _id?: string;
+  id?: string;
+  name?: string;
+  email?: string;
+  fullName?: string;
+  phone?: string;
+  status?: string;
+  userType?: string;
+  lastLogin?: string | number | Date;
+  createdAt?: string | number | Date;
+  currentLanguage?: SupportedLanguages | string;
+  department?: UserEntityReference;
+  designation?: UserEntityReference;
+  location?: UserEntityReference;
+  modifiable?: boolean;
+  trainingCompleted?: boolean;
+  roles?: UserRole[];
+  [key: string]: unknown;
+};
+
+export type CurrentCompany = {
+  _id?: string;
+  name?: string;
+  description?: string;
+  logo?: string;
+  [key: string]: unknown;
+};
 
 export type OptionalTranslations = {
   [K in SupportedLanguages]?: string;
@@ -15,34 +64,36 @@ export type OptionalTranslations = {
 // frontend enum must be in this order because of component to set
 // default languages in admin panel
 export enum SupportedLanguages {
-  'en' = 'en',
-  'ar' = 'ar',
-  'de' = 'de',
-  'es' = 'es',
-  'fr' = 'fr',
-  'he' = 'he',
-  'it' = 'it',
-  'hi' = 'hi',
-  'gu' = 'gu',
-  'ta' = 'ta',
-  'te' = 'te',
-  'mr' = 'mr',
+  "en" = "en",
+  "ar" = "ar",
+  "de" = "de",
+  "es" = "es",
+  "fr" = "fr",
+  "he" = "he",
+  "it" = "it",
+  "hi" = "hi",
+  "gu" = "gu",
+  "ta" = "ta",
+  "te" = "te",
+  "mr" = "mr"
 }
 
 export const applicationTypeOptions = [
   { label: "GxP", value: "GxP" },
-  { label: "Non-GxP", value: "Non-GxP" },
+  { label: "Non-GxP", value: "Non-GxP" }
 ];
 
 export enum ApplicationRole {
   User = "User",
-  Resolver = "Resolver",
+  Resolver = "Resolver"
 }
 
-export const applicationRoleOptions = Object.values(ApplicationRole).map((label) => ({
-  label,
-  value: label,
-}));
+export const applicationRoleOptions = Object.values(ApplicationRole).map(
+  (label) => ({
+    label,
+    value: label
+  })
+);
 
 export enum ApplicationServiceRequestType {
   ProvideAccess = "Provide Access",
@@ -52,12 +103,12 @@ export enum ApplicationServiceRequestType {
   AddMasterDataRequest = "Add Master Data Request",
   EditMasterDataRequest = "Edit Master Data Request",
   RemoveMasterDataRequest = "Remove Master Data Request",
-  OtherRequest = "Other Request",
+  OtherRequest = "Other Request"
 }
 
-export const applicationServiceRequestTypeOptions = Object.values(ApplicationServiceRequestType).map(
-  (label) => ({ label, value: label })
-);
+export const applicationServiceRequestTypeOptions = Object.values(
+  ApplicationServiceRequestType
+).map((label) => ({ label, value: label }));
 
 export interface Designation {
   _id: string;
@@ -71,7 +122,6 @@ export interface Designation {
   updatedAt?: string;
 }
 
-
 export interface Location {
   _id: string;
   locationName: string;
@@ -81,8 +131,6 @@ export interface Location {
   updatedBy?: string;
   updatedAt?: string;
 }
-
-
 
 export interface Department {
   _id: string;
@@ -96,8 +144,6 @@ export interface Department {
   updatedBy?: string;
   updatedAt?: string;
 }
-
-
 
 export interface Company {
   _id: string;
@@ -123,7 +169,6 @@ export interface Workflow {
   description?: string;
   status: "enabled" | "disabled";
   assignmentGroupId?: string;
-
 }
 
 export interface AssignmentGroup {

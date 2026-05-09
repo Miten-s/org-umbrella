@@ -23,7 +23,7 @@ const CreateGxpPermissionModal = ({
   onClose,
   onSubmit,
   initialData,
-  mode = "create",
+  mode = "create"
 }: CreateGxpPermissionModalProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
@@ -33,13 +33,13 @@ const CreateGxpPermissionModal = ({
     handleSubmit,
     setValue,
     control,
-    formState: { errors },
+    formState: { errors }
   } = useForm<CreateGxpPermissionForm>({
     resolver: zodResolver(getGxpPermissionSchema),
     defaultValues: {
       permissionName: initialData?.permissionName || "",
-      description: initialData?.description || "",
-    },
+      description: initialData?.description || ""
+    }
   });
 
   const description = useWatch({ control, name: "description" });
@@ -50,7 +50,9 @@ const CreateGxpPermissionModal = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("gxpPermissions") })
-            : t(initialData ? "edit" : "create", { entity: t("gxpPermissions") })}
+            : t(initialData ? "edit" : "create", {
+                entity: t("gxpPermissions")
+              })}
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

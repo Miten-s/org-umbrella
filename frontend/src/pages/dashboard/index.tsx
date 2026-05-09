@@ -39,7 +39,7 @@ const modules = [
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { currentCompany } = useAuth()
+  const { currentCompany } = useAuth();
   const companyLogoUrl = getImageUrl(currentCompany?.logo);
   return (
     <div className="flex flex-col gap-4">
@@ -79,12 +79,13 @@ const Dashboard = () => {
                 {mod.title}
               </h2>
             </div>
-            <p className="text-gray-600 dark:text-gray-300">{mod.description}</p>
+            <p className="text-gray-600 dark:text-gray-300">
+              {mod.description}
+            </p>
           </div>
         ))}
       </div>
     </div>
-
   );
 };
 

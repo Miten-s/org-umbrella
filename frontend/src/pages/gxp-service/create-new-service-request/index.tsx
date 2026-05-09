@@ -8,7 +8,7 @@ import { Modal } from "@/components/ui/modal";
 import { useGlobalContext } from "@/context";
 import { useModal } from "@/hooks/useModal";
 import { useServerPagination } from "@/hooks/useServerPagination";
-import { toast } from "@/lib/ToastProvider";
+import { toast } from "@/lib/toast";
 import {
   CheckLineIcon,
   CopyIcon,
@@ -29,7 +29,7 @@ import { ServiceRequestFormOutput } from "@/lib/schema";
 import { ServiceRequest } from "@/types/gxp-service.types";
 import { GXP_PERMISSIONS } from "@/utils/permissions";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import CreateServiceRequestModal from "./CreateServiceRequestModal";
 
@@ -65,7 +65,7 @@ const normalizeServiceRequest = (request: any): ServiceRequest => {
                 ? [rawRequestTypes]
                 : [])
         }
-      : request?.application ?? "";
+      : (request?.application ?? "");
 
   return {
     _id: request?._id ?? "",
@@ -77,10 +77,12 @@ const normalizeServiceRequest = (request: any): ServiceRequest => {
     description: request?.description ?? "",
     shortDescription: request?.shortDescription ?? "",
     requestType: request?.requestType ?? "Applications",
-    applicationEnvironment: request?.environment ?? request?.applicationEnvironment ?? "",
+    applicationEnvironment:
+      request?.environment ?? request?.applicationEnvironment ?? "",
     assignmentGroup: request?.assignmentGroup ?? request?.group ?? "",
     groupLocation: request?.location ?? request?.groupLocation ?? "",
-    applicationWorkflow: request?.applicationWorkflow ?? request?.workflow ?? "",
+    applicationWorkflow:
+      request?.applicationWorkflow ?? request?.workflow ?? "",
     applicationModules: request?.applicationModules ?? request?.modules ?? [],
     applicationServiceRequestTypes: (() => {
       const serviceValue =
@@ -98,7 +100,9 @@ const normalizeServiceRequest = (request: any): ServiceRequest => {
     })(),
     requestTypes: rawRequestTypes,
     applicationRoles: request?.roles ?? request?.applicationRoles ?? [],
-    notes: Array.isArray(request?.notes) ? request.notes.join("\n") : (request?.notes ?? ""),
+    notes: Array.isArray(request?.notes)
+      ? request.notes.join("\n")
+      : (request?.notes ?? ""),
     status: request?.status ?? "New",
     comments: request?.comments ?? [],
     attachments: request?.attachments ?? [],
@@ -108,7 +112,11 @@ const normalizeServiceRequest = (request: any): ServiceRequest => {
   };
 };
 
-const nameLookup = (items: any[], nameKey: string, valueKey: string = "_id"): Lookup =>
+const nameLookup = (
+  items: any[],
+  nameKey: string,
+  valueKey: string = "_id"
+): Lookup =>
   items.reduce((acc: Lookup, item: any) => {
     const value = item?.[valueKey];
     const label = item?.[nameKey] ?? item?.name ?? value;
@@ -194,11 +202,15 @@ const GXPCreateNewServiceRequestPage = () => {
   });
   const serviceRequests = paginatedServiceRequests.rows;
   const [applications, setApplications] = useState<any[]>([]);
-  const [activeRequest, setActiveRequest] = useState<ServiceRequest | null>(null);
+  const [activeRequest, setActiveRequest] = useState<ServiceRequest | null>(
+    null
+  );
   const [requestModalMode, setRequestModalMode] =
     useState<ServiceRequestModalMode>("create");
   const [isLoadingActive, setIsLoadingActive] = useState(false);
-  const [pendingDeleteRequests, setPendingDeleteRequests] = useState<ServiceRequest[]>([]);
+  const [pendingDeleteRequests, setPendingDeleteRequests] = useState<
+    ServiceRequest[]
+  >([]);
 
   const applicationLookup = useMemo(
     () => nameLookup(applications, "applicationName", "_id"),
@@ -224,29 +236,33 @@ const GXPCreateNewServiceRequestPage = () => {
     void fetchData();
   }, [reFetch]);
 
-  const handleOpenRequestModal = async (
-    requestId: string,
-    mode: ServiceRequestModalMode
-  ) => {
-    setIsLoadingActive(true);
-    try {
-      const full = await getServiceRequestById(requestId);
-      setActiveRequest(normalizeServiceRequest(full));
-      setRequestModalMode(mode);
-      openModal();
-    } catch (error) {
-      console.error("Failed to load service request details", error);
-      toast("Failed to load service request details. Please try again.", "error");
-    } finally {
-      setIsLoadingActive(false);
-    }
-  };
+  const handleOpenRequestModal = useCallback(
+    async (requestId: string, mode: ServiceRequestModalMode) => {
+      setIsLoadingActive(true);
+      try {
+        const full = await getServiceRequestById(requestId);
+        setActiveRequest(normalizeServiceRequest(full));
+        setRequestModalMode(mode);
+        openModal();
+      } catch (error) {
+        console.error("Failed to load service request details", error);
+        toast(
+          "Failed to load service request details. Please try again.",
+          "error"
+        );
+      } finally {
+        setIsLoadingActive(false);
+      }
+    },
+    [openModal]
+  );
 
   const toServiceRequestPayload = (
     data: ServiceRequestFormOutput,
     existingAttachmentIds: string[]
   ) => {
-    const selectedServiceType = data.applicationServiceRequestTypes?.trim() || "";
+    const selectedServiceType =
+      data.applicationServiceRequestTypes?.trim() || "";
 
     return {
       priority: data.priority,
@@ -319,14 +335,20 @@ const GXPCreateNewServiceRequestPage = () => {
           "error"
         );
       } else {
-        toast("Failed to delete selected service requests. Please try again.", "error");
+        toast(
+          "Failed to delete selected service requests. Please try again.",
+          "error"
+        );
       }
 
       setPendingDeleteRequests([]);
       setReFetch(!reFetch);
     } catch (error) {
       console.error("Error deleting service requests:", error);
-      toast("Failed to delete selected service requests. Please try again.", "error");
+      toast(
+        "Failed to delete selected service requests. Please try again.",
+        "error"
+      );
     }
   };
 
@@ -355,7 +377,9 @@ const GXPCreateNewServiceRequestPage = () => {
       {
         key: "copy-selected",
         label: (selectedRows) =>
-          selectedRows.length > 1 ? "Copy service requests" : "Copy service request",
+          selectedRows.length > 1
+            ? "Copy service requests"
+            : "Copy service request",
         icon: CopyIcon,
         variant: "outline",
         onClick: (selectedRows) =>
@@ -364,7 +388,9 @@ const GXPCreateNewServiceRequestPage = () => {
       {
         key: "delete-selected",
         label: (selectedRows) =>
-          selectedRows.length > 1 ? "Delete service requests" : "Delete service request",
+          selectedRows.length > 1
+            ? "Delete service requests"
+            : "Delete service request",
         icon: TrashBinIcon,
         permission: GXP_PERMISSIONS.DELETE_SERVICE_REQUEST,
         variant: "destructive",
@@ -416,7 +442,7 @@ const GXPCreateNewServiceRequestPage = () => {
         onClick: (request) => setPendingDeleteRequests([request])
       }
     ],
-    [applicationLookup, isLoadingActive]
+    [applicationLookup, handleOpenRequestModal, isLoadingActive]
   );
 
   const columnDefs = useMemo<ColDef<ServiceRequest>[]>(
@@ -430,7 +456,8 @@ const GXPCreateNewServiceRequestPage = () => {
           const data = params.data;
           if (!data) return null;
 
-          const identity = data.serviceRequestId || data.shortDescription || "Request";
+          const identity =
+            data.serviceRequestId || data.shortDescription || "Request";
 
           return (
             <div className="flex items-center gap-3 py-1.5">
@@ -464,7 +491,11 @@ const GXPCreateNewServiceRequestPage = () => {
           formatValue(data?.application, applicationLookup, "applicationName"),
         cellRenderer: (params: ICellRendererParams<ServiceRequest>) => (
           <div className="line-clamp-2 py-1.5 text-sm text-gray-600 dark:text-gray-300">
-            {formatValue(params.data?.application, applicationLookup, "applicationName")}
+            {formatValue(
+              params.data?.application,
+              applicationLookup,
+              "applicationName"
+            )}
           </div>
         )
       },
@@ -524,7 +555,11 @@ const GXPCreateNewServiceRequestPage = () => {
             [
               request.serviceRequestId,
               request.shortDescription,
-              formatValue(request.application, applicationLookup, "applicationName"),
+              formatValue(
+                request.application,
+                applicationLookup,
+                "applicationName"
+              ),
               request.priority,
               request.status
             ]

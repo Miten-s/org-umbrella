@@ -11,13 +11,31 @@ import Input from "@/components/common/form/input/InputField";
 import Label from "@/components/common/form/Label";
 import { Controller } from "react-hook-form";
 import Switch from "@/components/common/form/switch/Switch";
+import type { ReactNode } from "react";
+
+type UserInfoFormValues = {
+  name: string;
+  status: boolean;
+  phone: string;
+  department: string;
+  designation: string;
+  location: string;
+  modifiable: boolean;
+  trainingCompleted: boolean;
+};
+
+const formatDateTime = (value?: string | number | Date) =>
+  value ? new Date(value).toLocaleString() : "-";
 
 export default function UserInfoCard() {
   const { isOpen, closeModal } = useModal();
   const { user } = useAuth();
   const { t } = useTranslation();
-  const { setReFetch, reFetch } = useGlobalContext();;
-  const { register, handleSubmit, control } = useForm({
+  const { setReFetch, reFetch } = useGlobalContext();
+  const isSuperAdmin = user.roles?.some((role) =>
+    role.permissions?.some((permission) => permission.name === "OPERATE:ALL")
+  );
+  const { register, handleSubmit, control } = useForm<UserInfoFormValues>({
     defaultValues: {
       name: user?.name || "",
       status: user?.status === "active",
@@ -26,24 +44,27 @@ export default function UserInfoCard() {
       designation: user?.designation?._id || "",
       location: user?.location?._id || "",
       modifiable: user?.modifiable || false,
-      trainingCompleted: user?.trainingCompleted || false,
-    },
+      trainingCompleted: user?.trainingCompleted || false
+    }
   });
 
-  const handleSave = async (data: any) => {
+  const handleSave = async (data: UserInfoFormValues) => {
+    if (!user._id) {
+      return;
+    }
+
     try {
       const payload = {
         ...data,
-        status: data.status ? "active" : "disabled",
+        status: data.status ? "active" : "disabled"
       };
-      await updateUser(user?._id, payload);
+      await updateUser(user._id, payload);
       setReFetch(!reFetch);
       closeModal();
     } catch (error) {
-      console.error('Error saving user:', error);
+      console.error("Error saving user:", error);
     }
   };
-
 
   return (
     <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
@@ -54,33 +75,41 @@ export default function UserInfoCard() {
             Personal Information
           </h4>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
-            <Info label="Name" value={user?.name} />
-            <Info label="Email" value={user?.email} />
+            <Info label="Name" value={user?.name ?? "-"} />
+            <Info label="Email" value={user?.email ?? "-"} />
             <Info
               label="Role"
-              value={
-                user?.roles?.some((role: any) =>
-                  role.permissions?.some((perm: any) => perm.name === "OPERATE:ALL")
-                )
-                  ? "Super Admin"
-                  : user?.userType
-              }
+              value={isSuperAdmin ? "Super Admin" : (user?.userType ?? "-")}
             />
-            <Info label="Status" value={user?.status} />
-            <Info label="Last Login" value={new Date(user?.lastLogin).toLocaleString()} />
-            <Info label="Created At" value={new Date(user?.createdAt).toLocaleString()} />
+            <Info label="Status" value={user?.status ?? "-"} />
+            <Info label="Last Login" value={formatDateTime(user?.lastLogin)} />
+            <Info label="Created At" value={formatDateTime(user?.createdAt)} />
 
-            {user?.userType === "User" && !(user?.roles?.some((role: any) =>
-              role.permissions?.some((perm: any) => perm.name === "OPERATE:ALL"))) && (
-                <>
-                  <Info label="Phone" value={user?.phone} />
-                  <Info label="Department" value={user?.department?.departmentName} />
-                  <Info label="Designation" value={user?.designation?.designationName} />
-                  <Info label="Location" value={user?.location?.locationName} />
-                  <Info label="Modifiable" value={user?.modifiable ? "Yes" : "No"} />
-                  <Info label="Training Completed" value={user?.trainingCompleted ? "Yes" : "No"} />
-                </>
-              )}
+            {user?.userType === "User" && !isSuperAdmin && (
+              <>
+                <Info label="Phone" value={user?.phone ?? "-"} />
+                <Info
+                  label="Department"
+                  value={user?.department?.departmentName ?? "-"}
+                />
+                <Info
+                  label="Designation"
+                  value={user?.designation?.designationName ?? "-"}
+                />
+                <Info
+                  label="Location"
+                  value={user?.location?.locationName ?? "-"}
+                />
+                <Info
+                  label="Modifiable"
+                  value={user?.modifiable ? "Yes" : "No"}
+                />
+                <Info
+                  label="Training Completed"
+                  value={user?.trainingCompleted ? "Yes" : "No"}
+                />
+              </>
+            )}
           </div>
         </div>
 
@@ -155,11 +184,7 @@ export default function UserInfoCard() {
                       name="modifiable"
                       control={control}
                       render={({ field: { value, onChange } }) => (
-                        <Switch
-                          label=""
-                          checked={value}
-                          onChange={onChange}
-                        />
+                        <Switch label="" checked={value} onChange={onChange} />
                       )}
                     />
                   </div>
@@ -169,11 +194,7 @@ export default function UserInfoCard() {
                       name="trainingCompleted"
                       control={control}
                       render={({ field: { value, onChange } }) => (
-                        <Switch
-                          label=""
-                          checked={value}
-                          onChange={onChange}
-                        />
+                        <Switch label="" checked={value} onChange={onChange} />
                       )}
                     />
                   </div>
@@ -181,22 +202,25 @@ export default function UserInfoCard() {
               )}
 
               <div>
-                <Label htmlFor="status" className="whitespace-nowrap">Status</Label>
+                <Label htmlFor="status" className="whitespace-nowrap">
+                  Status
+                </Label>
                 <Controller
                   name="status"
                   control={control}
                   render={({ field: { value, onChange } }) => (
-                    <Switch
-                      label=""
-                      checked={value}
-                      onChange={onChange}
-                    />
+                    <Switch label="" checked={value} onChange={onChange} />
                   )}
                 />
               </div>
             </div>
             <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-              <Button size="sm" variant="outline" type="button" onClick={closeModal}>
+              <Button
+                size="sm"
+                variant="outline"
+                type="button"
+                onClick={closeModal}
+              >
                 Close
               </Button>
               <Button size="sm" type="submit">
@@ -211,10 +235,13 @@ export default function UserInfoCard() {
 }
 
 // Helper
-const Info = ({ label, value }: { label: string; value: string }) => (
+const Info = ({ label, value }: { label: string; value: ReactNode }) => (
   <div>
-    <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">{label}</p>
-    <p className="text-sm font-medium text-gray-800 dark:text-white/90">{value}</p>
+    <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+      {label}
+    </p>
+    <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+      {value}
+    </p>
   </div>
 );
-

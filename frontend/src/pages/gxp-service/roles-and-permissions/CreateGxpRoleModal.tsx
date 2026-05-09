@@ -17,7 +17,9 @@ interface CreateGxpRoleModalProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
-  permissions?: Array<GxpPermission | { _id: string; name?: string; description?: string }>;
+  permissions?: Array<
+    GxpPermission | { _id: string; name?: string; description?: string }
+  >;
 }
 
 type CreateGxpRoleForm = z.infer<typeof getGxpRoleSchema>;
@@ -36,7 +38,8 @@ const groupPermissions = (
 ): Record<string, GroupedPermission[]> => {
   const grouped: Record<string, GroupedPermission[]> = {};
   permissions.forEach((perm) => {
-    const label = "permissionName" in perm ? perm.permissionName : perm.name ?? "";
+    const label =
+      "permissionName" in perm ? perm.permissionName : (perm.name ?? "");
     const { action, entity } = parsePermissionName(label);
     if (!entity || !action) return;
     if (!grouped[entity]) grouped[entity] = [];
@@ -51,7 +54,7 @@ const CreateGxpRoleModal = ({
   onClose,
   onSubmit,
   initialData,
-  permissions = [],
+  permissions = []
 }: CreateGxpRoleModalProps) => {
   const { t } = useTranslation();
 
@@ -60,14 +63,14 @@ const CreateGxpRoleModal = ({
     handleSubmit,
     setValue,
     control,
-    formState: { errors },
+    formState: { errors }
   } = useForm<CreateGxpRoleForm>({
     resolver: zodResolver(getGxpRoleSchema),
     defaultValues: {
       roleName: initialData?.roleName ?? initialData?.name ?? "",
       permissions: initialData?.permissions || [],
-      description: initialData?.description || "",
-    },
+      description: initialData?.description || ""
+    }
   });
 
   const description = useWatch({ control, name: "description" });
@@ -94,14 +97,18 @@ const CreateGxpRoleModal = ({
       (selectedPermissionIds || []).includes(id)
     );
     const updated = hasAll
-      ? (selectedPermissionIds || []).filter((id) => !allPermissionIds.includes(id))
+      ? (selectedPermissionIds || []).filter(
+          (id) => !allPermissionIds.includes(id)
+        )
       : [...new Set([...(selectedPermissionIds || []), ...allPermissionIds])];
     setValue("permissions", updated, { shouldValidate: true });
   };
 
   const toggleAllForGroup = (entity: string) => {
     const perms = groupedPermissions[entity]?.map((item) => item.id) ?? [];
-    const hasAll = perms.every((id) => (selectedPermissionIds || []).includes(id));
+    const hasAll = perms.every((id) =>
+      (selectedPermissionIds || []).includes(id)
+    );
     const updated = hasAll
       ? (selectedPermissionIds || []).filter((id) => !perms.includes(id))
       : [...new Set([...(selectedPermissionIds || []), ...perms])];
@@ -112,7 +119,9 @@ const CreateGxpRoleModal = ({
     <div className="p-6 max-h-[120vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <h2 className="text-xl font-semibold">
-          {t(initialData ? "edit" : "create", { entity: t("gxpRolesAndPermissions") })}
+          {t(initialData ? "edit" : "create", {
+            entity: t("gxpRolesAndPermissions")
+          })}
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -134,7 +143,9 @@ const CreateGxpRoleModal = ({
             <Label required>{t("gxpPermissions")}</Label>
             <input type="hidden" {...register("permissions")} />
             <Checkbox
-              label={t("selectAllPermissions", { defaultValue: "Select All Permissions" })}
+              label={t("selectAllPermissions", {
+                defaultValue: "Select All Permissions"
+              })}
               checked={allPermissionIds.every((id) =>
                 (selectedPermissionIds || []).includes(id)
               )}
@@ -164,8 +175,13 @@ const CreateGxpRoleModal = ({
                       {items.map((item) => (
                         <Checkbox
                           key={item.id}
-                          label={item.action.charAt(0).toUpperCase() + item.action.slice(1).toLowerCase()}
-                          checked={(selectedPermissionIds || []).includes(item.id)}
+                          label={
+                            item.action.charAt(0).toUpperCase() +
+                            item.action.slice(1).toLowerCase()
+                          }
+                          checked={(selectedPermissionIds || []).includes(
+                            item.id
+                          )}
                           onChange={() => handlePermissionSelect(item.id)}
                         />
                       ))}

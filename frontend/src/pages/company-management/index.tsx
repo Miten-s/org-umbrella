@@ -78,7 +78,6 @@ const CompanyManagement = () => {
         />
       </Modal>
     </>
-
   );
 };
 

@@ -9,8 +9,14 @@ import Button from "@/components/ui/button/Button";
 import TextArea from "@/components/common/form/input/TextArea";
 
 const getEnvironmentSchema = z.object({
-  environmentName: z.string().min(1, "Environment name is required").max(20, "Environment name must be 20 characters or less"),
-  description: z.string().max(50, "Description must be 50 characters or less").optional(),
+  environmentName: z
+    .string()
+    .min(1, "Environment name is required")
+    .max(20, "Environment name must be 20 characters or less"),
+  description: z
+    .string()
+    .max(50, "Description must be 50 characters or less")
+    .optional()
 });
 
 type CreateEnvironmentForm = z.infer<typeof getEnvironmentSchema>;
@@ -36,17 +42,16 @@ const CreateEnvironmentModal = ({
     handleSubmit,
     setValue,
     control,
-    formState: { errors },
+    formState: { errors }
   } = useForm<CreateEnvironmentForm>({
     resolver: zodResolver(getEnvironmentSchema),
     defaultValues: {
       environmentName: initialData?.environmentName || "",
-      description: initialData?.description || "",
-    },
+      description: initialData?.description || ""
+    }
   });
 
   const description = useWatch({ control, name: "description" });
-  
 
   return (
     <div className="p-6 max-h-[120vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
@@ -82,8 +87,6 @@ const CreateEnvironmentModal = ({
               className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
             />
           </div>
-
-          
         </div>
 
         <div className="flex justify-end gap-2 mt-4">

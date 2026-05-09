@@ -9,7 +9,7 @@ import Checkbox from "@/components/common/form/input/Checkbox";
 import TextArea from "@/components/common/form/input/TextArea";
 // import MultiSelect from "@/components/common/form/MultiSelect";
 import { getUserAdminSchema } from "@/lib/schema";
-import { zodResolver } from '@hookform/resolvers/zod';
+import { zodResolver } from "@hookform/resolvers/zod";
 import Switch from "@/components/common/form/switch/Switch";
 import { UserTypes } from "@/utils/common.constants";
 import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
@@ -68,26 +68,33 @@ const CreateUserModal = ({
   //   [roles]
   // );
 
-  const { register, handleSubmit, control, setValue, watch, formState: { errors } } = useForm({
+  const {
+    register,
+    handleSubmit,
+    control,
+    setValue,
+    watch,
+    formState: { errors }
+  } = useForm({
     resolver: zodResolver(getUserAdminSchema(!!activeUser)),
     defaultValues: {
-      fullName: activeUser?.fullName || activeUser?.name || '',
-      email: activeUser?.email || '',
-      mobileNumber: activeUser?.phone || '',
-      locationGroup: activeUser?.location?._id || '',
-      designation: activeUser?.designation?._id || '',
-      department: activeUser?.department?._id || '',
+      fullName: activeUser?.fullName || activeUser?.name || "",
+      email: activeUser?.email || "",
+      mobileNumber: activeUser?.phone || "",
+      locationGroup: activeUser?.location?._id || "",
+      designation: activeUser?.designation?._id || "",
+      department: activeUser?.department?._id || "",
       // assignRole:
       //   activeUser?.roles
       //     ?.filter((role: Role) => role.name !== "Admin" && role.name !== "User")
       //     .map((role: Role) => role._id) || [],
-      description: activeUser?.description || '',
-      status: activeUser?.status === 'active' ? true : false,
-      password: '',
-      confirmPassword: '',
+      description: activeUser?.description || "",
+      status: activeUser?.status === "active" ? true : false,
+      password: "",
+      confirmPassword: "",
       modifiable: activeUser?.modifiable ?? false,
       trainingCompleted: activeUser?.trainingCompleted ?? false,
-      signature: activeUser?.signature || '',
+      signature: activeUser?.signature || "",
       userType: activeUser?.userType || UserTypes.ADMIN
     }
   });
@@ -95,7 +102,7 @@ const CreateUserModal = ({
   const handleClearSignature = () => {
     if (signatureRef.current) {
       signatureRef.current.clear();
-      setValue('signature', '');
+      setValue("signature", "");
     }
   };
 
@@ -107,7 +114,7 @@ const CreateUserModal = ({
     { label: "Lowercase letters (a-z)", ok: /[a-z]/.test(passwordValue) },
     { label: "Numbers (0-9)", ok: /[0-9]/.test(passwordValue) },
     { label: "Symbols (!@#$%^&*)", ok: /[!@#$%^&*]/.test(passwordValue) },
-    { label: "Minimum 8 characters", ok: passwordValue.length >= 8 },
+    { label: "Minimum 8 characters", ok: passwordValue.length >= 8 }
   ];
   const signatureUrl = getImageUrl(activeUser?.signature);
   const handleFormSubmit = (data: any) => {
@@ -115,7 +122,7 @@ const CreateUserModal = ({
       const trimmedDataURL = signatureRef.current.toDataURL("image/png");
       data.signature = trimmedDataURL;
     } else {
-      data.signature = '';
+      data.signature = "";
     }
 
     // const userTypeRole = roles.find((role: Role) => role.name === data.userType);
@@ -127,7 +134,7 @@ const CreateUserModal = ({
       email: data.email,
       userType: data.userType,
       // roles: userTypeRole ? [userTypeRole._id, ...assignRoleIds] : [...assignRoleIds],
-      status: data.status ? "active" : "disabled",
+      status: data.status ? "active" : "disabled"
     };
 
     if (!activeUser && (data.password || data.confirmPassword)) {
@@ -149,7 +156,6 @@ const CreateUserModal = ({
 
     onSubmit(payload);
   };
-
 
   return (
     <div className="p-6 max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
@@ -188,16 +194,15 @@ const CreateUserModal = ({
                   value={field.value}
                   onChange={(val) => {
                     field.onChange(val);
-                  }} placeholder={t("selectEntity", { entity: t("userType") })}
+                  }}
+                  placeholder={t("selectEntity", { entity: t("userType") })}
                   options={Object.entries(UserTypes).map(([key, value]) => ({
                     label: key,
-                    value: value,
+                    value: value
                   }))}
-
                 />
               )}
             />
-
 
             {errors.userType && (
               <p className="text-red-500 text-xs mt-1">
@@ -207,7 +212,9 @@ const CreateUserModal = ({
           </div>
 
           <div>
-            <Label htmlFor="email" required>{t("email")}</Label>
+            <Label htmlFor="email" required>
+              {t("email")}
+            </Label>
             <Input
               id="email"
               type="email"
@@ -244,7 +251,9 @@ const CreateUserModal = ({
                 </p>
               )}
             */}
-            <Label htmlFor="password" required>{t("password")}</Label>
+            <Label htmlFor="password" required>
+              {t("password")}
+            </Label>
             <Input
               id="password"
               type="password"
@@ -263,7 +272,11 @@ const CreateUserModal = ({
                     ) : (
                       <CloseIcon className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                     )}
-                    <span className={item.ok ? "text-gray-800 dark:text-gray-100" : ""}>
+                    <span
+                      className={
+                        item.ok ? "text-gray-800 dark:text-gray-100" : ""
+                      }
+                    >
                       {item.label}
                     </span>
                   </div>
@@ -273,7 +286,9 @@ const CreateUserModal = ({
           </div>
 
           <div>
-            <Label htmlFor="confirmPassword" required>{t("confirmPassword")}</Label>
+            <Label htmlFor="confirmPassword" required>
+              {t("confirmPassword")}
+            </Label>
             <Input
               id="confirmPassword"
               type="password"
@@ -285,10 +300,10 @@ const CreateUserModal = ({
             />
           </div>
 
-
-
           <div>
-            <Label htmlFor="status" className="whitespace-nowrap">Status</Label>
+            <Label htmlFor="status" className="whitespace-nowrap">
+              Status
+            </Label>
             <Controller
               name="status"
               control={control}
@@ -321,7 +336,11 @@ const CreateUserModal = ({
                       />
                     )}
                   />
-                  {errors.modifiable && <p className="text-red-500 text-xs mt-1">{errors.modifiable.message as string}</p>}
+                  {errors.modifiable && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.modifiable.message as string}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -338,7 +357,11 @@ const CreateUserModal = ({
                       />
                     )}
                   />
-                  {errors.trainingCompleted && <p className="text-red-500 text-xs mt-1">{errors.trainingCompleted.message as string}</p>}
+                  {errors.trainingCompleted && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.trainingCompleted.message as string}
+                    </p>
+                  )}
                 </div>
               </div>
               <div>
@@ -365,13 +388,17 @@ const CreateUserModal = ({
                       placeholder={t("select", { entity: t("location") })}
                       options={locations.map((loc) => ({
                         label: loc.locationName,
-                        value: loc._id,
+                        value: loc._id
                       }))}
                     />
                   )}
                 />
 
-                {errors.locationGroup && <p className="text-red-500 text-xs mt-1">{errors.locationGroup.message as string}</p>}
+                {errors.locationGroup && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.locationGroup.message as string}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -387,14 +414,17 @@ const CreateUserModal = ({
                       placeholder={t("select", { entity: t("designation") })}
                       options={designations.map((des) => ({
                         label: des.designationName,
-                        value: des._id,
+                        value: des._id
                       }))}
                     />
                   )}
                 />
 
-
-                {errors.designation && <p className="text-red-500 text-xs mt-1">{errors.designation.message as string}</p>}
+                {errors.designation && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.designation.message as string}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -410,13 +440,17 @@ const CreateUserModal = ({
                       placeholder={t("select", { entity: t("department") })}
                       options={departments.map((dept) => ({
                         label: dept.departmentName,
-                        value: dept._id,
+                        value: dept._id
                       }))}
                     />
                   )}
                 />
 
-                {errors.department && <p className="text-red-500 text-xs mt-1">{errors.department.message as string}</p>}
+                {errors.department && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.department.message as string}
+                  </p>
+                )}
               </div>
 
               <div className="md:col-span-2">
@@ -433,7 +467,11 @@ const CreateUserModal = ({
                     />
                   )}
                 />
-                {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message as string}</p>}
+                {errors.description && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.description.message as string}
+                  </p>
+                )}
               </div>
 
               <div className="md:col-span-2">
@@ -500,7 +538,6 @@ const CreateUserModal = ({
         </div>
       </form>
     </div>
-
   );
 };
 

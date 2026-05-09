@@ -7,7 +7,7 @@ import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
 import { useServerPagination } from "@/hooks/useServerPagination";
 import { useModal } from "@/hooks/useModal";
-import { toast } from "@/lib/ToastProvider";
+import { toast } from "@/lib/toast";
 import {
   CheckLineIcon,
   CopyIcon,
@@ -83,7 +83,9 @@ const Location = () => {
   const { isOpen, openModal, closeModal } = useModal();
   const { t } = useTranslation();
 
-  const [activeLocation, setActiveLocation] = useState<LocationObj | null>(null);
+  const [activeLocation, setActiveLocation] = useState<LocationObj | null>(
+    null
+  );
   const [locationModalMode, setLocationModalMode] =
     useState<LocationModalMode>("create");
   const [refresh, setRefresh] = useState(false);
@@ -149,7 +151,10 @@ const Location = () => {
           "error"
         );
       } else {
-        toast("Failed to delete selected locations. Please try again.", "error");
+        toast(
+          "Failed to delete selected locations. Please try again.",
+          "error"
+        );
       }
 
       setPendingDeleteLocations([]);
@@ -318,7 +323,9 @@ const Location = () => {
           rowData={locations}
           rowHeight={64}
           searchAccessor={(location) =>
-            [location.locationName, location.description].filter(Boolean).join(" ")
+            [location.locationName, location.description]
+              .filter(Boolean)
+              .join(" ")
           }
           searchPlaceholder="Search locations..."
           tableName={t("locationsGroups")}

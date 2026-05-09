@@ -9,7 +9,7 @@ import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
 import { useGlobalContext } from "@/context";
 import { useServerPagination } from "@/hooks/useServerPagination";
-import { toast } from "@/lib/ToastProvider";
+import { toast } from "@/lib/toast";
 import {
   CheckLineIcon,
   CopyIcon,
@@ -98,7 +98,9 @@ const Users = () => {
   const [designations, setDesignations] = useState<DesignationOption[]>([]);
   const [activeUser, setActiveUser] = useState<UserRecord | null>(null);
   const [userModalMode, setUserModalMode] = useState<UserModalMode>("create");
-  const [pendingDeleteUsers, setPendingDeleteUsers] = useState<UserRecord[]>([]);
+  const [pendingDeleteUsers, setPendingDeleteUsers] = useState<UserRecord[]>(
+    []
+  );
   const { reFetch, setReFetch } = useGlobalContext();
   const paginatedUsers = useServerPagination<UserRecord>({
     dataKeys: ["users"],
@@ -108,12 +110,12 @@ const Users = () => {
   });
   const users = paginatedUsers.rows;
 
-  const showComingSoonToast = (label: string) => {
+  const showComingSoonToast = useCallback((label: string) => {
     toast(
       `${label} action is available in the table UI and can be connected when the API is ready.`,
       "success"
     );
-  };
+  }, []);
 
   const fetchReferenceDetails = useCallback(async () => {
     try {
@@ -181,7 +183,6 @@ const Users = () => {
       setReFetch(!reFetch);
     } catch (error) {
       console.error("Error saving user:", error);
-      toast("Failed to save user. Please try again.", "error");
     }
   };
 
@@ -382,7 +383,6 @@ const Users = () => {
                 <div className="truncate text-sm font-semibold text-gray-900 dark:text-white">
                   {displayName}
                 </div>
-               
               </div>
             </div>
           );

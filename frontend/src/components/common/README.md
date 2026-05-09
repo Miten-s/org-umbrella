@@ -18,19 +18,20 @@ The protected route system provides multiple layers of security and access contr
 The main component for protecting routes and components.
 
 ```tsx
-import ProtectedRoute from '@/components/common/Protected';
+import ProtectedRoute from "@/components/common/Protected";
 
-<ProtectedRoute 
+<ProtectedRoute
   requiredPermission="VIEW:USERS"
   requiredRole="ADMIN"
   fallback={<LoadingSpinner />}
   redirectTo="/login"
 >
   <YourComponent />
-</ProtectedRoute>
+</ProtectedRoute>;
 ```
 
 **Props:**
+
 - `requiredPermission` - Single permission required
 - `requiredRole` - Single role required
 - `fallback` - Component to show while loading or if access denied
@@ -43,14 +44,14 @@ For conditional rendering based on permissions and roles.
 ```tsx
 import PermissionGate from '@/components/common/PermissionGate';
 
-<PermissionGate 
+<PermissionGate
   permission="VIEW:USERS"
   fallback={<p>Access denied</p>}
 >
   <UserManagementPanel />
 </PermissionGate>
 
-<PermissionGate 
+<PermissionGate
   permissions={["VIEW:USERS", "VIEW:ROLES"]}
   roles={["ADMIN", "MANAGER"]}
   requireAll={false}
@@ -60,6 +61,7 @@ import PermissionGate from '@/components/common/PermissionGate';
 ```
 
 **Props:**
+
 - `permission` - Single permission required
 - `permissions` - Array of permissions (ANY or ALL based on `requireAll`)
 - `role` - Single role required
@@ -72,7 +74,7 @@ import PermissionGate from '@/components/common/PermissionGate';
 For wrapping components with protection logic.
 
 ```tsx
-import { withRouteProtection } from '@/components/common/withRouteProtection';
+import { withRouteProtection } from "@/components/common/withRouteProtection";
 
 const ProtectedComponent = withRouteProtection(YourComponent, {
   requiredPermission: "VIEW:USERS"
@@ -88,17 +90,11 @@ export default ProtectedComponent;
 Provides easy access to permission checking functions.
 
 ```tsx
-import { usePermissions } from '@/hooks/usePermissions';
+import { usePermissions } from "@/hooks/usePermissions";
 
 const MyComponent = () => {
-  const { 
-    can, 
-    canAny, 
-    hasRole, 
-    hasAnyRole,
-    isAdmin,
-    canManageUsers 
-  } = usePermissions();
+  const { can, canAny, hasRole, hasAnyRole, isAdmin, canManageUsers } =
+    usePermissions();
 
   if (can("VIEW:USERS")) {
     // Show user management
@@ -113,6 +109,7 @@ const MyComponent = () => {
 ```
 
 **Available methods:**
+
 - `can(permission)` - Check single permission
 - `canAny(permissions)` - Check if user has any of the permissions
 - `hasRole(role)` - Check single role
@@ -131,11 +128,11 @@ const MyComponent = () => {
 For programmatic navigation with access control.
 
 ```tsx
-import { useRouteGuard, navigateWithGuard } from '@/utils/routeGuards';
+import { useRouteGuard, navigateWithGuard } from "@/utils/routeGuards";
 
 const MyComponent = () => {
   const navigate = useNavigate();
-  
+
   const handleNavigate = () => {
     const guard = useRouteGuard("VIEW:USERS");
     navigateWithGuard(navigate, "/users", guard);
@@ -150,21 +147,21 @@ const MyComponent = () => {
 Centralized permission and role definitions.
 
 ```tsx
-import { PERMISSIONS, ROLES } from '@/utils/permissions';
+import { PERMISSIONS, ROLES } from "@/utils/permissions";
 
 // Available permissions
-PERMISSIONS.VIEW_DASHBOARD
-PERMISSIONS.VIEW_USERS
-PERMISSIONS.CREATE_USERS
-PERMISSIONS.EDIT_USERS
-PERMISSIONS.DELETE_USERS
+PERMISSIONS.VIEW_DASHBOARD;
+PERMISSIONS.VIEW_USERS;
+PERMISSIONS.CREATE_USERS;
+PERMISSIONS.EDIT_USERS;
+PERMISSIONS.DELETE_USERS;
 // ... and more
 
 // Available roles
-ROLES.SUPER_ADMIN
-ROLES.ADMIN
-ROLES.MANAGER
-ROLES.USER
+ROLES.SUPER_ADMIN;
+ROLES.ADMIN;
+ROLES.MANAGER;
+ROLES.USER;
 ```
 
 ## Route Configuration
@@ -197,6 +194,7 @@ const routes: AppRoute[] = [
 ## Best Practices
 
 ### 1. Use Permission Constants
+
 Always use the predefined permission constants instead of hardcoded strings:
 
 ```tsx
@@ -208,10 +206,11 @@ Always use the predefined permission constants instead of hardcoded strings:
 ```
 
 ### 2. Provide Meaningful Fallbacks
+
 Always provide fallback content for better UX:
 
 ```tsx
-<PermissionGate 
+<PermissionGate
   permission={PERMISSIONS.VIEW_USERS}
   fallback={<p>You don't have permission to view this content</p>}
 >
@@ -220,11 +219,13 @@ Always provide fallback content for better UX:
 ```
 
 ### 3. Use Appropriate Protection Levels
+
 - Use `ProtectedRoute` for entire pages/routes
 - Use `PermissionGate` for specific UI components
 - Use `usePermissions` hook for conditional logic
 
 ### 4. Handle Loading States
+
 Always handle loading states in protected components:
 
 ```tsx
@@ -236,6 +237,7 @@ if (!isAuthenticated && Object.keys(user).length === 0) {
 ```
 
 ### 5. Graceful Degradation
+
 Design your UI to work even when certain permissions are missing:
 
 ```tsx
@@ -265,4 +267,4 @@ The system provides comprehensive error handling:
 
 ## Examples
 
-See `ProtectedRouteExample.tsx` for comprehensive examples of how to use the protected route system in different scenarios. 
+See `ProtectedRouteExample.tsx` for comprehensive examples of how to use the protected route system in different scenarios.

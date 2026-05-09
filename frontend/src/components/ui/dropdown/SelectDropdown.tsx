@@ -35,7 +35,10 @@ export const SelectDropdown: React.FC<SelectDropdownProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setOpen(false);
       }
     };
@@ -76,7 +79,9 @@ export const SelectDropdown: React.FC<SelectDropdownProps> = ({
             <span className="text-gray-500">{placeholder}</span>
           )}
         </span>
-        <ChevronDownIcon className={`w-4 h-4 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDownIcon
+          className={`w-4 h-4 transition-transform ${open ? "rotate-180" : ""}`}
+        />
       </button>
 
       {!disabled && (
@@ -99,7 +104,9 @@ export const SelectDropdown: React.FC<SelectDropdownProps> = ({
 
           <div className="max-h-[180px] overflow-auto">
             {filteredOptions.length === 0 ? (
-              <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-300">No data found</div>
+              <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-300">
+                No data found
+              </div>
             ) : (
               filteredOptions.map((opt) => (
                 <DropdownItem
@@ -109,7 +116,9 @@ export const SelectDropdown: React.FC<SelectDropdownProps> = ({
                     setOpen(false);
                   }}
                   className={`${
-                    value === opt.value ? "bg-gray-100 dark:bg-gray-700 font-medium" : ""
+                    value === opt.value
+                      ? "bg-gray-100 dark:bg-gray-700 font-medium"
+                      : ""
                   }`}
                 >
                   {opt.label}

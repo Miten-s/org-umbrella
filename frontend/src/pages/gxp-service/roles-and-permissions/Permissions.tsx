@@ -8,7 +8,7 @@ import { Modal } from "@/components/ui/modal";
 import { useGlobalContext } from "@/context";
 import { useModal } from "@/hooks/useModal";
 import { useServerPagination } from "@/hooks/useServerPagination";
-import { toast } from "@/lib/ToastProvider";
+import { toast } from "@/lib/toast";
 import {
   CheckLineIcon,
   CopyIcon,
@@ -92,10 +92,13 @@ const Permissions = () => {
     fetchPage: getGxpPermissions
   });
   const permissions = paginatedPermissions.rows;
-  const [activePermission, setActivePermission] = useState<GxpPermission | null>(null);
+  const [activePermission, setActivePermission] =
+    useState<GxpPermission | null>(null);
   const [permissionModalMode, setPermissionModalMode] =
     useState<PermissionModalMode>("create");
-  const [pendingDeletePermissions, setPendingDeletePermissions] = useState<GxpPermission[]>([]);
+  const [pendingDeletePermissions, setPendingDeletePermissions] = useState<
+    GxpPermission[]
+  >([]);
 
   const handleCloseModal = () => {
     closeModal();
@@ -147,14 +150,20 @@ const Permissions = () => {
           "error"
         );
       } else {
-        toast("Failed to delete selected permissions. Please try again.", "error");
+        toast(
+          "Failed to delete selected permissions. Please try again.",
+          "error"
+        );
       }
 
       setPendingDeletePermissions([]);
       setReFetch(!reFetch);
     } catch (error) {
       console.error("Error deleting permissions:", error);
-      toast("Failed to delete selected permissions. Please try again.", "error");
+      toast(
+        "Failed to delete selected permissions. Please try again.",
+        "error"
+      );
     }
   };
 
@@ -311,7 +320,9 @@ const Permissions = () => {
           rowData={permissions}
           rowHeight={64}
           searchAccessor={(permission) =>
-            [permission.permissionName, permission.description].filter(Boolean).join(" ")
+            [permission.permissionName, permission.description]
+              .filter(Boolean)
+              .join(" ")
           }
           searchPlaceholder="Search permissions..."
           tableName={t("gxpPermissions")}

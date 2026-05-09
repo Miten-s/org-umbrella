@@ -1,4 +1,3 @@
-
 import AppDataTable, {
   AppDataTableBulkAction,
   AppDataTableRowAction,
@@ -10,7 +9,7 @@ import { Modal } from "@/components/ui/modal";
 import { useGlobalContext } from "@/context";
 import { useModal } from "@/hooks/useModal";
 import { useServerPagination } from "@/hooks/useServerPagination";
-import { toast } from "@/lib/ToastProvider";
+import { toast } from "@/lib/toast";
 import {
   CheckLineIcon,
   CopyIcon,
@@ -37,8 +36,14 @@ import {
   getWorkflows,
   updateApplication
 } from "@/services/gxp.service";
-import { getDepartments, getLocations, getUsers } from "@/services/admin.service";
-import CreateApplicationModal, { ApplicationPayload } from "./CreateApplicationModal";
+import {
+  getDepartments,
+  getLocations,
+  getUsers
+} from "@/services/admin.service";
+import CreateApplicationModal, {
+  ApplicationPayload
+} from "./CreateApplicationModal";
 import type {
   Application,
   ApplicationGroup,
@@ -54,7 +59,7 @@ import type {
 import type { Department, Location } from "@/types/common.types";
 import { GXP_PERMISSIONS } from "@/utils/permissions";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 type Role = ApplicationRole;
@@ -122,7 +127,10 @@ const getEntityLabel = (value: unknown, preferredKeys: string[] = []) => {
 };
 
 const getApplicationIdentity = (application: Application) =>
-  String((application as Application & { applicationId?: string }).applicationId ?? "").trim();
+  String(
+    (application as Application & { applicationId?: string }).applicationId ??
+      ""
+  ).trim();
 
 const duplicateApplications = async (
   rows: Application[],
@@ -136,9 +144,13 @@ const duplicateApplications = async (
 
   try {
     const results = await Promise.allSettled(
-      rows.map((application) => duplicateApplication(application._id, { silent: true }))
+      rows.map((application) =>
+        duplicateApplication(application._id, { silent: true })
+      )
     );
-    const failedCopies = results.filter((result) => result.status === "rejected").length;
+    const failedCopies = results.filter(
+      (result) => result.status === "rejected"
+    ).length;
     const successfulCopies = rows.length - failedCopies;
 
     if (successfulCopies > 0 && failedCopies === 0) {
@@ -149,7 +161,10 @@ const duplicateApplications = async (
         "success"
       );
     } else if (successfulCopies > 0) {
-      toast(`${successfulCopies} applications copied, ${failedCopies} failed.`, "error");
+      toast(
+        `${successfulCopies} applications copied, ${failedCopies} failed.`,
+        "error"
+      );
     } else {
       toast("Failed to copy selected applications. Please try again.", "error");
     }
@@ -178,11 +193,14 @@ const GXPAddNewApplicationPage = () => {
   });
   const applications = paginatedApplications.rows;
   const setApplications = paginatedApplications.setRows;
-  const [activeApplication, setActiveApplication] = useState<Application | null>(null);
+  const [activeApplication, setActiveApplication] =
+    useState<Application | null>(null);
   const [applicationModalMode, setApplicationModalMode] =
     useState<ApplicationModalMode>("create");
   const [isLoadingActive, setIsLoadingActive] = useState(false);
-  const [pendingDeleteApplications, setPendingDeleteApplications] = useState<Application[]>([]);
+  const [pendingDeleteApplications, setPendingDeleteApplications] = useState<
+    Application[]
+  >([]);
 
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -191,10 +209,16 @@ const GXPAddNewApplicationPage = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [assignmentGroups, setAssignmentGroups] = useState<AssignmentGroup[]>([]);
-  const [applicationGroups, setApplicationGroups] = useState<ApplicationGroup[]>([]);
+  const [assignmentGroups, setAssignmentGroups] = useState<AssignmentGroup[]>(
+    []
+  );
+  const [applicationGroups, setApplicationGroups] = useState<
+    ApplicationGroup[]
+  >([]);
   const [roles, setRoles] = useState<Role[]>([]);
-  const [serviceRequestTypes, setServiceRequestTypes] = useState<ApplicationServiceRequestType[]>([]);
+  const [serviceRequestTypes, setServiceRequestTypes] = useState<
+    ApplicationServiceRequestType[]
+  >([]);
 
   const handleCloseModal = () => {
     closeModal();
@@ -225,23 +249,50 @@ const GXPAddNewApplicationPage = () => {
           getServiceTypes({ limit: 100 })
         ]);
 
-        const [mods, workflowsResult, usersResult, suppliersResult, departmentsResult, assignmentGroupsResult, applicationGroupsResult, rolesResult, serviceTypesResult] =
-          settledResults;
+        const [
+          mods,
+          workflowsResult,
+          usersResult,
+          suppliersResult,
+          departmentsResult,
+          assignmentGroupsResult,
+          applicationGroupsResult,
+          rolesResult,
+          serviceTypesResult
+        ] = settledResults;
 
         setAppModules(
-          extractList<ApplicationSoftwareModule>(mods, ["modules", "software", "data"])
+          extractList<ApplicationSoftwareModule>(mods, [
+            "modules",
+            "software",
+            "data"
+          ])
         );
-        setWorkflows(extractList<Workflow>(workflowsResult, ["workflows", "data"]));
+        setWorkflows(
+          extractList<Workflow>(workflowsResult, ["workflows", "data"])
+        );
         setUsers(extractList<User>(usersResult, ["users", "data"]));
-        setSuppliers(extractList<Supplier>(suppliersResult, ["suppliers", "data"]));
-        setDepartments(extractList<Department>(departmentsResult, ["departments", "data"]));
+        setSuppliers(
+          extractList<Supplier>(suppliersResult, ["suppliers", "data"])
+        );
+        setDepartments(
+          extractList<Department>(departmentsResult, ["departments", "data"])
+        );
         setAssignmentGroups(
-          extractList<AssignmentGroup>(assignmentGroupsResult, ["assignmentGroups", "data"])
+          extractList<AssignmentGroup>(assignmentGroupsResult, [
+            "assignmentGroups",
+            "data"
+          ])
         );
         setApplicationGroups(
-          extractList<ApplicationGroup>(applicationGroupsResult, ["applicationGroups", "data"])
+          extractList<ApplicationGroup>(applicationGroupsResult, [
+            "applicationGroups",
+            "data"
+          ])
         );
-        setRoles(extractList<Role>(rolesResult, ["applicationRoles", "roles", "data"]));
+        setRoles(
+          extractList<Role>(rolesResult, ["applicationRoles", "roles", "data"])
+        );
         setServiceRequestTypes(
           extractList<ApplicationServiceRequestType>(serviceTypesResult, [
             "service_types",
@@ -257,24 +308,24 @@ const GXPAddNewApplicationPage = () => {
     void fetchData();
   }, [reFetch]);
 
-  const handleOpenApplicationModal = async (
-    applicationId: string,
-    mode: ApplicationModalMode
-  ) => {
-    setIsLoadingActive(true);
+  const handleOpenApplicationModal = useCallback(
+    async (applicationId: string, mode: ApplicationModalMode) => {
+      setIsLoadingActive(true);
 
-    try {
-      const full = await getApplicationById(applicationId);
-      setActiveApplication(full as Application);
-      setApplicationModalMode(mode);
-      openModal();
-    } catch (error) {
-      console.error("Failed to load application details", error);
-      toast("Failed to load application details. Please try again.", "error");
-    } finally {
-      setIsLoadingActive(false);
-    }
-  };
+      try {
+        const full = await getApplicationById(applicationId);
+        setActiveApplication(full as Application);
+        setApplicationModalMode(mode);
+        openModal();
+      } catch (error) {
+        console.error("Failed to load application details", error);
+        toast("Failed to load application details. Please try again.", "error");
+      } finally {
+        setIsLoadingActive(false);
+      }
+    },
+    [openModal]
+  );
 
   const handleSave = async (
     data: ApplicationPayload,
@@ -288,7 +339,11 @@ const GXPAddNewApplicationPage = () => {
 
     try {
       if (activeApplication) {
-        await updateApplication(activeApplication._id, payloadWithAttachments, newAttachments);
+        await updateApplication(
+          activeApplication._id,
+          payloadWithAttachments,
+          newAttachments
+        );
       } else {
         await createApplication(payloadWithAttachments, newAttachments);
       }
@@ -300,30 +355,36 @@ const GXPAddNewApplicationPage = () => {
     }
   };
 
-  const handleStatusChange = async (application: Application) => {
-    const nextStatus = application.status === "enabled" ? "disabled" : "enabled";
+  const handleStatusChange = useCallback(
+    async (application: Application) => {
+      const nextStatus =
+        application.status === "enabled" ? "disabled" : "enabled";
 
-    setApplications((prev) =>
-      prev.map((item) =>
-        item._id === application._id ? { ...item, status: nextStatus } : item
-      )
-    );
-
-    try {
-      if (nextStatus === "enabled") {
-        await enableApplication(application._id);
-      } else {
-        await disableApplication(application._id);
-      }
-    } catch (error) {
-      console.error("Application status update failed:", error);
       setApplications((prev) =>
         prev.map((item) =>
-          item._id === application._id ? { ...item, status: application.status } : item
+          item._id === application._id ? { ...item, status: nextStatus } : item
         )
       );
-    }
-  };
+
+      try {
+        if (nextStatus === "enabled") {
+          await enableApplication(application._id);
+        } else {
+          await disableApplication(application._id);
+        }
+      } catch (error) {
+        console.error("Application status update failed:", error);
+        setApplications((prev) =>
+          prev.map((item) =>
+            item._id === application._id
+              ? { ...item, status: application.status }
+              : item
+          )
+        );
+      }
+    },
+    [setApplications]
+  );
 
   const handleDeleteConfirmed = async () => {
     if (!pendingDeleteApplications.length) {
@@ -339,7 +400,8 @@ const GXPAddNewApplicationPage = () => {
       const failedDeletes = results.filter(
         (result) => result.status === "rejected"
       ).length;
-      const successfulDeletes = pendingDeleteApplications.length - failedDeletes;
+      const successfulDeletes =
+        pendingDeleteApplications.length - failedDeletes;
 
       if (successfulDeletes > 0 && failedDeletes === 0) {
         toast(
@@ -354,14 +416,20 @@ const GXPAddNewApplicationPage = () => {
           "error"
         );
       } else {
-        toast("Failed to delete selected applications. Please try again.", "error");
+        toast(
+          "Failed to delete selected applications. Please try again.",
+          "error"
+        );
       }
 
       setPendingDeleteApplications([]);
       setReFetch(!reFetch);
     } catch (error) {
       console.error("Error deleting applications:", error);
-      toast("Failed to delete selected applications. Please try again.", "error");
+      toast(
+        "Failed to delete selected applications. Please try again.",
+        "error"
+      );
     }
   };
 
@@ -417,7 +485,9 @@ const GXPAddNewApplicationPage = () => {
       {
         key: "delete-selected",
         label: (selectedRows) =>
-          selectedRows.length > 1 ? "Delete applications" : "Delete application",
+          selectedRows.length > 1
+            ? "Delete applications"
+            : "Delete application",
         icon: TrashBinIcon,
         permission: GXP_PERMISSIONS.DELETE_SOFTWARE,
         variant: "destructive",
@@ -478,7 +548,13 @@ const GXPAddNewApplicationPage = () => {
         onClick: (application) => setPendingDeleteApplications([application])
       }
     ],
-    [isLoadingActive, paginatedApplications.refresh, reFetch, setReFetch]
+    [
+      handleOpenApplicationModal,
+      isLoadingActive,
+      paginatedApplications.refresh,
+      reFetch,
+      setReFetch
+    ]
   );
 
   const columnDefs = useMemo<ColDef<Application>[]>(
@@ -510,7 +586,8 @@ const GXPAddNewApplicationPage = () => {
         headerName: t("identity", { defaultValue: "Identity" }),
         minWidth: 160,
         maxWidth: 190,
-        valueGetter: ({ data }) => getApplicationIdentity(data as Application) || "-",
+        valueGetter: ({ data }) =>
+          getApplicationIdentity(data as Application) || "-",
         cellRenderer: (params: ICellRendererParams<Application>) => (
           <div className="py-1.5 text-sm text-gray-600 dark:text-gray-300">
             {getApplicationIdentity(params.data as Application) || "-"}
@@ -535,10 +612,16 @@ const GXPAddNewApplicationPage = () => {
         headerName: t("applicationEnvironment"),
         minWidth: 220,
         valueGetter: ({ data }) =>
-          getEntityLabel(data?.applicationEnvironment, ["environmentName", "name"]),
+          getEntityLabel(data?.applicationEnvironment, [
+            "environmentName",
+            "name"
+          ]),
         cellRenderer: (params: ICellRendererParams<Application>) => (
           <div className="line-clamp-2 py-1.5 text-sm text-gray-600 dark:text-gray-300">
-            {getEntityLabel(params.data?.applicationEnvironment, ["environmentName", "name"])}
+            {getEntityLabel(params.data?.applicationEnvironment, [
+              "environmentName",
+              "name"
+            ])}
           </div>
         )
       },
@@ -564,7 +647,7 @@ const GXPAddNewApplicationPage = () => {
         }
       }
     ],
-    [t]
+    [handleStatusChange, t]
   );
 
   return (
@@ -594,7 +677,10 @@ const GXPAddNewApplicationPage = () => {
               application.applicationName,
               getApplicationIdentity(application),
               application.applicationType,
-              getEntityLabel(application.applicationEnvironment, ["environmentName", "name"]),
+              getEntityLabel(application.applicationEnvironment, [
+                "environmentName",
+                "name"
+              ]),
               application.status
             ]
               .filter(Boolean)

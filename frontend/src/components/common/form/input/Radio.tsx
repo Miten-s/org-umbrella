@@ -17,7 +17,7 @@ const Radio: React.FC<RadioProps> = ({
   label,
   onChange,
   className = "",
-  disabled = false,
+  disabled = false
 }) => {
   return (
     <label

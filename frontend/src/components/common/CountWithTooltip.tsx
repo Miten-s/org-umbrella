@@ -1,7 +1,11 @@
 import { useId, useState } from "react";
 import { ChipList } from "@/components/common/form/chipList";
 
-export type TooltipPlacement = "top-right" | "top-left" | "bottom-right" | "bottom-left";
+export type TooltipPlacement =
+  | "top-right"
+  | "top-left"
+  | "bottom-right"
+  | "bottom-left";
 export type TooltipPlacementInput = TooltipPlacement | "right" | "left";
 
 interface CountWithTooltipProps {
@@ -109,7 +113,12 @@ const CountWithTooltip = ({
               </div>
             </div>
 
-            <ChipList items={items} variant="grid" columns={3} maxHeightClassName="max-h-44" />
+            <ChipList
+              items={items}
+              variant="grid"
+              columns={3}
+              maxHeightClassName="max-h-44"
+            />
           </div>
         </div>
       )}

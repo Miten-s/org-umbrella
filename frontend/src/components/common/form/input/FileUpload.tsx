@@ -56,7 +56,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
   accept,
   disabled = false,
   uploading = false,
-  showPreview = true,
+  showPreview = true
 }) => {
   const [error, setError] = useState<string>("");
 
@@ -66,59 +66,69 @@ const FileUpload: React.FC<FileUploadProps> = ({
   const [previews, setPreviews] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (!showPreview) return;
+    if (!showPreview) {
+      setPreviews((current) => {
+        Object.values(current).forEach((url) => URL.revokeObjectURL(url));
+        return {};
+      });
+      return;
+    }
 
     const next: Record<string, string> = {};
     for (const file of value || []) {
-      if (isImageFile(file)) next[file.name + file.size] = URL.createObjectURL(file);
+      if (isImageFile(file))
+        next[file.name + file.size] = URL.createObjectURL(file);
     }
 
-    // cleanup old
-    Object.values(previews).forEach((url) => URL.revokeObjectURL(url));
-    setPreviews(next);
+    setPreviews((current) => {
+      Object.values(current).forEach((url) => URL.revokeObjectURL(url));
+      return next;
+    });
 
-    // cleanup on unmount
     return () => {
       Object.values(next).forEach((url) => URL.revokeObjectURL(url));
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify((value || []).map((f) => `${f.name}-${f.size}-${f.type}`)), showPreview]);
+  }, [showPreview, value]);
 
-  const validateCustom = (files: File[]) => {
-    // Multiple not allowed
-    if (!multiple && files.length > 1) {
-      return {
-        error: "Multiple files are not allowed. Please upload only one file.",
-        files: files.slice(0, 1), // keep first
-      };
-    }
-
-    // Block audio/video
-    if (blockAudioVideo) {
-      const blocked = files.find(
-        (f) => f.type?.startsWith("audio/") || f.type?.startsWith("video/")
-      );
-      if (blocked) {
+  const validateCustom = useCallback(
+    (files: File[]) => {
+      // Multiple not allowed
+      if (!multiple && files.length > 1) {
         return {
-          error: "Audio and video files are not allowed.",
-          files: files.filter(
-            (f) => !(f.type?.startsWith("audio/") || f.type?.startsWith("video/"))
-          ),
+          error: "Multiple files are not allowed. Please upload only one file.",
+          files: files.slice(0, 1) // keep first
         };
       }
-    }
 
-    // Size check (extra guard, dropzone also checks maxSize)
-    const tooBig = files.find((f) => f.size > maxSizeBytes);
-    if (tooBig) {
-      return {
-        error: `File too large. Max size is ${maxSizeMB}MB.`,
-        files: files.filter((f) => f.size <= maxSizeBytes),
-      };
-    }
+      // Block audio/video
+      if (blockAudioVideo) {
+        const blocked = files.find(
+          (f) => f.type?.startsWith("audio/") || f.type?.startsWith("video/")
+        );
+        if (blocked) {
+          return {
+            error: "Audio and video files are not allowed.",
+            files: files.filter(
+              (f) =>
+                !(f.type?.startsWith("audio/") || f.type?.startsWith("video/"))
+            )
+          };
+        }
+      }
 
-    return { error: "", files };
-  };
+      // Size check (extra guard, dropzone also checks maxSize)
+      const tooBig = files.find((f) => f.size > maxSizeBytes);
+      if (tooBig) {
+        return {
+          error: `File too large. Max size is ${maxSizeMB}MB.`,
+          files: files.filter((f) => f.size <= maxSizeBytes)
+        };
+      }
+
+      return { error: "", files };
+    },
+    [blockAudioVideo, maxSizeBytes, maxSizeMB, multiple]
+  );
 
   const onDropAccepted = useCallback(
     (files: File[]) => {
@@ -141,7 +151,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
       if (customError) setError(customError);
     },
-    [multiple, maxFiles, maxSizeBytes, maxSizeMB, blockAudioVideo, onChange, value]
+    [multiple, onChange, validateCustom, value, maxFiles]
   );
 
   const onDropRejected = useCallback(
@@ -163,7 +173,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
     multiple,
     disabled,
     maxSize: maxSizeBytes,
-    maxFiles: multiple ? maxFiles : 1,
+    maxFiles: multiple ? maxFiles : 1
   });
 
   const removeFile = (idx: number) => {
@@ -184,7 +194,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
           isDragActive
             ? "border-blue-500 ring-2 ring-blue-100 dark:ring-blue-900/40"
             : "border-gray-300 dark:border-gray-700",
-          disabled ? "opacity-60 cursor-not-allowed" : "",
+          disabled ? "opacity-60 cursor-not-allowed" : ""
         ].join(" ")}
       >
         <input {...getInputProps()} />

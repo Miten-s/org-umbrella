@@ -37,7 +37,7 @@ const CreateDepartmentModal = ({
   initialData,
   locations = [],
   managers = [],
-  mode = "create",
+  mode = "create"
 }: CreateDepartmentModalProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
@@ -71,15 +71,15 @@ const CreateDepartmentModal = ({
     handleSubmit,
     setValue,
     control,
-    formState: { errors },
+    formState: { errors }
   } = useForm<CreateDepartmentForm>({
     resolver: zodResolver(getDepartmentSchema),
     defaultValues: {
       departmentName: initialData?.departmentName || "",
       description: initialData?.description || "",
       departmentManager: getInitialManagerId(),
-      departmentGroupLocation: getInitialLocationId(),
-    },
+      departmentGroupLocation: getInitialLocationId()
+    }
   });
 
   const description = useWatch({ control, name: "description" });
@@ -94,7 +94,10 @@ const CreateDepartmentModal = ({
     locations.find((l) => l._id === id)?.locationName || "";
 
   const selectedManagerId = useWatch({ control, name: "departmentManager" });
-  const selectedLocationId = useWatch({ control, name: "departmentGroupLocation" });
+  const selectedLocationId = useWatch({
+    control,
+    name: "departmentGroupLocation"
+  });
 
   const handleManagerSelect = (id: string) => {
     setValue("departmentManager", id, { shouldValidate: true });
@@ -165,7 +168,11 @@ const CreateDepartmentModal = ({
                 {getManagerName(selectedManagerId) ||
                   t("select", { entity: t("departmentManager") })}
               </span>
-              <svg className="ml-2 h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <svg
+                className="ml-2 h-4 w-4"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
                 <path d="M5.5 7l4.5 4.5L14.5 7z" />
               </svg>
             </button>
@@ -215,7 +222,11 @@ const CreateDepartmentModal = ({
                 {getLocationName(selectedLocationId) ||
                   t("select", { entity: t("location") })}
               </span>
-              <svg className="ml-2 h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <svg
+                className="ml-2 h-4 w-4"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
                 <path d="M5.5 7l4.5 4.5L14.5 7z" />
               </svg>
             </button>
@@ -257,7 +268,6 @@ const CreateDepartmentModal = ({
         </div>
       </form>
     </div>
-
   );
 };
 

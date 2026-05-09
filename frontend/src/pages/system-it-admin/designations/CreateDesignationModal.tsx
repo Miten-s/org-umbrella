@@ -31,16 +31,14 @@ const CreateDesignationModal = ({
     handleSubmit,
     watch,
     setValue,
-    formState: { errors },
+    formState: { errors }
   } = useForm<CreateDesignationForm>({
     resolver: zodResolver(getDesignationSchema),
     defaultValues: {
       designationName: initialData?.designationName || "",
-      description: initialData?.description || "",
-    },
+      description: initialData?.description || ""
+    }
   });
-
-
 
   return (
     <div className="p-6 max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
@@ -96,7 +94,6 @@ const CreateDesignationModal = ({
         </div>
       </form>
     </div>
-
   );
 };
 

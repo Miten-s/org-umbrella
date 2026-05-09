@@ -7,7 +7,7 @@ import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
 import { useServerPagination } from "@/hooks/useServerPagination";
 import { useModal } from "@/hooks/useModal";
-import { toast } from "@/lib/ToastProvider";
+import { toast } from "@/lib/toast";
 import {
   CheckLineIcon,
   CopyIcon,
@@ -136,7 +136,8 @@ const Designation = () => {
       const failedDeletes = results.filter(
         (result) => result.status === "rejected"
       ).length;
-      const successfulDeletes = pendingDeleteDesignations.length - failedDeletes;
+      const successfulDeletes =
+        pendingDeleteDesignations.length - failedDeletes;
 
       if (successfulDeletes > 0 && failedDeletes === 0) {
         toast(
@@ -151,14 +152,20 @@ const Designation = () => {
           "error"
         );
       } else {
-        toast("Failed to delete selected designations. Please try again.", "error");
+        toast(
+          "Failed to delete selected designations. Please try again.",
+          "error"
+        );
       }
 
       setPendingDeleteDesignations([]);
       setRefresh((prev) => !prev);
     } catch (error) {
       console.error("Error deleting designation:", error);
-      toast("Failed to delete selected designations. Please try again.", "error");
+      toast(
+        "Failed to delete selected designations. Please try again.",
+        "error"
+      );
     }
   };
 
@@ -240,7 +247,8 @@ const Designation = () => {
         tooltip: "Copy designation",
         icon: CopyIcon,
         placement: "menu",
-        onClick: async (designation) => copyDesignationsToClipboard([designation])
+        onClick: async (designation) =>
+          copyDesignationsToClipboard([designation])
       },
       {
         key: "delete",
@@ -368,10 +376,7 @@ const Designation = () => {
           {pendingDeleteDesignations.length ? (
             <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
               {pendingDeleteDesignations.slice(0, 5).map((designation) => (
-                <div
-                  key={designation._id}
-                  className="truncate py-0.5"
-                >
+                <div key={designation._id} className="truncate py-0.5">
                   {designation.designationName}
                 </div>
               ))}

@@ -1,6 +1,6 @@
-import { Route, Routes } from 'react-router-dom';
-import type { AppRoute } from './types';
-import ProtectedRoute from '@/components/common/Protected';
+import { Route, Routes } from "react-router-dom";
+import type { AppRoute } from "./types";
+import ProtectedRoute from "@/components/common/Protected";
 
 interface Props {
   routes: AppRoute[];
@@ -27,19 +27,16 @@ const renderRoutes = (routes: AppRoute[]) =>
       >
         {element}
       </ProtectedRoute>
-    ) : element;
+    ) : (
+      element
+    );
 
-    const routeProps: any = {
-      path: path,
-      element: protectedElement
-    };
-    
     if (index) {
-      routeProps.index = true;
+      return <Route key={path} index element={protectedElement} />;
     }
-    
+
     return (
-      <Route key={path} {...routeProps}>
+      <Route key={path} path={path} element={protectedElement}>
         {children && renderRoutes(children)}
       </Route>
     );

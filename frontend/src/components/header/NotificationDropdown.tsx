@@ -223,7 +223,6 @@ export default function NotificationDropdown() {
             </DropdownItem>
           </li>
 
-       
           {/* Add more items as needed */}
         </ul>
         <Link

@@ -1,7 +1,6 @@
 import { useAuth } from "@/context/AuthContext";
 
 export default function UserCompanyCard() {
-
   const { currentCompany } = useAuth();
   return (
     <>
@@ -33,7 +32,6 @@ export default function UserCompanyCard() {
           </div>
         </div>
       </div>
-
     </>
   );
 }

@@ -25,7 +25,7 @@ export const withDefaultListParams = (
   ...params
 });
 
-export const extractList = <T,>(
+export const extractList = <T>(
   value: unknown,
   preferredKeys: string[] = []
 ): T[] => {
@@ -66,7 +66,9 @@ export const extractPaginationMetadata = (
   const limit = Number(
     metadata?.limit ?? fallback.limit ?? DEFAULT_LIST_PAGE_SIZE
   );
-  const currentPage = Number(metadata?.currentPage ?? fallback.currentPage ?? 1);
+  const currentPage = Number(
+    metadata?.currentPage ?? fallback.currentPage ?? 1
+  );
   const totalPages = Number(
     metadata?.totalPages ??
       fallback.totalPages ??

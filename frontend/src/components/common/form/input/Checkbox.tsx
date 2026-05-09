@@ -15,7 +15,7 @@ const Checkbox: React.FC<CheckboxProps> = ({
   id,
   onChange,
   className = "",
-  disabled = false,
+  disabled = false
 }) => {
   return (
     <label

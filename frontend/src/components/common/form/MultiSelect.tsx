@@ -6,10 +6,10 @@ import React, {
   useLayoutEffect,
   useMemo,
   useRef,
-  useState,
+  useState
 } from "react";
 import CountWithTooltip, {
-  type TooltipPlacementInput,
+  type TooltipPlacementInput
 } from "@/components/common/CountWithTooltip";
 
 interface Option {
@@ -39,16 +39,15 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   onAdd,
   error,
   hint,
-  countTooltipPlacement,
+  countTooltipPlacement
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLDivElement | null>(null);
   const chipsAreaRef = useRef<HTMLDivElement | null>(null);
   const caretRef = useRef<HTMLDivElement | null>(null);
 
-  const [selectedOptions, setSelectedOptions] = useState<string[]>(
-    defaultSelected,
-  );
+  const [selectedOptions, setSelectedOptions] =
+    useState<string[]>(defaultSelected);
   const [isOpen, setIsOpen] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -113,7 +112,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
         return next;
       });
     },
-    [onChange],
+    [onChange]
   );
 
   const removeOption = useCallback(
@@ -124,7 +123,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
         return next;
       });
     },
-    [onChange],
+    [onChange]
   );
 
   const handleAddNewOption = useCallback(() => {
@@ -133,7 +132,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
 
     const newOption: Option = {
       value: rawText,
-      text: rawText,
+      text: rawText
     };
 
     setInternalOptions((prev) => [...prev, newOption]);
@@ -146,7 +145,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
     const term = searchTerm.trim().toLowerCase();
     if (!term) return internalOptions;
     return internalOptions.filter((opt) =>
-      opt.text.toLowerCase().includes(term),
+      opt.text.toLowerCase().includes(term)
     );
   }, [internalOptions, searchTerm]);
 
@@ -154,14 +153,15 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
     const map = new Map(internalOptions.map((o) => [o.value, o.text]));
     return selectedOptions.map((val) => ({
       value: val,
-      text: map.get(val) ?? val,
+      text: map.get(val) ?? val
     }));
   }, [selectedOptions, internalOptions]);
 
   // Canvas measurement (fast, accurate for font)
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const measureTextPx = useCallback((text: string, font: string) => {
-    if (!canvasRef.current) canvasRef.current = document.createElement("canvas");
+    if (!canvasRef.current)
+      canvasRef.current = document.createElement("canvas");
     const ctx = canvasRef.current.getContext("2d");
     if (!ctx) return text.length * 8;
     ctx.font = font;
@@ -218,7 +218,6 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
     return () => ro.disconnect();
   }, [selectedLabels, measureTextPx]);
 
-
   const visibleSelected = selectedLabels.slice(0, visibleCount);
   const hiddenSelected = selectedLabels.slice(visibleCount);
   const hiddenCount = hiddenSelected.length;
@@ -240,7 +239,9 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                 "mb-2 flex h-11 rounded-lg border py-1.5 pl-3 pr-3 shadow-theme-xs outline-hidden transition",
                 "border-gray-300 focus:border-brand-300 focus:shadow-focus-ring dark:border-gray-700 dark:bg-gray-900 dark:focus:border-brand-300",
                 disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
-                error ? "border-red-500 focus:border-red-500 focus:shadow-none" : "",
+                error
+                  ? "border-red-500 focus:border-red-500 focus:shadow-none"
+                  : ""
               ].join(" ")}
               role="button"
               tabIndex={disabled ? -1 : 0}
@@ -319,8 +320,9 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                   aria-hidden="true"
                 >
                   <svg
-                    className={`stroke-current transform transition-transform duration-200 ${isOpen ? "rotate-180" : ""
-                      }`}
+                    className={`stroke-current transform transition-transform duration-200 ${
+                      isOpen ? "rotate-180" : ""
+                    }`}
                     width="20"
                     height="20"
                     viewBox="0 0 20 20"
@@ -360,7 +362,9 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
 
               <div
                 className={[
-                  "flex flex-col max-h-[160px] overflow-y-auto overscroll-contain scroll-smooth no-scrollbar", showAddButton ? "pb-10" : "",].join(" ")}
+                  "flex flex-col max-h-[160px] overflow-y-auto overscroll-contain scroll-smooth no-scrollbar",
+                  showAddButton ? "pb-10" : ""
+                ].join(" ")}
               >
                 {filteredOptions.length === 0 ? (
                   <div className="p-2 text-center text-gray-500 dark:text-white/70">
@@ -380,7 +384,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                         <div
                           className={[
                             "flex items-center p-2 pl-2",
-                            isSelected ? "bg-primary/10" : "",
+                            isSelected ? "bg-primary/10" : ""
                           ].join(" ")}
                         >
                           <div className="mx-2 leading-6 text-gray-800 dark:text-white/90">
@@ -404,7 +408,11 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                       if (e.key === "Enter") handleAddNewOption();
                     }}
                   />
-                  <Button type="button" variant="primary" onClick={handleAddNewOption}>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    onClick={handleAddNewOption}
+                  >
                     {t("add")}
                   </Button>
                 </div>
@@ -415,7 +423,9 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
       </div>
 
       {(error || hint) && (
-        <p className={`mt-1 text-xs ${error ? "text-red-500" : "text-gray-500"}`}>
+        <p
+          className={`mt-1 text-xs ${error ? "text-red-500" : "text-gray-500"}`}
+        >
           {error || hint}
         </p>
       )}

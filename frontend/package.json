@@ -8,6 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "test": "vitest run --config vitest.config.ts",
+    "test:watch": "vitest --config vitest.config.ts",
     "eslint": "eslint --cache \"src/**/*.{js,ts,tsx.}\" --config ./eslint.config.js",
     "eslint:ci": "eslint \"src/**/*.{js,ts,tsx}\" --cache --quiet --config ./eslint.config.js",
     "eslint:fix": "eslint --fix \"src/**/*.{js,ts,tsx}\" --config ./eslint.config.js",
@@ -47,6 +49,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/i18next": "^13.0.0",
     "@types/node": "^22.15.3",
     "@types/react": "^18.2.64",
@@ -60,12 +64,14 @@
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.0.0",
     "husky": "^8.0.3",
+    "jsdom": "^29.1.1",
     "postcss": "^8.5.3",
     "prettier": "^3.5.3",
     "tailwindcss": "^4.1.5",
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.26.1",
     "vite": "^6.3.1",
-    "vite-plugin-svgr": "^4.3.0"
+    "vite-plugin-svgr": "^4.3.0",
+    "vitest": "^4.1.5"
   }
 }

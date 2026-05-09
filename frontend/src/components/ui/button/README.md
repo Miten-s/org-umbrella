@@ -14,20 +14,15 @@ The Button component now includes built-in permission checking functionality wit
 ### Basic Button (No Permission Check)
 
 ```tsx
-import Button from '@/components/ui/button/Button';
+import Button from "@/components/ui/button/Button";
 
-<Button onClick={() => handleClick()}>
-  Click Me
-</Button>
+<Button onClick={() => handleClick()}>Click Me</Button>;
 ```
 
 ### Button with Permission Check
 
 ```tsx
-<Button
-  permission="CREATE:USER"
-  onClick={() => handleCreateUser()}
->
+<Button permission="CREATE:USER" onClick={() => handleCreateUser()}>
   Create User
 </Button>
 ```
@@ -58,22 +53,22 @@ import Button from '@/components/ui/button/Button';
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `children` | `ReactNode` | **Required** | Button content |
-| `size` | `"sm" \| "md"` | `"md"` | Button size |
-| `variant` | `"primary" \| "outline" \| "secondary" \| "destructive"` | `"primary"` | Button style variant |
-| `startIcon` | `ReactNode` | - | Icon before button text |
-| `endIcon` | `ReactNode` | - | Icon after button text |
-| `onClick` | `() => void` | - | Function to call when button is clicked |
-| `onMouseEnter` | `() => void` | - | Mouse enter handler |
-| `onMouseLeave` | `() => void` | - | Mouse leave handler |
-| `disabled` | `boolean` | `false` | Whether the button is disabled |
-| `className` | `string` | `""` | Additional CSS classes |
-| `type` | `"button" \| "submit" \| "reset"` | `"button"` | Button type |
-| `permission` | `string` | - | Permission required to use this button |
-| `tooltipMessage` | `string` | - | Custom tooltip message |
-| `tooltipPosition` | `'top' \| 'bottom' \| 'left' \| 'right'` | `'top'` | Position of the tooltip |
+| Prop              | Type                                                     | Default      | Description                             |
+| ----------------- | -------------------------------------------------------- | ------------ | --------------------------------------- |
+| `children`        | `ReactNode`                                              | **Required** | Button content                          |
+| `size`            | `"sm" \| "md"`                                           | `"md"`       | Button size                             |
+| `variant`         | `"primary" \| "outline" \| "secondary" \| "destructive"` | `"primary"`  | Button style variant                    |
+| `startIcon`       | `ReactNode`                                              | -            | Icon before button text                 |
+| `endIcon`         | `ReactNode`                                              | -            | Icon after button text                  |
+| `onClick`         | `() => void`                                             | -            | Function to call when button is clicked |
+| `onMouseEnter`    | `() => void`                                             | -            | Mouse enter handler                     |
+| `onMouseLeave`    | `() => void`                                             | -            | Mouse leave handler                     |
+| `disabled`        | `boolean`                                                | `false`      | Whether the button is disabled          |
+| `className`       | `string`                                                 | `""`         | Additional CSS classes                  |
+| `type`            | `"button" \| "submit" \| "reset"`                        | `"button"`   | Button type                             |
+| `permission`      | `string`                                                 | -            | Permission required to use this button  |
+| `tooltipMessage`  | `string`                                                 | -            | Custom tooltip message                  |
+| `tooltipPosition` | `'top' \| 'bottom' \| 'left' \| 'right'`                 | `'top'`      | Position of the tooltip                 |
 
 ## Available Permissions
 
@@ -120,4 +115,4 @@ The `{{action}}` and `{{entity}}` placeholders are automatically filled based on
 - Tooltips are automatically hidden when clicking outside the button
 - The button is automatically disabled and styled with reduced opacity when permission is not available
 - All existing Button functionality is preserved
-- Permission checking is optional - buttons without the `permission` prop work exactly as before 
+- Permission checking is optional - buttons without the `permission` prop work exactly as before

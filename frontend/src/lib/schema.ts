@@ -5,24 +5,27 @@ export const getUserAdminSchema = (isUpdate: boolean) => {
   const schema = z
     .object({
       // Common fields
-      fullName: z.string()
+      fullName: z
+        .string()
         .min(1, "Full name is required")
         .max(30, "Full name must not exceed 30 characters"),
-      email: z.string()
+      email: z
+        .string()
         .email("Invalid email")
         .max(30, "Email must not exceed 30 characters"),
-      assignRole: z.array(z.string())
-        .optional(),
+      assignRole: z.array(z.string()).optional(),
       passwordExpiry: z.string().optional(),
       userType: z.enum([UserTypes.ADMIN, UserTypes.USER]),
       // User-specific fields
-      mobileNumber: z.string()
+      mobileNumber: z
+        .string()
         .max(15, "Phone number must not exceed 15 characters")
         .optional(),
       locationGroup: z.string().optional(),
       designation: z.string().optional(),
       department: z.string().optional(),
-      description: z.string()
+      description: z
+        .string()
         .max(50, "Description must not exceed 50 characters")
         .optional(),
       modifiable: z.boolean().optional(),
@@ -33,12 +36,13 @@ export const getUserAdminSchema = (isUpdate: boolean) => {
       // Password fields
       password: isUpdate
         ? z.string().optional()
-        : z.string()
-          .min(8, "Password must be at least 8 characters")
-          .max(20, "Password must not exceed 20 characters"),
+        : z
+            .string()
+            .min(8, "Password must be at least 8 characters")
+            .max(20, "Password must not exceed 20 characters"),
       confirmPassword: isUpdate
         ? z.string().optional()
-        : z.string().min(1, "Please confirm your password"),
+        : z.string().min(1, "Please confirm your password")
     })
     .refine((data) => data.password === data.confirmPassword, {
       path: ["confirmPassword"],
@@ -57,7 +61,7 @@ export const getUserAdminSchema = (isUpdate: boolean) => {
             code: z.ZodIssueCode.custom,
             path: ["password"],
             message:
-              "Password must include uppercase, lowercase, number, and symbol",
+              "Password must include uppercase, lowercase, number, and symbol"
           });
         }
       }
@@ -68,7 +72,7 @@ export const getUserAdminSchema = (isUpdate: boolean) => {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["locationGroup"],
-          message: "Location is required",
+          message: "Location is required"
         });
       }
 
@@ -76,7 +80,7 @@ export const getUserAdminSchema = (isUpdate: boolean) => {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["designation"],
-          message: "Designation is required",
+          message: "Designation is required"
         });
       }
 
@@ -84,10 +88,10 @@ export const getUserAdminSchema = (isUpdate: boolean) => {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["department"],
-          message: "Department is required",
+          message: "Department is required"
         });
       }
-    })
+    });
 
   return schema;
 };
@@ -103,7 +107,7 @@ export const getAdminSchema = (isUpdate: boolean) => {
       confirmPassword: isUpdate
         ? z.string().optional()
         : z.string().min(1, "Please confirm your password"),
-      assignRole: z.array(z.string()).min(1, "Select at least one role"),
+      assignRole: z.array(z.string()).min(1, "Select at least one role")
     })
     .refine((data) => data.password === data.confirmPassword, {
       path: ["confirmPassword"],
@@ -125,7 +129,7 @@ export const getDepartmentSchema = z.object({
     .max(50, "Department name must not exceed 50 characters"),
   departmentManager: z.string().min(1, "Please select a department manager"),
   departmentGroupLocation: z.string().min(1, "Please select a location"),
-  description: z.string().optional(),
+  description: z.string().optional()
 });
 
 export const getLocationSchema = z.object({
@@ -133,7 +137,7 @@ export const getLocationSchema = z.object({
     .string()
     .min(1, "Location name is required")
     .max(50, "Location name must be under 50 characters"),
-  description: z.string().optional(),
+  description: z.string().optional()
 });
 
 export const getDesignationSchema = z.object({
@@ -141,7 +145,7 @@ export const getDesignationSchema = z.object({
     .string()
     .min(1, "Designation name is required")
     .max(50, "Designation name must be under 50 characters"),
-  description: z.string().optional(),
+  description: z.string().optional()
 });
 
 export const getSupplierSchema = z.object({
@@ -151,8 +155,11 @@ export const getSupplierSchema = z.object({
     .max(20, "Supplier name must not exceed 20 characters"),
   typeOfSupplier: z.string().optional(),
   product: z.string().optional(),
-  description: z.string().max(50, "Description must not exceed 50 characters").optional(),
-  status: z.enum(["enabled", "disabled"]).optional(),
+  description: z
+    .string()
+    .max(50, "Description must not exceed 50 characters")
+    .optional(),
+  status: z.enum(["enabled", "disabled"]).optional()
 });
 
 export const getWorkflowSchema = z.object({
@@ -161,27 +168,34 @@ export const getWorkflowSchema = z.object({
     .min(1, "Workflow name is required")
     .max(20, "Workflow name must not exceed 20 characters"),
   levels: z.string().min(1, "Levels are required"),
-  description: z.string().max(50, "Description must not exceed 50 characters").optional(),
-  status: z.enum(["enabled", "disabled"]).optional(),
-
+  description: z
+    .string()
+    .max(50, "Description must not exceed 50 characters")
+    .optional(),
+  status: z.enum(["enabled", "disabled"]).optional()
 });
 
 export const getAssignmentGroupSchema = z.object({
-  groupName: z
-    .string()
-    .min(1, "Group name is required"),
-  //Comment out in future 
+  groupName: z.string().min(1, "Group name is required"),
+  //Comment out in future
   // .regex(/^[A-Z]{2}-[A-Z]{3,}-[A-Z]{2,}-[A-Z]{2,}$/, "Invalid group name format. Expected format: RD-APP-LIMS-BUS-ADMIN"),
   manager: z.object({
     userId: z.string().min(1, "Manager is required"),
-    name: z.string().min(1, "Manager name is required"),
+    name: z.string().min(1, "Manager name is required")
   }),
-  members: z.array(z.object({
-    userId: z.string(),
-    name: z.string(),
-  })).optional(),
-  description: z.string().max(50, "Description must not exceed 50 characters").optional(),
-  isActive: z.boolean().default(true).optional(),
+  members: z
+    .array(
+      z.object({
+        userId: z.string(),
+        name: z.string()
+      })
+    )
+    .optional(),
+  description: z
+    .string()
+    .max(50, "Description must not exceed 50 characters")
+    .optional(),
+  isActive: z.boolean().default(true).optional()
 });
 
 export const getEnvironmentSchema = z.object({
@@ -189,14 +203,18 @@ export const getEnvironmentSchema = z.object({
     .string()
     .min(1, "Environment name is required")
     .max(20, "Environment name must not exceed 20 characters"),
-  description: z.string().max(50, "Description must not exceed 50 characters").optional(),
+  description: z
+    .string()
+    .max(50, "Description must not exceed 50 characters")
+    .optional()
 });
 
 export const getGxpPermissionSchema = z.object({
-  permissionName: z
+  permissionName: z.string().min(1, "Permission name is required"),
+  description: z
     .string()
-    .min(1, "Permission name is required"),
-  description: z.string().max(50, "Description must not exceed 50 characters").optional(),
+    .max(50, "Description must not exceed 50 characters")
+    .optional()
 });
 
 export const getGxpRoleSchema = z.object({
@@ -205,17 +223,23 @@ export const getGxpRoleSchema = z.object({
     .min(1, "Role name is required")
     .max(20, "Role name must not exceed 20 characters")
     .refine((v) => v.startsWith("Service"), {
-      message: "Role name must start with Service",
+      message: "Role name must start with Service"
     }),
-  permissions: z.array(z.string()).min(1, "At least one permission is required"),
-  description: z.string().max(50, "Description must not exceed 50 characters").optional(),
+  permissions: z
+    .array(z.string())
+    .min(1, "At least one permission is required"),
+  description: z
+    .string()
+    .max(50, "Description must not exceed 50 characters")
+    .optional()
 });
-
 
 export const getApplicationSchema = z.object({
   applicationName: z.string().min(1),
   applicationType: z.enum(["GxP", "Non-GxP"]),
-  applicationEnvironment: z.string().min(1, "Application environment is required"),
+  applicationEnvironment: z
+    .string()
+    .min(1, "Application environment is required"),
   group: z.string().min(1, "Group is required"),
   assignmentGroup: z.string().min(1, "Assignment group is required"),
   applicationRoles: z.array(z.string()).default([]),
@@ -233,12 +257,11 @@ export const getApplicationSchema = z.object({
     .min(1, "At least one department is required"),
   notes: z.string().min(1, "Notes are required"),
   attachments: z.array(z.string()).default([]),
-  status: z.enum(["enabled", "disabled"]).default("enabled"),
+  status: z.enum(["enabled", "disabled"]).default("enabled")
 });
 
 export type ApplicationFormInput = z.input<typeof getApplicationSchema>;
 export type ApplicationFormOutput = z.output<typeof getApplicationSchema>;
-
 
 export const getApplicationSoftwareModuleSchema = z.object({
   moduleName: z
@@ -246,15 +269,17 @@ export const getApplicationSoftwareModuleSchema = z.object({
     .min(1, "Module name is required")
     .max(100, "Module name must be less than 100 characters"),
   application: z.string().optional().default(""),
-  status: z.enum(["enabled", "disabled"]).default("enabled"),
+  status: z.enum(["enabled", "disabled"]).default("enabled")
 });
 
 export const getGxpUserSchema = z.object({
-    userId: z.string().min(1, "User ID is required"),
-    userType: z.enum(["User", "Resolver"]),
-    roleId: z.array(z.string().min(1, "Role ID is required")).min(1, "Role is required"),
-    description: z.string().optional(),
-    status: z.enum(["enabled", "disabled"]),
+  userId: z.string().min(1, "User ID is required"),
+  userType: z.enum(["User", "Resolver"]),
+  roleId: z
+    .array(z.string().min(1, "Role ID is required"))
+    .min(1, "Role is required"),
+  description: z.string().optional(),
+  status: z.enum(["enabled", "disabled"])
 });
 export type GxpUserFormInput = z.infer<typeof getGxpUserSchema>;
 export type GxpUserFormOutput = z.output<typeof getGxpUserSchema>;
@@ -282,12 +307,12 @@ export const getServiceRequestSchema = z.object({
       "Hold",
       "Closed - Incomplete",
       "Closed - Complete",
-      "Closed - Skipped",
+      "Closed - Skipped"
     ])
     .default("New"),
   comments: z
     .array(z.string().min(1, "Comment is required"))
-    .min(1, "Comment is required"),
+    .min(1, "Comment is required")
 });
 
 export type ServiceRequestFormInput = z.input<typeof getServiceRequestSchema>;

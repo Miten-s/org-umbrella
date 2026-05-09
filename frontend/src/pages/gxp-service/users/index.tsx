@@ -9,7 +9,7 @@ import { Modal } from "@/components/ui/modal";
 import { useGlobalContext } from "@/context";
 import { useModal } from "@/hooks/useModal";
 import { useServerPagination } from "@/hooks/useServerPagination";
-import { toast } from "@/lib/ToastProvider";
+import { toast } from "@/lib/toast";
 import {
   CheckLineIcon,
   CopyIcon,
@@ -31,7 +31,7 @@ import { GXP_PERMISSIONS } from "@/utils/permissions";
 import { RoleType } from "@/utils/common.constants";
 import { extractList } from "@/utils/listResponse";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import CreateGxpUserModal, { GxpUserEntity } from "./CreateGxpUserModal";
 
@@ -44,10 +44,12 @@ const normalizeRoles = (roles: RoleRef[] | RoleRef | undefined): string[] => {
   if (!roles) return [];
   if (Array.isArray(roles)) {
     return roles
-      .map((role) => (typeof role === "string" ? role : role?._id ?? ""))
+      .map((role) => (typeof role === "string" ? role : (role?._id ?? "")))
       .filter(Boolean);
   }
-  return [typeof roles === "string" ? roles : roles?._id ?? ""].filter(Boolean);
+  return [typeof roles === "string" ? roles : (roles?._id ?? "")].filter(
+    Boolean
+  );
 };
 
 const normalizeGxpUser = (user: any): GxpUserEntity => ({
@@ -112,7 +114,9 @@ const copyUsersToClipboard = async (
     }
 
     toast(
-      rows.length > 1 ? `${rows.length} GXP users copied to clipboard.` : "GXP user copied to clipboard.",
+      rows.length > 1
+        ? `${rows.length} GXP users copied to clipboard.`
+        : "GXP user copied to clipboard.",
       "success"
     );
   } catch (error) {
@@ -137,8 +141,11 @@ const GXPUsersPage = () => {
   const gxpUsers = paginatedGxpUsers.rows;
   const setGxpUsers = paginatedGxpUsers.setRows;
   const [activeUser, setActiveUser] = useState<GxpUserEntity | null>(null);
-  const [userModalMode, setUserModalMode] = useState<GxpUserModalMode>("create");
-  const [pendingDeleteUsers, setPendingDeleteUsers] = useState<GxpUserEntity[]>([]);
+  const [userModalMode, setUserModalMode] =
+    useState<GxpUserModalMode>("create");
+  const [pendingDeleteUsers, setPendingDeleteUsers] = useState<GxpUserEntity[]>(
+    []
+  );
   const [selectableUsers, setSelectableUsers] = useState<BareUser[]>([]);
   const [selectableRoles, setSelectableRoles] = useState<Role[]>([]);
 
@@ -153,10 +160,13 @@ const GXPUsersPage = () => {
     setUserModalMode("create");
   };
 
-  const getUserRoleNames = (user: GxpUserEntity) =>
-    user.roles
-      .map((roleId) => roleNameMap.get(roleId) ?? roleId)
-      .filter(Boolean);
+  const getUserRoleNames = useCallback(
+    (user: GxpUserEntity) =>
+      user.roles
+        .map((roleId) => roleNameMap.get(roleId) ?? roleId)
+        .filter(Boolean),
+    [roleNameMap]
+  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -180,7 +190,6 @@ const GXPUsersPage = () => {
             name: role.name
           }))
         );
-
       } catch (error) {
         console.error("Error fetching GXP user references:", error);
       }
@@ -211,7 +220,9 @@ const GXPUsersPage = () => {
 
     try {
       const results = await Promise.allSettled(
-        pendingDeleteUsers.map((user) => deleteGxpUser(user._id, { silent: true }))
+        pendingDeleteUsers.map((user) =>
+          deleteGxpUser(user._id, { silent: true })
+        )
       );
       const failedDeletes = results.filter(
         (result) => result.status === "rejected"
@@ -231,7 +242,10 @@ const GXPUsersPage = () => {
           "error"
         );
       } else {
-        toast("Failed to delete selected GXP users. Please try again.", "error");
+        toast(
+          "Failed to delete selected GXP users. Please try again.",
+          "error"
+        );
       }
 
       setPendingDeleteUsers([]);
@@ -242,30 +256,33 @@ const GXPUsersPage = () => {
     }
   };
 
-  const handleStatusChange = async (user: GxpUserEntity) => {
-    const nextStatus = user.status === "enabled" ? "disabled" : "enabled";
+  const handleStatusChange = useCallback(
+    async (user: GxpUserEntity) => {
+      const nextStatus = user.status === "enabled" ? "disabled" : "enabled";
 
-    setGxpUsers((prev) =>
-      prev.map((item) =>
-        item._id === user._id ? { ...item, status: nextStatus } : item
-      )
-    );
-
-    try {
-      if (nextStatus === "enabled") {
-        await enableGxpUser(user._id);
-      } else {
-        await disableGxpUser(user._id);
-      }
-    } catch (error) {
-      console.error("Failed to update GXP user status", error);
       setGxpUsers((prev) =>
         prev.map((item) =>
-          item._id === user._id ? { ...item, status: user.status } : item
+          item._id === user._id ? { ...item, status: nextStatus } : item
         )
       );
-    }
-  };
+
+      try {
+        if (nextStatus === "enabled") {
+          await enableGxpUser(user._id);
+        } else {
+          await disableGxpUser(user._id);
+        }
+      } catch (error) {
+        console.error("Failed to update GXP user status", error);
+        setGxpUsers((prev) =>
+          prev.map((item) =>
+            item._id === user._id ? { ...item, status: user.status } : item
+          )
+        );
+      }
+    },
+    [setGxpUsers]
+  );
 
   const titleExtra = useMemo<ReactNode>(
     () => (
@@ -305,7 +322,8 @@ const GXPUsersPage = () => {
           selectedRows.length > 1 ? "Copy GXP users" : "Copy GXP user",
         icon: CopyIcon,
         variant: "outline",
-        onClick: (selectedRows) => copyUsersToClipboard(selectedRows, roleNameMap)
+        onClick: (selectedRows) =>
+          copyUsersToClipboard(selectedRows, roleNameMap)
       },
       {
         key: "delete-selected",
@@ -414,7 +432,8 @@ const GXPUsersPage = () => {
         headerName: t("gxpAppRoles"),
         minWidth: 240,
         sortable: false,
-        valueGetter: ({ data }) => getUserRoleNames(data as GxpUserEntity).join(", "),
+        valueGetter: ({ data }) =>
+          getUserRoleNames(data as GxpUserEntity).join(", "),
         cellRenderer: (params: ICellRendererParams<GxpUserEntity>) => (
           <div className="line-clamp-2 py-1.5 text-sm text-gray-600 dark:text-gray-300">
             {getUserRoleNames(params.data as GxpUserEntity).join(", ") || "-"}
@@ -454,7 +473,7 @@ const GXPUsersPage = () => {
         }
       }
     ],
-    [roleNameMap, t]
+    [getUserRoleNames, handleStatusChange, t]
   );
 
   return (

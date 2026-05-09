@@ -2,7 +2,7 @@ import { useState } from "react";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { logoutUser } from "@/services/admin.service";
-import { toast } from "@/lib/ToastProvider";
+import { toast } from "@/lib/toast";
 import { useNavigate } from "react-router-dom";
 import { AUTH_TOKEN_KEY, SYSTEM_ROUTES } from "@/utils/common.constants";
 import { useAuth } from "@/context/AuthContext";
@@ -12,7 +12,7 @@ import { PageUrl } from "@/types/utils.types";
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   const { setIsAuthenticated, setUser, setCurrentCompany } = useAuth();
   function toggleDropdown() {
     setIsOpen(!isOpen);
@@ -32,15 +32,15 @@ export default function UserDropdown() {
       setCurrentCompany({});
       sessionStorage.removeItem(AUTH_TOKEN_KEY);
       localStorage.removeItem(AUTH_TOKEN_KEY);
-      
+
       // Navigate to login
       navigate(SYSTEM_ROUTES.LOGIN, { replace: true });
-    } catch (error) {
+    } catch {
       toast("Logout failed", "error");
     }
-  }
+  };
 
-  const { user } = useAuth()
+  const { user } = useAuth();
 
   return (
     <div className="relative">
@@ -52,10 +52,13 @@ export default function UserDropdown() {
           {user?.name?.charAt(0)?.toUpperCase()}
         </span>
 
-        <span className="block mr-1 font-medium text-theme-sm">{user?.name}</span>
+        <span className="block mr-1 font-medium text-theme-sm">
+          {user?.name}
+        </span>
         <svg
-          className={`stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""
-            }`}
+          className={`stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${
+            isOpen ? "rotate-180" : ""
+          }`}
           width="18"
           height="20"
           viewBox="0 0 18 20"
@@ -142,7 +145,7 @@ export default function UserDropdown() {
             <DropdownItem
               onItemClick={closeDropdown}
               tag="a"
-              to={PageUrl.GXPCreateNewServiceRequest.path }
+              to={PageUrl.GXPCreateNewServiceRequest.path}
               className="flex items-center gap-3 px-3 py-2 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
             >
               <svg
@@ -183,7 +186,7 @@ export default function UserDropdown() {
               fill=""
             />
           </svg>
-          {t('signOff')}
+          {t("signOff")}
         </span>
       </Dropdown>
     </div>

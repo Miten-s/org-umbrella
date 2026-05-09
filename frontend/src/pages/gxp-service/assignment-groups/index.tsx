@@ -10,7 +10,7 @@ import { Modal } from "@/components/ui/modal";
 import { useGlobalContext } from "@/context";
 import { useModal } from "@/hooks/useModal";
 import { useServerPagination } from "@/hooks/useServerPagination";
-import { toast } from "@/lib/ToastProvider";
+import { toast } from "@/lib/toast";
 import {
   CheckLineIcon,
   CopyIcon,
@@ -30,7 +30,7 @@ import {
 import { AssignmentGroup } from "@/types/common.types";
 import { GXP_PERMISSIONS } from "@/utils/permissions";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
-import { ReactNode, useMemo, useState } from "react";
+import { ReactNode, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import CreateAssignmentGroupModal from "./CreateAssignmentGroupModal";
 
@@ -90,7 +90,10 @@ const copyAssignmentGroupsToClipboard = async (rows: AssignmentGroup[]) => {
     );
   } catch (error) {
     console.error("Error copying assignment groups:", error);
-    toast("Failed to copy assignment group details. Please try again.", "error");
+    toast(
+      "Failed to copy assignment group details. Please try again.",
+      "error"
+    );
   }
 };
 
@@ -135,30 +138,35 @@ const AssignmentGroups = () => {
     }
   };
 
-  const handleStatusChange = async (group: AssignmentGroup) => {
-    const nextStatus = !group.isActive;
+  const handleStatusChange = useCallback(
+    async (group: AssignmentGroup) => {
+      const nextStatus = !group.isActive;
 
-    setAssignmentGroups((prev) =>
-      prev.map((item) =>
-        item._id === group._id ? { ...item, isActive: nextStatus } : item
-      )
-    );
-
-    try {
-      if (nextStatus) {
-        await enableAssignmentGroup(group.groupName);
-      } else {
-        await disableAssignmentGroup(group.groupName);
-      }
-    } catch (error) {
-      console.error("Assignment group status update failed:", error);
       setAssignmentGroups((prev) =>
         prev.map((item) =>
-          item._id === group._id ? { ...item, isActive: group.isActive } : item
+          item._id === group._id ? { ...item, isActive: nextStatus } : item
         )
       );
-    }
-  };
+
+      try {
+        if (nextStatus) {
+          await enableAssignmentGroup(group.groupName);
+        } else {
+          await disableAssignmentGroup(group.groupName);
+        }
+      } catch (error) {
+        console.error("Assignment group status update failed:", error);
+        setAssignmentGroups((prev) =>
+          prev.map((item) =>
+            item._id === group._id
+              ? { ...item, isActive: group.isActive }
+              : item
+          )
+        );
+      }
+    },
+    [setAssignmentGroups]
+  );
 
   const handleDeleteConfirmed = async () => {
     if (!pendingDeleteAssignmentGroups.length) {
@@ -190,14 +198,20 @@ const AssignmentGroups = () => {
           "error"
         );
       } else {
-        toast("Failed to delete selected assignment groups. Please try again.", "error");
+        toast(
+          "Failed to delete selected assignment groups. Please try again.",
+          "error"
+        );
       }
 
       setPendingDeleteAssignmentGroups([]);
       setReFetch(!reFetch);
     } catch (error) {
       console.error("Error deleting assignment groups:", error);
-      toast("Failed to delete selected assignment groups. Please try again.", "error");
+      toast(
+        "Failed to delete selected assignment groups. Please try again.",
+        "error"
+      );
     }
   };
 
@@ -212,25 +226,24 @@ const AssignmentGroups = () => {
     [includeInactive, t]
   );
 
-  const toolbarActions =
-    useMemo<AppDataTableToolbarAction<AssignmentGroup>[]>(
-      () => [
-        {
-          key: "create-assignment-group",
-          label: t("create", { entity: t("group") }),
-          className: "whitespace-nowrap",
-          icon: PlusIcon,
-          onClick: () => {
-            setActiveAssignmentGroup(null);
-            setAssignmentGroupModalMode("create");
-            openModal();
-          },
-          permission: GXP_PERMISSIONS.CREATE_ASSIGNMENT_GROUP,
-          variant: "primary"
-        }
-      ],
-      [openModal, t]
-    );
+  const toolbarActions = useMemo<AppDataTableToolbarAction<AssignmentGroup>[]>(
+    () => [
+      {
+        key: "create-assignment-group",
+        label: t("create", { entity: t("group") }),
+        className: "whitespace-nowrap",
+        icon: PlusIcon,
+        onClick: () => {
+          setActiveAssignmentGroup(null);
+          setAssignmentGroupModalMode("create");
+          openModal();
+        },
+        permission: GXP_PERMISSIONS.CREATE_ASSIGNMENT_GROUP,
+        variant: "primary"
+      }
+    ],
+    [openModal, t]
+  );
 
   const bulkActions = useMemo<AppDataTableBulkAction<AssignmentGroup>[]>(
     () => [
@@ -253,7 +266,8 @@ const AssignmentGroups = () => {
         icon: TrashBinIcon,
         permission: GXP_PERMISSIONS.DELETE_ASSIGNMENT_GROUP,
         variant: "destructive",
-        onClick: (selectedRows) => setPendingDeleteAssignmentGroups(selectedRows)
+        onClick: (selectedRows) =>
+          setPendingDeleteAssignmentGroups(selectedRows)
       }
     ],
     []
@@ -350,7 +364,8 @@ const AssignmentGroups = () => {
         headerName: t("members"),
         minWidth: 240,
         sortable: false,
-        valueGetter: ({ data }) => getMemberNames(data as AssignmentGroup).join(", "),
+        valueGetter: ({ data }) =>
+          getMemberNames(data as AssignmentGroup).join(", "),
         cellRenderer: (params: ICellRendererParams<AssignmentGroup>) => {
           const data = params.data;
           if (!data) return null;
@@ -360,7 +375,9 @@ const AssignmentGroups = () => {
 
           if (!memberNames.length) {
             return (
-              <div className="py-1.5 text-sm text-gray-600 dark:text-gray-300">-</div>
+              <div className="py-1.5 text-sm text-gray-600 dark:text-gray-300">
+                -
+              </div>
             );
           }
 
@@ -419,7 +436,7 @@ const AssignmentGroups = () => {
         }
       }
     ],
-    [t]
+    [handleStatusChange, t]
   );
 
   return (

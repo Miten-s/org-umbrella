@@ -8,15 +8,21 @@ import type { AppRoute } from "./types";
 // Dashboard & Access Management
 const Home = lazy(() => import("../pages/home"));
 const Dashboard = lazy(() => import("../pages/dashboard"));
-const RolesAndPermissions = lazy(() => import("../pages/access-management/roles-and-permissions"));
+const RolesAndPermissions = lazy(
+  () => import("../pages/access-management/roles-and-permissions")
+);
 
 // My Space
 const ProfileInfo = lazy(() => import("../pages/my-space/profile-info"));
 
 // System IT Admin
 const SysUsers = lazy(() => import("../pages/system-it-admin/users"));
-const SysDepartments = lazy(() => import("../pages/system-it-admin/departments"));
-const SysDesignations = lazy(() => import("../pages/system-it-admin/designations"));
+const SysDepartments = lazy(
+  () => import("../pages/system-it-admin/departments")
+);
+const SysDesignations = lazy(
+  () => import("../pages/system-it-admin/designations")
+);
 const SysLocations = lazy(() => import("../pages/system-it-admin/locations"));
 
 // Company
@@ -24,14 +30,26 @@ const CompanyManagement = lazy(() => import("../pages/company-management"));
 
 // GXP Service
 const GXPUsersPage = lazy(() => import("../pages/gxp-service/users"));
-const GXPRolesAndPermissionsPage = lazy(() => import("../pages/gxp-service/roles-and-permissions"));
+const GXPRolesAndPermissionsPage = lazy(
+  () => import("../pages/gxp-service/roles-and-permissions")
+);
 const GXPWorkflowsPage = lazy(() => import("../pages/gxp-service/workflows"));
-const GXPAssignmentGroupsPage = lazy(() => import("../pages/gxp-service/assignment-groups"));
-const GXPEnvironmentsPage = lazy(() => import("../pages/gxp-service/environments"));
+const GXPAssignmentGroupsPage = lazy(
+  () => import("../pages/gxp-service/assignment-groups")
+);
+const GXPEnvironmentsPage = lazy(
+  () => import("../pages/gxp-service/environments")
+);
 const GXPSuppliersPage = lazy(() => import("../pages/gxp-service/suppliers"));
-const GXPApplicationSoftwareModulePage = lazy(() => import("../pages/gxp-service/application-software-module"));
-const GXPAddNewApplicationPage = lazy(() => import("../pages/gxp-service/add-new-application"));
-const GXPCreateNewServiceRequestPage = lazy(() => import("../pages/gxp-service/create-new-service-request"));
+const GXPApplicationSoftwareModulePage = lazy(
+  () => import("../pages/gxp-service/application-software-module")
+);
+const GXPAddNewApplicationPage = lazy(
+  () => import("../pages/gxp-service/add-new-application")
+);
+const GXPCreateNewServiceRequestPage = lazy(
+  () => import("../pages/gxp-service/create-new-service-request")
+);
 
 const routes: AppRoute[] = [
   {
@@ -61,7 +79,10 @@ const routes: AppRoute[] = [
         path: PageUrl.AccessManagement.path,
         children: [
           {
-            path: PageUrl.Roles.path.replace(`${PageUrl.AccessManagement.path}/`, ""),
+            path: PageUrl.Roles.path.replace(
+              `${PageUrl.AccessManagement.path}/`,
+              ""
+            ),
             element: <RolesAndPermissions />,
             protection: {
               requiredPermission: ADMIN_PERMISSIONS.VIEW_ROLE
@@ -79,7 +100,10 @@ const routes: AppRoute[] = [
         path: PageUrl.MySpace.path,
         children: [
           {
-            path: PageUrl.ProfileInfo.path.replace(`${PageUrl.MySpace.path}/`, ""),
+            path: PageUrl.ProfileInfo.path.replace(
+              `${PageUrl.MySpace.path}/`,
+              ""
+            ),
             element: <ProfileInfo />,
             protection: {
               requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
@@ -108,7 +132,10 @@ const routes: AppRoute[] = [
             }
           },
           {
-            path: PageUrl.Departments.path.replace(`${PageUrl.System.path}/`, ""),
+            path: PageUrl.Departments.path.replace(
+              `${PageUrl.System.path}/`,
+              ""
+            ),
             element: <SysDepartments />,
             protection: {
               requiredPermission: ADMIN_PERMISSIONS.VIEW_DEPARTMENT
@@ -119,7 +146,10 @@ const routes: AppRoute[] = [
             }
           },
           {
-            path: PageUrl.Designations.path.replace(`${PageUrl.System.path}/`, ""),
+            path: PageUrl.Designations.path.replace(
+              `${PageUrl.System.path}/`,
+              ""
+            ),
             element: <SysDesignations />,
             protection: {
               requiredPermission: ADMIN_PERMISSIONS.VIEW_DESIGNATION
@@ -130,7 +160,10 @@ const routes: AppRoute[] = [
             }
           },
           {
-            path: PageUrl.LocationsGroups.path.replace(`${PageUrl.System.path}/`, ""),
+            path: PageUrl.LocationsGroups.path.replace(
+              `${PageUrl.System.path}/`,
+              ""
+            ),
             element: <SysLocations />,
             protection: {
               requiredPermission: ADMIN_PERMISSIONS.VIEW_LOCATION
@@ -161,7 +194,10 @@ const routes: AppRoute[] = [
         path: PageUrl.GXPService.path,
         children: [
           {
-            path: PageUrl.GXPUsers.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            path: PageUrl.GXPUsers.path.replace(
+              `${PageUrl.GXPService.path}/`,
+              ""
+            ),
             element: <GXPUsersPage />,
             protection: {
               requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
@@ -172,7 +208,10 @@ const routes: AppRoute[] = [
             }
           },
           {
-            path: PageUrl.GXPRolesAndPermissions.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            path: PageUrl.GXPRolesAndPermissions.path.replace(
+              `${PageUrl.GXPService.path}/`,
+              ""
+            ),
             element: <GXPRolesAndPermissionsPage />,
             protection: {
               requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
@@ -183,7 +222,10 @@ const routes: AppRoute[] = [
             }
           },
           {
-            path: PageUrl.GXPWorkflows.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            path: PageUrl.GXPWorkflows.path.replace(
+              `${PageUrl.GXPService.path}/`,
+              ""
+            ),
             element: <GXPWorkflowsPage />,
             protection: {
               requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
@@ -194,7 +236,10 @@ const routes: AppRoute[] = [
             }
           },
           {
-            path: PageUrl.GXPAssignmentGroups.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            path: PageUrl.GXPAssignmentGroups.path.replace(
+              `${PageUrl.GXPService.path}/`,
+              ""
+            ),
             element: <GXPAssignmentGroupsPage />,
             protection: {
               requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
@@ -205,7 +250,10 @@ const routes: AppRoute[] = [
             }
           },
           {
-            path: PageUrl.GXPEnvironments.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            path: PageUrl.GXPEnvironments.path.replace(
+              `${PageUrl.GXPService.path}/`,
+              ""
+            ),
             element: <GXPEnvironmentsPage />,
             protection: {
               requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
@@ -216,7 +264,10 @@ const routes: AppRoute[] = [
             }
           },
           {
-            path: PageUrl.GXPSuppliers.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            path: PageUrl.GXPSuppliers.path.replace(
+              `${PageUrl.GXPService.path}/`,
+              ""
+            ),
             element: <GXPSuppliersPage />,
             protection: {
               requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
@@ -227,7 +278,10 @@ const routes: AppRoute[] = [
             }
           },
           {
-            path: PageUrl.GXPApplicationSoftwareModule.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            path: PageUrl.GXPApplicationSoftwareModule.path.replace(
+              `${PageUrl.GXPService.path}/`,
+              ""
+            ),
             element: <GXPApplicationSoftwareModulePage />,
             protection: {
               requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
@@ -238,7 +292,10 @@ const routes: AppRoute[] = [
             }
           },
           {
-            path: PageUrl.GXPAddNewApplication.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            path: PageUrl.GXPAddNewApplication.path.replace(
+              `${PageUrl.GXPService.path}/`,
+              ""
+            ),
             element: <GXPAddNewApplicationPage />,
             protection: {
               requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
@@ -249,7 +306,10 @@ const routes: AppRoute[] = [
             }
           },
           {
-            path: PageUrl.GXPCreateNewServiceRequest.path.replace(`${PageUrl.GXPService.path}/`, ""),
+            path: PageUrl.GXPCreateNewServiceRequest.path.replace(
+              `${PageUrl.GXPService.path}/`,
+              ""
+            ),
             element: <GXPCreateNewServiceRequestPage />,
             protection: {
               requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD

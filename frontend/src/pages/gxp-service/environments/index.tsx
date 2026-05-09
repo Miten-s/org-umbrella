@@ -8,7 +8,7 @@ import { Modal } from "@/components/ui/modal";
 import { useGlobalContext } from "@/context";
 import { useModal } from "@/hooks/useModal";
 import { useServerPagination } from "@/hooks/useServerPagination";
-import { toast } from "@/lib/ToastProvider";
+import { toast } from "@/lib/toast";
 import {
   CheckLineIcon,
   CopyIcon,
@@ -157,18 +157,26 @@ const Environments = () => {
           "error"
         );
       } else {
-        toast("Failed to delete selected environments. Please try again.", "error");
+        toast(
+          "Failed to delete selected environments. Please try again.",
+          "error"
+        );
       }
 
       setPendingDeleteEnvironments([]);
       setReFetch(!reFetch);
     } catch (error) {
       console.error("Error deleting environment:", error);
-      toast("Failed to delete selected environments. Please try again.", "error");
+      toast(
+        "Failed to delete selected environments. Please try again.",
+        "error"
+      );
     }
   };
 
-  const toolbarActions = useMemo<AppDataTableToolbarAction<EnvironmentRecord>[]>(
+  const toolbarActions = useMemo<
+    AppDataTableToolbarAction<EnvironmentRecord>[]
+  >(
     () => [
       {
         key: "create-environment",
@@ -200,7 +208,9 @@ const Environments = () => {
       {
         key: "delete-selected",
         label: (selectedRows) =>
-          selectedRows.length > 1 ? "Delete environments" : "Delete environment",
+          selectedRows.length > 1
+            ? "Delete environments"
+            : "Delete environment",
         icon: TrashBinIcon,
         permission: GXP_PERMISSIONS.DELETE_ENVIRONMENT,
         variant: "destructive",
@@ -244,7 +254,8 @@ const Environments = () => {
         tooltip: "Copy environment",
         icon: CopyIcon,
         placement: "menu",
-        onClick: async (environment) => copyEnvironmentsToClipboard([environment])
+        onClick: async (environment) =>
+          copyEnvironmentsToClipboard([environment])
       },
       {
         key: "delete",

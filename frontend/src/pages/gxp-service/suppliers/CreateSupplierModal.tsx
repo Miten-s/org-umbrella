@@ -35,7 +35,7 @@ const CreateSupplierModal = ({
     handleSubmit,
     setValue,
     control,
-    formState: { errors },
+    formState: { errors }
   } = useForm<CreateSupplierForm>({
     resolver: zodResolver(getSupplierSchema),
     defaultValues: {
@@ -43,8 +43,8 @@ const CreateSupplierModal = ({
       typeOfSupplier: initialData?.typeOfSupplier || "",
       product: initialData?.product || "",
       description: initialData?.description || "",
-      status: initialData?.status || "enabled",
-    },
+      status: initialData?.status || "enabled"
+    }
   });
 
   const description = useWatch({ control, name: "description" });
@@ -78,9 +78,7 @@ const CreateSupplierModal = ({
 
           {/* Type of Supplier */}
           <div>
-            <Label htmlFor="typeOfSupplier">
-              {t("typeOfSupplier")}
-            </Label>
+            <Label htmlFor="typeOfSupplier">{t("typeOfSupplier")}</Label>
             <Input
               {...register("typeOfSupplier")}
               disabled={isReadOnly}
@@ -92,9 +90,7 @@ const CreateSupplierModal = ({
 
           {/* Product */}
           <div>
-            <Label htmlFor="product">
-              {t("product")}
-            </Label>
+            <Label htmlFor="product">{t("product")}</Label>
             <Input
               {...register("product")}
               disabled={isReadOnly}
@@ -124,7 +120,9 @@ const CreateSupplierModal = ({
               label={status === "enabled" ? t("enabled") : t("disabled")}
               checked={status === "enabled"}
               disabled={isReadOnly}
-              onChange={(checked) => setValue("status", checked ? "enabled" : "disabled")}
+              onChange={(checked) =>
+                setValue("status", checked ? "enabled" : "disabled")
+              }
             />
           </div>
         </div>

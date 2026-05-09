@@ -15,7 +15,7 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   className,
   showCloseButton = true, // Default to true for backwards compatibility
-  isFullscreen = false,
+  isFullscreen = false
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -54,7 +54,6 @@ export const Modal: React.FC<ModalProps> = ({
     : "relative w-full rounded-3xl bg-white  dark:bg-gray-900";
 
   return (
-    
     <div className="fixed inset-0 flex items-center justify-center overflow-auto modal z-99 no-scrollbar">
       {!isFullscreen && (
         <div

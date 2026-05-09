@@ -10,7 +10,7 @@ import {
   getRoles,
   updateRole
 } from "@/services/admin.service";
-import { toast } from "@/lib/ToastProvider";
+import { toast } from "@/lib/toast";
 import { useGlobalContext } from "@/context";
 import { useTranslation } from "react-i18next";
 import CountWithTooltip from "@/components/common/CountWithTooltip";
@@ -29,7 +29,6 @@ interface Permission {
   type?: string;
 }
 
-
 const RolesAndPermissions = () => {
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
@@ -37,8 +36,10 @@ const RolesAndPermissions = () => {
   const [activeRole, setActiveRole] = useState<Role | null>(null);
   const { reFetch, setReFetch } = useGlobalContext();
   const [confirmationModal, setConfirmationModal] = useState(false);
-  const { t } = useTranslation()
-  const [permissionType, setPermissionType] = useState<PermissionType>(PermissionType.DEFAULT);
+  const { t } = useTranslation();
+  const [permissionType, setPermissionType] = useState<PermissionType>(
+    PermissionType.DEFAULT
+  );
   const handleCreateRole = async (data: {
     name: string;
     permissions: string[];
@@ -78,9 +79,12 @@ const RolesAndPermissions = () => {
   useEffect(() => {
     if (!isOpen) return;
     (async () => {
-      const { permissions: fetchedPermissions } = await getPermissions(permissionType, {
-        limit: 100
-      });
+      const { permissions: fetchedPermissions } = await getPermissions(
+        permissionType,
+        {
+          limit: 100
+        }
+      );
       setPermissions(fetchedPermissions);
     })();
   }, [isOpen, permissionType]);
@@ -105,7 +109,7 @@ const RolesAndPermissions = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-          {t('rolesAndPermissions')}
+          {t("rolesAndPermissions")}
         </h1>
         <Button
           permission="CREATE:ROLE"
@@ -117,7 +121,7 @@ const RolesAndPermissions = () => {
           tooltipPosition="left"
           className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
-          {t('create', { entity: t('role') })}
+          {t("create", { entity: t("role") })}
         </Button>
       </div>
 
@@ -143,13 +147,13 @@ const RolesAndPermissions = () => {
           <thead className="bg-gray-50 dark:bg-gray-800">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                {t('roleName')}
+                {t("roleName")}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                {t('permissions')}
+                {t("permissions")}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                {t('actions')}
+                {t("actions")}
               </th>
             </tr>
           </thead>
@@ -177,7 +181,9 @@ const RolesAndPermissions = () => {
                       {role.permissions.length > 2 && (
                         <CountWithTooltip
                           count={role.permissions.length - 2}
-                          items={role.permissions.slice(2).map((perm) => perm.name)}
+                          items={role.permissions
+                            .slice(2)
+                            .map((perm) => perm.name)}
                           headerLabel={`Permissions (${role.permissions.length - 2} more)`}
                           buttonLabel={`+ ${role.permissions.length - 2}`}
                           className="self-center"
@@ -188,7 +194,7 @@ const RolesAndPermissions = () => {
 
                   {/* Actions */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                    {role.type !== 'Built_In' && (
+                    {role.type !== "Built_In" && (
                       <>
                         <Button
                           permission="UPDATE:ROLE"
@@ -196,7 +202,7 @@ const RolesAndPermissions = () => {
                           variant="outline"
                           className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
                         >
-                          {t('edit')}
+                          {t("edit")}
                         </Button>
                         <Button
                           permission="DELETE:ROLE"
@@ -207,7 +213,7 @@ const RolesAndPermissions = () => {
                           variant="outline"
                           className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                         >
-                          {t('delete')}
+                          {t("delete")}
                         </Button>
                       </>
                     )}
@@ -220,7 +226,7 @@ const RolesAndPermissions = () => {
                   colSpan={4}
                   className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-300"
                 >
-                  {t('noRolesFound')}
+                  {t("noRolesFound")}
                 </td>
               </tr>
             )}
@@ -237,7 +243,7 @@ const RolesAndPermissions = () => {
       >
         <div className="h-full p-5 flex flex-col justify-between">
           <div className="py-2 text-gray-800 dark:text-gray-200">
-            {`${t('deleteEntityPrompt', { entityName: activeRole?.name })}`}
+            {`${t("deleteEntityPrompt", { entityName: activeRole?.name })}`}
           </div>
           <div className="flex justify-end gap-2 pt-4">
             <Button
@@ -245,7 +251,7 @@ const RolesAndPermissions = () => {
               onClick={() => setConfirmationModal(false)}
               className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
-              {t('cancel')}
+              {t("cancel")}
             </Button>
             <Button
               onClick={async () => {
@@ -262,13 +268,12 @@ const RolesAndPermissions = () => {
               }}
               className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
-              {t('confirm')}
+              {t("confirm")}
             </Button>
           </div>
         </div>
       </Modal>
     </>
-
   );
 };
 

@@ -1,8 +1,10 @@
-import { toast } from "@/lib/ToastProvider";
+import { toast } from "@/lib/toast";
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import { AUTH_TOKEN_KEY } from "./common.constants";
+import { getErrorMessage } from "./error.utils";
 
-const BASE_URL = import.meta.env.VITE_API_GXP_BASE_URL ?? "http://localhost:9001/v1/api";
+const BASE_URL =
+  import.meta.env.VITE_API_GXP_BASE_URL ?? "http://localhost:9001/v1/api";
 
 const gxpApi = axios.create({
   baseURL: BASE_URL,
@@ -13,7 +15,7 @@ const gxpApi = axios.create({
 let isRefreshing = false;
 let failedQueue: {
   resolve: (value?: unknown) => void;
-  reject: (reason?: any) => void;
+  reject: (reason?: unknown) => void;
 }[] = [];
 
 const processQueue = (error: AxiosError | null) => {
@@ -47,7 +49,8 @@ gxpApi.interceptors.response.use(
 
     if (
       error.response?.status === 401 &&
-      (error?.response?.data as { message?: string })?.message === "Token Expired" &&
+      (error?.response?.data as { message?: string })?.message ===
+        "Token Expired" &&
       !originalRequest._retry
     ) {
       if (isRefreshing) {
@@ -80,11 +83,10 @@ gxpApi.interceptors.response.use(
 
     if (
       error.response?.status !== 404 &&
-      (error.response?.data as { message?: string })?.message !== "Token not found"
+      (error.response?.data as { message?: string })?.message !==
+        "Token not found"
     ) {
-      const data = error.response?.data as { message?: string; error?: string } | undefined;
-      const errorMessage = data?.message ?? data?.error ?? "Something went wrong";  //Getting error message either from message or error
-      toast(errorMessage, "error");
+      toast(getErrorMessage(error), "error");
     }
     return Promise.reject(error);
   }

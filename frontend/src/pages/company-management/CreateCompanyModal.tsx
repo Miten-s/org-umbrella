@@ -13,7 +13,7 @@ import { getImageUrl } from "@/services/utils.service";
 const companySchema = z.object({
   name: z.string().min(1, "Company name is required"),
   description: z.string().optional(),
-  logo: z.any().optional(),
+  logo: z.any().optional()
 });
 
 type CreateCompanyForm = z.infer<typeof companySchema>;
@@ -24,23 +24,29 @@ interface CreateCompanyModalProps {
   initialData?: Partial<CreateCompanyForm>;
 }
 
-const CreateCompanyModal = ({ onClose, initialData, onSubmit }: CreateCompanyModalProps) => {
+const CreateCompanyModal = ({
+  onClose,
+  initialData,
+  onSubmit
+}: CreateCompanyModalProps) => {
   const { t } = useTranslation();
-  const [logoPreview, setLogoPreview] = useState<string | null>(initialData?.logo || null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(
+    initialData?.logo || null
+  );
 
   const {
     register,
     handleSubmit,
     setValue,
     watch,
-    formState: { errors },
+    formState: { errors }
   } = useForm<CreateCompanyForm>({
     resolver: zodResolver(companySchema),
     defaultValues: {
       name: initialData?.name || "",
       description: initialData?.description || "",
-      logo: initialData?.logo || undefined,
-    },
+      logo: initialData?.logo || undefined
+    }
   });
 
   const handleFileUpload = (files: File[]) => {
@@ -82,7 +88,9 @@ const CreateCompanyModal = ({ onClose, initialData, onSubmit }: CreateCompanyMod
             <Label>{t("description")}</Label>
             <TextArea
               value={watch("description") || ""}
-              onChange={(e) => setValue("description", e, { shouldValidate: true })}
+              onChange={(e) =>
+                setValue("description", e, { shouldValidate: true })
+              }
               error={!!errors.description}
               hint={errors.description?.message}
             />
@@ -114,7 +122,6 @@ const CreateCompanyModal = ({ onClose, initialData, onSubmit }: CreateCompanyMod
         </div>
       </form>
     </div>
-
   );
 };
 

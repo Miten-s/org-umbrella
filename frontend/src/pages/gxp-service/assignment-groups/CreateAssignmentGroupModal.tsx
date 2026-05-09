@@ -35,7 +35,7 @@ const CreateAssignmentGroupModal = ({
   onClose,
   onSubmit,
   initialData,
-  mode = "create",
+  mode = "create"
 }: CreateAssignmentGroupModalProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
@@ -47,7 +47,7 @@ const CreateAssignmentGroupModal = ({
     handleSubmit,
     setValue,
     control,
-    formState: { errors },
+    formState: { errors }
   } = useForm<CreateAssignmentGroupForm>({
     resolver: zodResolver(getAssignmentGroupSchema),
     defaultValues: {
@@ -55,8 +55,8 @@ const CreateAssignmentGroupModal = ({
       manager: initialData?.manager || { userId: "", name: "" },
       members: initialData?.members || [],
       description: initialData?.description || "",
-      isActive: initialData?.isActive ?? true,
-    },
+      isActive: initialData?.isActive ?? true
+    }
   });
 
   const description = useWatch({ control, name: "description" });
@@ -65,19 +65,21 @@ const CreateAssignmentGroupModal = ({
     const fetchUsers = async () => {
       const { users } = await getUsers({ limit: 100 });
       setAllUsers(users);
-      setAdminUsers(users.filter((user: User) => user.userType === UserTypes.ADMIN));
+      setAdminUsers(
+        users.filter((user: User) => user.userType === UserTypes.ADMIN)
+      );
     };
     fetchUsers();
   }, []);
 
   const userOptions = allUsers.map((user) => ({
     text: user.fullName, // <-- Change 'label' to 'text'
-    value: user._id,
+    value: user._id
   }));
 
   const adminUserOptions: SelectOption[] = adminUsers.map((user) => ({
     label: user.fullName,
-    value: user._id,
+    value: user._id
   }));
 
   return (
@@ -119,10 +121,12 @@ const CreateAssignmentGroupModal = ({
                   disabled={isReadOnly}
                   value={field.value.userId}
                   onChange={(val: string) => {
-                    const selectedUser = adminUsers?.find((user) => user._id === val);
+                    const selectedUser = adminUsers?.find(
+                      (user) => user._id === val
+                    );
                     field.onChange({
                       userId: val,
-                      name: selectedUser?.fullName || "",
+                      name: selectedUser?.fullName || ""
                     });
                   }}
                   options={adminUserOptions}
@@ -130,7 +134,11 @@ const CreateAssignmentGroupModal = ({
                 />
               )}
             />
-            {errors.manager && <p className="text-red-500 text-xs mt-1">{errors.manager.message}</p>}
+            {errors.manager && (
+              <p className="text-red-500 text-xs mt-1">
+                {errors.manager.message}
+              </p>
+            )}
           </div>
 
           {/* Members */}
@@ -145,12 +153,19 @@ const CreateAssignmentGroupModal = ({
                   options={userOptions}
                   label={t("members")}
                   onChange={(selectedValues: string[]) => {
-                    const selectedMembers = allUsers?.filter((user) =>
-                      selectedValues.includes(user._id)
-                    ).map((user) => ({ userId: user._id, name: user.fullName }));
+                    const selectedMembers = allUsers
+                      ?.filter((user) => selectedValues.includes(user._id))
+                      .map((user) => ({
+                        userId: user._id,
+                        name: user.fullName
+                      }));
                     field.onChange(selectedMembers);
                   }}
-                  defaultSelected={Array.isArray(field.value) ? field.value.map((m: any) => m.userId) : []}
+                  defaultSelected={
+                    Array.isArray(field.value)
+                      ? field.value.map((m: any) => m.userId)
+                      : []
+                  }
                 />
               )}
             />

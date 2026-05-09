@@ -5,6 +5,7 @@ import { DropdownItem } from "@/components/ui/dropdown/DropdownItem";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { ChevronLeftIcon, CloseLineIcon, MoreDotIcon } from "@/public/icons";
+import type { AuthenticatedUser } from "@/types/common.types";
 import { hasPermission } from "@/utils/permissions";
 import {
   AllCommunityModule,
@@ -144,10 +145,7 @@ const resolveBoolean = <T,>(
   return value ?? false;
 };
 
-const resolveText = <T,>(
-  value: ResolvableText<T>,
-  context: T
-) => {
+const resolveText = <T,>(value: ResolvableText<T>, context: T) => {
   if (typeof value === "function") {
     return value(context);
   }
@@ -156,7 +154,7 @@ const resolveText = <T,>(
 };
 
 const canUseAction = (
-  user: Record<string, unknown>,
+  user: AuthenticatedUser,
   permission?: PermissionInput,
   logic: "all" | "any" = "all"
 ) => {
@@ -170,6 +168,204 @@ const canUseAction = (
   }
 
   return hasPermission(user, permission);
+};
+
+interface RowActionsCellProps<T> {
+  row: T;
+  rowActions: AppDataTableRowAction<T>[];
+  maxInlineRowActions: number;
+  user: AuthenticatedUser;
+}
+
+const RowActionsCell = <T extends object>({
+  row,
+  rowActions,
+  maxInlineRowActions,
+  user
+}: RowActionsCellProps<T>) => {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ left: 0, top: 0 });
+
+  const visibleActions = rowActions.filter(
+    (action) => !resolveBoolean(action.hidden, row)
+  );
+  const preferredInlineActions = visibleActions.filter(
+    (action) => action.placement !== "menu"
+  );
+  const preferredMenuActions = visibleActions.filter(
+    (action) => action.placement === "menu"
+  );
+  const inlineActions = preferredInlineActions.slice(0, maxInlineRowActions);
+  const menuActions = [
+    ...preferredMenuActions,
+    ...preferredInlineActions.slice(maxInlineRowActions)
+  ];
+
+  useEffect(() => {
+    if (!isMenuOpen) {
+      return;
+    }
+
+    const handleViewportChange = () => {
+      setIsMenuOpen(false);
+    };
+
+    window.addEventListener("resize", handleViewportChange);
+    window.addEventListener("scroll", handleViewportChange, true);
+
+    return () => {
+      window.removeEventListener("resize", handleViewportChange);
+      window.removeEventListener("scroll", handleViewportChange, true);
+    };
+  }, [isMenuOpen]);
+
+  if (!visibleActions.length) {
+    return <span className="text-sm text-gray-400 dark:text-gray-500">-</span>;
+  }
+
+  const openMenu = (event: ReactMouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!triggerRef.current) {
+      setIsMenuOpen((current) => !current);
+      return;
+    }
+
+    const rect = triggerRef.current.getBoundingClientRect();
+    setMenuPosition({
+      left: Math.max(16, rect.right - 196),
+      top: rect.bottom + 8
+    });
+    setIsMenuOpen((current) => !current);
+  };
+
+  return (
+    <div
+      className="app-data-table__actions-wrap flex items-center justify-end gap-2 py-2"
+      onClick={(event) => event.stopPropagation()}
+      onMouseDown={(event) => event.stopPropagation()}
+    >
+      {inlineActions.map((action) => {
+        const label = resolveText(action.label, row);
+        const tooltip = resolveText(action.tooltip ?? action.label, row);
+        const actionAllowed = canUseAction(
+          user,
+          action.permission,
+          action.permissionLogic
+        );
+        const actionDisabled =
+          !actionAllowed || resolveBoolean(action.disabled, row);
+        const Icon = action.icon;
+
+        return (
+          <button
+            key={action.key}
+            type="button"
+            className={[
+              "inline-flex h-9 w-9 items-center justify-center rounded-lg border transition-colors",
+              action.tone === "danger"
+                ? "border-error-200 text-error-600 hover:bg-error-50 dark:border-error-900 dark:text-error-300 dark:hover:bg-error-950/30"
+                : "border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800",
+              actionDisabled
+                ? "cursor-not-allowed opacity-50"
+                : "shadow-theme-xs"
+            ].join(" ")}
+            disabled={actionDisabled}
+            onMouseDown={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              void action.onClick(row);
+            }}
+            aria-label={label}
+            title={tooltip}
+          >
+            <Icon className="h-4 w-4" />
+          </button>
+        );
+      })}
+
+      {menuActions.length ? (
+        <div className="relative overflow-visible">
+          <button
+            ref={triggerRef}
+            type="button"
+            className="dropdown-toggle inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-600 shadow-theme-xs transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+            onMouseDown={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+            onClick={openMenu}
+            aria-label="More actions"
+            title="More actions"
+          >
+            <MoreDotIcon className="h-4 w-4" />
+          </button>
+
+          <Dropdown
+            isOpen={isMenuOpen}
+            onClose={() => setIsMenuOpen(false)}
+            portal
+            position="fixed"
+            style={{
+              left: `${menuPosition.left}px`,
+              top: `${menuPosition.top}px`
+            }}
+            className="mt-0 min-w-[196px] rounded-xl p-1"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            {menuActions.map((action) => {
+              const label = resolveText(action.label, row);
+              const tooltip = action.tooltip
+                ? resolveText(action.tooltip, row)
+                : undefined;
+              const actionAllowed = canUseAction(
+                user,
+                action.permission,
+                action.permissionLogic
+              );
+              const actionDisabled =
+                !actionAllowed || resolveBoolean(action.disabled, row);
+              const Icon = action.icon;
+
+              return (
+                <DropdownItem
+                  key={action.key}
+                  title={tooltip}
+                  className={[
+                    "rounded-lg px-3 py-2 font-medium",
+                    action.tone === "danger"
+                      ? "text-error-600 hover:bg-error-50 dark:text-error-300 dark:hover:bg-error-950/30"
+                      : "",
+                    actionDisabled ? "cursor-not-allowed opacity-50" : ""
+                  ].join(" ")}
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                  }}
+                  onClick={() => {
+                    if (actionDisabled) {
+                      return;
+                    }
+                    setIsMenuOpen(false);
+                    void action.onClick(row);
+                  }}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{label}</span>
+                </DropdownItem>
+              );
+            })}
+          </Dropdown>
+        </div>
+      ) : null}
+    </div>
+  );
 };
 
 const AppDataTable = <T extends object>({
@@ -246,10 +442,14 @@ const AppDataTable = <T extends object>({
 
   const filteredRows = useMemo(() => {
     const shouldUseClientSearch =
-      !onSearchChange && Boolean(debouncedSearchTerm) && Boolean(searchAccessor);
+      !onSearchChange &&
+      Boolean(debouncedSearchTerm) &&
+      Boolean(searchAccessor);
 
     return rowData.filter((row) => {
-      const matchesTab = currentTab?.predicate ? currentTab.predicate(row) : true;
+      const matchesTab = currentTab?.predicate
+        ? currentTab.predicate(row)
+        : true;
       if (!matchesTab) {
         return false;
       }
@@ -260,7 +460,13 @@ const AppDataTable = <T extends object>({
 
       return searchAccessor(row).toLowerCase().includes(debouncedSearchTerm);
     });
-  }, [currentTab, debouncedSearchTerm, onSearchChange, rowData, searchAccessor]);
+  }, [
+    currentTab,
+    debouncedSearchTerm,
+    onSearchChange,
+    rowData,
+    searchAccessor
+  ]);
 
   const tableActionContext = useMemo<AppDataTableActionContext<T>>(
     () => ({
@@ -373,190 +579,6 @@ const AppDataTable = <T extends object>({
     [defaultColDefInput]
   );
 
-  const RowActionsCell = ({ row }: { row: T }) => {
-    const triggerRef = useRef<HTMLButtonElement>(null);
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [menuPosition, setMenuPosition] = useState({ left: 0, top: 0 });
-
-    const visibleActions = rowActions.filter(
-      (action) => !resolveBoolean(action.hidden, row)
-    );
-    const preferredInlineActions = visibleActions.filter(
-      (action) => action.placement !== "menu"
-    );
-    const preferredMenuActions = visibleActions.filter(
-      (action) => action.placement === "menu"
-    );
-    const inlineActions = preferredInlineActions.slice(0, maxInlineRowActions);
-    const menuActions = [
-      ...preferredMenuActions,
-      ...preferredInlineActions.slice(maxInlineRowActions)
-    ];
-
-    useEffect(() => {
-      if (!isMenuOpen) {
-        return;
-      }
-
-      const handleViewportChange = () => {
-        setIsMenuOpen(false);
-      };
-
-      window.addEventListener("resize", handleViewportChange);
-      window.addEventListener("scroll", handleViewportChange, true);
-
-      return () => {
-        window.removeEventListener("resize", handleViewportChange);
-        window.removeEventListener("scroll", handleViewportChange, true);
-      };
-    }, [isMenuOpen]);
-
-    if (!visibleActions.length) {
-      return <span className="text-sm text-gray-400 dark:text-gray-500">-</span>;
-    }
-
-    const openMenu = (event: ReactMouseEvent<HTMLButtonElement>) => {
-      event.preventDefault();
-      event.stopPropagation();
-
-      if (!triggerRef.current) {
-        setIsMenuOpen((current) => !current);
-        return;
-      }
-
-      const rect = triggerRef.current.getBoundingClientRect();
-      setMenuPosition({
-        left: Math.max(16, rect.right - 196),
-        top: rect.bottom + 8
-      });
-      setIsMenuOpen((current) => !current);
-    };
-
-    return (
-      <div
-        className="app-data-table__actions-wrap flex items-center justify-end gap-2 py-2"
-        onClick={(event) => event.stopPropagation()}
-        onMouseDown={(event) => event.stopPropagation()}
-      >
-        {inlineActions.map((action) => {
-          const label = resolveText(action.label, row);
-          const tooltip = resolveText(action.tooltip ?? action.label, row);
-          const actionAllowed = canUseAction(
-            user,
-            action.permission,
-            action.permissionLogic
-          );
-          const actionDisabled =
-            !actionAllowed || resolveBoolean(action.disabled, row);
-          const Icon = action.icon;
-
-          return (
-            <button
-              key={action.key}
-              type="button"
-              className={[
-                "inline-flex h-9 w-9 items-center justify-center rounded-lg border transition-colors",
-                action.tone === "danger"
-                  ? "border-error-200 text-error-600 hover:bg-error-50 dark:border-error-900 dark:text-error-300 dark:hover:bg-error-950/30"
-                  : "border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800",
-                actionDisabled ? "cursor-not-allowed opacity-50" : "shadow-theme-xs"
-              ].join(" ")}
-              disabled={actionDisabled}
-              onMouseDown={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-              }}
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                void action.onClick(row);
-              }}
-              aria-label={label}
-              title={tooltip}
-            >
-              <Icon className="h-4 w-4" />
-            </button>
-          );
-        })}
-
-        {menuActions.length ? (
-          <div className="relative overflow-visible">
-            <button
-              ref={triggerRef}
-              type="button"
-              className="dropdown-toggle inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-600 shadow-theme-xs transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
-              onMouseDown={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-              }}
-              onClick={openMenu}
-              aria-label="More actions"
-              title="More actions"
-            >
-              <MoreDotIcon className="h-4 w-4" />
-            </button>
-
-            <Dropdown
-              isOpen={isMenuOpen}
-              onClose={() => setIsMenuOpen(false)}
-              portal
-              position="fixed"
-              style={{
-                left: `${menuPosition.left}px`,
-                top: `${menuPosition.top}px`
-              }}
-              className="mt-0 min-w-[196px] rounded-xl p-1"
-              onMouseDown={(event) => event.stopPropagation()}
-            >
-              {menuActions.map((action) => {
-                const label = resolveText(action.label, row);
-                const tooltip = action.tooltip
-                  ? resolveText(action.tooltip, row)
-                  : undefined;
-                const actionAllowed = canUseAction(
-                  user,
-                  action.permission,
-                  action.permissionLogic
-                );
-                const actionDisabled =
-                  !actionAllowed || resolveBoolean(action.disabled, row);
-                const Icon = action.icon;
-
-                return (
-                  <DropdownItem
-                    key={action.key}
-                    title={tooltip}
-                    className={[
-                      "rounded-lg px-3 py-2 font-medium",
-                      action.tone === "danger"
-                        ? "text-error-600 hover:bg-error-50 dark:text-error-300 dark:hover:bg-error-950/30"
-                        : "",
-                      actionDisabled ? "cursor-not-allowed opacity-50" : ""
-                    ].join(" ")}
-                    onMouseDown={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                    }}
-                    onClick={() => {
-                      if (actionDisabled) {
-                        return;
-                      }
-                      setIsMenuOpen(false);
-                      void action.onClick(row);
-                    }}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span>{label}</span>
-                  </DropdownItem>
-                );
-              })}
-            </Dropdown>
-          </div>
-        ) : null}
-      </div>
-    );
-  };
-
   const computedColumnDefs = useMemo<ColDef<T>[]>(() => {
     const configuredInlineActions = rowActions.filter(
       (action) => action.placement !== "menu"
@@ -571,7 +593,8 @@ const AppDataTable = <T extends object>({
     const actionsColumn: ColDef<T>[] = rowActions.length
       ? [
           {
-            cellClass: "app-data-table__plain-cell app-data-table__actions-cell",
+            cellClass:
+              "app-data-table__plain-cell app-data-table__actions-cell",
             colId: "__actions__",
             filter: false,
             flex: 0,
@@ -584,20 +607,20 @@ const AppDataTable = <T extends object>({
             suppressHeaderMenuButton: true,
             width: Math.max(196, visibleActionSlots * 44 + 28),
             cellRenderer: (params: ICellRendererParams<T>) =>
-              params.data ? <RowActionsCell row={params.data} /> : null
+              params.data ? (
+                <RowActionsCell
+                  maxInlineRowActions={maxInlineRowActions}
+                  row={params.data}
+                  rowActions={rowActions}
+                  user={user}
+                />
+              ) : null
           }
         ]
       : [];
 
     return [...columnDefs, ...actionsColumn];
-  }, [
-    actionsColumnHeader,
-    columnDefs,
-    enableSelection,
-    maxInlineRowActions,
-    rowActions,
-    user
-  ]);
+  }, [actionsColumnHeader, columnDefs, maxInlineRowActions, rowActions, user]);
 
   return (
     <div
@@ -634,7 +657,10 @@ const AppDataTable = <T extends object>({
               const tooltip = action.tooltip
                 ? resolveText(action.tooltip, tableActionContext)
                 : undefined;
-              const disabled = resolveBoolean(action.disabled, tableActionContext);
+              const disabled = resolveBoolean(
+                action.disabled,
+                tableActionContext
+              );
               const Icon = action.icon;
 
               return (
@@ -667,11 +693,7 @@ const AppDataTable = <T extends object>({
               const tooltip = tab.disabled ? tab.tooltip : undefined;
 
               return (
-                <span
-                  key={tab.key}
-                  className="inline-flex"
-                  title={tooltip}
-                >
+                <span key={tab.key} className="inline-flex" title={tooltip}>
                   <button
                     type="button"
                     className={[
@@ -853,7 +875,9 @@ const AppDataTable = <T extends object>({
                   className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none transition-colors hover:bg-gray-50 focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
                   value={serverPagination.pageSize}
                   onChange={(event) =>
-                    serverPagination.onPageSizeChange?.(Number(event.target.value))
+                    serverPagination.onPageSizeChange?.(
+                      Number(event.target.value)
+                    )
                   }
                 >
                   {pageSizeOptions.map((option) => (
@@ -866,7 +890,8 @@ const AppDataTable = <T extends object>({
             ) : null}
 
             <span className="text-right">
-              {serverFirstRow} to {serverLastRow} of {serverPagination.totalRows}
+              {serverFirstRow} to {serverLastRow} of{" "}
+              {serverPagination.totalRows}
             </span>
 
             <span className="text-right font-medium">
@@ -889,7 +914,9 @@ const AppDataTable = <T extends object>({
                 type="button"
                 className="inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
                 disabled={serverCurrentPage <= 1 || loading}
-                onClick={() => serverPagination.onPageChange(serverCurrentPage - 1)}
+                onClick={() =>
+                  serverPagination.onPageChange(serverCurrentPage - 1)
+                }
                 aria-label="Previous page"
                 title="Previous page"
               >
@@ -899,7 +926,9 @@ const AppDataTable = <T extends object>({
                 type="button"
                 className="inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
                 disabled={serverCurrentPage >= serverTotalPages || loading}
-                onClick={() => serverPagination.onPageChange(serverCurrentPage + 1)}
+                onClick={() =>
+                  serverPagination.onPageChange(serverCurrentPage + 1)
+                }
                 aria-label="Next page"
                 title="Next page"
               >

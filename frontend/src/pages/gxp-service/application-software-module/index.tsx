@@ -9,7 +9,7 @@ import { Modal } from "@/components/ui/modal";
 import { useGlobalContext } from "@/context";
 import { useModal } from "@/hooks/useModal";
 import { useServerPagination } from "@/hooks/useServerPagination";
-import { toast } from "@/lib/ToastProvider";
+import { toast } from "@/lib/toast";
 import {
   CheckLineIcon,
   CopyIcon,
@@ -33,7 +33,7 @@ import type {
 } from "@/types/gxp-service.types";
 import { GXP_PERMISSIONS } from "@/utils/permissions";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import CreateApplicationSoftwareModuleModal from "./CreateApplicationSoftwareModuleModal";
 
@@ -60,10 +60,17 @@ const getReferenceId = (value: unknown): string => {
   return "";
 };
 
-const getReferenceName = (value: unknown, fallbackMap?: Map<string, string>): string => {
+const getReferenceName = (
+  value: unknown,
+  fallbackMap?: Map<string, string>
+): string => {
   if (!value) return "";
   if (typeof value === "object") {
-    const record = value as { applicationName?: string; name?: string; _id?: string };
+    const record = value as {
+      applicationName?: string;
+      name?: string;
+      _id?: string;
+    };
     if (record.applicationName) return record.applicationName;
     if (record.name) return record.name;
     if (record._id && fallbackMap?.has(record._id)) {
@@ -76,10 +83,12 @@ const getReferenceName = (value: unknown, fallbackMap?: Map<string, string>): st
   return "";
 };
 
-const getModuleApplicationId = (module?: Partial<ApplicationSoftwareModule> | null): string =>
-  getReferenceId(module?.application) || "";
+const getModuleApplicationId = (
+  module?: Partial<ApplicationSoftwareModule> | null
+): string => getReferenceId(module?.application) || "";
 
-const normalizeModuleName = (value?: string) => (value ?? "").trim().toLowerCase();
+const normalizeModuleName = (value?: string) =>
+  (value ?? "").trim().toLowerCase();
 
 const getInitials = (value: string) =>
   value
@@ -153,7 +162,8 @@ const GXPApplicationSoftwareModulePage = () => {
   const modules = paginatedModules.rows;
   const setModules = paginatedModules.setRows;
   const [applications, setApplications] = useState<Application[]>([]);
-  const [activeModule, setActiveModule] = useState<ApplicationSoftwareModule | null>(null);
+  const [activeModule, setActiveModule] =
+    useState<ApplicationSoftwareModule | null>(null);
   const [moduleModalMode, setModuleModalMode] =
     useState<ApplicationSoftwareModalMode>("create");
   const [pendingDeleteModules, setPendingDeleteModules] = useState<
@@ -161,7 +171,13 @@ const GXPApplicationSoftwareModulePage = () => {
   >([]);
 
   const applicationNameMap = useMemo(
-    () => new Map(applications.map((application) => [application._id, application.applicationName])),
+    () =>
+      new Map(
+        applications.map((application) => [
+          application._id,
+          application.applicationName
+        ])
+      ),
     [applications]
   );
 
@@ -174,7 +190,9 @@ const GXPApplicationSoftwareModulePage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const applicationsResponse = await getApplications(true, { limit: 100 });
+        const applicationsResponse = await getApplications(true, {
+          limit: 100
+        });
         setApplications(ensureArray<Application>(applicationsResponse));
       } catch (error) {
         console.error("Error fetching applications:", error);
@@ -186,18 +204,23 @@ const GXPApplicationSoftwareModulePage = () => {
 
   const handleSave = async (data: Partial<ApplicationSoftwareModule>) => {
     const nextModuleName = normalizeModuleName(data.moduleName);
-    const nextApplicationId = (data.application as string | undefined)?.trim() ?? "";
+    const nextApplicationId =
+      (data.application as string | undefined)?.trim() ?? "";
 
     const duplicateModule = nextApplicationId
       ? modules.find((module) => {
           if (activeModule?._id === module._id) return false;
-          if (normalizeModuleName(module.moduleName) !== nextModuleName) return false;
+          if (normalizeModuleName(module.moduleName) !== nextModuleName)
+            return false;
           return getModuleApplicationId(module) === nextApplicationId;
         })
       : undefined;
 
     if (duplicateModule) {
-      toast("This module name already exists for the selected application.", "error");
+      toast(
+        "This module name already exists for the selected application.",
+        "error"
+      );
       return;
     }
 
@@ -220,27 +243,34 @@ const GXPApplicationSoftwareModulePage = () => {
     }
   };
 
-  const handleStatusChange = async (module: ApplicationSoftwareModule) => {
-    const nextStatus: ApplicationSoftwareModule["status"] =
-      module.status === "enabled" ? "disabled" : "enabled";
+  const handleStatusChange = useCallback(
+    async (module: ApplicationSoftwareModule) => {
+      const nextStatus: ApplicationSoftwareModule["status"] =
+        module.status === "enabled" ? "disabled" : "enabled";
 
-    setModules((prev) =>
-      prev.map((item) => (item._id === module._id ? { ...item, status: nextStatus } : item))
-    );
-
-    try {
-      if (nextStatus === "enabled") {
-        await enableApplicationSoftware(module._id);
-      } else {
-        await disableApplicationSoftware(module._id);
-      }
-    } catch (error) {
-      console.error("Module status update failed:", error);
       setModules((prev) =>
-        prev.map((item) => (item._id === module._id ? { ...item, status: module.status } : item))
+        prev.map((item) =>
+          item._id === module._id ? { ...item, status: nextStatus } : item
+        )
       );
-    }
-  };
+
+      try {
+        if (nextStatus === "enabled") {
+          await enableApplicationSoftware(module._id);
+        } else {
+          await disableApplicationSoftware(module._id);
+        }
+      } catch (error) {
+        console.error("Module status update failed:", error);
+        setModules((prev) =>
+          prev.map((item) =>
+            item._id === module._id ? { ...item, status: module.status } : item
+          )
+        );
+      }
+    },
+    [setModules]
+  );
 
   const handleDeleteConfirmed = async () => {
     if (!pendingDeleteModules.length) {
@@ -271,14 +301,20 @@ const GXPApplicationSoftwareModulePage = () => {
           "error"
         );
       } else {
-        toast("Failed to delete selected application modules. Please try again.", "error");
+        toast(
+          "Failed to delete selected application modules. Please try again.",
+          "error"
+        );
       }
 
       setPendingDeleteModules([]);
       setReFetch(!reFetch);
     } catch (error) {
       console.error("Error deleting application modules:", error);
-      toast("Failed to delete selected application modules. Please try again.", "error");
+      toast(
+        "Failed to delete selected application modules. Please try again.",
+        "error"
+      );
     }
   };
 
@@ -293,27 +329,30 @@ const GXPApplicationSoftwareModulePage = () => {
     [includeDisabled, t]
   );
 
-  const toolbarActions =
-    useMemo<AppDataTableToolbarAction<ApplicationSoftwareModule>[]>(
-      () => [
-        {
-          key: "create-application-module",
-          label: t("create", { entity: t("gxpAppModules") }),
-          className: "whitespace-nowrap",
-          icon: PlusIcon,
-          onClick: () => {
-            setActiveModule(null);
-            setModuleModalMode("create");
-            openModal();
-          },
-          permission: GXP_PERMISSIONS.CREATE_SOFTWARE_MODULES,
-          variant: "primary"
-        }
-      ],
-      [openModal, t]
-    );
+  const toolbarActions = useMemo<
+    AppDataTableToolbarAction<ApplicationSoftwareModule>[]
+  >(
+    () => [
+      {
+        key: "create-application-module",
+        label: t("create", { entity: t("gxpAppModules") }),
+        className: "whitespace-nowrap",
+        icon: PlusIcon,
+        onClick: () => {
+          setActiveModule(null);
+          setModuleModalMode("create");
+          openModal();
+        },
+        permission: GXP_PERMISSIONS.CREATE_SOFTWARE_MODULES,
+        variant: "primary"
+      }
+    ],
+    [openModal, t]
+  );
 
-  const bulkActions = useMemo<AppDataTableBulkAction<ApplicationSoftwareModule>[]>(
+  const bulkActions = useMemo<
+    AppDataTableBulkAction<ApplicationSoftwareModule>[]
+  >(
     () => [
       {
         key: "copy-selected",
@@ -323,7 +362,8 @@ const GXPApplicationSoftwareModulePage = () => {
             : "Copy application module",
         icon: CopyIcon,
         variant: "outline",
-        onClick: (selectedRows) => copyModulesToClipboard(selectedRows, applicationNameMap)
+        onClick: (selectedRows) =>
+          copyModulesToClipboard(selectedRows, applicationNameMap)
       },
       {
         key: "delete-selected",
@@ -340,7 +380,9 @@ const GXPApplicationSoftwareModulePage = () => {
     [applicationNameMap]
   );
 
-  const rowActions = useMemo<AppDataTableRowAction<ApplicationSoftwareModule>[]>(
+  const rowActions = useMemo<
+    AppDataTableRowAction<ApplicationSoftwareModule>[]
+  >(
     () => [
       {
         key: "view",
@@ -374,7 +416,8 @@ const GXPApplicationSoftwareModulePage = () => {
         tooltip: "Copy application module",
         icon: CopyIcon,
         placement: "menu",
-        onClick: async (module) => copyModulesToClipboard([module], applicationNameMap)
+        onClick: async (module) =>
+          copyModulesToClipboard([module], applicationNameMap)
       },
       {
         key: "delete",
@@ -397,7 +440,9 @@ const GXPApplicationSoftwareModulePage = () => {
         flex: 1,
         headerName: t("moduleName"),
         minWidth: 260,
-        cellRenderer: (params: ICellRendererParams<ApplicationSoftwareModule>) => {
+        cellRenderer: (
+          params: ICellRendererParams<ApplicationSoftwareModule>
+        ) => {
           const data = params.data;
           if (!data) return null;
 
@@ -419,7 +464,9 @@ const GXPApplicationSoftwareModulePage = () => {
         headerName: t("identity", { defaultValue: "Identity" }),
         minWidth: 160,
         maxWidth: 190,
-        cellRenderer: (params: ICellRendererParams<ApplicationSoftwareModule>) => (
+        cellRenderer: (
+          params: ICellRendererParams<ApplicationSoftwareModule>
+        ) => (
           <div className="py-1.5 text-sm text-gray-600 dark:text-gray-300">
             {params.data?.moduleId || "-"}
           </div>
@@ -432,9 +479,12 @@ const GXPApplicationSoftwareModulePage = () => {
         minWidth: 240,
         valueGetter: ({ data }) =>
           getReferenceName(data?.application, applicationNameMap) || "-",
-        cellRenderer: (params: ICellRendererParams<ApplicationSoftwareModule>) => (
+        cellRenderer: (
+          params: ICellRendererParams<ApplicationSoftwareModule>
+        ) => (
           <div className="py-1.5 text-sm text-gray-600 dark:text-gray-300">
-            {getReferenceName(params.data?.application, applicationNameMap) || "-"}
+            {getReferenceName(params.data?.application, applicationNameMap) ||
+              "-"}
           </div>
         )
       },
@@ -444,7 +494,9 @@ const GXPApplicationSoftwareModulePage = () => {
         headerName: t("status"),
         minWidth: 170,
         maxWidth: 190,
-        cellRenderer: (params: ICellRendererParams<ApplicationSoftwareModule>) => {
+        cellRenderer: (
+          params: ICellRendererParams<ApplicationSoftwareModule>
+        ) => {
           const data = params.data;
           if (!data) return null;
 
@@ -460,7 +512,7 @@ const GXPApplicationSoftwareModulePage = () => {
         }
       }
     ],
-    [applicationNameMap, t]
+    [applicationNameMap, handleStatusChange, t]
   );
 
   return (

@@ -1,5 +1,5 @@
-import { ReactNode } from 'react';
-import { usePermissions } from '@/hooks/usePermissions';
+import { ReactNode } from "react";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface PermissionGateProps {
   children: ReactNode;
@@ -43,4 +43,4 @@ const PermissionGate = ({
   return <>{children}</>;
 };
 
-export default PermissionGate; 
+export default PermissionGate;

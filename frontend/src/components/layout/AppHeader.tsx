@@ -88,11 +88,7 @@ const AppHeader: React.FC = () => {
           </button>
 
           <Link to={PageUrl.Dashboard.path} className="lg:hidden">
-            <img
-              src={appLogo}
-              alt="Logo"
-              width={32} height={32}
-            />
+            <img src={appLogo} alt="Logo" width={32} height={32} />
           </Link>
 
           <button
@@ -151,8 +147,9 @@ const AppHeader: React.FC = () => {
           </div>
         </div>
         <div
-          className={`${isApplicationMenuOpen ? "flex" : "hidden"
-            } items-center justify-between w-full gap-4 px-5 py-4 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
+          className={`${
+            isApplicationMenuOpen ? "flex" : "hidden"
+          } items-center justify-between w-full gap-4 px-5 py-4 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
         >
           <div className="flex items-center gap-2 2xsm:gap-3">
             {/* <!-- Dark Mode Toggler --> */}

@@ -1,5 +1,5 @@
-import { Toaster, toast as hotToast, ToastPosition } from "react-hot-toast";
 import type { ReactNode } from "react";
+import { Toaster } from "react-hot-toast";
 import { useTheme } from "@/context/ThemeContext";
 
 interface ToastProviderProps {
@@ -7,7 +7,7 @@ interface ToastProviderProps {
 }
 
 const ToastProvider = ({ children }: ToastProviderProps) => {
-const { theme } = useTheme();
+  const { theme } = useTheme();
   return (
     <>
       <Toaster
@@ -15,14 +15,14 @@ const { theme } = useTheme();
         toastOptions={{
           duration: 2000,
           style: {
-            background: theme == 'dark' ? "#1f2937" : "#ffffff",
-            color: theme == 'dark' ? "#f3f4f6" : "#1f2937",
+            background: theme === "dark" ? "#1f2937" : "#ffffff",
+            color: theme === "dark" ? "#f3f4f6" : "#1f2937",
             borderRadius: "8px",
             padding: "12px 16px",
             boxShadow:
               "0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06)",
-            border: theme == 'dark' ? "1px solid #374151" : "1px solid #e5e7eb",
-          },
+            border: theme === "dark" ? "1px solid #374151" : "1px solid #e5e7eb"
+          }
         }}
       />
       {children}
@@ -31,25 +31,3 @@ const { theme } = useTheme();
 };
 
 export default ToastProvider;
-
-type ToastType = "success" | "error" | "loading";
-
-interface ToastOptions {
-  position?: ToastPosition;
-  id?: string;
-  duration?: number;
-}
-
-export const toast = (
-  message: string,
-  type: ToastType = "success",
-  options?: ToastOptions
-) => {
-  const { position = "top-center", id, duration } = options || {};
-
-  return hotToast[type](message, {
-    id,
-    duration,
-    position
-  });
-};

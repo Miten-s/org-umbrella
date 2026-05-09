@@ -9,7 +9,7 @@ import { Modal } from "@/components/ui/modal";
 import { useGlobalContext } from "@/context";
 import { useModal } from "@/hooks/useModal";
 import { useServerPagination } from "@/hooks/useServerPagination";
-import { toast } from "@/lib/ToastProvider";
+import { toast } from "@/lib/toast";
 import {
   CheckLineIcon,
   CopyIcon,
@@ -29,7 +29,7 @@ import {
 import { Supplier } from "@/types/common.types";
 import { GXP_PERMISSIONS } from "@/utils/permissions";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
-import { ReactNode, useMemo, useState } from "react";
+import { ReactNode, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import CreateSupplierModal from "./CreateSupplierModal";
 
@@ -155,7 +155,10 @@ const Suppliers = () => {
           "error"
         );
       } else {
-        toast("Failed to delete selected suppliers. Please try again.", "error");
+        toast(
+          "Failed to delete selected suppliers. Please try again.",
+          "error"
+        );
       }
 
       setPendingDeleteSuppliers([]);
@@ -166,30 +169,35 @@ const Suppliers = () => {
     }
   };
 
-  const handleStatusChange = async (supplier: Supplier) => {
-    const nextStatus = supplier.status === "enabled" ? "disabled" : "enabled";
+  const handleStatusChange = useCallback(
+    async (supplier: Supplier) => {
+      const nextStatus = supplier.status === "enabled" ? "disabled" : "enabled";
 
-    setSuppliers((prev) =>
-      prev.map((item) =>
-        item._id === supplier._id ? { ...item, status: nextStatus } : item
-      )
-    );
-
-    try {
-      if (nextStatus === "enabled") {
-        await enableSupplier(supplier._id);
-      } else {
-        await disableSupplier(supplier._id);
-      }
-    } catch (error) {
-      console.error("Error updating supplier status:", error);
       setSuppliers((prev) =>
         prev.map((item) =>
-          item._id === supplier._id ? { ...item, status: supplier.status } : item
+          item._id === supplier._id ? { ...item, status: nextStatus } : item
         )
       );
-    }
-  };
+
+      try {
+        if (nextStatus === "enabled") {
+          await enableSupplier(supplier._id);
+        } else {
+          await disableSupplier(supplier._id);
+        }
+      } catch (error) {
+        console.error("Error updating supplier status:", error);
+        setSuppliers((prev) =>
+          prev.map((item) =>
+            item._id === supplier._id
+              ? { ...item, status: supplier.status }
+              : item
+          )
+        );
+      }
+    },
+    [setSuppliers]
+  );
 
   const titleExtra = useMemo<ReactNode>(
     () => (
@@ -350,7 +358,7 @@ const Suppliers = () => {
         }
       }
     ],
-    [t]
+    [handleStatusChange, t]
   );
 
   return (

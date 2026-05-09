@@ -1,31 +1,30 @@
-import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import Label from '../../../components/common/form/Label';
-import Input from '../../../components/common/form/input/InputField';
-import Button from '../../../components/ui/button/Button';
-import Checkbox from '../../../components/common/form/input/Checkbox';
-import { useTranslation } from 'react-i18next';
-import { PermissionType } from '@/utils/common.constants';
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import Label from "../../../components/common/form/Label";
+import Input from "../../../components/common/form/input/InputField";
+import Button from "../../../components/ui/button/Button";
+import Checkbox from "../../../components/common/form/input/Checkbox";
+import { useTranslation } from "react-i18next";
+import { PermissionType } from "@/utils/common.constants";
 
 interface CreateRoleModalProps {
   onClose: () => void;
-  onSubmit: (data: {
-    name: string;
-    permissions: string[]
-  }) => void;
+  onSubmit: (data: { name: string; permissions: string[] }) => void;
   permissions: string[];
   permissionType?: PermissionType;
   onPermissionTypeChange?: (type: "default" | "gxp_service") => void;
   mode?: "create" | "edit" | "view";
   activeRole?: {
     name: string;
-    permissions: { name: string }[]
+    permissions: { name: string }[];
   } | null;
 }
 
 type GroupedPermission = { action: string; key: string };
 
-const groupPermissions = (permissions: string[]): Record<string, GroupedPermission[]> => {
+const groupPermissions = (
+  permissions: string[]
+): Record<string, GroupedPermission[]> => {
   const grouped: Record<string, GroupedPermission[]> = {};
   permissions.forEach((perm) => {
     const parts = perm.split(":");
@@ -53,7 +52,7 @@ const CreateRoleModal = ({
   permissions: allPermissions,
   permissionType,
   onPermissionTypeChange,
-  mode = 'create',
+  mode = "create",
   activeRole
 }: CreateRoleModalProps) => {
   const isFixedType = !onPermissionTypeChange;
@@ -65,32 +64,33 @@ const CreateRoleModal = ({
     setValue,
     setError,
     clearErrors,
-    formState: { errors },
+    formState: { errors }
   } = useForm<{
     name: string;
 
     permissions: string[];
   }>({
     defaultValues: {
-      name: activeRole?.name || '',
-      permissions: activeRole?.permissions.map(p => p.name) || [],
-    },
+      name: activeRole?.name || "",
+      permissions: activeRole?.permissions.map((p) => p.name) || []
+    }
   });
 
-
-  const selectedPermissions = watch('permissions');
+  const selectedPermissions = watch("permissions");
   const groupedPermissions = groupPermissions(allPermissions);
-  const { t } = useTranslation()
+  const { t } = useTranslation();
 
   useEffect(() => {
-    const filtered = selectedPermissions.filter((perm) => allPermissions.includes(perm));
+    const filtered = selectedPermissions.filter((perm) =>
+      allPermissions.includes(perm)
+    );
     if (filtered.length === selectedPermissions.length) return;
-    setValue('permissions', filtered);
+    setValue("permissions", filtered);
   }, [allPermissions, selectedPermissions, setValue]);
 
   useEffect(() => {
     if (selectedPermissions.length > 0) {
-      clearErrors('permissions');
+      clearErrors("permissions");
     }
   }, [clearErrors, selectedPermissions.length]);
 
@@ -98,7 +98,7 @@ const CreateRoleModal = ({
     const updated = selectedPermissions.includes(permission)
       ? selectedPermissions.filter((p) => p !== permission)
       : [...selectedPermissions, permission];
-    setValue('permissions', updated);
+    setValue("permissions", updated);
   };
 
   const toggleAllForGroup = (entity: string) => {
@@ -106,25 +106,31 @@ const CreateRoleModal = ({
     const hasAll = perms.every((p) => selectedPermissions.includes(p));
     const updated = hasAll
       ? selectedPermissions.filter((p) => !perms.includes(p))
-      : [...selectedPermissions, ...perms.filter((p) => !selectedPermissions.includes(p))];
-    setValue('permissions', updated);
+      : [
+          ...selectedPermissions,
+          ...perms.filter((p) => !selectedPermissions.includes(p))
+        ];
+    setValue("permissions", updated);
   };
 
   const toggleAllPermissions = () => {
     const hasAll = allPermissions.every((p) => selectedPermissions.includes(p));
     const updated = hasAll
       ? selectedPermissions.filter((p) => !allPermissions.includes(p))
-      : [...selectedPermissions, ...allPermissions.filter((p) => !selectedPermissions.includes(p))];
-    setValue('permissions', updated);
+      : [
+          ...selectedPermissions,
+          ...allPermissions.filter((p) => !selectedPermissions.includes(p))
+        ];
+    setValue("permissions", updated);
   };
 
   const onFormSubmit = (data: { name: string; permissions: string[] }) => {
     if (!data.permissions?.length) {
-      setError('permissions', {
-        type: 'manual',
-        message: t('selectAtLeastOnePermission', {
-          defaultValue: 'Select at least one permission.',
-        }),
+      setError("permissions", {
+        type: "manual",
+        message: t("selectAtLeastOnePermission", {
+          defaultValue: "Select at least one permission."
+        })
       });
       return;
     }
@@ -142,13 +148,13 @@ const CreateRoleModal = ({
         <div className="space-y-6">
           {/* Role Name */}
           <div>
-            <Label htmlFor="name">{t('roleName')}</Label>
+            <Label htmlFor="name">{t("roleName")}</Label>
             <Input
               id="name"
               type="text"
               placeholder="e.g. Admin, Manager"
               disabled={isReadOnly}
-              {...register('name', { required: true })}
+              {...register("name", { required: true })}
               className="mt-1 w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm"
             />
           </div>
@@ -160,8 +166,18 @@ const CreateRoleModal = ({
           {!isFixedType && (
             <div className="flex items-center gap-2">
               {[
-                { label: t("adminPermissions", { defaultValue: "Admin Permissions" }), value: "default" },
-                { label: t("gxpServicePermissions", { defaultValue: "GXP Services Permissions" }), value: "gxp_service" }
+                {
+                  label: t("adminPermissions", {
+                    defaultValue: "Admin Permissions"
+                  }),
+                  value: "default"
+                },
+                {
+                  label: t("gxpServicePermissions", {
+                    defaultValue: "GXP Services Permissions"
+                  }),
+                  value: "gxp_service"
+                }
               ].map((tab) => {
                 const isActive = permissionType === tab.value;
                 return (
@@ -169,11 +185,16 @@ const CreateRoleModal = ({
                     key={tab.value}
                     type="button"
                     disabled={isReadOnly}
-                    onClick={() => onPermissionTypeChange?.(tab.value as "default" | "gxp_service")}
-                    className={`px-4 py-2 rounded-full text-sm font-medium border transition ${isActive
-                      ? "bg-blue-600 text-white border-blue-600"
-                      : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700"
-                      }`}
+                    onClick={() =>
+                      onPermissionTypeChange?.(
+                        tab.value as "default" | "gxp_service"
+                      )
+                    }
+                    className={`px-4 py-2 rounded-full text-sm font-medium border transition ${
+                      isActive
+                        ? "bg-blue-600 text-white border-blue-600"
+                        : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700"
+                    }`}
                   >
                     {tab.label}
                   </button>
@@ -184,12 +205,14 @@ const CreateRoleModal = ({
 
           {/* Permissions */}
           <div>
-            <Label className="block">{t('permissions')}</Label>
+            <Label className="block">{t("permissions")}</Label>
 
             {/* Select All */}
             <Checkbox
               label="Select All Permissions"
-              checked={allPermissions.every((perm) => selectedPermissions.includes(perm))}
+              checked={allPermissions.every((perm) =>
+                selectedPermissions.includes(perm)
+              )}
               disabled={isReadOnly}
               onChange={toggleAllPermissions}
               className="flex"
@@ -199,7 +222,9 @@ const CreateRoleModal = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-4">
               {Object.entries(groupedPermissions).map(([entity, items]) => {
                 const groupPerms = items.map((item) => item.key);
-                const allSelected = groupPerms.every((p) => selectedPermissions.includes(p));
+                const allSelected = groupPerms.every((p) =>
+                  selectedPermissions.includes(p)
+                );
 
                 return (
                   <div
@@ -217,7 +242,10 @@ const CreateRoleModal = ({
                       {items.map((item) => (
                         <Checkbox
                           key={item.key}
-                          label={item.action.charAt(0).toUpperCase() + item.action.slice(1).toLowerCase()}
+                          label={
+                            item.action.charAt(0).toUpperCase() +
+                            item.action.slice(1).toLowerCase()
+                          }
                           checked={selectedPermissions.includes(item.key)}
                           disabled={isReadOnly}
                           onChange={() => togglePermission(item.key)}
@@ -239,7 +267,7 @@ const CreateRoleModal = ({
             type="button"
             className="border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
           >
-            {t('cancel')}
+            {t("cancel")}
           </Button>
           {!isReadOnly ? (
             <Button
@@ -247,13 +275,12 @@ const CreateRoleModal = ({
               variant="primary"
               className="bg-blue-600 hover:bg-blue-700 text-white transition"
             >
-              {t('save')}
+              {t("save")}
             </Button>
           ) : null}
         </div>
       </form>
     </div>
-
   );
 };
 

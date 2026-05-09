@@ -11,7 +11,7 @@ export const ChipList = ({
   empty = "-",
   variant = "wrap",
   columns = 3,
-  maxHeightClassName,
+  maxHeightClassName
 }: ChipListProps) => {
   if (!items || items.length === 0) {
     return <span className="text-gray-900 dark:text-gray-100">{empty}</span>;
@@ -27,9 +27,12 @@ export const ChipList = ({
   const containerClass =
     variant === "grid" ? `grid ${gridColsClass} gap-2` : "flex flex-wrap gap-2";
 
-
   return (
-    <div className={maxHeightClassName ? `${maxHeightClassName} overflow-auto pr-1` : ""}>
+    <div
+      className={
+        maxHeightClassName ? `${maxHeightClassName} overflow-auto pr-1` : ""
+      }
+    >
       <div className={containerClass}>
         {items.map((text, idx) => (
           <span

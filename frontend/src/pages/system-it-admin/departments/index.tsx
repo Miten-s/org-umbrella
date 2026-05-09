@@ -8,7 +8,7 @@ import { Modal } from "@/components/ui/modal";
 import { useGlobalContext } from "@/context";
 import { useModal } from "@/hooks/useModal";
 import { useServerPagination } from "@/hooks/useServerPagination";
-import { toast } from "@/lib/ToastProvider";
+import { toast } from "@/lib/toast";
 import {
   CheckLineIcon,
   CopyIcon,
@@ -144,8 +144,7 @@ const Departments = () => {
 
   const getLocationDisplayName = (department: DepartmentRecord) => {
     const location =
-      department.departmentGroupLocation ??
-      department.locationId;
+      department.departmentGroupLocation ?? department.locationId;
 
     if (typeof location === "object" && location !== null) {
       return location.locationName || location.name || "";
@@ -159,10 +158,11 @@ const Departments = () => {
 
   const fetchReferences = useCallback(async () => {
     try {
-      const [
-        { locations: fetchedLocations },
-        { users: fetchedUsers }
-      ] = await Promise.all([getLocations({ limit: 100 }), getUsers({ limit: 100 })]);
+      const [{ locations: fetchedLocations }, { users: fetchedUsers }] =
+        await Promise.all([
+          getLocations({ limit: 100 }),
+          getUsers({ limit: 100 })
+        ]);
 
       setLocations(fetchedLocations ?? []);
       setManagers(fetchedUsers ?? []);
@@ -220,14 +220,20 @@ const Departments = () => {
           "error"
         );
       } else {
-        toast("Failed to delete selected departments. Please try again.", "error");
+        toast(
+          "Failed to delete selected departments. Please try again.",
+          "error"
+        );
       }
 
       setPendingDeleteDepartments([]);
       setReFetch(!reFetch);
     } catch (error) {
       console.error("Error deleting department:", error);
-      toast("Failed to delete selected departments. Please try again.", "error");
+      toast(
+        "Failed to delete selected departments. Please try again.",
+        "error"
+      );
     }
   };
 
@@ -263,9 +269,7 @@ const Departments = () => {
       {
         key: "delete-selected",
         label: (selectedRows) =>
-          selectedRows.length > 1
-            ? "Delete departments"
-            : "Delete department",
+          selectedRows.length > 1 ? "Delete departments" : "Delete department",
         icon: TrashBinIcon,
         permission: "DELETE:DEPARTMENT",
         variant: "destructive",

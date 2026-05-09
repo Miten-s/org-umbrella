@@ -10,15 +10,15 @@ const Home = () => {
   const canOpenServicePage = isAdmin || isSuperAdmin;
   const cta = canOpenServicePage
     ? {
-      label: "Explore all services",
-      description: "Open the service page to manage services.",
-      to: PageUrl.Dashboard.path
-    }
+        label: "Explore all services",
+        description: "Open the service page to manage services.",
+        to: PageUrl.Dashboard.path
+      }
     : {
-      label: "Visit profile",
-      description: "Open your profile page.",
-      to: PageUrl.ProfileInfo.path
-    };
+        label: "Visit profile",
+        description: "Open your profile page.",
+        to: PageUrl.ProfileInfo.path
+      };
 
   return (
     <div className="flex min-h-[calc(100vh-120px)] items-center justify-center px-4 py-8 sm:px-6 lg:px-8">

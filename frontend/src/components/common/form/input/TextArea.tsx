@@ -20,7 +20,7 @@ const TextArea: React.FC<TextareaProps> = ({
   className = "", // Additional custom styles
   disabled = false, // Disabled state
   error = false, // Error state
-  hint = "", // Default hint text
+  hint = "" // Default hint text
 }) => {
   const { t } = useTranslation();
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -42,7 +42,7 @@ const TextArea: React.FC<TextareaProps> = ({
   return (
     <div className="relative">
       <textarea
-        placeholder={placeholder || t('form.enterMessage')}
+        placeholder={placeholder || t("form.enterMessage")}
         rows={rows}
         value={value}
         onChange={handleChange}

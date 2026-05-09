@@ -14,7 +14,6 @@ export const ADMIN_PERMISSIONS = {
   UPDATE_ROLE: "UPDATE:ROLE",
   DELETE_ROLE: "DELETE:ROLE",
 
-
   // User Management
   CREATE_USER: "CREATE:USER",
   VIEW_USER: "VIEW:USER",
@@ -101,54 +100,66 @@ export const ROLES = {
   USER: "USER"
 };
 
-export const hasPermission = (user: any, permission: string): boolean => {
-  if (!user || !user.roles) return false;
-  const permissions = user.roles
-    ?.flatMap((role: any) => role.permissions)
-    .map((permission: any) => permission.name);
+const getRoles = (user?: AuthenticatedUser | null): UserRole[] => {
+  if (!user || !user.roles) return [];
+
+  return user.roles;
+};
+
+const getPermissions = (user?: AuthenticatedUser | null): string[] =>
+  getRoles(user)
+    .flatMap((role) => role.permissions ?? [])
+    .map((permission) => permission.name);
+
+export const hasPermission = (
+  user: AuthenticatedUser | null | undefined,
+  permission: string
+): boolean => {
+  const permissions = getPermissions(user);
   return (
     permissions?.includes(permission) ||
     permissions?.includes(ADMIN_PERMISSIONS.OPERATE_ALL)
   );
 };
 
-export const hasRole = (user: any, role: string): boolean => {
-  if (!user || !user.roles) return false;
-
-  const userRoles = user.roles.map((role: any) => role.name);
+export const hasRole = (
+  user: AuthenticatedUser | null | undefined,
+  role: string
+): boolean => {
+  const userRoles = getRoles(user).map((role) => role.name);
   return userRoles.includes(role);
 };
 
-export const hasAnyRole = (user: any, roles: string[]): boolean => {
-  if (!user || !user.roles) return false;
-
-  const userRoles = user.roles.map((role: any) => role.name);
-  return roles.some(role => userRoles.includes(role));
+export const hasAnyRole = (
+  user: AuthenticatedUser | null | undefined,
+  roles: string[]
+): boolean => {
+  const userRoles = getRoles(user).map((role) => role.name);
+  return roles.some((role) => userRoles.includes(role));
 };
 
-export const hasAnyPermission = (user: any, permissions: string[]): boolean => {
-  if (!user || !user.roles) return false;
-
-  const userPermissions = user.roles
-    ?.flatMap((role: any) => role.permissions)
-    .map((permission: any) => permission.name);
-  const hasPermission = permissions.some(permission =>
-    userPermissions?.includes(permission) ||
-    userPermissions?.includes(ADMIN_PERMISSIONS.OPERATE_ALL)
+export const hasAnyPermission = (
+  user: AuthenticatedUser | null | undefined,
+  permissions: string[]
+): boolean => {
+  const userPermissions = getPermissions(user);
+  const hasPermission = permissions.some(
+    (permission) =>
+      userPermissions?.includes(permission) ||
+      userPermissions?.includes(ADMIN_PERMISSIONS.OPERATE_ALL)
   );
   return hasPermission;
 };
 
-export const getUserPermissions = (user: any): string[] => {
-  if (!user || !user.roles) return [];
-
-  return user.roles
-    .flatMap((role: any) => role.permissions)
-    .map((permission: any) => permission.name);
+export const getUserPermissions = (
+  user: AuthenticatedUser | null | undefined
+): string[] => {
+  return getPermissions(user);
 };
 
-export const getUserRoles = (user: any): string[] => {
-  if (!user || !user.roles) return [];
-
-  return user.roles.map((role: any) => role.name);
+export const getUserRoles = (
+  user: AuthenticatedUser | null | undefined
+): string[] => {
+  return getRoles(user).map((role) => role.name);
 };
+import type { AuthenticatedUser, UserRole } from "@/types/common.types";

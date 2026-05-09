@@ -22,16 +22,26 @@ const Login = () => {
     resolver: zodResolver(loginSchema)
   });
 
-  const { setIsAuthenticated } = useAuth();
+  const { setIsAuthenticated, refreshAuth } = useAuth();
 
   const navigate = useNavigate();
+
   const onSubmit = async (data: LoginFormData) => {
-    const response = await loginUser(data);
-    if (response?.accessToken) {
-      sessionStorage.setItem(AUTH_TOKEN_KEY, response.accessToken);
+    try {
+      const response = await loginUser(data);
+
+      if (response?.accessToken) {
+        sessionStorage.setItem(AUTH_TOKEN_KEY, response.accessToken);
+
+        setIsAuthenticated(true);
+
+        await refreshAuth();
+
+        navigate(SYSTEM_ROUTES.DASHBOARD, { replace: true });
+      }
+    } catch (error) {
+      console.error("Login error:", error);
     }
-    setIsAuthenticated((prev: boolean) => !prev);
-    navigate(SYSTEM_ROUTES.DASHBOARD);
   };
 
   return (
