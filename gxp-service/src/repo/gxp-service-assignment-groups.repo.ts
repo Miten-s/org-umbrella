@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import GxpServiceAssignmentGroupModel from "../models/gxp-service-assignment-groups.model";
 import { PaginationOptions, escapeRegex } from "../utils/pagination.util";
 
@@ -34,8 +35,26 @@ export const getAllGroups = async (options: PaginationOptions) => {
 export const updateGroup = async (groupName: string, updateData: any) => {
   return await GxpServiceAssignmentGroupModel.findOneAndUpdate(
     { groupName },
-    updateData,
-    { new: true }
+    { $set: updateData },
+    {
+      new: true,
+      runValidators: true
+    }
+  );
+};
+
+export const updateGroupById = async (id: string, updateData: any) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new Error("Invalid assignment group id");
+  }
+
+  return await GxpServiceAssignmentGroupModel.findByIdAndUpdate(
+    id,
+    { $set: updateData },
+    {
+      new: true,
+      runValidators: true
+    }
   );
 };
 

@@ -447,6 +447,7 @@ const Users = () => {
                   headerLabel={`Roles (${hiddenRoles.length} more)`}
                   items={hiddenRoles}
                   placement="right"
+                  portal
                 />
               ) : null}
             </div>

@@ -127,6 +127,7 @@ export const createApplicationModule = async (
   payload: Partial<IGxpServiceAppModule>,
   currentUser: string
 ) => {
+  console.log("Creating application module with payload:", payload);
   const moduleName = (payload.moduleName ?? "").trim();
   const application = parseApplicationId(payload.application);
   const applicationName = await resolveApplicationName(application);

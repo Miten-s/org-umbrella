@@ -187,6 +187,7 @@ const RolesAndPermissions = () => {
                           headerLabel={`Permissions (${role.permissions.length - 2} more)`}
                           buttonLabel={`+ ${role.permissions.length - 2}`}
                           className="self-center"
+                          portal
                         />
                       )}
                     </div>

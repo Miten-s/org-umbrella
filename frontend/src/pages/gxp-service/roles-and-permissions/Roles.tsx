@@ -366,6 +366,7 @@ const Roles = () => {
                   items={permissionNames.slice(2)}
                   headerLabel={`Permissions (${permissionNames.length})`}
                   className="self-center"
+                  portal
                 />
               ) : null}
             </div>

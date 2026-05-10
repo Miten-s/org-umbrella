@@ -239,7 +239,6 @@ const GXPApplicationSoftwareModulePage = () => {
       setReFetch(!reFetch);
     } catch (error) {
       console.error("Error saving application module:", error);
-      toast("Failed to save application module. Please try again.", "error");
     }
   };
 

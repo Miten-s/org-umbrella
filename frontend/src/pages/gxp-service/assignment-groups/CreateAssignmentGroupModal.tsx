@@ -41,27 +41,52 @@ const CreateAssignmentGroupModal = ({
   const isReadOnly = mode === "view";
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [adminUsers, setAdminUsers] = useState<User[]>([]);
-
+  console.log('allUsers', allUsers);
   const {
     register,
     handleSubmit,
     setValue,
     control,
+    reset,
     formState: { errors }
   } = useForm<CreateAssignmentGroupForm>({
     resolver: zodResolver(getAssignmentGroupSchema),
     defaultValues: {
-      groupName: initialData?.groupName || "",
-      manager: initialData?.manager || { userId: "", name: "" },
-      members: initialData?.members || [],
-      description: initialData?.description || "",
-      isActive: initialData?.isActive ?? true
+      groupName: "",
+      manager: { userId: "", name: "" },
+      members: [],
+      description: "",
+      isActive: true
     }
   });
+
+  const normalizeInitialData = (data: any) => ({
+    groupName: data?.groupName || "",
+    manager: {
+      userId: data?.manager?.userId || data?.manager?._id || "",
+      name: data?.manager?.name || data?.manager?.fullName || ""
+    },
+    members: Array.isArray(data?.members)
+      ? data.members.map((member: any) => ({
+        userId: member?.userId || member?._id || "",
+        name: member?.name || member?.fullName || ""
+      }))
+      : [],
+    description: data?.description || "",
+    isActive: data?.isActive ?? true
+  });
+
+  useEffect(() => {
+    reset(normalizeInitialData(initialData));
+  }, [initialData, reset]);
 
   const description = useWatch({ control, name: "description" });
   const isActive = useWatch({ control, name: "isActive" });
   useEffect(() => {
+    if (isReadOnly) {
+      return;
+    }
+
     const fetchUsers = async () => {
       const { users } = await getUsers({ limit: 100 });
       setAllUsers(users);
@@ -69,9 +94,9 @@ const CreateAssignmentGroupModal = ({
         users.filter((user: User) => user.userType === UserTypes.ADMIN)
       );
     };
-    fetchUsers();
-  }, []);
 
+    fetchUsers();
+  }, [isReadOnly]);
   const userOptions = allUsers.map((user) => ({
     text: user.fullName, // <-- Change 'label' to 'text'
     value: user._id
@@ -109,32 +134,43 @@ const CreateAssignmentGroupModal = ({
           </div>
 
           {/* Manager */}
+          {/* Manager */}
           <div>
             <Label htmlFor="manager" required>
               {t("manager")}
             </Label>
-            <Controller
-              name="manager"
-              control={control}
-              render={({ field }) => (
-                <SelectDropdown
-                  disabled={isReadOnly}
-                  value={field.value.userId}
-                  onChange={(val: string) => {
-                    const selectedUser = adminUsers?.find(
-                      (user) => user._id === val
-                    );
-                    field.onChange({
-                      userId: val,
-                      name: selectedUser?.fullName || ""
-                    });
-                  }}
-                  options={adminUserOptions}
-                  placeholder={t("select", { entity: t("manager") })}
-                />
-              )}
-            />
-            {errors.manager && (
+
+            {isReadOnly ? (
+              <Input
+                value={initialData?.manager?.name || "-"}
+                disabled
+                className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
+              />
+            ) : (
+              <Controller
+                name="manager"
+                control={control}
+                render={({ field }) => (
+                  <SelectDropdown
+                    value={field.value.userId}
+                    onChange={(val: string) => {
+                      const selectedUser = adminUsers?.find(
+                        (user) => user._id === val
+                      );
+
+                      field.onChange({
+                        userId: val,
+                        name: selectedUser?.fullName || ""
+                      });
+                    }}
+                    options={adminUserOptions}
+                    placeholder={t("select", { entity: t("manager") })}
+                  />
+                )}
+              />
+            )}
+
+            {errors.manager && !isReadOnly && (
               <p className="text-red-500 text-xs mt-1">
                 {errors.manager.message}
               </p>
@@ -142,33 +178,52 @@ const CreateAssignmentGroupModal = ({
           </div>
 
           {/* Members */}
+          {/* Members */}
           <div>
             <Label htmlFor="members">{t("members")}</Label>
-            <Controller
-              name="members"
-              control={control}
-              render={({ field }) => (
-                <MultiSelect
-                  disabled={isReadOnly}
-                  options={userOptions}
-                  label={t("members")}
-                  onChange={(selectedValues: string[]) => {
-                    const selectedMembers = allUsers
-                      ?.filter((user) => selectedValues.includes(user._id))
-                      .map((user) => ({
-                        userId: user._id,
-                        name: user.fullName
-                      }));
-                    field.onChange(selectedMembers);
-                  }}
-                  defaultSelected={
-                    Array.isArray(field.value)
-                      ? field.value.map((m: any) => m.userId)
-                      : []
-                  }
-                />
-              )}
-            />
+
+            {isReadOnly ? (
+              <div className="flex min-h-11 flex-wrap items-center gap-2 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                {Array.isArray(initialData?.members) && initialData.members.length ? (
+                  initialData.members.map((member: any) => (
+                    <span
+                      key={member.userId || member._id}
+                      className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-200"
+                    >
+                      {member.name || member.fullName || "-"}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-gray-500 dark:text-gray-400">-</span>
+                )}
+              </div>
+            ) : (
+              <Controller
+                name="members"
+                control={control}
+                render={({ field }) => (
+                  <MultiSelect
+                    options={userOptions}
+                    label={t("members")}
+                    onChange={(selectedValues: string[]) => {
+                      const selectedMembers = allUsers
+                        ?.filter((user) => selectedValues.includes(user._id))
+                        .map((user) => ({
+                          userId: user._id,
+                          name: user.fullName
+                        }));
+
+                      field.onChange(selectedMembers);
+                    }}
+                    defaultSelected={
+                      Array.isArray(field.value)
+                        ? field.value.map((m: any) => m.userId || m._id).filter(Boolean)
+                        : []
+                    }
+                  />
+                )}
+              />
+            )}
           </div>
           {/* Description */}
           <div>

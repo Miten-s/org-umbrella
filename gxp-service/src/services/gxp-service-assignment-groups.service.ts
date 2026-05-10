@@ -5,7 +5,8 @@ import {
   enableGroup,
   getAllGroups,
   searchGroups,
-  updateGroup
+  updateGroup,
+  updateGroupById
 } from "../repo/gxp-service-assignment-groups.repo";
 
 export const addGroup = async (data: any) => {
@@ -23,10 +24,11 @@ export const addGroup = async (data: any) => {
 export const getAll = async (options: PaginationOptions) => {
   return await getAllGroups(options);
 };
+export const update = async (id: string, updateData: any) => {
+  const { createdOn, createdBy, ...safeUpdateData } = updateData;
 
-export const update = async (groupName: string, updateData: any) => {
-  return await updateGroup(groupName, {
-    ...updateData,
+  return await updateGroupById(id, {
+    ...safeUpdateData,
     modifiedOn: new Date()
   });
 };

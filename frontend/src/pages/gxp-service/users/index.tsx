@@ -3,6 +3,7 @@ import AppDataTable, {
   AppDataTableRowAction,
   AppDataTableToolbarAction
 } from "@/components/common/table/AppDataTable";
+import CountWithTooltip from "@/components/common/CountWithTooltip";
 import Switch from "@/components/common/form/switch/Switch";
 import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
@@ -434,11 +435,43 @@ const GXPUsersPage = () => {
         sortable: false,
         valueGetter: ({ data }) =>
           getUserRoleNames(data as GxpUserEntity).join(", "),
-        cellRenderer: (params: ICellRendererParams<GxpUserEntity>) => (
-          <div className="line-clamp-2 py-1.5 text-sm text-gray-600 dark:text-gray-300">
-            {getUserRoleNames(params.data as GxpUserEntity).join(", ") || "-"}
-          </div>
-        )
+        cellRenderer: (params: ICellRendererParams<GxpUserEntity>) => {
+          const data = params.data;
+          if (!data) return null;
+
+          const roleNames = getUserRoleNames(data);
+          const visibleRoles = roleNames.slice(0, 2);
+
+          if (!roleNames.length) {
+            return (
+              <div className="py-1.5 text-sm text-gray-600 dark:text-gray-300">
+                -
+              </div>
+            );
+          }
+
+          return (
+            <div className="flex flex-wrap items-center gap-2 py-1.5">
+              {visibleRoles.map((role) => (
+                <span
+                  key={role}
+                  className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 dark:bg-blue-500/15 dark:text-blue-200"
+                >
+                  {role}
+                </span>
+              ))}
+              {roleNames.length > 2 ? (
+                <CountWithTooltip
+                  count={roleNames.length - 2}
+                  items={roleNames.slice(2)}
+                  headerLabel={`Roles (${roleNames.length})`}
+                  className="self-center"
+                  portal
+                />
+              ) : null}
+            </div>
+          );
+        }
       },
       {
         field: "description",

@@ -25,11 +25,18 @@ export const getAllGroups = asyncHandler(
 );
 
 export const updateGroup = asyncHandler(async (req: Request, res: Response) => {
-  const { groupName } = req.params;
-  const result = await update(groupName as string, req.body);
+  const { id } = req.params;
+
+  const result = await update(id, req.body);
+
+  if (!result) {
+    return res.status(404).json({
+      message: "Assignment group not found"
+    });
+  }
+
   res.json(result);
 });
-
 export const disableGroup = asyncHandler(
   async (req: Request, res: Response) => {
     const { groupName } = req.params;

@@ -351,7 +351,6 @@ const GXPAddNewApplicationPage = () => {
       setReFetch(!reFetch);
     } catch (error) {
       console.error("Error saving application:", error);
-      toast("Failed to save application. Please try again.", "error");
     }
   };
 

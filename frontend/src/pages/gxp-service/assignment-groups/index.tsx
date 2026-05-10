@@ -112,6 +112,7 @@ const AssignmentGroups = () => {
   const setAssignmentGroups = paginatedAssignmentGroups.setRows;
   const [activeAssignmentGroup, setActiveAssignmentGroup] =
     useState<AssignmentGroup | null>(null);
+    console.log('activeAssignmentGroup', activeAssignmentGroup);
   const [assignmentGroupModalMode, setAssignmentGroupModalMode] =
     useState<AssignmentGroupModalMode>("create");
   const [pendingDeleteAssignmentGroups, setPendingDeleteAssignmentGroups] =
@@ -397,6 +398,7 @@ const AssignmentGroups = () => {
                   items={memberNames.slice(2)}
                   headerLabel={`Members (${memberNames.length})`}
                   className="self-center"
+                  portal
                 />
               ) : null}
             </div>

@@ -24,9 +24,9 @@ export const createApplicationModule = async (
 
 export const getApplicationModules = async (
   filter: any = {},
-  options: PaginationOptions
+  options?: PaginationOptions
 ) => {
-  const { page = 1, limit = 10, skip = 0, search } = options;
+  const search = options?.search;
   if (search) {
     const sanitizedSearch = escapeRegex(search);
     if (!filter.$or) filter.$or = [];
@@ -34,6 +34,14 @@ export const getApplicationModules = async (
       { moduleName: { $regex: sanitizedSearch, $options: "i" } }
     );
   }
+
+  if (!options) {
+    return await GxpServiceAppModuleModel.find(filter)
+      .populate(moduleApplicationPopulate)
+      .lean();
+  }
+
+  const { page = 1, limit = 10, skip = 0 } = options;
   const [data, totalCount] = await Promise.all([
     GxpServiceAppModuleModel.find(filter)
       .populate(moduleApplicationPopulate)

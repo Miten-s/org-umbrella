@@ -353,7 +353,7 @@ const Location = () => {
         className="m-4 min-h-[150px] max-w-[600px]"
         showCloseButton={false}
       >
-        <div className="flex h-full flex-col justify-between bg-white p-5 text-gray-900 dark:bg-gray-900 dark:text-white">
+           <div className="flex h-full flex-col justify-between p-5 dark:text-white">
           <div className="py-2">
             {pendingDeleteLocations.length > 1
               ? `Are you sure you want to delete these ${pendingDeleteLocations.length} locations?`
