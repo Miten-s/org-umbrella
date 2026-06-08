@@ -1,5 +1,8 @@
 import * as repo from "../repo/gxp-service-workflows.repo";
 import { PaginationOptions } from "../utils/pagination.util";
+import mongoose from "mongoose";
+import GxpServiceApplicationModel from "../models/gxp-service-applications.model";
+import { GxpServiceRequestModel } from "../models/gxp-service-service-requests.model";
 
 export const addWorkflow = async (workflowData: any, user: string) => {
   const newWorkflow = {
@@ -40,4 +43,101 @@ export const enableWorkflow = async (workflowId: string, user: string) => {
 
 export const deleteWorkflow = async (workflowId: string) => {
   return await repo.deleteWorkflow(workflowId);
+};
+
+export const bulkDeleteWorkflows = async (workflowIds: string[]) => {
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+
+    await repo.bulkDeleteWorkflows(workflowIds, session);
+
+    await GxpServiceApplicationModel.updateMany(
+      { applicationWorkflow: { $in: workflowIds } },
+      { $unset: { applicationWorkflow: 1 } },
+      { session }
+    );
+
+    await GxpServiceRequestModel.updateMany(
+      { workflow: { $in: workflowIds } },
+      { $unset: { workflow: 1 } },
+      { session }
+    );
+
+    await session.commitTransaction();
+    return { success: true, message: "Workflows deleted successfully" };
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    await session.endSession();
+  }
+};
+
+export const bulkDuplicateWorkflows = async (workflowIds: string[], user: string) => {
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+
+    const workflowsToDuplicate = await repo.findWorkflowsByIds(workflowIds);
+    if (!workflowsToDuplicate || workflowsToDuplicate.length === 0) {
+      throw new Error("No workflows found for the provided IDs");
+    }
+
+    const duplicatedWorkflows = [];
+
+    for (const workflow of workflowsToDuplicate) {
+      let baseName = workflow.workflowName;
+      const nameMatch = baseName.match(/^(.*)-\((\d+)\)$/);
+      if (nameMatch) {
+        baseName = nameMatch[1];
+      }
+
+      const escapedBaseName = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(`^${escapedBaseName}(?:-\\((\\d+)\\))?$`);
+
+      const similarWorkflows = await repo.getWorkflowsByFilter({
+        workflowName: { $regex: regex }
+      });
+
+      let maxIndex = 0;
+      similarWorkflows.forEach((wf: any) => {
+        const match = wf.workflowName.match(regex);
+        if (match && match[1]) {
+          const index = parseInt(match[1], 10);
+          if (index > maxIndex) maxIndex = index;
+        }
+      });
+
+      const newName = `${baseName}-(${maxIndex + 1})`;
+      const now = new Date();
+
+      const toSave: any = {
+        ...(workflow as any).toObject(),
+        _id: new mongoose.Types.ObjectId(),
+        workflowName: newName,
+        createdOn: now,
+        createdBy: user,
+        modifiedOn: now,
+        modifiedBy: user,
+        status: "enabled"
+      };
+
+      delete toSave.__v;
+      delete toSave.createdAt;
+      delete toSave.updatedAt;
+
+      duplicatedWorkflows.push(toSave);
+    }
+
+    const inserted = await repo.createWorkflow(duplicatedWorkflows);
+
+    await session.commitTransaction();
+    return inserted;
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    await session.endSession();
+  }
 };

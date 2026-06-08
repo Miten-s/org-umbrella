@@ -5,7 +5,10 @@ import {
   update,
   disable,
   enable,
-  search
+  search,
+  deleteGroup as deleteGroupService,
+  bulkDeleteGroups,
+  bulkDuplicateGroups
 } from "../services/gxp-service-assignment-groups.service";
 import asyncHandler from "../middlewares/error.middleware";
 import { getPaginationOptions } from "../utils/pagination.util";
@@ -59,5 +62,33 @@ export const searchGroups = asyncHandler(
     const { q } = req.query;
     const result = await search(q as string);
     res.json(result);
+  }
+);
+
+export const deleteGroup = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const result = await deleteGroupService(id as string);
+  res.json(result);
+});
+
+export const bulkDeleteGroupsController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: "An array of ids is required" });
+    }
+    const result = await bulkDeleteGroups(ids);
+    res.status(200).send(result);
+  }
+);
+
+export const bulkDuplicateGroupsController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: "An array of ids is required" });
+    }
+    const result = await bulkDuplicateGroups(ids);
+    res.status(201).send(result);
   }
 );

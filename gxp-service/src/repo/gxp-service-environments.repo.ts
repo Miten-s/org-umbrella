@@ -56,3 +56,22 @@ export const enableEnvironment = async (_id: string) => {
     { new: true }
   );
 };
+
+export const deleteEnvironment  = async (environmentId: string) => {
+  return await GxpServiceEnvironmentModel.deleteMany({ _id: { $eq: environmentId } });
+}
+
+export const findEnvironmentsByIds = async (ids: string[]) => {
+  return await GxpServiceEnvironmentModel.find({ _id: { $in: ids } }).lean();
+};
+
+export const findEnvironmentsByFilter = async (filter: any) => {
+  return await GxpServiceEnvironmentModel.find(filter).lean();
+};
+
+export const bulkDeleteEnvironments = async (ids: string[], session?: any) => {
+  return await GxpServiceEnvironmentModel.deleteMany(
+    { _id: { $in: ids } },
+    { session }
+  );
+};

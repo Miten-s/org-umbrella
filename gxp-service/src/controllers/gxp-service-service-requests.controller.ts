@@ -86,3 +86,14 @@ export const deleteServiceRequest = asyncHandler(
     res.status(200).send(result);
   }
 );
+
+export const bulkDeleteServiceRequests = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: "An array of ids is required" });
+    }
+    const result = await service.bulkDeleteRequests(ids);
+    res.status(200).send(result);
+  }
+);

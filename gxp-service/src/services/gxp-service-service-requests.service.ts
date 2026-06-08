@@ -339,6 +339,10 @@ export const deleteRequest = async (id: string) => {
   return await repo.deleteServiceRequest(id);
 };
 
+export const bulkDeleteRequests = async (ids: string[]) => {
+  return await repo.bulkDeleteServiceRequests(ids);
+};
+
 export const getServiceTypes = async (req: Request) => {
   return await repo.getServiceTypes(req);
 };

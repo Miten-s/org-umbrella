@@ -117,6 +117,11 @@ export const updateServiceRequest = async (
 export const deleteServiceRequest = async (id: string) => {
   return await GxpServiceRequestModel.findByIdAndDelete(id);
 };
+
+export const bulkDeleteServiceRequests = async (ids: string[]) => {
+  return await GxpServiceRequestModel.deleteMany({ _id: { $in: ids } });
+};
+
 export const getServiceTypes = async (req: Request) => {
   const { name, id } = req.query;
   const filter = removeUndefinedEntries({

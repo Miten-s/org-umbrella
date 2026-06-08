@@ -3,6 +3,7 @@ import { IGxpServiceAppModule } from "../models/gxp-service-application-modules.
 import * as repo from "../repo/gxp-service-application-modules.repo";
 import { toObjectIdString } from "./mixed-id-resolution.service";
 import { PaginationOptions } from "../utils/pagination.util";
+import mongoose from "mongoose";
 
 const escapeRegExp = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -253,4 +254,103 @@ export const deleteApplicationModule = async (id: string) => {
   }
 
   return await repo.deleteApplcationModule(id);
+};
+
+export const bulkDeleteApplicationModules = async (ids: string[]) => {
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+
+    await GxpServiceApplicationModel.updateMany(
+      { applicationModules: { $in: ids } },
+      { $pullAll: { applicationModules: ids } },
+      { session }
+    );
+
+    const deleted = await repo.bulkDeleteApplicationModules(ids, session);
+
+    await session.commitTransaction();
+    return deleted;
+  } catch (error) {
+    session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
+};
+
+export const bulkDuplicateApplicationModules = async (ids: string[], user: any) => {
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+
+    const sourceModules = await repo.findApplicationModulesByIds(ids);
+    if (!sourceModules || sourceModules.length === 0) {
+      throw new Error("Application modules not found");
+    }
+
+    const duplicatedModules = [];
+
+    for (const source of sourceModules) {
+      let baseName = source.moduleName;
+      const nameMatch = baseName.match(/^(.*)-\((\d+)\)$/);
+      if (nameMatch) {
+        baseName = nameMatch[1];
+      }
+
+      const escapedBaseName = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(`^${escapedBaseName}(?:-\\((\\d+)\\))?$`);
+
+      const similarResult = await repo.findApplicationModulesByFilter({
+        moduleName: { $regex: regex }
+      });
+
+      let maxIndex = 0;
+      similarResult.forEach((item: any) => {
+        const match = item.moduleName.match(regex);
+        if (match && match[1]) {
+          const index = parseInt(match[1], 10);
+          if (index > maxIndex) maxIndex = index;
+        }
+      });
+
+      const newName = `${baseName}-(${maxIndex + 1})`;
+      const applicationName = await resolveApplicationName(source.application as string | undefined);
+      const newModuleId = buildModuleId(newName, applicationName);
+
+      const now = new Date();
+      const toSave: any = {
+        ...source,
+        _id: new mongoose.Types.ObjectId(),
+        moduleName: newName,
+        moduleId: newModuleId,
+        createdOn: now,
+        createdBy: user,
+        modifiedOn: now,
+        modifiedBy: null,
+        status: "enabled"
+      };
+
+      delete toSave.__v;
+      delete toSave.createdAt;
+      delete toSave.updatedAt;
+
+      const newModule = await repo.createApplicationModule(toSave, user);
+      
+      const moduleMongoId = String((newModule as any)?._id ?? "");
+      if (moduleMongoId && source.application) {
+        await syncApplicationModulesFromModuleChange(moduleMongoId, undefined, source.application);
+      }
+
+      duplicatedModules.push(newModule);
+    }
+
+    await session.commitTransaction();
+    return duplicatedModules.map(stripLegacyUniqueName);
+  } catch (error) {
+    session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
 };

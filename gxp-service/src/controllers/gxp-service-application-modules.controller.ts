@@ -74,3 +74,26 @@ export const deleteApplicationModule = asyncHandler(
       .send({ message: "Application Module deleted", application: deleted });
   }
 );
+
+export const bulkDeleteApplicationModules = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: "An array of ids is required" });
+    }
+    const result = await service.bulkDeleteApplicationModules(ids);
+    res.status(200).send(result);
+  }
+);
+
+export const bulkDuplicateApplicationModules = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { ids } = req.body;
+    const currentUser = (req as any).user?.id ?? null;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: "An array of ids is required" });
+    }
+    const result = await service.bulkDuplicateApplicationModules(ids, currentUser);
+    res.status(201).send(result);
+  }
+);

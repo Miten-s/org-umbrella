@@ -146,3 +146,31 @@ export const getApplicationRoles = asyncHandler(
     return res.status(200).send({ applicationRoles });
   }
 );
+
+export const bulkDeleteApplications = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: "An array of ids is required" });
+    }
+    const deleted = await service.bulkDeleteApplications(ids);
+    return res
+      .status(200)
+      .send({ message: "Applications deleted", applications: deleted });
+  }
+);
+
+export const bulkDuplicateApplications = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { ids } = req.body;
+    const currentUser = (req as any).user?.username;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: "An array of ids is required" });
+    }
+    const duplicated = await service.bulkDuplicateApplications(
+      ids,
+      currentUser ?? undefined
+    );
+    return res.status(201).json(duplicated);
+  }
+);

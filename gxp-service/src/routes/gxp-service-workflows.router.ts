@@ -6,7 +6,9 @@ import {
   updateWorkflow,
   disableWorkflow,
   enableWorkflow,
-  deleteWorkflow
+  deleteWorkflow,
+  bulkDeleteWorkflows,
+  bulkDuplicateWorkflows
 } from "../controllers/gxp-service-workflows.controller";
 import { validateDto } from "../middlewares/validate-dto.middleware";
 import { CreateWorkflowDto, UpdateWorkflowDto } from "../dtos/workflow.dto";
@@ -24,6 +26,9 @@ router.post(
   validateDto(CreateWorkflowDto),
   createWorkflow
 );
+
+router.post(API_ROUTES.WORKFLOWS.BULK_DELETE, bulkDeleteWorkflows);
+router.post(API_ROUTES.WORKFLOWS.BULK_DUPLICATE, bulkDuplicateWorkflows);
 
 // ---------------------------------------------------------------------------------------- PUT Requests ----------------------------------------------------------------------------------------
 

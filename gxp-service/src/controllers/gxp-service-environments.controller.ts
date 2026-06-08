@@ -56,3 +56,26 @@ export const deleteEnvironment = asyncHandler(
     res.status(200).send(result);
   }
 );
+
+export const bulkDeleteEnvironments = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: "An array of ids is required" });
+    }
+    const result = await service.bulkDeleteEnvironments(ids);
+    res.status(200).send(result);
+  }
+);
+
+export const bulkDuplicateEnvironments = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { ids } = req.body;
+    const currentUser = (req as any).user?.id ?? null;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: "An array of ids is required" });
+    }
+    const result = await service.bulkDuplicateEnvironments(ids, currentUser);
+    res.status(201).send(result);
+  }
+);

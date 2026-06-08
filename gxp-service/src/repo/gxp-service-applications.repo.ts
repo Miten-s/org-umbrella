@@ -58,9 +58,9 @@ export const isApplicationNameTaken = async (
 
 export const getApplications = async (
   filter: any = {},
-  options: PaginationOptions
+  options?: Partial<PaginationOptions>
 ) => {
-  const { page = 1, limit = 10, skip = 0, search } = options;
+  const { page = 1, limit = 10, skip = 0, search } = options || {};
   if (search) {
     const sanitizedSearch = escapeRegex(search);
     if (!filter.$or) filter.$or = [];
@@ -159,6 +159,17 @@ export const deleteApplcation = async (id: string, session?: any) => {
 
 export const deleteAttachments = async (id: string) => {
   return await GxpServiceAppAttachmentModel.deleteOne({ _id: id });
+};
+
+export const findApplicationsByIds = async (ids: string[]) => {
+  return await GxpServiceApplicationModel.find({ _id: { $in: ids } }).lean();
+};
+
+export const bulkDeleteApplications = async (ids: string[], session?: any) => {
+  return await GxpServiceApplicationModel.deleteMany(
+    { _id: { $in: ids } },
+    { session }
+  );
 };
 
 export const getApplicationGroups = async () => {
