@@ -45,10 +45,18 @@ const updateDesignation = async (_id: string, data: Partial<IDesignation>) => {
 };
 
 const deleteDesignation = async (_id: string) => {
-  return await Designation.findByIdAndDelete(
+  return await Designation.findOneAndUpdate(
     { _id },
-    { deletedAt: new Date() }
+    { $set: { deletedAt: new Date() } },
+    { new: true }
   ).exec();
+};
+
+const bulkDeleteDesignations = async (ids: string[]) => {
+  return await Designation.updateMany(
+    { _id: { $in: ids }, deletedAt: null },
+    { $set: { deletedAt: new Date() } }
+  );
 };
 
 export {
@@ -56,5 +64,6 @@ export {
   getAllDesignations,
   getDesignationById,
   updateDesignation,
-  deleteDesignation
+  deleteDesignation,
+  bulkDeleteDesignations
 };

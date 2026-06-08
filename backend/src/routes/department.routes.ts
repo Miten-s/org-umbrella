@@ -4,7 +4,8 @@ import {
   deleteDepartment,
   getAllDepartments,
   getDepartmentById,
-  updateDepartment
+  updateDepartment,
+  bulkDeleteDepartments
 } from "../controllers/department.controller";
 import API_ROUTES from "../utils/routes";
 import { validateDto } from "../middlewares/validate-dto.middleware";
@@ -35,6 +36,12 @@ router.post(
   checkPermissions(["CREATE:DEPARTMENT"]),
   validateDto(CreateDepartmentDto),
   createDepartment
+);
+
+router.post(
+  API_ROUTES.DEPARTMENTS + API_ROUTES.BULK_DELETE,
+  checkPermissions(["DELETE:DEPARTMENT"]),
+  bulkDeleteDepartments
 );
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------

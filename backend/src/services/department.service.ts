@@ -76,10 +76,18 @@ const deleteDepartment = async (id: string) => {
   ).exec();
 };
 
+const bulkDeleteDepartments = async (ids: string[]) => {
+  return await Department.updateMany(
+    { _id: { $in: ids }, deletedAt: null },
+    { $set: { deletedAt: new Date() } }
+  );
+};
+
 export {
   createDepartment,
   getAllDepartments,
   getDepartmentById,
   updateDepartment,
-  deleteDepartment
+  deleteDepartment,
+  bulkDeleteDepartments
 };

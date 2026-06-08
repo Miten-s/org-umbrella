@@ -52,3 +52,15 @@ export const deleteRole = asyncHandler(
     });
   }
 );
+
+export const bulkDeleteRoles = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      res.status(400).json({ message: "An array of ids is required" });
+      return;
+    }
+    const result = await userService.bulkDeleteRoles(ids);
+    res.status(200).json({ message: "Roles deleted", result });
+  }
+);

@@ -68,3 +68,13 @@ export const deleteDesignation = asyncHandler(
     });
   }
 );
+
+export const bulkDeleteDesignations = asyncHandler(
+  async (req: Request, res: Response): Promise<any> => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0)
+      return res.status(400).json({ message: "An array of ids is required" });
+    const result = await designationService.bulkDeleteDesignations(ids);
+    res.status(200).json({ message: "Designations deleted", result });
+  }
+);

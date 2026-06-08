@@ -43,3 +43,15 @@ export const deletePermissions = asyncHandler(
     });
   }
 );
+
+export const bulkDeletePermissions = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      res.status(400).json({ message: "An array of ids is required" });
+      return;
+    }
+    const result = await permissionService.bulkDeletePermissions(ids);
+    res.status(200).json({ message: "Permissions deleted", result });
+  }
+);

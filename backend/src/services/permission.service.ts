@@ -1,5 +1,7 @@
 import { Request } from "express";
+import mongoose from "mongoose";
 import { Permission } from "../models/permission.model";
+import { Role } from "../models/role.model";
 import { ObjectId } from "mongodb";
 import { PaginationOptions, escapeRegex } from "../utils/pagination.util";
 
@@ -51,9 +53,38 @@ const getPermissions = async (options: PaginationOptions, type?: string) => {
   };
 };
 
+const bulkDeletePermissions = async (ids: string[]) => {
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+
+    await Permission.updateMany(
+      { _id: { $in: ids }, deletedAt: null },
+      { $set: { deletedAt: new Date() } },
+      { session }
+    );
+
+    // Cascade: remove deleted permission refs from all Roles
+    await Role.updateMany(
+      { permissions: { $in: ids } },
+      { $pull: { permissions: { $in: ids } } },
+      { session }
+    );
+
+    await session.commitTransaction();
+    return { success: true, message: "Permissions deleted successfully" };
+  } catch (err) {
+    await session.abortTransaction();
+    throw err;
+  } finally {
+    await session.endSession();
+  }
+};
+
 export default {
   createPermission,
   updatePermission,
   deletePermission,
-  getPermissions
+  getPermissions,
+  bulkDeletePermissions
 };
