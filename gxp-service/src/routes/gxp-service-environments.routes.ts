@@ -6,7 +6,9 @@ import {
   getEnvironments,
   enableEnvironment,
   updateEnvironment,
-  disableEnvironment
+  disableEnvironment,
+  bulkDeleteEnvironments,
+  bulkDuplicateEnvironments
 } from "../controllers/gxp-service-environments.controller";
 import API_ROUTES from "../utils/routes";
 import { validateDto } from "../middlewares/validate-dto.middleware";
@@ -24,6 +26,16 @@ router.post(
   API_ROUTES.ENVIRONMENT.ROOT,
   validateDto(CreateEnvironmentDto),
   createEnvironment
+);
+
+router.post(
+  API_ROUTES.ENVIRONMENT.BULK_DELETE,
+  bulkDeleteEnvironments
+);
+
+router.post(
+  API_ROUTES.ENVIRONMENT.BULK_DUPLICATE,
+  bulkDuplicateEnvironments
 );
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------

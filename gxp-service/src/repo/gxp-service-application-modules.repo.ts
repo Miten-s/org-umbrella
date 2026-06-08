@@ -24,7 +24,7 @@ export const createApplicationModule = async (
 
 export const getApplicationModules = async (
   filter: any = {},
-  options?: PaginationOptions
+  options?: Partial<PaginationOptions>
 ) => {
   const search = options?.search;
   if (search) {
@@ -78,4 +78,16 @@ export const updateApplicationModule = async (
 
 export const deleteApplcationModule = async (id: string) => {
   return await GxpServiceAppModuleModel.findByIdAndDelete(id);
+};
+
+export const findApplicationModulesByIds = async (ids: string[]) => {
+  return await GxpServiceAppModuleModel.find({ _id: { $in: ids } }).lean();
+};
+
+export const findApplicationModulesByFilter = async (filter: any) => {
+  return await GxpServiceAppModuleModel.find(filter).lean();
+};
+
+export const bulkDeleteApplicationModules = async (ids: string[], session?: any) => {
+  return await GxpServiceAppModuleModel.deleteMany({ _id: { $in: ids } }, { session });
 };

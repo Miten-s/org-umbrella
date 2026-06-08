@@ -4,7 +4,8 @@ import {
   getAllLocations,
   getLocationById,
   updateLocation,
-  deleteLocation
+  deleteLocation,
+  bulkDeleteLocations
 } from "../controllers/location.controller";
 import API_ROUTES from "../utils/routes";
 import { validateDto } from "../middlewares/validate-dto.middleware";
@@ -36,6 +37,12 @@ router.post(
   API_ROUTES.LOCATIONS,
   checkPermissions(["CREATE:LOCATION"]),
   createLocation
+);
+
+router.post(
+  API_ROUTES.LOCATIONS + API_ROUTES.BULK_DELETE,
+  checkPermissions(["DELETE:LOCATION"]),
+  bulkDeleteLocations
 );
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------

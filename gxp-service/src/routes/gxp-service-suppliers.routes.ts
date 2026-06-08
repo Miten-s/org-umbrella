@@ -7,7 +7,9 @@ import {
   updateSupplier,
   disableSupplier,
   enableSupplier,
-  deleteSupplier
+  deleteSupplier,
+  bulkDeleteSuppliers,
+  bulkDuplicateSuppliers
 } from "../controllers/gxp-service-suppliers.controller";
 import API_ROUTES from "../utils/routes";
 import { validateDto } from "../middlewares/validate-dto.middleware";
@@ -27,6 +29,16 @@ router.post(
   API_ROUTES.SUPPLIER.ROOT,
   validateDto(CreateSupplierDto),
   createSupplier
+);
+
+router.post(
+  API_ROUTES.SUPPLIER.BULK_DELETE,
+  bulkDeleteSuppliers
+);
+
+router.post(
+  API_ROUTES.SUPPLIER.BULK_DUPLICATE,
+  bulkDuplicateSuppliers
 );
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------

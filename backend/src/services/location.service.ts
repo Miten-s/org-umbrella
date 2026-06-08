@@ -50,10 +50,19 @@ const deleteLocation = async (_id: string) => {
     { deletedAt: new Date() }
   ).exec();
 };
+
+const bulkDeleteLocations = async (ids: string[]) => {
+  return await Location.updateMany(
+    { _id: { $in: ids }, deletedAt: null },
+    { $set: { deletedAt: new Date() } }
+  );
+};
+
 export {
   createLocation,
   getAllLocations,
   getLocationById,
   updateLocation,
-  deleteLocation
+  deleteLocation,
+  bulkDeleteLocations
 };

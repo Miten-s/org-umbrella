@@ -5,7 +5,9 @@ import {
   getApplicationModuleById,
   updateAppplicationModule,
   updateApplicationModuleStatus,
-  deleteApplicationModule
+  deleteApplicationModule,
+  bulkDeleteApplicationModules,
+  bulkDuplicateApplicationModules
 } from "../controllers/gxp-service-application-modules.controller";
 import API_ROUTES from "../utils/routes";
 
@@ -20,6 +22,9 @@ router.get(API_ROUTES.APPLICATION_MODULES.BY_ID, getApplicationModuleById);
 // ---------------------------------------------------------------------------------------- POST Requests ----------------------------------------------------------------------------------------
 
 router.post(API_ROUTES.APPLICATION_MODULES.ROOT, createApplicationModule);
+
+router.post(API_ROUTES.APPLICATION_MODULES.BULK_DELETE, bulkDeleteApplicationModules);
+router.post(API_ROUTES.APPLICATION_MODULES.BULK_DUPLICATE, bulkDuplicateApplicationModules);
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
 

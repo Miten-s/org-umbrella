@@ -95,3 +95,27 @@ export const deleteSupplier = asyncHandler(
     return res.json({ message: "Supplier deleted", supplier: deleted });
   }
 );
+
+export const bulkDeleteSuppliers = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: "An array of ids is required" });
+    }
+    const result = await service.bulkDeleteSuppliers(ids);
+    res.status(200).send(result);
+  }
+);
+
+export const bulkDuplicateSuppliers = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { ids } = req.body;
+    const currentUser =
+      (req as any).user?.username ?? (req.headers["x-user"] as string) ?? null;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: "An array of ids is required" });
+    }
+    const result = await service.bulkDuplicateSuppliers(ids, currentUser);
+    res.status(201).send(result);
+  }
+);

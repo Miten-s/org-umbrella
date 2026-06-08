@@ -79,3 +79,19 @@ export const searchGroups = async (searchTerm: string) => {
     groupName: new RegExp(searchTerm, "i")
   });
 };
+
+export const deleteGroupById = async (id: string) => {
+  return await GxpServiceAssignmentGroupModel.findByIdAndDelete(id);
+};
+
+export const findGroupsByIds = async (ids: string[]) => {
+  return await GxpServiceAssignmentGroupModel.find({ _id: { $in: ids } }).lean();
+};
+
+export const findGroupsByFilter = async (filter: any) => {
+  return await GxpServiceAssignmentGroupModel.find(filter).lean();
+};
+
+export const bulkDeleteGroups = async (ids: string[], session?: any) => {
+  return await GxpServiceAssignmentGroupModel.deleteMany({ _id: { $in: ids } }, { session });
+};

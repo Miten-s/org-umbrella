@@ -58,3 +58,26 @@ export const deleteWorkflow = asyncHandler(
     res.status(200).send(result);
   }
 );
+
+export const bulkDeleteWorkflows = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).send({ message: "Invalid workflow IDs provided for deletion" });
+    }
+    const result = await service.bulkDeleteWorkflows(ids);
+    res.status(200).send(result);
+  }
+);
+
+export const bulkDuplicateWorkflows = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).send({ message: "Invalid workflow IDs provided for duplication" });
+    }
+    const user = (req as any).user?.id;
+    const result = await service.bulkDuplicateWorkflows(ids, user);
+    res.status(201).send(result);
+  }
+);

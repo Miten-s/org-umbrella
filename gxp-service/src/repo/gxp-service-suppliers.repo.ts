@@ -76,3 +76,15 @@ export const searchSuppliersByName = async (q: string, limit = 20) => {
 export const deleteSupplierById = async (id: string) => {
   return await GxpSupplierModel.findByIdAndDelete(id);
 };
+
+export const findSuppliersByIds = async (ids: string[]) => {
+  return await GxpSupplierModel.find({ _id: { $in: ids } }).lean();
+};
+
+export const findSuppliersByFilter = async (filter: any) => {
+  return await GxpSupplierModel.find(filter).lean();
+};
+
+export const bulkDeleteSuppliers = async (ids: string[], session?: any) => {
+  return await GxpSupplierModel.deleteMany({ _id: { $in: ids } }, { session });
+};

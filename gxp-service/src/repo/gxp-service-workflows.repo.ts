@@ -66,3 +66,18 @@ export const enableWorkflow = async (workflowId: string, user: string) => {
 export const deleteWorkflow = async (workflowId: string) => {
   return await GxpServiceWorkFlowModel.deleteOne({ _id: workflowId });
 };
+
+export const bulkDeleteWorkflows = async (workflowIds: string[], session?: any) => {
+  return await GxpServiceWorkFlowModel.deleteMany(
+    { _id: { $in: workflowIds } },
+    { session }
+  );
+};
+
+export const findWorkflowsByIds = async (workflowIds: string[]) => {
+  return await GxpServiceWorkFlowModel.find({ _id: { $in: workflowIds } });
+};
+
+export const getWorkflowsByFilter = async (filter: any) => {
+  return await GxpServiceWorkFlowModel.find(filter);
+};

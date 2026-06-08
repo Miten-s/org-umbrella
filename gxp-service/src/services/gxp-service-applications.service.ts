@@ -613,6 +613,169 @@ export const duplicateApplication = async (
   }
 };
 
+export const bulkDeleteApplications = async (ids: string[]) => {
+  const serviceRequestsCount = await GxpServiceRequestModel.countDocuments({
+    application: { $in: ids }
+  });
+
+  if (serviceRequestsCount > 0) {
+    throw new Error(
+      "Cannot delete Applications. One or more are attached to Service Requests."
+    );
+  }
+
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+
+    await GxpServiceAppGroupModel.deleteMany({ appId: { $in: ids } }, { session });
+    await GxpServiceAppAttachmentModel.deleteMany({ appId: { $in: ids } }, { session });
+
+    const deleted = await repo.bulkDeleteApplications(ids, session);
+
+    await session.commitTransaction();
+    return deleted;
+  } catch (error) {
+    session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
+};
+
+export const bulkDuplicateApplications = async (
+  ids: string[],
+  currentUser?: string
+) => {
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+
+    const sourceApps = await repo.findApplicationsByIds(ids);
+    if (!sourceApps || sourceApps.length === 0) {
+      throw new Error("Applications not found");
+    }
+
+    const duplicatedApps = [];
+
+    for (const sourceApp of sourceApps) {
+      let baseName = sourceApp.applicationName;
+      const nameMatch = baseName.match(/^(.*)-\((\d+)\)$/);
+      if (nameMatch) {
+        baseName = nameMatch[1];
+      }
+
+      const escapedBaseName = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(`^${escapedBaseName}(?:-\\((\\d+)\\))?$`);
+
+      const similarAppsResult = await repo.getApplications({
+        applicationName: { $regex: regex }
+      });
+
+      let maxIndex = 0;
+      similarAppsResult.data.forEach((app: any) => {
+        const match = app.applicationName.match(regex);
+        if (match && match[1]) {
+          const index = parseInt(match[1], 10);
+          if (index > maxIndex) maxIndex = index;
+        }
+      });
+
+      const newName = `${baseName}-(${maxIndex + 1})`;
+
+      const now = new Date();
+      const toSave: any = {
+        ...sourceApp,
+        _id: new mongoose.Types.ObjectId(),
+        applicationName: newName,
+        createdOn: now,
+        createdBy: currentUser ?? null,
+        modifiedOn: now,
+        modifiedBy: currentUser ?? null,
+        status: "enabled",
+        attachments: [],
+        applicationGroups: []
+      };
+
+      delete toSave.__v;
+      delete toSave.createdAt;
+      delete toSave.updatedAt;
+
+      const newApp = await repo.createApplication(toSave, session);
+
+      if (sourceApp.applicationGroups && sourceApp.applicationGroups.length > 0) {
+        const sourceGroups = await GxpServiceAppGroupModel.find({
+          _id: { $in: sourceApp.applicationGroups }
+        });
+
+        const newGroupsDocs = sourceGroups.map((group) => ({
+          insertOne: {
+            document: {
+              appId: (newApp as any)._id.toString(),
+              appGroup: group.appGroup,
+              active: group.active,
+              createdBy: currentUser ?? null
+            }
+          }
+        }));
+
+        if (newGroupsDocs.length > 0) {
+          const groupResult = await GxpServiceAppGroupModel.bulkWrite(
+            newGroupsDocs,
+            { session }
+          );
+          newApp.applicationGroups = Object.values(
+            groupResult?.insertedIds ?? {}
+          ).map(String);
+        }
+      }
+
+      if (sourceApp.attachments && sourceApp.attachments.length > 0) {
+        const sourceAttachments = await GxpServiceAppAttachmentModel.find({
+          _id: { $in: sourceApp.attachments }
+        });
+
+        const newAttachmentDocs = sourceAttachments.map((att) => ({
+          appId: (newApp as any)._id.toString(),
+          attachment: att.attachment,
+          active: true,
+          createdBy: currentUser ?? null
+        }));
+
+        if (newAttachmentDocs.length > 0) {
+          const attachmentOps = newAttachmentDocs.map((doc) => ({
+            insertOne: { document: doc }
+          }));
+
+          const result = await GxpServiceAppAttachmentModel.bulkWrite(
+            attachmentOps,
+            { session }
+          );
+
+          newApp.attachments = Object.values(result?.insertedIds ?? {}).map(
+            String
+          );
+        }
+      }
+
+      if (sourceApp.applicationModules) {
+        newApp.applicationModules = sourceApp.applicationModules;
+      }
+
+      await newApp.save({ session });
+      duplicatedApps.push(newApp);
+    }
+
+    await session.commitTransaction();
+    return duplicatedApps;
+  } catch (error) {
+    session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
+};
+
 export const getApplicationRoles = async () => {
   return await repo.getApplicationRoles();
 };

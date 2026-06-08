@@ -5,7 +5,8 @@ import {
   getServiceRequestById,
   updateServiceRequest,
   deleteServiceRequest,
-  getServiceTypes
+  getServiceTypes,
+  bulkDeleteServiceRequests
 } from "../controllers/gxp-service-service-requests.controller.js";
 import upload from "../middlewares/multer.middleware.js";
 import API_ROUTES from "../utils/routes.js";
@@ -27,6 +28,11 @@ router.post(
   upload.array("attachments"),
   validateDto(CreateServiceRequestDto),
   createServiceRequest
+);
+
+router.post(
+  API_ROUTES.SERVICE_REQUESTS.BULK_DELETE,
+  bulkDeleteServiceRequests
 );
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------

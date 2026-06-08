@@ -1,4 +1,5 @@
 import { Request } from "express";
+import mongoose from "mongoose";
 import { IUser, User } from "../models/user.model";
 import { Role, RoleType } from "../models/role.model";
 import { isSuperAdmin } from "../utils/common.util";
@@ -65,4 +66,32 @@ const getRoles = async (options: PaginationOptions, user?: IUser, type?: string)
   };
 };
 
-export default { assignRole, createRole, updateRole, deleteRole, getRoles };
+const bulkDeleteRoles = async (ids: string[]) => {
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+
+    await Role.updateMany(
+      { _id: { $in: ids }, deletedAt: null },
+      { $set: { deletedAt: new Date() } },
+      { session }
+    );
+
+    // Cascade: remove deleted role refs from all Users
+    await User.updateMany(
+      { roles: { $in: ids } },
+      { $pull: { roles: { $in: ids } } },
+      { session }
+    );
+
+    await session.commitTransaction();
+    return { success: true, message: "Roles deleted successfully" };
+  } catch (err) {
+    await session.abortTransaction();
+    throw err;
+  } finally {
+    await session.endSession();
+  }
+};
+
+export default { assignRole, createRole, updateRole, deleteRole, getRoles, bulkDeleteRoles };

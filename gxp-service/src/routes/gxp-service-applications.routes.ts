@@ -11,6 +11,8 @@ import {
   deleteAttachments,
   duplicateApplication,
   getApplicationRoles,
+  bulkDeleteApplications,
+  bulkDuplicateApplications
 } from "../controllers/gxp-service-applications.controller";
 import API_ROUTES from "../utils/routes";
 import upload from "../middlewares/multer.middleware.js";
@@ -47,6 +49,16 @@ router.post(
 router.post(
   API_ROUTES.APPLICATIONS.DUPLICATE_BY_ID,
   duplicateApplication
+);
+
+router.post(
+  API_ROUTES.APPLICATIONS.BULK_DELETE,
+  bulkDeleteApplications
+);
+
+router.post(
+  API_ROUTES.APPLICATIONS.BULK_DUPLICATE,
+  bulkDuplicateApplications
 );
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
