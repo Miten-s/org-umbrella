@@ -20,8 +20,9 @@ import {
   TrashBinIcon
 } from "@/public/icons";
 import {
+  bulkDeleteAssignmentGroups,
+  bulkDuplicateAssignmentGroups,
   createAssignmentGroup,
-  deleteAssignmentGroup,
   disableAssignmentGroup,
   enableAssignmentGroup,
   getAssignmentGroups,
@@ -46,56 +47,6 @@ const getInitials = (value: string) =>
 
 const getMemberNames = (group: AssignmentGroup) =>
   group.members?.map((member) => member.name).filter(Boolean) ?? [];
-
-const copyAssignmentGroupsToClipboard = async (rows: AssignmentGroup[]) => {
-  if (!rows.length) {
-    return;
-  }
-
-  const content = [
-    "Group\tManager\tMembers\tDescription\tStatus",
-    ...rows.map((group) =>
-      [
-        group.groupName,
-        group.manager?.name ?? "",
-        getMemberNames(group).join(", "),
-        group.description ?? "",
-        group.isActive ? "Active" : "Inactive"
-      ].join("\t")
-    )
-  ].join("\n");
-
-  try {
-    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(content);
-    } else if (typeof document !== "undefined") {
-      const textarea = document.createElement("textarea");
-      textarea.value = content;
-      textarea.setAttribute("readonly", "");
-      textarea.style.position = "absolute";
-      textarea.style.left = "-9999px";
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-    } else {
-      throw new Error("Clipboard unavailable");
-    }
-
-    toast(
-      rows.length > 1
-        ? `${rows.length} assignment groups copied to clipboard.`
-        : "Assignment group copied to clipboard.",
-      "success"
-    );
-  } catch (error) {
-    console.error("Error copying assignment groups:", error);
-    toast(
-      "Failed to copy assignment group details. Please try again.",
-      "error"
-    );
-  }
-};
 
 const AssignmentGroups = () => {
   const { isOpen, openModal, closeModal } = useModal();
@@ -169,41 +120,51 @@ const AssignmentGroups = () => {
     [setAssignmentGroups]
   );
 
+  const handleDuplicateAssignmentGroups = useCallback(
+    async (rows: AssignmentGroup[]) => {
+      if (!rows.length) {
+        return;
+      }
+
+      try {
+        await bulkDuplicateAssignmentGroups(
+          rows.map((group) => group._id),
+          { silent: true }
+        );
+        toast(
+          rows.length > 1
+            ? `${rows.length} assignment groups copied successfully.`
+            : "Assignment group copied successfully.",
+          "success"
+        );
+        setReFetch(!reFetch);
+      } catch (error) {
+        console.error("Error copying assignment groups:", error);
+        toast(
+          "Failed to copy selected assignment groups. Please try again.",
+          "error"
+        );
+      }
+    },
+    [reFetch, setReFetch]
+  );
+
   const handleDeleteConfirmed = async () => {
     if (!pendingDeleteAssignmentGroups.length) {
       return;
     }
 
     try {
-      const results = await Promise.allSettled(
-        pendingDeleteAssignmentGroups.map((group) =>
-          deleteAssignmentGroup(group._id, { silent: true })
-        )
+      await bulkDeleteAssignmentGroups(
+        pendingDeleteAssignmentGroups.map((group) => group._id),
+        { silent: true }
       );
-      const failedDeletes = results.filter(
-        (result) => result.status === "rejected"
-      ).length;
-      const successfulDeletes =
-        pendingDeleteAssignmentGroups.length - failedDeletes;
-
-      if (successfulDeletes > 0 && failedDeletes === 0) {
-        toast(
-          successfulDeletes > 1
-            ? `${successfulDeletes} assignment groups deleted successfully.`
-            : "Assignment group deleted successfully.",
-          "success"
-        );
-      } else if (successfulDeletes > 0) {
-        toast(
-          `${successfulDeletes} assignment groups deleted, ${failedDeletes} failed.`,
-          "error"
-        );
-      } else {
-        toast(
-          "Failed to delete selected assignment groups. Please try again.",
-          "error"
-        );
-      }
+      toast(
+        pendingDeleteAssignmentGroups.length > 1
+          ? `${pendingDeleteAssignmentGroups.length} assignment groups deleted successfully.`
+          : "Assignment group deleted successfully.",
+        "success"
+      );
 
       setPendingDeleteAssignmentGroups([]);
       setReFetch(!reFetch);
@@ -256,7 +217,7 @@ const AssignmentGroups = () => {
             : "Copy assignment group",
         icon: CopyIcon,
         variant: "outline",
-        onClick: (selectedRows) => copyAssignmentGroupsToClipboard(selectedRows)
+        onClick: handleDuplicateAssignmentGroups
       },
       {
         key: "delete-selected",
@@ -271,7 +232,7 @@ const AssignmentGroups = () => {
           setPendingDeleteAssignmentGroups(selectedRows)
       }
     ],
-    []
+    [handleDuplicateAssignmentGroups]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<AssignmentGroup>[]>(
@@ -308,7 +269,7 @@ const AssignmentGroups = () => {
         tooltip: "Copy assignment group",
         icon: CopyIcon,
         placement: "menu",
-        onClick: async (group) => copyAssignmentGroupsToClipboard([group])
+        onClick: async (group) => handleDuplicateAssignmentGroups([group])
       },
       {
         key: "delete",
@@ -321,7 +282,7 @@ const AssignmentGroups = () => {
         onClick: (group) => setPendingDeleteAssignmentGroups([group])
       }
     ],
-    [openModal]
+    [handleDuplicateAssignmentGroups, openModal]
   );
 
   const columnDefs = useMemo<ColDef<AssignmentGroup>[]>(

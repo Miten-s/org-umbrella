@@ -19,8 +19,9 @@ import {
   TrashBinIcon
 } from "@/public/icons";
 import {
+  bulkDeleteSuppliers,
+  bulkDuplicateSuppliers,
   createSupplier,
-  deleteSupplier,
   disableSupplier,
   enableSupplier,
   getSuppliers,
@@ -42,48 +43,6 @@ const getInitials = (value: string) =>
     .slice(0, 2)
     .map((segment) => segment[0]?.toUpperCase() ?? "")
     .join("") || "S";
-
-const copySuppliersToClipboard = async (rows: Supplier[]) => {
-  if (!rows.length) {
-    return;
-  }
-
-  const content = [
-    "Supplier\tProduct\tDescription\tStatus",
-    ...rows.map(
-      (supplier) =>
-        `${supplier.supplierName}\t${supplier.product ?? ""}\t${supplier.description ?? ""}\t${supplier.status ?? ""}`
-    )
-  ].join("\n");
-
-  try {
-    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(content);
-    } else if (typeof document !== "undefined") {
-      const textarea = document.createElement("textarea");
-      textarea.value = content;
-      textarea.setAttribute("readonly", "");
-      textarea.style.position = "absolute";
-      textarea.style.left = "-9999px";
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-    } else {
-      throw new Error("Clipboard unavailable");
-    }
-
-    toast(
-      rows.length > 1
-        ? `${rows.length} suppliers copied to clipboard.`
-        : "Supplier copied to clipboard.",
-      "success"
-    );
-  } catch (error) {
-    console.error("Error copying suppliers:", error);
-    toast("Failed to copy supplier details. Please try again.", "error");
-  }
-};
 
 const Suppliers = () => {
   const { isOpen, openModal, closeModal } = useModal();
@@ -126,40 +85,48 @@ const Suppliers = () => {
     }
   };
 
+  const handleDuplicateSuppliers = useCallback(
+    async (rows: Supplier[]) => {
+      if (!rows.length) {
+        return;
+      }
+
+      try {
+        await bulkDuplicateSuppliers(
+          rows.map((supplier) => supplier._id),
+          { silent: true }
+        );
+        toast(
+          rows.length > 1
+            ? `${rows.length} suppliers copied successfully.`
+            : "Supplier copied successfully.",
+          "success"
+        );
+        setReFetch(!reFetch);
+      } catch (error) {
+        console.error("Error copying suppliers:", error);
+        toast("Failed to copy selected suppliers. Please try again.", "error");
+      }
+    },
+    [reFetch, setReFetch]
+  );
+
   const handleDeleteConfirmed = async () => {
     if (!pendingDeleteSuppliers.length) {
       return;
     }
 
     try {
-      const results = await Promise.allSettled(
-        pendingDeleteSuppliers.map((supplier) =>
-          deleteSupplier(supplier._id, { silent: true })
-        )
+      await bulkDeleteSuppliers(
+        pendingDeleteSuppliers.map((supplier) => supplier._id),
+        { silent: true }
       );
-      const failedDeletes = results.filter(
-        (result) => result.status === "rejected"
-      ).length;
-      const successfulDeletes = pendingDeleteSuppliers.length - failedDeletes;
-
-      if (successfulDeletes > 0 && failedDeletes === 0) {
-        toast(
-          successfulDeletes > 1
-            ? `${successfulDeletes} suppliers deleted successfully.`
-            : "Supplier deleted successfully.",
-          "success"
-        );
-      } else if (successfulDeletes > 0) {
-        toast(
-          `${successfulDeletes} suppliers deleted, ${failedDeletes} failed.`,
-          "error"
-        );
-      } else {
-        toast(
-          "Failed to delete selected suppliers. Please try again.",
-          "error"
-        );
-      }
+      toast(
+        pendingDeleteSuppliers.length > 1
+          ? `${pendingDeleteSuppliers.length} suppliers deleted successfully.`
+          : "Supplier deleted successfully.",
+        "success"
+      );
 
       setPendingDeleteSuppliers([]);
       setReFetch(!reFetch);
@@ -237,7 +204,7 @@ const Suppliers = () => {
           selectedRows.length > 1 ? "Copy suppliers" : "Copy supplier",
         icon: CopyIcon,
         variant: "outline",
-        onClick: (selectedRows) => copySuppliersToClipboard(selectedRows)
+        onClick: handleDuplicateSuppliers
       },
       {
         key: "delete-selected",
@@ -249,7 +216,7 @@ const Suppliers = () => {
         onClick: (selectedRows) => setPendingDeleteSuppliers(selectedRows)
       }
     ],
-    []
+    [handleDuplicateSuppliers]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<Supplier>[]>(
@@ -286,7 +253,7 @@ const Suppliers = () => {
         tooltip: "Copy supplier",
         icon: CopyIcon,
         placement: "menu",
-        onClick: async (supplier) => copySuppliersToClipboard([supplier])
+        onClick: async (supplier) => handleDuplicateSuppliers([supplier])
       },
       {
         key: "delete",
@@ -299,7 +266,7 @@ const Suppliers = () => {
         onClick: (supplier) => setPendingDeleteSuppliers([supplier])
       }
     ],
-    [openModal]
+    [handleDuplicateSuppliers, openModal]
   );
 
   const columnDefs = useMemo<ColDef<Supplier>[]>(

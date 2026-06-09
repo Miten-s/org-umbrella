@@ -8,6 +8,22 @@ const getSuccessMessage = (response: any, fallback: string) =>
 const toastSuccess = (response: any, fallback: string) =>
   toast(getSuccessMessage(response, fallback), "success");
 
+type SilentOptions = { silent?: boolean };
+
+const postBulkIds = async (
+  route: string,
+  action: "bulk-delete" | "bulk-duplicate",
+  ids: string[],
+  successMessage: string,
+  options?: SilentOptions
+) => {
+  const response = await gxpApi.post(`${route}/${action}`, { ids });
+  if (!options?.silent) {
+    toastSuccess(response, successMessage);
+  }
+  return response["data"];
+};
+
 const buildListParams = (
   params?: ListQueryParams,
   extraParams: Record<string, unknown> = {}
@@ -66,7 +82,7 @@ export const updateSupplier = async (
 
 export const deleteSupplier = async (
   id: string,
-  options?: { silent?: boolean }
+  options?: SilentOptions
 ) => {
   const response = await gxpApi.delete(`${API_ROUTES.suppliers}/${id}`);
   if (!options?.silent) {
@@ -74,6 +90,30 @@ export const deleteSupplier = async (
   }
   return response["data"];
 };
+
+export const bulkDeleteSuppliers = async (
+  ids: string[],
+  options?: SilentOptions
+) =>
+  postBulkIds(
+    API_ROUTES.suppliers,
+    "bulk-delete",
+    ids,
+    "Suppliers deleted successfully",
+    options
+  );
+
+export const bulkDuplicateSuppliers = async (
+  ids: string[],
+  options?: SilentOptions
+) =>
+  postBulkIds(
+    API_ROUTES.suppliers,
+    "bulk-duplicate",
+    ids,
+    "Suppliers copied successfully",
+    options
+  );
 
 export const enableSupplier = async (id: string) => {
   const response = await gxpApi.patch(`${API_ROUTES.suppliers}/enable/${id}`);
@@ -129,7 +169,7 @@ export const updateWorkflow = async (
 
 export const deleteWorkflow = async (
   id: string,
-  options?: { silent?: boolean }
+  options?: SilentOptions
 ) => {
   const response = await gxpApi.delete(`${API_ROUTES.workflows}/${id}`);
   if (!options?.silent) {
@@ -137,6 +177,30 @@ export const deleteWorkflow = async (
   }
   return response["data"];
 };
+
+export const bulkDeleteWorkflows = async (
+  ids: string[],
+  options?: SilentOptions
+) =>
+  postBulkIds(
+    API_ROUTES.workflows,
+    "bulk-delete",
+    ids,
+    "Workflows deleted successfully",
+    options
+  );
+
+export const bulkDuplicateWorkflows = async (
+  ids: string[],
+  options?: SilentOptions
+) =>
+  postBulkIds(
+    API_ROUTES.workflows,
+    "bulk-duplicate",
+    ids,
+    "Workflows copied successfully",
+    options
+  );
 
 export const enableWorkflow = async (id: string) => {
   const response = await gxpApi.patch(`${API_ROUTES.workflows}/enable/${id}`);
@@ -187,7 +251,7 @@ export const updateAssignmentGroup = async (
 
 export const deleteAssignmentGroup = async (
   id: string,
-  options?: { silent?: boolean }
+  options?: SilentOptions
 ) => {
   const response = await gxpApi.delete(`${API_ROUTES.assignmentGroups}/${id}`);
   if (!options?.silent) {
@@ -195,6 +259,30 @@ export const deleteAssignmentGroup = async (
   }
   return response["data"];
 };
+
+export const bulkDeleteAssignmentGroups = async (
+  ids: string[],
+  options?: SilentOptions
+) =>
+  postBulkIds(
+    API_ROUTES.assignmentGroups,
+    "bulk-delete",
+    ids,
+    "Assignment groups deleted successfully",
+    options
+  );
+
+export const bulkDuplicateAssignmentGroups = async (
+  ids: string[],
+  options?: SilentOptions
+) =>
+  postBulkIds(
+    API_ROUTES.assignmentGroups,
+    "bulk-duplicate",
+    ids,
+    "Assignment groups copied successfully",
+    options
+  );
 
 export const enableAssignmentGroup = async (groupName: string) => {
   const response = await gxpApi.patch(
@@ -249,7 +337,7 @@ export const updateEnvironment = async (
 
 export const deleteEnvironment = async (
   id: string,
-  options?: { silent?: boolean }
+  options?: SilentOptions
 ) => {
   const response = await gxpApi.delete(`${API_ROUTES.environments}/${id}`);
   if (!options?.silent) {
@@ -257,6 +345,30 @@ export const deleteEnvironment = async (
   }
   return response["data"];
 };
+
+export const bulkDeleteEnvironments = async (
+  ids: string[],
+  options?: SilentOptions
+) =>
+  postBulkIds(
+    API_ROUTES.environments,
+    "bulk-delete",
+    ids,
+    "Environments deleted successfully",
+    options
+  );
+
+export const bulkDuplicateEnvironments = async (
+  ids: string[],
+  options?: SilentOptions
+) =>
+  postBulkIds(
+    API_ROUTES.environments,
+    "bulk-duplicate",
+    ids,
+    "Environments copied successfully",
+    options
+  );
 
 export const enableEnvironment = async (id: string) => {
   const response = await gxpApi.patch(
@@ -316,7 +428,7 @@ export const updateApplicationSoftware = async (
 // Delete Application Software record
 export const deleteApplicationSoftware = async (
   id: string,
-  options?: { silent?: boolean }
+  options?: SilentOptions
 ) => {
   const response = await gxpApi.delete(
     `${API_ROUTES.gxpApplicationSoftware}/${id}`
@@ -326,6 +438,30 @@ export const deleteApplicationSoftware = async (
   }
   return response["data"];
 };
+
+export const bulkDeleteApplicationSoftware = async (
+  ids: string[],
+  options?: SilentOptions
+) =>
+  postBulkIds(
+    API_ROUTES.gxpApplicationSoftware,
+    "bulk-delete",
+    ids,
+    "Application modules deleted successfully",
+    options
+  );
+
+export const bulkDuplicateApplicationSoftware = async (
+  ids: string[],
+  options?: SilentOptions
+) =>
+  postBulkIds(
+    API_ROUTES.gxpApplicationSoftware,
+    "bulk-duplicate",
+    ids,
+    "Application modules copied successfully",
+    options
+  );
 
 // Enable Application Software
 export const enableApplicationSoftware = async (id: string) => {
@@ -408,7 +544,7 @@ export const updateApplication = async (
 
 export const deleteApplication = async (
   id: string,
-  options?: { silent?: boolean }
+  options?: SilentOptions
 ) => {
   const response = await gxpApi.delete(`${API_ROUTES.gxpApplications}/${id}`);
   if (!options?.silent) {
@@ -419,7 +555,7 @@ export const deleteApplication = async (
 
 export const duplicateApplication = async (
   id: string,
-  options?: { silent?: boolean }
+  options?: SilentOptions
 ) => {
   const response = await gxpApi.post(
     `${API_ROUTES.gxpApplications}/${id}/duplicate`
@@ -429,6 +565,30 @@ export const duplicateApplication = async (
   }
   return response["data"];
 };
+
+export const bulkDeleteApplications = async (
+  ids: string[],
+  options?: SilentOptions
+) =>
+  postBulkIds(
+    API_ROUTES.gxpApplications,
+    "bulk-delete",
+    ids,
+    "Applications deleted successfully",
+    options
+  );
+
+export const bulkDuplicateApplications = async (
+  ids: string[],
+  options?: SilentOptions
+) =>
+  postBulkIds(
+    API_ROUTES.gxpApplications,
+    "bulk-duplicate",
+    ids,
+    "Applications copied successfully",
+    options
+  );
 
 export const enableApplication = async (id: string) => {
   const response = await gxpApi.patch(
@@ -477,7 +637,7 @@ export const updateGxpPermission = async (
 
 export const deleteGxpPermission = async (
   id: string,
-  options?: { silent?: boolean }
+  options?: SilentOptions
 ) => {
   const response = await gxpApi.delete(`${API_ROUTES.gxpPermissions}/${id}`);
   if (!options?.silent) {
@@ -642,7 +802,7 @@ export const updateServiceRequest = async (
 
 export const deleteServiceRequest = async (
   id: string,
-  options?: { silent?: boolean }
+  options?: SilentOptions
 ) => {
   const response = await gxpApi.delete(
     `${API_ROUTES.gxpServiceRequests}/${id}`
@@ -652,6 +812,18 @@ export const deleteServiceRequest = async (
   }
   return response["data"];
 };
+
+export const bulkDeleteServiceRequests = async (
+  ids: string[],
+  options?: SilentOptions
+) =>
+  postBulkIds(
+    API_ROUTES.gxpServiceRequests,
+    "bulk-delete",
+    ids,
+    "Service requests deleted successfully",
+    options
+  );
 
 export const deleteServiceRequestAttachment = async (attachmentId: string) => {
   const response = await gxpApi.delete(
@@ -700,7 +872,7 @@ export const updateGxpUser = async (
 
 export const deleteGxpUser = async (
   id: string,
-  options?: { silent?: boolean }
+  options?: SilentOptions
 ) => {
   const response = await gxpApi.delete(`${API_ROUTES.gxpUsers}/${id}`);
   if (!options?.silent) {

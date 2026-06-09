@@ -1,7 +1,7 @@
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
-export const DEFAULT_LIST_PAGE_SIZE = 5;
+export const DEFAULT_LIST_PAGE_SIZE = 7;
 
 export interface ListQueryParams {
   page?: number;

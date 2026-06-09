@@ -19,10 +19,10 @@ import {
   TrashBinIcon
 } from "@/public/icons";
 import {
+  bulkDeleteApplications,
+  bulkDuplicateApplications,
   createApplication,
-  deleteApplication,
   disableApplication,
-  duplicateApplication,
   enableApplication,
   getApplicationById,
   getApplicationGroups,
@@ -143,36 +143,18 @@ const duplicateApplications = async (
   }
 
   try {
-    const results = await Promise.allSettled(
-      rows.map((application) =>
-        duplicateApplication(application._id, { silent: true })
-      )
+    await bulkDuplicateApplications(
+      rows.map((application) => application._id),
+      { silent: true }
     );
-    const failedCopies = results.filter(
-      (result) => result.status === "rejected"
-    ).length;
-    const successfulCopies = rows.length - failedCopies;
-
-    if (successfulCopies > 0 && failedCopies === 0) {
-      toast(
-        successfulCopies > 1
-          ? `${successfulCopies} applications copied successfully.`
-          : "Application copied successfully.",
-        "success"
-      );
-    } else if (successfulCopies > 0) {
-      toast(
-        `${successfulCopies} applications copied, ${failedCopies} failed.`,
-        "error"
-      );
-    } else {
-      toast("Failed to copy selected applications. Please try again.", "error");
-    }
-
-    if (successfulCopies > 0) {
-      refreshApplications();
-      setReFetch(!reFetch);
-    }
+    toast(
+      rows.length > 1
+        ? `${rows.length} applications copied successfully.`
+        : "Application copied successfully.",
+      "success"
+    );
+    refreshApplications();
+    setReFetch(!reFetch);
   } catch (error) {
     console.error("Application copy failed:", error);
     toast("Failed to copy selected applications. Please try again.", "error");
@@ -391,35 +373,16 @@ const GXPAddNewApplicationPage = () => {
     }
 
     try {
-      const results = await Promise.allSettled(
-        pendingDeleteApplications.map((application) =>
-          deleteApplication(application._id, { silent: true })
-        )
+      await bulkDeleteApplications(
+        pendingDeleteApplications.map((application) => application._id),
+        { silent: true }
       );
-      const failedDeletes = results.filter(
-        (result) => result.status === "rejected"
-      ).length;
-      const successfulDeletes =
-        pendingDeleteApplications.length - failedDeletes;
-
-      if (successfulDeletes > 0 && failedDeletes === 0) {
-        toast(
-          successfulDeletes > 1
-            ? `${successfulDeletes} applications deleted successfully.`
-            : "Application deleted successfully.",
-          "success"
-        );
-      } else if (successfulDeletes > 0) {
-        toast(
-          `${successfulDeletes} applications deleted, ${failedDeletes} failed.`,
-          "error"
-        );
-      } else {
-        toast(
-          "Failed to delete selected applications. Please try again.",
-          "error"
-        );
-      }
+      toast(
+        pendingDeleteApplications.length > 1
+          ? `${pendingDeleteApplications.length} applications deleted successfully.`
+          : "Application deleted successfully.",
+        "success"
+      );
 
       setPendingDeleteApplications([]);
       setReFetch(!reFetch);

@@ -18,14 +18,15 @@ import {
   TrashBinIcon
 } from "@/public/icons";
 import {
+  bulkDeleteEnvironments,
+  bulkDuplicateEnvironments,
   createEnvironment,
-  deleteEnvironment,
   getEnvironments,
   updateEnvironment
 } from "@/services/gxp.service";
 import { GXP_PERMISSIONS } from "@/utils/permissions";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import CreateEnvironmentModal from "./CreateEnvironmentModal";
 
@@ -44,48 +45,6 @@ const getInitials = (value: string) =>
     .slice(0, 2)
     .map((segment) => segment[0]?.toUpperCase() ?? "")
     .join("") || "E";
-
-const copyEnvironmentsToClipboard = async (rows: EnvironmentRecord[]) => {
-  if (!rows.length) {
-    return;
-  }
-
-  const content = [
-    "Environment\tDescription",
-    ...rows.map(
-      (environment) =>
-        `${environment.environmentName}\t${environment.description ?? ""}`
-    )
-  ].join("\n");
-
-  try {
-    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(content);
-    } else if (typeof document !== "undefined") {
-      const textarea = document.createElement("textarea");
-      textarea.value = content;
-      textarea.setAttribute("readonly", "");
-      textarea.style.position = "absolute";
-      textarea.style.left = "-9999px";
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-    } else {
-      throw new Error("Clipboard unavailable");
-    }
-
-    toast(
-      rows.length > 1
-        ? `${rows.length} environments copied to clipboard.`
-        : "Environment copied to clipboard.",
-      "success"
-    );
-  } catch (error) {
-    console.error("Error copying environments:", error);
-    toast("Failed to copy environment details. Please try again.", "error");
-  }
-};
 
 const Environments = () => {
   const { isOpen, openModal, closeModal } = useModal();
@@ -127,41 +86,48 @@ const Environments = () => {
     }
   };
 
+  const handleDuplicateEnvironments = useCallback(
+    async (rows: EnvironmentRecord[]) => {
+      if (!rows.length) {
+        return;
+      }
+
+      try {
+        await bulkDuplicateEnvironments(
+          rows.map((environment) => environment._id),
+          { silent: true }
+        );
+        toast(
+          rows.length > 1
+            ? `${rows.length} environments copied successfully.`
+            : "Environment copied successfully.",
+          "success"
+        );
+        setReFetch(!reFetch);
+      } catch (error) {
+        console.error("Error copying environments:", error);
+        toast("Failed to copy selected environments. Please try again.", "error");
+      }
+    },
+    [reFetch, setReFetch]
+  );
+
   const handleDeleteConfirmed = async () => {
     if (!pendingDeleteEnvironments.length) {
       return;
     }
 
     try {
-      const results = await Promise.allSettled(
-        pendingDeleteEnvironments.map((environment) =>
-          deleteEnvironment(environment._id, { silent: true })
-        )
+      await bulkDeleteEnvironments(
+        pendingDeleteEnvironments.map((environment) => environment._id),
+        { silent: true }
       );
-      const failedDeletes = results.filter(
-        (result) => result.status === "rejected"
-      ).length;
-      const successfulDeletes =
-        pendingDeleteEnvironments.length - failedDeletes;
-
-      if (successfulDeletes > 0 && failedDeletes === 0) {
-        toast(
-          successfulDeletes > 1
-            ? `${successfulDeletes} environments deleted successfully.`
-            : "Environment deleted successfully.",
-          "success"
-        );
-      } else if (successfulDeletes > 0) {
-        toast(
-          `${successfulDeletes} environments deleted, ${failedDeletes} failed.`,
-          "error"
-        );
-      } else {
-        toast(
-          "Failed to delete selected environments. Please try again.",
-          "error"
-        );
-      }
+      toast(
+        pendingDeleteEnvironments.length > 1
+          ? `${pendingDeleteEnvironments.length} environments deleted successfully.`
+          : "Environment deleted successfully.",
+        "success"
+      );
 
       setPendingDeleteEnvironments([]);
       setReFetch(!reFetch);
@@ -203,7 +169,7 @@ const Environments = () => {
           selectedRows.length > 1 ? "Copy environments" : "Copy environment",
         icon: CopyIcon,
         variant: "outline",
-        onClick: (selectedRows) => copyEnvironmentsToClipboard(selectedRows)
+        onClick: handleDuplicateEnvironments
       },
       {
         key: "delete-selected",
@@ -217,7 +183,7 @@ const Environments = () => {
         onClick: (selectedRows) => setPendingDeleteEnvironments(selectedRows)
       }
     ],
-    []
+    [handleDuplicateEnvironments]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<EnvironmentRecord>[]>(
@@ -255,7 +221,7 @@ const Environments = () => {
         icon: CopyIcon,
         placement: "menu",
         onClick: async (environment) =>
-          copyEnvironmentsToClipboard([environment])
+          handleDuplicateEnvironments([environment])
       },
       {
         key: "delete",
@@ -268,7 +234,7 @@ const Environments = () => {
         onClick: (environment) => setPendingDeleteEnvironments([environment])
       }
     ],
-    [openModal]
+    [handleDuplicateEnvironments, openModal]
   );
 
   const columnDefs = useMemo<ColDef<EnvironmentRecord>[]>(

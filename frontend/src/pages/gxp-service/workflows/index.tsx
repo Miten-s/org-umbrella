@@ -19,8 +19,9 @@ import {
   TrashBinIcon
 } from "@/public/icons";
 import {
+  bulkDeleteWorkflows,
+  bulkDuplicateWorkflows,
   createWorkflow,
-  deleteWorkflow,
   disableWorkflow,
   enableWorkflow,
   getWorkflows,
@@ -42,48 +43,6 @@ const getInitials = (value: string) =>
     .slice(0, 2)
     .map((segment) => segment[0]?.toUpperCase() ?? "")
     .join("") || "W";
-
-const copyWorkflowsToClipboard = async (rows: Workflow[]) => {
-  if (!rows.length) {
-    return;
-  }
-
-  const content = [
-    "Workflow\tLevels\tDescription\tStatus",
-    ...rows.map(
-      (workflow) =>
-        `${workflow.workflowName}\t${workflow.levels?.join(", ") ?? ""}\t${workflow.description ?? ""}\t${workflow.status ?? ""}`
-    )
-  ].join("\n");
-
-  try {
-    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(content);
-    } else if (typeof document !== "undefined") {
-      const textarea = document.createElement("textarea");
-      textarea.value = content;
-      textarea.setAttribute("readonly", "");
-      textarea.style.position = "absolute";
-      textarea.style.left = "-9999px";
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-    } else {
-      throw new Error("Clipboard unavailable");
-    }
-
-    toast(
-      rows.length > 1
-        ? `${rows.length} workflows copied to clipboard.`
-        : "Workflow copied to clipboard.",
-      "success"
-    );
-  } catch (error) {
-    console.error("Error copying workflows:", error);
-    toast("Failed to copy workflow details. Please try again.", "error");
-  }
-};
 
 const Workflows = () => {
   const { isOpen, openModal, closeModal } = useModal();
@@ -155,40 +114,48 @@ const Workflows = () => {
     [setWorkflows]
   );
 
+  const handleDuplicateWorkflows = useCallback(
+    async (rows: Workflow[]) => {
+      if (!rows.length) {
+        return;
+      }
+
+      try {
+        await bulkDuplicateWorkflows(
+          rows.map((workflow) => workflow._id),
+          { silent: true }
+        );
+        toast(
+          rows.length > 1
+            ? `${rows.length} workflows copied successfully.`
+            : "Workflow copied successfully.",
+          "success"
+        );
+        setReFetch(!reFetch);
+      } catch (error) {
+        console.error("Error copying workflows:", error);
+        toast("Failed to copy selected workflows. Please try again.", "error");
+      }
+    },
+    [reFetch, setReFetch]
+  );
+
   const handleDeleteConfirmed = async () => {
     if (!pendingDeleteWorkflows.length) {
       return;
     }
 
     try {
-      const results = await Promise.allSettled(
-        pendingDeleteWorkflows.map((workflow) =>
-          deleteWorkflow(workflow._id, { silent: true })
-        )
+      await bulkDeleteWorkflows(
+        pendingDeleteWorkflows.map((workflow) => workflow._id),
+        { silent: true }
       );
-      const failedDeletes = results.filter(
-        (result) => result.status === "rejected"
-      ).length;
-      const successfulDeletes = pendingDeleteWorkflows.length - failedDeletes;
-
-      if (successfulDeletes > 0 && failedDeletes === 0) {
-        toast(
-          successfulDeletes > 1
-            ? `${successfulDeletes} workflows deleted successfully.`
-            : "Workflow deleted successfully.",
-          "success"
-        );
-      } else if (successfulDeletes > 0) {
-        toast(
-          `${successfulDeletes} workflows deleted, ${failedDeletes} failed.`,
-          "error"
-        );
-      } else {
-        toast(
-          "Failed to delete selected workflows. Please try again.",
-          "error"
-        );
-      }
+      toast(
+        pendingDeleteWorkflows.length > 1
+          ? `${pendingDeleteWorkflows.length} workflows deleted successfully.`
+          : "Workflow deleted successfully.",
+        "success"
+      );
 
       setPendingDeleteWorkflows([]);
       setReFetch(!reFetch);
@@ -225,7 +192,7 @@ const Workflows = () => {
           selectedRows.length > 1 ? "Copy workflows" : "Copy workflow",
         icon: CopyIcon,
         variant: "outline",
-        onClick: (selectedRows) => copyWorkflowsToClipboard(selectedRows)
+        onClick: handleDuplicateWorkflows
       },
       {
         key: "delete-selected",
@@ -237,7 +204,7 @@ const Workflows = () => {
         onClick: (selectedRows) => setPendingDeleteWorkflows(selectedRows)
       }
     ],
-    []
+    [handleDuplicateWorkflows]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<Workflow>[]>(
@@ -274,7 +241,7 @@ const Workflows = () => {
         tooltip: "Copy workflow",
         icon: CopyIcon,
         placement: "menu",
-        onClick: async (workflow) => copyWorkflowsToClipboard([workflow])
+        onClick: async (workflow) => handleDuplicateWorkflows([workflow])
       },
       {
         key: "delete",
@@ -287,7 +254,7 @@ const Workflows = () => {
         onClick: (workflow) => setPendingDeleteWorkflows([workflow])
       }
     ],
-    [openModal]
+    [handleDuplicateWorkflows, openModal]
   );
 
   const columnDefs = useMemo<ColDef<Workflow>[]>(

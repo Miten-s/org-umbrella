@@ -19,8 +19,9 @@ import {
   TrashBinIcon
 } from "@/public/icons";
 import {
+  bulkDeleteApplicationSoftware,
+  bulkDuplicateApplicationSoftware,
   createApplicationSoftware,
-  deleteApplicationSoftware,
   disableApplicationSoftware,
   enableApplicationSoftware,
   getApplications,
@@ -97,55 +98,6 @@ const getInitials = (value: string) =>
     .slice(0, 2)
     .map((segment) => segment[0]?.toUpperCase() ?? "")
     .join("") || "M";
-
-const copyModulesToClipboard = async (
-  rows: ApplicationSoftwareModule[],
-  applicationNameMap: Map<string, string>
-) => {
-  if (!rows.length) {
-    return;
-  }
-
-  const content = [
-    "Module\tIdentity\tApplication\tStatus",
-    ...rows.map((module) =>
-      [
-        module.moduleName,
-        module.moduleId ?? "",
-        getReferenceName(module.application, applicationNameMap),
-        module.status ?? ""
-      ].join("\t")
-    )
-  ].join("\n");
-
-  try {
-    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(content);
-    } else if (typeof document !== "undefined") {
-      const textarea = document.createElement("textarea");
-      textarea.value = content;
-      textarea.setAttribute("readonly", "");
-      textarea.style.position = "absolute";
-      textarea.style.left = "-9999px";
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-    } else {
-      throw new Error("Clipboard unavailable");
-    }
-
-    toast(
-      rows.length > 1
-        ? `${rows.length} application modules copied to clipboard.`
-        : "Application module copied to clipboard.",
-      "success"
-    );
-  } catch (error) {
-    console.error("Error copying application modules:", error);
-    toast("Failed to copy module details. Please try again.", "error");
-  }
-};
 
 const GXPApplicationSoftwareModulePage = () => {
   const { t } = useTranslation();
@@ -271,40 +223,51 @@ const GXPApplicationSoftwareModulePage = () => {
     [setModules]
   );
 
+  const handleDuplicateModules = useCallback(
+    async (rows: ApplicationSoftwareModule[]) => {
+      if (!rows.length) {
+        return;
+      }
+
+      try {
+        await bulkDuplicateApplicationSoftware(
+          rows.map((module) => module._id),
+          { silent: true }
+        );
+        toast(
+          rows.length > 1
+            ? `${rows.length} application modules copied successfully.`
+            : "Application module copied successfully.",
+          "success"
+        );
+        setReFetch(!reFetch);
+      } catch (error) {
+        console.error("Error copying application modules:", error);
+        toast(
+          "Failed to copy selected application modules. Please try again.",
+          "error"
+        );
+      }
+    },
+    [reFetch, setReFetch]
+  );
+
   const handleDeleteConfirmed = async () => {
     if (!pendingDeleteModules.length) {
       return;
     }
 
     try {
-      const results = await Promise.allSettled(
-        pendingDeleteModules.map((module) =>
-          deleteApplicationSoftware(module._id, { silent: true })
-        )
+      await bulkDeleteApplicationSoftware(
+        pendingDeleteModules.map((module) => module._id),
+        { silent: true }
       );
-      const failedDeletes = results.filter(
-        (result) => result.status === "rejected"
-      ).length;
-      const successfulDeletes = pendingDeleteModules.length - failedDeletes;
-
-      if (successfulDeletes > 0 && failedDeletes === 0) {
-        toast(
-          successfulDeletes > 1
-            ? `${successfulDeletes} application modules deleted successfully.`
-            : "Application module deleted successfully.",
-          "success"
-        );
-      } else if (successfulDeletes > 0) {
-        toast(
-          `${successfulDeletes} application modules deleted, ${failedDeletes} failed.`,
-          "error"
-        );
-      } else {
-        toast(
-          "Failed to delete selected application modules. Please try again.",
-          "error"
-        );
-      }
+      toast(
+        pendingDeleteModules.length > 1
+          ? `${pendingDeleteModules.length} application modules deleted successfully.`
+          : "Application module deleted successfully.",
+        "success"
+      );
 
       setPendingDeleteModules([]);
       setReFetch(!reFetch);
@@ -361,8 +324,7 @@ const GXPApplicationSoftwareModulePage = () => {
             : "Copy application module",
         icon: CopyIcon,
         variant: "outline",
-        onClick: (selectedRows) =>
-          copyModulesToClipboard(selectedRows, applicationNameMap)
+        onClick: handleDuplicateModules
       },
       {
         key: "delete-selected",
@@ -376,7 +338,7 @@ const GXPApplicationSoftwareModulePage = () => {
         onClick: (selectedRows) => setPendingDeleteModules(selectedRows)
       }
     ],
-    [applicationNameMap]
+    [handleDuplicateModules]
   );
 
   const rowActions = useMemo<
@@ -415,8 +377,7 @@ const GXPApplicationSoftwareModulePage = () => {
         tooltip: "Copy application module",
         icon: CopyIcon,
         placement: "menu",
-        onClick: async (module) =>
-          copyModulesToClipboard([module], applicationNameMap)
+        onClick: async (module) => handleDuplicateModules([module])
       },
       {
         key: "delete",
@@ -429,7 +390,7 @@ const GXPApplicationSoftwareModulePage = () => {
         onClick: (module) => setPendingDeleteModules([module])
       }
     ],
-    [applicationNameMap, openModal]
+    [handleDuplicateModules, openModal]
   );
 
   const columnDefs = useMemo<ColDef<ApplicationSoftwareModule>[]>(

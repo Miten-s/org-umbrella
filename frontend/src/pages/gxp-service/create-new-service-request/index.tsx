@@ -18,8 +18,8 @@ import {
   TrashBinIcon
 } from "@/public/icons";
 import {
+  bulkDeleteServiceRequests,
   createServiceRequest,
-  deleteServiceRequest,
   getApplications,
   getServiceRequestById,
   getServiceRequests,
@@ -312,34 +312,16 @@ const GXPCreateNewServiceRequestPage = () => {
     }
 
     try {
-      const results = await Promise.allSettled(
-        pendingDeleteRequests.map((request) =>
-          deleteServiceRequest(request._id, { silent: true })
-        )
+      await bulkDeleteServiceRequests(
+        pendingDeleteRequests.map((request) => request._id),
+        { silent: true }
       );
-      const failedDeletes = results.filter(
-        (result) => result.status === "rejected"
-      ).length;
-      const successfulDeletes = pendingDeleteRequests.length - failedDeletes;
-
-      if (successfulDeletes > 0 && failedDeletes === 0) {
-        toast(
-          successfulDeletes > 1
-            ? `${successfulDeletes} service requests deleted successfully.`
-            : "Service request deleted successfully.",
-          "success"
-        );
-      } else if (successfulDeletes > 0) {
-        toast(
-          `${successfulDeletes} service requests deleted, ${failedDeletes} failed.`,
-          "error"
-        );
-      } else {
-        toast(
-          "Failed to delete selected service requests. Please try again.",
-          "error"
-        );
-      }
+      toast(
+        pendingDeleteRequests.length > 1
+          ? `${pendingDeleteRequests.length} service requests deleted successfully.`
+          : "Service request deleted successfully.",
+        "success"
+      );
 
       setPendingDeleteRequests([]);
       setReFetch(!reFetch);

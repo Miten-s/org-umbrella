@@ -867,7 +867,7 @@ const AppDataTable = <T extends object>({
         </div>
 
         {serverPagination ? (
-          <div className="flex min-h-16 flex-col gap-3 border-t border-gray-200 px-4 py-3 text-sm text-gray-700 dark:border-gray-800 dark:text-gray-300 sm:flex-row sm:items-center sm:justify-end">
+          <div className="flex min-h-16 flex-col gap-3  px-4 py-3 text-sm text-gray-700 dark:border-gray-800 dark:text-gray-300 sm:flex-row sm:items-center sm:justify-end">
             {pageSizeOptions !== false && serverPagination.onPageSizeChange ? (
               <label className="flex items-center justify-end gap-2">
                 <span>Page Size:</span>
