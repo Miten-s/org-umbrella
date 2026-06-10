@@ -30,7 +30,6 @@ export const updateRole = asyncHandler(
   }
 );
 
-
 export const getRoles = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const { type } = req.query;

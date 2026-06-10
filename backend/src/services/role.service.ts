@@ -36,14 +36,19 @@ const deleteRole = async (req: Request) => {
   );
 };
 
-
-const getRoles = async (options: PaginationOptions, user?: IUser, type?: string) => {
+const getRoles = async (
+  options: PaginationOptions,
+  user?: IUser,
+  type?: string
+) => {
   const { page, limit, skip, search } = options;
   let filter: any = { type: RoleType.CUSTOM };
   if (type) {
     filter = { type };
   } else if (isSuperAdmin(user)) {
-    filter = { type: { $in: [RoleType.CUSTOM, RoleType.BUILT_IN, RoleType.GXP_SERVICE] } };
+    filter = {
+      type: { $in: [RoleType.CUSTOM, RoleType.BUILT_IN, RoleType.GXP_SERVICE] }
+    };
   }
 
   if (search) {
@@ -94,4 +99,11 @@ const bulkDeleteRoles = async (ids: string[]) => {
   }
 };
 
-export default { assignRole, createRole, updateRole, deleteRole, getRoles, bulkDeleteRoles };
+export default {
+  assignRole,
+  createRole,
+  updateRole,
+  deleteRole,
+  getRoles,
+  bulkDeleteRoles
+};

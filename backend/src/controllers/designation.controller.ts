@@ -19,7 +19,8 @@ export const createDesignation = asyncHandler(
 export const getAllDesignations = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
     const paginationOptions = getPaginationOptions(req.query);
-    const result = await designationService.getAllDesignations(paginationOptions);
+    const result =
+      await designationService.getAllDesignations(paginationOptions);
     res.status(200).json(result);
   }
 );

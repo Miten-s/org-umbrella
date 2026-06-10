@@ -27,11 +27,10 @@ const assignDefaultRole = async (payload: Record<string, any>) => {
   return payload;
 };
 
-
 const getUsers = async (options: PaginationOptions, user?: IUser) => {
   const { page, limit, skip, search } = options;
   let filter: any = { fullName: { $nin: ["superadmin", user?.fullName] } };
-  
+
   if (search) {
     const sanitizedSearch = escapeRegex(search);
     filter.$or = [
@@ -137,4 +136,23 @@ const getUserDetail = async (id: string) => {
   ).exec();
 };
 
-export default { getUsers, createUser, updateUser, deleteUser, getUserDetail };
+const bulkDeleteUsers = async (ids: string[], requestingUserId?: string) => {
+  const query: any = {
+    _id: { $in: ids },
+    fullName: { $ne: "superadmin" },
+    deletedAt: null
+  };
+  if (requestingUserId) {
+    query._id = { $in: ids, $ne: requestingUserId };
+  }
+  return await User.updateMany(query, { $set: { deletedAt: new Date() } });
+};
+
+export default {
+  getUsers,
+  createUser,
+  updateUser,
+  deleteUser,
+  getUserDetail,
+  bulkDeleteUsers
+};

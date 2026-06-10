@@ -49,3 +49,18 @@ export const deleteUser = asyncHandler(
     });
   }
 );
+
+export const bulkDeleteUsers = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      res.status(400).json({ message: "An array of ids is required" });
+      return;
+    }
+    const result = await userService.bulkDeleteUsers(
+      ids,
+      (req.user as IUser)?._id?.toString()
+    );
+    res.status(200).json({ message: "Users deleted", result });
+  }
+);

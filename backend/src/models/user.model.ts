@@ -33,9 +33,7 @@ export interface IConditionalUserFields {
 }
 
 export interface IUser
-  extends Document,
-    IBasicUserFields,
-    IConditionalUserFields {
+  extends Document, IBasicUserFields, IConditionalUserFields {
   isRecentPassword: (password: string) => Promise<boolean>;
 }
 

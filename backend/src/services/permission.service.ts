@@ -20,7 +20,6 @@ const deletePermission = async (req: Request) => {
   );
 };
 
-
 const getPermissions = async (options: PaginationOptions, type?: string) => {
   const { page, limit, skip, search } = options;
   const filter: any = {

@@ -6,7 +6,8 @@ import {
   deleteUser,
   getUserDetail,
   getUsers,
-  updateUser
+  updateUser,
+  bulkDeleteUsers
 } from "../controllers/user.controller";
 import { checkPermissions } from "../middlewares/permission.middleware";
 import { authenticate } from "../middlewares/auth.middleware";
@@ -45,6 +46,14 @@ router.post(
   upload.single("signature"),
   validateDto(CreateUserDTO),
   createUser
+);
+
+// Define a POST route for bulk deleting users.
+router.post(
+  API_ROUTES.AUTH + API_ROUTES.USER + API_ROUTES.BULK_DELETE,
+  authenticate,
+  checkPermissions(["DELETE:USER"]),
+  bulkDeleteUsers
 );
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------

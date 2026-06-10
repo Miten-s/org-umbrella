@@ -42,7 +42,8 @@ const uploadDirCandidates = [
   path.resolve(__dirname, "../uploads")
 ];
 const uploadDir =
-  uploadDirCandidates.find((dir) => fs.existsSync(dir)) ?? uploadDirCandidates[0];
+  uploadDirCandidates.find((dir) => fs.existsSync(dir)) ??
+  uploadDirCandidates[0];
 
 app.use("/uploads", express.static(uploadDir));
 

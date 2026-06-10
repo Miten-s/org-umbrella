@@ -22,14 +22,13 @@ export const updatePermissions = asyncHandler(
   }
 );
 
-
 export const getPermissions = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const { type } = req.query;
     const paginationOptions = getPaginationOptions(req.query);
     const result = await permissionService.getPermissions(
       paginationOptions,
-      type ? type?.toString() : 'default'
+      type ? type?.toString() : "default"
     );
     res.status(200).json(result);
   }
