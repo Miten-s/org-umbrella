@@ -10,7 +10,10 @@ const createPermission = async (req: Request) => {
 };
 
 const updatePermission = async (req: Request) => {
-  return await Permission.updateOne({ id: req.params.id }, req.body);
+  return await Permission.updateOne(
+    { _id: new ObjectId(req.params.id as string) },
+    req.body
+  );
 };
 
 const deletePermission = async (req: Request) => {

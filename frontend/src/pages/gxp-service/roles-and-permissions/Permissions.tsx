@@ -18,13 +18,14 @@ import {
   TrashBinIcon
 } from "@/public/icons";
 import {
-  createGxpPermission,
-  deleteGxpPermission,
-  getGxpPermissions,
-  updateGxpPermission
-} from "@/services/gxp.service";
+  bulkDeletePermissions,
+  createPermission,
+  getPermissions,
+  updatePermission
+} from "@/services/admin.service";
 import { GxpPermission } from "@/types/common.types";
-import { GXP_PERMISSIONS } from "@/utils/permissions";
+import { PermissionType } from "@/utils/common.constants";
+import { ADMIN_PERMISSIONS } from "@/utils/permissions";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -89,7 +90,12 @@ const Permissions = () => {
     dataKeys: ["permissions", "data"],
     dependencies: [reFetch],
     errorMessage: "Failed to load permissions. Please try again.",
-    fetchPage: getGxpPermissions
+    fetchPage: (params) => getPermissions(PermissionType.GXP_SERVICE, params),
+    mapItems: (items) =>
+      items.map((permission: any) => ({
+        ...permission,
+        permissionName: permission.permissionName ?? permission.name ?? ""
+      }))
   });
   const permissions = paginatedPermissions.rows;
   const [activePermission, setActivePermission] =
@@ -107,11 +113,17 @@ const Permissions = () => {
   };
 
   const handleSave = async (data: Partial<GxpPermission>) => {
+    const payload = {
+      name: data.permissionName?.trim() ?? "",
+      description: data.description,
+      type: PermissionType.GXP_SERVICE
+    };
+
     try {
       if (activePermission) {
-        await updateGxpPermission(activePermission._id, data);
+        await updatePermission(activePermission._id, payload);
       } else {
-        await createGxpPermission(data);
+        await createPermission(payload);
       }
       handleCloseModal();
       setReFetch(!reFetch);
@@ -127,34 +139,16 @@ const Permissions = () => {
     }
 
     try {
-      const results = await Promise.allSettled(
-        pendingDeletePermissions.map((permission) =>
-          deleteGxpPermission(permission._id, { silent: true })
-        )
+      await bulkDeletePermissions(
+        pendingDeletePermissions.map((permission) => permission._id),
+        { silent: true }
       );
-      const failedDeletes = results.filter(
-        (result) => result.status === "rejected"
-      ).length;
-      const successfulDeletes = pendingDeletePermissions.length - failedDeletes;
-
-      if (successfulDeletes > 0 && failedDeletes === 0) {
-        toast(
-          successfulDeletes > 1
-            ? `${successfulDeletes} permissions deleted successfully.`
-            : "Permission deleted successfully.",
-          "success"
-        );
-      } else if (successfulDeletes > 0) {
-        toast(
-          `${successfulDeletes} permissions deleted, ${failedDeletes} failed.`,
-          "error"
-        );
-      } else {
-        toast(
-          "Failed to delete selected permissions. Please try again.",
-          "error"
-        );
-      }
+      toast(
+        pendingDeletePermissions.length > 1
+          ? `${pendingDeletePermissions.length} permissions deleted successfully.`
+          : "Permission deleted successfully.",
+        "success"
+      );
 
       setPendingDeletePermissions([]);
       setReFetch(!reFetch);
@@ -179,7 +173,7 @@ const Permissions = () => {
           setPermissionModalMode("create");
           openModal();
         },
-        permission: GXP_PERMISSIONS.CREATE_PERMISSION,
+        permission: ADMIN_PERMISSIONS.CREATE_PERMISSION,
         variant: "primary"
       }
     ],
@@ -201,7 +195,7 @@ const Permissions = () => {
         label: (selectedRows) =>
           selectedRows.length > 1 ? "Delete permissions" : "Delete permission",
         icon: TrashBinIcon,
-        permission: GXP_PERMISSIONS.DELETE_PERMISSION,
+        permission: ADMIN_PERMISSIONS.DELETE_PERMISSION,
         variant: "destructive",
         onClick: (selectedRows) => setPendingDeletePermissions(selectedRows)
       }
@@ -217,7 +211,7 @@ const Permissions = () => {
         tooltip: "View permission",
         icon: EyeIcon,
         placement: "inline",
-        permission: GXP_PERMISSIONS.VIEW_PERMISSION,
+        permission: ADMIN_PERMISSIONS.VIEW_PERMISSION,
         onClick: (permission) => {
           setActivePermission(permission);
           setPermissionModalMode("view");
@@ -230,7 +224,7 @@ const Permissions = () => {
         tooltip: "Edit permission",
         icon: PencilIcon,
         placement: "inline",
-        permission: GXP_PERMISSIONS.UPDATE_PERMISSION,
+        permission: ADMIN_PERMISSIONS.UPDATE_PERMISSION,
         onClick: (permission) => {
           setActivePermission(permission);
           setPermissionModalMode("edit");
@@ -251,7 +245,7 @@ const Permissions = () => {
         tooltip: "Delete permission",
         icon: TrashBinIcon,
         placement: "menu",
-        permission: GXP_PERMISSIONS.DELETE_PERMISSION,
+        permission: ADMIN_PERMISSIONS.DELETE_PERMISSION,
         tone: "danger",
         onClick: (permission) => setPendingDeletePermissions([permission])
       }

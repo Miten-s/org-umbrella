@@ -1,7 +1,25 @@
 import { toast } from "@/lib/toast";
 import api from "../utils/axios.interceptor";
-import { RoleType } from "@/utils/common.constants";
+import { PermissionType, RoleType } from "@/utils/common.constants";
 import { ListQueryParams, withDefaultListParams } from "@/utils/listResponse";
+
+type SilentOptions = { silent?: boolean };
+
+const toastSuccess = (response: any, fallback: string) =>
+  toast(response?.data?.message || fallback, "success");
+
+const postBulkDeleteIds = async (
+  route: string,
+  ids: string[],
+  successMessage: string,
+  options?: SilentOptions
+) => {
+  const response = await api.post(`${route}/bulk-delete`, { ids });
+  if (!options?.silent) {
+    toastSuccess(response, successMessage);
+  }
+  return response["data"];
+};
 
 export const API_ROUTES = {
   login: "/auth/sign-in",
@@ -77,7 +95,7 @@ export const updateUser = async (
 
 export const deleteUser = async (
   id: string,
-  options?: { silent?: boolean }
+  options?: SilentOptions
 ) => {
   const response = await api.delete(`${API_ROUTES.users}/${id}`);
   if (!options?.silent) {
@@ -85,6 +103,17 @@ export const deleteUser = async (
   }
   return response["data"];
 };
+
+export const bulkDeleteUsers = async (
+  ids: string[],
+  options?: SilentOptions
+) =>
+  postBulkDeleteIds(
+    API_ROUTES.users,
+    ids,
+    "Users deleted successfully",
+    options
+  );
 
 // #endregion
 
@@ -121,7 +150,7 @@ export const updateRole = async (
 
 export const deleteRole = async (
   id: string,
-  options?: { silent?: boolean }
+  options?: SilentOptions
 ) => {
   const response = await api.delete(`${API_ROUTES.roles}/${id}`);
   if (!options?.silent) {
@@ -129,6 +158,17 @@ export const deleteRole = async (
   }
   return response["data"];
 };
+
+export const bulkDeleteRoles = async (
+  ids: string[],
+  options?: SilentOptions
+) =>
+  postBulkDeleteIds(
+    API_ROUTES.roles,
+    ids,
+    "Roles deleted successfully",
+    options
+  );
 
 export const getPermissions = async (
   type?: string,
@@ -142,6 +182,47 @@ export const getPermissions = async (
   });
   return response["data"];
 };
+
+export const createPermission = async (payload: {
+  name: string;
+  description?: string;
+  type?: PermissionType;
+}) => {
+  const response = await api.post(API_ROUTES.permissions, payload);
+  toast(response.data.message, "success");
+  return response["data"];
+};
+
+export const updatePermission = async (
+  id: string,
+  payload: { name?: string; description?: string; type?: PermissionType }
+) => {
+  const response = await api.patch(`${API_ROUTES.permissions}/${id}`, payload);
+  toast(response.data.message, "success");
+  return response["data"];
+};
+
+export const deletePermission = async (
+  id: string,
+  options?: SilentOptions
+) => {
+  const response = await api.delete(`${API_ROUTES.permissions}/${id}`);
+  if (!options?.silent) {
+    toast(response.data.message, "success");
+  }
+  return response["data"];
+};
+
+export const bulkDeletePermissions = async (
+  ids: string[],
+  options?: SilentOptions
+) =>
+  postBulkDeleteIds(
+    API_ROUTES.permissions,
+    ids,
+    "Permissions deleted successfully",
+    options
+  );
 
 // #endregion
 
@@ -171,7 +252,7 @@ export const updateDepartment = async (
 
 export const deleteDepartment = async (
   id: string,
-  options?: { silent?: boolean }
+  options?: SilentOptions
 ) => {
   const response = await api.delete(`${API_ROUTES.departments}/${id}`);
   if (!options?.silent) {
@@ -179,6 +260,17 @@ export const deleteDepartment = async (
   }
   return response["data"];
 };
+
+export const bulkDeleteDepartments = async (
+  ids: string[],
+  options?: SilentOptions
+) =>
+  postBulkDeleteIds(
+    API_ROUTES.departments,
+    ids,
+    "Departments deleted successfully",
+    options
+  );
 
 // #endregion
 
@@ -208,7 +300,7 @@ export const updateLocation = async (
 
 export const deleteLocation = async (
   id: string,
-  options?: { silent?: boolean }
+  options?: SilentOptions
 ) => {
   const response = await api.delete(`${API_ROUTES.locations}/${id}`);
   if (!options?.silent) {
@@ -216,6 +308,17 @@ export const deleteLocation = async (
   }
   return response["data"];
 };
+
+export const bulkDeleteLocations = async (
+  ids: string[],
+  options?: SilentOptions
+) =>
+  postBulkDeleteIds(
+    API_ROUTES.locations,
+    ids,
+    "Locations deleted successfully",
+    options
+  );
 
 // #endregion
 
@@ -245,7 +348,7 @@ export const updateDesignation = async (
 
 export const deleteDesignation = async (
   id: string,
-  options?: { silent?: boolean }
+  options?: SilentOptions
 ) => {
   const response = await api.delete(`${API_ROUTES.designations}/${id}`);
   if (!options?.silent) {
@@ -253,6 +356,17 @@ export const deleteDesignation = async (
   }
   return response["data"];
 };
+
+export const bulkDeleteDesignations = async (
+  ids: string[],
+  options?: SilentOptions
+) =>
+  postBulkDeleteIds(
+    API_ROUTES.designations,
+    ids,
+    "Designations deleted successfully",
+    options
+  );
 
 // #endregion
 // #region Company

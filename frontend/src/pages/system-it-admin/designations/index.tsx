@@ -17,8 +17,8 @@ import {
   TrashBinIcon
 } from "@/public/icons";
 import {
+  bulkDeleteDesignations,
   createDesignation,
-  deleteDesignation,
   getDesignations,
   updateDesignation
 } from "@/services/admin.service";
@@ -128,35 +128,16 @@ const Designation = () => {
     }
 
     try {
-      const results = await Promise.allSettled(
-        pendingDeleteDesignations.map((designation) =>
-          deleteDesignation(designation._id, { silent: true })
-        )
+      await bulkDeleteDesignations(
+        pendingDeleteDesignations.map((designation) => designation._id),
+        { silent: true }
       );
-      const failedDeletes = results.filter(
-        (result) => result.status === "rejected"
-      ).length;
-      const successfulDeletes =
-        pendingDeleteDesignations.length - failedDeletes;
-
-      if (successfulDeletes > 0 && failedDeletes === 0) {
-        toast(
-          successfulDeletes > 1
-            ? `${successfulDeletes} designations deleted successfully.`
-            : "Designation deleted successfully.",
-          "success"
-        );
-      } else if (successfulDeletes > 0) {
-        toast(
-          `${successfulDeletes} designations deleted, ${failedDeletes} failed.`,
-          "error"
-        );
-      } else {
-        toast(
-          "Failed to delete selected designations. Please try again.",
-          "error"
-        );
-      }
+      toast(
+        pendingDeleteDesignations.length > 1
+          ? `${pendingDeleteDesignations.length} designations deleted successfully.`
+          : "Designation deleted successfully.",
+        "success"
+      );
 
       setPendingDeleteDesignations([]);
       setRefresh((prev) => !prev);

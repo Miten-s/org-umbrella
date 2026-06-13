@@ -20,8 +20,8 @@ import {
   TrashBinIcon
 } from "@/public/icons";
 import {
+  bulkDeleteUsers,
   createUser,
-  deleteUser,
   getDepartments,
   getDesignations,
   getLocations,
@@ -192,29 +192,16 @@ const Users = () => {
     }
 
     try {
-      const results = await Promise.allSettled(
-        pendingDeleteUsers.map((user) => deleteUser(user._id, { silent: true }))
+      await bulkDeleteUsers(
+        pendingDeleteUsers.map((user) => user._id),
+        { silent: true }
       );
-      const failedDeletes = results.filter(
-        (result) => result.status === "rejected"
-      ).length;
-      const successfulDeletes = pendingDeleteUsers.length - failedDeletes;
-
-      if (successfulDeletes > 0 && failedDeletes === 0) {
-        toast(
-          successfulDeletes > 1
-            ? `${successfulDeletes} users deleted successfully.`
-            : "User deleted successfully.",
-          "success"
-        );
-      } else if (successfulDeletes > 0) {
-        toast(
-          `${successfulDeletes} users deleted, ${failedDeletes} failed.`,
-          "error"
-        );
-      } else {
-        toast("Failed to delete selected users. Please try again.", "error");
-      }
+      toast(
+        pendingDeleteUsers.length > 1
+          ? `${pendingDeleteUsers.length} users deleted successfully.`
+          : "User deleted successfully.",
+        "success"
+      );
 
       setPendingDeleteUsers([]);
       setReFetch(!reFetch);

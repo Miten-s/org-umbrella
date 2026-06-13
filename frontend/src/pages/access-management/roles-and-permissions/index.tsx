@@ -1,26 +1,41 @@
-import { useEffect, useState } from "react";
-import CreateRoleModal from "./CreateRoleModal";
-import { Modal } from "../../../components/ui/modal";
-import { useModal } from "../../../hooks/useModal";
-import Button from "../../../components/ui/button/Button";
+import AppDataTable, {
+  AppDataTableBulkAction,
+  AppDataTableRowAction,
+  AppDataTableToolbarAction
+} from "@/components/common/table/AppDataTable";
+import CountWithTooltip from "@/components/common/CountWithTooltip";
+import Button from "@/components/ui/button/Button";
+import { Modal } from "@/components/ui/modal";
+import { useGlobalContext } from "@/context";
+import { useModal } from "@/hooks/useModal";
+import { toast } from "@/lib/toast";
 import {
+  CheckLineIcon,
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashBinIcon
+} from "@/public/icons";
+import {
+  bulkDeleteRoles,
   createRole,
-  deleteRole,
   getPermissions,
   getRoles,
   updateRole
 } from "@/services/admin.service";
-import { toast } from "@/lib/toast";
-import { useGlobalContext } from "@/context";
-import { useTranslation } from "react-i18next";
-import CountWithTooltip from "@/components/common/CountWithTooltip";
 import { PermissionType } from "@/utils/common.constants";
+import { ADMIN_PERMISSIONS } from "@/utils/permissions";
+import { ColDef, ICellRendererParams } from "ag-grid-community";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import CreateRoleModal from "./CreateRoleModal";
 
 interface Role {
   _id: string;
   name: string;
   type: string;
-  permissions: { _id: string; name: string }[];
+  permissions: { _id?: string; name?: string }[];
 }
 
 interface Permission {
@@ -29,17 +44,82 @@ interface Permission {
   type?: string;
 }
 
+type RoleModalMode = "create" | "edit" | "view";
+
+const getInitials = (value: string) =>
+  value
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((segment) => segment[0]?.toUpperCase() ?? "")
+    .join("") || "R";
+
+const getPermissionNames = (role: Role) =>
+  (role.permissions ?? [])
+    .map((permission) => permission?.name ?? "")
+    .filter(Boolean);
+
+const copyRolesToClipboard = async (rows: Role[]) => {
+  if (!rows.length) {
+    return;
+  }
+
+  const content = [
+    "Role\tPermissions",
+    ...rows.map((role) =>
+      [role.name, getPermissionNames(role).join(", ")].join("\t")
+    )
+  ].join("\n");
+
+  try {
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(content);
+    } else if (typeof document !== "undefined") {
+      const textarea = document.createElement("textarea");
+      textarea.value = content;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "absolute";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    } else {
+      throw new Error("Clipboard unavailable");
+    }
+
+    toast(
+      rows.length > 1
+        ? `${rows.length} roles copied to clipboard.`
+        : "Role copied to clipboard.",
+      "success"
+    );
+  } catch (error) {
+    console.error("Error copying roles:", error);
+    toast("Failed to copy role details. Please try again.", "error");
+  }
+};
+
 const RolesAndPermissions = () => {
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const { isOpen, openModal, closeModal } = useModal();
   const [activeRole, setActiveRole] = useState<Role | null>(null);
+  const [roleModalMode, setRoleModalMode] =
+    useState<RoleModalMode>("create");
   const { reFetch, setReFetch } = useGlobalContext();
-  const [confirmationModal, setConfirmationModal] = useState(false);
+  const [pendingDeleteRoles, setPendingDeleteRoles] = useState<Role[]>([]);
   const { t } = useTranslation();
   const [permissionType, setPermissionType] = useState<PermissionType>(
     PermissionType.DEFAULT
   );
+
+  const handleCloseModal = () => {
+    closeModal();
+    setActiveRole(null);
+    setRoleModalMode("create");
+  };
+
   const handleCreateRole = async (data: {
     name: string;
     permissions: string[];
@@ -61,9 +141,8 @@ const RolesAndPermissions = () => {
         await createRole(payload);
       }
 
-      setActiveRole(null);
+      handleCloseModal();
       setReFetch(!reFetch);
-      closeModal();
     } catch {
       toast("Failed to save role. Please try again.", "error");
     }
@@ -71,21 +150,33 @@ const RolesAndPermissions = () => {
 
   useEffect(() => {
     (async () => {
-      const { roles: fetchedRoles } = await getRoles(undefined, { limit: 100 });
-      setRoles(fetchedRoles);
+      try {
+        const { roles: fetchedRoles } = await getRoles(undefined, {
+          limit: 100
+        });
+        setRoles(fetchedRoles ?? []);
+      } catch (error) {
+        console.error("Error fetching roles:", error);
+        toast("Failed to load roles. Please try again.", "error");
+      }
     })();
   }, [reFetch]);
 
   useEffect(() => {
     if (!isOpen) return;
     (async () => {
-      const { permissions: fetchedPermissions } = await getPermissions(
-        permissionType,
-        {
-          limit: 100
-        }
-      );
-      setPermissions(fetchedPermissions);
+      try {
+        const { permissions: fetchedPermissions } = await getPermissions(
+          permissionType,
+          {
+            limit: 100
+          }
+        );
+        setPermissions(fetchedPermissions ?? []);
+      } catch (error) {
+        console.error("Error fetching permissions:", error);
+        toast("Failed to load permissions. Please try again.", "error");
+      }
     })();
   }, [isOpen, permissionType]);
 
@@ -94,180 +185,314 @@ const RolesAndPermissions = () => {
       ? PermissionType.GXP_SERVICE
       : PermissionType.DEFAULT;
 
-  const handlePermissionTypeChange = (type: any) => {
-    setPermissionType(type);
+  const handlePermissionTypeChange = (type: "default" | "gxp_service") => {
+    setPermissionType(type as PermissionType);
   };
 
-  const handleEdit = (role: Role) => {
+  const handleOpenCreate = useCallback(() => {
+    setActiveRole(null);
+    setRoleModalMode("create");
+    setPermissionType(resolvePermissionType(null));
+    openModal();
+  }, [openModal]);
+
+  const handleOpenEdit = useCallback((role: Role) => {
     setActiveRole(role);
+    setRoleModalMode("edit");
     setPermissionType(resolvePermissionType(role));
     openModal();
+  }, [openModal]);
+
+  const handleOpenView = useCallback((role: Role) => {
+    setActiveRole(role);
+    setRoleModalMode("view");
+    setPermissionType(resolvePermissionType(role));
+    openModal();
+  }, [openModal]);
+
+  const handleDeleteConfirmed = async () => {
+    if (!pendingDeleteRoles.length) {
+      return;
+    }
+
+    try {
+      await bulkDeleteRoles(
+        pendingDeleteRoles.map((role) => role._id),
+        { silent: true }
+      );
+      toast(
+        pendingDeleteRoles.length > 1
+          ? `${pendingDeleteRoles.length} roles deleted successfully.`
+          : "Role deleted successfully.",
+        "success"
+      );
+
+      setPendingDeleteRoles([]);
+      setReFetch(!reFetch);
+    } catch (error) {
+      console.error("Error deleting roles:", error);
+      toast("Failed to delete selected roles. Please try again.", "error");
+    }
   };
+
+  const toolbarActions = useMemo<AppDataTableToolbarAction<Role>[]>(
+    () => [
+      {
+        key: "create-role",
+        label: t("create", { entity: t("role") }),
+        className: "whitespace-nowrap",
+        icon: PlusIcon,
+        onClick: handleOpenCreate,
+        permission: ADMIN_PERMISSIONS.CREATE_ROLE,
+        variant: "primary"
+      }
+    ],
+    [handleOpenCreate, t]
+  );
+
+  const bulkActions = useMemo<AppDataTableBulkAction<Role>[]>(
+    () => [
+      {
+        key: "copy-selected",
+        label: (selectedRows) =>
+          selectedRows.length > 1 ? "Copy roles" : "Copy role",
+        icon: CopyIcon,
+        variant: "outline",
+        onClick: (selectedRows) => copyRolesToClipboard(selectedRows)
+      },
+      {
+        key: "delete-selected",
+        label: (selectedRows) =>
+          selectedRows.length > 1 ? "Delete roles" : "Delete role",
+        icon: TrashBinIcon,
+        permission: ADMIN_PERMISSIONS.DELETE_ROLE,
+        variant: "destructive",
+        disabled: (selectedRows) =>
+          selectedRows.some((role) => role.type === "Built_In"),
+        tooltip: (selectedRows) =>
+          selectedRows.some((role) => role.type === "Built_In")
+            ? "Built-in roles cannot be deleted"
+            : "Delete selected roles",
+        onClick: (selectedRows) => setPendingDeleteRoles(selectedRows)
+      }
+    ],
+    []
+  );
+
+  const rowActions = useMemo<AppDataTableRowAction<Role>[]>(
+    () => [
+      {
+        key: "view",
+        label: "View role",
+        tooltip: "View role",
+        icon: EyeIcon,
+        placement: "inline",
+        permission: ADMIN_PERMISSIONS.VIEW_ROLE,
+        onClick: handleOpenView
+      },
+      {
+        key: "edit",
+        label: "Edit role",
+        tooltip: "Edit role",
+        icon: PencilIcon,
+        placement: "inline",
+        permission: ADMIN_PERMISSIONS.UPDATE_ROLE,
+        hidden: (role) => role.type === "Built_In",
+        onClick: handleOpenEdit
+      },
+      {
+        key: "copy",
+        label: "Copy role",
+        tooltip: "Copy role",
+        icon: CopyIcon,
+        placement: "menu",
+        onClick: async (role) => copyRolesToClipboard([role])
+      },
+      {
+        key: "delete",
+        label: "Delete role",
+        tooltip: "Delete role",
+        icon: TrashBinIcon,
+        placement: "menu",
+        permission: ADMIN_PERMISSIONS.DELETE_ROLE,
+        tone: "danger",
+        hidden: (role) => role.type === "Built_In",
+        onClick: (role) => setPendingDeleteRoles([role])
+      }
+    ],
+    [handleOpenEdit, handleOpenView]
+  );
+
+  const columnDefs = useMemo<ColDef<Role>[]>(
+    () => [
+      {
+        field: "name",
+        flex: 0.9,
+        headerName: t("roleName"),
+        minWidth: 240,
+        cellRenderer: (params: ICellRendererParams<Role>) => {
+          const data = params.data;
+          if (!data) return null;
+
+          return (
+            <div className="flex items-center gap-3 py-1.5">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700 dark:bg-brand-500/20 dark:text-brand-200">
+                {getInitials(data.name)}
+              </div>
+              <div className="min-w-0 truncate text-sm font-semibold text-gray-900 dark:text-white">
+                {data.name}
+              </div>
+            </div>
+          );
+        }
+      },
+      {
+        field: "permissions",
+        flex: 1.4,
+        headerName: t("permissions"),
+        minWidth: 320,
+        sortable: false,
+        valueGetter: ({ data }) => getPermissionNames(data as Role).join(", "),
+        cellRenderer: (params: ICellRendererParams<Role>) => {
+          const data = params.data;
+          if (!data) return null;
+
+          const permissionNames = getPermissionNames(data);
+          const visiblePermissions = permissionNames.slice(0, 2);
+
+          if (!permissionNames.length) {
+            return (
+              <div className="py-1.5 text-sm text-gray-600 dark:text-gray-300">
+                -
+              </div>
+            );
+          }
+
+          return (
+            <div className="flex flex-wrap items-center gap-2 py-1.5">
+              {visiblePermissions.map((permission) => (
+                <span
+                  key={permission}
+                  className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 dark:bg-blue-500/15 dark:text-blue-200"
+                >
+                  {permission}
+                </span>
+              ))}
+              {permissionNames.length > 2 ? (
+                <CountWithTooltip
+                  count={permissionNames.length - 2}
+                  items={permissionNames.slice(2)}
+                  headerLabel={`Permissions (${permissionNames.length})`}
+                  className="self-center"
+                  portal
+                />
+              ) : null}
+            </div>
+          );
+        }
+      }
+    ],
+    [t]
+  );
 
   return (
     <>
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-          {t("rolesAndPermissions")}
-        </h1>
-        <Button
-          permission="CREATE:ROLE"
-          onClick={() => {
-            setActiveRole(null);
-            setPermissionType(resolvePermissionType(null));
-            openModal();
-          }}
-          tooltipPosition="left"
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          {t("create", { entity: t("role") })}
-        </Button>
+      <div className="flex flex-col lg:h-[calc(100dvh-132px)] lg:min-h-0">
+        <AppDataTable<Role>
+          actionsColumnHeader={t("actions")}
+          bulkActions={bulkActions}
+          columnDefs={columnDefs}
+          defaultColDef={{ flex: 1, minWidth: 180 }}
+          emptyMessage={t("noRolesFound")}
+          enableSelection
+          fillAvailableHeight
+          fitContentHeight
+          fitContentHeightMaxRows={8}
+          fontSize={13}
+          getRowId={(role) => role._id}
+          headerHeight={46}
+          maxInlineRowActions={2}
+          rowActions={rowActions}
+          rowData={roles}
+          rowHeight={64}
+          searchAccessor={(role) =>
+            [role.name, getPermissionNames(role).join(" ")]
+              .filter(Boolean)
+              .join(" ")
+          }
+          searchPlaceholder="Search roles..."
+          tableName={t("rolesAndPermissions")}
+          toolbarActions={toolbarActions}
+        />
       </div>
 
-      {/* Create Role Modal */}
       <Modal
         isOpen={isOpen}
-        onClose={closeModal}
+        onClose={handleCloseModal}
         className="max-w-[1000px] max-h-[50rem] m-4"
       >
         <CreateRoleModal
-          onClose={closeModal}
+          onClose={handleCloseModal}
           onSubmit={handleCreateRole}
           permissions={permissions.map((p) => p.name)}
-          activeRole={activeRole}
+          activeRole={
+            activeRole
+              ? {
+                  name: activeRole.name,
+                  permissions: getPermissionNames(activeRole).map((name) => ({
+                    name
+                  }))
+                }
+              : null
+          }
           permissionType={permissionType}
           onPermissionTypeChange={handlePermissionTypeChange}
+          mode={roleModalMode}
         />
       </Modal>
 
-      {/* Roles Table */}
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-800">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                {t("roleName")}
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                {t("permissions")}
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                {t("actions")}
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-            {roles.length > 0 ? (
-              roles.map((role) => (
-                <tr key={role._id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                    {role.name}
-                  </td>
-
-                  {/* Permissions */}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                    <div className="flex flex-wrap gap-2">
-                      {role.permissions
-                        .slice(0, 2)
-                        .map((role: any, idx: number) => (
-                          <span
-                            key={idx}
-                            className="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded-full text-xs"
-                          >
-                            {role.name}
-                          </span>
-                        ))}
-                      {role.permissions.length > 2 && (
-                        <CountWithTooltip
-                          count={role.permissions.length - 2}
-                          items={role.permissions
-                            .slice(2)
-                            .map((perm) => perm.name)}
-                          headerLabel={`Permissions (${role.permissions.length - 2} more)`}
-                          buttonLabel={`+ ${role.permissions.length - 2}`}
-                          className="self-center"
-                          portal
-                        />
-                      )}
-                    </div>
-                  </td>
-
-                  {/* Actions */}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                    {role.type !== "Built_In" && (
-                      <>
-                        <Button
-                          permission="UPDATE:ROLE"
-                          onClick={() => handleEdit(role)}
-                          variant="outline"
-                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
-                        >
-                          {t("edit")}
-                        </Button>
-                        <Button
-                          permission="DELETE:ROLE"
-                          onClick={() => {
-                            setActiveRole(role);
-                            setConfirmationModal(true);
-                          }}
-                          variant="outline"
-                          className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                        >
-                          {t("delete")}
-                        </Button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td
-                  colSpan={4}
-                  className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-300"
-                >
-                  {t("noRolesFound")}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Delete Confirmation Modal */}
       <Modal
-        isOpen={confirmationModal}
-        onClose={() => setConfirmationModal(false)}
-        className="max-w-[600px] min-h-[150px] m-4"
+        isOpen={pendingDeleteRoles.length > 0}
+        onClose={() => setPendingDeleteRoles([])}
+        className="max-w-[500px] min-h-[150px] m-4 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
         showCloseButton={false}
       >
         <div className="h-full p-5 flex flex-col justify-between">
-          <div className="py-2 text-gray-800 dark:text-gray-200">
-            {`${t("deleteEntityPrompt", { entityName: activeRole?.name })}`}
+          <div className="py-2 text-gray-800 dark:text-gray-300">
+            {pendingDeleteRoles.length > 1
+              ? `Are you sure you want to delete these ${pendingDeleteRoles.length} roles?`
+              : `${t("deleteEntityPrompt", {
+                  entityName: pendingDeleteRoles[0]?.name
+                })} ?`}
           </div>
+
+          {pendingDeleteRoles.length ? (
+            <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
+              {pendingDeleteRoles.slice(0, 5).map((role) => (
+                <div key={role._id} className="truncate py-0.5">
+                  {role.name}
+                </div>
+              ))}
+              {pendingDeleteRoles.length > 5 ? (
+                <div className="pt-1 text-xs text-gray-500 dark:text-gray-400">
+                  + {pendingDeleteRoles.length - 5} more
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           <div className="flex justify-end gap-2 pt-4">
             <Button
               variant="secondary"
-              onClick={() => setConfirmationModal(false)}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              onClick={() => setPendingDeleteRoles([])}
+              className="flex items-center px-4 py-2 text-white"
             >
               {t("cancel")}
             </Button>
             <Button
-              onClick={async () => {
-                if (!activeRole) return;
-                try {
-                  await deleteRole(activeRole._id);
-                  setReFetch(!reFetch);
-                } catch {
-                  toast("Failed to delete role. Please try again.", "error");
-                } finally {
-                  setConfirmationModal(false);
-                  setActiveRole(null);
-                }
-              }}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              startIcon={<CheckLineIcon className="h-4 w-4" />}
+              onClick={() => void handleDeleteConfirmed()}
+              className="flex items-center px-4 py-2"
             >
               {t("confirm")}
             </Button>

@@ -17,8 +17,8 @@ import {
   TrashBinIcon
 } from "@/public/icons";
 import {
+  bulkDeleteLocations,
   createLocation,
-  deleteLocation,
   getLocations,
   updateLocation
 } from "@/services/admin.service";
@@ -128,34 +128,16 @@ const Location = () => {
     }
 
     try {
-      const results = await Promise.allSettled(
-        pendingDeleteLocations.map((location) =>
-          deleteLocation(location._id, { silent: true })
-        )
+      await bulkDeleteLocations(
+        pendingDeleteLocations.map((location) => location._id),
+        { silent: true }
       );
-      const failedDeletes = results.filter(
-        (result) => result.status === "rejected"
-      ).length;
-      const successfulDeletes = pendingDeleteLocations.length - failedDeletes;
-
-      if (successfulDeletes > 0 && failedDeletes === 0) {
-        toast(
-          successfulDeletes > 1
-            ? `${successfulDeletes} locations deleted successfully.`
-            : "Location deleted successfully.",
-          "success"
-        );
-      } else if (successfulDeletes > 0) {
-        toast(
-          `${successfulDeletes} locations deleted, ${failedDeletes} failed.`,
-          "error"
-        );
-      } else {
-        toast(
-          "Failed to delete selected locations. Please try again.",
-          "error"
-        );
-      }
+      toast(
+        pendingDeleteLocations.length > 1
+          ? `${pendingDeleteLocations.length} locations deleted successfully.`
+          : "Location deleted successfully.",
+        "success"
+      );
 
       setPendingDeleteLocations([]);
       setRefresh((prev) => !prev);

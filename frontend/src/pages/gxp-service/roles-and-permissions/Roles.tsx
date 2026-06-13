@@ -20,8 +20,8 @@ import {
 } from "@/public/icons";
 import CreateRoleModal from "@/pages/access-management/roles-and-permissions/CreateRoleModal";
 import {
+  bulkDeleteRoles,
   createRole,
-  deleteRole,
   getPermissions,
   getRoles,
   updateRole
@@ -180,29 +180,16 @@ const Roles = () => {
     }
 
     try {
-      const results = await Promise.allSettled(
-        pendingDeleteRoles.map((role) => deleteRole(role._id, { silent: true }))
+      await bulkDeleteRoles(
+        pendingDeleteRoles.map((role) => role._id),
+        { silent: true }
       );
-      const failedDeletes = results.filter(
-        (result) => result.status === "rejected"
-      ).length;
-      const successfulDeletes = pendingDeleteRoles.length - failedDeletes;
-
-      if (successfulDeletes > 0 && failedDeletes === 0) {
-        toast(
-          successfulDeletes > 1
-            ? `${successfulDeletes} roles deleted successfully.`
-            : "Role deleted successfully.",
-          "success"
-        );
-      } else if (successfulDeletes > 0) {
-        toast(
-          `${successfulDeletes} roles deleted, ${failedDeletes} failed.`,
-          "error"
-        );
-      } else {
-        toast("Failed to delete selected roles. Please try again.", "error");
-      }
+      toast(
+        pendingDeleteRoles.length > 1
+          ? `${pendingDeleteRoles.length} roles deleted successfully.`
+          : "Role deleted successfully.",
+        "success"
+      );
 
       setPendingDeleteRoles([]);
       setReFetch(!reFetch);

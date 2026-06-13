@@ -18,8 +18,8 @@ import {
   TrashBinIcon
 } from "@/public/icons";
 import {
+  bulkDeleteDepartments,
   createDepartment,
-  deleteDepartment,
   getDepartments,
   getLocations,
   getUsers,
@@ -197,34 +197,16 @@ const Departments = () => {
     }
 
     try {
-      const results = await Promise.allSettled(
-        pendingDeleteDepartments.map((department) =>
-          deleteDepartment(department._id, { silent: true })
-        )
+      await bulkDeleteDepartments(
+        pendingDeleteDepartments.map((department) => department._id),
+        { silent: true }
       );
-      const failedDeletes = results.filter(
-        (result) => result.status === "rejected"
-      ).length;
-      const successfulDeletes = pendingDeleteDepartments.length - failedDeletes;
-
-      if (successfulDeletes > 0 && failedDeletes === 0) {
-        toast(
-          successfulDeletes > 1
-            ? `${successfulDeletes} departments deleted successfully.`
-            : "Department deleted successfully.",
-          "success"
-        );
-      } else if (successfulDeletes > 0) {
-        toast(
-          `${successfulDeletes} departments deleted, ${failedDeletes} failed.`,
-          "error"
-        );
-      } else {
-        toast(
-          "Failed to delete selected departments. Please try again.",
-          "error"
-        );
-      }
+      toast(
+        pendingDeleteDepartments.length > 1
+          ? `${pendingDeleteDepartments.length} departments deleted successfully.`
+          : "Department deleted successfully.",
+        "success"
+      );
 
       setPendingDeleteDepartments([]);
       setReFetch(!reFetch);
