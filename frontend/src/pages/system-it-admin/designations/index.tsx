@@ -10,7 +10,6 @@ import { useModal } from "@/hooks/useModal";
 import { toast } from "@/lib/toast";
 import {
   CheckLineIcon,
-  CopyIcon,
   EyeIcon,
   PencilIcon,
   PlusIcon,
@@ -37,48 +36,6 @@ const getInitials = (value: string) =>
     .slice(0, 2)
     .map((segment) => segment[0]?.toUpperCase() ?? "")
     .join("") || "D";
-
-const copyDesignationsToClipboard = async (rows: DesignationObj[]) => {
-  if (!rows.length) {
-    return;
-  }
-
-  const content = [
-    "Name\tDescription",
-    ...rows.map(
-      (designation) =>
-        `${designation.designationName}\t${designation.description ?? ""}`
-    )
-  ].join("\n");
-
-  try {
-    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(content);
-    } else if (typeof document !== "undefined") {
-      const textarea = document.createElement("textarea");
-      textarea.value = content;
-      textarea.setAttribute("readonly", "");
-      textarea.style.position = "absolute";
-      textarea.style.left = "-9999px";
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-    } else {
-      throw new Error("Clipboard unavailable");
-    }
-
-    toast(
-      rows.length > 1
-        ? `${rows.length} designations copied to clipboard.`
-        : "Designation copied to clipboard.",
-      "success"
-    );
-  } catch (error) {
-    console.error("Error copying designations:", error);
-    toast("Failed to copy designation details. Please try again.", "error");
-  }
-};
 
 const Designation = () => {
   const { isOpen, openModal, closeModal } = useModal();
@@ -172,14 +129,6 @@ const Designation = () => {
   const bulkActions = useMemo<AppDataTableBulkAction<DesignationObj>[]>(
     () => [
       {
-        key: "copy-selected",
-        label: (selectedRows) =>
-          selectedRows.length > 1 ? "Copy designations" : "Copy designation",
-        icon: CopyIcon,
-        variant: "outline",
-        onClick: (selectedRows) => copyDesignationsToClipboard(selectedRows)
-      },
-      {
         key: "delete-selected",
         label: (selectedRows) =>
           selectedRows.length > 1
@@ -221,15 +170,6 @@ const Designation = () => {
           setDesignationModalMode("edit");
           openModal();
         }
-      },
-      {
-        key: "copy",
-        label: "Copy designation",
-        tooltip: "Copy designation",
-        icon: CopyIcon,
-        placement: "menu",
-        onClick: async (designation) =>
-          copyDesignationsToClipboard([designation])
       },
       {
         key: "delete",

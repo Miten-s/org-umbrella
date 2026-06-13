@@ -16,7 +16,8 @@ const API_ROUTES = {
     ROOT: "/",
     BY_ID: "/:id",
     ENABLE_BY_ID: "/enable/:id",
-    DISABLE_BY_ID: "/disable/:id"
+    DISABLE_BY_ID: "/disable/:id",
+    BULK_DELETE: "/bulk-delete"
   },
   SUPPLIER: {
     ROOT: "/",

@@ -10,7 +10,6 @@ import { useModal } from "@/hooks/useModal";
 import { toast } from "@/lib/toast";
 import {
   CheckLineIcon,
-  CopyIcon,
   EyeIcon,
   PencilIcon,
   PlusIcon,
@@ -37,47 +36,6 @@ const getInitials = (value: string) =>
     .slice(0, 2)
     .map((segment) => segment[0]?.toUpperCase() ?? "")
     .join("") || "L";
-
-const copyLocationsToClipboard = async (rows: LocationObj[]) => {
-  if (!rows.length) {
-    return;
-  }
-
-  const content = [
-    "Location\tDescription",
-    ...rows.map(
-      (location) => `${location.locationName}\t${location.description ?? ""}`
-    )
-  ].join("\n");
-
-  try {
-    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(content);
-    } else if (typeof document !== "undefined") {
-      const textarea = document.createElement("textarea");
-      textarea.value = content;
-      textarea.setAttribute("readonly", "");
-      textarea.style.position = "absolute";
-      textarea.style.left = "-9999px";
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-    } else {
-      throw new Error("Clipboard unavailable");
-    }
-
-    toast(
-      rows.length > 1
-        ? `${rows.length} locations copied to clipboard.`
-        : "Location copied to clipboard.",
-      "success"
-    );
-  } catch (error) {
-    console.error("Error copying locations:", error);
-    toast("Failed to copy location details. Please try again.", "error");
-  }
-};
 
 const Location = () => {
   const { isOpen, openModal, closeModal } = useModal();
@@ -169,14 +127,6 @@ const Location = () => {
   const bulkActions = useMemo<AppDataTableBulkAction<LocationObj>[]>(
     () => [
       {
-        key: "copy-selected",
-        label: (selectedRows) =>
-          selectedRows.length > 1 ? "Copy locations" : "Copy location",
-        icon: CopyIcon,
-        variant: "outline",
-        onClick: (selectedRows) => copyLocationsToClipboard(selectedRows)
-      },
-      {
         key: "delete-selected",
         label: (selectedRows) =>
           selectedRows.length > 1 ? "Delete locations" : "Delete location",
@@ -216,14 +166,6 @@ const Location = () => {
           setLocationModalMode("edit");
           openModal();
         }
-      },
-      {
-        key: "copy",
-        label: "Copy location",
-        tooltip: "Copy location",
-        icon: CopyIcon,
-        placement: "menu",
-        onClick: async (location) => copyLocationsToClipboard([location])
       },
       {
         key: "delete",

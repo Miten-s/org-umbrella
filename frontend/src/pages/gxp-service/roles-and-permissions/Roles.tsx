@@ -12,7 +12,6 @@ import { useServerPagination } from "@/hooks/useServerPagination";
 import { toast } from "@/lib/toast";
 import {
   CheckLineIcon,
-  CopyIcon,
   EyeIcon,
   PencilIcon,
   PlusIcon,
@@ -54,47 +53,6 @@ const getPermissionNames = (role: RoleRecord) =>
       typeof permission === "string" ? permission : (permission?.name ?? "")
     )
     .filter(Boolean);
-
-const copyRolesToClipboard = async (rows: RoleRecord[]) => {
-  if (!rows.length) {
-    return;
-  }
-
-  const content = [
-    "Role\tPermissions",
-    ...rows.map((role) =>
-      [role.name, getPermissionNames(role).join(", ")].join("\t")
-    )
-  ].join("\n");
-
-  try {
-    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(content);
-    } else if (typeof document !== "undefined") {
-      const textarea = document.createElement("textarea");
-      textarea.value = content;
-      textarea.setAttribute("readonly", "");
-      textarea.style.position = "absolute";
-      textarea.style.left = "-9999px";
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-    } else {
-      throw new Error("Clipboard unavailable");
-    }
-
-    toast(
-      rows.length > 1
-        ? `${rows.length} roles copied to clipboard.`
-        : "Role copied to clipboard.",
-      "success"
-    );
-  } catch (error) {
-    console.error("Error copying roles:", error);
-    toast("Failed to copy role details. Please try again.", "error");
-  }
-};
 
 const Roles = () => {
   const { isOpen, openModal, closeModal } = useModal();
@@ -221,14 +179,6 @@ const Roles = () => {
   const bulkActions = useMemo<AppDataTableBulkAction<RoleRecord>[]>(
     () => [
       {
-        key: "copy-selected",
-        label: (selectedRows) =>
-          selectedRows.length > 1 ? "Copy roles" : "Copy role",
-        icon: CopyIcon,
-        variant: "outline",
-        onClick: (selectedRows) => copyRolesToClipboard(selectedRows)
-      },
-      {
         key: "delete-selected",
         label: (selectedRows) =>
           selectedRows.length > 1 ? "Delete roles" : "Delete role",
@@ -268,14 +218,6 @@ const Roles = () => {
           setRoleModalMode("edit");
           openModal();
         }
-      },
-      {
-        key: "copy",
-        label: "Copy role",
-        tooltip: "Copy role",
-        icon: CopyIcon,
-        placement: "menu",
-        onClick: async (role) => copyRolesToClipboard([role])
       },
       {
         key: "delete",

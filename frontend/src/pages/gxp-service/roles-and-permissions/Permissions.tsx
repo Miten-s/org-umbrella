@@ -11,7 +11,6 @@ import { useServerPagination } from "@/hooks/useServerPagination";
 import { toast } from "@/lib/toast";
 import {
   CheckLineIcon,
-  CopyIcon,
   EyeIcon,
   PencilIcon,
   PlusIcon,
@@ -40,47 +39,6 @@ const getInitials = (value: string) =>
     .slice(0, 2)
     .map((segment) => segment[0]?.toUpperCase() ?? "")
     .join("") || "P";
-
-const copyPermissionsToClipboard = async (rows: GxpPermission[]) => {
-  if (!rows.length) {
-    return;
-  }
-
-  const content = [
-    "Permission\tDescription",
-    ...rows.map((permission) =>
-      [permission.permissionName, permission.description ?? ""].join("\t")
-    )
-  ].join("\n");
-
-  try {
-    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(content);
-    } else if (typeof document !== "undefined") {
-      const textarea = document.createElement("textarea");
-      textarea.value = content;
-      textarea.setAttribute("readonly", "");
-      textarea.style.position = "absolute";
-      textarea.style.left = "-9999px";
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-    } else {
-      throw new Error("Clipboard unavailable");
-    }
-
-    toast(
-      rows.length > 1
-        ? `${rows.length} permissions copied to clipboard.`
-        : "Permission copied to clipboard.",
-      "success"
-    );
-  } catch (error) {
-    console.error("Error copying permissions:", error);
-    toast("Failed to copy permission details. Please try again.", "error");
-  }
-};
 
 const Permissions = () => {
   const { isOpen, openModal, closeModal } = useModal();
@@ -183,14 +141,6 @@ const Permissions = () => {
   const bulkActions = useMemo<AppDataTableBulkAction<GxpPermission>[]>(
     () => [
       {
-        key: "copy-selected",
-        label: (selectedRows) =>
-          selectedRows.length > 1 ? "Copy permissions" : "Copy permission",
-        icon: CopyIcon,
-        variant: "outline",
-        onClick: (selectedRows) => copyPermissionsToClipboard(selectedRows)
-      },
-      {
         key: "delete-selected",
         label: (selectedRows) =>
           selectedRows.length > 1 ? "Delete permissions" : "Delete permission",
@@ -230,14 +180,6 @@ const Permissions = () => {
           setPermissionModalMode("edit");
           openModal();
         }
-      },
-      {
-        key: "copy",
-        label: "Copy permission",
-        tooltip: "Copy permission",
-        icon: CopyIcon,
-        placement: "menu",
-        onClick: async (permission) => copyPermissionsToClipboard([permission])
       },
       {
         key: "delete",

@@ -16,7 +16,6 @@ export const addWorkflow = async (workflowData: any, user: string) => {
   return await repo.createWorkflow(newWorkflow);
 };
 
-
 export const getWorkflows = async (options: PaginationOptions) => {
   return await repo.getAllWorkflows(options);
 };
@@ -43,6 +42,33 @@ export const enableWorkflow = async (workflowId: string, user: string) => {
 
 export const deleteWorkflow = async (workflowId: string) => {
   return await repo.deleteWorkflow(workflowId);
+};
+
+const stripCopySuffix = (name: string) => {
+  const match = name.match(/^(.*?)(?:-\(\d+\))?$/);
+  return match?.[1]?.trim() || name.trim() || "Workflow";
+};
+
+const buildCopyName = (baseName: string, index: number) => {
+  const suffix = `-(${index})`;
+  const maxWorkflowNameLength = 20;
+  const availableBaseLength = maxWorkflowNameLength - suffix.length;
+  const safeBase =
+    baseName.slice(0, Math.max(1, availableBaseLength)).trim() || "Workflow";
+  return `${safeBase}${suffix}`;
+};
+
+const getNextWorkflowCopyName = (baseName: string, usedNames: Set<string>) => {
+  let index = 1;
+  let candidate = buildCopyName(baseName, index);
+
+  while (usedNames.has(candidate)) {
+    index += 1;
+    candidate = buildCopyName(baseName, index);
+  }
+
+  usedNames.add(candidate);
+  return candidate;
 };
 
 export const bulkDeleteWorkflows = async (workflowIds: string[]) => {
@@ -74,7 +100,10 @@ export const bulkDeleteWorkflows = async (workflowIds: string[]) => {
   }
 };
 
-export const bulkDuplicateWorkflows = async (workflowIds: string[], user: string) => {
+export const bulkDuplicateWorkflows = async (
+  workflowIds: string[],
+  user: string
+) => {
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
@@ -84,32 +113,15 @@ export const bulkDuplicateWorkflows = async (workflowIds: string[], user: string
       throw new Error("No workflows found for the provided IDs");
     }
 
+    const existingWorkflows = await repo.getWorkflowsByFilter({});
+    const usedWorkflowNames = new Set(
+      existingWorkflows.map((workflow: any) => workflow.workflowName)
+    );
     const duplicatedWorkflows = [];
 
     for (const workflow of workflowsToDuplicate) {
-      let baseName = workflow.workflowName;
-      const nameMatch = baseName.match(/^(.*)-\((\d+)\)$/);
-      if (nameMatch) {
-        baseName = nameMatch[1];
-      }
-
-      const escapedBaseName = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const regex = new RegExp(`^${escapedBaseName}(?:-\\((\\d+)\\))?$`);
-
-      const similarWorkflows = await repo.getWorkflowsByFilter({
-        workflowName: { $regex: regex }
-      });
-
-      let maxIndex = 0;
-      similarWorkflows.forEach((wf: any) => {
-        const match = wf.workflowName.match(regex);
-        if (match && match[1]) {
-          const index = parseInt(match[1], 10);
-          if (index > maxIndex) maxIndex = index;
-        }
-      });
-
-      const newName = `${baseName}-(${maxIndex + 1})`;
+      const baseName = stripCopySuffix(workflow.workflowName);
+      const newName = getNextWorkflowCopyName(baseName, usedWorkflowNames);
       const now = new Date();
 
       const toSave: any = {

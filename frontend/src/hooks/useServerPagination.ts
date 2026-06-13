@@ -95,8 +95,25 @@ export const useServerPagination = <T>({
           return;
         }
 
+        const lastAvailablePage = Math.max(1, metadata.totalPages);
+        if (page > lastAvailablePage) {
+          setRows([]);
+          setPagination({
+            ...metadata,
+            currentPage: lastAvailablePage
+          });
+          setPage(lastAvailablePage);
+          return;
+        }
+
         setRows(normalizedRows);
-        setPagination(metadata);
+        setPagination({
+          ...metadata,
+          currentPage: Math.min(
+            Math.max(1, metadata.currentPage),
+            lastAvailablePage
+          )
+        });
       } catch (fetchError) {
         if (cancelled) {
           return;

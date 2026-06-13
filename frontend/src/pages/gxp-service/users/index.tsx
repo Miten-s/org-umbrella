@@ -13,7 +13,6 @@ import { useServerPagination } from "@/hooks/useServerPagination";
 import { toast } from "@/lib/toast";
 import {
   CheckLineIcon,
-  CopyIcon,
   EyeIcon,
   PencilIcon,
   PlusIcon,
@@ -21,8 +20,8 @@ import {
 } from "@/public/icons";
 import { getRoles, getUsers } from "@/services/admin.service";
 import {
+  bulkDeleteGxpUsers,
   createGxpUser,
-  deleteGxpUser,
   disableGxpUser,
   enableGxpUser,
   getGxpUsers,
@@ -72,59 +71,6 @@ const getInitials = (value: string) =>
     .slice(0, 2)
     .map((segment) => segment[0]?.toUpperCase() ?? "")
     .join("") || "U";
-
-const copyUsersToClipboard = async (
-  rows: GxpUserEntity[],
-  roleNameMap: Map<string, string>
-) => {
-  if (!rows.length) {
-    return;
-  }
-
-  const content = [
-    "User\tType\tRoles\tDescription\tStatus",
-    ...rows.map((user) =>
-      [
-        user.user?.name ?? "",
-        user.userType,
-        user.roles
-          .map((roleId) => roleNameMap.get(roleId) ?? roleId)
-          .filter(Boolean)
-          .join(", "),
-        user.description ?? "",
-        user.status
-      ].join("\t")
-    )
-  ].join("\n");
-
-  try {
-    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(content);
-    } else if (typeof document !== "undefined") {
-      const textarea = document.createElement("textarea");
-      textarea.value = content;
-      textarea.setAttribute("readonly", "");
-      textarea.style.position = "absolute";
-      textarea.style.left = "-9999px";
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-    } else {
-      throw new Error("Clipboard unavailable");
-    }
-
-    toast(
-      rows.length > 1
-        ? `${rows.length} GXP users copied to clipboard.`
-        : "GXP user copied to clipboard.",
-      "success"
-    );
-  } catch (error) {
-    console.error("Error copying GXP users:", error);
-    toast("Failed to copy GXP user details. Please try again.", "error");
-  }
-};
 
 const GXPUsersPage = () => {
   const { t } = useTranslation();
@@ -220,34 +166,16 @@ const GXPUsersPage = () => {
     }
 
     try {
-      const results = await Promise.allSettled(
-        pendingDeleteUsers.map((user) =>
-          deleteGxpUser(user._id, { silent: true })
-        )
+      await bulkDeleteGxpUsers(
+        pendingDeleteUsers.map((user) => user._id),
+        { silent: true }
       );
-      const failedDeletes = results.filter(
-        (result) => result.status === "rejected"
-      ).length;
-      const successfulDeletes = pendingDeleteUsers.length - failedDeletes;
-
-      if (successfulDeletes > 0 && failedDeletes === 0) {
-        toast(
-          successfulDeletes > 1
-            ? `${successfulDeletes} GXP users deleted successfully.`
-            : "GXP user deleted successfully.",
-          "success"
-        );
-      } else if (successfulDeletes > 0) {
-        toast(
-          `${successfulDeletes} GXP users deleted, ${failedDeletes} failed.`,
-          "error"
-        );
-      } else {
-        toast(
-          "Failed to delete selected GXP users. Please try again.",
-          "error"
-        );
-      }
+      toast(
+        pendingDeleteUsers.length > 1
+          ? `${pendingDeleteUsers.length} GXP users deleted successfully.`
+          : "GXP user deleted successfully.",
+        "success"
+      );
 
       setPendingDeleteUsers([]);
       setReFetch(!reFetch);
@@ -318,15 +246,6 @@ const GXPUsersPage = () => {
   const bulkActions = useMemo<AppDataTableBulkAction<GxpUserEntity>[]>(
     () => [
       {
-        key: "copy-selected",
-        label: (selectedRows) =>
-          selectedRows.length > 1 ? "Copy GXP users" : "Copy GXP user",
-        icon: CopyIcon,
-        variant: "outline",
-        onClick: (selectedRows) =>
-          copyUsersToClipboard(selectedRows, roleNameMap)
-      },
-      {
         key: "delete-selected",
         label: (selectedRows) =>
           selectedRows.length > 1 ? "Delete GXP users" : "Delete GXP user",
@@ -336,7 +255,7 @@ const GXPUsersPage = () => {
         onClick: (selectedRows) => setPendingDeleteUsers(selectedRows)
       }
     ],
-    [roleNameMap]
+    []
   );
 
   const rowActions = useMemo<AppDataTableRowAction<GxpUserEntity>[]>(
@@ -368,14 +287,6 @@ const GXPUsersPage = () => {
         }
       },
       {
-        key: "copy",
-        label: "Copy GXP user",
-        tooltip: "Copy GXP user",
-        icon: CopyIcon,
-        placement: "menu",
-        onClick: async (user) => copyUsersToClipboard([user], roleNameMap)
-      },
-      {
         key: "delete",
         label: "Delete GXP user",
         tooltip: "Delete GXP user",
@@ -386,7 +297,7 @@ const GXPUsersPage = () => {
         onClick: (user) => setPendingDeleteUsers([user])
       }
     ],
-    [openModal, roleNameMap]
+    [openModal]
   );
 
   const columnDefs = useMemo<ColDef<GxpUserEntity>[]>(

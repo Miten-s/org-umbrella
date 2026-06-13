@@ -12,7 +12,6 @@ import { useServerPagination } from "@/hooks/useServerPagination";
 import { toast } from "@/lib/toast";
 import {
   CheckLineIcon,
-  CopyIcon,
   EyeIcon,
   LockIcon,
   PencilIcon,
@@ -260,18 +259,6 @@ const Users = () => {
   const bulkActions = useMemo<AppDataTableBulkAction<UserRecord>[]>(
     () => [
       {
-        key: "copy-selected",
-        label: (selectedRows) =>
-          selectedRows.length > 1 ? "Copy users" : "Copy user",
-        icon: CopyIcon,
-        permission: "CREATE:USER",
-        variant: "outline",
-        onClick: (selectedRows) =>
-          showComingSoonToast(
-            selectedRows.length > 1 ? "Copy users" : "Copy user"
-          )
-      },
-      {
         key: "delete-selected",
         label: (selectedRows) =>
           selectedRows.length > 1 ? "Delete users" : "Delete user",
@@ -281,7 +268,7 @@ const Users = () => {
         onClick: (selectedRows) => setPendingDeleteUsers(selectedRows)
       }
     ],
-    [showComingSoonToast]
+    []
   );
 
   const rowActions = useMemo<AppDataTableRowAction<UserRecord>[]>(
@@ -311,15 +298,6 @@ const Users = () => {
           setActiveUser(user);
           openModal();
         }
-      },
-      {
-        key: "copy",
-        label: "Copy user",
-        tooltip: "Copy user",
-        icon: CopyIcon,
-        placement: "menu",
-        permission: "CREATE:USER",
-        onClick: () => showComingSoonToast("Copy user")
       },
       {
         key: "delete",

@@ -881,6 +881,18 @@ export const deleteGxpUser = async (
   return response["data"];
 };
 
+export const bulkDeleteGxpUsers = async (
+  ids: string[],
+  options?: SilentOptions
+) =>
+  postBulkIds(
+    API_ROUTES.gxpUsers,
+    "bulk-delete",
+    ids,
+    "Users deleted successfully",
+    options
+  );
+
 export const enableGxpUser = async (id: string) => {
   const response = await gxpApi.patch(`${API_ROUTES.gxpUsers}/enable/${id}`);
   toastSuccess(response, "User enabled successfully");

@@ -4,7 +4,9 @@ import {
   findUserByIdRepo,
   updateUserRepo,
   disableUserRepo,
-  enableUserRepo
+  enableUserRepo,
+  deleteUserRepo,
+  bulkDeleteUsersRepo
 } from "../repo/gxp-service-users.repo";
 import { fetchRolesFromAuthService } from "./inter-service-calls.service";
 import { PaginationOptions } from "../utils/pagination.util";
@@ -12,7 +14,6 @@ import { PaginationOptions } from "../utils/pagination.util";
 export const createUserService = async (data: any) => {
   return await createUserRepo(data);
 };
-
 
 export const getAllUsersService = async (options: PaginationOptions) => {
   const result = await findAllUsersRepo(options);
@@ -45,4 +46,14 @@ export const enableUserService = async (id: any, comments: any) => {
   const existing = await findUserByIdRepo(id);
   if (!existing) throw new Error("User not found");
   return await enableUserRepo(id, comments);
+};
+
+export const deleteUserService = async (id: string) => {
+  const existing = await findUserByIdRepo(id);
+  if (!existing) throw new Error("User not found");
+  return await deleteUserRepo(id);
+};
+
+export const bulkDeleteUsersService = async (ids: string[]) => {
+  return await bulkDeleteUsersRepo(ids);
 };

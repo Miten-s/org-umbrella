@@ -11,7 +11,6 @@ import { useServerPagination } from "@/hooks/useServerPagination";
 import { toast } from "@/lib/toast";
 import {
   CheckLineIcon,
-  CopyIcon,
   EyeIcon,
   PencilIcon,
   PlusIcon,
@@ -36,12 +35,23 @@ import CreateServiceRequestModal from "./CreateServiceRequestModal";
 type Lookup = Record<string, string>;
 type ServiceRequestModalMode = "create" | "edit" | "view";
 
-const ensureArray = (value: any) =>
-  Array.isArray(value)
-    ? value
-    : value?.data && Array.isArray(value.data)
-      ? value.data
-      : [];
+const ensureArray = (value: any, keys: string[] = []) => {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (value?.data && Array.isArray(value.data)) {
+    return value.data;
+  }
+
+  for (const key of keys) {
+    if (Array.isArray(value?.[key])) {
+      return value[key];
+    }
+  }
+
+  return [];
+};
 
 const getInitials = (value: string) =>
   value
@@ -138,56 +148,6 @@ const formatValue = (
   return "-";
 };
 
-const copyServiceRequestsToClipboard = async (
-  rows: ServiceRequest[],
-  applicationLookup: Lookup
-) => {
-  if (!rows.length) {
-    return;
-  }
-
-  const content = [
-    "Service Request\tShort Description\tApplication\tPriority\tStatus",
-    ...rows.map((request) =>
-      [
-        request.serviceRequestId ?? "",
-        request.shortDescription ?? "",
-        formatValue(request.application, applicationLookup, "applicationName"),
-        request.priority ?? "",
-        request.status ?? ""
-      ].join("\t")
-    )
-  ].join("\n");
-
-  try {
-    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(content);
-    } else if (typeof document !== "undefined") {
-      const textarea = document.createElement("textarea");
-      textarea.value = content;
-      textarea.setAttribute("readonly", "");
-      textarea.style.position = "absolute";
-      textarea.style.left = "-9999px";
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-    } else {
-      throw new Error("Clipboard unavailable");
-    }
-
-    toast(
-      rows.length > 1
-        ? `${rows.length} service requests copied to clipboard.`
-        : "Service request copied to clipboard.",
-      "success"
-    );
-  } catch (error) {
-    console.error("Error copying service requests:", error);
-    toast("Failed to copy service request details. Please try again.", "error");
-  }
-};
-
 const GXPCreateNewServiceRequestPage = () => {
   const { t } = useTranslation();
   const { isOpen, openModal, closeModal } = useModal();
@@ -227,7 +187,7 @@ const GXPCreateNewServiceRequestPage = () => {
     const fetchData = async () => {
       try {
         const apps = await getApplications(false, { limit: 100 });
-        setApplications(ensureArray(apps));
+        setApplications(ensureArray(apps, ["applications"]));
       } catch (error) {
         console.error("Error fetching service request references:", error);
       }
@@ -357,17 +317,6 @@ const GXPCreateNewServiceRequestPage = () => {
   const bulkActions = useMemo<AppDataTableBulkAction<ServiceRequest>[]>(
     () => [
       {
-        key: "copy-selected",
-        label: (selectedRows) =>
-          selectedRows.length > 1
-            ? "Copy service requests"
-            : "Copy service request",
-        icon: CopyIcon,
-        variant: "outline",
-        onClick: (selectedRows) =>
-          copyServiceRequestsToClipboard(selectedRows, applicationLookup)
-      },
-      {
         key: "delete-selected",
         label: (selectedRows) =>
           selectedRows.length > 1
@@ -379,7 +328,7 @@ const GXPCreateNewServiceRequestPage = () => {
         onClick: (selectedRows) => setPendingDeleteRequests(selectedRows)
       }
     ],
-    [applicationLookup]
+    []
   );
 
   const rowActions = useMemo<AppDataTableRowAction<ServiceRequest>[]>(
@@ -405,15 +354,6 @@ const GXPCreateNewServiceRequestPage = () => {
         onClick: (request) => handleOpenRequestModal(request._id, "edit")
       },
       {
-        key: "copy",
-        label: "Copy service request",
-        tooltip: "Copy service request",
-        icon: CopyIcon,
-        placement: "menu",
-        onClick: async (request) =>
-          copyServiceRequestsToClipboard([request], applicationLookup)
-      },
-      {
         key: "delete",
         label: "Delete service request",
         tooltip: "Delete service request",
@@ -424,7 +364,7 @@ const GXPCreateNewServiceRequestPage = () => {
         onClick: (request) => setPendingDeleteRequests([request])
       }
     ],
-    [applicationLookup, handleOpenRequestModal, isLoadingActive]
+    [handleOpenRequestModal, isLoadingActive]
   );
 
   const columnDefs = useMemo<ColDef<ServiceRequest>[]>(

@@ -543,6 +543,15 @@ const AppDataTable = <T extends object>({
     serverPagination?.pageSize
   ]);
 
+  useEffect(() => {
+    if (!gridApi) {
+      return;
+    }
+
+    gridApi.deselectAll();
+    setSelectedRows([]);
+  }, [gridApi, rowData]);
+
   const tableTheme = useMemo(
     () =>
       themeQuartz.withParams({

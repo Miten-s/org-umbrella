@@ -6,7 +6,6 @@ export const createUserRepo = async (data: any) => {
   return await user.save();
 };
 
-
 export const findAllUsersRepo = async (options: PaginationOptions) => {
   const { page, limit, skip, search } = options;
   const filter: any = {};
@@ -38,12 +37,12 @@ export const findUserByIdRepo = async (id: string) => {
 
 export const updateUserRepo = async (id: string, data: any) => {
   try {
-  return await GxpServiceUser.findByIdAndUpdate(id, data, {
-    new: true
-  }).lean();
-} catch (error) {
-  throw error;
-}
+    return await GxpServiceUser.findByIdAndUpdate(id, data, {
+      new: true
+    }).lean();
+  } catch (error) {
+    throw error;
+  }
 };
 
 export const disableUserRepo = async (id: string) => {
@@ -52,4 +51,12 @@ export const disableUserRepo = async (id: string) => {
 
 export const enableUserRepo = async (id: string, comments: any) => {
   return await updateUserRepo(id, { status: "enabled", modifiedBy: comments });
+};
+
+export const deleteUserRepo = async (id: string) => {
+  return await GxpServiceUser.findByIdAndDelete(id);
+};
+
+export const bulkDeleteUsersRepo = async (ids: string[]) => {
+  return await GxpServiceUser.deleteMany({ _id: { $in: ids } });
 };

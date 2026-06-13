@@ -11,7 +11,6 @@ import { useServerPagination } from "@/hooks/useServerPagination";
 import { toast } from "@/lib/toast";
 import {
   CheckLineIcon,
-  CopyIcon,
   EyeIcon,
   PencilIcon,
   PlusIcon,
@@ -58,48 +57,6 @@ const getInitials = (value: string) =>
     .slice(0, 2)
     .map((segment) => segment[0]?.toUpperCase() ?? "")
     .join("") || "D";
-
-const copyDepartmentsToClipboard = async (rows: DepartmentRecord[]) => {
-  if (!rows.length) {
-    return;
-  }
-
-  const content = [
-    "Department\tDescription",
-    ...rows.map(
-      (department) =>
-        `${department.departmentName}\t${department.description ?? ""}`
-    )
-  ].join("\n");
-
-  try {
-    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(content);
-    } else if (typeof document !== "undefined") {
-      const textarea = document.createElement("textarea");
-      textarea.value = content;
-      textarea.setAttribute("readonly", "");
-      textarea.style.position = "absolute";
-      textarea.style.left = "-9999px";
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-    } else {
-      throw new Error("Clipboard unavailable");
-    }
-
-    toast(
-      rows.length > 1
-        ? `${rows.length} departments copied to clipboard.`
-        : "Department copied to clipboard.",
-      "success"
-    );
-  } catch (error) {
-    console.error("Error copying departments:", error);
-    toast("Failed to copy department details. Please try again.", "error");
-  }
-};
 
 const Departments = () => {
   const { isOpen, openModal, closeModal } = useModal();
@@ -241,14 +198,6 @@ const Departments = () => {
   const bulkActions = useMemo<AppDataTableBulkAction<DepartmentRecord>[]>(
     () => [
       {
-        key: "copy-selected",
-        label: (selectedRows) =>
-          selectedRows.length > 1 ? "Copy departments" : "Copy department",
-        icon: CopyIcon,
-        variant: "outline",
-        onClick: (selectedRows) => copyDepartmentsToClipboard(selectedRows)
-      },
-      {
         key: "delete-selected",
         label: (selectedRows) =>
           selectedRows.length > 1 ? "Delete departments" : "Delete department",
@@ -288,14 +237,6 @@ const Departments = () => {
           setDepartmentModalMode("edit");
           openModal();
         }
-      },
-      {
-        key: "copy",
-        label: "Copy department",
-        tooltip: "Copy department",
-        icon: CopyIcon,
-        placement: "menu",
-        onClick: async (department) => copyDepartmentsToClipboard([department])
       },
       {
         key: "delete",

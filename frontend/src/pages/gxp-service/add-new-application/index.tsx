@@ -6,7 +6,6 @@ import AppDataTable, {
 import Switch from "@/components/common/form/switch/Switch";
 import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
-import { useGlobalContext } from "@/context";
 import { useModal } from "@/hooks/useModal";
 import { useServerPagination } from "@/hooks/useServerPagination";
 import { toast } from "@/lib/toast";
@@ -134,9 +133,7 @@ const getApplicationIdentity = (application: Application) =>
 
 const duplicateApplications = async (
   rows: Application[],
-  refreshApplications: () => void,
-  setReFetch: (value: boolean) => void,
-  reFetch: boolean
+  refreshApplications: () => void
 ) => {
   if (!rows.length) {
     return;
@@ -154,7 +151,6 @@ const duplicateApplications = async (
       "success"
     );
     refreshApplications();
-    setReFetch(!reFetch);
   } catch (error) {
     console.error("Application copy failed:", error);
     toast("Failed to copy selected applications. Please try again.", "error");
@@ -164,12 +160,11 @@ const duplicateApplications = async (
 const GXPAddNewApplicationPage = () => {
   const { t } = useTranslation();
   const { isOpen, openModal, closeModal } = useModal();
-  const { reFetch, setReFetch } = useGlobalContext();
 
   const [includeDisabled, setIncludeDisabled] = useState(false);
   const paginatedApplications = useServerPagination<Application>({
     dataKeys: ["applications", "data"],
-    dependencies: [includeDisabled, reFetch],
+    dependencies: [includeDisabled],
     errorMessage: "Failed to load applications. Please try again.",
     fetchPage: (params) => getApplications(includeDisabled, params)
   });
@@ -288,7 +283,7 @@ const GXPAddNewApplicationPage = () => {
     };
 
     void fetchData();
-  }, [reFetch]);
+  }, []);
 
   const handleOpenApplicationModal = useCallback(
     async (applicationId: string, mode: ApplicationModalMode) => {
@@ -330,7 +325,7 @@ const GXPAddNewApplicationPage = () => {
         await createApplication(payloadWithAttachments, newAttachments);
       }
       handleCloseModal();
-      setReFetch(!reFetch);
+      paginatedApplications.refresh();
     } catch (error) {
       console.error("Error saving application:", error);
     }
@@ -385,7 +380,7 @@ const GXPAddNewApplicationPage = () => {
       );
 
       setPendingDeleteApplications([]);
-      setReFetch(!reFetch);
+      paginatedApplications.refresh();
     } catch (error) {
       console.error("Error deleting applications:", error);
       toast(
@@ -439,9 +434,7 @@ const GXPAddNewApplicationPage = () => {
         onClick: (selectedRows) =>
           duplicateApplications(
             selectedRows,
-            paginatedApplications.refresh,
-            setReFetch,
-            reFetch
+            paginatedApplications.refresh
           )
       },
       {
@@ -456,7 +449,7 @@ const GXPAddNewApplicationPage = () => {
         onClick: (selectedRows) => setPendingDeleteApplications(selectedRows)
       }
     ],
-    [isLoadingActive, paginatedApplications.refresh, reFetch, setReFetch]
+    [isLoadingActive, paginatedApplications.refresh]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<Application>[]>(
@@ -494,9 +487,7 @@ const GXPAddNewApplicationPage = () => {
         onClick: async (application) =>
           duplicateApplications(
             [application],
-            paginatedApplications.refresh,
-            setReFetch,
-            reFetch
+            paginatedApplications.refresh
           )
       },
       {
@@ -513,9 +504,7 @@ const GXPAddNewApplicationPage = () => {
     [
       handleOpenApplicationModal,
       isLoadingActive,
-      paginatedApplications.refresh,
-      reFetch,
-      setReFetch
+      paginatedApplications.refresh
     ]
   );
 

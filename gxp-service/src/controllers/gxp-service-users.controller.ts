@@ -4,7 +4,9 @@ import {
   getAllUsersService,
   updateUserService,
   disableUserService,
-  enableUserService
+  enableUserService,
+  deleteUserService,
+  bulkDeleteUsersService
 } from "../services/gxp-service-users.service";
 import asyncHandler from "../middlewares/error.middleware";
 import { getPaginationOptions } from "../utils/pagination.util";
@@ -14,7 +16,6 @@ export const createUser = asyncHandler(async (req: Request, res: Response) => {
   const result = await createUserService(data);
   res.status(201).json(result);
 });
-
 
 export const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
   const paginationOptions = getPaginationOptions(req.query);
@@ -41,3 +42,21 @@ export const enableUser = asyncHandler(async (req: Request, res: Response) => {
   const result = await enableUserService(id, comments);
   res.status(200).send(result);
 });
+
+export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const result = await deleteUserService(id as string);
+  res.status(200).send(result);
+});
+
+export const bulkDeleteUsers = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: "An array of ids is required" });
+    }
+
+    const result = await bulkDeleteUsersService(ids);
+    res.status(200).send(result);
+  }
+);
