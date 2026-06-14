@@ -10,6 +10,7 @@ import { useModal } from "@/hooks/useModal";
 import { toast } from "@/lib/toast";
 import {
   CheckLineIcon,
+  CopyIcon,
   EyeIcon,
   PencilIcon,
   PlusIcon,
@@ -17,13 +18,14 @@ import {
 } from "@/public/icons";
 import {
   bulkDeleteDesignations,
+  bulkDuplicateDesignations,
   createDesignation,
   getDesignations,
   updateDesignation
 } from "@/services/admin.service";
 import { Designation as DesignationObj } from "@/types/common.types";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import CreateDesignationModal from "./CreateDesignationModal";
 
@@ -79,6 +81,35 @@ const Designation = () => {
     }
   };
 
+  const handleDuplicateDesignations = useCallback(
+    async (rows: DesignationObj[]) => {
+      if (!rows.length) {
+        return;
+      }
+
+      try {
+        await bulkDuplicateDesignations(
+          rows.map((designation) => designation._id),
+          { silent: true }
+        );
+        toast(
+          rows.length > 1
+            ? `${rows.length} designations copied successfully.`
+            : "Designation copied successfully.",
+          "success"
+        );
+        setRefresh((prev) => !prev);
+      } catch (error) {
+        console.error("Error copying designations:", error);
+        toast(
+          "Failed to copy selected designations. Please try again.",
+          "error"
+        );
+      }
+    },
+    []
+  );
+
   const handleDeleteConfirmed = async () => {
     if (!pendingDeleteDesignations.length) {
       return;
@@ -129,6 +160,17 @@ const Designation = () => {
   const bulkActions = useMemo<AppDataTableBulkAction<DesignationObj>[]>(
     () => [
       {
+        key: "copy-selected",
+        label: (selectedRows) =>
+          selectedRows.length > 1
+            ? "Copy designations"
+            : "Copy designation",
+        icon: CopyIcon,
+        permission: "CREATE:DESIGNATION",
+        variant: "outline",
+        onClick: handleDuplicateDesignations
+      },
+      {
         key: "delete-selected",
         label: (selectedRows) =>
           selectedRows.length > 1
@@ -140,7 +182,7 @@ const Designation = () => {
         onClick: (selectedRows) => setPendingDeleteDesignations(selectedRows)
       }
     ],
-    []
+    [handleDuplicateDesignations]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<DesignationObj>[]>(
@@ -172,6 +214,15 @@ const Designation = () => {
         }
       },
       {
+        key: "copy",
+        label: "Copy designation",
+        tooltip: "Copy designation",
+        icon: CopyIcon,
+        placement: "menu",
+        permission: "CREATE:DESIGNATION",
+        onClick: (designation) => handleDuplicateDesignations([designation])
+      },
+      {
         key: "delete",
         label: "Delete designation",
         tooltip: "Delete designation",
@@ -182,7 +233,7 @@ const Designation = () => {
         onClick: (designation) => setPendingDeleteDesignations([designation])
       }
     ],
-    [openModal]
+    [handleDuplicateDesignations, openModal]
   );
 
   const columnDefs = useMemo<ColDef<DesignationObj>[]>(

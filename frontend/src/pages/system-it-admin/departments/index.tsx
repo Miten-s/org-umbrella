@@ -11,6 +11,7 @@ import { useServerPagination } from "@/hooks/useServerPagination";
 import { toast } from "@/lib/toast";
 import {
   CheckLineIcon,
+  CopyIcon,
   EyeIcon,
   PencilIcon,
   PlusIcon,
@@ -18,6 +19,7 @@ import {
 } from "@/public/icons";
 import {
   bulkDeleteDepartments,
+  bulkDuplicateDepartments,
   createDepartment,
   getDepartments,
   getLocations,
@@ -148,6 +150,35 @@ const Departments = () => {
     }
   };
 
+  const handleDuplicateDepartments = useCallback(
+    async (rows: DepartmentRecord[]) => {
+      if (!rows.length) {
+        return;
+      }
+
+      try {
+        await bulkDuplicateDepartments(
+          rows.map((department) => department._id),
+          { silent: true }
+        );
+        toast(
+          rows.length > 1
+            ? `${rows.length} departments copied successfully.`
+            : "Department copied successfully.",
+          "success"
+        );
+        setReFetch(!reFetch);
+      } catch (error) {
+        console.error("Error copying departments:", error);
+        toast(
+          "Failed to copy selected departments. Please try again.",
+          "error"
+        );
+      }
+    },
+    [reFetch, setReFetch]
+  );
+
   const handleDeleteConfirmed = async () => {
     if (!pendingDeleteDepartments.length) {
       return;
@@ -198,6 +229,15 @@ const Departments = () => {
   const bulkActions = useMemo<AppDataTableBulkAction<DepartmentRecord>[]>(
     () => [
       {
+        key: "copy-selected",
+        label: (selectedRows) =>
+          selectedRows.length > 1 ? "Copy departments" : "Copy department",
+        icon: CopyIcon,
+        permission: "CREATE:DEPARTMENT",
+        variant: "outline",
+        onClick: handleDuplicateDepartments
+      },
+      {
         key: "delete-selected",
         label: (selectedRows) =>
           selectedRows.length > 1 ? "Delete departments" : "Delete department",
@@ -207,7 +247,7 @@ const Departments = () => {
         onClick: (selectedRows) => setPendingDeleteDepartments(selectedRows)
       }
     ],
-    []
+    [handleDuplicateDepartments]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<DepartmentRecord>[]>(
@@ -239,6 +279,15 @@ const Departments = () => {
         }
       },
       {
+        key: "copy",
+        label: "Copy department",
+        tooltip: "Copy department",
+        icon: CopyIcon,
+        placement: "menu",
+        permission: "CREATE:DEPARTMENT",
+        onClick: (department) => handleDuplicateDepartments([department])
+      },
+      {
         key: "delete",
         label: "Delete department",
         tooltip: "Delete department",
@@ -249,7 +298,7 @@ const Departments = () => {
         onClick: (department) => setPendingDeleteDepartments([department])
       }
     ],
-    [openModal]
+    [handleDuplicateDepartments, openModal]
   );
 
   const columnDefs = useMemo<ColDef<DepartmentRecord>[]>(

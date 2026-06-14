@@ -11,6 +11,7 @@ import { useModal } from "@/hooks/useModal";
 import { toast } from "@/lib/toast";
 import {
   CheckLineIcon,
+  CopyIcon,
   EyeIcon,
   PencilIcon,
   PlusIcon,
@@ -18,6 +19,7 @@ import {
 } from "@/public/icons";
 import {
   bulkDeleteRoles,
+  bulkDuplicateRoles,
   createRole,
   getPermissions,
   getRoles,
@@ -168,6 +170,32 @@ const RolesAndPermissions = () => {
     openModal();
   }, [openModal]);
 
+  const handleDuplicateRoles = useCallback(
+    async (rows: Role[]) => {
+      if (!rows.length) {
+        return;
+      }
+
+      try {
+        await bulkDuplicateRoles(
+          rows.map((role) => role._id),
+          { silent: true }
+        );
+        toast(
+          rows.length > 1
+            ? `${rows.length} roles copied successfully.`
+            : "Role copied successfully.",
+          "success"
+        );
+        setReFetch(!reFetch);
+      } catch (error) {
+        console.error("Error copying roles:", error);
+        toast("Failed to copy selected roles. Please try again.", "error");
+      }
+    },
+    [reFetch, setReFetch]
+  );
+
   const handleDeleteConfirmed = async () => {
     if (!pendingDeleteRoles.length) {
       return;
@@ -211,6 +239,15 @@ const RolesAndPermissions = () => {
   const bulkActions = useMemo<AppDataTableBulkAction<Role>[]>(
     () => [
       {
+        key: "copy-selected",
+        label: (selectedRows) =>
+          selectedRows.length > 1 ? "Copy roles" : "Copy role",
+        icon: CopyIcon,
+        permission: ADMIN_PERMISSIONS.CREATE_ROLE,
+        variant: "outline",
+        onClick: handleDuplicateRoles
+      },
+      {
         key: "delete-selected",
         label: (selectedRows) =>
           selectedRows.length > 1 ? "Delete roles" : "Delete role",
@@ -226,7 +263,7 @@ const RolesAndPermissions = () => {
         onClick: (selectedRows) => setPendingDeleteRoles(selectedRows)
       }
     ],
-    []
+    [handleDuplicateRoles]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<Role>[]>(
@@ -251,6 +288,15 @@ const RolesAndPermissions = () => {
         onClick: handleOpenEdit
       },
       {
+        key: "copy",
+        label: "Copy role",
+        tooltip: "Copy role",
+        icon: CopyIcon,
+        placement: "menu",
+        permission: ADMIN_PERMISSIONS.CREATE_ROLE,
+        onClick: (role) => handleDuplicateRoles([role])
+      },
+      {
         key: "delete",
         label: "Delete role",
         tooltip: "Delete role",
@@ -262,7 +308,7 @@ const RolesAndPermissions = () => {
         onClick: (role) => setPendingDeleteRoles([role])
       }
     ],
-    [handleOpenEdit, handleOpenView]
+    [handleDuplicateRoles, handleOpenEdit, handleOpenView]
   );
 
   const columnDefs = useMemo<ColDef<Role>[]>(

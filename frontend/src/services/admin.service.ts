@@ -21,6 +21,19 @@ const postBulkDeleteIds = async (
   return response["data"];
 };
 
+const postBulkDuplicateIds = async (
+  route: string,
+  ids: string[],
+  successMessage: string,
+  options?: SilentOptions
+) => {
+  const response = await api.post(`${route}/bulk-duplicate`, { ids });
+  if (!options?.silent) {
+    toastSuccess(response, successMessage);
+  }
+  return response["data"];
+};
+
 export const API_ROUTES = {
   login: "/auth/sign-in",
   logout: "/auth/sign-out",
@@ -170,6 +183,17 @@ export const bulkDeleteRoles = async (
     options
   );
 
+export const bulkDuplicateRoles = async (
+  ids: string[],
+  options?: SilentOptions
+) =>
+  postBulkDuplicateIds(
+    API_ROUTES.roles,
+    ids,
+    "Roles copied successfully",
+    options
+  );
+
 export const getPermissions = async (
   type?: string,
   params?: ListQueryParams
@@ -272,6 +296,17 @@ export const bulkDeleteDepartments = async (
     options
   );
 
+export const bulkDuplicateDepartments = async (
+  ids: string[],
+  options?: SilentOptions
+) =>
+  postBulkDuplicateIds(
+    API_ROUTES.departments,
+    ids,
+    "Departments copied successfully",
+    options
+  );
+
 // #endregion
 
 // #region Location
@@ -320,6 +355,17 @@ export const bulkDeleteLocations = async (
     options
   );
 
+export const bulkDuplicateLocations = async (
+  ids: string[],
+  options?: SilentOptions
+) =>
+  postBulkDuplicateIds(
+    API_ROUTES.locations,
+    ids,
+    "Locations copied successfully",
+    options
+  );
+
 // #endregion
 
 // #region Designation
@@ -365,6 +411,17 @@ export const bulkDeleteDesignations = async (
     API_ROUTES.designations,
     ids,
     "Designations deleted successfully",
+    options
+  );
+
+export const bulkDuplicateDesignations = async (
+  ids: string[],
+  options?: SilentOptions
+) =>
+  postBulkDuplicateIds(
+    API_ROUTES.designations,
+    ids,
+    "Designations copied successfully",
     options
   );
 

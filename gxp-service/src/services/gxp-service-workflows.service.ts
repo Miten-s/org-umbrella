@@ -132,7 +132,7 @@ export const bulkDuplicateWorkflows = async (
         createdBy: user,
         modifiedOn: now,
         modifiedBy: user,
-        status: "enabled"
+        status: workflow.status ?? "enabled"
       };
 
       delete toSave.__v;

@@ -10,6 +10,7 @@ import { useModal } from "@/hooks/useModal";
 import { toast } from "@/lib/toast";
 import {
   CheckLineIcon,
+  CopyIcon,
   EyeIcon,
   PencilIcon,
   PlusIcon,
@@ -17,13 +18,14 @@ import {
 } from "@/public/icons";
 import {
   bulkDeleteLocations,
+  bulkDuplicateLocations,
   createLocation,
   getLocations,
   updateLocation
 } from "@/services/admin.service";
 import { Location as LocationObj } from "@/types/common.types";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import CreateLocationModal from "./CreateLocationModal";
 
@@ -80,6 +82,32 @@ const Location = () => {
     }
   };
 
+  const handleDuplicateLocations = useCallback(
+    async (rows: LocationObj[]) => {
+      if (!rows.length) {
+        return;
+      }
+
+      try {
+        await bulkDuplicateLocations(
+          rows.map((location) => location._id),
+          { silent: true }
+        );
+        toast(
+          rows.length > 1
+            ? `${rows.length} locations copied successfully.`
+            : "Location copied successfully.",
+          "success"
+        );
+        setRefresh((prev) => !prev);
+      } catch (error) {
+        console.error("Error copying locations:", error);
+        toast("Failed to copy selected locations. Please try again.", "error");
+      }
+    },
+    []
+  );
+
   const handleDeleteConfirmed = async () => {
     if (!pendingDeleteLocations.length) {
       return;
@@ -127,6 +155,15 @@ const Location = () => {
   const bulkActions = useMemo<AppDataTableBulkAction<LocationObj>[]>(
     () => [
       {
+        key: "copy-selected",
+        label: (selectedRows) =>
+          selectedRows.length > 1 ? "Copy locations" : "Copy location",
+        icon: CopyIcon,
+        permission: "CREATE:LOCATION",
+        variant: "outline",
+        onClick: handleDuplicateLocations
+      },
+      {
         key: "delete-selected",
         label: (selectedRows) =>
           selectedRows.length > 1 ? "Delete locations" : "Delete location",
@@ -136,7 +173,7 @@ const Location = () => {
         onClick: (selectedRows) => setPendingDeleteLocations(selectedRows)
       }
     ],
-    []
+    [handleDuplicateLocations]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LocationObj>[]>(
@@ -168,6 +205,15 @@ const Location = () => {
         }
       },
       {
+        key: "copy",
+        label: "Copy location",
+        tooltip: "Copy location",
+        icon: CopyIcon,
+        placement: "menu",
+        permission: "CREATE:LOCATION",
+        onClick: (location) => handleDuplicateLocations([location])
+      },
+      {
         key: "delete",
         label: "Delete location",
         tooltip: "Delete location",
@@ -178,7 +224,7 @@ const Location = () => {
         onClick: (location) => setPendingDeleteLocations([location])
       }
     ],
-    [openModal]
+    [handleDuplicateLocations, openModal]
   );
 
   const columnDefs = useMemo<ColDef<LocationObj>[]>(

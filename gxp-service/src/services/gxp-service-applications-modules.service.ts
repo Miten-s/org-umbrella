@@ -329,7 +329,7 @@ export const bulkDuplicateApplicationModules = async (ids: string[], user: any) 
         createdBy: user,
         modifiedOn: now,
         modifiedBy: null,
-        status: "enabled"
+        status: source.status ?? "enabled"
       };
 
       delete toSave.__v;
