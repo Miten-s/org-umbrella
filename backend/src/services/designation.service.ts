@@ -1,5 +1,6 @@
 import { Designation, IDesignation } from "../models/designation.model";
 import { PaginationOptions, escapeRegex } from "../utils/pagination.util";
+import mongoose from "mongoose";
 
 const createDesignation = async (data: IDesignation) => {
   const newDesignation = new Designation(data);
@@ -59,11 +60,74 @@ const bulkDeleteDesignations = async (ids: string[]) => {
   );
 };
 
+const bulkDuplicateDesignations = async (ids: string[], user?: any) => {
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+
+    const sourceDesignations = await Designation.find({
+      _id: { $in: ids }
+    }).session(session);
+    if (!sourceDesignations || sourceDesignations.length === 0) {
+      throw new Error("Designations not found");
+    }
+
+    const duplicatedDesignations = [];
+
+    for (const sourceDesignation of sourceDesignations) {
+      let baseName = sourceDesignation.designationName;
+      const nameMatch = baseName.match(/^(.*)-\((\d+)\)$/);
+      if (nameMatch) {
+        baseName = nameMatch[1];
+      }
+
+      const escapedBaseName = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(`^${escapedBaseName}(?:-\\((\\d+)\\))?$`);
+
+      const similarDesignationsResult = await Designation.find({
+        designationName: { $regex: regex }
+      }).session(session);
+
+      let maxIndex = 0;
+      similarDesignationsResult.forEach((desig: any) => {
+        const match = desig.designationName.match(regex);
+        if (match && match[1]) {
+          const index = parseInt(match[1], 10);
+          if (index > maxIndex) maxIndex = index;
+        }
+      });
+
+      const newName = `${baseName}-(${maxIndex + 1})`;
+
+      const toSave = new Designation({
+        designationName: newName,
+        description: sourceDesignation.description,
+        status: sourceDesignation.status,
+        deletedAt: null,
+        modifiedOn: new Date(),
+        modifiedBy: user?._id
+      });
+
+      const savedDesignation = await toSave.save({ session });
+      duplicatedDesignations.push(savedDesignation);
+    }
+
+    await session.commitTransaction();
+    return duplicatedDesignations;
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    await session.endSession();
+  }
+};
+
 export {
   createDesignation,
   getAllDesignations,
   getDesignationById,
   updateDesignation,
   deleteDesignation,
-  bulkDeleteDesignations
+  bulkDeleteDesignations,
+  bulkDuplicateDesignations
 };

@@ -5,7 +5,8 @@ import {
   getAllDesignations,
   getDesignationByName,
   updateDesignation,
-  bulkDeleteDesignations
+  bulkDeleteDesignations,
+  bulkDuplicateDesignations
 } from "../controllers/designation.controller";
 import API_ROUTES from "../utils/routes";
 import { IsValidParamsIdDto } from "../dtos/common.dto";
@@ -41,6 +42,12 @@ router.post(
   API_ROUTES.DESIGNATION + API_ROUTES.BULK_DELETE,
   checkPermissions(["DELETE:DESIGNATION"]),
   bulkDeleteDesignations
+);
+
+router.post(
+  API_ROUTES.DESIGNATION + API_ROUTES.BULK_DUPLICATE,
+  checkPermissions(["CREATE:DESIGNATION"]),
+  bulkDuplicateDesignations
 );
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------

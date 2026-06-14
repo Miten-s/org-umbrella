@@ -5,7 +5,8 @@ import {
   deletePermissions,
   getPermissions,
   updatePermissions,
-  bulkDeletePermissions
+  bulkDeletePermissions,
+  bulkDuplicatePermissions
 } from "../controllers/permission.controller";
 import { validateDto } from "../middlewares/validate-dto.middleware";
 import { IsValidParamsIdDto } from "../dtos/common.dto";
@@ -39,6 +40,12 @@ router.post(
   API_ROUTES.PERMISSION + API_ROUTES.BULK_DELETE,
   checkPermissions(["DELETE:PERMISSION"]),
   bulkDeletePermissions
+);
+
+router.post(
+  API_ROUTES.PERMISSION + API_ROUTES.BULK_DUPLICATE,
+  checkPermissions(["CREATE:PERMISSION"]),
+  bulkDuplicatePermissions
 );
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------

@@ -63,3 +63,15 @@ export const bulkDeleteRoles = asyncHandler(
     res.status(200).json({ message: "Roles deleted", result });
   }
 );
+
+export const bulkDuplicateRoles = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      res.status(400).json({ message: "An array of ids is required" });
+      return;
+    }
+    const result = await userService.bulkDuplicateRoles(ids);
+    res.status(201).json({ message: "Roles duplicated", result });
+  }
+);

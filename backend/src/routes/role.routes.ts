@@ -6,7 +6,8 @@ import {
   deleteRole,
   getRoles,
   updateRole,
-  bulkDeleteRoles
+  bulkDeleteRoles,
+  bulkDuplicateRoles
 } from "../controllers/role.controller";
 import { validateDto } from "../middlewares/validate-dto.middleware";
 import { IsValidParamsIdDto } from "../dtos/common.dto";
@@ -35,6 +36,12 @@ router.post(
   API_ROUTES.ROLE + API_ROUTES.BULK_DELETE,
   checkPermissions(["DELETE:ROLE"]),
   bulkDeleteRoles
+);
+
+router.post(
+  API_ROUTES.ROLE + API_ROUTES.BULK_DUPLICATE,
+  checkPermissions(["CREATE:ROLE"]),
+  bulkDuplicateRoles
 );
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------

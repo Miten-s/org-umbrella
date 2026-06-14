@@ -83,10 +83,73 @@ const bulkDeletePermissions = async (ids: string[]) => {
   }
 };
 
+const bulkDuplicatePermissions = async (ids: string[], user?: any) => {
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+
+    const sourcePermissions = await Permission.find({
+      _id: { $in: ids }
+    }).session(session);
+    if (!sourcePermissions || sourcePermissions.length === 0) {
+      throw new Error("Permissions not found");
+    }
+
+    const duplicatedPermissions = [];
+
+    for (const sourcePermission of sourcePermissions) {
+      let baseName = sourcePermission.name;
+      const nameMatch = baseName.match(/^(.*)-\((\d+)\)$/);
+      if (nameMatch) {
+        baseName = nameMatch[1];
+      }
+
+      const escapedBaseName = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(`^${escapedBaseName}(?:-\\((\\d+)\\))?$`);
+
+      const similarPermissionsResult = await Permission.find({
+        name: { $regex: regex }
+      }).session(session);
+
+      let maxIndex = 0;
+      similarPermissionsResult.forEach((perm: any) => {
+        const match = perm.name.match(regex);
+        if (match && match[1]) {
+          const index = parseInt(match[1], 10);
+          if (index > maxIndex) maxIndex = index;
+        }
+      });
+
+      const newName = `${baseName}-(${maxIndex + 1})`;
+
+      const toSave = new Permission({
+        name: newName,
+        description: sourcePermission.description,
+        type: sourcePermission.type,
+        deletedAt: null,
+        modifiedOn: new Date(),
+        modifiedBy: user?._id
+      });
+
+      const savedPermission = await toSave.save({ session });
+      duplicatedPermissions.push(savedPermission);
+    }
+
+    await session.commitTransaction();
+    return duplicatedPermissions;
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    await session.endSession();
+  }
+};
+
 export default {
   createPermission,
   updatePermission,
   deletePermission,
   getPermissions,
-  bulkDeletePermissions
+  bulkDeletePermissions,
+  bulkDuplicatePermissions
 };

@@ -79,3 +79,16 @@ export const bulkDeleteDepartments = asyncHandler(
     res.status(200).json({ message: "Departments deleted", result });
   }
 );
+
+export const bulkDuplicateDepartments = asyncHandler(
+  async (req: Request, res: Response): Promise<any> => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0)
+      return res.status(400).json({ message: "An array of ids is required" });
+    const result = await departmentService.bulkDuplicateDepartments(
+      ids,
+      req.user
+    );
+    res.status(201).json({ message: "Departments duplicated", result });
+  }
+);

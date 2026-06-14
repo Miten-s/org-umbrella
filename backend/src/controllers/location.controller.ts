@@ -77,3 +77,13 @@ export const bulkDeleteLocations = asyncHandler(
     res.status(200).json({ message: "Locations deleted", result });
   }
 );
+
+export const bulkDuplicateLocations = asyncHandler(
+  async (req: Request, res: Response): Promise<any> => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0)
+      return res.status(400).json({ message: "An array of ids is required" });
+    const result = await locationService.bulkDuplicateLocations(ids, req.user);
+    res.status(201).json({ message: "Locations duplicated", result });
+  }
+);

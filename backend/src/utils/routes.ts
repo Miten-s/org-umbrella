@@ -20,7 +20,8 @@ const API_ROUTES = {
   HEALTH: "/health",
   ASSIGN_ROLE: "/assign-role",
   PARAMS: "/:id",
-  BULK_DELETE: "/bulk-delete"
+  BULK_DELETE: "/bulk-delete",
+  BULK_DUPLICATE: "/bulk-duplicate"
 };
 
 export default API_ROUTES;

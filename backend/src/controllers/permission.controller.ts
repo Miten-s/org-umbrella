@@ -54,3 +54,18 @@ export const bulkDeletePermissions = asyncHandler(
     res.status(200).json({ message: "Permissions deleted", result });
   }
 );
+
+export const bulkDuplicatePermissions = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      res.status(400).json({ message: "An array of ids is required" });
+      return;
+    }
+    const result = await permissionService.bulkDuplicatePermissions(
+      ids,
+      req.user
+    );
+    res.status(201).json({ message: "Permissions duplicated", result });
+  }
+);

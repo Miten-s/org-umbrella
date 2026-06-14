@@ -99,11 +99,70 @@ const bulkDeleteRoles = async (ids: string[]) => {
   }
 };
 
+const bulkDuplicateRoles = async (ids: string[]) => {
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+
+    const sourceRoles = await Role.find({ _id: { $in: ids } }).session(session);
+    if (!sourceRoles || sourceRoles.length === 0) {
+      throw new Error("Roles not found");
+    }
+
+    const duplicatedRoles = [];
+
+    for (const sourceRole of sourceRoles) {
+      let baseName = sourceRole.name;
+      const nameMatch = baseName.match(/^(.*)-\((\d+)\)$/);
+      if (nameMatch) {
+        baseName = nameMatch[1];
+      }
+
+      const escapedBaseName = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(`^${escapedBaseName}(?:-\\((\\d+)\\))?$`);
+
+      const similarRolesResult = await Role.find({
+        name: { $regex: regex }
+      }).session(session);
+
+      let maxIndex = 0;
+      similarRolesResult.forEach((role: any) => {
+        const match = role.name.match(regex);
+        if (match && match[1]) {
+          const index = parseInt(match[1], 10);
+          if (index > maxIndex) maxIndex = index;
+        }
+      });
+
+      const newName = `${baseName}-(${maxIndex + 1})`;
+
+      const toSave = new Role({
+        name: newName,
+        permissions: sourceRole.permissions,
+        type: RoleType.CUSTOM,
+        deletedAt: null
+      });
+
+      const savedRole = await toSave.save({ session });
+      duplicatedRoles.push(savedRole);
+    }
+
+    await session.commitTransaction();
+    return duplicatedRoles;
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    await session.endSession();
+  }
+};
+
 export default {
   assignRole,
   createRole,
   updateRole,
   deleteRole,
   getRoles,
-  bulkDeleteRoles
+  bulkDeleteRoles,
+  bulkDuplicateRoles
 };

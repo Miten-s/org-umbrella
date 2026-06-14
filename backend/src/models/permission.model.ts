@@ -4,6 +4,7 @@ export interface IPermission extends Document {
   name: string;
   description: string;
   deletedAt: Date;
+  type?: string;
   modifiedOn?: Date;
   modifiedBy?: string;
 }
