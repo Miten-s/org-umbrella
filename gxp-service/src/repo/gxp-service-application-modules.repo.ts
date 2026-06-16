@@ -1,57 +1,70 @@
-import { PaginationOptions, escapeRegex } from "../utils/pagination.util";
-import {
-  GxpServiceAppModuleModel,
-  type IGxpServiceAppModule
-} from "../models/gxp-service-application-modules.model";
+import AppModule, { IAppModule } from "../models/gxp-service-application-modules.model";
+import Application from "../models/gxp-service-applications.model";
+import { PaginationOptions } from "../utils/pagination.util";
+import { Op } from "sequelize";
 
-const moduleApplicationPopulate = {
-  path: "application",
-  select: "applicationName"
-} as const;
-
-export const createApplicationModule = async (
-  payload: Partial<IGxpServiceAppModule>,
-  currentUser: string
-) => {
-  const doc = new GxpServiceAppModuleModel({
-    ...payload,
-    createdBy: currentUser
-  });
-  const saved = await doc.save();
-  return await saved.populate(moduleApplicationPopulate);
+const formatAppModule = (module: any) => {
+  if (!module) return null;
+  const json = module.toJSON ? module.toJSON() : { ...module };
+  json._id = json.id;
+  return json;
 };
 
+const moduleApplicationPopulate = {
+  model: Application,
+  as: "application",
+  attributes: ["applicationName"]
+};
+
+export const createApplicationModule = async (
+  payload: Partial<IAppModule>,
+  currentUser: string
+) => {
+  const doc = await AppModule.create({
+    ...payload,
+    createdBy: currentUser
+  } as any);
+  
+  const reloaded = await AppModule.findByPk(doc.id, {
+    include: [moduleApplicationPopulate]
+  });
+  return formatAppModule(reloaded);
+};
 
 export const getApplicationModules = async (
   filter: any = {},
   options?: Partial<PaginationOptions>
 ) => {
+  const where = { ...filter };
+  if (where._id) {
+    where.id = where._id;
+    delete where._id;
+  }
+
   const search = options?.search;
   if (search) {
-    const sanitizedSearch = escapeRegex(search);
-    if (!filter.$or) filter.$or = [];
-    filter.$or.push(
-      { moduleName: { $regex: sanitizedSearch, $options: "i" } }
-    );
+    where.moduleName = { [Op.iLike]: `%${search}%` };
   }
 
   if (!options) {
-    return await GxpServiceAppModuleModel.find(filter)
-      .populate(moduleApplicationPopulate)
-      .lean();
+    const data = await AppModule.findAll({
+      where,
+      include: [moduleApplicationPopulate]
+    });
+    return data.map(formatAppModule);
   }
 
   const { page = 1, limit = 10, skip = 0 } = options;
-  const [data, totalCount] = await Promise.all([
-    GxpServiceAppModuleModel.find(filter)
-      .populate(moduleApplicationPopulate)
-      .skip(skip)
-      .limit(limit)
-      .lean(),
-    GxpServiceAppModuleModel.countDocuments(filter).exec()
-  ]);
+  const { count: totalCount, rows: data } = await AppModule.findAndCountAll({
+    where,
+    include: [moduleApplicationPopulate],
+    offset: skip,
+    limit,
+    order: [["created_at", "DESC"]]
+  });
+
   return {
-    data,
+    data: data.map(formatAppModule),
     metadata: {
       totalCount,
       currentPage: page,
@@ -62,32 +75,51 @@ export const getApplicationModules = async (
 };
 
 export const findApplicationModulesById = async (id: string) => {
-  return await GxpServiceAppModuleModel.findById(id).populate(
-    moduleApplicationPopulate
-  );
+  const doc = await AppModule.findByPk(id, {
+    include: [moduleApplicationPopulate]
+  });
+  return formatAppModule(doc);
 };
 
 export const updateApplicationModule = async (
   id: string,
-  updates: Partial<IGxpServiceAppModule>
+  updates: Partial<IAppModule>
 ) => {
-  return await GxpServiceAppModuleModel.findByIdAndUpdate(id, updates, {
-    new: true
-  }).populate(moduleApplicationPopulate);
+  const doc = await AppModule.findByPk(id);
+  if (!doc) return null;
+  await doc.update(updates);
+  const reloaded = await AppModule.findByPk(id, {
+    include: [moduleApplicationPopulate]
+  });
+  return formatAppModule(reloaded);
 };
 
 export const deleteApplcationModule = async (id: string) => {
-  return await GxpServiceAppModuleModel.findByIdAndDelete(id);
+  const doc = await AppModule.findByPk(id);
+  if (!doc) return null;
+  await doc.destroy();
+  return formatAppModule(doc);
 };
 
 export const findApplicationModulesByIds = async (ids: string[]) => {
-  return await GxpServiceAppModuleModel.find({ _id: { $in: ids } }).lean();
+  const data = await AppModule.findAll({
+    where: { id: ids }
+  });
+  return data.map(formatAppModule);
 };
 
 export const findApplicationModulesByFilter = async (filter: any) => {
-  return await GxpServiceAppModuleModel.find(filter).lean();
+  const where = { ...filter };
+  if (where._id) {
+    where.id = where._id;
+    delete where._id;
+  }
+  const data = await AppModule.findAll({ where });
+  return data.map(formatAppModule);
 };
 
 export const bulkDeleteApplicationModules = async (ids: string[], session?: any) => {
-  return await GxpServiceAppModuleModel.deleteMany({ _id: { $in: ids } }, { session });
+  return await AppModule.destroy({
+    where: { id: ids }
+  });
 };

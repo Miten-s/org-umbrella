@@ -1,8 +1,10 @@
 import { PaginationOptions } from "../utils/pagination.util";
-import mongoose from "mongoose";
 import GxpServiceApplicationModel from "../models/gxp-service-applications.model";
-import { GxpServiceRequestModel } from "../models/gxp-service-service-requests.model";
+import ServiceRequest from "../models/gxp-service-service-requests.model";
 import * as repo from "../repo/gxp-service-assignment-groups.repo";
+import { sequelize } from "../configs/db.sequelize";
+import { Op } from "sequelize";
+import crypto from "crypto";
 
 export const addGroup = async (data: any) => {
   const newGroup = {
@@ -41,66 +43,52 @@ export const search = async (term: string) => {
 };
 
 export const deleteGroup = async (id: string) => {
-  const session = await mongoose.startSession();
+  const t = await sequelize.transaction();
   try {
-    session.startTransaction();
-
-    await GxpServiceApplicationModel.updateMany(
-      { assignmentGroup: id },
-      { $unset: { assignmentGroup: "" } },
-      { session }
+    await GxpServiceApplicationModel.update(
+      { assignmentGroupId: null },
+      { where: { assignmentGroupId: id }, transaction: t }
     );
-    await GxpServiceRequestModel.updateMany(
-      { assignmentGroup: id },
-      { $unset: { assignmentGroup: "" } },
-      { session }
+    await ServiceRequest.update(
+      { assignmentGroupId: null },
+      { where: { assignmentGroupId: id }, transaction: t }
     );
 
     const deleted = await repo.deleteGroupById(id);
 
-    await session.commitTransaction();
+    await t.commit();
     return deleted;
   } catch (error) {
-    session.abortTransaction();
+    await t.rollback();
     throw error;
-  } finally {
-    session.endSession();
   }
 };
 
 export const bulkDeleteGroups = async (ids: string[]) => {
-  const session = await mongoose.startSession();
+  const t = await sequelize.transaction();
   try {
-    session.startTransaction();
-
-    await GxpServiceApplicationModel.updateMany(
-      { assignmentGroup: { $in: ids } },
-      { $unset: { assignmentGroup: "" } },
-      { session }
+    await GxpServiceApplicationModel.update(
+      { assignmentGroupId: null },
+      { where: { assignmentGroupId: ids }, transaction: t }
     );
-    await GxpServiceRequestModel.updateMany(
-      { assignmentGroup: { $in: ids } },
-      { $unset: { assignmentGroup: "" } },
-      { session }
+    await ServiceRequest.update(
+      { assignmentGroupId: null },
+      { where: { assignmentGroupId: ids }, transaction: t }
     );
 
-    const deleted = await repo.bulkDeleteGroups(ids, session);
+    const deleted = await repo.bulkDeleteGroups(ids);
 
-    await session.commitTransaction();
+    await t.commit();
     return deleted;
   } catch (error) {
-    session.abortTransaction();
+    await t.rollback();
     throw error;
-  } finally {
-    session.endSession();
   }
 };
 
 export const bulkDuplicateGroups = async (ids: string[]) => {
-  const session = await mongoose.startSession();
+  const t = await sequelize.transaction();
   try {
-    session.startTransaction();
-
     const sourceGroups = await repo.findGroupsByIds(ids);
     if (!sourceGroups || sourceGroups.length === 0) {
       throw new Error("Assignment groups not found");
@@ -116,15 +104,15 @@ export const bulkDuplicateGroups = async (ids: string[]) => {
       }
 
       const escapedBaseName = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const regex = new RegExp(`^${escapedBaseName}(?:-\\((\\d+)\\))?$`);
+      const regexStr = `^${escapedBaseName}(?:-\\((\\d+)\\))?$`;
 
       const similarResult = await repo.findGroupsByFilter({
-        groupName: { $regex: regex }
+        groupName: { [Op.iRegexp]: regexStr }
       });
 
       let maxIndex = 0;
       similarResult.forEach((item: any) => {
-        const match = item.groupName.match(regex);
+        const match = item.groupName.match(new RegExp(regexStr, 'i'));
         if (match && match[1]) {
           const index = parseInt(match[1], 10);
           if (index > maxIndex) maxIndex = index;
@@ -136,13 +124,14 @@ export const bulkDuplicateGroups = async (ids: string[]) => {
       const now = new Date();
       const toSave: any = {
         ...source,
-        _id: new mongoose.Types.ObjectId(),
+        id: crypto.randomUUID(),
         groupName: newName,
         createdOn: now,
         modifiedOn: now,
         isActive: true
       };
 
+      delete toSave._id;
       delete toSave.__v;
       delete toSave.createdAt;
       delete toSave.updatedAt;
@@ -151,12 +140,10 @@ export const bulkDuplicateGroups = async (ids: string[]) => {
       duplicatedGroups.push(newGroup);
     }
 
-    await session.commitTransaction();
+    await t.commit();
     return duplicatedGroups;
   } catch (error) {
-    session.abortTransaction();
+    await t.rollback();
     throw error;
-  } finally {
-    session.endSession();
   }
 };

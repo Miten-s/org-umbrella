@@ -1,54 +1,64 @@
-import mongoose from "mongoose";
+import { Model, DataTypes } from "sequelize";
+import { sequelize } from "../configs/db.sequelize";
 
-enum STATUS {
-  ENABLED = "enabled",
-  DISABLED = "disabled"
-}
-
-export interface IGxpServiceAppModule {
-  _id: string;
+export interface IAppModule {
+  id: string;
   moduleName: string;
-  application?: string;
-  moduleId?: string;
-  status: STATUS;
-  createdBy: string;
+  applicationId: string;
+  moduleIdString: string;
+  status: "enabled" | "disabled";
+  createdBy?: string;
 }
 
-const GxpServiceAppModuleSchema = new mongoose.Schema(
+export class AppModule extends Model<IAppModule> implements IAppModule {
+  public id!: string;
+  public moduleName!: string;
+  public applicationId!: string;
+  public moduleIdString!: string;
+  public status!: "enabled" | "disabled";
+  public createdBy!: string;
+  public readonly created_at!: Date;
+  public readonly updated_at!: Date;
+}
+
+AppModule.init(
   {
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     moduleName: {
-      type: String,
-      required: true
+      type: DataTypes.STRING,
+      allowNull: false,
+      field: "module_name"
     },
-    application: {
-      type: String,
-      ref: "GxpServiceApplication"
+    applicationId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      field: "application_id"
     },
-    // Intentionally generated in service as: moduleName_applicationName
-    moduleId: {
-      type: String,
-      required: true
+    moduleIdString: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      field: "module_id_string" // Stores "moduleName_applicationName"
     },
     status: {
-      type: String,
-      enum: ["enabled", "disabled"],
-      default: "enabled"
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      defaultValue: "enabled"
     },
     createdBy: {
-      type: String
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: "created_by"
     }
   },
   {
-    timestamps: true,
-    collection: "gxp-service-app-modules"
+    sequelize,
+    tableName: "app_modules",
+    underscored: true,
+    timestamps: true
   }
 );
-
-export const GxpServiceAppModuleModel = mongoose.model(
-  "GxpServiceAppModule",
-  GxpServiceAppModuleSchema
-);
-
-void GxpServiceAppModuleModel.collection.dropIndex("moduleName_1").catch(() => undefined);
-void GxpServiceAppModuleModel.collection.dropIndex("uniqueName_1").catch(() => undefined);
-void GxpServiceAppModuleModel.updateMany({ application: "" }, { $unset: { application: 1 } }).catch(() => undefined);
+export default AppModule;

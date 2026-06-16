@@ -1,12 +1,11 @@
 import GxpServiceApplicationModel from "../models/gxp-service-applications.model";
-import { IGxpServiceAppModule } from "../models/gxp-service-application-modules.model";
+import { IAppModule } from "../models/gxp-service-application-modules.model";
 import * as repo from "../repo/gxp-service-application-modules.repo";
 import { toObjectIdString } from "./mixed-id-resolution.service";
 import { PaginationOptions } from "../utils/pagination.util";
-import mongoose from "mongoose";
-
-const escapeRegExp = (value: string) =>
-  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+import { sequelize } from "../configs/db.sequelize";
+import { Op } from "sequelize";
+import crypto from "crypto";
 
 const normalizeModuleIdSegment = (value: string) =>
   value
@@ -14,19 +13,10 @@ const normalizeModuleIdSegment = (value: string) =>
     .replace(/\s+/g, "-")
     .toLowerCase();
 
-// Intentionally uses application NAME (not ID)
 const buildModuleId = (moduleName: string, applicationName?: string) => {
   const left = normalizeModuleIdSegment(moduleName || "");
   const right = normalizeModuleIdSegment(applicationName || "unassigned");
   return `${left}_${right}`;
-};
-
-const unassignedApplicationFilter = {
-  $or: [
-    { application: { $exists: false } },
-    { application: null },
-    { application: "" }
-  ]
 };
 
 const parseApplicationId = (value: unknown): string | undefined => {
@@ -61,32 +51,12 @@ const resolveApplicationName = async (
   if (fallbackName?.trim()) return fallbackName.trim();
   if (!applicationId) return undefined;
 
-  const app = await GxpServiceApplicationModel.findById(applicationId)
-    .select("applicationName")
-    .lean();
+  const app = await GxpServiceApplicationModel.findByPk(applicationId, {
+    attributes: ["applicationName"]
+  });
 
-  const name = (app as any)?.applicationName;
+  const name = app?.applicationName;
   return typeof name === "string" && name.trim() ? name.trim() : undefined;
-};
-
-const syncApplicationModulesFromModuleChange = async (
-  moduleMongoId: string,
-  previousApplicationId?: string,
-  nextApplicationId?: string
-) => {
-  if (previousApplicationId && previousApplicationId !== nextApplicationId) {
-    await GxpServiceApplicationModel.updateOne(
-      { _id: previousApplicationId },
-      { $pull: { applicationModules: moduleMongoId } }
-    );
-  }
-
-  if (nextApplicationId) {
-    await GxpServiceApplicationModel.updateOne(
-      { _id: nextApplicationId },
-      { $addToSet: { applicationModules: moduleMongoId } }
-    );
-  }
 };
 
 const findDuplicateForApplication = async (
@@ -95,42 +65,38 @@ const findDuplicateForApplication = async (
   moduleId: string,
   excludeId?: string
 ) => {
-  const fallbackFilter: Record<string, unknown> = {
-    moduleName: new RegExp(`^${escapeRegExp(moduleName)}$`, "i")
+  const filter: any = {
+    moduleName: { [Op.iLike]: moduleName }
   };
 
   if (applicationId) {
-    fallbackFilter.application = applicationId;
+    filter.applicationId = applicationId;
   } else {
-    fallbackFilter.$or = (unassignedApplicationFilter as any).$or;
+    filter.applicationId = null;
   }
 
-  const matchesResult = await repo.getApplicationModules({
-    $or: [{ moduleId }, fallbackFilter]
-  });
+  const matchesResult = await repo.getApplicationModules(filter);
   const matches = Array.isArray(matchesResult) ? matchesResult : matchesResult.data;
 
-  return matches.find((item: any) => String(item?._id) !== String(excludeId ?? ""));
+  return matches.find((item: any) => String(item?.id) !== String(excludeId ?? ""));
 };
 
-const toPlain = (value: any) =>
-  value && typeof value.toObject === "function" ? value.toObject() : value;
-
 const stripLegacyUniqueName = (value: any) => {
-  const plain = toPlain(value);
-  if (plain && typeof plain === "object") {
-    delete plain.uniqueName;
+  if (value && typeof value === "object") {
+    const json = value.toJSON ? value.toJSON() : { ...value };
+    delete json.uniqueName;
+    return json;
   }
-  return plain;
+  return value;
 };
 
 export const createApplicationModule = async (
-  payload: Partial<IGxpServiceAppModule>,
+  payload: Partial<IAppModule>,
   currentUser: string
 ) => {
   console.log("Creating application module with payload:", payload);
   const moduleName = (payload.moduleName ?? "").trim();
-  const application = parseApplicationId(payload.application);
+  const application = parseApplicationId(payload.applicationId || (payload as any).application);
   const applicationName = await resolveApplicationName(application);
 
   if (application && !applicationName) {
@@ -153,14 +119,9 @@ export const createApplicationModule = async (
   }
 
   const created = await repo.createApplicationModule(
-    { ...payload, moduleName, application, moduleId },
+    { ...payload, moduleName, applicationId: application, moduleIdString: moduleId },
     currentUser
   );
-
-  const moduleMongoId = String((created as any)?._id ?? "");
-  if (moduleMongoId && application) {
-    await syncApplicationModulesFromModuleChange(moduleMongoId, undefined, application);
-  }
 
   return stripLegacyUniqueName(created);
 };
@@ -186,14 +147,14 @@ export const getApplicationModuleById = async (id: string) => {
 
 export const updateApplicationModule = async (
   id: string,
-  updates: Partial<IGxpServiceAppModule>
+  updates: Partial<IAppModule>
 ) => {
   const existing = await repo.findApplicationModulesById(id);
   if (!existing) {
     throw new Error("Application module not found");
   }
 
-  const previousApplicationId = parseApplicationId((existing as any).application);
+  const previousApplicationId = parseApplicationId((existing as any).applicationId || (existing as any).application);
   const previousApplicationName = parseApplicationName((existing as any).application);
 
   const moduleName =
@@ -202,9 +163,9 @@ export const updateApplicationModule = async (
       : String((existing as any).moduleName ?? "").trim();
 
   const application =
-    updates.application !== undefined
-      ? parseApplicationId(updates.application)
-      : previousApplicationId;
+    (updates as any).applicationId !== undefined
+      ? parseApplicationId((updates as any).applicationId)
+      : (updates.applicationId !== undefined ? parseApplicationId(updates.applicationId) : previousApplicationId);
 
   const applicationName = await resolveApplicationName(application, previousApplicationName);
 
@@ -231,60 +192,24 @@ export const updateApplicationModule = async (
   const updated = await repo.updateApplicationModule(id, {
     ...updates,
     moduleName,
-    application,
-    moduleId
+    applicationId: application,
+    moduleIdString: moduleId
   });
-
-  if (updated) {
-    await syncApplicationModulesFromModuleChange(id, previousApplicationId, application);
-  }
 
   return stripLegacyUniqueName(updated);
 };
 
 export const deleteApplicationModule = async (id: string) => {
-  const existing = await repo.findApplicationModulesById(id);
-  if (existing) {
-    const applicationId = parseApplicationId((existing as any).application);
-    if (applicationId) {
-      await GxpServiceApplicationModel.updateOne(
-        { _id: applicationId },
-        { $pull: { applicationModules: id } }
-      );
-    }
-  }
-
   return await repo.deleteApplcationModule(id);
 };
 
 export const bulkDeleteApplicationModules = async (ids: string[]) => {
-  const session = await mongoose.startSession();
-  try {
-    session.startTransaction();
-
-    await GxpServiceApplicationModel.updateMany(
-      { applicationModules: { $in: ids } },
-      { $pullAll: { applicationModules: ids } },
-      { session }
-    );
-
-    const deleted = await repo.bulkDeleteApplicationModules(ids, session);
-
-    await session.commitTransaction();
-    return deleted;
-  } catch (error) {
-    session.abortTransaction();
-    throw error;
-  } finally {
-    session.endSession();
-  }
+  return await repo.bulkDeleteApplicationModules(ids);
 };
 
 export const bulkDuplicateApplicationModules = async (ids: string[], user: any) => {
-  const session = await mongoose.startSession();
+  const t = await sequelize.transaction();
   try {
-    session.startTransaction();
-
     const sourceModules = await repo.findApplicationModulesByIds(ids);
     if (!sourceModules || sourceModules.length === 0) {
       throw new Error("Application modules not found");
@@ -300,15 +225,15 @@ export const bulkDuplicateApplicationModules = async (ids: string[], user: any) 
       }
 
       const escapedBaseName = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const regex = new RegExp(`^${escapedBaseName}(?:-\\((\\d+)\\))?$`);
+      const regexStr = `^${escapedBaseName}(?:-\\((\\d+)\\))?$`;
 
       const similarResult = await repo.findApplicationModulesByFilter({
-        moduleName: { $regex: regex }
+        moduleName: { [Op.iRegexp]: regexStr }
       });
 
       let maxIndex = 0;
       similarResult.forEach((item: any) => {
-        const match = item.moduleName.match(regex);
+        const match = item.moduleName.match(new RegExp(regexStr, 'i'));
         if (match && match[1]) {
           const index = parseInt(match[1], 10);
           if (index > maxIndex) maxIndex = index;
@@ -316,15 +241,15 @@ export const bulkDuplicateApplicationModules = async (ids: string[], user: any) 
       });
 
       const newName = `${baseName}-(${maxIndex + 1})`;
-      const applicationName = await resolveApplicationName(source.application as string | undefined);
+      const applicationName = await resolveApplicationName(source.applicationId);
       const newModuleId = buildModuleId(newName, applicationName);
 
       const now = new Date();
       const toSave: any = {
         ...source,
-        _id: new mongoose.Types.ObjectId(),
+        id: crypto.randomUUID(),
         moduleName: newName,
-        moduleId: newModuleId,
+        moduleIdString: newModuleId,
         createdOn: now,
         createdBy: user,
         modifiedOn: now,
@@ -332,26 +257,19 @@ export const bulkDuplicateApplicationModules = async (ids: string[], user: any) 
         status: source.status ?? "enabled"
       };
 
+      delete toSave._id;
       delete toSave.__v;
       delete toSave.createdAt;
       delete toSave.updatedAt;
 
       const newModule = await repo.createApplicationModule(toSave, user);
-      
-      const moduleMongoId = String((newModule as any)?._id ?? "");
-      if (moduleMongoId && source.application) {
-        await syncApplicationModulesFromModuleChange(moduleMongoId, undefined, source.application);
-      }
-
       duplicatedModules.push(newModule);
     }
 
-    await session.commitTransaction();
+    await t.commit();
     return duplicatedModules.map(stripLegacyUniqueName);
   } catch (error) {
-    session.abortTransaction();
+    await t.rollback();
     throw error;
-  } finally {
-    session.endSession();
   }
 };

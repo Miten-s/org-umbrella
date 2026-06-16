@@ -1,25 +1,67 @@
 import { Request } from "express";
 import { IUser, User } from "../models/user.model";
 import { Role, RoleType } from "../models/role.model";
-import { PaginationOptions, escapeRegex } from "../utils/pagination.util";
+import { Permission } from "../models/permission.model";
+import { Department } from "../models/department.model";
+import { Location } from "../models/location.model";
+import { Designation } from "../models/designation.model";
+import { PaginationOptions } from "../utils/pagination.util";
+import { Op } from "sequelize";
+import { sequelize } from "../configs/db.sequelize";
 
-// 15th aprile 2026
-// If userType is Admin, it ensures the Admin built-in role is attached. If userType is User, it now does the same for the User built-in role. Any roles already passed in the payload are preserved and deduplicated.
+const formatUser = (user: any) => {
+  if (!user) return null;
+  const json = user.toJSON ? user.toJSON() : { ...user };
+  json._id = json.id;
+  
+  if (json.roles) {
+    json.roles = json.roles.map((r: any) => ({
+      _id: r.id,
+      id: r.id,
+      name: r.name,
+      type: r.type,
+      permissions: r.permissions ? r.permissions.map((p: any) => p.id) : []
+    }));
+  }
+  if (json.department) {
+    json.department = {
+      _id: json.department.id,
+      id: json.department.id,
+      departmentName: json.department.departmentName
+    };
+  }
+  if (json.location) {
+    json.location = {
+      _id: json.location.id,
+      id: json.location.id,
+      locationName: json.location.locationName
+    };
+  }
+  if (json.designation) {
+    json.designation = {
+      _id: json.designation.id,
+      id: json.designation.id,
+      designationName: json.designation.designationName
+    };
+  }
+  return json;
+};
+
 const assignDefaultRole = async (payload: Record<string, any>) => {
   if (!payload.userType) return payload;
 
   const defaultRole = await Role.findOne({
-    name: payload.userType,
-    type: RoleType.BUILT_IN
-  })
-    .select("_id")
-    .lean();
+    where: {
+      name: payload.userType,
+      type: RoleType.BUILT_IN
+    }
+  });
 
   if (!defaultRole) return payload;
 
   const existingRoles = Array.isArray(payload.roles) ? payload.roles : [];
   const roleIds = new Set([
-    defaultRole._id.toString(),
+    defaultRole.id,
     ...existingRoles.map((roleId: any) => roleId.toString())
   ]);
 
@@ -29,47 +71,40 @@ const assignDefaultRole = async (payload: Record<string, any>) => {
 
 const getUsers = async (options: PaginationOptions, user?: IUser) => {
   const { page, limit, skip, search } = options;
-  let filter: any = { fullName: { $nin: ["superadmin", user?.fullName] } };
+  const where: any = {
+    fullName: {
+      [Op.notIn]: ["superadmin", user?.fullName || ""]
+    }
+  };
 
   if (search) {
-    const sanitizedSearch = escapeRegex(search);
-    filter.$or = [
-      { fullName: { $regex: sanitizedSearch, $options: "i" } },
-      { email: { $regex: sanitizedSearch, $options: "i" } },
-      { name: { $regex: sanitizedSearch, $options: "i" } }
+    const searchVal = `%${search}%`;
+    where[Op.and] = [
+      {
+        [Op.or]: [
+          { fullName: { [Op.iLike]: searchVal } },
+          { email: { [Op.iLike]: searchVal } },
+          { name: { [Op.iLike]: searchVal } }
+        ]
+      }
     ];
   }
 
-  let populatation = {
-    populate: [
-      {
-        path: "roles",
-        select: ["name", "type", "permissions"]
-      },
-      {
-        path: "department",
-        select: ["departmentName"]
-      },
-      {
-        path: "location",
-        select: ["locationName"]
-      },
-      {
-        path: "designation",
-        select: ["designationName"]
-      }
-    ]
-  };
-
-  const queryOptions = { ...populatation, skip, limit };
-
-  const [data, totalCount] = await Promise.all([
-    User.find(filter, null, queryOptions).exec(),
-    User.countDocuments(filter).exec()
-  ]);
+  const { count: totalCount, rows: data } = await User.findAndCountAll({
+    where,
+    offset: skip,
+    limit,
+    include: [
+      { model: Role, as: "roles", attributes: ["id", "name", "type"], include: [{ model: Permission, as: "permissions", attributes: ["id"] }] },
+      { model: Department, as: "department", attributes: ["id", "departmentName"] },
+      { model: Location, as: "location", attributes: ["id", "locationName"] },
+      { model: Designation, as: "designation", attributes: ["id", "designationName"] }
+    ],
+    order: [["created_at", "DESC"]]
+  });
 
   return {
-    users: data,
+    users: data.map(formatUser),
     metadata: {
       totalCount,
       currentPage: page,
@@ -80,72 +115,133 @@ const getUsers = async (options: PaginationOptions, user?: IUser) => {
 };
 
 const createUser = async (req: Request) => {
-  const payload =
-    typeof req.body?.data === "string" ? JSON.parse(req.body.data) : req.body;
+  const payload = typeof req.body?.data === "string" ? JSON.parse(req.body.data) : req.body;
   const signature = req.file?.filename;
-  payload["createdBy"] = req?.user?._id;
+  payload["createdBy"] = (req?.user as any)?.id || (req?.user as any)?._id;
 
   if (signature) {
     payload["signature"] = signature;
   }
   await assignDefaultRole(payload);
-  return await User.create(payload);
+
+  const roles = payload.roles;
+  delete payload.roles;
+
+  if (payload.department) {
+    payload.departmentId = payload.department;
+    delete payload.department;
+  }
+  if (payload.location) {
+    payload.locationId = Array.isArray(payload.location) ? payload.location[0] : payload.location;
+    delete payload.location;
+  }
+  if (payload.designation) {
+    payload.designationId = payload.designation;
+    delete payload.designation;
+  }
+  if (payload.manager) {
+    payload.managerId = payload.manager;
+    delete payload.manager;
+  }
+
+  const t = await sequelize.transaction();
+  try {
+    const user = await User.create(payload, { transaction: t });
+    if (roles && roles.length > 0) {
+      await (user as any).setRoles(roles, { transaction: t });
+    }
+    await t.commit();
+    
+    const fetched = await User.findByPk(user.id, {
+      include: [
+        { model: Role, as: "roles", attributes: ["id", "name", "type"], include: [{ model: Permission, as: "permissions", attributes: ["id"] }] },
+        { model: Department, as: "department", attributes: ["id", "departmentName"] },
+        { model: Location, as: "location", attributes: ["id", "locationName"] },
+        { model: Designation, as: "designation", attributes: ["id", "designationName"] }
+      ]
+    });
+    return formatUser(fetched);
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
 };
 
 const updateUser = async (req: Request) => {
-  const payload =
-    typeof req.body?.data === "string" ? JSON.parse(req.body.data) : req.body;
+  const payload = typeof req.body?.data === "string" ? JSON.parse(req.body.data) : req.body;
   const signature = req.file?.filename;
   if (signature) {
     payload["signature"] = signature;
   }
-  return await User.updateOne({ _id: req.params.id }, { $set: payload });
+
+  payload["modifiedBy"] = (req?.user as any)?.id || (req?.user as any)?._id;
+  payload["modifiedOn"] = new Date();
+
+  const roles = payload.roles;
+  delete payload.roles;
+
+  if (payload.department !== undefined) {
+    payload.departmentId = payload.department;
+    delete payload.department;
+  }
+  if (payload.location !== undefined) {
+    payload.locationId = Array.isArray(payload.location) ? payload.location[0] : payload.location;
+    delete payload.location;
+  }
+  if (payload.designation !== undefined) {
+    payload.designationId = payload.designation;
+    delete payload.designation;
+  }
+  if (payload.manager !== undefined) {
+    payload.managerId = payload.manager;
+    delete payload.manager;
+  }
+
+  const t = await sequelize.transaction();
+  try {
+    const user = await User.findByPk(req.params.id as string);
+    if (!user) throw new Error("User not found");
+    await user.update(payload, { transaction: t });
+    if (roles !== undefined) {
+      await (user as any).setRoles(roles, { transaction: t });
+    }
+    await t.commit();
+    return { success: true };
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
 };
 
 const deleteUser = async (req: Request) => {
-  return await User.updateOne(
-    { _id: req.params.id },
-    { $set: { deletedAt: new Date() } }
-  );
+  const user = await User.findByPk(req.params.id as string);
+  if (!user) return null;
+  await user.destroy();
+  return formatUser(user);
 };
 
 const getUserDetail = async (id: string) => {
-  return await User.findOne(
-    { _id: id },
-    { password: 0 },
-    {
-      populate: [
-        {
-          path: "roles",
-          select: ["name", "type", "permissions"]
-        },
-        {
-          path: "department",
-          select: ["departmentName"]
-        },
-        {
-          path: "location",
-          select: ["locationName"]
-        },
-        {
-          path: "designation",
-          select: ["designationName"]
-        }
-      ]
-    }
-  ).exec();
+  const user = await User.findByPk(id, {
+    attributes: { exclude: ["password"] },
+    include: [
+      { model: Role, as: "roles", attributes: ["id", "name", "type"], include: [{ model: Permission, as: "permissions", attributes: ["id"] }] },
+      { model: Department, as: "department", attributes: ["id", "departmentName"] },
+      { model: Location, as: "location", attributes: ["id", "locationName"] },
+      { model: Designation, as: "designation", attributes: ["id", "designationName"] }
+    ]
+  });
+  return formatUser(user);
 };
 
 const bulkDeleteUsers = async (ids: string[], requestingUserId?: string) => {
-  const query: any = {
-    _id: { $in: ids },
-    fullName: { $ne: "superadmin" },
-    deletedAt: null
+  const where: any = {
+    id: ids,
+    fullName: { [Op.ne]: "superadmin" }
   };
   if (requestingUserId) {
-    query._id = { $in: ids, $ne: requestingUserId };
+    where.id = { [Op.in]: ids, [Op.ne]: requestingUserId };
   }
-  return await User.updateMany(query, { $set: { deletedAt: new Date() } });
+  return await User.destroy({ where });
 };
 
 export default {

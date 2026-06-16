@@ -1,8 +1,9 @@
 import * as repo from "../repo/gxp-service-workflows.repo";
 import { PaginationOptions } from "../utils/pagination.util";
-import mongoose from "mongoose";
 import GxpServiceApplicationModel from "../models/gxp-service-applications.model";
-import { GxpServiceRequestModel } from "../models/gxp-service-service-requests.model";
+import ServiceRequest from "../models/gxp-service-service-requests.model";
+import { sequelize } from "../configs/db.sequelize";
+import crypto from "crypto";
 
 export const addWorkflow = async (workflowData: any, user: string) => {
   const newWorkflow = {
@@ -72,31 +73,25 @@ const getNextWorkflowCopyName = (baseName: string, usedNames: Set<string>) => {
 };
 
 export const bulkDeleteWorkflows = async (workflowIds: string[]) => {
-  const session = await mongoose.startSession();
+  const t = await sequelize.transaction();
   try {
-    session.startTransaction();
+    await repo.bulkDeleteWorkflows(workflowIds, t);
 
-    await repo.bulkDeleteWorkflows(workflowIds, session);
-
-    await GxpServiceApplicationModel.updateMany(
-      { applicationWorkflow: { $in: workflowIds } },
-      { $unset: { applicationWorkflow: 1 } },
-      { session }
+    await GxpServiceApplicationModel.update(
+      { applicationWorkflowId: null },
+      { where: { applicationWorkflowId: workflowIds }, transaction: t }
     );
 
-    await GxpServiceRequestModel.updateMany(
-      { workflow: { $in: workflowIds } },
-      { $unset: { workflow: 1 } },
-      { session }
+    await ServiceRequest.update(
+      { workflowId: null },
+      { where: { workflowId: workflowIds }, transaction: t }
     );
 
-    await session.commitTransaction();
+    await t.commit();
     return { success: true, message: "Workflows deleted successfully" };
   } catch (error) {
-    await session.abortTransaction();
+    await t.rollback();
     throw error;
-  } finally {
-    await session.endSession();
   }
 };
 
@@ -104,10 +99,8 @@ export const bulkDuplicateWorkflows = async (
   workflowIds: string[],
   user: string
 ) => {
-  const session = await mongoose.startSession();
+  const t = await sequelize.transaction();
   try {
-    session.startTransaction();
-
     const workflowsToDuplicate = await repo.findWorkflowsByIds(workflowIds);
     if (!workflowsToDuplicate || workflowsToDuplicate.length === 0) {
       throw new Error("No workflows found for the provided IDs");
@@ -125,8 +118,8 @@ export const bulkDuplicateWorkflows = async (
       const now = new Date();
 
       const toSave: any = {
-        ...(workflow as any).toObject(),
-        _id: new mongoose.Types.ObjectId(),
+        ...workflow,
+        id: crypto.randomUUID(),
         workflowName: newName,
         createdOn: now,
         createdBy: user,
@@ -135,21 +128,19 @@ export const bulkDuplicateWorkflows = async (
         status: workflow.status ?? "enabled"
       };
 
+      delete toSave._id;
       delete toSave.__v;
       delete toSave.createdAt;
       delete toSave.updatedAt;
 
-      duplicatedWorkflows.push(toSave);
+      const inserted = await repo.createWorkflow(toSave);
+      duplicatedWorkflows.push(inserted);
     }
 
-    const inserted = await repo.createWorkflow(duplicatedWorkflows);
-
-    await session.commitTransaction();
-    return inserted;
+    await t.commit();
+    return duplicatedWorkflows;
   } catch (error) {
-    await session.abortTransaction();
+    await t.rollback();
     throw error;
-  } finally {
-    await session.endSession();
   }
 };

@@ -10,7 +10,6 @@ import {
   IsBoolean,
   ValidateIf
 } from "class-validator";
-import { Types } from "mongoose";
 
 export class CreateUserDTO {
   @IsString({ message: "Full Name is required and must be a string." })
@@ -29,11 +28,11 @@ export class CreateUserDTO {
 
   @IsOptional()
   @IsArray({ message: "Roles must be an array of role IDs." })
-  @Matches(/^[0-9a-fA-F]{24}$/, {
+  @IsString({
     each: true,
-    message: "Each role ID must be a valid MongoDB ObjectId."
+    message: "Each role ID must be a valid string ID."
   })
-  roles?: Types.ObjectId[];
+  roles?: string[];
 
   @IsEnum(["Admin", "User"], {
     message: "User type must be 'Admin' or 'User'."
@@ -49,15 +48,15 @@ export class CreateUserDTO {
   phone!: string;
 
   @ValidateIf((obj) => obj.userType === "User")
-  @IsMongoId({ message: "Department must be a valid MongoDB ObjectId." })
+  @IsString({ message: "Department must be a valid string ID." })
   department!: string;
 
   @ValidateIf((obj) => obj.userType === "User")
-  @IsMongoId({ message: "Designation must be a valid MongoDB ObjectId." })
+  @IsString({ message: "Designation must be a valid string ID." })
   designation!: string;
 
   @ValidateIf((obj) => obj.userType === "User")
-  @IsMongoId({ message: "Location must be a valid MongoDB ObjectId." })
+  @IsString({ message: "Location must be a valid string ID." })
   location?: string;
 
   @ValidateIf((obj) => obj.userType === "User")

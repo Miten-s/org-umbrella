@@ -1,28 +1,37 @@
-import { GxpServiceWorkFlowModel } from "../models/gxp-service-workflows.model";
-import { STATUS } from "../types/common.types";
-import { PaginationOptions, escapeRegex } from "../utils/pagination.util";
+import Workflow, { IWorkflow } from "../models/gxp-service-workflows.model";
+import { PaginationOptions } from "../utils/pagination.util";
+import { Op } from "sequelize";
 
-export const createWorkflow = async (data: any) => {
-  return await GxpServiceWorkFlowModel.create(data);
+const formatWorkflow = (wf: any) => {
+  if (!wf) return null;
+  const json = wf.toJSON ? wf.toJSON() : { ...wf };
+  json._id = json.id;
+  return json;
 };
 
+export const createWorkflow = async (data: any) => {
+  const doc = await Workflow.create(data);
+  return formatWorkflow(doc);
+};
 
 export const getAllWorkflows = async (options: PaginationOptions) => {
   const { page, limit, skip, search } = options;
-  const filter: any = {};
+  const where: any = {};
   if (search) {
-    const sanitizedSearch = escapeRegex(search);
-    filter.$or = [
-      { workflowName: { $regex: sanitizedSearch, $options: "i" } },
-      { description: { $regex: sanitizedSearch, $options: "i" } }
+    const sanitizedSearch = `%${search}%`;
+    where[Op.or] = [
+      { workflowName: { [Op.iLike]: sanitizedSearch } },
+      { description: { [Op.iLike]: sanitizedSearch } }
     ];
   }
-  const [data, totalCount] = await Promise.all([
-    GxpServiceWorkFlowModel.find(filter).skip(skip).limit(limit).lean(),
-    GxpServiceWorkFlowModel.countDocuments(filter).exec()
-  ]);
+  const { count: totalCount, rows: data } = await Workflow.findAndCountAll({
+    where,
+    offset: skip,
+    limit,
+    order: [["created_at", "DESC"]]
+  });
   return {
-    data,
+    data: data.map(formatWorkflow),
     metadata: {
       totalCount,
       currentPage: page,
@@ -33,51 +42,57 @@ export const getAllWorkflows = async (options: PaginationOptions) => {
 };
 
 export const getWorkflowById = async (workflowId: string) => {
-  return await GxpServiceWorkFlowModel.findOne({ workflowId });
+  const doc = await Workflow.findByPk(workflowId);
+  return formatWorkflow(doc);
 };
 
 export const updateWorkflow = async (workflowId: string, data: any) => {
-  const result = await GxpServiceWorkFlowModel.findOneAndUpdate(
-    { _id: workflowId },
-    data,
-    {
-      new: true
-    }
-  );
-  return result;
+  const wf = await Workflow.findByPk(workflowId);
+  if (!wf) return null;
+  await wf.update(data);
+  return formatWorkflow(wf);
 };
 
 export const disableWorkflow = async (workflowId: string, user: string) => {
-  return await GxpServiceWorkFlowModel.findOneAndUpdate(
-    { _id: workflowId },
-    { status: STATUS.DISABLED, modifiedOn: new Date(), modifiedBy: user },
-    { new: true }
-  );
+  const wf = await Workflow.findByPk(workflowId);
+  if (!wf) return null;
+  await wf.update({ status: "disabled", modifiedOn: new Date(), modifiedBy: user });
+  return formatWorkflow(wf);
 };
 
 export const enableWorkflow = async (workflowId: string, user: string) => {
-  return await GxpServiceWorkFlowModel.findOneAndUpdate(
-    { _id: workflowId },
-    { status: STATUS.ENABLED, modifiedOn: new Date(), modifiedBy: user },
-    { new: true }
-  );
+  const wf = await Workflow.findByPk(workflowId);
+  if (!wf) return null;
+  await wf.update({ status: "enabled", modifiedOn: new Date(), modifiedBy: user });
+  return formatWorkflow(wf);
 };
 
 export const deleteWorkflow = async (workflowId: string) => {
-  return await GxpServiceWorkFlowModel.deleteOne({ _id: workflowId });
+  const wf = await Workflow.findByPk(workflowId);
+  if (!wf) return null;
+  await wf.destroy();
+  return formatWorkflow(wf);
 };
 
 export const bulkDeleteWorkflows = async (workflowIds: string[], session?: any) => {
-  return await GxpServiceWorkFlowModel.deleteMany(
-    { _id: { $in: workflowIds } },
-    { session }
-  );
+  return await Workflow.destroy({
+    where: { id: workflowIds }
+  });
 };
 
 export const findWorkflowsByIds = async (workflowIds: string[]) => {
-  return await GxpServiceWorkFlowModel.find({ _id: { $in: workflowIds } });
+  const data = await Workflow.findAll({
+    where: { id: workflowIds }
+  });
+  return data.map(formatWorkflow);
 };
 
 export const getWorkflowsByFilter = async (filter: any) => {
-  return await GxpServiceWorkFlowModel.find(filter);
+  const where = { ...filter };
+  if (where._id) {
+    where.id = where._id;
+    delete where._id;
+  }
+  const data = await Workflow.findAll({ where });
+  return data.map(formatWorkflow);
 };

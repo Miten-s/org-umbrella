@@ -30,7 +30,7 @@ export const getAllGroups = asyncHandler(
 export const updateGroup = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
 
-  const result = await update(id, req.body);
+  const result = await update(id as string, req.body);
 
   if (!result) {
     return res.status(404).json({

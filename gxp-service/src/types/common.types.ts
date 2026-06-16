@@ -29,8 +29,15 @@ export interface UpdateApplication
     | "modifiedBy"
   > {
   applicationEnvironment?: string;
+  applicationEnvironmentId?: string | null;
   group?: string;
   assignmentGroup?: string;
+  assignmentGroupId?: string | null;
+  applicationWorkflowId?: string | null;
+  applicationSystemOwnerId?: string | null;
+  applicationProcessOwnerId?: string | null;
+  supplierId?: string | null;
+  notes?: string;
   applicationRoles?: Ids;
   applicationGroups?: Ids;
   applicationServiceRequestTypes?: Ids;

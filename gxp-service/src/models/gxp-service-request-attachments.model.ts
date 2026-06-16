@@ -1,39 +1,62 @@
+import { Model, DataTypes } from "sequelize";
+import { sequelize } from "../configs/db.sequelize";
+import { ServiceRequest } from "./gxp-service-service-requests.model";
 
-import mongoose from "mongoose";
+export interface IServiceRequestAttachment {
+  id?: string;
+  serviceRequestId: string;
+  attachment: string;
+  active: boolean;
+  createdBy?: string | null;
+}
 
-const GxpServiceRequestAttachmentSchema = new mongoose.Schema(
+export class ServiceRequestAttachment extends Model<IServiceRequestAttachment> implements IServiceRequestAttachment {
+  public id!: string;
+  public serviceRequestId!: string;
+  public attachment!: string;
+  public active!: boolean;
+  public createdBy!: string;
+  public readonly created_at!: Date;
+  public readonly updated_at!: Date;
+}
+
+ServiceRequestAttachment.init(
   {
-    srvId: {
-      type: String,
-      ref: "GxpServiceRequest",
-      required: true
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    serviceRequestId: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+      field: "service_request_id",
+      references: { model: "service_requests", key: "id" }
     },
     attachment: {
-      type: String,
-      required: true
+      type: DataTypes.STRING,
+      allowNull: false
     },
     active: {
-      type: Boolean,
-      required: true
+      type: DataTypes.BOOLEAN,
+      allowNull: false
     },
     createdBy: {
-      type: String
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: "created_by"
     }
   },
   {
-    timestamps: true,
-    collection: "gxp-service-request-attachments"
+    sequelize,
+    tableName: "service_request_attachments",
+    underscored: true,
+    timestamps: true
   }
 );
 
-const GxpServiceRequestAttachmentModel = mongoose.model(
-  "GxpServiceRequestAttachment",
-  GxpServiceRequestAttachmentSchema
-);
+// One-to-Many request attachments
+ServiceRequest.hasMany(ServiceRequestAttachment, { foreignKey: "service_request_id", as: "attachments" });
+ServiceRequestAttachment.belongsTo(ServiceRequest, { foreignKey: "service_request_id", as: "serviceRequest" });
 
-GxpServiceRequestAttachmentSchema.index(
-  { srvId: 1, attachment: 1 },
-  { unique: true }
-);
-
-export default GxpServiceRequestAttachmentModel;
+export default ServiceRequestAttachment;

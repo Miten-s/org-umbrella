@@ -1,39 +1,78 @@
 import { Request } from "express";
-import mongoose from "mongoose";
 import { IUser, User } from "../models/user.model";
 import { Role, RoleType } from "../models/role.model";
 import { isSuperAdmin } from "../utils/common.util";
-import { PaginationOptions, escapeRegex } from "../utils/pagination.util";
+import { PaginationOptions } from "../utils/pagination.util";
+import { Op } from "sequelize";
+import { sequelize } from "../configs/db.sequelize";
 
 const assignRole = async (req: Request) => {
-  return await User.findOneAndUpdate(
-    { email: req.body.email },
-    { $push: { roles: req.body.role } },
-    { new: true }
-  );
+  const user = await User.findOne({ where: { email: req.body.email } });
+  if (!user) return null;
+  const role = await Role.findByPk(req.body.role);
+  if (role) {
+    await (user as any).addRole(role);
+  }
+  return user;
 };
 
 const createRole = async (req: Request) => {
   const { name, permissions, type } = req.body;
-  return await Role.create({
-    name,
-    permissions,
-    type
-  });
+  const t = await sequelize.transaction();
+  try {
+    const role = await Role.create({ name, type }, { transaction: t });
+    if (permissions && permissions.length > 0) {
+      await (role as any).setPermissions(permissions, { transaction: t });
+    }
+    await t.commit();
+    return role;
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
 };
 
 const updateRole = async (req: Request) => {
-  return await Role.updateOne(
-    { _id: req.params.id },
-    { $set: { ...req.body } }
-  );
+  const { name, permissions, type } = req.body;
+  const t = await sequelize.transaction();
+  try {
+    const role = await Role.findByPk(req.params.id as string);
+    if (!role) throw new Error("Role not found");
+    await role.update({ name, type }, { transaction: t });
+    if (permissions !== undefined) {
+      await (role as any).setPermissions(permissions, { transaction: t });
+    }
+    await t.commit();
+    return role;
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
 };
 
 const deleteRole = async (req: Request) => {
-  return await Role.updateOne(
-    { _id: req.params.id },
-    { $set: { deletedAt: new Date() } }
-  );
+  const t = await sequelize.transaction();
+  try {
+    const role = await Role.findByPk(req.params.id as string);
+    if (!role) return null;
+    await role.destroy({ transaction: t });
+    
+    // Clean up references in junction tables
+    await sequelize.query(`DELETE FROM user_roles WHERE role_id = :id`, {
+      replacements: { id: req.params.id },
+      transaction: t
+    });
+    await sequelize.query(`DELETE FROM role_permissions WHERE role_id = :id`, {
+      replacements: { id: req.params.id },
+      transaction: t
+    });
+    
+    await t.commit();
+    return role;
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
 };
 
 const getRoles = async (
@@ -42,23 +81,26 @@ const getRoles = async (
   type?: string
 ) => {
   const { page, limit, skip, search } = options;
-  let filter: any = { type: RoleType.CUSTOM };
+  let where: any = { type: RoleType.CUSTOM };
   if (type) {
-    filter = { type };
+    where = { type };
   } else if (isSuperAdmin(user)) {
-    filter = {
-      type: { $in: [RoleType.CUSTOM, RoleType.BUILT_IN, RoleType.GXP_SERVICE] }
+    where = {
+      type: { [Op.in]: [RoleType.CUSTOM, RoleType.BUILT_IN, RoleType.GXP_SERVICE] }
     };
   }
 
   if (search) {
-    filter.name = { $regex: escapeRegex(search), $options: "i" };
+    where.name = { [Op.iLike]: `%${search}%` };
   }
 
-  const [data, totalCount] = await Promise.all([
-    Role.find(filter).skip(skip).limit(limit).lean(),
-    Role.countDocuments(filter).exec()
-  ]);
+  const { count: totalCount, rows: data } = await Role.findAndCountAll({
+    where,
+    offset: skip,
+    limit,
+    include: ["permissions"],
+    order: [["created_at", "DESC"]]
+  });
 
   return {
     roles: data,
@@ -72,39 +114,47 @@ const getRoles = async (
 };
 
 const bulkDeleteRoles = async (ids: string[]) => {
-  const session = await mongoose.startSession();
+  const t = await sequelize.transaction();
   try {
-    session.startTransaction();
+    await Role.destroy({
+      where: { id: ids },
+      transaction: t
+    });
 
-    await Role.updateMany(
-      { _id: { $in: ids }, deletedAt: null },
-      { $set: { deletedAt: new Date() } },
-      { session }
+    // Cascade: remove deleted role refs from all user_roles
+    await sequelize.query(
+      `DELETE FROM user_roles WHERE role_id IN (:ids)`,
+      {
+        replacements: { ids },
+        transaction: t
+      }
     );
 
-    // Cascade: remove deleted role refs from all Users
-    await User.updateMany(
-      { roles: { $in: ids } },
-      { $pull: { roles: { $in: ids } } },
-      { session }
+    // Cascade: remove deleted role refs from all role_permissions
+    await sequelize.query(
+      `DELETE FROM role_permissions WHERE role_id IN (:ids)`,
+      {
+        replacements: { ids },
+        transaction: t
+      }
     );
 
-    await session.commitTransaction();
+    await t.commit();
     return { success: true, message: "Roles deleted successfully" };
   } catch (err) {
-    await session.abortTransaction();
+    await t.rollback();
     throw err;
-  } finally {
-    await session.endSession();
   }
 };
 
 const bulkDuplicateRoles = async (ids: string[]) => {
-  const session = await mongoose.startSession();
+  const t = await sequelize.transaction();
   try {
-    session.startTransaction();
-
-    const sourceRoles = await Role.find({ _id: { $in: ids } }).session(session);
+    const sourceRoles = await Role.findAll({
+      where: { id: ids },
+      include: ["permissions"],
+      transaction: t
+    });
     if (!sourceRoles || sourceRoles.length === 0) {
       throw new Error("Roles not found");
     }
@@ -119,15 +169,18 @@ const bulkDuplicateRoles = async (ids: string[]) => {
       }
 
       const escapedBaseName = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const regex = new RegExp(`^${escapedBaseName}(?:-\\((\\d+)\\))?$`);
+      const regexStr = `^${escapedBaseName}(?:-\\(([0-9]+)\\))?$`;
 
-      const similarRolesResult = await Role.find({
-        name: { $regex: regex }
-      }).session(session);
+      const similarRolesResult = await Role.findAll({
+        where: {
+          name: { [Op.iRegexp]: regexStr }
+        },
+        transaction: t
+      });
 
       let maxIndex = 0;
       similarRolesResult.forEach((role: any) => {
-        const match = role.name.match(regex);
+        const match = role.name.match(new RegExp(regexStr, 'i'));
         if (match && match[1]) {
           const index = parseInt(match[1], 10);
           if (index > maxIndex) maxIndex = index;
@@ -136,24 +189,25 @@ const bulkDuplicateRoles = async (ids: string[]) => {
 
       const newName = `${baseName}-(${maxIndex + 1})`;
 
-      const toSave = new Role({
+      const savedRole = await Role.create({
         name: newName,
-        permissions: sourceRole.permissions,
         type: RoleType.CUSTOM,
         deletedAt: null
-      });
+      } as any, { transaction: t });
 
-      const savedRole = await toSave.save({ session });
+      if (sourceRole.permissions && sourceRole.permissions.length > 0) {
+        const permIds = sourceRole.permissions.map((p: any) => p.id);
+        await (savedRole as any).setPermissions(permIds, { transaction: t });
+      }
+
       duplicatedRoles.push(savedRole);
     }
 
-    await session.commitTransaction();
+    await t.commit();
     return duplicatedRoles;
   } catch (error) {
-    await session.abortTransaction();
+    await t.rollback();
     throw error;
-  } finally {
-    await session.endSession();
   }
 };
 
