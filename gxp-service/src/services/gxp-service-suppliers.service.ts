@@ -1,20 +1,22 @@
 import * as repo from "../repo/gxp-service-suppliers.repo";
-import { IGxpSupplier } from "../models/gxp-service-suppliers.model";
+import { ISupplier } from "../models/gxp-service-suppliers.model";
 import { PaginationOptions } from "../utils/pagination.util";
-import mongoose from "mongoose";
 import GxpServiceApplicationModel from "../models/gxp-service-applications.model";
+import { sequelize } from "../configs/db.sequelize";
+import { Op } from "sequelize";
+import crypto from "crypto";
 
 export const createSupplier = async (
-  payload: Partial<IGxpSupplier>,
+  payload: Partial<ISupplier>,
   currentUser?: string
 ) => {
   const now = new Date();
-  const toSave: Partial<IGxpSupplier> = {
+  const toSave: Partial<ISupplier> = {
     ...payload,
     createdOn: now,
-    createdBy: currentUser ?? null,
+    createdBy: currentUser || undefined,
     modifiedOn: now,
-    modifiedBy: currentUser ?? null,
+    modifiedBy: currentUser || undefined,
     status: payload.status ?? "enabled"
   };
   return await repo.createSupplier(toSave);
@@ -33,13 +35,13 @@ export const getSupplier = async (id: string) => {
 
 export const updateSupplier = async (
   id: string,
-  updates: Partial<IGxpSupplier>,
+  updates: Partial<ISupplier>,
   currentUser?: string
 ) => {
   const modified = {
     ...updates,
     modifiedOn: new Date(),
-    modifiedBy: currentUser ?? null
+    modifiedBy: currentUser || undefined
   };
   return await repo.updateSupplierById(id, modified);
 };
@@ -48,7 +50,7 @@ export const disableSupplier = async (id: string, currentUser?: string) => {
   await repo.updateSupplierById(id, {
     status: "disabled",
     modifiedOn: new Date(),
-    modifiedBy: currentUser ?? null
+    modifiedBy: currentUser || undefined
   });
   return await repo.softDisableSupplier(id);
 };
@@ -57,7 +59,7 @@ export const enableSupplier = async (id: string, currentUser?: string) => {
   await repo.updateSupplierById(id, {
     status: "enabled",
     modifiedOn: new Date(),
-    modifiedBy: currentUser ?? null
+    modifiedBy: currentUser || undefined
   });
   return await repo.restoreSupplier(id);
 };
@@ -67,33 +69,29 @@ export const deleteSupplier = async (id: string) => {
 };
 
 export const bulkDeleteSuppliers = async (ids: string[]) => {
-  const session = await mongoose.startSession();
+  const t = await sequelize.transaction();
   try {
-    session.startTransaction();
-
-    await GxpServiceApplicationModel.updateMany(
-      { supplier: { $in: ids } },
-      { $unset: { supplier: "" } },
-      { session }
+    await GxpServiceApplicationModel.update(
+      { supplierId: null },
+      { where: { supplierId: ids }, transaction: t }
     );
 
-    const deleted = await repo.bulkDeleteSuppliers(ids, session);
+    await GxpServiceApplicationModel.sequelize!.query(
+      `DELETE FROM suppliers WHERE id IN (:ids)`,
+      { replacements: { ids }, transaction: t }
+    );
 
-    await session.commitTransaction();
-    return deleted;
+    await t.commit();
+    return { count: ids.length };
   } catch (error) {
-    session.abortTransaction();
+    await t.rollback();
     throw error;
-  } finally {
-    session.endSession();
   }
 };
 
 export const bulkDuplicateSuppliers = async (ids: string[], user: any) => {
-  const session = await mongoose.startSession();
+  const t = await sequelize.transaction();
   try {
-    session.startTransaction();
-
     const sourceSuppliers = await repo.findSuppliersByIds(ids);
     if (!sourceSuppliers || sourceSuppliers.length === 0) {
       throw new Error("Suppliers not found");
@@ -109,15 +107,15 @@ export const bulkDuplicateSuppliers = async (ids: string[], user: any) => {
       }
 
       const escapedBaseName = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const regex = new RegExp(`^${escapedBaseName}(?:-\\((\\d+)\\))?$`);
+      const regexStr = `^${escapedBaseName}(?:-\\((\\d+)\\))?$`;
 
       const similarResult = await repo.findSuppliersByFilter({
-        supplierName: { $regex: regex }
+        supplierName: { [Op.iRegexp]: regexStr }
       });
 
       let maxIndex = 0;
       similarResult.forEach((item: any) => {
-        const match = item.supplierName.match(regex);
+        const match = item.supplierName.match(new RegExp(regexStr, 'i'));
         if (match && match[1]) {
           const index = parseInt(match[1], 10);
           if (index > maxIndex) maxIndex = index;
@@ -129,7 +127,7 @@ export const bulkDuplicateSuppliers = async (ids: string[], user: any) => {
       const now = new Date();
       const toSave: any = {
         ...source,
-        _id: new mongoose.Types.ObjectId(),
+        id: crypto.randomUUID(),
         supplierName: newName,
         createdOn: now,
         createdBy: user,
@@ -138,6 +136,7 @@ export const bulkDuplicateSuppliers = async (ids: string[], user: any) => {
         status: source.status ?? "enabled"
       };
 
+      delete toSave._id;
       delete toSave.__v;
       delete toSave.createdAt;
       delete toSave.updatedAt;
@@ -146,12 +145,10 @@ export const bulkDuplicateSuppliers = async (ids: string[], user: any) => {
       duplicatedSuppliers.push(newSupplier);
     }
 
-    await session.commitTransaction();
+    await t.commit();
     return duplicatedSuppliers;
   } catch (error) {
-    session.abortTransaction();
+    await t.rollback();
     throw error;
-  } finally {
-    session.endSession();
   }
 };

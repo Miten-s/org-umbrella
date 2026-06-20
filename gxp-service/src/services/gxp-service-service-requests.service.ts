@@ -2,7 +2,7 @@ import { Request } from "express";
 import { IServiceRequest } from "../models/gxp-service-service-requests.model";
 import * as repo from "../repo/gxp-service-service-requests.repo";
 import GxpServiceRequestAttachmentModel from "../models/gxp-service-request-attachments.model";
-import { GxpServiceAppModuleModel } from "../models/gxp-service-application-modules.model";
+import GxpServiceAppModuleModel from "../models/gxp-service-application-modules.model";
 import GxpServiceAppRoleModel from "../models/gxp-service-application-roles.model";
 import GxpServiceAppServiceModel from "../models/gxp-service-application-services.model";
 import { resolveIds } from "./mixed-id-resolution.service";
@@ -125,11 +125,13 @@ export const createServiceRequest = async (
     throw new Error("Application is required");
   }
 
-  const applicationRecord = await GxpServiceApplicationModel.findById(
-    applicationId
-  )
-    .select({ applicationName: 1 })
-    .lean();
+  const applicationRecord = await GxpServiceApplicationModel.findByPk(
+    applicationId,
+    {
+      attributes: ["applicationName"],
+      raw: true
+    }
+  );
 
   if (!applicationRecord?.applicationName) {
     throw new Error("Application not found");
@@ -145,25 +147,19 @@ export const createServiceRequest = async (
 
   // Attachments
   if (attachments?.length) {
-    const createdAttachments = await Promise.all(
+    await Promise.all(
       attachments.map((attachment) =>
         GxpServiceRequestAttachmentModel.create({
-          srvId: newRequest._id,
+          serviceRequestId: newRequest.id,
           attachment,
           active: true,
-          createdBy: data.createdBy
+          createdBy: data.createdBy || null
         })
       )
     );
-
-    newRequest.attachments = createdAttachments.map((doc) =>
-      doc._id.toString()
-    );
-
-    await newRequest.save();
   }
 
-  return newRequest;
+  return await repo.getServiceRequestById(newRequest.id);
 };
 
 
@@ -298,11 +294,13 @@ export const updateRequest = async (
       throw new Error("Application is required");
     }
 
-    const applicationRecord = await GxpServiceApplicationModel.findById(
-      applicationId
-    )
-      .select({ applicationName: 1 })
-      .lean();
+    const applicationRecord = await GxpServiceApplicationModel.findByPk(
+      applicationId,
+      {
+        attributes: ["applicationName"],
+        raw: true
+      }
+    );
 
     if (!applicationRecord?.applicationName) {
       throw new Error("Application not found");
@@ -317,22 +315,20 @@ export const updateRequest = async (
 
   // Attachments
   if (attachments?.length) {
-    const createdAttachments = await Promise.all(
+    await Promise.all(
       attachments.map((attachment) =>
         GxpServiceRequestAttachmentModel.create({
-          srvId: id,
+          serviceRequestId: id,
           attachment,
           active: true,
-          createdBy: data.modifiedBy // Assuming modifiedBy is passed
+          createdBy: data.modifiedBy || null
         })
       )
     );
-
-    const newIds = createdAttachments.map((d) => d._id.toString());
-    payload.attachments = [...(payload.attachments || []), ...newIds];
   }
 
-  return await repo.updateServiceRequest(id, payload);
+  await repo.updateServiceRequest(id, payload);
+  return await repo.getServiceRequestById(id);
 };
 
 export const deleteRequest = async (id: string) => {

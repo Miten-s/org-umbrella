@@ -34,8 +34,23 @@ export const errorHandler = (
   let statusCode: number;
   let message: string;
 
+  // Handle Sequelize Unique Constraint Error
+  if (err?.name === "SequelizeUniqueConstraintError") {
+    statusCode = 400;
+    const errors = (err as any).errors || [];
+    const field = errors[0]?.path || "field";
+    message = `Duplicate value for field "${field}".`;
+  }
+
+  // Handle Sequelize Validation Error
+  else if (err?.name === "SequelizeValidationError") {
+    statusCode = 400;
+    const errors = (err as any).errors || [];
+    message = errors.map((e: any) => e.message).join(", ");
+  }
+
   // Handle Mongoose Validation Error
-  if (err?.name === "ValidationError") {
+  else if (err?.name === "ValidationError") {
     statusCode = 400;
     message = Object.values(err?.errors ?? {})
       .map((e) => e.message)

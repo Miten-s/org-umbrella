@@ -1,30 +1,27 @@
-import mongoose from "mongoose";
-import { GxpServiceAppModuleModel } from "../models/gxp-service-application-modules.model";
+import AppModule from "../models/gxp-service-application-modules.model";
+import Application from "../models/gxp-service-applications.model";
 import { toObjectIdString } from "./mixed-id-resolution.service";
+import { Op } from "sequelize";
+import crypto from "crypto";
 
-/**
- * Keep regex-based exact-name lookups safe when matching user-entered module names.
- */
-const escapeRegExp = (value: string) =>
-  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-/**
- * Normalize module labels so duplicate checks are case/space insensitive.
- */
 const normalizeModuleName = (value: string) => value.trim().toLowerCase();
 
-/**
- * Resolve mixed module inputs (IDs + typed names) into module IDs for one application.
- * Why this exists:
- * - frontend can send existing IDs or typed names from Add button.
- * - typed names should create/reuse modules for the current application only.
- * - same-name modules must not be duplicated inside one application.
- * - modules linked to another application must not be reattached silently.
- */
+const normalizeModuleIdSegment = (value: string) =>
+  value
+    .trim()
+    .replace(/\s+/g, "-")
+    .toLowerCase();
+
+const buildModuleId = (moduleName: string, applicationName?: string) => {
+  const left = normalizeModuleIdSegment(moduleName || "");
+  const right = normalizeModuleIdSegment(applicationName || "unassigned");
+  return `${left}_${right}`;
+};
+
 export const resolveModuleIdsForApplication = async (
   rawValues: unknown,
   applicationId: string,
-  session?: mongoose.ClientSession
+  transaction?: any
 ): Promise<string[] | undefined> => {
   if (!Array.isArray(rawValues)) return undefined;
 
@@ -66,33 +63,32 @@ export const resolveModuleIdsForApplication = async (
 
   const uniqueIds = Array.from(new Set(ids));
 
-  let selectedByIdQuery = GxpServiceAppModuleModel.find({
-    _id: { $in: uniqueIds }
-  });
-  if (session) selectedByIdQuery = selectedByIdQuery.session(session);
-  const selectedById = uniqueIds.length ? await selectedByIdQuery.lean() : [];
+  const selectedById = uniqueIds.length ? await AppModule.findAll({
+    where: { id: uniqueIds },
+    transaction
+  }) : [];
 
   if (selectedById.length !== uniqueIds.length) {
     throw new Error("One or more selected modules do not exist");
   }
 
   const selectedByName = new Map<string, string>();
-  for (const module of selectedById as Array<Record<string, unknown>>) {
-    const moduleApp = String(module?.application ?? "").trim();
+  for (const module of selectedById) {
+    const moduleApp = String(module.applicationId ?? "").trim();
     if (moduleApp && moduleApp !== applicationId) {
       throw new Error(
-        `Module "${String(module?.moduleName ?? "")}" is already attached to another application`
+        `Module "${String(module.moduleName ?? "")}" is already attached to another application`
       );
     }
 
-    const key = normalizeModuleName(String(module?.moduleName ?? ""));
+    const key = normalizeModuleName(String(module.moduleName ?? ""));
     if (!key) continue;
     if (selectedByName.has(key)) {
       throw new Error(
-        `Duplicate module name "${String(module?.moduleName ?? "")}" for this application is not allowed`
+        `Duplicate module name "${String(module.moduleName ?? "")}" for this application is not allowed`
       );
     }
-    selectedByName.set(key, String(module?._id ?? ""));
+    selectedByName.set(key, String(module.id ?? ""));
   }
 
   const requestedNames = Array.from(
@@ -116,54 +112,61 @@ export const resolveModuleIdsForApplication = async (
   }
 
   if (unresolvedNames.length) {
-    const nameFilters = unresolvedNames.map((name) => ({
-      moduleName: new RegExp(`^${escapeRegExp(name)}$`, "i")
-    }));
-
-    let existingQuery = GxpServiceAppModuleModel.find({
-      application: applicationId,
-      $or: nameFilters
+    const existing = await AppModule.findAll({
+      where: {
+        applicationId,
+        moduleName: { [Op.in]: unresolvedNames }
+      },
+      transaction
     });
-    if (session) existingQuery = existingQuery.session(session);
-    const existing = await existingQuery.lean();
 
     const existingByName = new Map<string, string>();
-    for (const module of existing as Array<Record<string, unknown>>) {
-      const key = normalizeModuleName(String(module?.moduleName ?? ""));
+    for (const module of existing) {
+      const key = normalizeModuleName(String(module.moduleName ?? ""));
       if (key && !existingByName.has(key)) {
-        existingByName.set(key, String(module?._id ?? ""));
+        existingByName.set(key, String(module.id ?? ""));
       }
     }
 
-    const toCreate: Array<{ moduleName: string; application: string }> = [];
+    const appDoc = await Application.findByPk(applicationId, { transaction });
+    const appName = appDoc?.applicationName || "unassigned";
+
+    const toCreate: Array<{ id: string; moduleName: string; applicationId: string; moduleIdString: string; status: "enabled" | "disabled" }> = [];
     for (const name of unresolvedNames) {
       const key = normalizeModuleName(name);
       const existingId = existingByName.get(key);
       if (existingId) {
         ids.push(existingId);
       } else {
-        toCreate.push({ moduleName: name, application: applicationId });
+        toCreate.push({
+          id: crypto.randomUUID(),
+          moduleName: name,
+          applicationId,
+          moduleIdString: buildModuleId(name, appName),
+          status: "enabled"
+        });
       }
     }
 
     if (toCreate.length) {
-      const created = await GxpServiceAppModuleModel.create(toCreate, { session });
-      ids.push(...created.map((doc) => doc._id.toString()));
+      const created = await AppModule.bulkCreate(toCreate, { transaction });
+      ids.push(...created.map((doc) => doc.id));
     }
   }
 
   const finalIds = Array.from(new Set(ids));
-  let finalQuery = GxpServiceAppModuleModel.find({ _id: { $in: finalIds } });
-  if (session) finalQuery = finalQuery.session(session);
-  const finalModules = finalIds.length ? await finalQuery.lean() : [];
+  const finalModules = finalIds.length ? await AppModule.findAll({
+    where: { id: finalIds },
+    transaction
+  }) : [];
 
   const seen = new Set<string>();
-  for (const module of finalModules as Array<Record<string, unknown>>) {
-    const key = normalizeModuleName(String(module?.moduleName ?? ""));
+  for (const module of finalModules) {
+    const key = normalizeModuleName(String(module.moduleName ?? ""));
     if (!key) continue;
     if (seen.has(key)) {
       throw new Error(
-        `Duplicate module name "${String(module?.moduleName ?? "")}" for this application is not allowed`
+        `Duplicate module name "${String(module.moduleName ?? "")}" for this application is not allowed`
       );
     }
     seen.add(key);
@@ -172,22 +175,15 @@ export const resolveModuleIdsForApplication = async (
   return finalIds;
 };
 
-/**
- * Keep module.application in sync with application.applicationModules.
- * Why this exists:
- * - relationship is stored on both sides for fast filtering.
- * - create/update flows should not forget unlinking removed modules.
- */
 export const syncModuleOwnership = async (
   applicationId: string,
   moduleIds: string[],
   previousModuleIds: string[] = [],
-  session?: mongoose.ClientSession
+  transaction?: any
 ) => {
-  await GxpServiceAppModuleModel.updateMany(
-    { _id: { $in: moduleIds } },
-    { $set: { application: applicationId } },
-    session ? { session } : undefined
+  await AppModule.update(
+    { applicationId },
+    { where: { id: moduleIds }, transaction }
   );
 
   const removedModuleIds = previousModuleIds.filter(
@@ -195,10 +191,9 @@ export const syncModuleOwnership = async (
   );
 
   if (removedModuleIds.length) {
-    await GxpServiceAppModuleModel.updateMany(
-      { _id: { $in: removedModuleIds }, application: applicationId },
-      { $unset: { application: 1 } },
-      session ? { session } : undefined
+    await AppModule.update(
+      { applicationId: null as any },
+      { where: { id: removedModuleIds, applicationId }, transaction }
     );
   }
 };

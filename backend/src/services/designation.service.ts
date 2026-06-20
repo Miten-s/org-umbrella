@@ -1,28 +1,30 @@
 import { Designation, IDesignation } from "../models/designation.model";
-import { PaginationOptions, escapeRegex } from "../utils/pagination.util";
-import mongoose from "mongoose";
+import { PaginationOptions } from "../utils/pagination.util";
+import { Op } from "sequelize";
+import { sequelize } from "../configs/db.sequelize";
 
 const createDesignation = async (data: IDesignation) => {
-  const newDesignation = new Designation(data);
-  return await newDesignation.save();
+  return await Designation.create(data as any);
 };
 
 const getAllDesignations = async (options: PaginationOptions) => {
   const { page, limit, skip, search } = options;
-  const filter: any = {};
+  const where: any = {};
 
   if (search) {
-    const sanitizedSearch = escapeRegex(search);
-    filter.$or = [
-      { designationName: { $regex: sanitizedSearch, $options: "i" } },
-      { description: { $regex: sanitizedSearch, $options: "i" } }
+    const searchVal = `%${search}%`;
+    where[Op.or] = [
+      { designationName: { [Op.iLike]: searchVal } },
+      { description: { [Op.iLike]: searchVal } }
     ];
   }
 
-  const [data, totalCount] = await Promise.all([
-    Designation.find(filter).skip(skip).limit(limit).exec(),
-    Designation.countDocuments(filter).exec()
-  ]);
+  const { count: totalCount, rows: data } = await Designation.findAndCountAll({
+    where,
+    offset: skip,
+    limit,
+    order: [["created_at", "DESC"]]
+  });
 
   return {
     designations: data,
@@ -36,38 +38,35 @@ const getAllDesignations = async (options: PaginationOptions) => {
 };
 
 const getDesignationById = async (_id: string) => {
-  return await Designation.findOne({ _id }).exec();
+  return await Designation.findByPk(_id);
 };
 
 const updateDesignation = async (_id: string, data: Partial<IDesignation>) => {
-  return await Designation.findOneAndUpdate({ _id }, data, {
-    new: true
-  }).exec();
+  const designation = await Designation.findByPk(_id);
+  if (!designation) return null;
+  return await designation.update(data);
 };
 
 const deleteDesignation = async (_id: string) => {
-  return await Designation.findOneAndUpdate(
-    { _id },
-    { $set: { deletedAt: new Date() } },
-    { new: true }
-  ).exec();
+  const designation = await Designation.findByPk(_id);
+  if (!designation) return null;
+  await designation.destroy();
+  return designation;
 };
 
 const bulkDeleteDesignations = async (ids: string[]) => {
-  return await Designation.updateMany(
-    { _id: { $in: ids }, deletedAt: null },
-    { $set: { deletedAt: new Date() } }
-  );
+  return await Designation.destroy({
+    where: { id: ids }
+  });
 };
 
 const bulkDuplicateDesignations = async (ids: string[], user?: any) => {
-  const session = await mongoose.startSession();
+  const t = await sequelize.transaction();
   try {
-    session.startTransaction();
-
-    const sourceDesignations = await Designation.find({
-      _id: { $in: ids }
-    }).session(session);
+    const sourceDesignations = await Designation.findAll({
+      where: { id: ids },
+      transaction: t
+    });
     if (!sourceDesignations || sourceDesignations.length === 0) {
       throw new Error("Designations not found");
     }
@@ -82,15 +81,18 @@ const bulkDuplicateDesignations = async (ids: string[], user?: any) => {
       }
 
       const escapedBaseName = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const regex = new RegExp(`^${escapedBaseName}(?:-\\((\\d+)\\))?$`);
+      const regexStr = `^${escapedBaseName}(?:-\\(([0-9]+)\\))?$`;
 
-      const similarDesignationsResult = await Designation.find({
-        designationName: { $regex: regex }
-      }).session(session);
+      const similarDesignationsResult = await Designation.findAll({
+        where: {
+          designationName: { [Op.iRegexp]: regexStr }
+        },
+        transaction: t
+      });
 
       let maxIndex = 0;
       similarDesignationsResult.forEach((desig: any) => {
-        const match = desig.designationName.match(regex);
+        const match = desig.designationName.match(new RegExp(regexStr, 'i'));
         if (match && match[1]) {
           const index = parseInt(match[1], 10);
           if (index > maxIndex) maxIndex = index;
@@ -99,26 +101,23 @@ const bulkDuplicateDesignations = async (ids: string[], user?: any) => {
 
       const newName = `${baseName}-(${maxIndex + 1})`;
 
-      const toSave = new Designation({
+      const savedDesignation = await Designation.create({
         designationName: newName,
         description: sourceDesignation.description,
         status: sourceDesignation.status,
         deletedAt: null,
         modifiedOn: new Date(),
-        modifiedBy: user?._id
-      });
+        modifiedBy: user?.id || user?._id
+      } as any, { transaction: t });
 
-      const savedDesignation = await toSave.save({ session });
       duplicatedDesignations.push(savedDesignation);
     }
 
-    await session.commitTransaction();
+    await t.commit();
     return duplicatedDesignations;
   } catch (error) {
-    await session.abortTransaction();
+    await t.rollback();
     throw error;
-  } finally {
-    await session.endSession();
   }
 };
 

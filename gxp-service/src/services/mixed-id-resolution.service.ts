@@ -1,47 +1,34 @@
-import mongoose from "mongoose";
+import { Op } from "sequelize";
+import crypto from "crypto";
 
 export type ResolveIdsOptions = {
-  model: mongoose.Model<any>;
+  model: any;
   nameField: string;
   nameKeys: string[];
   createExtra?: Record<string, unknown>;
   queryExtra?: Record<string, unknown>;
-  session?: mongoose.ClientSession;
+  transaction?: any;
 };
 
-/**
- * Converts mixed ID-like values into a valid Mongo ObjectId string when possible.
- * Supports plain strings and common object wrappers used by UI payloads.
- */
 export const toObjectIdString = (raw: unknown): string | undefined => {
   if (!raw) return undefined;
 
   if (typeof raw === "string") {
     const value = raw.trim();
-    return value && mongoose.isValidObjectId(value) ? value : undefined;
-  }
-
-  if (mongoose.isValidObjectId(raw as any)) {
-    return String(raw);
+    return value && value.length === 36 ? value : undefined;
   }
 
   if (typeof raw === "object") {
     const rec = raw as Record<string, unknown>;
     const nested = rec._id ?? rec.id ?? rec.value ?? rec.$oid;
-    if (nested && mongoose.isValidObjectId(nested as any)) {
-      return String(nested);
+    if (nested && typeof nested === "string" && nested.trim().length === 36) {
+      return nested.trim();
     }
   }
 
   return undefined;
 };
 
-/**
- * Resolves mixed arrays (IDs + names + objects) to de-duplicated document IDs.
- * - existing IDs are reused
- * - known names are mapped to existing IDs
- * - unknown names are created on the target model
- */
 export const resolveIds = async (
   rawValues: unknown,
   options: ResolveIdsOptions
@@ -89,38 +76,34 @@ export const resolveIds = async (
 
   const cleanedNames = Array.from(new Set(names.filter(Boolean)));
   if (cleanedNames.length) {
-    const queryFilter = {
+    const where = {
       ...(options.queryExtra ?? {}),
-      [options.nameField]: { $in: cleanedNames }
+      [options.nameField]: { [Op.in]: cleanedNames }
     };
 
-    let query = options.model.find(queryFilter);
-    if (options.session) {
-      query = query.session(options.session);
-    }
-    const existing = await query.lean();
+    const existing = await options.model.findAll({
+      where,
+      transaction: options.transaction
+    });
 
     const existingNameSet = new Set(
-      existing.map((doc: Record<string, any>) => doc[options.nameField])
+      existing.map((doc: any) => doc[options.nameField])
     );
-    ids.push(...existing.map((doc: Record<string, any>) => String(doc._id)));
+    ids.push(...existing.map((doc: any) => String(doc.id)));
 
-    const toCreate = cleanedNames.filter((name) => !existingNameSet.has(name));
+    const toCreate = cleanedNames.filter((name: string) => !existingNameSet.has(name));
     if (toCreate.length) {
-      const inserts = toCreate.map((name) => ({
-        insertOne: {
-          document: {
-            [options.nameField]: name,
-            ...(options.createExtra ?? {})
-          }
-        }
+      const recordsToCreate = toCreate.map((name: string) => ({
+        id: crypto.randomUUID(),
+        [options.nameField]: name,
+        ...(options.createExtra ?? {})
       }));
 
-      const result = await options.model.bulkWrite(inserts, {
-        session: options.session
+      const created = await options.model.bulkCreate(recordsToCreate, {
+        transaction: options.transaction
       });
 
-      ids.push(...Object.values(result?.insertedIds ?? {}).map(String));
+      ids.push(...created.map((doc: any) => String(doc.id)));
     }
   }
 

@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import crypto from "crypto";
 import { AppError } from "../types/common.types";
 
 export const CUSTOM_MESSAGES = {
@@ -14,7 +14,7 @@ export const CUSTOM_MESSAGES = {
   LOGOUT_SUCCESSFUL: "Logout successful",
   SOMETHING_WENT_WRONG: "Something went wrong",
   REFRESH_TOKEN_EXPRIED: "Authentication expired",
-  TOKEN_EXPIRED: "Token Expired",
+  TOKEN_EXPRIED: "Token Expired",
   USER_NOT_FOUND: "User not found",
   NOT_ACCESSIBLE: "This role has not access to this resource",
   BAD_REQUEST: "Bad Request",
@@ -59,7 +59,7 @@ export const isAppError = (error: unknown): error is AppError => {
 };
 
 export const generateCustomId = (prefix: string) => {
-  const oid = new mongoose.Types.ObjectId().toHexString();
+  const oid = crypto.randomBytes(12).toString("hex");
   return `${prefix}~${oid}`;
 };
 

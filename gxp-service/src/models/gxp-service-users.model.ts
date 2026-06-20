@@ -1,54 +1,92 @@
-import mongoose from "mongoose";
+import { Model, DataTypes } from "sequelize";
+import { sequelize } from "../configs/db.sequelize";
 
-const GxpServiceUserSchema = new mongoose.Schema(
+export interface IGxpUser {
+  id: string;
+  authUserId: string;
+  userName: string;
+  userType: "User" | "Resolver";
+  roles: string[];
+  description?: string;
+  createdBy?: string;
+  modifiedBy?: string;
+  status: "enabled" | "disabled";
+  trainingCompleted: boolean;
+}
+
+export class GxpUser extends Model<IGxpUser> implements IGxpUser {
+  public id!: string;
+  public authUserId!: string;
+  public userName!: string;
+  public userType!: "User" | "Resolver";
+  public roles!: string[];
+  public description!: string;
+  public createdBy!: string;
+  public modifiedBy!: string;
+  public status!: "enabled" | "disabled";
+  public trainingCompleted!: boolean;
+  public readonly created_at!: Date;
+  public readonly updated_at!: Date;
+}
+
+GxpUser.init(
   {
-    user: {
-      id: { type: String, required: true },
-      name: { type: String, required: true }
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    authUserId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      field: "auth_user_id"
+    },
+    userName: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      field: "user_name"
     },
     userType: {
-      type: String,
-      enum: ["User", "Resolver"],
-      required: true
+      type: DataTypes.STRING,
+      allowNull: false,
+      field: "user_type"
     },
-    roles: [
-      {
-        type: String,
-        required: true,
-        ref: "Role"
-      }
-    ],
+    roles: {
+      type: DataTypes.ARRAY(DataTypes.UUID),
+      allowNull: false,
+      defaultValue: []
+    },
     description: {
-      type: String,
-      maxlength: 100
-    },
-    createdBy: {
-      type: String
-    },
-    modifiedBy: {
-      type: String
+      type: DataTypes.STRING(100),
+      allowNull: true
     },
     status: {
-      type: String,
-      enum: ["enabled", "disabled"],
-      default: "enabled"
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: "enabled"
     },
     trainingCompleted: {
-      type: Boolean,
-      default: false
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: "training_completed"
+    },
+    createdBy: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: "created_by"
+    },
+    modifiedBy: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: "modified_by"
     }
   },
   {
-    timestamps: true,
-    collection: "gxp-service-users"
+    sequelize,
+    tableName: "gxp_users",
+    underscored: true,
+    timestamps: true
   }
 );
-
-const GxpServiceUserModel = mongoose.model(
-  "GxpServiceUser",
-  GxpServiceUserSchema
-);
-
-GxpServiceUserSchema.index({ "user.id": 1, userType: 1 }, { unique: true });
-
-export default GxpServiceUserModel;
+export default GxpUser;

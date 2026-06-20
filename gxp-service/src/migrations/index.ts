@@ -1,0 +1,44 @@
+import { Migration } from "./runner";
+import * as m001 from "./001-create-environments";
+import * as m002 from "./002-create-suppliers";
+import * as m003 from "./003-create-workflows";
+import * as m004 from "./004-create-users";
+import * as m005 from "./005-create-assignment-groups";
+import * as m006 from "./006-create-assignment-group-members";
+import * as m007 from "./007-create-app-roles";
+import * as m008 from "./008-create-app-services";
+import * as m009 from "./009-create-applications";
+import * as m010 from "./010-create-app-modules";
+import * as m011 from "./011-create-app-attachments";
+import * as m012 from "./012-create-app-groups";
+import * as m013 from "./013-create-app-departments";
+import * as m014 from "./014-create-service-requests";
+import * as m015 from "./015-create-service-request-comments";
+import * as m016 from "./016-create-service-request-attachments";
+import * as m017 from "./017-create-service-request-counters";
+import * as m018 from "./018-create-junction-tables";
+import * as m019 from "./019-seed-initial-data";
+
+export const migrations: Migration[] = [
+  { name: "001-create-environments", up: m001.up },
+  { name: "002-create-suppliers", up: m002.up },
+  { name: "003-create-workflows", up: m003.up },
+  { name: "004-create-users", up: m004.up },
+  { name: "005-create-assignment-groups", up: m005.up },
+  { name: "006-create-assignment-group-members", up: m006.up },
+  { name: "007-create-app-roles", up: m007.up },
+  { name: "008-create-app-services", up: m008.up },
+  { name: "009-create-applications", up: m009.up },
+  { name: "010-create-app-modules", up: m010.up },
+  { name: "011-create-app-attachments", up: m011.up },
+  { name: "012-create-app-groups", up: m012.up },
+  { name: "013-create-app-departments", up: m013.up },
+  { name: "014-create-service-requests", up: m014.up },
+  { name: "015-create-service-request-comments", up: m015.up },
+  { name: "016-create-service-request-attachments", up: m016.up },
+  { name: "017-create-service-request-counters", up: m017.up },
+  { name: "018-create-junction-tables", up: m018.up },
+  { name: "019-seed-initial-data", up: m019.up }
+];
+export { runMigrations } from "./runner";
+

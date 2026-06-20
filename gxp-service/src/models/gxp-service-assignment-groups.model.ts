@@ -1,55 +1,141 @@
-import mongoose, { Schema } from "mongoose";
+import { Model, DataTypes } from "sequelize";
+import { sequelize } from "../configs/db.sequelize";
+import { GxpUser } from "./gxp-service-users.model";
 
-export interface AssignmentGroup {
+export interface IAssignmentGroup {
+  id: string;
   groupName: string;
-  manager: {
-    userId: string;
-    name: string;
-  };
-  members: {
-    userId: string;
-    name: string;
-  }[];
-  description: string;
-  createdOn: Date;
-  createdBy: string;
-  modifiedOn: Date;
-  modifiedBy: string;
+  managerUserId: string;
+  managerName: string;
+  description?: string;
+  createdOn?: Date;
+  createdBy?: string;
+  modifiedOn?: Date;
+  modifiedBy?: string;
   isActive: boolean;
 }
 
-const GxpServiceAssignmentGroupSchema = new Schema(
+export class AssignmentGroup extends Model<IAssignmentGroup> implements IAssignmentGroup {
+  public id!: string;
+  public groupName!: string;
+  public managerUserId!: string;
+  public managerName!: string;
+  public description!: string;
+  public createdOn!: Date;
+  public createdBy!: string;
+  public modifiedOn!: Date;
+  public modifiedBy!: string;
+  public isActive!: boolean;
+  public readonly created_at!: Date;
+  public readonly updated_at!: Date;
+  public members?: GxpUser[];
+}
+
+AssignmentGroup.init(
   {
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     groupName: {
-      type: String,
-      required: true,
-      // match: /^[A-Z]{2}-[A-Z]{3,}-[A-Z]{2,}-[A-Z]{2,}$/, // Format like RD-APP-LIMS-BUS-ADMIN (miten- for testing purpose only)
+      type: DataTypes.STRING,
+      allowNull: false,
       unique: true,
-      index: true
+      field: "group_name"
     },
-    manager: {
-      userId: { type: String, required: true },
-      name: { type: String, required: true }
+    managerUserId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      field: "manager_user_id"
     },
-    members: [
-      {
-        userId: { type: String, required: true },
-        name: { type: String, required: true }
-      }
-    ],
-    description: { type: String, maxlength: 50 },
-    createdOn: { type: Date, default: null },
-    createdBy: { type: String, maxlength: 40, default: "" },
-    modifiedOn: { type: Date, default: null },
-    modifiedBy: { type: String, maxlength: 40, default: "" },
-    isActive: { type: Boolean, default: true }
+    managerName: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      field: "manager_name"
+    },
+    description: {
+      type: DataTypes.STRING(50),
+      allowNull: true
+    },
+    isActive: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+      field: "is_active"
+    },
+    createdOn: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: "created_on"
+    },
+    createdBy: {
+      type: DataTypes.STRING(40),
+      allowNull: true,
+      field: "created_by"
+    },
+    modifiedOn: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: "modified_on"
+    },
+    modifiedBy: {
+      type: DataTypes.STRING(40),
+      allowNull: true,
+      field: "modified_by"
+    }
   },
-  { timestamps: false, collection: "gxp-service-assignment-groups" }
+  {
+    sequelize,
+    tableName: "assignment_groups",
+    underscored: true,
+    timestamps: true
+  }
 );
 
-const GxpServiceAssignmentGroupModel = mongoose.model<AssignmentGroup>(
-  "GxpServiceAssignmentGroup",
-  GxpServiceAssignmentGroupSchema
+// Join model for group members to cache user names
+export class AssignmentGroupMember extends Model {}
+AssignmentGroupMember.init(
+  {
+    groupId: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      field: "group_id",
+      references: { model: "assignment_groups", key: "id" }
+    },
+    userId: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      field: "user_id",
+      references: { model: "gxp_users", key: "id" }
+    },
+    userName: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      field: "user_name"
+    }
+  },
+  {
+    sequelize,
+    tableName: "assignment_group_members",
+    underscored: true,
+    timestamps: false
+  }
 );
 
-export default GxpServiceAssignmentGroupModel;
+// Associations
+AssignmentGroup.belongsToMany(GxpUser, {
+  through: AssignmentGroupMember,
+  foreignKey: "group_id",
+  otherKey: "user_id",
+  as: "members"
+});
+
+GxpUser.belongsToMany(AssignmentGroup, {
+  through: AssignmentGroupMember,
+  foreignKey: "user_id",
+  otherKey: "group_id",
+  as: "assignmentGroups"
+});
+
+export default AssignmentGroup;

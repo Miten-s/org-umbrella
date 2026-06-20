@@ -13,7 +13,7 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
 
 export const getUserDetail = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const userId = (req.user as IUser)?._id;
+    const userId = (req.user as IUser)?.id;
     if (!userId) {
       res.status(401).json({ error: "Invalid token" });
       return;
@@ -59,7 +59,7 @@ export const bulkDeleteUsers = asyncHandler(
     }
     const result = await userService.bulkDeleteUsers(
       ids,
-      (req.user as IUser)?._id?.toString()
+      (req.user as IUser)?.id?.toString()
     );
     res.status(200).json({ message: "Users deleted", result });
   }

@@ -1,28 +1,30 @@
 import { ILocation, Location } from "../models/location.model";
-import { PaginationOptions, escapeRegex } from "../utils/pagination.util";
-import mongoose from "mongoose";
+import { PaginationOptions } from "../utils/pagination.util";
+import { Op } from "sequelize";
+import { sequelize } from "../configs/db.sequelize";
 
 const createLocation = async (data: ILocation) => {
-  const newLocation = new Location(data);
-  return await newLocation.save();
+  return await Location.create(data as any);
 };
 
 const getAllLocations = async (options: PaginationOptions) => {
   const { page, limit, skip, search } = options;
-  const filter: any = {};
+  const where: any = {};
 
   if (search) {
-    const sanitizedSearch = escapeRegex(search);
-    filter.$or = [
-      { locationName: { $regex: sanitizedSearch, $options: "i" } },
-      { description: { $regex: sanitizedSearch, $options: "i" } }
+    const searchVal = `%${search}%`;
+    where[Op.or] = [
+      { locationName: { [Op.iLike]: searchVal } },
+      { description: { [Op.iLike]: searchVal } }
     ];
   }
 
-  const [data, totalCount] = await Promise.all([
-    Location.find(filter).skip(skip).limit(limit).exec(),
-    Location.countDocuments(filter).exec()
-  ]);
+  const { count: totalCount, rows: data } = await Location.findAndCountAll({
+    where,
+    offset: skip,
+    limit,
+    order: [["created_at", "DESC"]]
+  });
 
   return {
     locations: data,
@@ -36,37 +38,35 @@ const getAllLocations = async (options: PaginationOptions) => {
 };
 
 const getLocationById = async (_id: string) => {
-  return await Location.findOne({ _id }).exec();
+  return await Location.findByPk(_id);
 };
 
 const updateLocation = async (_id: string, data: Partial<ILocation>) => {
-  return await Location.findOneAndUpdate({ _id }, data, {
-    new: true
-  }).exec();
+  const location = await Location.findByPk(_id);
+  if (!location) return null;
+  return await location.update(data);
 };
 
 const deleteLocation = async (_id: string) => {
-  return await Location.findOneAndUpdate(
-    { _id },
-    { deletedAt: new Date() }
-  ).exec();
+  const location = await Location.findByPk(_id);
+  if (!location) return null;
+  await location.destroy();
+  return location;
 };
 
 const bulkDeleteLocations = async (ids: string[]) => {
-  return await Location.updateMany(
-    { _id: { $in: ids }, deletedAt: null },
-    { $set: { deletedAt: new Date() } }
-  );
+  return await Location.destroy({
+    where: { id: ids }
+  });
 };
 
 const bulkDuplicateLocations = async (ids: string[], user?: any) => {
-  const session = await mongoose.startSession();
+  const t = await sequelize.transaction();
   try {
-    session.startTransaction();
-
-    const sourceLocations = await Location.find({ _id: { $in: ids } }).session(
-      session
-    );
+    const sourceLocations = await Location.findAll({
+      where: { id: ids },
+      transaction: t
+    });
     if (!sourceLocations || sourceLocations.length === 0) {
       throw new Error("Locations not found");
     }
@@ -81,15 +81,18 @@ const bulkDuplicateLocations = async (ids: string[], user?: any) => {
       }
 
       const escapedBaseName = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const regex = new RegExp(`^${escapedBaseName}(?:-\\((\\d+)\\))?$`);
+      const regexStr = `^${escapedBaseName}(?:-\\(([0-9]+)\\))?$`;
 
-      const similarLocationsResult = await Location.find({
-        locationName: { $regex: regex }
-      }).session(session);
+      const similarLocationsResult = await Location.findAll({
+        where: {
+          locationName: { [Op.iRegexp]: regexStr }
+        },
+        transaction: t
+      });
 
       let maxIndex = 0;
       similarLocationsResult.forEach((loc: any) => {
-        const match = loc.locationName.match(regex);
+        const match = loc.locationName.match(new RegExp(regexStr, 'i'));
         if (match && match[1]) {
           const index = parseInt(match[1], 10);
           if (index > maxIndex) maxIndex = index;
@@ -98,27 +101,24 @@ const bulkDuplicateLocations = async (ids: string[], user?: any) => {
 
       const newName = `${baseName}-(${maxIndex + 1})`;
 
-      const toSave = new Location({
+      const savedLocation = await Location.create({
         locationName: newName,
         description: sourceLocation.description,
         comments: sourceLocation.comments,
         status: sourceLocation.status,
         deletedAt: null,
         modifiedOn: new Date(),
-        modifiedBy: user?._id
-      });
+        modifiedBy: user?.id || user?._id
+      } as any, { transaction: t });
 
-      const savedLocation = await toSave.save({ session });
       duplicatedLocations.push(savedLocation);
     }
 
-    await session.commitTransaction();
+    await t.commit();
     return duplicatedLocations;
   } catch (error) {
-    await session.abortTransaction();
+    await t.rollback();
     throw error;
-  } finally {
-    await session.endSession();
   }
 };
 

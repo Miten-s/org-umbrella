@@ -40,7 +40,7 @@ export const updateDepartment = asyncHandler(
     const department = await departmentService.updateDepartment(
       req.params.id as string,
       req.body,
-      req.user?._id
+      req.user?.id
     );
     if (!department)
       return res.status(404).json({ error: "Department not found" });

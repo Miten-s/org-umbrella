@@ -4,7 +4,7 @@ import rateLimit from "express-rate-limit";
 
 dotenv.config();
 
-import { connectDB } from "./configs/db.config";
+import { connectDB } from "./configs/db.sequelize";
 
 import API_ROUTES from "./utils/routes";
 import cors from "cors";

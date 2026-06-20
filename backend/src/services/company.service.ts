@@ -6,14 +6,18 @@ const updateCompany = async (req: Request) => {
   const { id: _id } = req.params;
   const logoPath = req.file?.path;
 
-  return await Company.findOneAndUpdate(
-    { _id },
-    { name, logo: logoPath?.split("uploads")[1], description }
-  ).exec();
+  const company = await Company.findByPk(_id as string);
+  if (!company) return null;
+
+  return await company.update({
+    name,
+    logo: logoPath?.split("uploads")[1],
+    description
+  });
 };
 
 const getCompany = async () => {
-  return await Company.findOne().exec();
+  return await Company.findOne();
 };
 
 export { updateCompany, getCompany };

@@ -1,48 +1,77 @@
 import { Request } from "express";
-import mongoose from "mongoose";
 import { Permission } from "../models/permission.model";
 import { Role } from "../models/role.model";
-import { ObjectId } from "mongodb";
-import { PaginationOptions, escapeRegex } from "../utils/pagination.util";
+import { PaginationOptions } from "../utils/pagination.util";
+import { Op } from "sequelize";
+import { sequelize } from "../configs/db.sequelize";
 
 const createPermission = async (req: Request) => {
   return await Permission.create(req.body);
 };
 
 const updatePermission = async (req: Request) => {
-  return await Permission.updateOne(
-    { _id: new ObjectId(req.params.id as string) },
-    req.body
-  );
+  const permission = await Permission.findByPk(req.params.id as string);
+  if (!permission) return null;
+  return await permission.update(req.body);
 };
 
 const deletePermission = async (req: Request) => {
-  return await Permission.updateOne(
-    { _id: new ObjectId(req.params.id as string) },
-    { $set: { deletedAt: new Date() } }
-  );
+  const permission = await Permission.findByPk(req.params.id as string);
+  if (!permission) return null;
+  
+  const t = await sequelize.transaction();
+  try {
+    // Soft delete permission
+    await permission.destroy({ transaction: t });
+    
+    // Remove references from role_permissions
+    await sequelize.query(
+      `DELETE FROM role_permissions WHERE permission_id = :id`,
+      {
+        replacements: { id: req.params.id },
+        transaction: t
+      }
+    );
+
+    await t.commit();
+    return permission;
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
 };
 
 const getPermissions = async (options: PaginationOptions, type?: string) => {
   const { page, limit, skip, search } = options;
-  const filter: any = {
-    type,
-    deletedAt: { $not: null },
-    name: { $not: /OPERATE:ALL/i }
+  
+  const where: any = {
+    name: {
+      [Op.notILike]: "%OPERATE:ALL%"
+    }
   };
 
+  if (type) {
+    where.type = type;
+  }
+
   if (search) {
-    const sanitizedSearch = escapeRegex(search);
-    filter.$or = [
-      { name: { $regex: sanitizedSearch, $options: "i" } },
-      { description: { $regex: sanitizedSearch, $options: "i" } }
+    const searchVal = `%${search}%`;
+    where[Op.and] = [
+      {
+        [Op.or]: [
+          { name: { [Op.iLike]: searchVal } },
+          { description: { [Op.iLike]: searchVal } }
+        ]
+      }
     ];
   }
 
-  const [data, totalCount] = await Promise.all([
-    Permission.find(filter).skip(skip).limit(limit).lean(),
-    Permission.countDocuments(filter).exec()
-  ]);
+  const { count: totalCount, rows: data } = await Permission.findAndCountAll({
+    where,
+    offset: skip,
+    limit,
+    order: [["created_at", "DESC"]]
+  });
 
   return {
     permissions: data,
@@ -56,41 +85,38 @@ const getPermissions = async (options: PaginationOptions, type?: string) => {
 };
 
 const bulkDeletePermissions = async (ids: string[]) => {
-  const session = await mongoose.startSession();
+  const t = await sequelize.transaction();
   try {
-    session.startTransaction();
+    // Soft delete permissions
+    await Permission.destroy({
+      where: { id: ids },
+      transaction: t
+    });
 
-    await Permission.updateMany(
-      { _id: { $in: ids }, deletedAt: null },
-      { $set: { deletedAt: new Date() } },
-      { session }
+    // Cascade: remove deleted permission refs from all role_permissions
+    await sequelize.query(
+      `DELETE FROM role_permissions WHERE permission_id IN (:ids)`,
+      {
+        replacements: { ids },
+        transaction: t
+      }
     );
 
-    // Cascade: remove deleted permission refs from all Roles
-    await Role.updateMany(
-      { permissions: { $in: ids } },
-      { $pull: { permissions: { $in: ids } } },
-      { session }
-    );
-
-    await session.commitTransaction();
+    await t.commit();
     return { success: true, message: "Permissions deleted successfully" };
   } catch (err) {
-    await session.abortTransaction();
+    await t.rollback();
     throw err;
-  } finally {
-    await session.endSession();
   }
 };
 
 const bulkDuplicatePermissions = async (ids: string[], user?: any) => {
-  const session = await mongoose.startSession();
+  const t = await sequelize.transaction();
   try {
-    session.startTransaction();
-
-    const sourcePermissions = await Permission.find({
-      _id: { $in: ids }
-    }).session(session);
+    const sourcePermissions = await Permission.findAll({
+      where: { id: ids },
+      transaction: t
+    });
     if (!sourcePermissions || sourcePermissions.length === 0) {
       throw new Error("Permissions not found");
     }
@@ -105,15 +131,18 @@ const bulkDuplicatePermissions = async (ids: string[], user?: any) => {
       }
 
       const escapedBaseName = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const regex = new RegExp(`^${escapedBaseName}(?:-\\((\\d+)\\))?$`);
+      const regexStr = `^${escapedBaseName}(?:-\\(([0-9]+)\\))?$`;
 
-      const similarPermissionsResult = await Permission.find({
-        name: { $regex: regex }
-      }).session(session);
+      const similarPermissionsResult = await Permission.findAll({
+        where: {
+          name: { [Op.iRegexp]: regexStr }
+        },
+        transaction: t
+      });
 
       let maxIndex = 0;
       similarPermissionsResult.forEach((perm: any) => {
-        const match = perm.name.match(regex);
+        const match = perm.name.match(new RegExp(regexStr, 'i'));
         if (match && match[1]) {
           const index = parseInt(match[1], 10);
           if (index > maxIndex) maxIndex = index;
@@ -122,26 +151,23 @@ const bulkDuplicatePermissions = async (ids: string[], user?: any) => {
 
       const newName = `${baseName}-(${maxIndex + 1})`;
 
-      const toSave = new Permission({
+      const savedPermission = await Permission.create({
         name: newName,
         description: sourcePermission.description,
         type: sourcePermission.type,
         deletedAt: null,
         modifiedOn: new Date(),
-        modifiedBy: user?._id
-      });
+        modifiedBy: user?.id || user?._id
+      } as any, { transaction: t });
 
-      const savedPermission = await toSave.save({ session });
       duplicatedPermissions.push(savedPermission);
     }
 
-    await session.commitTransaction();
+    await t.commit();
     return duplicatedPermissions;
   } catch (error) {
-    await session.abortTransaction();
+    await t.rollback();
     throw error;
-  } finally {
-    await session.endSession();
   }
 };
 

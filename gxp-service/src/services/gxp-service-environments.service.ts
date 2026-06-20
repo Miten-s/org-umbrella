@@ -1,7 +1,9 @@
 import * as repo from "../repo/gxp-service-environments.repo";
 import { PaginationOptions } from "../utils/pagination.util";
-import mongoose from "mongoose";
 import GxpServiceApplicationModel from "../models/gxp-service-applications.model";
+import { sequelize } from "../configs/db.sequelize";
+import { Op } from "sequelize";
+import crypto from "crypto";
 
 export const addNewEnvironment = async (data: any, user: any) => {
   const environmentToCreate = {
@@ -46,33 +48,29 @@ export const deleteEnvironment = async (id: string) => {
 };
 
 export const bulkDeleteEnvironments = async (ids: string[]) => {
-  const session = await mongoose.startSession();
+  const t = await sequelize.transaction();
   try {
-    session.startTransaction();
-
-    await GxpServiceApplicationModel.updateMany(
-      { applicationEnvironment: { $in: ids } },
-      { $unset: { applicationEnvironment: "" } },
-      { session }
+    await GxpServiceApplicationModel.update(
+      { applicationEnvironmentId: null },
+      { where: { applicationEnvironmentId: ids }, transaction: t }
     );
 
-    const deleted = await repo.bulkDeleteEnvironments(ids, session);
+    await GxpServiceApplicationModel.sequelize!.query(
+      `DELETE FROM environments WHERE id IN (:ids)`,
+      { replacements: { ids }, transaction: t }
+    );
 
-    await session.commitTransaction();
-    return deleted;
+    await t.commit();
+    return { count: ids.length };
   } catch (error) {
-    session.abortTransaction();
+    await t.rollback();
     throw error;
-  } finally {
-    session.endSession();
   }
 };
 
 export const bulkDuplicateEnvironments = async (ids: string[], user: any) => {
-  const session = await mongoose.startSession();
+  const t = await sequelize.transaction();
   try {
-    session.startTransaction();
-
     const sourceEnvs = await repo.findEnvironmentsByIds(ids);
     if (!sourceEnvs || sourceEnvs.length === 0) {
       throw new Error("Environments not found");
@@ -88,15 +86,15 @@ export const bulkDuplicateEnvironments = async (ids: string[], user: any) => {
       }
 
       const escapedBaseName = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const regex = new RegExp(`^${escapedBaseName}(?:-\\((\\d+)\\))?$`);
+      const regexStr = `^${escapedBaseName}(?:-\\((\\d+)\\))?$`;
 
       const similarEnvsResult = await repo.findEnvironmentsByFilter({
-        environmentName: { $regex: regex }
+        environmentName: { [Op.iRegexp]: regexStr }
       });
 
       let maxIndex = 0;
       similarEnvsResult.forEach((env: any) => {
-        const match = env.environmentName.match(regex);
+        const match = env.environmentName.match(new RegExp(regexStr, 'i'));
         if (match && match[1]) {
           const index = parseInt(match[1], 10);
           if (index > maxIndex) maxIndex = index;
@@ -108,7 +106,7 @@ export const bulkDuplicateEnvironments = async (ids: string[], user: any) => {
       const now = new Date();
       const toSave: any = {
         ...sourceEnv,
-        _id: new mongoose.Types.ObjectId(),
+        id: crypto.randomUUID(),
         environmentName: newName,
         createdOn: now,
         createdBy: user,
@@ -117,6 +115,7 @@ export const bulkDuplicateEnvironments = async (ids: string[], user: any) => {
         isActive: true
       };
 
+      delete toSave._id;
       delete toSave.__v;
       delete toSave.createdAt;
       delete toSave.updatedAt;
@@ -125,12 +124,10 @@ export const bulkDuplicateEnvironments = async (ids: string[], user: any) => {
       duplicatedEnvs.push(newEnv);
     }
 
-    await session.commitTransaction();
+    await t.commit();
     return duplicatedEnvs;
   } catch (error) {
-    session.abortTransaction();
+    await t.rollback();
     throw error;
-  } finally {
-    session.endSession();
   }
 };
