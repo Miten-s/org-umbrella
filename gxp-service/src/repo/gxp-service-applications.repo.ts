@@ -48,11 +48,11 @@ const formatApplication = (app: any) => {
       _id: json.supplier.id
     };
   }
-
   if (json.applicationModules) {
     json.applicationModules = json.applicationModules.map((m: any) => ({
       ...m,
-      _id: m.id
+      _id: m.id,
+      moduleId: m.moduleIdString
     }));
   }
 
@@ -88,6 +88,8 @@ const formatApplication = (app: any) => {
   json.applicationProcessOwner = json.applicationProcessOwnerId;
   json.applicationWorkflow = json.applicationWorkflow || json.applicationWorkflowId;
   json.applicationEnvironment = json.applicationEnvironment || json.applicationEnvironmentId;
+  json.assignmentGroup = json.assignmentGroup || json.assignmentGroupId;
+  json.supplier = json.supplier || json.supplierId;
 
   return json;
 };

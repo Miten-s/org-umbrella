@@ -74,7 +74,7 @@ const CreateUserModal = ({
     control,
     setValue,
     watch,
-    formState: { errors }
+    formState: { errors, isSubmitting }
   } = useForm({
     resolver: zodResolver(getUserAdminSchema(!!activeUser)),
     defaultValues: {
@@ -117,7 +117,7 @@ const CreateUserModal = ({
     { label: "Minimum 8 characters", ok: passwordValue.length >= 8 }
   ];
   const signatureUrl = getImageUrl(activeUser?.signature);
-  const handleFormSubmit = (data: any) => {
+  const handleFormSubmit = async (data: any) => {
     if (signatureRef.current && !signatureRef.current.isEmpty()) {
       const trimmedDataURL = signatureRef.current.toDataURL("image/png");
       data.signature = trimmedDataURL;
@@ -154,7 +154,7 @@ const CreateUserModal = ({
       }
     }
 
-    onSubmit(payload);
+    await onSubmit(payload);
   };
 
   return (
@@ -527,11 +527,11 @@ const CreateUserModal = ({
         </div>
 
         <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" type="button" onClick={onClose}>
+          <Button variant="outline" type="button" onClick={onClose} disabled={isSubmitting}>
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary">
+            <Button type="submit" variant="primary" loading={isSubmitting}>
               {t("save")}
             </Button>
           ) : null}

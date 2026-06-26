@@ -3,8 +3,16 @@ import { PaginationOptions } from "../utils/pagination.util";
 import { Op } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 
+const formatLocation = (loc: any) => {
+  if (!loc) return null;
+  const json = loc.toJSON ? loc.toJSON() : { ...loc };
+  json._id = json.id;
+  return json;
+};
+
 const createLocation = async (data: ILocation) => {
-  return await Location.create(data as any);
+  const doc = await Location.create(data as any);
+  return formatLocation(doc);
 };
 
 const getAllLocations = async (options: PaginationOptions) => {
@@ -27,7 +35,7 @@ const getAllLocations = async (options: PaginationOptions) => {
   });
 
   return {
-    locations: data,
+    locations: data.map(formatLocation),
     metadata: {
       totalCount,
       currentPage: page,
@@ -38,20 +46,22 @@ const getAllLocations = async (options: PaginationOptions) => {
 };
 
 const getLocationById = async (_id: string) => {
-  return await Location.findByPk(_id);
+  const doc = await Location.findByPk(_id);
+  return formatLocation(doc);
 };
 
 const updateLocation = async (_id: string, data: Partial<ILocation>) => {
   const location = await Location.findByPk(_id);
   if (!location) return null;
-  return await location.update(data);
+  await location.update(data);
+  return formatLocation(location);
 };
 
 const deleteLocation = async (_id: string) => {
   const location = await Location.findByPk(_id);
   if (!location) return null;
   await location.destroy();
-  return location;
+  return formatLocation(location);
 };
 
 const bulkDeleteLocations = async (ids: string[]) => {
@@ -115,7 +125,7 @@ const bulkDuplicateLocations = async (ids: string[], user?: any) => {
     }
 
     await t.commit();
-    return duplicatedLocations;
+    return duplicatedLocations.map(formatLocation);
   } catch (error) {
     await t.rollback();
     throw error;

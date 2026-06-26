@@ -26,7 +26,7 @@ const formatServiceRequest = (sr: any) => {
       _id: json.applicationDetails.id
     };
     if (json.application.applicationModules) {
-      json.application.applicationModules = json.application.applicationModules.map((m: any) => ({ ...m, _id: m.id }));
+      json.application.applicationModules = json.application.applicationModules.map((m: any) => ({ ...m, _id: m.id, moduleId: m.moduleIdString }));
     }
     if (json.application.applicationGroups) {
       json.application.applicationGroups = json.application.applicationGroups.map((g: any) => ({ ...g, _id: g.id }));
@@ -67,7 +67,8 @@ const formatServiceRequest = (sr: any) => {
   if (json.requestModules) {
     json.modules = json.requestModules.map((m: any) => ({
       ...m,
-      _id: m.id
+      _id: m.id,
+      moduleId: m.moduleIdString
     }));
     delete json.requestModules;
   }
@@ -94,6 +95,12 @@ const formatServiceRequest = (sr: any) => {
       _id: a.id
     }));
   }
+
+  json.application = json.application || json.applicationId;
+  json.assignmentGroup = json.assignmentGroup || json.assignmentGroupId;
+  json.workflow = json.workflow || json.workflowId;
+  json.environment = json.environment || json.environmentId;
+  json.requestTypes = json.requestTypes || json.requestTypesId;
 
   return json;
 };
@@ -168,7 +175,7 @@ export const getServiceRequestById = async (id: string) => {
       {
         model: AppModule,
         as: "requestModules",
-        attributes: ["moduleName", "id"]
+        attributes: ["id", "moduleName", "moduleIdString"]
       },
       {
         model: AppRole,
@@ -193,7 +200,7 @@ export const getServiceRequestById = async (id: string) => {
           {
             model: AppModule,
             as: "applicationModules",
-            attributes: ["moduleName", "id"]
+            attributes: ["id", "moduleName", "moduleIdString"]
           },
           {
             model: AppGroup,
