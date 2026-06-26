@@ -20,6 +20,7 @@ interface ButtonProps {
   permissionLogic?: "all" | "any";
   tooltipMessage?: string;
   tooltipPosition?: "top" | "bottom" | "left" | "right";
+  loading?: boolean;
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -39,7 +40,8 @@ const Button: React.FC<ButtonProps> = ({
   permission,
   permissionLogic = "all",
   tooltipMessage,
-  tooltipPosition = "bottom"
+  tooltipPosition = "bottom",
+  loading = false
 }) => {
   const { user } = useAuth();
   const { t } = useTranslation();
@@ -89,7 +91,7 @@ const Button: React.FC<ButtonProps> = ({
 
   const userHasPermission = checkPermissions(user, permission, permissionLogic);
   const missingPermissions = getMissingPermissions(user, permission);
-  const isDisabled = disabled || (permission && !userHasPermission);
+  const isDisabled = disabled || loading || !!(permission && !userHasPermission);
 
   const handleClick = () => {
     if (isDisabled) {
@@ -178,6 +180,7 @@ const Button: React.FC<ButtonProps> = ({
       <button
         type={type}
         title={title}
+        disabled={isDisabled}
         className={`inline-flex items-center justify-center gap-2 rounded-lg transition ${className} ${
           sizeClasses[size]
         } ${variantClasses[variant]} ${
@@ -188,9 +191,31 @@ const Button: React.FC<ButtonProps> = ({
         onMouseLeave={handleMouseLeave}
         aria-disabled={isDisabled || false}
       >
-        {startIcon && <span className="flex items-center">{startIcon}</span>}
+        {loading ? (
+          <svg
+            className={`animate-spin text-current ${size === "sm" ? "h-4 w-4" : "h-5 w-5"}`}
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            />
+          </svg>
+        ) : (
+          startIcon && <span className="flex items-center">{startIcon}</span>
+        )}
         {children}
-        {endIcon && <span className="flex items-center">{endIcon}</span>}
+        {!loading && endIcon && <span className="flex items-center">{endIcon}</span>}
       </button>
 
       {/* Tooltip */}

@@ -20,7 +20,11 @@ const formatUser = (user: any) => {
       id: r.id,
       name: r.name,
       type: r.type,
-      permissions: r.permissions ? r.permissions.map((p: any) => p.id) : []
+      permissions: r.permissions ? r.permissions.map((p: any) => ({
+        _id: p.id,
+        id: p.id,
+        name: p.name
+      })) : []
     }));
   }
   if (json.department) {
@@ -95,7 +99,7 @@ const getUsers = async (options: PaginationOptions, user?: IUser) => {
     offset: skip,
     limit,
     include: [
-      { model: Role, as: "roles", attributes: ["id", "name", "type"], include: [{ model: Permission, as: "permissions", attributes: ["id"] }] },
+      { model: Role, as: "roles", attributes: ["id", "name", "type"], include: [{ model: Permission, as: "permissions", attributes: ["id", "name"] }] },
       { model: Department, as: "department", attributes: ["id", "departmentName"] },
       { model: Location, as: "location", attributes: ["id", "locationName"] },
       { model: Designation, as: "designation", attributes: ["id", "designationName"] }
@@ -154,7 +158,7 @@ const createUser = async (req: Request) => {
     
     const fetched = await User.findByPk(user.id, {
       include: [
-        { model: Role, as: "roles", attributes: ["id", "name", "type"], include: [{ model: Permission, as: "permissions", attributes: ["id"] }] },
+        { model: Role, as: "roles", attributes: ["id", "name", "type"], include: [{ model: Permission, as: "permissions", attributes: ["id", "name"] }] },
         { model: Department, as: "department", attributes: ["id", "departmentName"] },
         { model: Location, as: "location", attributes: ["id", "locationName"] },
         { model: Designation, as: "designation", attributes: ["id", "designationName"] }
@@ -224,7 +228,7 @@ const getUserDetail = async (id: string) => {
   const user = await User.findByPk(id, {
     attributes: { exclude: ["password"] },
     include: [
-      { model: Role, as: "roles", attributes: ["id", "name", "type"], include: [{ model: Permission, as: "permissions", attributes: ["id"] }] },
+      { model: Role, as: "roles", attributes: ["id", "name", "type"], include: [{ model: Permission, as: "permissions", attributes: ["id", "name"] }] },
       { model: Department, as: "department", attributes: ["id", "departmentName"] },
       { model: Location, as: "location", attributes: ["id", "locationName"] },
       { model: Designation, as: "designation", attributes: ["id", "designationName"] }

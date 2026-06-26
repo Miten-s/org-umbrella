@@ -6,6 +6,20 @@ import { PaginationOptions } from "../utils/pagination.util";
 import { Op } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 
+const formatRole = (role: any) => {
+  if (!role) return null;
+  const json = role.toJSON ? role.toJSON() : { ...role };
+  json._id = json.id;
+  if (json.permissions) {
+    json.permissions = json.permissions.map((p: any) => {
+      const pJson = p.toJSON ? p.toJSON() : { ...p };
+      pJson._id = pJson.id;
+      return pJson;
+    });
+  }
+  return json;
+};
+
 const assignRole = async (req: Request) => {
   const user = await User.findOne({ where: { email: req.body.email } });
   if (!user) return null;
@@ -25,7 +39,11 @@ const createRole = async (req: Request) => {
       await (role as any).setPermissions(permissions, { transaction: t });
     }
     await t.commit();
-    return role;
+    
+    const reloaded = await Role.findByPk(role.id, {
+      include: ["permissions"]
+    });
+    return formatRole(reloaded);
   } catch (error) {
     await t.rollback();
     throw error;
@@ -43,7 +61,11 @@ const updateRole = async (req: Request) => {
       await (role as any).setPermissions(permissions, { transaction: t });
     }
     await t.commit();
-    return role;
+
+    const reloaded = await Role.findByPk(role.id, {
+      include: ["permissions"]
+    });
+    return formatRole(reloaded);
   } catch (error) {
     await t.rollback();
     throw error;
@@ -53,7 +75,9 @@ const updateRole = async (req: Request) => {
 const deleteRole = async (req: Request) => {
   const t = await sequelize.transaction();
   try {
-    const role = await Role.findByPk(req.params.id as string);
+    const role = await Role.findByPk(req.params.id as string, {
+      include: ["permissions"]
+    });
     if (!role) return null;
     await role.destroy({ transaction: t });
     
@@ -68,7 +92,7 @@ const deleteRole = async (req: Request) => {
     });
     
     await t.commit();
-    return role;
+    return formatRole(role);
   } catch (error) {
     await t.rollback();
     throw error;
@@ -103,7 +127,7 @@ const getRoles = async (
   });
 
   return {
-    roles: data,
+    roles: data.map(formatRole),
     metadata: {
       totalCount,
       currentPage: page,
@@ -120,7 +144,7 @@ const bulkDeleteRoles = async (ids: string[]) => {
       where: { id: ids },
       transaction: t
     });
-
+ 
     // Cascade: remove deleted role refs from all user_roles
     await sequelize.query(
       `DELETE FROM user_roles WHERE role_id IN (:ids)`,
@@ -204,7 +228,15 @@ const bulkDuplicateRoles = async (ids: string[]) => {
     }
 
     await t.commit();
-    return duplicatedRoles;
+    
+    // Fetch duplicated roles with permissions populated
+    const dupIds = duplicatedRoles.map(r => r.id);
+    const populated = await Role.findAll({
+      where: { id: dupIds },
+      include: ["permissions"]
+    });
+
+    return populated.map(formatRole);
   } catch (error) {
     await t.rollback();
     throw error;

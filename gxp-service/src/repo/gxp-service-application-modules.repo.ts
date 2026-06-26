@@ -7,6 +7,14 @@ const formatAppModule = (module: any) => {
   if (!module) return null;
   const json = module.toJSON ? module.toJSON() : { ...module };
   json._id = json.id;
+  if (json.application) {
+    json.application = {
+      ...json.application,
+      _id: json.application.id
+    };
+  }
+  json.application = json.application || json.applicationId;
+  json.moduleId = json.moduleIdString;
   return json;
 };
 

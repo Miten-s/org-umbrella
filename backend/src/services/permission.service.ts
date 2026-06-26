@@ -5,14 +5,23 @@ import { PaginationOptions } from "../utils/pagination.util";
 import { Op } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 
+const formatPermission = (perm: any) => {
+  if (!perm) return null;
+  const json = perm.toJSON ? perm.toJSON() : { ...perm };
+  json._id = json.id;
+  return json;
+};
+
 const createPermission = async (req: Request) => {
-  return await Permission.create(req.body);
+  const doc = await Permission.create(req.body);
+  return formatPermission(doc);
 };
 
 const updatePermission = async (req: Request) => {
   const permission = await Permission.findByPk(req.params.id as string);
   if (!permission) return null;
-  return await permission.update(req.body);
+  await permission.update(req.body);
+  return formatPermission(permission);
 };
 
 const deletePermission = async (req: Request) => {
@@ -34,7 +43,7 @@ const deletePermission = async (req: Request) => {
     );
 
     await t.commit();
-    return permission;
+    return formatPermission(permission);
   } catch (error) {
     await t.rollback();
     throw error;
@@ -74,7 +83,7 @@ const getPermissions = async (options: PaginationOptions, type?: string) => {
   });
 
   return {
-    permissions: data,
+    permissions: data.map(formatPermission),
     metadata: {
       totalCount,
       currentPage: page,
@@ -164,7 +173,7 @@ const bulkDuplicatePermissions = async (ids: string[], user?: any) => {
     }
 
     await t.commit();
-    return duplicatedPermissions;
+    return duplicatedPermissions.map(formatPermission);
   } catch (error) {
     await t.rollback();
     throw error;
