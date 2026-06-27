@@ -410,7 +410,7 @@ const Departments = () => {
               ? `Are you sure you want to delete these ${pendingDeleteDepartments.length} departments?`
               : `${t("deleteEntityPrompt", {
                   entityName: pendingDeleteDepartments[0]?.departmentName
-                })} ?`}
+                })}`}
           </div>
 
           {pendingDeleteDepartments.length ? (

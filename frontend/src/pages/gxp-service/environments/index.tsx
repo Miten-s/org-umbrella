@@ -334,7 +334,7 @@ const Environments = () => {
               ? `Are you sure you want to delete these ${pendingDeleteEnvironments.length} environments?`
               : `${t("deleteEntityPrompt", {
                   entityName: pendingDeleteEnvironments[0]?.environmentName
-                })} ?`}
+                })}`}
           </div>
 
           {pendingDeleteEnvironments.length ? (

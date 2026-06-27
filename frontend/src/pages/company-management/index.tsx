@@ -19,14 +19,14 @@ const CompanyManagement = () => {
     const res = await getCompany();
     setCompanies(res.company);
   };
-
+console.log("companies", companies);
   useEffect(() => {
     fetchCompanies();
   }, [refresh]);
 
   const handleSave = async (data: any) => {
     if (activeCompany) {
-      await updateCompany(activeCompany._id, data);
+      await updateCompany(activeCompany.id, data);
     }
     setActiveCompany(null);
     setRefresh((prev) => !prev);

@@ -158,7 +158,7 @@ const CreateUserModal = ({
   };
 
   return (
-    <div className="p-6 max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <div className="modal-scrollbar max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
         <h2 className="text-xl font-semibold">
           {isReadOnly

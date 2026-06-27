@@ -525,7 +525,7 @@ const GXPCreateNewServiceRequestPage = () => {
                   entityName:
                     pendingDeleteRequests[0]?.serviceRequestId ||
                     pendingDeleteRequests[0]?.shortDescription
-                })} ?`}
+                })}`}
           </div>
 
           {pendingDeleteRequests.length ? (

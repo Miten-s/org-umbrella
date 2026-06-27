@@ -394,7 +394,7 @@ const Suppliers = () => {
               ? `Are you sure you want to delete these ${pendingDeleteSuppliers.length} suppliers?`
               : `${t("deleteEntityPrompt", {
                   entityName: pendingDeleteSuppliers[0]?.supplierName
-                })} ?`}
+                })}`}
           </div>
 
           {pendingDeleteSuppliers.length ? (

@@ -235,7 +235,7 @@ const Permissions = () => {
 
   return (
     <>
-      <div className="flex flex-col lg:h-[calc(100dvh-132px)] lg:min-h-0">
+      <div className="flex h-full min-h-0 flex-col">
         <AppDataTable<GxpPermission>
           actionsColumnHeader={t("actions")}
           bulkActions={bulkActions}
@@ -292,7 +292,7 @@ const Permissions = () => {
               ? `Are you sure you want to delete these ${pendingDeletePermissions.length} permissions?`
               : `${t("deleteEntityPrompt", {
                   entityName: pendingDeletePermissions[0]?.permissionName
-                })} ?`}
+                })}`}
           </div>
 
           {pendingDeletePermissions.length ? (

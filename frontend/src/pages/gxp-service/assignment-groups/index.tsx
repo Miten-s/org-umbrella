@@ -63,7 +63,6 @@ const AssignmentGroups = () => {
   const setAssignmentGroups = paginatedAssignmentGroups.setRows;
   const [activeAssignmentGroup, setActiveAssignmentGroup] =
     useState<AssignmentGroup | null>(null);
-    console.log('activeAssignmentGroup', activeAssignmentGroup);
   const [assignmentGroupModalMode, setAssignmentGroupModalMode] =
     useState<AssignmentGroupModalMode>("create");
   const [pendingDeleteAssignmentGroups, setPendingDeleteAssignmentGroups] =
@@ -446,7 +445,7 @@ const AssignmentGroups = () => {
       <Modal
         isOpen={isOpen}
         onClose={handleCloseModal}
-        className="max-w-[900px] max-h-[100rem] m-4 overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+        className="m-4 max-h-[calc(100dvh-2rem)] max-w-[900px] overflow-hidden bg-white text-gray-900 dark:bg-gray-900 dark:text-white"
       >
         <CreateAssignmentGroupModal
           onClose={handleCloseModal}
@@ -468,7 +467,7 @@ const AssignmentGroups = () => {
               ? `Are you sure you want to delete these ${pendingDeleteAssignmentGroups.length} assignment groups?`
               : `${t("deleteEntityPrompt", {
                   entityName: pendingDeleteAssignmentGroups[0]?.groupName
-                })} ?`}
+                })}`}
           </div>
 
           {pendingDeleteAssignmentGroups.length ? (

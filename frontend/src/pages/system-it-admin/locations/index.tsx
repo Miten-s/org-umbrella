@@ -329,7 +329,7 @@ const Location = () => {
               ? `Are you sure you want to delete these ${pendingDeleteLocations.length} locations?`
               : `${t("deleteEntityPrompt", {
                   entityName: pendingDeleteLocations[0]?.locationName
-                })} ?`}
+                })}`}
           </div>
 
           {pendingDeleteLocations.length ? (

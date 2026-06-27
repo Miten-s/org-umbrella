@@ -508,7 +508,7 @@ const Users = () => {
           setActiveUser(null);
           setUserModalMode("create");
         }}
-        className="m-4 max-h-[100rem] max-w-[1000px] overflow-y-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-white"
+        className="m-4 max-h-[calc(100dvh-2rem)] max-w-[1000px] overflow-hidden bg-white text-gray-900 dark:bg-gray-900 dark:text-white"
       >
         <CreateUserModal
           activeUser={activeUser}
@@ -538,7 +538,7 @@ const Users = () => {
               ? `Are you sure you want to delete these ${pendingDeleteUsers.length} users?`
               : `${t("deleteEntityPrompt", {
                   entityName: getDisplayName(pendingDeleteUsers[0])
-                })} ?`}
+                })}`}
           </div>
 
           {pendingDeleteUsers.length ? (

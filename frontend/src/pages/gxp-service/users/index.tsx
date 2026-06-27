@@ -488,7 +488,7 @@ const GXPUsersPage = () => {
               ? `Are you sure you want to delete these ${pendingDeleteUsers.length} GXP users?`
               : `${t("deleteEntityPrompt", {
                   entityName: pendingDeleteUsers[0]?.user?.name
-                })} ?`}
+                })}`}
           </div>
 
           {pendingDeleteUsers.length ? (

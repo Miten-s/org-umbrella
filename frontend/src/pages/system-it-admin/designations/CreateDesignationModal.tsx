@@ -41,8 +41,8 @@ const CreateDesignationModal = ({
   });
 
   return (
-    <div className="p-6 max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <div className="max-h-[90vh] overflow-y-auto  bg-white p-6 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+      <form onSubmit={handleSubmit(onSubmit)} className="min-w-0 space-y-4">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
           {isReadOnly
             ? t("view", { entity: t("designation") })
@@ -51,9 +51,9 @@ const CreateDesignationModal = ({
               : t("create", { entity: t("designation") })}
         </h2>
 
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid min-w-0 grid-cols-1 gap-4">
           {/* Designation Name */}
-          <div>
+          <div className="min-w-0">
             <Label required>{t("designationName")}</Label>
             <Input
               {...register("designationName")}
@@ -66,7 +66,7 @@ const CreateDesignationModal = ({
           </div>
 
           {/* Description */}
-          <div>
+          <div className="min-w-0">
             <Label>{t("description")}</Label>
             <TextArea
               disabled={isReadOnly}

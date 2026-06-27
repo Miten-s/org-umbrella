@@ -147,6 +147,7 @@ export interface Department {
 
 export interface Company {
   _id: string;
+  id: string;
   name: string;
   description?: string;
   logo?: string;

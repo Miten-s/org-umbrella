@@ -548,7 +548,7 @@ const GXPApplicationSoftwareModulePage = () => {
               ? `Are you sure you want to delete these ${pendingDeleteModules.length} application modules?`
               : `${t("deleteEntityPrompt", {
                   entityName: pendingDeleteModules[0]?.moduleName
-                })} ?`}
+                })}`}
           </div>
 
           {pendingDeleteModules.length ? (

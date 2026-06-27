@@ -1,14 +1,12 @@
-import { useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import Input from "@/components/common/form/input/InputField";
 import Label from "@/components/common/form/Label";
 import Button from "@/components/ui/button/Button";
-import { Dropdown } from "@/components/ui/dropdown/Dropdown";
-import { DropdownItem } from "@/components/ui/dropdown/DropdownItem";
+import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
 import TextArea from "@/components/common/form/input/TextArea";
 
 import { getDepartmentSchema } from "@/lib/schema";
@@ -83,31 +81,6 @@ const CreateDepartmentModal = ({
   });
 
   const description = useWatch({ control, name: "description" });
-  const [managerDropdownOpen, setManagerDropdownOpen] = useState(false);
-  const [locationDropdownOpen, setLocationDropdownOpen] = useState(false);
-
-  const getManagerName = (id: string) =>
-    managers.find((m) => m._id === id)?.fullName ||
-    managers.find((m) => m._id === id)?.name ||
-    "";
-  const getLocationName = (id: string) =>
-    locations.find((l) => l._id === id)?.locationName || "";
-
-  const selectedManagerId = useWatch({ control, name: "departmentManager" });
-  const selectedLocationId = useWatch({
-    control,
-    name: "departmentGroupLocation"
-  });
-
-  const handleManagerSelect = (id: string) => {
-    setValue("departmentManager", id, { shouldValidate: true });
-    setManagerDropdownOpen(false);
-  };
-
-  const handleLocationSelect = (id: string) => {
-    setValue("departmentGroupLocation", id, { shouldValidate: true });
-    setLocationDropdownOpen(false);
-  };
 
   return (
     <div className="p-6 max-h-[120vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
@@ -147,51 +120,29 @@ const CreateDepartmentModal = ({
           </div>
 
           {/* Manager Dropdown */}
-          <div className="relative">
+          <div>
             <Label required>{t("departmentManager")}</Label>
-            <input type="hidden" {...register("departmentManager")} />
-            <button
-              type="button"
-              disabled={isReadOnly}
-              onClick={() => {
-                if (isReadOnly) {
-                  return;
-                }
-                setManagerDropdownOpen((prev) => !prev);
-              }}
-              className={[
-                "input flex justify-between items-center dark:bg-gray-800 dark:border-gray-700 dark:text-white",
-                isReadOnly ? "cursor-not-allowed opacity-60" : ""
-              ].join(" ")}
-            >
-              <span className="text-theme-sm dark:text-gray-400">
-                {getManagerName(selectedManagerId) ||
-                  t("select", { entity: t("departmentManager") })}
-              </span>
-              <svg
-                className="ml-2 h-4 w-4"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path d="M5.5 7l4.5 4.5L14.5 7z" />
-              </svg>
-            </button>
-
-            <Dropdown
-              isOpen={managerDropdownOpen}
-              onClose={() => setManagerDropdownOpen(false)}
-              className="absolute z-10 mt-1 w-full rounded-xl border bg-white dark:bg-gray-800 dark:border-gray-700 shadow-md text-gray-900 dark:text-gray-100"
-            >
-              {managers?.map((manager) => (
-                <DropdownItem
-                  key={manager._id}
-                  onItemClick={() => handleManagerSelect(manager._id)}
-                  className="hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                  {manager.fullName || manager.name}
-                </DropdownItem>
-              ))}
-            </Dropdown>
+            <Controller
+              name="departmentManager"
+              control={control}
+              render={({ field }) => (
+                <SelectDropdown
+                  disabled={isReadOnly}
+                  value={field.value}
+                  onChange={(val) => field.onChange(val)}
+                  portal
+                  dropdownMaxHeight={320}
+                  listMaxHeight={240}
+                  placeholder={t("select", {
+                    entity: t("departmentManager")
+                  })}
+                  options={managers.map((manager) => ({
+                    label: manager.fullName || manager.name || "",
+                    value: manager._id
+                  }))}
+                />
+              )}
+            />
 
             {errors.departmentManager && (
               <p className="text-xs text-error-500 mt-1">
@@ -201,51 +152,27 @@ const CreateDepartmentModal = ({
           </div>
 
           {/* Location Dropdown */}
-          <div className="relative">
+          <div>
             <Label required>{t("locationGroup")}</Label>
-            <input type="hidden" {...register("departmentGroupLocation")} />
-            <button
-              type="button"
-              disabled={isReadOnly}
-              onClick={() => {
-                if (isReadOnly) {
-                  return;
-                }
-                setLocationDropdownOpen((prev) => !prev);
-              }}
-              className={[
-                "input flex justify-between items-center dark:bg-gray-800 dark:border-gray-700 dark:text-white",
-                isReadOnly ? "cursor-not-allowed opacity-60" : ""
-              ].join(" ")}
-            >
-              <span className="text-theme-sm dark:text-gray-400">
-                {getLocationName(selectedLocationId) ||
-                  t("select", { entity: t("location") })}
-              </span>
-              <svg
-                className="ml-2 h-4 w-4"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path d="M5.5 7l4.5 4.5L14.5 7z" />
-              </svg>
-            </button>
-
-            <Dropdown
-              isOpen={locationDropdownOpen}
-              onClose={() => setLocationDropdownOpen(false)}
-              className="absolute z-10 mt-1 w-full rounded-xl border bg-white dark:bg-gray-800 dark:border-gray-700 shadow-md text-gray-900 dark:text-gray-100"
-            >
-              {locations?.map((loc) => (
-                <DropdownItem
-                  key={loc._id}
-                  onItemClick={() => handleLocationSelect(loc._id)}
-                  className="hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                  {loc.locationName}
-                </DropdownItem>
-              ))}
-            </Dropdown>
+            <Controller
+              name="departmentGroupLocation"
+              control={control}
+              render={({ field }) => (
+                <SelectDropdown
+                  disabled={isReadOnly}
+                  value={field.value}
+                  onChange={(val) => field.onChange(val)}
+                  portal
+                  dropdownMaxHeight={320}
+                  listMaxHeight={240}
+                  placeholder={t("select", { entity: t("location") })}
+                  options={locations.map((loc) => ({
+                    label: loc.locationName,
+                    value: loc._id
+                  }))}
+                />
+              )}
+            />
 
             {errors.departmentGroupLocation && (
               <p className="text-xs text-error-500 mt-1">

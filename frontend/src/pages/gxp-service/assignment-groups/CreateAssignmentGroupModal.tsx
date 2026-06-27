@@ -41,7 +41,6 @@ const CreateAssignmentGroupModal = ({
   const isReadOnly = mode === "view";
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [adminUsers, setAdminUsers] = useState<User[]>([]);
-  console.log('allUsers', allUsers);
   const {
     register,
     handleSubmit,
@@ -106,10 +105,14 @@ const CreateAssignmentGroupModal = ({
     label: user.fullName,
     value: user._id
   }));
+  const managerErrorMessage =
+    errors.manager?.userId?.message ||
+    errors.manager?.name?.message ||
+    errors.manager?.message;
 
   return (
-    <div className="p-6 max-h-[120vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <div className="max-h-[calc(100dvh-2rem)] overflow-y-auto overflow-x-hidden rounded-3xl bg-white p-6 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+      <form onSubmit={handleSubmit(onSubmit)} className="min-w-0 space-y-4">
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("group") })
@@ -118,9 +121,9 @@ const CreateAssignmentGroupModal = ({
               : t("create", { entity: t("group") })}
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
           {/* Group Name */}
-          <div>
+          <div className="min-w-0">
             <Label htmlFor="groupName" required>
               {t("groupName")}
             </Label>
@@ -135,7 +138,7 @@ const CreateAssignmentGroupModal = ({
 
           {/* Manager */}
           {/* Manager */}
-          <div>
+          <div className="min-w-0">
             <Label htmlFor="manager" required>
               {t("manager")}
             </Label>
@@ -164,22 +167,25 @@ const CreateAssignmentGroupModal = ({
                       });
                     }}
                     options={adminUserOptions}
+                    portal
+                    dropdownMaxHeight={320}
+                    listMaxHeight={240}
                     placeholder={t("select", { entity: t("manager") })}
                   />
                 )}
               />
             )}
 
-            {errors.manager && !isReadOnly && (
+            {managerErrorMessage && !isReadOnly && (
               <p className="text-red-500 text-xs mt-1">
-                {errors.manager.message}
+                {managerErrorMessage}
               </p>
             )}
           </div>
 
           {/* Members */}
           {/* Members */}
-          <div>
+          <div className="min-w-0">
             <Label htmlFor="members">{t("members")}</Label>
 
             {isReadOnly ? (
@@ -205,6 +211,10 @@ const CreateAssignmentGroupModal = ({
                   <MultiSelect
                     options={userOptions}
                     label={t("members")}
+                    portal
+                    dropdownMaxHeight={320}
+                    listMaxHeight={240}
+                    error={errors.members?.message}
                     onChange={(selectedValues: string[]) => {
                       const selectedMembers = allUsers
                         ?.filter((user) => selectedValues.includes(user._id))
@@ -226,7 +236,7 @@ const CreateAssignmentGroupModal = ({
             )}
           </div>
           {/* Description */}
-          <div>
+          <div className="min-w-0">
             <Label>{t("description")}</Label>
             <TextArea
               disabled={isReadOnly}
@@ -239,7 +249,7 @@ const CreateAssignmentGroupModal = ({
           </div>
 
           {/* Is Active */}
-          <div>
+          <div className="min-w-0">
             <Label>{t("isActive")}</Label>
             <Switch
               label={isActive ? t("active") : t("inactive")}

@@ -683,7 +683,7 @@ const GXPAddNewApplicationPage = () => {
               ? `Are you sure you want to delete these ${pendingDeleteApplications.length} applications?`
               : `${t("deleteEntityPrompt", {
                   entityName: pendingDeleteApplications[0]?.applicationName
-                })} ?`}
+                })}`}
           </div>
 
           {pendingDeleteApplications.length ? (

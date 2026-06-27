@@ -40,7 +40,7 @@ const TextArea: React.FC<TextareaProps> = ({
   }
 
   return (
-    <div className="relative">
+    <div className="relative min-w-0">
       <textarea
         placeholder={placeholder || t("form.enterMessage")}
         rows={rows}

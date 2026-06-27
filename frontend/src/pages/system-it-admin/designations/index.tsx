@@ -320,7 +320,7 @@ const Designation = () => {
       <Modal
         isOpen={isOpen}
         onClose={handleCloseModal}
-        className="m-4 max-h-[90vh] max-w-[900px] overflow-y-auto dark:bg-gray-900"
+        className="m-4 max-h-[90vh] max-w-[900px] overflow-y-auto overflow-x-hidden dark:bg-gray-900"
       >
         <CreateDesignationModal
           onClose={handleCloseModal}
@@ -342,7 +342,7 @@ const Designation = () => {
               ? `Are you sure you want to delete these ${pendingDeleteDesignations.length} designations?`
               : `${t("deleteEntityPrompt", {
                   entityName: pendingDeleteDesignations[0]?.designationName
-                })} ?`}
+                })}`}
           </div>
 
           {pendingDeleteDesignations.length ? (

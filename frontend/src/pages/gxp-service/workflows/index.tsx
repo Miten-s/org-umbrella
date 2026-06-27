@@ -383,7 +383,7 @@ const Workflows = () => {
               ? `Are you sure you want to delete these ${pendingDeleteWorkflows.length} workflows?`
               : `${t("deleteEntityPrompt", {
                   entityName: pendingDeleteWorkflows[0]?.workflowName
-                })} ?`}
+                })}`}
           </div>
 
           {pendingDeleteWorkflows.length ? (

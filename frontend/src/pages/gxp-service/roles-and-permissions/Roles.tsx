@@ -308,7 +308,7 @@ const Roles = () => {
 
   return (
     <>
-      <div className="flex flex-col lg:h-[calc(100dvh-132px)] lg:min-h-0">
+      <div className="flex h-full min-h-0 flex-col">
         <AppDataTable<RoleRecord>
           actionsColumnHeader={t("actions")}
           bulkActions={bulkActions}
@@ -386,7 +386,7 @@ const Roles = () => {
               ? `Are you sure you want to delete these ${pendingDeleteRoles.length} roles?`
               : `${t("deleteEntityPrompt", {
                   entityName: pendingDeleteRoles[0]?.name
-                })} ?`}
+                })}`}
           </div>
 
           {pendingDeleteRoles.length ? (

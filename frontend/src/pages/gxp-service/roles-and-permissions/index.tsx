@@ -13,7 +13,7 @@ const RolesAndPermissions = () => {
   ];
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4">
+    <div className="flex h-full min-h-0 flex-col gap-4 lg:h-[calc(100dvh-132px)]">
       <div
         className="inline-flex w-fit rounded-lg border border-gray-200 bg-white p-1 shadow-theme-xs dark:border-gray-800 dark:bg-gray-900"
         role="tablist"
@@ -42,7 +42,9 @@ const RolesAndPermissions = () => {
         })}
       </div>
 
-      {activeTab === "roles" ? <Roles /> : <Permissions />}
+      <div className="min-h-0 flex-1">
+        {activeTab === "roles" ? <Roles /> : <Permissions />}
+      </div>
     </div>
   );
 };
