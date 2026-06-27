@@ -13,16 +13,32 @@ export type ResolveIdsOptions = {
 export const toObjectIdString = (raw: unknown): string | undefined => {
   if (!raw) return undefined;
 
+  const checkAndConvert = (val: string): string | undefined => {
+    const value = val.trim();
+    if (value.length === 36) {
+      return value;
+    }
+    // Check if it's a 24-character hexadecimal MongoDB ObjectId
+    if (value.length === 24 && /^[0-9a-fA-F]{24}$/.test(value)) {
+      const p1 = value.substring(0, 8);
+      const p2 = value.substring(8, 12);
+      const p3 = value.substring(12, 16);
+      const p4 = value.substring(16, 20);
+      const p5 = value.substring(20, 24);
+      return `${p1}-${p2}-${p3}-${p4}-${p5}00000000`;
+    }
+    return undefined;
+  };
+
   if (typeof raw === "string") {
-    const value = raw.trim();
-    return value && value.length === 36 ? value : undefined;
+    return checkAndConvert(raw);
   }
 
   if (typeof raw === "object") {
     const rec = raw as Record<string, unknown>;
     const nested = rec._id ?? rec.id ?? rec.value ?? rec.$oid;
-    if (nested && typeof nested === "string" && nested.trim().length === 36) {
-      return nested.trim();
+    if (nested && typeof nested === "string") {
+      return checkAndConvert(nested);
     }
   }
 

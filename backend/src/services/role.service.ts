@@ -120,6 +120,7 @@ const getRoles = async (
 
   const { count: totalCount, rows: data } = await Role.findAndCountAll({
     where,
+    distinct: true,
     offset: skip,
     limit,
     include: ["permissions"],

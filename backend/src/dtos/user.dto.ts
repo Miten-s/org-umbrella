@@ -6,7 +6,6 @@ import {
   MinLength,
   Matches,
   IsEnum,
-  IsMongoId,
   IsBoolean,
   ValidateIf
 } from "class-validator";

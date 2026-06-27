@@ -1,5 +1,6 @@
 import AppAttachment from "../models/gxp-service-application-attachments.model";
 import AppGroup from "../models/gxp-service-application-groups.model";
+import AppDepartment from "../models/gxp-service-application-departments.model";
 import AppRole from "../models/gxp-service-application-roles.model";
 import AppModule from "../models/gxp-service-application-modules.model";
 import AppService from "../models/gxp-service-application-services.model";
@@ -143,6 +144,7 @@ export const getApplications = async (
   }
   const { count: totalCount, rows: data } = await Application.findAndCountAll({
     where,
+    distinct: true,
     include: [
       {
         model: AppGroup,
@@ -182,6 +184,7 @@ export const findApplicationById = async (id: string) => {
       { model: AssignmentGroup, as: "assignmentGroup" },
       { model: AppRole, as: "applicationRoles" },
       { model: AppGroup, as: "applicationGroups" },
+      { model: AppDepartment, as: "departments" },
       { model: AppService, as: "applicationServiceRequestTypes" },
       { model: AppModule, as: "applicationModules" },
       { model: Workflow, as: "workflow" },

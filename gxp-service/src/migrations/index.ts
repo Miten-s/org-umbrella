@@ -18,6 +18,7 @@ import * as m016 from "./016-create-service-request-attachments";
 import * as m017 from "./017-create-service-request-counters";
 import * as m018 from "./018-create-junction-tables";
 import * as m019 from "./019-seed-initial-data";
+import * as m020 from "./020-add-timestamps-to-applications";
 
 export const migrations: Migration[] = [
   { name: "001-create-environments", up: m001.up },
@@ -38,7 +39,8 @@ export const migrations: Migration[] = [
   { name: "016-create-service-request-attachments", up: m016.up },
   { name: "017-create-service-request-counters", up: m017.up },
   { name: "018-create-junction-tables", up: m018.up },
-  { name: "019-seed-initial-data", up: m019.up }
+  { name: "019-seed-initial-data", up: m019.up },
+  { name: "020-add-timestamps-to-applications", up: m020.up }
 ];
 export { runMigrations } from "./runner";
 

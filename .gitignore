@@ -12,3 +12,4 @@ redis
 deploy.sh
 
 */.env.*
+.agents

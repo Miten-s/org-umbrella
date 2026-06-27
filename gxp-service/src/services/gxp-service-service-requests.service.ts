@@ -1,4 +1,5 @@
 import { Request } from "express";
+import { randomUUID } from "crypto";
 import { IServiceRequest } from "../models/gxp-service-service-requests.model";
 import * as repo from "../repo/gxp-service-service-requests.repo";
 import GxpServiceRequestAttachmentModel from "../models/gxp-service-request-attachments.model";
@@ -138,10 +139,16 @@ export const createServiceRequest = async (
   }
 
   const nextSequence = await repo.getNextServiceRequestSequence(applicationId);
+  // `id` is the PK (varchar, no DB default) — generate a UUID for it
+  payload.id = randomUUID();
+  // `serviceRequestId` is the human-readable SR_APP_XXXX display ID
   payload.serviceRequestId = buildServiceRequestId(
     applicationRecord.applicationName,
     nextSequence
   );
+  // Model FK column is `applicationId`, not `application`
+  payload.applicationId = applicationId;
+  delete payload.application;
 
   const newRequest = await repo.createServiceRequest(payload);
 
@@ -286,10 +293,17 @@ export const updateRequest = async (
   delete payload.requestType;
   delete payload.serviceRequestId;
 
+  // Normalize application → applicationId for Sequelize FK column
+  if ("application" in payload) {
+    const appId = extractSingleId(payload.application);
+    if (appId) payload.applicationId = appId;
+    delete payload.application;
+  }
+
   if (!existingRequest.serviceRequestId) {
-    const applicationId = extractSingleId(
-      payload.application ?? existingRequest.application
-    );
+    const applicationId =
+      (payload.applicationId as string | undefined) ??
+      extractSingleId(existingRequest.application);
     if (!applicationId) {
       throw new Error("Application is required");
     }
@@ -307,6 +321,10 @@ export const updateRequest = async (
     }
 
     const nextSequence = await repo.getNextServiceRequestSequence(applicationId);
+    // For update, serviceRequestId is a separate column in the model
+    // (the model stores it in the `serviceRequestId` field, separate from the PK `id`)
+    // But since `id` is already the SR_APP_XXXX string acting as PK,
+    // we don't need to reassign it here for updates.
     payload.serviceRequestId = buildServiceRequestId(
       applicationRecord.applicationName,
       nextSequence
