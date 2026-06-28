@@ -35,7 +35,7 @@ const CreateWorkflowModal = ({
     handleSubmit,
     setValue,
     control,
-    formState: { errors }
+    formState: { errors, isSubmitting }
   } = useForm<CreateWorkflowForm>({
     resolver: zodResolver(getWorkflowSchema),
     defaultValues: {
@@ -66,12 +66,15 @@ const CreateWorkflowModal = ({
       // status already in `data.status`
     };
 
-    onSubmit(submissionData);
+    return onSubmit(submissionData);
   };
 
   return (
-    <div className="p-6 max-h-[120vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+    <div className="modal-scrollbar max-h-[calc(100dvh-2rem)] overflow-y-auto overflow-x-hidden rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+      <form
+        onSubmit={handleSubmit(handleFormSubmit)}
+        className="min-w-0 space-y-4"
+      >
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("gxpWorkflows") })
@@ -80,9 +83,9 @@ const CreateWorkflowModal = ({
               : t("create", { entity: t("gxpWorkflows") })}
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
           {/* Workflow Name */}
-          <div>
+          <div className="min-w-0">
             <Label htmlFor="workflowName" required>
               {t("workflowName")}
             </Label>
@@ -96,7 +99,7 @@ const CreateWorkflowModal = ({
           </div>
 
           {/* Levels (comma-separated) */}
-          <div>
+          <div className="min-w-0">
             <Label htmlFor="levels" required>
               {t("levels")}
             </Label>
@@ -110,8 +113,8 @@ const CreateWorkflowModal = ({
           </div>
 
           {/* Status */}
-          <div className="flex items-end">
-            <div className="w-full">
+          <div className="flex min-w-0 items-end">
+            <div className="w-full min-w-0">
               <Label htmlFor="status">{t("status")}</Label>
               <Controller
                 name="status"
@@ -141,7 +144,7 @@ const CreateWorkflowModal = ({
           </div>
 
           {/* Description */}
-          <div className="col-span-2">
+          <div className="min-w-0 md:col-span-2">
             <Label>{t("description")}</Label>
             <TextArea
               disabled={isReadOnly}
@@ -156,11 +159,16 @@ const CreateWorkflowModal = ({
 
         {/* Action Buttons */}
         <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" type="button" onClick={onClose}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary">
+            <Button type="submit" variant="primary" loading={isSubmitting}>
               {t("save")}
             </Button>
           ) : null}

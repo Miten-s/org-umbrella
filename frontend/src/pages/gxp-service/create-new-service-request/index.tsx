@@ -498,7 +498,7 @@ const GXPCreateNewServiceRequestPage = () => {
       <Modal
         isOpen={isOpen}
         onClose={handleCloseModal}
-        className="max-w-[70rem] max-h-[45rem] m-4 overflow-y-auto no-scrollbar bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+        className="max-w-[70rem] max-h-[45rem] m-4 overflow-y-auto overflow-x-hidden modal-scrollbar bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
       >
         <CreateServiceRequestModal
           onClose={handleCloseModal}

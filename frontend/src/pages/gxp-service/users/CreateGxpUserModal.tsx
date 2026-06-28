@@ -49,7 +49,7 @@ const CreateGxpUserModal = ({
   const {
     control,
     handleSubmit,
-    formState: { errors }
+    formState: { errors, isSubmitting }
   } = useForm<GxpUserFormInput>({
     resolver: zodResolver(getGxpUserSchema),
     defaultValues: {
@@ -85,7 +85,7 @@ const CreateGxpUserModal = ({
     return val == null ? "" : String(val);
   };
 
-  const onFormSubmit = (raw: GxpUserFormInput) => {
+  const handleFormSubmit = (raw: GxpUserFormInput) => {
     // normalize select values that might be arrays or {label,value}
     const normalized: GxpUserFormInput = {
       userId: normalizeScalar(raw.userId),
@@ -112,13 +112,15 @@ const CreateGxpUserModal = ({
       status: parsed.status
     };
 
-    onSubmit(payload);
+    return onSubmit(payload);
   };
 
   return (
-    <div className="p-6 max-h-[120vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
-        <h2 className="text-xl font-semibold">
+    <div className="modal-scrollbar max-h-[calc(100dvh-2rem)] overflow-y-auto overflow-x-hidden rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+      <form
+        onSubmit={handleSubmit(handleFormSubmit)}
+        className="min-w-0 space-y-4"
+      >  <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("gxpUsers") })
             : initialData
@@ -261,11 +263,16 @@ const CreateGxpUserModal = ({
         </div>
 
         <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" type="button" onClick={onClose}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary">
+            <Button type="submit" variant="primary" loading={isSubmitting}>
               {t("save")}
             </Button>
           ) : null}

@@ -21,7 +21,7 @@ const formatAppModule = (module: any) => {
 const moduleApplicationPopulate = {
   model: Application,
   as: "application",
-  attributes: ["applicationName"]
+  attributes: ["id", "applicationName"]
 };
 
 export const createApplicationModule = async (

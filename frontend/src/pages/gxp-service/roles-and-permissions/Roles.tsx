@@ -161,7 +161,7 @@ const Roles = () => {
     () => [
       {
         key: "create-role",
-        label: t("create", { entity: t("gxpRoles") }),
+        label: t("create", { entity: t("role") }),
         className: "whitespace-nowrap",
         icon: PlusIcon,
         onClick: () => {
@@ -208,7 +208,7 @@ const Roles = () => {
       },
       {
         key: "edit",
-        label: "Edit role",
+        label: t("edit", { entity: t("role") }),
         tooltip: "Edit role",
         icon: PencilIcon,
         placement: "inline",

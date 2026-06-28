@@ -212,8 +212,6 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
       text: map.get(val) ?? val
     }));
   }, [selectedOptions, internalOptions]);
-
-  console.log(`Selected ?? ${label  ?? ""}` , selectedLabels);
   
   // Canvas measurement (fast, accurate for font)
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -279,8 +277,6 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   const visibleSelected = selectedLabels.slice(0, visibleCount);
   const hiddenSelected = selectedLabels.slice(visibleCount);
 
-  console.log(`Hidden Selected ?? ${label ?? ""}`, hiddenSelected);
-  
   const hiddenCount = hiddenSelected.length;
   const dropdownContent = isOpen ? (
     <div
@@ -301,6 +297,12 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
             className="w-full rounded-md border p-2 text-sm outline-hidden dark:bg-gray-800 dark:text-white/90"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
             autoFocus
           />
         </div>
@@ -352,7 +354,11 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
             placeholder="Add new..."
             className="flex-1 rounded-md border p-3 text-sm outline-hidden dark:bg-gray-800 dark:text-white/90"
             onKeyDown={(e) => {
-              if (e.key === "Enter") handleAddNewOption();
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation();
+                handleAddNewOption();
+              }
             }}
           />
           <Button type="button" variant="primary" onClick={handleAddNewOption}>

@@ -464,7 +464,7 @@ const GXPUsersPage = () => {
       <Modal
         isOpen={isOpen}
         onClose={handleCloseModal}
-        className="max-w-[720px] max-h-[100rem] m-4 overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+        className="max-w-[720px] max-h-[100rem] bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
       >
         <CreateGxpUserModal
           onClose={handleCloseModal}

@@ -21,7 +21,6 @@ const CompanyManagement = () => {
     const res = await getCompany();
     setCompanies(res.company);
   };
-console.log("companies", companies);
   useEffect(() => {
     fetchCompanies();
   }, [refresh]);
@@ -73,7 +72,7 @@ console.log("companies", companies);
       <Modal
         isOpen={isOpen}
         onClose={closeModal}
-        className="max-w-[900px] max-h-[90vh] m-4 overflow-y-auto"
+        className="max-w-[900px] max-h-[90vh]"
       >
         <CreateCompanyModal
           onClose={closeModal}

@@ -190,6 +190,7 @@ const Button: React.FC<ButtonProps> = ({
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         aria-disabled={isDisabled || false}
+        aria-busy={loading || undefined}
       >
         {loading ? (
           <svg

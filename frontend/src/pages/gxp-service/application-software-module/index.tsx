@@ -58,6 +58,9 @@ const getReferenceId = (value: unknown): string => {
   if (typeof value === "object" && "_id" in value) {
     return String((value as { _id?: string })._id ?? "");
   }
+  if (typeof value === "object" && "id" in value) {
+    return String((value as { id?: string }).id ?? "");
+  }
   return "";
 };
 
@@ -86,7 +89,12 @@ const getReferenceName = (
 
 const getModuleApplicationId = (
   module?: Partial<ApplicationSoftwareModule> | null
-): string => getReferenceId(module?.application) || "";
+): string =>
+  getReferenceId(module?.application) ||
+  String(
+    (module as { applicationId?: string } | null | undefined)?.applicationId ??
+      ""
+  );
 
 const normalizeModuleName = (value?: string) =>
   (value ?? "").trim().toLowerCase();
@@ -518,7 +526,7 @@ const GXPApplicationSoftwareModulePage = () => {
       <Modal
         isOpen={isOpen}
         onClose={handleCloseModal}
-        className="max-w-[700px] max-h-[100rem] m-4 overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+        className="max-w-[700px] max-h-[100rem] bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
       >
         <CreateApplicationSoftwareModuleModal
           onClose={handleCloseModal}

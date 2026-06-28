@@ -64,7 +64,7 @@ const CreateRoleModal = ({
     setValue,
     setError,
     clearErrors,
-    formState: { errors }
+    formState: { errors, isSubmitting }
   } = useForm<{
     name: string;
 
@@ -107,9 +107,9 @@ const CreateRoleModal = ({
     const updated = hasAll
       ? selectedPermissions.filter((p) => !perms.includes(p))
       : [
-          ...selectedPermissions,
-          ...perms.filter((p) => !selectedPermissions.includes(p))
-        ];
+        ...selectedPermissions,
+        ...perms.filter((p) => !selectedPermissions.includes(p))
+      ];
     setValue("permissions", updated);
   };
 
@@ -118,9 +118,9 @@ const CreateRoleModal = ({
     const updated = hasAll
       ? selectedPermissions.filter((p) => !allPermissions.includes(p))
       : [
-          ...selectedPermissions,
-          ...allPermissions.filter((p) => !selectedPermissions.includes(p))
-        ];
+        ...selectedPermissions,
+        ...allPermissions.filter((p) => !selectedPermissions.includes(p))
+      ];
     setValue("permissions", updated);
   };
 
@@ -134,7 +134,7 @@ const CreateRoleModal = ({
       });
       return;
     }
-    onSubmit({ ...data, name: data.name.trim() });
+    return onSubmit({ ...data, name: data.name.trim() });
   };
 
   return (
@@ -190,11 +190,10 @@ const CreateRoleModal = ({
                         tab.value as "default" | "gxp_service"
                       )
                     }
-                    className={`px-4 py-2 rounded-full text-sm font-medium border transition ${
-                      isActive
+                    className={`px-4 py-2 rounded-full text-sm font-medium border transition ${isActive
                         ? "bg-blue-600 text-white border-blue-600"
                         : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700"
-                    }`}
+                      }`}
                   >
                     {tab.label}
                   </button>
@@ -219,7 +218,8 @@ const CreateRoleModal = ({
             />
 
             {/* Grouped Permissions */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-4">
+            {/* Grouped Permissions */}
+            <div className="mt-4 grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-6">
               {Object.entries(groupedPermissions).map(([entity, items]) => {
                 const groupPerms = items.map((item) => item.key);
                 const allSelected = groupPerms.every((p) =>
@@ -229,16 +229,18 @@ const CreateRoleModal = ({
                 return (
                   <div
                     key={entity}
-                    className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900 shadow-sm"
+                    className="min-w-0 rounded-lg border border-gray-200 bg-gray-50 p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900"
                   >
                     <Checkbox
                       label={`All ${entity}`}
                       checked={allSelected}
                       disabled={isReadOnly}
                       onChange={() => toggleAllForGroup(entity)}
-                      className="mb-2 font-medium"
+                      className="mb-3 font-medium"
+                      labelClassName="min-w-0 whitespace-normal break-words leading-5"
                     />
-                    <div className="mt-2 space-y-2 ml-2">
+
+                    <div className="mt-2 space-y-2 pl-2">
                       {items.map((item) => (
                         <Checkbox
                           key={item.key}
@@ -249,6 +251,7 @@ const CreateRoleModal = ({
                           checked={selectedPermissions.includes(item.key)}
                           disabled={isReadOnly}
                           onChange={() => togglePermission(item.key)}
+                          labelClassName="whitespace-normal break-words leading-5"
                         />
                       ))}
                     </div>
@@ -265,6 +268,7 @@ const CreateRoleModal = ({
             variant="outline"
             onClick={onClose}
             type="button"
+            disabled={isSubmitting}
             className="border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
           >
             {t("cancel")}
@@ -273,6 +277,7 @@ const CreateRoleModal = ({
             <Button
               type="submit"
               variant="primary"
+              loading={isSubmitting}
               className="bg-blue-600 hover:bg-blue-700 text-white transition"
             >
               {t("save")}

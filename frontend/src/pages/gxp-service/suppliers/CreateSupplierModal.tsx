@@ -35,7 +35,7 @@ const CreateSupplierModal = ({
     handleSubmit,
     setValue,
     control,
-    formState: { errors }
+    formState: { errors, isSubmitting }
   } = useForm<CreateSupplierForm>({
     resolver: zodResolver(getSupplierSchema),
     defaultValues: {
@@ -51,8 +51,11 @@ const CreateSupplierModal = ({
   const status = useWatch({ control, name: "status" });
 
   return (
-    <div className="p-6 max-h-[120vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+  <div className="modal-scrollbar max-h-[calc(100dvh-2rem)] overflow-y-auto overflow-x-hidden rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="min-w-0 space-y-4"
+      > 
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("supplier") })
@@ -129,11 +132,16 @@ const CreateSupplierModal = ({
 
         {/* Action Buttons */}
         <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" type="button" onClick={onClose}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary">
+            <Button type="submit" variant="primary" loading={isSubmitting}>
               {t("save")}
             </Button>
           ) : null}

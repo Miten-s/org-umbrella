@@ -238,7 +238,7 @@ const CreateApplicationModal = ({
     handleSubmit,
     setValue,
     reset,
-    formState: { errors }
+    formState: { errors, isSubmitting }
   } = useForm<ApplicationFormInput>({
     resolver: zodResolver(getApplicationSchema),
     defaultValues: normalizedDefaults
@@ -935,11 +935,20 @@ const CreateApplicationModal = ({
           </div>
 
           <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" type="button" onClick={onClose}>
+            <Button
+              variant="outline"
+              type="button"
+              onClick={onClose}
+              disabled={loading || isSubmitting}
+            >
               {t("cancel")}
             </Button>
             {!isReadOnly ? (
-              <Button type="submit" variant="primary" disabled={loading}>
+              <Button
+                type="submit"
+                variant="primary"
+                loading={loading || isSubmitting}
+              >
                 {t("save")}
               </Button>
             ) : null}

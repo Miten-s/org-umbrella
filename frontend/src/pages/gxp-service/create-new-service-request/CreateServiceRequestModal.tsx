@@ -327,7 +327,7 @@ const CreateServiceRequestModal = ({
     handleSubmit,
     reset,
     setValue,
-    formState: { errors }
+    formState: { errors, isSubmitting }
   } = useForm<ServiceRequestFormInput>({
     resolver: zodResolver(getServiceRequestSchema),
     defaultValues: normalizedDefaults
@@ -635,8 +635,8 @@ const CreateServiceRequestModal = ({
       setModuleOptions(moduleBaseOptions);
       const initialRoleOptions = buildRoleOptionsFromValues(
         (resolvedInitial as any)?.application?.applicationRoles ??
-          (resolvedInitial as any)?.roles ??
-          (resolvedInitial as any)?.applicationRoles
+        (resolvedInitial as any)?.roles ??
+        (resolvedInitial as any)?.applicationRoles
       );
       setRoleOptions(mergeUniqueOptions(roleBaseOptions, initialRoleOptions));
       return;
@@ -671,7 +671,7 @@ const CreateServiceRequestModal = ({
     );
     const initialApp =
       resolvedInitial &&
-      typeof (resolvedInitial as any)?.application === "object"
+        typeof (resolvedInitial as any)?.application === "object"
         ? (resolvedInitial as any).application
         : null;
     const initialAppMatchesSelection =
@@ -742,9 +742,9 @@ const CreateServiceRequestModal = ({
         setValue(
           "groupLocation",
           details.groupLocationName ||
-            (details.groupLocationId
-              ? (locationNameById[details.groupLocationId] ?? "")
-              : "")
+          (details.groupLocationId
+            ? (locationNameById[details.groupLocationId] ?? "")
+            : "")
         );
         setValue("applicationWorkflow", details.workflowId);
         setValue("applicationModules", details.moduleIds);
@@ -876,7 +876,7 @@ const CreateServiceRequestModal = ({
                       selectedApplicationLocationLabel ||
                       locationNameById[field.value ?? ""] ||
                       (typeof field.value === "string" &&
-                      field.value.length === 24
+                        field.value.length === 24
                         ? ""
                         : (field.value ?? ""))
                     }
@@ -1238,11 +1238,20 @@ const CreateServiceRequestModal = ({
         </div>
 
         <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" type="button" onClick={onClose}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={loading || isSubmitting}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" disabled={loading}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={loading || isSubmitting}
+            >
               {t("save")}
             </Button>
           ) : null}

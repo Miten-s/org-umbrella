@@ -25,10 +25,30 @@ interface CreateApplicationSoftwareModuleModalProps {
   onClose: () => void;
   onSubmit: (data: Partial<AppSoftwareModuleFormOutput>) => void;
   initialData?: Partial<AppSoftwareModuleFormOutput> &
-    Pick<Partial<ApplicationSoftwareModule>, "moduleId">;
+  Pick<Partial<ApplicationSoftwareModule>, "moduleId"> & {
+    applicationId?: string;
+  };
   applications: Application[];
   mode?: "create" | "edit" | "view";
 }
+
+const getInitialApplicationId = (
+  initialData?: CreateApplicationSoftwareModuleModalProps["initialData"]
+) => {
+  const application = initialData?.application;
+  if (!application) return initialData?.applicationId ?? "";
+  if (typeof application === "string") return application;
+  if (typeof application === "object") {
+    return (
+      String(
+        (application as { _id?: string; id?: string })._id ??
+        (application as { _id?: string; id?: string }).id ??
+        ""
+      ) || initialData?.applicationId || ""
+    );
+  }
+  return "";
+};
 
 const CreateApplicationSoftwareModuleModal = ({
   onClose,
@@ -45,27 +65,30 @@ const CreateApplicationSoftwareModuleModal = ({
     register,
     control,
     handleSubmit,
-    formState: { errors }
+    formState: { errors, isSubmitting }
   } = useForm<AppSoftwareModuleFormInput>({
     resolver: zodResolver(getApplicationSoftwareModuleSchema),
     defaultValues: {
       moduleName: initialData?.moduleName ?? "",
-      application: initialData?.application ?? "",
+      application: getInitialApplicationId(initialData),
       status: initialData?.status ?? "enabled"
     }
   });
 
   const onFormSubmit = (data: AppSoftwareModuleFormInput) => {
     const parsed = getApplicationSoftwareModuleSchema.parse(data);
-    onSubmit({
+    return onSubmit({
       ...parsed,
       application: parsed.application || undefined
     });
   };
 
   return (
-    <div className="p-6 max-h-[120vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
+    <div className="modal-scrollbar max-h-[calc(100dvh-2rem)] overflow-y-auto overflow-x-hidden rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="min-w-0 space-y-4"
+      >
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("gxpAppModules") })
@@ -114,6 +137,9 @@ const CreateApplicationSoftwareModuleModal = ({
                     label: app.applicationName,
                     value: app._id
                   }))}
+                  portal
+                  dropdownMaxHeight={320}
+                  listMaxHeight={240}
                   placeholder={t("select", { entity: t("application") })}
                 />
               )}
@@ -150,11 +176,16 @@ const CreateApplicationSoftwareModuleModal = ({
         </div>
 
         <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" type="button" onClick={onClose}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary">
+            <Button type="submit" variant="primary" loading={isSubmitting}>
               {t("save")}
             </Button>
           ) : null}

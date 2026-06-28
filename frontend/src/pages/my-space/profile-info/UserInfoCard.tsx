@@ -35,7 +35,12 @@ export default function UserInfoCard() {
   const isSuperAdmin = user.roles?.some((role) =>
     role.permissions?.some((permission) => permission.name === "OPERATE:ALL")
   );
-  const { register, handleSubmit, control } = useForm<UserInfoFormValues>({
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { isSubmitting }
+  } = useForm<UserInfoFormValues>({
     defaultValues: {
       name: user?.name || "",
       status: user?.status === "active",
@@ -220,10 +225,11 @@ export default function UserInfoCard() {
                 variant="outline"
                 type="button"
                 onClick={closeModal}
+                disabled={isSubmitting}
               >
                 Close
               </Button>
-              <Button size="sm" type="submit">
+              <Button size="sm" type="submit" loading={isSubmitting}>
                 Save Changes
               </Button>
             </div>

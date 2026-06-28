@@ -34,7 +34,6 @@ const AppSidebar: React.FC = () => {
   const location = useLocation();
   const { user } = useAuth();
   const { t } = useTranslation();
-  console.log("User in AppSidebar:", user);
   const navItems: NavItem[] = useMemo(
     () => [
       {
