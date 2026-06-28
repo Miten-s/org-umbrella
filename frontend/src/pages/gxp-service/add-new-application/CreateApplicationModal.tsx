@@ -262,15 +262,22 @@ const CreateApplicationModal = ({
   );
 
   useEffect(() => {
-    setServiceRequestOptionsState(
+    const base =
       serviceRequestTypes
         ?.filter((s) => (s?.active ?? true) && s?.service && s?._id)
-        .map((s) => ({ text: s.service, value: s._id })) || []
-    );
-  }, [serviceRequestTypes]);
+        .map((s) => ({ text: s.service, value: s._id })) || [];
+    const initialServices =
+      resolvedInitial?.applicationServiceRequestTypes
+        ?.map((s: any) => ({
+          text: (s?.service ?? "") as string,
+          value: normalizeMixedId(s)
+        }))
+        .filter((opt: MultiSelectOption) => opt.value && opt.text) || [];
+    setServiceRequestOptionsState(mergeUniqueOptions(base, initialServices));
+  }, [serviceRequestTypes, resolvedInitial]);
 
   useEffect(() => {
-    setRoleOptionsState(
+    const base =
       roles
         ?.filter(
           (r) =>
@@ -279,9 +286,16 @@ const CreateApplicationModal = ({
         .map((r) => ({
           text: (r.role ?? r.name ?? r.roleName) as string,
           value: r._id as string
-        })) || []
-    );
-  }, [roles]);
+        })) || [];
+    const initialRoles =
+      resolvedInitial?.applicationRoles
+        ?.map((r: any) => ({
+          text: (r?.role ?? r?.name ?? r?.roleName ?? "") as string,
+          value: normalizeMixedId(r)
+        }))
+        .filter((opt: MultiSelectOption) => opt.value && opt.text) || [];
+    setRoleOptionsState(mergeUniqueOptions(base, initialRoles));
+  }, [roles, resolvedInitial]);
 
   useEffect(() => {
     reset(normalizedDefaults);
@@ -301,12 +315,19 @@ const CreateApplicationModal = ({
   }, [normalizedDefaults, reset, resolvedInitial?.attachments]);
 
   useEffect(() => {
-    setAppGroupOptions(
+    const base =
       applicationGroups
         ?.filter((g) => g?._id && g?.appGroup)
-        .map((g) => ({ text: g.appGroup, value: g._id })) || []
-    );
-  }, [applicationGroups]);
+        .map((g) => ({ text: g.appGroup, value: g._id })) || [];
+    const initialGroups =
+      resolvedInitial?.applicationGroups
+        ?.map((g: any) => ({
+          text: (g?.appGroup ?? "") as string,
+          value: normalizeMixedId(g)
+        }))
+        .filter((opt: MultiSelectOption) => opt.value && opt.text) || [];
+    setAppGroupOptions(mergeUniqueOptions(base, initialGroups));
+  }, [applicationGroups, resolvedInitial]);
 
   useEffect(() => {
     const selectedModuleIds = new Set(
@@ -327,7 +348,7 @@ const CreateApplicationModal = ({
       resolvedInitial?.applicationModules
         ?.map((m: any) => ({
           text: m?.moduleName || "",
-          value: m?._id || m || ""
+          value: normalizeMixedId(m)
         }))
         .filter((opt: MultiSelectOption) => opt.value && opt.text) || [];
     setAppModuleOptions(mergeUniqueOptions(base, initialModules));

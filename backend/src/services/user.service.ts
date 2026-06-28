@@ -96,6 +96,7 @@ const getUsers = async (options: PaginationOptions, user?: IUser) => {
 
   const { count: totalCount, rows: data } = await User.findAndCountAll({
     where,
+    distinct: true,
     offset: skip,
     limit,
     include: [

@@ -1,16 +1,35 @@
 import GxpServiceUser from "../models/gxp-service-users.model";
 import { PaginationOptions } from "../utils/pagination.util";
 import { Op } from "sequelize";
+import crypto from "crypto";
 
 const formatUser = (user: any) => {
   if (!user) return null;
   const json = user.toJSON ? user.toJSON() : { ...user };
   json._id = json.id;
+
+  // Reconstruct user object
+  json.user = {
+    id: json.authUserId,
+    name: json.userName
+  };
   return json;
 };
 
 export const createUserRepo = async (data: any) => {
-  const doc = await GxpServiceUser.create(data);
+  const payload = {
+    id: data.id || crypto.randomUUID(),
+    authUserId: data.user?.id,
+    userName: data.user?.name,
+    userType: data.userType,
+    roles: data.roles || [],
+    description: data.description,
+    status: data.status || "enabled",
+    trainingCompleted: data.trainingCompleted !== undefined ? data.trainingCompleted : false,
+    createdBy: data.createdBy,
+    modifiedBy: data.modifiedBy
+  };
+  const doc = await GxpServiceUser.create(payload);
   return formatUser(doc);
 };
 
@@ -49,7 +68,27 @@ export const findUserByIdRepo = async (id: string) => {
 export const updateUserRepo = async (id: string, data: any) => {
   const user = await GxpServiceUser.findByPk(id);
   if (!user) return null;
-  await user.update(data);
+
+  const payload: any = {
+    userType: data.userType,
+    roles: data.roles,
+    description: data.description,
+    status: data.status,
+    trainingCompleted: data.trainingCompleted,
+    modifiedBy: data.modifiedBy
+  };
+
+  if (data.user) {
+    payload.authUserId = data.user.id;
+    payload.userName = data.user.name;
+  }
+
+  // Remove undefined fields
+  Object.keys(payload).forEach((key) => {
+    if (payload[key] === undefined) delete payload[key];
+  });
+
+  await user.update(payload);
   return formatUser(user);
 };
 

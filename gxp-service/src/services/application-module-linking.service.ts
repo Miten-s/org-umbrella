@@ -74,13 +74,6 @@ export const resolveModuleIdsForApplication = async (
 
   const selectedByName = new Map<string, string>();
   for (const module of selectedById) {
-    const moduleApp = String(module.applicationId ?? "").trim();
-    if (moduleApp && moduleApp !== applicationId) {
-      throw new Error(
-        `Module "${String(module.moduleName ?? "")}" is already attached to another application`
-      );
-    }
-
     const key = normalizeModuleName(String(module.moduleName ?? ""));
     if (!key) continue;
     if (selectedByName.has(key)) {
@@ -191,8 +184,7 @@ export const syncModuleOwnership = async (
   );
 
   if (removedModuleIds.length) {
-    await AppModule.update(
-      { applicationId: null as any },
+    await AppModule.destroy(
       { where: { id: removedModuleIds, applicationId }, transaction }
     );
   }

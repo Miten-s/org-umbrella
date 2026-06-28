@@ -36,6 +36,7 @@ interface MultiSelectProps {
 }
 
 const MultiSelect: React.FC<MultiSelectProps> = ({
+  label,
   options,
   defaultSelected = [],
   onChange,
@@ -212,6 +213,8 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
     }));
   }, [selectedOptions, internalOptions]);
 
+  console.log(`Selected ?? ${label  ?? ""}` , selectedLabels);
+  
   // Canvas measurement (fast, accurate for font)
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const measureTextPx = useCallback((text: string, font: string) => {
@@ -275,6 +278,9 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
 
   const visibleSelected = selectedLabels.slice(0, visibleCount);
   const hiddenSelected = selectedLabels.slice(visibleCount);
+
+  console.log(`Hidden Selected ?? ${label ?? ""}`, hiddenSelected);
+  
   const hiddenCount = hiddenSelected.length;
   const dropdownContent = isOpen ? (
     <div
@@ -431,6 +437,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                         headerLabel={`Selected (${hiddenCount} more)`}
                         stopPropagation={true}
                         placement={countTooltipPlacement}
+                        portal
                       />
                     )}
                   </>

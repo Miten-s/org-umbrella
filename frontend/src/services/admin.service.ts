@@ -430,11 +430,31 @@ export const bulkDuplicateDesignations = async (
 
 export const getCompany = async () => {
   const response = await api.get(API_ROUTES.company);
-  return response["data"];
+  const data = response["data"];
+  if (data?.company) {
+    data.company._id = data.company.id;
+  }
+  return data;
 };
 
-export const updateCompany = async (id: string, payload: FormData) => {
-  const response = await api.patch(`${API_ROUTES.company}/${id}`, payload, {
+export const updateCompany = async (id: string, payload: FormData | Record<string, any>) => {
+  let body: FormData;
+  if (payload instanceof FormData) {
+    body = payload;
+  } else {
+    body = new FormData();
+    body.append("name", payload.name);
+    body.append("description", payload.description || "");
+    const isFile = payload.logo instanceof File ||
+      (payload.logo && typeof payload.logo === "object" &&
+       typeof payload.logo.name === "string" &&
+       typeof payload.logo.size === "number");
+    if (isFile) {
+      body.append("logo", payload.logo);
+    }
+  }
+
+  const response = await api.patch(`${API_ROUTES.company}/${id}`, body, {
     headers: {
       "Content-Type": "multipart/form-data"
     }

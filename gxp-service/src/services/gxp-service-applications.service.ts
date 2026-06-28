@@ -1,5 +1,6 @@
 import * as repo from "../repo/gxp-service-applications.repo";
 import AppGroup from "../models/gxp-service-application-groups.model";
+import AppDepartment from "../models/gxp-service-application-departments.model";
 import AppRole from "../models/gxp-service-application-roles.model";
 import AppService from "../models/gxp-service-application-services.model";
 import { UpdateApplication } from "../types/common.types";
@@ -148,13 +149,13 @@ export const createApplication = async (
     const toSave: any = {
       applicationName: payload.applicationName,
       applicationType: payload.applicationType,
-      applicationEnvironmentId: payload.applicationEnvironmentId,
+      applicationEnvironmentId: payload.applicationEnvironmentId || payload.applicationEnvironment || null,
       group: payload.group,
-      assignmentGroupId: payload.assignmentGroupId,
-      applicationWorkflowId: payload.applicationWorkflowId,
-      applicationSystemOwnerId: payload.applicationSystemOwnerId,
-      applicationProcessOwnerId: payload.applicationProcessOwnerId,
-      supplierId: payload.supplierId,
+      assignmentGroupId: payload.assignmentGroupId || payload.assignmentGroup || null,
+      applicationWorkflowId: payload.applicationWorkflowId || payload.applicationWorkflow || null,
+      applicationSystemOwnerId: payload.applicationSystemOwnerId || payload.applicationSystemOwner || null,
+      applicationProcessOwnerId: payload.applicationProcessOwnerId || payload.applicationProcessOwner || null,
+      supplierId: payload.supplierId || payload.supplier || null,
       notes: payload.notes,
       createdOn: now,
       createdBy: currentUser ?? null,
@@ -207,7 +208,7 @@ export const createApplication = async (
     }
 
     if (payload.applicationGroups) {
-      await resolveIds(payload.applicationGroups, {
+      const groupIds = await resolveIds(payload.applicationGroups, {
         model: AppGroup,
         nameField: "appGroup",
         nameKeys: ["name", "appGroup"],
@@ -215,6 +216,28 @@ export const createApplication = async (
         queryExtra: { applicationId },
         transaction: t
       });
+      if (groupIds) {
+        await AppGroup.update(
+          { applicationId },
+          { where: { id: groupIds }, transaction: t }
+        );
+      }
+    }
+
+    if (payload.departments && Array.isArray(payload.departments)) {
+      await Promise.all(
+        payload.departments.map((deptId) =>
+          AppDepartment.create(
+            {
+              id: crypto.randomUUID(),
+              applicationId,
+              departmentName: deptId,
+              active: true
+            },
+            { transaction: t }
+          )
+        )
+      );
     }
 
     const moduleIds = await resolveModuleIdsForApplication(
@@ -263,9 +286,9 @@ export const getApplicationById = async (id: string) => {
 
   return {
     ...application,
-    departments: application.departments
-      ? await fetchDepartmentsFromAuthService([...application.departments])
-      : null,
+    departments: application.departments && application.departments.length
+      ? await fetchDepartmentsFromAuthService(application.departments.map((d: any) => d.departmentName))
+      : [],
     group: application.group
       ? (await fetchLocationsFromAuthService([application.group]))[0]
       : null
@@ -318,16 +341,40 @@ export const updateApplication = async (
       locationName
     );
 
+    const environmentId = updates.applicationEnvironmentId !== undefined 
+      ? updates.applicationEnvironmentId 
+      : (updates.applicationEnvironment !== undefined ? updates.applicationEnvironment : (isApplicationExist as any).applicationEnvironmentId);
+      
+    const assignmentGroupId = updates.assignmentGroupId !== undefined 
+      ? updates.assignmentGroupId 
+      : (updates.assignmentGroup !== undefined ? updates.assignmentGroup : (isApplicationExist as any).assignmentGroupId);
+
+    const workflowId = updates.applicationWorkflowId !== undefined 
+      ? updates.applicationWorkflowId 
+      : (updates.applicationWorkflow !== undefined ? updates.applicationWorkflow : (isApplicationExist as any).applicationWorkflowId);
+
+    const systemOwnerId = updates.applicationSystemOwnerId !== undefined 
+      ? updates.applicationSystemOwnerId 
+      : (updates.applicationSystemOwner !== undefined ? updates.applicationSystemOwner : (isApplicationExist as any).applicationSystemOwnerId);
+
+    const processOwnerId = updates.applicationProcessOwnerId !== undefined 
+      ? updates.applicationProcessOwnerId 
+      : (updates.applicationProcessOwner !== undefined ? updates.applicationProcessOwner : (isApplicationExist as any).applicationProcessOwnerId);
+
+    const supplierId = updates.supplierId !== undefined 
+      ? updates.supplierId 
+      : (updates.supplier !== undefined ? updates.supplier : (isApplicationExist as any).supplierId);
+
     await isApplicationExist.update({
       applicationName: nextApplicationName,
       applicationType: updates.applicationType ?? (isApplicationExist as any).applicationType,
-      applicationEnvironmentId: updates.applicationEnvironmentId !== undefined ? updates.applicationEnvironmentId : (isApplicationExist as any).applicationEnvironmentId,
+      applicationEnvironmentId: environmentId,
       group: updates.group ?? (isApplicationExist as any).group,
-      assignmentGroupId: updates.assignmentGroupId ?? (isApplicationExist as any).assignmentGroupId,
-      applicationWorkflowId: updates.applicationWorkflowId !== undefined ? updates.applicationWorkflowId : (isApplicationExist as any).applicationWorkflowId,
-      applicationSystemOwnerId: updates.applicationSystemOwnerId !== undefined ? updates.applicationSystemOwnerId : (isApplicationExist as any).applicationSystemOwnerId,
-      applicationProcessOwnerId: updates.applicationProcessOwnerId !== undefined ? updates.applicationProcessOwnerId : (isApplicationExist as any).applicationProcessOwnerId,
-      supplierId: updates.supplierId !== undefined ? updates.supplierId : (isApplicationExist as any).supplierId,
+      assignmentGroupId: assignmentGroupId,
+      applicationWorkflowId: workflowId,
+      applicationSystemOwnerId: systemOwnerId,
+      applicationProcessOwnerId: processOwnerId,
+      supplierId: supplierId,
       notes: updates.notes !== undefined ? updates.notes : (isApplicationExist as any).notes,
       applicationId: applicationIdString,
       modifiedOn: new Date(),
@@ -362,7 +409,7 @@ export const updateApplication = async (
     }
 
     if (updates.applicationGroups) {
-      await resolveIds(updates.applicationGroups, {
+      const groupIds = await resolveIds(updates.applicationGroups, {
         model: AppGroup,
         nameField: "appGroup",
         nameKeys: ["name", "appGroup"],
@@ -370,6 +417,47 @@ export const updateApplication = async (
         queryExtra: { applicationId: id },
         transaction: t
       });
+
+      if (groupIds) {
+        await AppGroup.update(
+          { applicationId: id },
+          { where: { id: groupIds }, transaction: t }
+        );
+
+        const currentGroups = await AppGroup.findAll({
+          where: { applicationId: id },
+          attributes: ["id"],
+          transaction: t
+        });
+        const currentGroupIds = currentGroups.map((g: any) => g.id);
+        const removedGroupIds = currentGroupIds.filter(
+          (gid) => !groupIds.includes(gid)
+        );
+        if (removedGroupIds.length) {
+          await AppGroup.destroy({
+            where: { id: removedGroupIds, applicationId: id },
+            transaction: t
+          });
+        }
+      }
+    }
+
+    if (updates.departments && Array.isArray(updates.departments)) {
+      // Clear old departments
+      await AppDepartment.destroy({ where: { applicationId: id }, transaction: t });
+      await Promise.all(
+        updates.departments.map((deptId) =>
+          AppDepartment.create(
+            {
+              id: crypto.randomUUID(),
+              applicationId: id,
+              departmentName: deptId,
+              active: true
+            },
+            { transaction: t }
+          )
+        )
+      );
     }
 
     if (updates.applicationModules) {

@@ -92,6 +92,14 @@ export const up = async (queryInterface: QueryInterface) => {
     modified_by: {
       type: DataTypes.STRING,
       allowNull: true
+    },
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false
     }
   });
 

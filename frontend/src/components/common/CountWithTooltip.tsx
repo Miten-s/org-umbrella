@@ -180,7 +180,7 @@ const CountWithTooltip = ({
 
       <div
         className={[
-          "w-[480px] max-w-[85vw]",
+          "w-[350px] max-w-[85vw]",
           "rounded-2xl",
           "bg-white/95 dark:bg-slate-900/95 backdrop-blur",
           "border border-slate-200 dark:border-slate-700",
@@ -201,7 +201,7 @@ const CountWithTooltip = ({
         <ChipList
           items={items}
           variant="grid"
-          columns={3}
+          columns={2}
           maxHeightClassName="max-h-44"
         />
       </div>

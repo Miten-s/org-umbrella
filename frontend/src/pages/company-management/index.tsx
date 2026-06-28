@@ -6,8 +6,10 @@ import { useEffect, useState } from "react";
 import { getCompany, updateCompany } from "@/services/admin.service";
 import { Company } from "@/types/common.types";
 import CreateCompanyModal from "./CreateCompanyModal";
+import { useAuth } from "@/context/AuthContext";
 
 const CompanyManagement = () => {
+  const { refreshAuth } = useAuth();
   const { isOpen, openModal, closeModal } = useModal();
   const { t } = useTranslation();
 
@@ -26,7 +28,9 @@ console.log("companies", companies);
 
   const handleSave = async (data: any) => {
     if (activeCompany) {
-      await updateCompany(activeCompany.id, data);
+      const companyId = activeCompany._id || (activeCompany as any).id;
+      await updateCompany(companyId, data);
+      await refreshAuth();
     }
     setActiveCompany(null);
     setRefresh((prev) => !prev);

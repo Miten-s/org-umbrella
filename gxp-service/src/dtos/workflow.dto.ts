@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsInt, IsNotEmpty, IsOptional, IsString, Min } from "class-validator";
+import { IsArray, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from "class-validator";
 
 export class CreateWorkflowDto {
   @IsString()
@@ -29,7 +29,8 @@ export class UpdateWorkflowDto {
   @IsOptional()
   levels?: string[];
 
-  @IsBoolean()
+  @IsString()
   @IsOptional()
-  status?: boolean;
+  @IsEnum(["enabled", "disabled"])
+  status?: "enabled" | "disabled";
 }
