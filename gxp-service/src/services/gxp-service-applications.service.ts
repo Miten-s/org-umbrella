@@ -67,6 +67,33 @@ const buildApplicationId = (
     .filter(Boolean)
     .join("-");
 
+/**
+ * app_groups has a unique (application_id, app_group) index, so re-parenting two
+ * selected groups that share a name to the same application collides — surfacing
+ * as the opaque "Duplicate value for field application_id". An application can
+ * only hold one group of a given name, so keep one id per normalized name.
+ */
+const dedupeGroupIdsByName = async (
+  groupIds: string[],
+  transaction?: any
+): Promise<string[]> => {
+  if (groupIds.length < 2) return groupIds;
+  const groups = await AppGroup.findAll({
+    where: { id: groupIds },
+    attributes: ["id", "appGroup"],
+    transaction
+  });
+  const seenNames = new Set<string>();
+  const kept: string[] = [];
+  for (const group of groups as any[]) {
+    const key = String(group.appGroup ?? "").trim().toLowerCase();
+    if (key && seenNames.has(key)) continue; // drop the duplicate-named group
+    if (key) seenNames.add(key);
+    kept.push(String(group.id));
+  }
+  return kept;
+};
+
 const normalizeServiceRequestIdAppSegment = (value: unknown): string =>
   String(value ?? "")
     .trim()
@@ -217,9 +244,10 @@ export const createApplication = async (
         transaction: t
       });
       if (groupIds) {
+        const dedupedGroupIds = await dedupeGroupIdsByName(groupIds, t);
         await AppGroup.update(
           { applicationId },
-          { where: { id: groupIds }, transaction: t }
+          { where: { id: dedupedGroupIds }, transaction: t }
         );
       }
     }
@@ -419,9 +447,10 @@ export const updateApplication = async (
       });
 
       if (groupIds) {
+        const dedupedGroupIds = await dedupeGroupIdsByName(groupIds, t);
         await AppGroup.update(
           { applicationId: id },
-          { where: { id: groupIds }, transaction: t }
+          { where: { id: dedupedGroupIds }, transaction: t }
         );
 
         const currentGroups = await AppGroup.findAll({
@@ -431,7 +460,7 @@ export const updateApplication = async (
         });
         const currentGroupIds = currentGroups.map((g: any) => g.id);
         const removedGroupIds = currentGroupIds.filter(
-          (gid) => !groupIds.includes(gid)
+          (gid) => !dedupedGroupIds.includes(gid)
         );
         if (removedGroupIds.length) {
           await AppGroup.destroy({

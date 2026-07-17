@@ -73,13 +73,31 @@ const assignDefaultRole = async (payload: Record<string, any>) => {
   return payload;
 };
 
-const getUsers = async (options: PaginationOptions, user?: IUser) => {
+const getUsers = async (
+  options: PaginationOptions,
+  user?: IUser,
+  filters: Record<string, string | string[]> = {}
+) => {
   const { page, limit, skip, search } = options;
   const where: any = {
     fullName: {
       [Op.notIn]: ["superadmin", user?.fullName || ""]
     }
   };
+
+  // Canonical list filter: filter[status]=active|disabled (BACKEND_ASKS #2).
+  const statusValues = Array.isArray(filters.status)
+    ? filters.status
+    : filters.status
+      ? [filters.status]
+      : [];
+  const allowedStatus = statusValues.filter(
+    (value) => value === "active" || value === "disabled"
+  );
+  if (allowedStatus.length) {
+    where.status =
+      allowedStatus.length === 1 ? allowedStatus[0] : { [Op.in]: allowedStatus };
+  }
 
   if (search) {
     const searchVal = `%${search}%`;

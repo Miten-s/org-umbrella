@@ -162,10 +162,14 @@ export const updateApplicationModule = async (
       ? updates.moduleName.trim()
       : String((existing as any).moduleName ?? "").trim();
 
+  // A4: the frontend sends `application`; create already accepts it, update must
+  // too. Read `application` first, then `applicationId`, then keep the previous.
   const application =
-    (updates as any).applicationId !== undefined
-      ? parseApplicationId((updates as any).applicationId)
-      : (updates.applicationId !== undefined ? parseApplicationId(updates.applicationId) : previousApplicationId);
+    (updates as any).application !== undefined
+      ? parseApplicationId((updates as any).application)
+      : (updates as any).applicationId !== undefined
+        ? parseApplicationId((updates as any).applicationId)
+        : previousApplicationId;
 
   const applicationName = await resolveApplicationName(application, previousApplicationName);
 

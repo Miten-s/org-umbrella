@@ -4,7 +4,9 @@ import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { DropdownItem } from "@/components/ui/dropdown/DropdownItem";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import { ChevronLeftIcon, CloseLineIcon, MoreDotIcon } from "@/public/icons";
+import { CloseLineIcon, MoreDotIcon } from "@/public/icons";
+import { createAgTableTheme } from "./tableTheme";
+import { ServerPaginationFooter } from "./ServerPaginationFooter";
 import type { AuthenticatedUser } from "@/types/common.types";
 import { hasPermission } from "@/utils/permissions";
 import {
@@ -14,8 +16,7 @@ import {
   GridReadyEvent,
   ICellRendererParams,
   ModuleRegistry,
-  SelectionChangedEvent,
-  themeQuartz
+  SelectionChangedEvent
 } from "ag-grid-community";
 import { AgGridReact } from "ag-grid-react";
 import {
@@ -177,7 +178,7 @@ interface RowActionsCellProps<T> {
   user: AuthenticatedUser;
 }
 
-const RowActionsCell = <T extends object>({
+export const RowActionsCell = <T extends object>({
   row,
   rowActions,
   maxInlineRowActions,
@@ -490,16 +491,6 @@ const AppDataTable = <T extends object>({
   const serverCurrentPage = serverPagination
     ? Math.min(Math.max(1, serverPagination.currentPage), serverTotalPages)
     : 1;
-  const serverFirstRow =
-    serverPagination && serverPagination.totalRows
-      ? (serverCurrentPage - 1) * serverPagination.pageSize + 1
-      : 0;
-  const serverLastRow = serverPagination
-    ? Math.min(
-        serverCurrentPage * serverPagination.pageSize,
-        serverPagination.totalRows
-      )
-    : 0;
 
   useEffect(() => {
     if (!gridApi) {
@@ -553,24 +544,7 @@ const AppDataTable = <T extends object>({
   }, [gridApi, rowData]);
 
   const tableTheme = useMemo(
-    () =>
-      themeQuartz.withParams({
-        accentColor: "#465fff",
-        backgroundColor: theme === "dark" ? "#101828" : "#ffffff",
-        borderColor: theme === "dark" ? "#344054" : "#e4e7ec",
-        browserColorScheme: theme,
-        cellHorizontalPadding: 16,
-        fontFamily: "Outfit, sans-serif",
-        fontSize,
-        foregroundColor: theme === "dark" ? "#f3f4f6" : "#101828",
-        headerBackgroundColor: theme === "dark" ? "#0f172a" : "#f8fafc",
-        headerHeight,
-        oddRowBackgroundColor: theme === "dark" ? "#101828" : "#fcfcfd",
-        rowHeight,
-        selectedRowBackgroundColor:
-          theme === "dark" ? "rgba(70,95,255,0.18)" : "rgba(70,95,255,0.08)",
-        wrapperBorderRadius: 16
-      }),
+    () => createAgTableTheme({ theme, fontSize, headerHeight, rowHeight }),
     [fontSize, headerHeight, rowHeight, theme]
   );
 
@@ -876,86 +850,18 @@ const AppDataTable = <T extends object>({
         </div>
 
         {serverPagination ? (
-          <div className="flex min-h-16 flex-col gap-3  px-4 py-3 text-sm text-gray-700 dark:border-gray-800 dark:text-gray-300 sm:flex-row sm:items-center sm:justify-end">
-            {pageSizeOptions !== false && serverPagination.onPageSizeChange ? (
-              <label className="flex items-center justify-end gap-2">
-                <span>Page Size:</span>
-                <select
-                  className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none transition-colors hover:bg-gray-50 focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
-                  value={serverPagination.pageSize}
-                  onChange={(event) =>
-                    serverPagination.onPageSizeChange?.(
-                      Number(event.target.value)
-                    )
-                  }
-                >
-                  {pageSizeOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
-
-            <span className="text-right">
-              {serverFirstRow} to {serverLastRow} of{" "}
-              {serverPagination.totalRows}
-            </span>
-
-            <span className="text-right font-medium">
-              Page {serverCurrentPage} of {serverTotalPages}
-            </span>
-
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                className="inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
-                disabled={serverCurrentPage <= 1 || loading}
-                onClick={() => serverPagination.onPageChange(1)}
-                aria-label="First page"
-                title="First page"
-              >
-                <ChevronLeftIcon className="h-4 w-4" />
-                <ChevronLeftIcon className="-ml-2 h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                className="inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
-                disabled={serverCurrentPage <= 1 || loading}
-                onClick={() =>
-                  serverPagination.onPageChange(serverCurrentPage - 1)
-                }
-                aria-label="Previous page"
-                title="Previous page"
-              >
-                <ChevronLeftIcon className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                className="inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
-                disabled={serverCurrentPage >= serverTotalPages || loading}
-                onClick={() =>
-                  serverPagination.onPageChange(serverCurrentPage + 1)
-                }
-                aria-label="Next page"
-                title="Next page"
-              >
-                <ChevronLeftIcon className="h-4 w-4 rotate-180" />
-              </button>
-              <button
-                type="button"
-                className="inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
-                disabled={serverCurrentPage >= serverTotalPages || loading}
-                onClick={() => serverPagination.onPageChange(serverTotalPages)}
-                aria-label="Last page"
-                title="Last page"
-              >
-                <ChevronLeftIcon className="h-4 w-4 rotate-180" />
-                <ChevronLeftIcon className="-ml-2 h-4 w-4 rotate-180" />
-              </button>
-            </div>
-          </div>
+          <ServerPaginationFooter
+            currentPage={serverCurrentPage}
+            totalPages={serverTotalPages}
+            pageSize={serverPagination.pageSize}
+            totalRows={serverPagination.totalRows}
+            disabled={loading}
+            pageSizeOptions={
+              serverPagination.onPageSizeChange ? pageSizeOptions : false
+            }
+            onPageChange={serverPagination.onPageChange}
+            onPageSizeChange={serverPagination.onPageSizeChange}
+          />
         ) : null}
       </div>
     </div>

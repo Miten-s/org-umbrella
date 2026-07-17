@@ -12,7 +12,6 @@ import API_ROUTES from "../utils/routes";
 import { validateDto } from "../middlewares/validate-dto.middleware";
 import { IsValidParamsIdDto } from "../dtos/common.dto";
 import { UpdateLocationDto } from "../dtos/location.dto";
-import { CreateDesignationDto } from "../dtos/designation.dto";
 import { checkPermissions } from "../middlewares/permission.middleware";
 
 const router = Router();
@@ -28,7 +27,6 @@ router.get(
   API_ROUTES.LOCATIONS + API_ROUTES.PARAMS,
   checkPermissions(["VIEW:LOCATION"]),
   validateDto(IsValidParamsIdDto, "params"),
-  validateDto(CreateDesignationDto),
   getLocationById
 );
 

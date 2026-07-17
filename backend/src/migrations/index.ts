@@ -11,6 +11,7 @@ import * as m009 from "./009-add-circular-constraints";
 import * as m010 from "./010-create-user-roles";
 import * as m011 from "./011-create-password-history";
 import * as m012 from "./012-seed-initial-data";
+import * as m013 from "./013-partial-unique-active-names";
 
 export const migrations: Migration[] = [
   { name: "001-create-companies", up: m001.up },
@@ -24,7 +25,8 @@ export const migrations: Migration[] = [
   { name: "009-add-circular-constraints", up: m009.up },
   { name: "010-create-user-roles", up: m010.up },
   { name: "011-create-password-history", up: m011.up },
-  { name: "012-seed-initial-data", up: m012.up }
+  { name: "012-seed-initial-data", up: m012.up },
+  { name: "013-partial-unique-active-names", up: m013.up }
 ];
 export { runMigrations } from "./runner";
 

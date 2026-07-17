@@ -57,6 +57,19 @@ const buildServiceRequestId = (applicationName: string, sequence: number): strin
   return `SR_${normalizedAppName}_${paddedSequence}`;
 };
 
+const MAX_SERVICE_REQUEST_ID_ATTEMPTS = 5;
+
+/** True when the error is a unique-constraint violation on serviceRequestId. */
+const isServiceRequestIdConflict = (err: any): boolean => {
+  if (err?.name !== "SequelizeUniqueConstraintError") return false;
+  const paths = (err.errors || []).map((e: any) => String(e?.path ?? ""));
+  return (
+    paths.some(
+      (p: string) => p === "serviceRequestId" || p === "service_request_id"
+    ) || /service_request_id|serviceRequestId/i.test(String(err?.message ?? ""))
+  );
+};
+
 export const createServiceRequest = async (
   data: Partial<IServiceRequest>,
   attachments?: string[]
@@ -138,19 +151,41 @@ export const createServiceRequest = async (
     throw new Error("Application not found");
   }
 
-  const nextSequence = await repo.getNextServiceRequestSequence(applicationId);
   // `id` is the PK (varchar, no DB default) — generate a UUID for it
   payload.id = randomUUID();
-  // `serviceRequestId` is the human-readable SR_APP_XXXX display ID
-  payload.serviceRequestId = buildServiceRequestId(
-    applicationRecord.applicationName,
-    nextSequence
-  );
   // Model FK column is `applicationId`, not `application`
   payload.applicationId = applicationId;
   delete payload.application;
 
-  const newRequest = await repo.createServiceRequest(payload);
+  // The per-application counter can lag behind existing rows, so the generated
+  // `serviceRequestId` (SR_APP_XXXX) may already exist and the insert fails on a
+  // unique constraint. Retry, bumping the sequence each time, so the transient
+  // collision resolves itself instead of forcing the user to re-submit.
+  let newRequest;
+  for (let attempt = 0; ; attempt++) {
+    const nextSequence = await repo.getNextServiceRequestSequence(applicationId);
+    payload.serviceRequestId = buildServiceRequestId(
+      applicationRecord.applicationName,
+      nextSequence
+    );
+    try {
+      newRequest = await repo.createServiceRequest(payload);
+      break;
+    } catch (err) {
+      if (
+        isServiceRequestIdConflict(err) &&
+        attempt < MAX_SERVICE_REQUEST_ID_ATTEMPTS
+      ) {
+        continue;
+      }
+      if (isServiceRequestIdConflict(err)) {
+        throw new Error(
+          "Could not generate a unique service request ID. Please try again."
+        );
+      }
+      throw err;
+    }
+  }
 
   // Attachments
   if (attachments?.length) {

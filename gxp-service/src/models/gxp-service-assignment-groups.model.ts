@@ -138,4 +138,11 @@ GxpUser.belongsToMany(AssignmentGroup, {
   as: "assignmentGroups"
 });
 
+// AG1: read members straight from the join rows (which cache userId + userName),
+// so members resolve even when the user isn't in gxp-service's GxpUser table.
+AssignmentGroup.hasMany(AssignmentGroupMember, {
+  foreignKey: "group_id",
+  as: "memberLinks"
+});
+
 export default AssignmentGroup;

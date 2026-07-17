@@ -15,15 +15,18 @@ const formatGroup = (group: any) => {
     name: json.managerName
   };
 
-  // Reconstruct members
-  if (json.members) {
-    json.members = json.members.map((m: any) => ({
-      userId: m.id,
-      name: m.AssignmentGroupMember?.userName || m.userName || m.name
+  // Reconstruct members from the cached join rows (memberLinks). Falls back to
+  // the legacy M2M "members" shape if only that was loaded.
+  const links = json.memberLinks ?? json.members;
+  if (Array.isArray(links)) {
+    json.members = links.map((m: any) => ({
+      userId: m.userId ?? m.user_id ?? m.id,
+      name: m.userName ?? m.AssignmentGroupMember?.userName ?? m.name
     }));
   } else {
     json.members = [];
   }
+  delete json.memberLinks;
 
   return json;
 };
@@ -32,8 +35,7 @@ export const findGroupById = async (id: string) => {
   const doc = await GxpServiceAssignmentGroupModel.findByPk(id, {
     include: [
       {
-        association: "members",
-        through: { attributes: ["userName"] }
+        association: "memberLinks"
       }
     ]
   });
@@ -92,8 +94,7 @@ export const getAllGroups = async (options: PaginationOptions) => {
     distinct: true,
     include: [
       {
-        association: "members",
-        through: { attributes: ["userName"] }
+        association: "memberLinks"
       }
     ],
     offset: skip,
@@ -174,8 +175,7 @@ export const searchGroups = async (searchTerm: string) => {
     },
     include: [
       {
-        association: "members",
-        through: { attributes: ["userName"] }
+        association: "memberLinks"
       }
     ]
   });
@@ -194,8 +194,7 @@ export const findGroupsByIds = async (ids: string[]) => {
     where: { id: ids },
     include: [
       {
-        association: "members",
-        through: { attributes: ["userName"] }
+        association: "memberLinks"
       }
     ]
   });
@@ -212,8 +211,7 @@ export const findGroupsByFilter = async (filter: any) => {
     where,
     include: [
       {
-        association: "members",
-        through: { attributes: ["userName"] }
+        association: "memberLinks"
       }
     ]
   });

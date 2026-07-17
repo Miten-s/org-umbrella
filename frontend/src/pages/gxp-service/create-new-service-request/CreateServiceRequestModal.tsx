@@ -780,7 +780,7 @@ const CreateServiceRequestModal = ({
           {isReadOnly
             ? t("view", { entity: t("serviceRequests") })
             : resolvedInitial
-              ? t("edit")
+              ? t("edit", { entity: t("serviceRequests") })
               : t("gxpCreateNewServiceRequest")}
         </h2>
 

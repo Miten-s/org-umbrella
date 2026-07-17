@@ -38,8 +38,16 @@ export const errorHandler = (
   if (err?.name === "SequelizeUniqueConstraintError") {
     statusCode = 400;
     const errors = (err as any).errors || [];
-    const field = errors[0]?.path || "field";
-    message = `Duplicate value for field "${field}".`;
+    // Report the offending value(s), not just the first (composite) column name —
+    // e.g. a duplicate group/module name reads far clearer than "application_id".
+    const conflict = errors
+      .map((e: any) => e?.value)
+      .filter((v: unknown) => v !== undefined && v !== null && v !== "")
+      .join(", ");
+    const fields = errors.map((e: any) => e?.path).filter(Boolean).join(", ") || "field";
+    message = conflict
+      ? `A record with this value already exists: "${conflict}" (${fields}).`
+      : `Duplicate value for field "${fields}".`;
   }
 
   // Handle Sequelize Validation Error

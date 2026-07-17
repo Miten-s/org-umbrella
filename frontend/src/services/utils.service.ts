@@ -25,7 +25,7 @@ export const getImageUrl = (path?: string | null): string | undefined => {
   if (!path) return undefined;
   if (/^https?:\/\//i.test(path)) return path;
 
-  const baseUrl = import.meta.env.VITE_API_BASE_URL;
+  const baseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:9002/v1/api";;
   const assetBaseUrl = baseUrl
     ?.replace(/\/v\d+\/api\/?$/, "")
     .replace(/\/$/, "");
@@ -39,7 +39,11 @@ export const getGxpImageUrl = (path?: string | null): string | undefined => {
 
   if (/^https?:\/\//i.test(path)) return path;
 
-  const baseUrl = import.meta.env.VITE_GXP_API_BASE_URL;
+  // Must match the gxp axios base (gxp.axios.interceptor.ts): the var is
+  // VITE_API_GXP_BASE_URL (not VITE_GXP_API_BASE_URL), with the same localhost
+  // fallback. Without this, the URL was built relative and 404'd on :3000.
+  const baseUrl =
+    import.meta.env.VITE_API_GXP_BASE_URL ?? "http://localhost:9001/v1/api";
   const assetBaseUrl = baseUrl
     ?.replace(/\/v\d+\/api\/?$/, "")
     .replace(/\/$/, "");

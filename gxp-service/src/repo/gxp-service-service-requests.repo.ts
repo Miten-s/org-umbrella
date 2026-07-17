@@ -13,6 +13,71 @@ import ServiceRequestAttachment from "../models/gxp-service-request-attachments.
 import AppGroup from "../models/gxp-service-application-groups.model";
 import AppAttachment from "../models/gxp-service-application-attachments.model";
 import ServiceRequestCounter from "../models/gxp-service-service-request-counters.model";
+import ServiceRequestComment from "../models/gxp-service-service-request-comments.model";
+
+/**
+ * Split a service-request payload into (a) plain model columns, (b) the M2M
+ * module/role id arrays, and (c) the comment strings.
+ *
+ * The service layer normalizes relations to the keys `environment` / `workflow`
+ * / `assignmentGroup` / `requestTypes` (+ `modules` / `roles` / `comments`), but
+ * the model columns are `environmentId` / `workflowId` / `assignmentGroupId` /
+ * `requestTypesId`, and modules/roles/comments are associations. Sequelize
+ * silently drops unknown keys on `.create()` / `.update()`, so we map + peel
+ * them here and persist the relations explicitly.
+ */
+const splitServiceRequestRelations = (data: Record<string, any>) => {
+  const fields = { ...data };
+
+  const moduleIds = Array.isArray(fields.modules)
+    ? (fields.modules as string[]).filter(Boolean)
+    : undefined;
+  const roleIds = Array.isArray(fields.roles)
+    ? (fields.roles as string[]).filter(Boolean)
+    : undefined;
+  const comments = Array.isArray(fields.comments)
+    ? (fields.comments as unknown[])
+        .map((c) => (typeof c === "string" ? c : String((c as any)?.commentText ?? "")))
+        .map((c) => c.trim())
+        .filter(Boolean)
+    : undefined;
+  delete fields.modules;
+  delete fields.roles;
+  delete fields.comments;
+
+  // Map the alias FK keys onto the actual model columns.
+  if ("environment" in fields) {
+    fields.environmentId = fields.environment ?? null;
+    delete fields.environment;
+  }
+  if ("workflow" in fields) {
+    fields.workflowId = fields.workflow ?? null;
+    delete fields.workflow;
+  }
+  if ("assignmentGroup" in fields) {
+    fields.assignmentGroupId = fields.assignmentGroup ?? null;
+    delete fields.assignmentGroup;
+  }
+  if ("requestTypes" in fields) {
+    fields.requestTypesId = fields.requestTypes ?? null;
+    delete fields.requestTypes;
+  }
+
+  return { fields, moduleIds, roleIds, comments };
+};
+
+/** Replace the comment rows for a service request with the given strings. */
+const replaceServiceRequestComments = async (
+  serviceRequestId: string,
+  comments: string[]
+) => {
+  await ServiceRequestComment.destroy({ where: { serviceRequestId } });
+  if (comments.length) {
+    await ServiceRequestComment.bulkCreate(
+      comments.map((commentText) => ({ serviceRequestId, commentText } as any))
+    );
+  }
+};
 
 const formatServiceRequest = (sr: any) => {
   if (!sr) return null;
@@ -96,6 +161,13 @@ const formatServiceRequest = (sr: any) => {
     }));
   }
 
+  // Expose comments as a plain string[] (the shape the form/edit-seed expects).
+  if (Array.isArray(json.comments)) {
+    json.comments = json.comments
+      .map((c: any) => (typeof c === "string" ? c : c?.commentText))
+      .filter(Boolean);
+  }
+
   json.application = json.application || json.applicationId;
   json.assignmentGroup = json.assignmentGroup || json.assignmentGroupId;
   json.workflow = json.workflow || json.workflowId;
@@ -106,7 +178,13 @@ const formatServiceRequest = (sr: any) => {
 };
 
 export const createServiceRequest = async (data: Partial<IServiceRequest>) => {
-  const doc = await ServiceRequest.create(data as any);
+  const { fields, moduleIds, roleIds, comments } = splitServiceRequestRelations(
+    data as Record<string, any>
+  );
+  const doc = await ServiceRequest.create(fields as any);
+  if (moduleIds) await (doc as any).setRequestModules(moduleIds);
+  if (roleIds) await (doc as any).setRequestRoles(roleIds);
+  if (comments) await replaceServiceRequestComments(doc.id, comments);
   return formatServiceRequest(doc);
 };
 
@@ -193,6 +271,11 @@ export const getServiceRequestById = async (id: string) => {
         attributes: ["attachment", "id"]
       },
       {
+        model: ServiceRequestComment,
+        as: "comments",
+        attributes: ["id", "commentText"]
+      },
+      {
         model: Application,
         as: "applicationDetails",
         attributes: ["applicationName", "id", "notes"],
@@ -244,7 +327,14 @@ export const updateServiceRequest = async (
 ) => {
   const doc = await ServiceRequest.findByPk(id);
   if (!doc) return null;
-  await doc.update(data);
+  const { fields, moduleIds, roleIds, comments } = splitServiceRequestRelations(
+    data as Record<string, any>
+  );
+  await doc.update(fields);
+  // Only touch a relation when the caller actually sent it (partial update).
+  if (moduleIds) await (doc as any).setRequestModules(moduleIds);
+  if (roleIds) await (doc as any).setRequestRoles(roleIds);
+  if (comments) await replaceServiceRequestComments(id, comments);
   return formatServiceRequest(doc);
 };
 

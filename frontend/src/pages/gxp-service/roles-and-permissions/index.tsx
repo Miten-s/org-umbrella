@@ -1,7 +1,13 @@
 import { useState } from "react";
-import Permissions from "./Permissions";
-import Roles from "./Roles";
+import PermissionList from "./PermissionList";
+import RoleList from "./RoleList";
 
+/**
+ * Roles & Permissions — tabbed shell over the two migrated entities.
+ * Reversible cutover: the previous implementation is preserved verbatim in
+ * `index.legacy.tsx` (rolls back to `./Roles` + `./Permissions`). To roll back,
+ * replace this file's body with: export { default } from "./index.legacy";
+ */
 type ActiveTab = "roles" | "permissions";
 
 const RolesAndPermissions = () => {
@@ -21,7 +27,6 @@ const RolesAndPermissions = () => {
       >
         {tabs.map((tab) => {
           const isActive = activeTab === tab.key;
-
           return (
             <button
               key={tab.key}
@@ -43,7 +48,7 @@ const RolesAndPermissions = () => {
       </div>
 
       <div className="min-h-0 flex-1">
-        {activeTab === "roles" ? <Roles /> : <Permissions />}
+        {activeTab === "roles" ? <RoleList /> : <PermissionList />}
       </div>
     </div>
   );

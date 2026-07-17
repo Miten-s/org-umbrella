@@ -23,6 +23,8 @@
     "@hookform/resolvers": "^5.0.1",
     "@reduxjs/toolkit": "^2.8.2",
     "@tailwindcss/vite": "^4.1.5",
+    "@tanstack/react-query": "^5.101.2",
+    "@tanstack/react-virtual": "^3.14.5",
     "@types/react-router-dom": "^5.3.3",
     "ag-grid-community": "^35.2.0",
     "ag-grid-react": "^35.2.0",

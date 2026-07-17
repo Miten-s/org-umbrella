@@ -497,6 +497,20 @@ layer(base);
   border-right: none;
 }
 
+/* Vertically center cell content within the row height (custom cellRenderers
+   otherwise top-align). Horizontal alignment stays with the cell's own class.
+   The child min-width:0 keeps single-line truncation working inside the flex.
+   `.dt-grid` is the new DataTable; `.app-data-table` is the frozen table. */
+.app-data-table .ag-cell,
+.dt-grid .ag-cell {
+  display: flex;
+  align-items: center;
+}
+.app-data-table .ag-cell > *,
+.dt-grid .ag-cell > * {
+  min-width: 0;
+}
+
 .app-data-table .ag-row:last-child .ag-cell {
   border-bottom: none;
 }

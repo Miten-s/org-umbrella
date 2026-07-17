@@ -18,6 +18,11 @@ import { CUSTOM_MESSAGES } from "./utils/common.util";
 
 const app: Application = express();
 
+// Express 5 defaults to the "simple" query parser, which does NOT parse nested
+// bracket syntax. Use "extended" (qs) so the canonical list-filter convention
+// `?filter[<field>]=<value>` (BACKEND_ASKS #2) parses into `req.query.filter`.
+app.set("query parser", "extended");
+
 // Enable CORS
 app.use(
   cors({

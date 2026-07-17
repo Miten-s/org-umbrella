@@ -4,7 +4,7 @@ import { sequelize } from "../configs/db.sequelize";
 export interface IAppModule {
   id: string;
   moduleName: string;
-  applicationId: string;
+  applicationId?: string | null;
   moduleIdString: string;
   status: "enabled" | "disabled";
   createdBy?: string;
@@ -13,7 +13,7 @@ export interface IAppModule {
 export class AppModule extends Model<IAppModule> implements IAppModule {
   public id!: string;
   public moduleName!: string;
-  public applicationId!: string;
+  public applicationId!: string | null;
   public moduleIdString!: string;
   public status!: "enabled" | "disabled";
   public createdBy!: string;
@@ -35,7 +35,9 @@ AppModule.init(
     },
     applicationId: {
       type: DataTypes.UUID,
-      allowNull: false,
+      // A3: optional — a module created manually from the Software Module screen
+      // has no application; it is set only via the gxp-applications create flow.
+      allowNull: true,
       field: "application_id"
     },
     moduleIdString: {
