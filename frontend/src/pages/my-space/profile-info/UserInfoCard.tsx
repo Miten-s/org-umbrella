@@ -5,6 +5,7 @@ import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { useAuth } from "@/context/AuthContext";
 import { updateUser } from "@/services/admin.service";
+import { toast } from "@/lib/toast";
 import { useGlobalContext } from "@/context";
 import { useTranslation } from "react-i18next";
 import Input from "@/components/common/form/input/InputField";
@@ -64,6 +65,7 @@ export default function UserInfoCard() {
         status: data.status ? "active" : "disabled"
       };
       await updateUser(user._id, payload);
+      toast("Profile updated successfully.", "success");
       setReFetch(!reFetch);
       closeModal();
     } catch (error) {

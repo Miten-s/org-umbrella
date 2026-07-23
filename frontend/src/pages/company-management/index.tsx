@@ -7,6 +7,7 @@ import { getCompany, updateCompany } from "@/services/admin.service";
 import { Company } from "@/types/common.types";
 import CreateCompanyModal from "./CreateCompanyModal";
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "@/lib/toast";
 
 const CompanyManagement = () => {
   const { refreshAuth } = useAuth();
@@ -30,6 +31,7 @@ const CompanyManagement = () => {
       const companyId = activeCompany._id || (activeCompany as any).id;
       await updateCompany(companyId, data);
       await refreshAuth();
+      toast("Company updated successfully.", "success");
     }
     setActiveCompany(null);
     setRefresh((prev) => !prev);
