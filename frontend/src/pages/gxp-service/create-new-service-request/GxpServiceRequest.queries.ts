@@ -21,6 +21,10 @@ export const useServiceRequestDetail = (id: string | null, enabled = true) =>
     queryKey: serviceRequestKeys.detail(id ?? ""),
     queryFn: ({ signal }) => fetchServiceRequestById(id as string, signal),
     enabled: enabled && Boolean(id),
+    // Always refetch on open. This detail embeds the nested application (its
+    // service types, modules, etc.), which can change independently — the global
+    // 30s staleTime would otherwise serve a cached copy with stale app data.
+    staleTime: 0,
     // Don't refetch while the edit modal is open (e.g. when the OS file dialog
     // blurs/refocuses the window) — a mid-edit refetch would churn the form seed.
     refetchOnWindowFocus: false

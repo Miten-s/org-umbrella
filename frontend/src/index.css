@@ -190,6 +190,12 @@ layer(base);
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+  html {
+    /* Always reserve the scrollbar gutter so locking body scroll when a modal
+       opens (body { overflow: hidden }) doesn't remove the scrollbar and shift
+       the whole page ~15px — the "background flicker/movement" on modal open. */
+    scrollbar-gutter: stable;
+  }
   body {
     @apply relative font-normal font-outfit z-1 bg-gray-50;
   }
@@ -326,6 +332,42 @@ layer(base);
 .dark .modal-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #98a2b3;
   background-clip: content-box;
+}
+
+/* Global classy/rounded scrollbar for ANY scroll area inside a modal, so every
+   modal matches without each form opting into `modal-scrollbar`. The Modal
+   wrapper carries `.modal`; its inner scroll containers are the descendants. */
+.modal *::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.modal *::-webkit-scrollbar-track {
+  background: transparent;
+}
+.modal *::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: #cbd5e1;
+  background-clip: content-box;
+}
+.modal *::-webkit-scrollbar-thumb:hover {
+  background: #98a2b3;
+  background-clip: content-box;
+}
+.modal * {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+.dark .modal *::-webkit-scrollbar-thumb {
+  background: #475467;
+  background-clip: content-box;
+}
+.dark .modal *::-webkit-scrollbar-thumb:hover {
+  background: #667085;
+  background-clip: content-box;
+}
+.dark .modal * {
+  scrollbar-color: #475467 transparent;
 }
 
 @layer utilities {

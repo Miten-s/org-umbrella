@@ -227,85 +227,15 @@ export function DataTable<T extends { id: string }>({
         fillAvailableHeight ? "flex h-full min-h-0 flex-col" : ""
       ].join(" ")}
     >
-      {/* header */}
+      {/* header — the normal toolbar and the selection bar are two states of
+          ONE fixed-height slot. Selecting swaps content IN PLACE (no inserted
+          row), so the grid never shifts down. */}
       <div className="border-b border-gray-200 px-4 py-4 dark:border-gray-800 sm:px-5">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {tableName}
-            </h2>
-            <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-              {table.total} total
-            </span>
-            {titleExtra}
-          </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center xl:justify-end">
-            {searchable ? (
-              <div className="w-full min-w-[220px] sm:w-[280px]">
-                <Input
-                  value={table.search}
-                  onChange={(event) => table.setSearch(event.target.value)}
-                  placeholder={searchPlaceholder}
-                />
-              </div>
-            ) : null}
-
-            {toolbarActions.map((action) => {
-              const context = { activeTabKey: activeTab, filteredRows: table.rows, selectedRows: [] };
-              const label = typeof action.label === "function" ? action.label(context) : action.label;
-              const Icon = action.icon;
-              return (
-                <Button
-                  key={action.key}
-                  className={action.className}
-                  disabled={busy}
-                  permission={action.permission}
-                  permissionLogic={action.permissionLogic}
-                  size="sm"
-                  startIcon={Icon ? <Icon className="h-4 w-4" /> : undefined}
-                  variant={action.variant ?? "outline"}
-                  onClick={() => void action.onClick(context)}
-                >
-                  {label}
-                </Button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* server tabs — only rendered when the server can actually filter
-            (hide-don't-fake, STANDARDS.md §10). Counts require canFacetCounts. */}
-        {tabs.length && caps.canFilter ? (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {tabs.map((tab) => {
-              const isActive = tab.key === activeTab;
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  className={[
-                    "inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-colors",
-                    isActive
-                      ? "border-brand-500 bg-brand-500 text-white"
-                      : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
-                  ].join(" ")}
-                  onClick={() => onTabChange(tab)}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
-      </div>
-
-      {/* bulk action bar */}
-      {enableSelection && table.hasSelection ? (
-        <div className="border-b border-gray-200 bg-brand-50/60 px-4 py-2 dark:border-gray-800 dark:bg-brand-500/10">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        {enableSelection && table.hasSelection ? (
+          /* selection mode — replaces the toolbar (title/search/create/tabs) */
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <span className="inline-flex items-center gap-2 rounded-full border border-brand-100 bg-white/90 px-3 py-1.5 text-sm dark:border-brand-500/20 dark:bg-gray-900/90">
+              <span className="inline-flex items-center gap-2 rounded-full border border-brand-100 bg-brand-50 px-3 py-1.5 text-sm text-gray-800 dark:border-brand-500/20 dark:bg-brand-500/10 dark:text-gray-100">
                 <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-brand-500 px-2 text-xs font-semibold text-white">
                   {table.selectionCount}
                 </span>
@@ -362,8 +292,80 @@ export function DataTable<T extends { id: string }>({
               </Button>
             </div>
           </div>
-        </div>
-      ) : null}
+        ) : (
+          <>
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {tableName}
+                </h2>
+                <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                  {table.total} total
+                </span>
+                {titleExtra}
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center xl:justify-end">
+                {searchable ? (
+                  <div className="w-full min-w-[220px] sm:w-[280px]">
+                    <Input
+                      value={table.search}
+                      onChange={(event) => table.setSearch(event.target.value)}
+                      placeholder={searchPlaceholder}
+                    />
+                  </div>
+                ) : null}
+
+                {toolbarActions.map((action) => {
+                  const context = { activeTabKey: activeTab, filteredRows: table.rows, selectedRows: [] };
+                  const label = typeof action.label === "function" ? action.label(context) : action.label;
+                  const Icon = action.icon;
+                  return (
+                    <Button
+                      key={action.key}
+                      className={action.className}
+                      disabled={busy}
+                      permission={action.permission}
+                      permissionLogic={action.permissionLogic}
+                      size="sm"
+                      startIcon={Icon ? <Icon className="h-4 w-4" /> : undefined}
+                      variant={action.variant ?? "outline"}
+                      onClick={() => void action.onClick(context)}
+                    >
+                      {label}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* server tabs — only rendered when the server can actually filter
+                (hide-don't-fake, STANDARDS.md §10). Counts require canFacetCounts. */}
+            {tabs.length && caps.canFilter ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {tabs.map((tab) => {
+                  const isActive = tab.key === activeTab;
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      className={[
+                        "inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-colors",
+                        isActive
+                          ? "border-brand-500 bg-brand-500 text-white"
+                          : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+                      ].join(" ")}
+                      onClick={() => onTabChange(tab)}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+          </>
+        )}
+      </div>
 
       {/* error banner (kept above grid, non-blocking when stale data exists) */}
       {table.isError && table.rows.length > 0 ? (

@@ -24,6 +24,9 @@ export const useApplicationDetail = (id: string | null, enabled = true) =>
     queryKey: applicationKeys.detail(id ?? ""),
     queryFn: ({ signal }) => fetchApplicationById(id as string, signal),
     enabled: enabled && Boolean(id),
+    // Always refetch on open so the edit form seeds from the latest record (the
+    // global 30s staleTime would otherwise serve a cached, stale copy).
+    staleTime: 0,
     // Don't refetch while the edit modal is open (e.g. when the OS file dialog
     // blurs/refocuses the window) — a mid-edit refetch would churn the form seed.
     refetchOnWindowFocus: false

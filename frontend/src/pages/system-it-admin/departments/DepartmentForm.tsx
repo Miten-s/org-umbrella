@@ -67,7 +67,7 @@ const DepartmentForm = ({ mode = "create", initialData, onClose, onSubmit, submi
               : t("create", { entity: t("department") })}
         </h2>
 
-        <div className="mb-32 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor="departmentName" required>
               {t("departmentName")}
@@ -136,7 +136,7 @@ const DepartmentForm = ({ mode = "create", initialData, onClose, onSubmit, submi
           </div>
         </div>
 
-        <div className="mt-4 flex justify-end gap-2">
+        <div className="flex justify-end gap-2">
           <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
             {t("cancel")}
           </Button>

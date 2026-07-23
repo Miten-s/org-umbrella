@@ -110,7 +110,15 @@ export const AsyncSelect = (props: AsyncSelectProps) => {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [menuStyle, setMenuStyle] = useState<CSSProperties>();
+
+  // Focus the search box WITHOUT scrolling. `autoFocus` (and a plain .focus())
+  // scroll-into-view the input, which jerks the page/modal behind the portaled
+  // menu — the "background flicker/movement" when a dropdown opens.
+  useEffect(() => {
+    if (open) searchInputRef.current?.focus({ preventScroll: true });
+  }, [open]);
 
   const { options, resolvedSelected, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
     useOptions({ search, enabled: open, selectedValues });
@@ -409,7 +417,7 @@ export const AsyncSelect = (props: AsyncSelectProps) => {
           >
             <div className="p-2">
               <input
-                autoFocus
+                ref={searchInputRef}
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}

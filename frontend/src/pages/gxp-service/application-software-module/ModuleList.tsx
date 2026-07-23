@@ -195,7 +195,7 @@ const ModuleList = () => {
       <DataTable<ApplicationSoftwareModule>
         table={table}
         columnDefs={columnDefs}
-        tableName={t("applicationSoftwareModule")}
+        tableName={t("gxpApplicationSoftwareModule")}
         searchPlaceholder="Search modules…"
         enableSelection
         fillAvailableHeight

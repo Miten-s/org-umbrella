@@ -24,6 +24,14 @@ import { useServiceTypeOptions } from "./ServiceType.options";
 import { applicationSchema, type ApplicationFormValues } from "./GxpApplication.schema";
 import type { GxpApplication } from "./GxpApplication.types";
 import type { AsyncOption } from "@/lib/query/listTypes";
+import { getGxpImageUrl } from "@/services/utils.service";
+
+const isImageName = (name: string) => /\.(png|jpe?g|gif|bmp|webp|svg)$/i.test(name || "");
+const prettifyAttachmentName = (path: string) => {
+  const withoutSlash = (path || "").replace(/^[/\\]+/, "");
+  const parts = withoutSlash.split("-");
+  return parts.length > 1 && /^\d+$/.test(parts[0]) ? parts.slice(1).join("-") : withoutSlash;
+};
 
 export type ApplicationFormMode = "create" | "edit" | "view";
 
@@ -54,8 +62,15 @@ const GxpApplicationForm = ({ mode = "create", initialData, onClose, onSubmit, s
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
 
+  // Backend attachment objects carry the file path under `attachment` (not name/url).
   const initialExisting: string[] = Array.isArray(initialData?.attachments)
-    ? initialData!.attachments.map((a: any) => (typeof a === "string" ? a : (a?.name ?? a?.url ?? ""))).filter(Boolean)
+    ? initialData!.attachments
+        .map((a: any) =>
+          typeof a === "string"
+            ? a
+            : (a?.attachment ?? a?.filename ?? a?.path ?? a?.name ?? a?.url ?? "")
+        )
+        .filter(Boolean)
     : [];
   const [existingAttachments, setExistingAttachments] = useState<string[]>(initialExisting);
   const [newFiles, setNewFiles] = useState<File[]>([]);
@@ -246,15 +261,48 @@ const GxpApplicationForm = ({ mode = "create", initialData, onClose, onSubmit, s
           <div className="md:col-span-2">
             <Label>{t("attachments")}</Label>
             {existingAttachments.length ? (
-              <div className="mb-2 flex flex-wrap gap-2">
-                {existingAttachments.map((a) => (
-                  <span key={a} className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs dark:bg-gray-700">
-                    {a}
-                    {!isReadOnly && (
-                      <button type="button" className="opacity-70 hover:opacity-100" onClick={() => setExistingAttachments((prev) => prev.filter((x) => x !== a))}>×</button>
-                    )}
-                  </span>
-                ))}
+              <div className="mb-3 space-y-2">
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  {t("previousUploads", { defaultValue: "Previously uploaded" })} ({existingAttachments.length})
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {existingAttachments.map((a) => {
+                    const name = prettifyAttachmentName(a);
+                    return (
+                      <div
+                        key={a}
+                        className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-800"
+                        title={name}
+                      >
+                        {isImageName(a) ? (
+                          <a href={getGxpImageUrl(a)} target="_blank" rel="noreferrer" className="shrink-0">
+                            <img
+                              src={getGxpImageUrl(a)}
+                              alt={name}
+                              className="h-10 w-10 rounded border border-gray-200 object-cover dark:border-gray-700"
+                            />
+                          </a>
+                        ) : (
+                          <div className="flex h-10 w-10 items-center justify-center rounded bg-gray-200 text-[10px] font-semibold text-gray-800 dark:bg-gray-700 dark:text-gray-100">
+                            {(a.split(".").pop() || "file").toUpperCase().slice(0, 4)}
+                          </div>
+                        )}
+                        <span className="max-w-[160px] truncate text-xs text-gray-800 dark:text-gray-100">
+                          {name}
+                        </span>
+                        {!isReadOnly && (
+                          <button
+                            type="button"
+                            className="text-[11px] font-semibold text-red-600 hover:text-red-700 dark:text-red-400"
+                            onClick={() => setExistingAttachments((prev) => prev.filter((x) => x !== a))}
+                          >
+                            {t("remove", { defaultValue: "Remove" })}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             ) : null}
             {!isReadOnly && (
