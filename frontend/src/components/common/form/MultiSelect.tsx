@@ -36,7 +36,6 @@ interface MultiSelectProps {
 }
 
 const MultiSelect: React.FC<MultiSelectProps> = ({
-  label,
   options,
   defaultSelected = [],
   onChange,

@@ -2,12 +2,7 @@ import { useState } from "react";
 import PermissionList from "./PermissionList";
 import RoleList from "./RoleList";
 
-/**
- * Roles & Permissions — tabbed shell over the two migrated entities.
- * Reversible cutover: the previous implementation is preserved verbatim in
- * `index.legacy.tsx` (rolls back to `./Roles` + `./Permissions`). To roll back,
- * replace this file's body with: export { default } from "./index.legacy";
- */
+/** Roles & Permissions — tabbed shell over the two migrated entities. */
 type ActiveTab = "roles" | "permissions";
 
 const RolesAndPermissions = () => {
