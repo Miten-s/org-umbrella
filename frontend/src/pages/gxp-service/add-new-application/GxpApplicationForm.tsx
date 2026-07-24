@@ -1,7 +1,6 @@
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
 import Input from "@/components/common/form/input/InputField";
 import Label from "@/components/common/form/Label";
 import Button from "@/components/ui/button/Button";
@@ -25,13 +24,8 @@ import { applicationSchema, type ApplicationFormValues } from "./GxpApplication.
 import type { GxpApplication } from "./GxpApplication.types";
 import type { AsyncOption } from "@/lib/query/listTypes";
 import { getGxpImageUrl } from "@/services/utils.service";
-
-const isImageName = (name: string) => /\.(png|jpe?g|gif|bmp|webp|svg)$/i.test(name || "");
-const prettifyAttachmentName = (path: string) => {
-  const withoutSlash = (path || "").replace(/^[/\\]+/, "");
-  const parts = withoutSlash.split("-");
-  return parts.length > 1 && /^\d+$/.test(parts[0]) ? parts.slice(1).join("-") : withoutSlash;
-};
+import { isImageName } from "@/lib/attachments";
+import { useAttachments } from "@/hooks/useAttachments";
 
 export type ApplicationFormMode = "create" | "edit" | "view";
 
@@ -62,25 +56,7 @@ const GxpApplicationForm = ({ mode = "create", initialData, onClose, onSubmit, s
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
 
-  // Keep both the row id (sent to the backend as the "keep" list on update) and
-  // the path (for the preview). Backend objects carry the path under `attachment`.
-  const initialExisting: { id: string; path: string }[] = Array.isArray(
-    initialData?.attachments
-  )
-    ? initialData!.attachments
-        .map((a: any) =>
-          typeof a === "string"
-            ? { id: a, path: a }
-            : {
-                id: String(a?._id ?? a?.id ?? ""),
-                path: a?.attachment ?? a?.filename ?? a?.path ?? a?.name ?? a?.url ?? ""
-              }
-        )
-        .filter((a: { id: string; path: string }) => a.path)
-    : [];
-  const [existingAttachments, setExistingAttachments] =
-    useState<{ id: string; path: string }[]>(initialExisting);
-  const [newFiles, setNewFiles] = useState<File[]>([]);
+  const attachments = useAttachments(initialData?.attachments);
 
   const {
     register,
@@ -105,16 +81,19 @@ const GxpApplicationForm = ({ mode = "create", initialData, onClose, onSubmit, s
       supplier: refId(initialData?.supplier),
       departments: refIds(initialData?.departments),
       notes: initialData?.notes ?? "",
-      attachments: initialExisting.map((a) => a.id),
+      attachments: attachments.keptIds,
       status: initialData?.status ?? "enabled"
     }
   });
 
   const busy = submitting || isSubmitting;
   // Send the KEPT existing attachment ids; the backend deletes the rest and adds newFiles.
-  const keptAttachmentIds = existingAttachments.map((a) => a.id).filter(Boolean);
   const submit = (values: ApplicationFormValues) =>
-    onSubmit({ ...values, attachments: keptAttachmentIds }, newFiles, keptAttachmentIds);
+    onSubmit(
+      { ...values, attachments: attachments.keptIds },
+      attachments.newFiles,
+      attachments.keptIds
+    );
 
   const err = (name: keyof ApplicationFormValues) =>
     errors[name] ? <p className="mt-1 text-xs text-red-500">{errors[name]?.message as string}</p> : null;
@@ -269,14 +248,14 @@ const GxpApplicationForm = ({ mode = "create", initialData, onClose, onSubmit, s
           {/* Attachments */}
           <div className="md:col-span-2">
             <Label>{t("attachments")}</Label>
-            {existingAttachments.length ? (
+            {attachments.existing.length ? (
               <div className="mb-3 space-y-2">
                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {t("previousUploads", { defaultValue: "Previously uploaded" })} ({existingAttachments.length})
+                  {t("previousUploads", { defaultValue: "Previously uploaded" })} ({attachments.existing.length})
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {existingAttachments.map((a) => {
-                    const name = prettifyAttachmentName(a.path);
+                  {attachments.existing.map((a) => {
+                    const name = a.name;
                     return (
                       <div
                         key={a.id || a.path}
@@ -303,7 +282,7 @@ const GxpApplicationForm = ({ mode = "create", initialData, onClose, onSubmit, s
                           <button
                             type="button"
                             className="text-[11px] font-semibold text-red-600 hover:text-red-700 dark:text-red-400"
-                            onClick={() => setExistingAttachments((prev) => prev.filter((x) => x.id !== a.id))}
+                            onClick={() => attachments.removeExisting(a.id)}
                           >
                             {t("remove", { defaultValue: "Remove" })}
                           </button>
@@ -316,8 +295,8 @@ const GxpApplicationForm = ({ mode = "create", initialData, onClose, onSubmit, s
             ) : null}
             {!isReadOnly && (
               <FileUpload
-                value={newFiles}
-                onChange={(files) => setNewFiles(files)}
+                value={attachments.newFiles}
+                onChange={attachments.setNewFiles}
                 multiple={true}
                 maxFiles={10}
                 maxSizeMB={10}
