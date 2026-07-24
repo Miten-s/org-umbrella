@@ -496,6 +496,20 @@ export const updateApplication = async (
       }
     }
 
+    // Attachments — reconcile: keep the ids the client still lists, delete the
+    // rest (the ones the user removed), then add the newly-uploaded files.
+    if ("attachments" in updates) {
+      const keptAttachmentIds = Array.isArray((updates as any).attachments)
+        ? ((updates as any).attachments as unknown[]).map(String).filter(Boolean)
+        : [];
+      await AppAttachment.destroy({
+        where: {
+          applicationId: id,
+          ...(keptAttachmentIds.length ? { id: { [Op.notIn]: keptAttachmentIds } } : {})
+        },
+        transaction: t
+      });
+    }
     if (attachments?.length) {
       await Promise.all(
         attachments.map((attachment) =>

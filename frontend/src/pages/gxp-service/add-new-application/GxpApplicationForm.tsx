@@ -62,17 +62,24 @@ const GxpApplicationForm = ({ mode = "create", initialData, onClose, onSubmit, s
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
 
-  // Backend attachment objects carry the file path under `attachment` (not name/url).
-  const initialExisting: string[] = Array.isArray(initialData?.attachments)
+  // Keep both the row id (sent to the backend as the "keep" list on update) and
+  // the path (for the preview). Backend objects carry the path under `attachment`.
+  const initialExisting: { id: string; path: string }[] = Array.isArray(
+    initialData?.attachments
+  )
     ? initialData!.attachments
         .map((a: any) =>
           typeof a === "string"
-            ? a
-            : (a?.attachment ?? a?.filename ?? a?.path ?? a?.name ?? a?.url ?? "")
+            ? { id: a, path: a }
+            : {
+                id: String(a?._id ?? a?.id ?? ""),
+                path: a?.attachment ?? a?.filename ?? a?.path ?? a?.name ?? a?.url ?? ""
+              }
         )
-        .filter(Boolean)
+        .filter((a: { id: string; path: string }) => a.path)
     : [];
-  const [existingAttachments, setExistingAttachments] = useState<string[]>(initialExisting);
+  const [existingAttachments, setExistingAttachments] =
+    useState<{ id: string; path: string }[]>(initialExisting);
   const [newFiles, setNewFiles] = useState<File[]>([]);
 
   const {
@@ -98,14 +105,16 @@ const GxpApplicationForm = ({ mode = "create", initialData, onClose, onSubmit, s
       supplier: refId(initialData?.supplier),
       departments: refIds(initialData?.departments),
       notes: initialData?.notes ?? "",
-      attachments: initialExisting,
+      attachments: initialExisting.map((a) => a.id),
       status: initialData?.status ?? "enabled"
     }
   });
 
   const busy = submitting || isSubmitting;
+  // Send the KEPT existing attachment ids; the backend deletes the rest and adds newFiles.
+  const keptAttachmentIds = existingAttachments.map((a) => a.id).filter(Boolean);
   const submit = (values: ApplicationFormValues) =>
-    onSubmit({ ...values, attachments: existingAttachments }, newFiles, existingAttachments);
+    onSubmit({ ...values, attachments: keptAttachmentIds }, newFiles, keptAttachmentIds);
 
   const err = (name: keyof ApplicationFormValues) =>
     errors[name] ? <p className="mt-1 text-xs text-red-500">{errors[name]?.message as string}</p> : null;
@@ -267,24 +276,24 @@ const GxpApplicationForm = ({ mode = "create", initialData, onClose, onSubmit, s
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {existingAttachments.map((a) => {
-                    const name = prettifyAttachmentName(a);
+                    const name = prettifyAttachmentName(a.path);
                     return (
                       <div
-                        key={a}
+                        key={a.id || a.path}
                         className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-800"
                         title={name}
                       >
-                        {isImageName(a) ? (
-                          <a href={getGxpImageUrl(a)} target="_blank" rel="noreferrer" className="shrink-0">
+                        {isImageName(a.path) ? (
+                          <a href={getGxpImageUrl(a.path)} target="_blank" rel="noreferrer" className="shrink-0">
                             <img
-                              src={getGxpImageUrl(a)}
+                              src={getGxpImageUrl(a.path)}
                               alt={name}
                               className="h-10 w-10 rounded border border-gray-200 object-cover dark:border-gray-700"
                             />
                           </a>
                         ) : (
                           <div className="flex h-10 w-10 items-center justify-center rounded bg-gray-200 text-[10px] font-semibold text-gray-800 dark:bg-gray-700 dark:text-gray-100">
-                            {(a.split(".").pop() || "file").toUpperCase().slice(0, 4)}
+                            {(a.path.split(".").pop() || "file").toUpperCase().slice(0, 4)}
                           </div>
                         )}
                         <span className="max-w-[160px] truncate text-xs text-gray-800 dark:text-gray-100">
@@ -294,7 +303,7 @@ const GxpApplicationForm = ({ mode = "create", initialData, onClose, onSubmit, s
                           <button
                             type="button"
                             className="text-[11px] font-semibold text-red-600 hover:text-red-700 dark:text-red-400"
-                            onClick={() => setExistingAttachments((prev) => prev.filter((x) => x !== a))}
+                            onClick={() => setExistingAttachments((prev) => prev.filter((x) => x.id !== a.id))}
                           >
                             {t("remove", { defaultValue: "Remove" })}
                           </button>

@@ -1,4 +1,5 @@
 import { Request } from "express";
+import { Op } from "sequelize";
 import { randomUUID } from "crypto";
 import { IServiceRequest } from "../models/gxp-service-service-requests.model";
 import * as repo from "../repo/gxp-service-service-requests.repo";
@@ -366,7 +367,21 @@ export const updateRequest = async (
     );
   }
 
-  // Attachments
+  // Attachments — reconcile: keep the ids the client still lists, delete the
+  // rest (the ones the user removed), then add the newly-uploaded files. Only
+  // when the client actually sent the attachments field, so a partial update
+  // that omits it leaves existing attachments untouched.
+  if ("attachments" in data) {
+    const keptAttachmentIds = Array.isArray((data as any).attachments)
+      ? ((data as any).attachments as unknown[]).map(String).filter(Boolean)
+      : [];
+    await GxpServiceRequestAttachmentModel.destroy({
+      where: {
+        serviceRequestId: id,
+        ...(keptAttachmentIds.length ? { id: { [Op.notIn]: keptAttachmentIds } } : {})
+      }
+    });
+  }
   if (attachments?.length) {
     await Promise.all(
       attachments.map((attachment) =>
