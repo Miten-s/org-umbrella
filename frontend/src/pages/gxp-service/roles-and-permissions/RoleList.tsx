@@ -107,7 +107,7 @@ const RoleList = () => {
         }
       }
     ],
-    []
+    [openForm]
   );
 
   return (

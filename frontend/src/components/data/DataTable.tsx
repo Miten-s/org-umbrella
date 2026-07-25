@@ -100,7 +100,7 @@ export function DataTable<T extends { id: string }>({
   emptyState,
   defaultColDef,
   pageSizeOptions = [5, 10, 20, 50],
-  rowHeight = 64,
+  rowHeight = 54,
   headerHeight = 46,
   fontSize = 13,
   gridHeight = 440,
@@ -121,6 +121,27 @@ export function DataTable<T extends { id: string }>({
   // (S2 / Rules 3-4) — automatic, no per-module wiring.
   const [runningBulkKey, setRunningBulkKey] = useState<string | null>(null);
 
+  // --- floating selection pill presence (mount → animate-in / animate-out → unmount) ---
+  // We keep the pill mounted through its exit animation so clearing a selection
+  // fades/slides out instead of vanishing. Enter is bottom→top, exit is up+fade.
+  const pillVisible = enableSelection && table.hasSelection;
+  const [pillMounted, setPillMounted] = useState(false);
+  const [pillLeaving, setPillLeaving] = useState(false);
+  useEffect(() => {
+    if (pillVisible) {
+      setPillMounted(true);
+      setPillLeaving(false);
+      return;
+    }
+    if (!pillMounted) return;
+    setPillLeaving(true);
+    const id = window.setTimeout(() => {
+      setPillMounted(false);
+      setPillLeaving(false);
+    }, 220); // must match .animate-pill-out duration
+    return () => window.clearTimeout(id);
+  }, [pillVisible, pillMounted]);
+
   // --- server tabs → filters ---
   const onTabChange = (tab: DataTableTab) => {
     setActiveTab(tab.key);
@@ -137,6 +158,9 @@ export function DataTable<T extends { id: string }>({
       if (node.isSelected() !== shouldSelect) node.setSelected(shouldSelect);
     });
     syncingRef.current = false;
+    // Granular table.* deps on purpose — depending on the whole `table` object
+    // (new identity each render) would re-sync every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gridApi, table.rows, table.selectedIds, table.allMatchingSelected, table.getRowId]);
 
   const onSelectionChanged = (event: SelectionChangedEvent<T>) => {
@@ -223,79 +247,16 @@ export function DataTable<T extends { id: string }>({
   return (
     <div
       className={[
-        "rounded-2xl border border-gray-200 bg-white shadow-theme-sm dark:border-gray-800 dark:bg-gray-900",
+        "relative rounded-2xl border border-gray-200 bg-white shadow-theme-sm dark:border-gray-800 dark:bg-gray-900",
         fillAvailableHeight ? "flex h-full min-h-0 flex-col" : ""
       ].join(" ")}
     >
-      {/* header — the normal toolbar and the selection bar are two states of
-          ONE fixed-height slot. Selecting swaps content IN PLACE (no inserted
-          row), so the grid never shifts down. */}
+      {/* header — always the toolbar. Bulk actions live in a floating pill that
+          overlays the grid on selection (see below), so the table never shifts. */}
       <div className="border-b border-gray-200 px-4 py-4 dark:border-gray-800 sm:px-5">
-        {enableSelection && table.hasSelection ? (
-          /* selection mode — replaces the toolbar (title/search/create/tabs) */
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <span className="inline-flex items-center gap-2 rounded-full border border-brand-100 bg-brand-50 px-3 py-1.5 text-sm text-gray-800 dark:border-brand-500/20 dark:bg-brand-500/10 dark:text-gray-100">
-                <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-brand-500 px-2 text-xs font-semibold text-white">
-                  {table.selectionCount}
-                </span>
-                selected
-              </span>
-
-              {canOfferSelectAll ? (
-                <button
-                  type="button"
-                  className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-300"
-                  onClick={table.selectAllMatching}
-                >
-                  Select all {table.total} matching
-                </button>
-              ) : null}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              {bulkActions.map((action) => {
-                const Icon = action.icon;
-                return (
-                  <Button
-                    key={action.key}
-                    size="sm"
-                    disabled={busy}
-                    loading={runningBulkKey === action.key}
-                    permission={action.permission}
-                    permissionLogic={action.permissionLogic}
-                    startIcon={Icon ? <Icon className="h-[18px] w-[18px]" /> : undefined}
-                    variant={action.variant ?? "outline"}
-                    onClick={async () => {
-                      setRunningBulkKey(action.key);
-                      try {
-                        await action.onClick(table.resolveBulkSelection(), table.selectionCount);
-                      } finally {
-                        setRunningBulkKey(null);
-                      }
-                    }}
-                  >
-                    {action.label(table.selectionCount)}
-                  </Button>
-                );
-              })}
-              <Button
-                size="sm"
-                variant="outline"
-                startIcon={<CloseLineIcon className="h-[18px] w-[18px]" />}
-                onClick={() => {
-                  gridApi?.deselectAll();
-                  table.clearSelection();
-                }}
-              >
-                Clear
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <>
+        <>
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                   {tableName}
                 </h2>
@@ -303,6 +264,32 @@ export function DataTable<T extends { id: string }>({
                   {table.total} total
                 </span>
                 {titleExtra}
+
+                {/* Server tabs — inline (compact) so every table keeps a single
+                    header row (consistent height, one more data row). Only when
+                    the server can actually filter (hide-don't-fake §10). */}
+                {tabs.length && caps.canFilter ? (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {tabs.map((tab) => {
+                      const isActive = tab.key === activeTab;
+                      return (
+                        <button
+                          key={tab.key}
+                          type="button"
+                          className={[
+                            "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
+                            isActive
+                              ? "border-brand-500 bg-brand-500 text-white"
+                              : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+                          ].join(" ")}
+                          onClick={() => onTabChange(tab)}
+                        >
+                          {tab.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center xl:justify-end">
@@ -338,33 +325,7 @@ export function DataTable<T extends { id: string }>({
                 })}
               </div>
             </div>
-
-            {/* server tabs — only rendered when the server can actually filter
-                (hide-don't-fake, STANDARDS.md §10). Counts require canFacetCounts. */}
-            {tabs.length && caps.canFilter ? (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {tabs.map((tab) => {
-                  const isActive = tab.key === activeTab;
-                  return (
-                    <button
-                      key={tab.key}
-                      type="button"
-                      className={[
-                        "inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-colors",
-                        isActive
-                          ? "border-brand-500 bg-brand-500 text-white"
-                          : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
-                      ].join(" ")}
-                      onClick={() => onTabChange(tab)}
-                    >
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : null}
           </>
-        )}
       </div>
 
       {/* error banner (kept above grid, non-blocking when stale data exists) */}
@@ -432,6 +393,84 @@ export function DataTable<T extends { id: string }>({
           />
         ) : null}
       </div>
+
+      {/* Floating selection pill — overlays the grid (bottom-center) instead of
+          pushing/replacing the toolbar. Reuses <Button> so permission gating on
+          bulk actions is preserved. */}
+      {pillMounted ? (
+        <div className="pointer-events-none absolute inset-x-0 bottom-6 z-30 flex justify-center px-4">
+          <div
+            className={`pointer-events-auto flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-gray-900/95 px-4 py-2.5 shadow-2xl shadow-gray-950/40 ring-1 ring-black/5 backdrop-blur-md dark:bg-gray-950/95 ${
+              pillLeaving ? "animate-pill-out" : "animate-pill-in"
+            }`}
+          >
+            <span className="inline-flex items-center gap-2 text-sm font-medium text-gray-100">
+              <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-brand-500 px-2 text-xs font-semibold text-white shadow-sm shadow-brand-500/40">
+                {table.selectionCount}
+              </span>
+              selected
+              <span className="text-gray-400">of {table.total}</span>
+            </span>
+
+            {canOfferSelectAll ? (
+              <button
+                type="button"
+                className="text-sm font-medium text-brand-300 transition-colors hover:text-brand-200 hover:underline"
+                onClick={table.selectAllMatching}
+              >
+                Select all {table.total}
+              </button>
+            ) : null}
+
+            <span className="h-5 w-px bg-white/15" />
+
+            <div className="flex flex-wrap items-center gap-2">
+              {bulkActions.map((action) => {
+                const Icon = action.icon;
+                return (
+                  <Button
+                    key={action.key}
+                    size="sm"
+                    disabled={busy}
+                    loading={runningBulkKey === action.key}
+                    permission={action.permission}
+                    permissionLogic={action.permissionLogic}
+                    startIcon={Icon ? <Icon className="h-[18px] w-[18px]" /> : undefined}
+                    variant="ghost"
+                    className={`gap-2 !rounded-lg !px-3 !py-1.5 text-sm font-medium transition-colors ${
+                      action.variant === "destructive"
+                        ? "text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                        : "text-gray-100 hover:bg-white/10"
+                    }`}
+                    onClick={async () => {
+                      setRunningBulkKey(action.key);
+                      try {
+                        await action.onClick(table.resolveBulkSelection(), table.selectionCount);
+                      } finally {
+                        setRunningBulkKey(null);
+                      }
+                    }}
+                  >
+                    {action.label(table.selectionCount)}
+                  </Button>
+                );
+              })}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="gap-2 !rounded-lg !px-3 !py-1.5 text-sm font-medium text-gray-300 transition-colors hover:bg-white/10 hover:text-white"
+                startIcon={<CloseLineIcon className="h-[18px] w-[18px]" />}
+                onClick={() => {
+                  gridApi?.deselectAll();
+                  table.clearSelection();
+                }}
+              >
+                Clear
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

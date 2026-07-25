@@ -1019,3 +1019,70 @@ span.flatpickr-weekday,
 .animate-fadeIn {
   animation: fadeIn 0.15s ease-out;
 }
+
+/* ── Premium floating pill (table bulk-selection bar) ───────────────────── */
+/* Enters from below with a fade + slight scale; leaves upward + soft fade.  */
+@keyframes pill-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes pill-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+}
+/* easeOutQuint on enter for that settled, high-end feel; snappier exit. */
+.animate-pill-in {
+  animation: pill-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-pill-out {
+  animation: pill-out 0.22s cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+/* ── Premium toast (success / error / info / loading) ───────────────────── */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+}
+.animate-toast-in {
+  animation: toast-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-toast-out {
+  animation: toast-out 0.24s cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pill-in,
+  .animate-pill-out,
+  .animate-toast-in,
+  .animate-toast-out {
+    animation-duration: 0.01ms;
+  }
+}

@@ -187,7 +187,7 @@ const ModuleList = () => {
         }
       }
     ],
-    [bulkClone]
+    [bulkClone, openForm]
   );
 
   return (

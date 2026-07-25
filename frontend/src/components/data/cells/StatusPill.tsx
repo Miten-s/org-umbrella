@@ -33,6 +33,7 @@ export const StatusPill = memo(
 StatusPill.displayName = "StatusPill";
 
 /** Common helper: map an active/disabled status to a pill tone. */
+// eslint-disable-next-line react-refresh/only-export-components
 export const statusTone = (isActive: boolean): StatusTone =>
   isActive ? "success" : "error";
 

@@ -167,7 +167,7 @@ const SupplierList = () => {
         }
       }
     ],
-    [bulkClone]
+    [bulkClone, openForm]
   );
 
   return (

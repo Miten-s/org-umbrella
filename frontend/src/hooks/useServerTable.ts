@@ -76,7 +76,10 @@ export const useServerTable = <T>({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [allMatchingSelected, setAllMatchingSelected] = useState(false);
 
-  const effectiveFilters = caps.canFilter ? filters : {};
+  const effectiveFilters = useMemo(
+    () => (caps.canFilter ? filters : {}),
+    [caps.canFilter, filters]
+  );
 
   const params = useMemo<ServerListParams>(
     () => ({

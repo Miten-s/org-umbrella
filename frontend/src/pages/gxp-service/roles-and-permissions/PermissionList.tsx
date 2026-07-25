@@ -112,7 +112,7 @@ const PermissionList = () => {
         }
       }
     ],
-    []
+    [openForm]
   );
 
   return (

@@ -145,7 +145,7 @@ const EnvironmentList = () => {
         }
       }
     ],
-    [bulkClone]
+    [bulkClone, openForm]
   );
 
   return (

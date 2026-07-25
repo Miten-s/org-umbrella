@@ -10,13 +10,16 @@
     "preview": "vite preview",
     "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest --config vitest.config.ts",
+    "typecheck": "tsc -b --noEmit",
     "eslint": "eslint --cache \"src/**/*.{js,ts,tsx.}\" --config ./eslint.config.js",
-    "eslint:ci": "eslint \"src/**/*.{js,ts,tsx}\" --cache --quiet --config ./eslint.config.js",
+    "eslint:ci": "eslint \"src/**/*.{js,ts,tsx}\" --cache --max-warnings=14 --config ./eslint.config.js",
     "eslint:fix": "eslint --fix \"src/**/*.{js,ts,tsx}\" --config ./eslint.config.js",
     "prettier-format": "prettier --config .prettierrc.js 'src/**/*.ts' --write",
     "prettier": "prettier src --check",
     "prettier:ci": "prettier src --check --loglevel error",
     "prettier:fix": "prettier src --write",
+    "validate": "npm run typecheck && npm run eslint:ci && npm run test",
+    "prepare": "husky",
     "i18next": "npx i18next --config i18next-parser.config.ts"
   },
   "dependencies": {

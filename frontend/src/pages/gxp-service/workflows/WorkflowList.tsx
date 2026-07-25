@@ -159,7 +159,7 @@ const WorkflowList = () => {
         }
       }
     ],
-    [bulkClone]
+    [bulkClone, openForm]
   );
 
   return (

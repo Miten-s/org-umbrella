@@ -123,7 +123,7 @@ const GxpApplicationList = () => {
         onClick: (a) => { setPendingDelete({ mode: "ids", ids: [a.id] }); setDeleteCount(1); setDeleteNames([a.applicationName]); }
       }
     ],
-    []
+    [openForm]
   );
 
   // For edit/view, wait for a FRESH fetch before rendering the form — otherwise

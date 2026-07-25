@@ -230,7 +230,7 @@ const Roles = () => {
         onClick: (role) => setPendingDeleteRoles([role])
       }
     ],
-    [openModal]
+    [openModal, t]
   );
 
   const columnDefs = useMemo<ColDef<RoleRecord>[]>(

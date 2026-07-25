@@ -141,7 +141,7 @@ const DesignationList = () => {
         }
       }
     ],
-    [bulkClone]
+    [bulkClone, openForm]
   );
 
   return (

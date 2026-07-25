@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 interface ButtonProps {
   children: ReactNode;
   size?: "sm" | "md";
-  variant?: "primary" | "outline" | "secondary" | "destructive";
+  variant?: "primary" | "outline" | "secondary" | "destructive" | "ghost";
   startIcon?: ReactNode;
   endIcon?: ReactNode;
   title?: string;
@@ -61,7 +61,10 @@ const Button: React.FC<ButtonProps> = ({
     secondary:
       "bg-gray-400 text-gray-800 ring-1 ring-inset ring-gray-30 hover:bg-gray-500 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-all duration-200",
     destructive:
-      "bg-white text-red-600 ring-1 ring-inset ring-red-500 hover:bg-red-50 dark:bg-transparent dark:text-red-400 dark:ring-red-600 dark:hover:bg-red-900/10"
+      "bg-white text-red-600 ring-1 ring-inset ring-red-500 hover:bg-red-50 dark:bg-transparent dark:text-red-400 dark:ring-red-600 dark:hover:bg-red-900/10",
+    // Borderless, no color of its own — caller supplies text/hover via className
+    // (e.g. the dark selection pill paints icon + label white / red).
+    ghost: "bg-transparent"
   };
 
   // Permission checking

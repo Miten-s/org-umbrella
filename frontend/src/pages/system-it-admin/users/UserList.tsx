@@ -146,7 +146,7 @@ const UserList = () => {
         }
       }
     ],
-    []
+    [openForm]
   );
 
   return (
@@ -159,7 +159,6 @@ const UserList = () => {
         enableSelection
         fillAvailableHeight
         busy={busy}
-        rowHeight={60}
         tabs={tabs}
         defaultTabKey="all"
         rowActions={rowActions}

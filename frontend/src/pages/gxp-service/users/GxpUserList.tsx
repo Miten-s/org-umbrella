@@ -123,7 +123,7 @@ const GxpUserList = () => {
         }
       }
     ],
-    []
+    [openForm]
   );
 
   return (

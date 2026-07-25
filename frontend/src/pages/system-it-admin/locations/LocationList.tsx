@@ -144,7 +144,7 @@ const LocationList = () => {
         }
       }
     ],
-    [bulkClone]
+    [bulkClone, openForm]
   );
 
   return (
@@ -152,7 +152,7 @@ const LocationList = () => {
       <DataTable<Location>
         table={table}
         columnDefs={columnDefs}
-        tableName={t("locations")}
+        tableName={t("locationsGroups")}
         searchPlaceholder="Search locations…"
         enableSelection
         fillAvailableHeight

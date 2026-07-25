@@ -9,7 +9,7 @@ const LayoutContent: React.FC = () => {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
 
   return (
-    <div className="min-h-screen xl:flex">
+    <div className="mx-auto min-h-screen max-w-[2400px] xl:flex">
       <div>
         <AppSidebar />
         <Backdrop />
@@ -21,7 +21,7 @@ const LayoutContent: React.FC = () => {
       >
         <AppHeader />
         {/* i REMOVE THIS BECAUSE ITS CAUSING ISSUE WITH OUTSIDE TOOLTIPDESIGN (OVERFLOW-HIDDEN) */}
-        <div className="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6 ">
+        <div className="p-4 md:p-6 ">
           <Outlet />
         </div>
       </div>

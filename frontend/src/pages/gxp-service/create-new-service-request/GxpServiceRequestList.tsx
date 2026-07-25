@@ -125,7 +125,7 @@ const GxpServiceRequestList = () => {
         onClick: (r) => { setPendingDelete({ mode: "ids", ids: [r.id] }); setDeleteCount(1); setDeleteNames([r.serviceRequestId || "-"]); }
       }
     ],
-    []
+    [openForm]
   );
 
   // For edit/view, wait for a FRESH fetch before rendering the form — otherwise

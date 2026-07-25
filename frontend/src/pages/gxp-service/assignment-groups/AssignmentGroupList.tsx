@@ -166,7 +166,7 @@ const AssignmentGroupList = () => {
         }
       }
     ],
-    [bulkClone]
+    [bulkClone, openForm]
   );
 
   return (
