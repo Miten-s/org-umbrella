@@ -408,7 +408,7 @@ export function DataTable<T extends { id: string }>({
               <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-brand-500 px-2 text-xs font-semibold text-white shadow-sm shadow-brand-500/40">
                 {table.selectionCount}
               </span>
-              selected
+              Selected
               <span className="text-gray-400">of {table.total}</span>
             </span>
 
