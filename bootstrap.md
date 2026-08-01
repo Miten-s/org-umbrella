@@ -49,22 +49,22 @@ map $http_upgrade $connection_upgrade {
 }
 
 server {
-    listen 80 default_server;
+    listen 443 ssl;
     server_name _;
 
-    client_max_body_size 50M;
+    ssl_certificate /etc/ssl/certs/nginx-selfsigned.crt;
+    ssl_certificate_key /etc/ssl/private/nginx-selfsigned.key;
 
-    root /var/www/frontend;
+    root /var/www/html;
     index index.html;
+
+    client_max_body_size 50M;
 
     location / {
         try_files $uri $uri/ /index.html;
     }
-
-    ####################################################
-    # Backend Service (Port 9000)
-    ####################################################
-    location /api/ {
+    
+    location /auth/ {
 
         proxy_pass http://127.0.0.1:9000/;
 
@@ -93,9 +93,6 @@ server {
         proxy_send_timeout 300;
     }
 
-    ####################################################
-    # GXP Service (Port 9001)
-    ####################################################
     location /gxp/ {
 
         proxy_pass http://127.0.0.1:9001/;
@@ -122,9 +119,6 @@ server {
         proxy_send_timeout 300;
     }
 
-    ####################################################
-    # Health Check
-    ####################################################
     location /health {
         return 200 "OK";
         add_header Content-Type text/plain;
