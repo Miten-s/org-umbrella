@@ -1,0 +1,41 @@
+const API_ROUTES = {
+  ROOT: "/",
+  HEALTH: "/health",
+  VERSIONS: {
+    v1: "/v1/api"
+  },
+  PHRASES: "/phrases",
+  CUSTOMERS: "/customers",
+  SUPPLIERS: "/suppliers",
+  PROJECTS: "/projects",
+  STUDIES: "/studies",
+  LOCATIONS: "/locations",
+  STOCK: "/stock",
+  STOCK_BATCHES: "/stock-batches",
+  ALIQUOTS: "/aliquots",
+  STOCK_PARAMETERS: "/stock-parameters",
+  INSTRUMENTS: "/instruments",
+  INSTRUMENT_PARTS: "/instrument-parts",
+  CALIBRATION_SCHEDULES: "/calibration-schedules",
+  CALIBRATIONS: "/calibrations",
+  INSPECTION_PLANS: "/inspection-plans",
+  INSPECTION_PERSONNEL: "/inspection-personnel",
+  ANALYSES: "/analyses",
+  ANALYSIS_COMPONENTS: "/analysis-components",
+  TEST_GROUPS: "/test-groups",
+  TEST_GROUP_ITEMS: "/test-group-items",
+  SPECIFICATIONS: "/specifications",
+  SPEC_LIMITS: "/spec-limits",
+  BATCHES: "/batches",
+  LOTS: "/lots",
+  SAMPLES: "/samples",
+  TESTS: "/tests",
+  TEST_WINDOWS: "/test-windows",
+  RESULTS: "/results",
+  AUDIT: "/audit",
+  PARAMS: "/:id",
+  BULK_DELETE: "/bulk-delete",
+  RESTORE: "/restore"
+};
+
+export default API_ROUTES;
