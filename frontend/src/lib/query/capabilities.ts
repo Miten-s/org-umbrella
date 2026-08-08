@@ -51,7 +51,37 @@ export const CAPS: Record<string, TableCapabilities> = {
   // Active/Inactive tabs are server-side. Sort/batch-by-filter still pending.
   user: { ...DEFAULT_CAPS, canFilter: true },
   application: { ...DEFAULT_CAPS, canFetchById: true },
-  serviceRequest: { ...DEFAULT_CAPS, canFetchById: true }
+  serviceRequest: { ...DEFAULT_CAPS, canFetchById: true },
+
+  // LIMS — lims-service is not built yet, so every flag stays false and the
+  // corresponding affordance stays hidden. See LIMS_BACKEND_SPEC.md; flip a
+  // flag per entity as its endpoint ships.
+  limsLocation: { ...DEFAULT_CAPS },
+  limsGroup: { ...DEFAULT_CAPS },
+  limsParameter: { ...DEFAULT_CAPS },
+  limsPhrase: { ...DEFAULT_CAPS },
+  limsSupplier: { ...DEFAULT_CAPS },
+  limsCustomer: { ...DEFAULT_CAPS },
+  limsProject: { ...DEFAULT_CAPS },
+  limsStudy: { ...DEFAULT_CAPS },
+  limsRole: { ...DEFAULT_CAPS },
+  limsTestGroup: { ...DEFAULT_CAPS },
+  limsInstrumentPart: { ...DEFAULT_CAPS },
+  limsInstrument: { ...DEFAULT_CAPS },
+  limsCalibration: { ...DEFAULT_CAPS },
+  limsUser: { ...DEFAULT_CAPS },
+  limsStock: { ...DEFAULT_CAPS },
+  limsStockBatch: { ...DEFAULT_CAPS },
+  limsAliquot: { ...DEFAULT_CAPS },
+  limsInspectionPlan: { ...DEFAULT_CAPS },
+  limsAnalysis: { ...DEFAULT_CAPS },
+  limsSpecification: { ...DEFAULT_CAPS },
+  limsBatch: { ...DEFAULT_CAPS },
+  limsLot: { ...DEFAULT_CAPS },
+  limsSample: { ...DEFAULT_CAPS },
+  limsTest: { ...DEFAULT_CAPS },
+  limsResult: { ...DEFAULT_CAPS },
+  limsScheduler: { ...DEFAULT_CAPS }
 };
 
 /** Resolve capabilities for an entity, defaulting to the conservative baseline. */

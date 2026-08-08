@@ -1,39 +1,67 @@
+import type { ComponentType, SVGProps } from "react";
 import { useNavigate } from "react-router-dom";
-import { PencilIcon } from "@/public/icons";
+import { BoltIcon, FlaskIcon, PencilIcon } from "@/public/icons";
 import { useAuth } from "@/context/AuthContext";
 import { getImageUrl } from "@/services/utils.service";
+import { PageUrl } from "@/types/utils.types";
 
-const modules = [
+interface DashboardModule {
+  id: string;
+  title: string;
+  description: string;
+  route: string;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
+}
+
+const modules: DashboardModule[] = [
   {
     id: "gxp",
     title: "GxP Services",
     description: "Manage compliance-related activities",
-    route: "/gxp-service/create-new-service-request"
+    route: "/gxp-service/create-new-service-request",
+    icon: BoltIcon
   },
-  { id: "qa", title: "Comming soon...", description: ".......", route: "/qa" },
+  {
+    id: "lims",
+    title: "LIMS",
+    description: "Lab setup, stock, instruments and specifications",
+    route: PageUrl.LIMSLocations.path,
+    icon: FlaskIcon
+  },
+  {
+    id: "qa",
+    title: "Comming soon...",
+    description: ".......",
+    route: "/qa",
+    icon: PencilIcon
+  },
   {
     id: "labs",
     title: "Comming soon...",
     description: ".......",
-    route: "/labs"
+    route: "/labs",
+    icon: PencilIcon
   },
   {
     id: "supply",
     title: "Comming soon...",
     description: ".......",
-    route: "/supply"
+    route: "/supply",
+    icon: PencilIcon
   },
   {
     id: "training",
     title: "Comming soon... ",
     description: ".......",
-    route: "/training"
+    route: "/training",
+    icon: PencilIcon
   },
   {
     id: "docs",
     title: "Comming soon...",
     description: ".......",
-    route: "/docs"
+    route: "/docs",
+    icon: PencilIcon
   }
 ];
 
@@ -74,7 +102,7 @@ const Dashboard = () => {
             className="cursor-pointer rounded-2xl shadow-md bg-white dark:bg-gray-800 p-6 hover:shadow-xl transition-all border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400"
           >
             <div className="flex items-center gap-4 mb-4">
-              <PencilIcon className="w-8 h-8 text-blue-600" />
+              <mod.icon className="w-8 h-8 text-blue-600" />
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                 {mod.title}
               </h2>

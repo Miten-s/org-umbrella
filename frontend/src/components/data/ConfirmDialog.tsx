@@ -1,4 +1,6 @@
 import Button from "@/components/ui/button/Button";
+import Label from "@/components/common/form/Label";
+import TextArea from "@/components/common/form/input/TextArea";
 import { Modal } from "@/components/ui/modal";
 import { CheckLineIcon } from "@/public/icons";
 import { useTranslation } from "react-i18next";
@@ -7,7 +9,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 export interface ConfirmDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void | Promise<void>;
+  /** Receives the typed change reason when `requireReason` is on. */
+  onConfirm: (reason?: string) => void | Promise<void>;
   title?: ReactNode;
   description?: ReactNode;
   /** Optional preview of affected items (e.g. row names). First 5 shown. */
@@ -16,6 +19,14 @@ export interface ConfirmDialogProps {
   cancelLabel?: string;
   tone?: "danger" | "default";
   loading?: boolean;
+  /**
+   * Require a free-text "why" before confirming, and pass it to `onConfirm`.
+   *
+   * GxP-regulated modules (LIMS) must record a reason for every change,
+   * removal and restore. Off by default, so existing callers are unaffected.
+   */
+  requireReason?: boolean;
+  reasonLabel?: string;
 }
 
 /**
@@ -32,9 +43,13 @@ export const ConfirmDialog = ({
   confirmLabel,
   cancelLabel,
   tone = "danger",
-  loading = false
+  loading = false,
+  requireReason = false,
+  reasonLabel
 }: ConfirmDialogProps) => {
   const { t } = useTranslation();
+  const [reason, setReason] = useState("");
+  const [reasonError, setReasonError] = useState(false);
 
   // Immediate double-submit guard (S2): ignore repeat confirm clicks in the
   // window before `loading` reflects the mutation's pending state.
@@ -45,15 +60,24 @@ export const ConfirmDialog = ({
     if (!isOpen) {
       setSubmitting(false);
       submittingRef.current = false;
+      setReason("");
+      setReasonError(false);
     }
   }, [isOpen]);
 
   const handleConfirm = async () => {
     if (submittingRef.current || loading) return;
+
+    const trimmedReason = reason.trim();
+    if (requireReason && !trimmedReason) {
+      setReasonError(true);
+      return;
+    }
+
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      await onConfirm();
+      await onConfirm(requireReason ? trimmedReason : undefined);
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
@@ -90,6 +114,22 @@ export const ConfirmDialog = ({
                 + {items.length - 5} more
               </div>
             ) : null}
+          </div>
+        ) : null}
+
+        {requireReason ? (
+          <div className="pt-3">
+            <Label required>{reasonLabel ?? t("limsChangeReason")}</Label>
+            <TextArea
+              value={reason}
+              onChange={(value) => {
+                setReason(value);
+                if (value.trim()) setReasonError(false);
+              }}
+              error={reasonError}
+              hint={reasonError ? t("limsChangeReasonRequired") : ""}
+              className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            />
           </div>
         ) : null}
 

@@ -9,7 +9,10 @@ import {
   HorizontaLDots,
   UserIcon,
   CompanyIcon,
-  BoltIcon
+  BoltIcon,
+  FlaskIcon,
+  LabAccessIcon,
+  TaskIcon
 } from "../../public/icons";
 import { useSidebar } from "../../context/SidebarContext";
 import { PageUrl } from "@/types/utils.types";
@@ -17,7 +20,10 @@ import { useAuth } from "@/context/AuthContext";
 import {
   hasPermission,
   ADMIN_PERMISSIONS,
-  GXP_PERMISSIONS
+  GXP_PERMISSIONS,
+  LIMS_ACCESS_PERMISSIONS,
+  LIMS_SETUP_PERMISSIONS,
+  LIMS_EXECUTION_PERMISSIONS
 } from "@/utils/permissions";
 import { useTranslation } from "react-i18next";
 
@@ -139,6 +145,62 @@ const AppSidebar: React.FC = () => {
             name: t("gxpCreateNewServiceRequest"),
             path: PageUrl.GXPCreateNewServiceRequest.path
           }
+        ]
+      },
+      {
+        icon: <LabAccessIcon />,
+        name: t("limsLabAccess"),
+        permissions: LIMS_ACCESS_PERMISSIONS,
+        subItems: [
+          { name: t("limsUsers"), path: PageUrl.LIMSUsers.path },
+          { name: t("limsRoles"), path: PageUrl.LIMSRoles.path },
+          { name: t("limsGroups"), path: PageUrl.LIMSGroups.path }
+        ]
+      },
+      {
+        icon: <FlaskIcon />,
+        name: t("limsLabSetup"),
+        permissions: LIMS_SETUP_PERMISSIONS,
+        subItems: [
+          { name: t("limsProjects"), path: PageUrl.LIMSProjects.path },
+          { name: t("limsStudies"), path: PageUrl.LIMSStudies.path },
+          { name: t("limsSuppliers"), path: PageUrl.LIMSSuppliers.path },
+          { name: t("limsCustomers"), path: PageUrl.LIMSCustomers.path },
+          { name: t("limsLocations"), path: PageUrl.LIMSLocations.path },
+          { name: t("limsStocks"), path: PageUrl.LIMSStocks.path },
+          { name: t("limsParameters"), path: PageUrl.LIMSParameters.path },
+          { name: t("limsStockBatches"), path: PageUrl.LIMSStockBatches.path },
+          { name: t("limsAliquots"), path: PageUrl.LIMSAliquots.path },
+          { name: t("limsInstruments"), path: PageUrl.LIMSInstruments.path },
+          {
+            name: t("limsInstrumentParts"),
+            path: PageUrl.LIMSInstrumentParts.path
+          },
+          { name: t("limsCalibrations"), path: PageUrl.LIMSCalibrations.path },
+          {
+            name: t("limsInspectionPlans"),
+            path: PageUrl.LIMSInspectionPlans.path
+          },
+          { name: t("limsAnalyses"), path: PageUrl.LIMSAnalyses.path },
+          { name: t("limsTestGroups"), path: PageUrl.LIMSTestGroups.path },
+          {
+            name: t("limsSpecifications"),
+            path: PageUrl.LIMSSpecifications.path
+          },
+          { name: t("limsPhrases"), path: PageUrl.LIMSPhrases.path }
+        ]
+      },
+      {
+        icon: <TaskIcon />,
+        name: t("limsLabExecutions"),
+        permissions: LIMS_EXECUTION_PERMISSIONS,
+        subItems: [
+          { name: t("limsBatches"), path: PageUrl.LIMSBatches.path },
+          { name: t("limsLots"), path: PageUrl.LIMSLots.path },
+          { name: t("limsSamples"), path: PageUrl.LIMSSamples.path },
+          { name: t("limsTests"), path: PageUrl.LIMSTests.path },
+          { name: t("limsResults"), path: PageUrl.LIMSResults.path },
+          { name: t("limsSchedulers"), path: PageUrl.LIMSSchedulers.path }
         ]
       },
       {
