@@ -320,17 +320,23 @@ const calibrations: MockRow[] = [
 }));
 
 const users: MockRow[] = [
-  ["USR-001", "A. Shah", "a.shah@lab.example"],
-  ["USR-002", "R. Mehta", "r.mehta@lab.example"],
-  ["USR-003", "P. Nair", "p.nair@lab.example"],
-  ["USR-004", "S. Iyer", "s.iyer@lab.example"]
-].map(([userId, name, email], index) => ({
-  id: newId(), userId, name, email,
+  ["A. Shah", "a.shah@lab.example"],
+  ["R. Mehta", "r.mehta@lab.example"],
+  ["P. Nair", "p.nair@lab.example"],
+  ["S. Iyer", "s.iyer@lab.example"]
+].map(([name, email], index) => ({
+  id: newId(),
+  // LIMS does not create users — it grants an existing platform user access.
+  user: ref(newId(), String(name)),
+  email,
   description: "Laboratory personnel",
-  mobileNumber: `+91 98${200 + index}0 1234`,
   group: ref(groupIds[index % 4], String(groups[index % 4].name)),
-  location: null, accessGroups: [], roles: [],
-  trainingCompleted: index < 3, signature: "", isRemoved: false
+  location: null,
+  accessGroups: [ref(groupIds[index % 4], String(groups[index % 4].name))],
+  roles: [],
+  trainingCompleted: index < 3,
+  signature: "",
+  isRemoved: false
 }));
 
 const stocks: MockRow[] = [
@@ -669,9 +675,9 @@ export const registerLimsFixtures = () => {
   registerEntity({
     route: "lims-users",
     dataKey: "users",
-    uniqueField: "userId",
-    labelField: "name",
-    searchFields: ["userId", "name", "email"],
+    uniqueField: "id",
+    labelField: "id",
+    searchFields: ["email"],
     rows: users
   });
 

@@ -1,5 +1,6 @@
 import { AvatarCell } from "@/components/data/cells/AvatarCell";
 import { StatusPill } from "@/components/data/cells/StatusPill";
+import { TagListCell } from "@/components/data/cells/TagListCell";
 import { TruncateCell } from "@/components/data/cells/TruncateCell";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import type { TFunction } from "i18next";
@@ -39,12 +40,19 @@ export const getLimsLotColumns = ({ t }: { t: TFunction }): ColDef<LimsLot>[] =>
     )
   },
   {
-    field: "samples",
+    colId: "samples",
     headerName: t("limsSamples"),
-    flex: 0.8,
-    minWidth: 160,
+    flex: 1,
+    minWidth: 200,
+    sortable: false,
+    // Array of { id, name } — MIGRATION.md §3-6: multi-item cells use TagListCell.
     cellRenderer: (params: ICellRendererParams<LimsLot>) => (
-      <TruncateCell value={params.value} />
+      <TagListCell<LimsRef>
+        items={params.data?.samples}
+        getLabel={(item) => refLabel(item)}
+        getKey={(item) => item.id}
+        tooltipHeaderLabel={t("limsSamples")}
+      />
     )
   },
   {

@@ -7,7 +7,7 @@ import type { LimsUser, LimsUserPayload } from "./LimsUser.types";
 /** LimsUser API. Pure HTTP — toasts live in the mutation layer. */
 const ROUTE = "/lims-users";
 const DATA_KEYS = ["users", "data"];
-const RELATION_KEYS = ["group", "location"];
+const RELATION_KEYS = ["user", "group", "location"];
 
 export const fetchLimsUserList = async (
   includeRemoved: boolean,
@@ -35,7 +35,7 @@ export const fetchLimsUserOptions = async (
   return toOptionsPage<LimsUser>(
     response.data,
     params,
-    (row) => String(row.name ?? ""),
+    (row) => String(row.user?.name ?? ""),
     DATA_KEYS
   );
 };

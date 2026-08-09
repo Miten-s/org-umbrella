@@ -14,8 +14,8 @@ const DATA_KEYS = ["users", "data"];
 
 interface LimsUserRow extends Record<string, unknown> {
   id: string;
-  name?: string;
-  userId?: string;
+  /** LIMS user records wrap the platform user as `{ id, name }`. */
+  user?: { id: string; name?: string };
 }
 
 export const limsUserKeys = {
@@ -35,7 +35,7 @@ export const fetchLimsUserOptions = async (
   return toOptionsPage<LimsUserRow>(
     response.data,
     params,
-    (row) => String(row.name ?? row.userId ?? ""),
+    (row) => String(row.user?.name ?? ""),
     DATA_KEYS
   );
 };

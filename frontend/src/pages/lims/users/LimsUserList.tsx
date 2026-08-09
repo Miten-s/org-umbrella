@@ -101,7 +101,7 @@ const LimsUserList = () => {
     setFormMode("create");
   };
 
-  const label = (row: LimsUser) => String(row.userId ?? row.name ?? "");
+  const label = (row: LimsUser) => String(row.user?.name ?? row.id);
 
   const bulkActions = useMemo<DataTableBulkAction[]>(
     () => [
