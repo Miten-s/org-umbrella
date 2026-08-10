@@ -1,34 +1,36 @@
-import mongoose, { Schema, Document } from "mongoose";
+import { Model, DataTypes } from "sequelize";
+import { sequelize } from "../configs/db.sequelize";
 
-export interface IServiceRequestCounter extends Document {
-  application: string;
+export interface IServiceRequestCounter {
+  applicationId: string;
   seq: number;
 }
 
-const GxpServiceRequestCounterSchema = new Schema<IServiceRequestCounter>(
+export class ServiceRequestCounter extends Model<IServiceRequestCounter> implements IServiceRequestCounter {
+  public applicationId!: string;
+  public seq!: number;
+}
+
+ServiceRequestCounter.init(
   {
-    application: {
-      type: String,
-      ref: "GxpServiceApplication",
-      required: true,
-      unique: true,
-      index: true
+    applicationId: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      allowNull: false,
+      field: "application_id",
+      references: { model: "applications", key: "id" }
     },
     seq: {
-      type: Number,
-      required: true,
-      default: 0
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0
     }
   },
   {
-    timestamps: false,
-    collection: "gxp-service-service-request-counters"
+    sequelize,
+    tableName: "service_request_counters",
+    underscored: true,
+    timestamps: false
   }
 );
-
-const GxpServiceRequestCounterModel = mongoose.model<IServiceRequestCounter>(
-  "GxpServiceRequestCounter",
-  GxpServiceRequestCounterSchema
-);
-
-export default GxpServiceRequestCounterModel;
+export default ServiceRequestCounter;

@@ -1,38 +1,55 @@
-import mongoose from "mongoose";
+import { Model, DataTypes } from "sequelize";
+import { sequelize } from "../configs/db.sequelize";
 
-const GxpServiceAppAttachmentSchema = new mongoose.Schema(
+export interface IAppAttachment {
+  id?: string;
+  applicationId: string;
+  attachment: string;
+  active: boolean;
+  createdBy?: string | null;
+}
+
+export class AppAttachment extends Model<IAppAttachment> implements IAppAttachment {
+  public id!: string;
+  public applicationId!: string;
+  public attachment!: string;
+  public active!: boolean;
+  public createdBy!: string;
+  public readonly created_at!: Date;
+  public readonly updated_at!: Date;
+}
+
+AppAttachment.init(
   {
-    appId: {
-      type: String,
-      ref: "GxpServiceApplication",
-      required: true
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    applicationId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      field: "application_id"
     },
     attachment: {
-      type: String,
-      required: true
+      type: DataTypes.STRING,
+      allowNull: false
     },
     active: {
-      type: Boolean,
-      required: true
+      type: DataTypes.BOOLEAN,
+      allowNull: false
     },
     createdBy: {
-      type: String
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: "created_by"
     }
   },
   {
-    timestamps: true,
-    collection: "gxp-service-app-attachments"
+    sequelize,
+    tableName: "app_attachments",
+    underscored: true,
+    timestamps: true
   }
 );
-
-const GxpServiceAppAttachmentModel = mongoose.model(
-  "GxpServiceAppAttachment",
-  GxpServiceAppAttachmentSchema
-);
-
-GxpServiceAppAttachmentSchema.index(
-  { appId: 1, attachment: 1 },
-  { unique: true }
-);
-
-export default GxpServiceAppAttachmentModel;
+export default AppAttachment;

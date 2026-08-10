@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from "express";
-import mongoose from "mongoose";
 
 export const authenticate = async (
   req: Request,
@@ -16,7 +15,7 @@ export const authenticate = async (
 
   try {
     const fetchedUser = {
-      id: new mongoose.Types.ObjectId("68455e2705898d594c374636"),
+      id: "68455e27-0589-8d59-4c37-463600000000",
       email: "mitenpate1234@gmail.com",
       username: "Test user 1",
       roles: ["ADMIN"]

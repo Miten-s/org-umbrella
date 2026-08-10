@@ -14,3 +14,7 @@ deploy.sh
 */.env.*
 .agents
 .docs
+
+# The rules above ignore deploy/.env (correct — it holds real secrets) but the
+# `*/.env.*` glob also swallows the committed template. Re-include just that.
+!deploy/.env.example

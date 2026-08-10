@@ -1,33 +1,55 @@
-import mongoose from "mongoose";
+import { Model, DataTypes } from "sequelize";
+import { sequelize } from "../configs/db.sequelize";
 
-const GxpServiceRequestGroupSchema = new mongoose.Schema(
+export interface IGxpServiceRequestGroup {
+  id: string;
+  requestId: string;
+  group: string;
+  active: boolean;
+  createdBy?: string;
+}
+
+export class GxpServiceRequestGroup extends Model<IGxpServiceRequestGroup> implements IGxpServiceRequestGroup {
+  public id!: string;
+  public requestId!: string;
+  public group!: string;
+  public active!: boolean;
+  public createdBy!: string;
+  public readonly created_at!: Date;
+  public readonly updated_at!: Date;
+}
+
+GxpServiceRequestGroup.init(
   {
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     requestId: {
-      type: String,
-      ref: "GxpServiceRequest",
-      required: true
+      type: DataTypes.STRING(50),
+      allowNull: false,
+      field: "request_id"
     },
     group: {
-      type: String,
-      required: true
+      type: DataTypes.STRING,
+      allowNull: false
     },
     active: {
-      type: Boolean,
-      required: true
+      type: DataTypes.BOOLEAN,
+      allowNull: false
     },
     createdBy: {
-      type: String
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: "created_by"
     }
   },
   {
-    timestamps: true,
-    collection: "gxp-service-requests-groups"
+    sequelize,
+    tableName: "service_requests_groups",
+    underscored: true,
+    timestamps: true
   }
 );
-
-const GxpRequestGroupModel = mongoose.model(
-  "GxpServiceRequestGroup",
-  GxpServiceRequestGroupSchema
-);
-
-export default GxpRequestGroupModel;
+export default GxpServiceRequestGroup;

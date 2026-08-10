@@ -1,7 +1,8 @@
 import { useState } from "react";
-import Permissions from "./Permissions";
-import Roles from "./Roles";
+import PermissionList from "./PermissionList";
+import RoleList from "./RoleList";
 
+/** Roles & Permissions — tabbed shell over the two migrated entities. */
 type ActiveTab = "roles" | "permissions";
 
 const RolesAndPermissions = () => {
@@ -13,7 +14,7 @@ const RolesAndPermissions = () => {
   ];
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4">
+    <div className="flex h-full min-h-0 flex-col gap-4 lg:h-[calc(100dvh-132px)]">
       <div
         className="inline-flex w-fit rounded-lg border border-gray-200 bg-white p-1 shadow-theme-xs dark:border-gray-800 dark:bg-gray-900"
         role="tablist"
@@ -21,7 +22,6 @@ const RolesAndPermissions = () => {
       >
         {tabs.map((tab) => {
           const isActive = activeTab === tab.key;
-
           return (
             <button
               key={tab.key}
@@ -42,7 +42,9 @@ const RolesAndPermissions = () => {
         })}
       </div>
 
-      {activeTab === "roles" ? <Roles /> : <Permissions />}
+      <div className="min-h-0 flex-1">
+        {activeTab === "roles" ? <RoleList /> : <PermissionList />}
+      </div>
     </div>
   );
 };

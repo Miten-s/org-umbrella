@@ -1,0 +1,272 @@
+import { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+
+import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
+import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
+import { Modal } from "@/components/ui/modal";
+import Switch from "@/components/common/form/switch/Switch";
+import { useServerTable } from "@/hooks/useServerTable";
+import { useLimsCompliance } from "@/hooks/useLimsCompliance";
+import { useModal } from "@/hooks/useModal";
+import { LIMS_PERMISSIONS } from "@/utils/permissions";
+import { CopyIcon, EyeIcon, PencilIcon, PlusIcon, TimeIcon, TrashBinIcon } from "@/public/icons";
+import { fetchLimsInspectionPlanList } from "./LimsInspectionPlan.api";
+import { getLimsInspectionPlanColumns } from "./LimsInspectionPlan.columns";
+import {
+  limsInspectionPlanKeys,
+  useBulkCloneLimsInspectionPlan,
+  useBulkDeleteLimsInspectionPlan,
+  useCreateLimsInspectionPlan,
+  useLimsInspectionPlanAudit,
+  useRestoreLimsInspectionPlan,
+  useUpdateLimsInspectionPlan
+} from "./LimsInspectionPlan.queries";
+import LimsInspectionPlanForm, { type LimsInspectionPlanFormMode } from "./LimsInspectionPlanForm";
+import type { LimsInspectionPlan, LimsInspectionPlanPayload } from "./LimsInspectionPlan.types";
+
+/** LimsInspectionPlan list — built to STANDARDS.md and the MIGRATION.md §5 definition of done. */
+const LimsInspectionPlanList = () => {
+  const { t } = useTranslation();
+  const { isOpen, openModal, closeModal } = useModal();
+
+  const [active, setActive] = useState<LimsInspectionPlan | null>(null);
+  const [formMode, setFormMode] = useState<LimsInspectionPlanFormMode>("create");
+  const [includeRemoved, setIncludeRemoved] = useState(false);
+
+  const compliance = useLimsCompliance<LimsInspectionPlan, LimsInspectionPlanPayload>();
+  const auditQuery = useLimsInspectionPlanAudit(compliance.auditRow?.id);
+
+  const fetchList = useCallback(
+    (params: Parameters<typeof fetchLimsInspectionPlanList>[1], signal?: AbortSignal) =>
+      fetchLimsInspectionPlanList(includeRemoved, params, signal),
+    [includeRemoved]
+  );
+
+  const table = useServerTable<LimsInspectionPlan>({
+    entity: "limsInspectionPlan",
+    queryKey: [...limsInspectionPlanKeys.all, { includeRemoved }],
+    fetchList
+  });
+
+  const create = useCreateLimsInspectionPlan();
+  const update = useUpdateLimsInspectionPlan();
+  const bulkClone = useBulkCloneLimsInspectionPlan();
+  const bulkDelete = useBulkDeleteLimsInspectionPlan();
+  const restore = useRestoreLimsInspectionPlan();
+
+  const busy =
+    create.isPending ||
+    update.isPending ||
+    bulkClone.isPending ||
+    bulkDelete.isPending ||
+    restore.isPending;
+
+  const columnDefs = useMemo(() => getLimsInspectionPlanColumns({ t }), [t]);
+
+  const openForm = useCallback(
+    (mode: LimsInspectionPlanFormMode, row: LimsInspectionPlan | null) => {
+      setFormMode(mode);
+      setActive(row);
+      openModal();
+    },
+    [openModal]
+  );
+
+  const handleCloseForm = () => {
+    closeModal();
+    setActive(null);
+    setFormMode("create");
+  };
+
+  const handleSave = async (payload: LimsInspectionPlanPayload) => {
+    if (active) {
+      compliance.requestUpdate(active.id, payload);
+      closeModal();
+      return;
+    }
+    await create.mutateAsync(payload);
+    handleCloseForm();
+  };
+
+  const confirmUpdate = async (reason: string) => {
+    const pending = compliance.pendingUpdate;
+    if (!pending) return;
+    await update.mutateAsync({
+      id: pending.id,
+      payload: { ...pending.payload, changeReason: reason }
+    });
+    compliance.clearUpdate();
+    setActive(null);
+    setFormMode("create");
+  };
+
+  const label = (row: LimsInspectionPlan) => String(row.inspectionId ?? row.name ?? "");
+
+  const bulkActions = useMemo<DataTableBulkAction[]>(
+    () => [
+      {
+        key: "clone",
+        label: () => t("limsCopy"),
+        icon: CopyIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.CREATE_INSPECTION_PLAN,
+        onClick: async (selection) => {
+          await bulkClone.mutateAsync(selection);
+          table.clearSelection();
+        }
+      },
+      {
+        key: "delete",
+        label: () => t("limsRemove"),
+        icon: TrashBinIcon,
+        variant: "destructive",
+        permission: LIMS_PERMISSIONS.DELETE_INSPECTION_PLAN,
+        onClick: (selection, count) =>
+          compliance.requestDelete(
+            selection,
+            count,
+            selection.mode === "ids"
+              ? table.rows.filter((row) => selection.ids.includes(row.id)).map(label)
+              : []
+          )
+      }
+    ],
+    [bulkClone, compliance, t, table]
+  );
+
+  const rowActions = useMemo<AppDataTableRowAction<LimsInspectionPlan>[]>(
+    () => [
+      {
+        key: "view",
+        label: t("view", { entity: t("limsInspectionPlan") }),
+        icon: EyeIcon,
+        placement: "inline",
+        permission: LIMS_PERMISSIONS.VIEW_INSPECTION_PLAN,
+        onClick: (row) => openForm("view", row)
+      },
+      {
+        key: "edit",
+        label: t("edit"),
+        icon: PencilIcon,
+        placement: "inline",
+        permission: LIMS_PERMISSIONS.UPDATE_INSPECTION_PLAN,
+        onClick: (row) => openForm("edit", row)
+      },
+      {
+        key: "audit",
+        label: t("limsAudit"),
+        icon: TimeIcon,
+        placement: "menu",
+        permission: LIMS_PERMISSIONS.VIEW_INSPECTION_PLAN,
+        onClick: (row) => compliance.openAudit(row)
+      },
+      {
+        key: "clone",
+        label: t("limsCopy"),
+        icon: CopyIcon,
+        placement: "menu",
+        permission: LIMS_PERMISSIONS.CREATE_INSPECTION_PLAN,
+        onClick: (row) => bulkClone.mutate({ mode: "ids", ids: [row.id] })
+      },
+      {
+        key: "restore",
+        label: t("limsRestore"),
+        icon: CopyIcon,
+        placement: "menu",
+        permission: LIMS_PERMISSIONS.UPDATE_INSPECTION_PLAN,
+        hidden: (row: LimsInspectionPlan) => !row.isRemoved,
+        onClick: (row) => compliance.requestRestore(row)
+      },
+      {
+        key: "delete",
+        label: t("limsRemove"),
+        icon: TrashBinIcon,
+        placement: "menu",
+        tone: "danger",
+        permission: LIMS_PERMISSIONS.DELETE_INSPECTION_PLAN,
+        hidden: (row: LimsInspectionPlan) => Boolean(row.isRemoved),
+        onClick: (row) => compliance.requestDelete({ mode: "ids", ids: [row.id] }, 1, [label(row)])
+      }
+    ],
+    [bulkClone, compliance, openForm, t]
+  );
+
+  return (
+    <div className="flex flex-col lg:h-[calc(100dvh-132px)] lg:min-h-0">
+      <DataTable<LimsInspectionPlan>
+        table={table}
+        columnDefs={columnDefs}
+        tableName={t("limsInspectionPlans")}
+        searchPlaceholder={t("search", { entity: t("limsInspectionPlans") })}
+        enableSelection
+        fillAvailableHeight
+        busy={busy}
+        rowActions={rowActions}
+        bulkActions={bulkActions}
+        titleExtra={
+          <Switch
+            checked={includeRemoved}
+            onChange={setIncludeRemoved}
+            label={t("limsShowRemoved")}
+          />
+        }
+        toolbarActions={[
+          {
+            key: "create",
+            label: t("create", { entity: t("limsInspectionPlan") }),
+            icon: PlusIcon,
+            variant: "primary",
+            permission: LIMS_PERMISSIONS.CREATE_INSPECTION_PLAN,
+            onClick: () => openForm("create", null)
+          }
+        ]}
+        emptyState={{ title: t("limsNoInspectionPlans") }}
+      />
+
+      <Modal
+        isOpen={isOpen}
+        onClose={handleCloseForm}
+        className="m-4 max-h-[90vh] max-w-[1100px] overflow-y-auto overflow-x-hidden dark:bg-gray-900"
+      >
+        <LimsInspectionPlanForm
+          mode={formMode}
+          initialData={active}
+          onClose={handleCloseForm}
+          onSubmit={handleSave}
+          submitting={create.isPending || update.isPending}
+        />
+      </Modal>
+
+      <LimsComplianceDialogs
+        compliance={compliance}
+        entityLabel={t("limsInspectionPlan")}
+        entityLabelPlural={t("limsInspectionPlans")}
+        getRecordLabel={label}
+        updating={update.isPending}
+        deleting={bulkDelete.isPending}
+        restoring={restore.isPending}
+        auditEntries={auditQuery.data ?? []}
+        auditLoading={auditQuery.isLoading}
+        onUpdate={confirmUpdate}
+        onDelete={async (reason) => {
+          const pending = compliance.pendingDelete;
+          if (pending) {
+            await bulkDelete.mutateAsync({ selection: pending.selection, changeReason: reason });
+            table.clearSelection();
+          }
+          compliance.clearDelete();
+        }}
+        onRestore={async (reason) => {
+          const pending = compliance.pendingRestore;
+          if (pending) {
+            await restore.mutateAsync({ id: pending.id, changeReason: reason });
+          }
+          compliance.clearRestore();
+        }}
+      />
+    </div>
+  );
+};
+
+export default LimsInspectionPlanList;

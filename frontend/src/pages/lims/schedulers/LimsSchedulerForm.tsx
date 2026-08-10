@@ -1,0 +1,349 @@
+import { Controller, useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslation } from "react-i18next";
+
+import Input from "@/components/common/form/input/InputField";
+import Label from "@/components/common/form/Label";
+import TextArea from "@/components/common/form/input/TextArea";
+import Switch from "@/components/common/form/switch/Switch";
+import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
+import Button from "@/components/ui/button/Button";
+import AsyncSelect from "@/components/data/AsyncSelect";
+
+import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
+import { useLimsProjectOptions } from "@/pages/lims/projects/LimsProject.queries";
+import { useLimsAnalysisOptions } from "@/pages/lims/analyses/LimsAnalysis.queries";
+import { useLimsTestGroupOptions } from "@/pages/lims/test-groups/LimsTestGroup.queries";
+import { useLimsSpecificationOptions } from "@/pages/lims/specifications/LimsSpecification.queries";
+import { useSampleTypeOptions } from "@/pages/lims/phrases/LimsPhrase.queries";
+import { useLimsUserOptions } from "@/pages/lims/users/LimsUser.options";
+import { limsSchedulerSchema, type LimsSchedulerFormValues } from "./LimsScheduler.schema";
+import type { LimsScheduler, LimsSchedulerPayload, LimsRef } from "./LimsScheduler.types";
+
+export type LimsSchedulerFormMode = "create" | "edit" | "view";
+
+interface LimsSchedulerFormProps {
+  mode?: LimsSchedulerFormMode;
+  initialData?: LimsScheduler | null;
+  onClose: () => void;
+  onSubmit: (payload: LimsSchedulerPayload) => Promise<void> | void;
+  submitting?: boolean;
+}
+
+/** Seeds a dropdown label from the record's nested ref — no extra fetch. */
+const seedOne = (ref: LimsRef | null | undefined) =>
+  ref?.id && ref.name ? [{ value: ref.id, label: ref.name }] : undefined;
+
+const LimsSchedulerForm = ({
+  mode = "create",
+  initialData,
+  onClose,
+  onSubmit,
+  submitting = false
+}: LimsSchedulerFormProps) => {
+  const { t } = useTranslation();
+  const isReadOnly = mode === "view";
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isSubmitting }
+  } = useForm<LimsSchedulerFormValues>({
+    resolver: zodResolver(limsSchedulerSchema),
+    defaultValues: {
+      schedulerId: initialData?.schedulerId ?? "",
+      name: initialData?.name ?? "",
+      scope: initialData?.scope ?? "",
+      group: initialData?.group?.id ?? "",
+      project: initialData?.project?.id ?? "",
+      analysis: initialData?.analysis?.id ?? "",
+      testGroup: initialData?.testGroup?.id ?? "",
+      specification: initialData?.specification?.id ?? "",
+      sampleType: initialData?.sampleType?.id ?? "",
+      owner: initialData?.owner?.id ?? "",
+      plan: initialData?.plan ?? "",
+      planTime: initialData?.planTime ?? "",
+      leadTimeValue: initialData?.leadTimeValue ?? "",
+      leadTimeUnit: initialData?.leadTimeUnit ?? "",
+      lastRunDate: initialData?.lastRunDate ?? "",
+      nextRunDate: initialData?.nextRunDate ?? "",
+      description: initialData?.description ?? "",
+      autoLogin: initialData?.autoLogin ?? false,
+      isActive: initialData?.isActive ?? false,
+    }
+  });
+
+  const description = useWatch({ control, name: "description" });
+  const busy = submitting || isSubmitting;
+
+  const text = (
+    name: keyof LimsSchedulerFormValues,
+    label: string,
+    required = false,
+    type = "text"
+  ) => (
+    <div className="min-w-0">
+      <Label required={required}>{label}</Label>
+      <Input
+        {...register(name)}
+        type={type}
+        disabled={isReadOnly}
+        error={!!errors[name]}
+        hint={errors[name]?.message as string}
+        className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+      />
+    </div>
+  );
+
+  return (
+    <div className="modal-scrollbar max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+      <form
+        onSubmit={handleSubmit((values) => onSubmit({ ...values }))}
+        className="min-w-0 space-y-4"
+      >
+        <h2 className="text-xl font-semibold">
+          {isReadOnly
+            ? t("view", { entity: t("limsScheduler") })
+            : initialData
+              ? t("update", { entity: t("limsScheduler") })
+              : t("create", { entity: t("limsScheduler") })}
+        </h2>
+
+        <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
+          {text("schedulerId", t("limsSchedulerId"), true, "text")}
+          {text("name", t("name"), true, "text")}
+          <div className="min-w-0">
+            <Label>{t("limsSchedulerScope")}</Label>
+            <Controller
+              name="scope"
+              control={control}
+              render={({ field }) => (
+                <SelectDropdown
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  options={[{ label: "Sample", value: "Sample" }, { label: "Test", value: "Test" }, { label: "Result", value: "Result" }]}
+                  placeholder={t("select", { entity: t("limsSchedulerScope") })}
+                />
+              )}
+            />
+          </div>
+          <div className="min-w-0">
+            <Label required={false}>{t("limsGroup")}</Label>
+            <Controller
+              name="group"
+              control={control}
+              render={({ field }) => (
+                <AsyncSelect
+                  useOptions={useLimsGroupOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={isReadOnly}
+                  placeholder={t("select", { entity: t("limsGroup") })}
+                  initialSelectedOptions={seedOne(initialData?.group)}
+                />
+              )}
+            />
+          </div>
+          <div className="min-w-0">
+            <Label required={false}>{t("limsProject")}</Label>
+            <Controller
+              name="project"
+              control={control}
+              render={({ field }) => (
+                <AsyncSelect
+                  useOptions={useLimsProjectOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={isReadOnly}
+                  placeholder={t("select", { entity: t("limsProject") })}
+                  initialSelectedOptions={seedOne(initialData?.project)}
+                />
+              )}
+            />
+          </div>
+          <div className="min-w-0">
+            <Label required={false}>{t("limsAnalysis")}</Label>
+            <Controller
+              name="analysis"
+              control={control}
+              render={({ field }) => (
+                <AsyncSelect
+                  useOptions={useLimsAnalysisOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={isReadOnly}
+                  placeholder={t("select", { entity: t("limsAnalysis") })}
+                  initialSelectedOptions={seedOne(initialData?.analysis)}
+                />
+              )}
+            />
+          </div>
+          <div className="min-w-0">
+            <Label required={false}>{t("limsTestGroup")}</Label>
+            <Controller
+              name="testGroup"
+              control={control}
+              render={({ field }) => (
+                <AsyncSelect
+                  useOptions={useLimsTestGroupOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={isReadOnly}
+                  placeholder={t("select", { entity: t("limsTestGroup") })}
+                  initialSelectedOptions={seedOne(initialData?.testGroup)}
+                />
+              )}
+            />
+          </div>
+          <div className="min-w-0">
+            <Label required={false}>{t("limsSpecification")}</Label>
+            <Controller
+              name="specification"
+              control={control}
+              render={({ field }) => (
+                <AsyncSelect
+                  useOptions={useLimsSpecificationOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={isReadOnly}
+                  placeholder={t("select", { entity: t("limsSpecification") })}
+                  initialSelectedOptions={seedOne(initialData?.specification)}
+                />
+              )}
+            />
+          </div>
+          <div className="min-w-0">
+            <Label required={false}>{t("limsSampleType")}</Label>
+            <Controller
+              name="sampleType"
+              control={control}
+              render={({ field }) => (
+                <AsyncSelect
+                  useOptions={useSampleTypeOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={isReadOnly}
+                  placeholder={t("select", { entity: t("limsSampleType") })}
+                  initialSelectedOptions={seedOne(initialData?.sampleType)}
+                />
+              )}
+            />
+          </div>
+          <div className="min-w-0">
+            <Label required={false}>{t("limsOwner")}</Label>
+            <Controller
+              name="owner"
+              control={control}
+              render={({ field }) => (
+                <AsyncSelect
+                  useOptions={useLimsUserOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={isReadOnly}
+                  placeholder={t("select", { entity: t("limsOwner") })}
+                  initialSelectedOptions={seedOne(initialData?.owner)}
+                />
+              )}
+            />
+          </div>
+          <div className="min-w-0">
+            <Label>{t("limsPlan")}</Label>
+            <Controller
+              name="plan"
+              control={control}
+              render={({ field }) => (
+                <SelectDropdown
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  options={[{ label: "Daily", value: "Daily" }, { label: "Monthly", value: "Monthly" }, { label: "Yearly", value: "Yearly" }]}
+                  placeholder={t("select", { entity: t("limsPlan") })}
+                />
+              )}
+            />
+          </div>
+          {text("planTime", t("limsPlanTime"), false, "time")}
+          {text("leadTimeValue", t("limsLeadTime"), false, "number")}
+          <div className="min-w-0">
+            <Label>{t("limsLeadTimeUnit")}</Label>
+            <Controller
+              name="leadTimeUnit"
+              control={control}
+              render={({ field }) => (
+                <SelectDropdown
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  options={[{ label: "Day", value: "Day" }, { label: "Hours", value: "Hours" }, { label: "Min", value: "Min" }, { label: "Second", value: "Second" }]}
+                  placeholder={t("select", { entity: t("limsLeadTimeUnit") })}
+                />
+              )}
+            />
+          </div>
+          {text("lastRunDate", t("limsLastRunDate"), false, "date")}
+          {text("nextRunDate", t("limsNextRunDate"), false, "date")}
+          <div className="min-w-0">
+            <Label>{t("limsGeneratedCount")}</Label>
+            <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+              {String(initialData?.generatedCount ?? "—")}
+            </p>
+          </div>
+          <div className="col-span-full min-w-0">
+            <Label>{t("description")}</Label>
+            <TextArea
+              disabled={isReadOnly}
+              value={description || ""}
+              onChange={(val) => setValue("description", val, { shouldValidate: true })}
+              className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+          <div className="min-w-0">
+            <Label>{t("limsAutoLogin")}</Label>
+            <Controller
+              name="autoLogin"
+              control={control}
+              render={({ field }) => (
+                <div className="flex items-center gap-3 py-2">
+                  <Switch
+                    checked={Boolean(field.value)}
+                    onChange={field.onChange}
+                    label={field.value ? t("yes") : t("no")}
+                  />
+                </div>
+              )}
+            />
+          </div>
+          <div className="min-w-0">
+            <Label>{t("limsSchedulerActive")}</Label>
+            <Controller
+              name="isActive"
+              control={control}
+              render={({ field }) => (
+                <div className="flex items-center gap-3 py-2">
+                  <Switch
+                    checked={Boolean(field.value)}
+                    onChange={field.onChange}
+                    label={field.value ? t("yes") : t("no")}
+                  />
+                </div>
+              )}
+            />
+          </div>
+        </div>
+
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+            {t("cancel")}
+          </Button>
+          {!isReadOnly ? (
+            <Button type="submit" variant="primary" loading={busy}>
+              {t("save")}
+            </Button>
+          ) : null}
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default LimsSchedulerForm;

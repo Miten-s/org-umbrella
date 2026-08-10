@@ -34,8 +34,31 @@ export const errorHandler = (
   let statusCode: number;
   let message: string;
 
+  // Handle Sequelize Unique Constraint Error
+  if (err?.name === "SequelizeUniqueConstraintError") {
+    statusCode = 400;
+    const errors = (err as any).errors || [];
+    // Report the offending value(s), not just the first (composite) column name —
+    // e.g. a duplicate group/module name reads far clearer than "application_id".
+    const conflict = errors
+      .map((e: any) => e?.value)
+      .filter((v: unknown) => v !== undefined && v !== null && v !== "")
+      .join(", ");
+    const fields = errors.map((e: any) => e?.path).filter(Boolean).join(", ") || "field";
+    message = conflict
+      ? `A record with this value already exists: "${conflict}" (${fields}).`
+      : `Duplicate value for field "${fields}".`;
+  }
+
+  // Handle Sequelize Validation Error
+  else if (err?.name === "SequelizeValidationError") {
+    statusCode = 400;
+    const errors = (err as any).errors || [];
+    message = errors.map((e: any) => e.message).join(", ");
+  }
+
   // Handle Mongoose Validation Error
-  if (err?.name === "ValidationError") {
+  else if (err?.name === "ValidationError") {
     statusCode = 400;
     message = Object.values(err?.errors ?? {})
       .map((e) => e.message)

@@ -1,0 +1,268 @@
+import { useState } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslation } from "react-i18next";
+
+import Input from "@/components/common/form/input/InputField";
+import Label from "@/components/common/form/Label";
+import TextArea from "@/components/common/form/input/TextArea";
+import Button from "@/components/ui/button/Button";
+import AsyncSelect from "@/components/data/AsyncSelect";
+import SubFormGrid from "@/components/data/SubFormGrid";
+import LimsAttachmentsField from "@/components/lims/LimsAttachmentsField";
+import { useAttachments } from "@/hooks/useAttachments";
+import { useLimsStockOptions } from "@/pages/lims/stocks/LimsStock.queries";
+import { useStockBatchStatusOptions } from "@/pages/lims/phrases/LimsPhrase.queries";
+import { useLimsProjectOptions } from "@/pages/lims/projects/LimsProject.queries";
+import { useLimsSupplierOptions } from "@/pages/lims/suppliers/LimsSupplier.queries";
+import { useLimsLocationOptions } from "@/pages/lims/locations/LimsLocation.queries";
+import { limsStockBatchSchema, type LimsStockBatchFormValues } from "./LimsStockBatch.schema";
+import type { LimsStockBatch, LimsStockBatchPayload, LimsRef, LimsConsumptionRow, LimsParameterValue } from "./LimsStockBatch.types";
+
+export type LimsStockBatchFormMode = "create" | "edit" | "view";
+
+interface LimsStockBatchFormProps {
+  mode?: LimsStockBatchFormMode;
+  initialData?: LimsStockBatch | null;
+  onClose: () => void;
+  onSubmit: (payload: LimsStockBatchPayload, files: File[]) => Promise<void> | void;
+  submitting?: boolean;
+}
+
+/** Seeds a dropdown label from the record's nested ref — no extra fetch. */
+const seedOne = (ref: LimsRef | null | undefined) =>
+  ref?.id && ref.name ? [{ value: ref.id, label: ref.name }] : undefined;
+
+const LimsStockBatchForm = ({
+  mode = "create",
+  initialData,
+  onClose,
+  onSubmit,
+  submitting = false
+}: LimsStockBatchFormProps) => {
+  const { t } = useTranslation();
+  const isReadOnly = mode === "view";
+  const attachments = useAttachments(initialData?.attachments);
+  const [consumptions, setConsumptions] = useState<LimsConsumptionRow[]>(initialData?.consumptions ?? []);
+  const [parameters, setParameters] = useState<LimsParameterValue[]>(initialData?.parameters ?? []);
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isSubmitting }
+  } = useForm<LimsStockBatchFormValues>({
+    resolver: zodResolver(limsStockBatchSchema),
+    defaultValues: {
+      stock: initialData?.stock?.id ?? "",
+      batchNumber: initialData?.batchNumber ?? "",
+      status: initialData?.status?.id ?? "",
+      project: initialData?.project?.id ?? "",
+      supplier: initialData?.supplier?.id ?? "",
+      location: initialData?.location?.id ?? "",
+      manufacturingDate: initialData?.manufacturingDate ?? "",
+      expiryDate: initialData?.expiryDate ?? "",
+      supplierBatchNumber: initialData?.supplierBatchNumber ?? "",
+      sapBatchId: initialData?.sapBatchId ?? "",
+      internalBatchId: initialData?.internalBatchId ?? "",
+      initialAmount: initialData?.initialAmount ?? "",
+      currentAmount: initialData?.currentAmount ?? "",
+      unit: initialData?.unit ?? "",
+      description: initialData?.description ?? "",
+    }
+  });
+
+  const description = useWatch({ control, name: "description" });
+  const busy = submitting || isSubmitting;
+
+  const text = (
+    name: keyof LimsStockBatchFormValues,
+    label: string,
+    required = false,
+    type = "text"
+  ) => (
+    <div className="min-w-0">
+      <Label required={required}>{label}</Label>
+      <Input
+        {...register(name)}
+        type={type}
+        disabled={isReadOnly}
+        error={!!errors[name]}
+        hint={errors[name]?.message as string}
+        className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+      />
+    </div>
+  );
+
+  return (
+    <div className="modal-scrollbar max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+      <form
+        onSubmit={handleSubmit((values) => onSubmit({ ...values, consumptions, parameters, keptAttachmentIds: attachments.keptIds }, attachments.newFiles))}
+        className="min-w-0 space-y-4"
+      >
+        <h2 className="text-xl font-semibold">
+          {isReadOnly
+            ? t("view", { entity: t("limsStockBatch") })
+            : initialData
+              ? t("update", { entity: t("limsStockBatch") })
+              : t("create", { entity: t("limsStockBatch") })}
+        </h2>
+
+        <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="min-w-0">
+            <Label required={true}>{t("limsStock")}</Label>
+            <Controller
+              name="stock"
+              control={control}
+              render={({ field }) => (
+                <AsyncSelect
+                  useOptions={useLimsStockOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={isReadOnly}
+                  placeholder={t("select", { entity: t("limsStock") })}
+                  initialSelectedOptions={seedOne(initialData?.stock)}
+                />
+              )}
+            />
+          </div>
+          {text("batchNumber", t("limsBatchNumber"), false, "number")}
+          <div className="min-w-0">
+            <Label>{t("limsStockBatchId")}</Label>
+            <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+              {String(initialData?.stockBatchId ?? "—")}
+            </p>
+          </div>
+          <div className="min-w-0">
+            <Label required={false}>{t("status")}</Label>
+            <Controller
+              name="status"
+              control={control}
+              render={({ field }) => (
+                <AsyncSelect
+                  useOptions={useStockBatchStatusOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={isReadOnly}
+                  placeholder={t("select", { entity: t("status") })}
+                  initialSelectedOptions={seedOne(initialData?.status)}
+                />
+              )}
+            />
+          </div>
+          <div className="min-w-0">
+            <Label required={false}>{t("limsProject")}</Label>
+            <Controller
+              name="project"
+              control={control}
+              render={({ field }) => (
+                <AsyncSelect
+                  useOptions={useLimsProjectOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={isReadOnly}
+                  placeholder={t("select", { entity: t("limsProject") })}
+                  initialSelectedOptions={seedOne(initialData?.project)}
+                />
+              )}
+            />
+          </div>
+          <div className="min-w-0">
+            <Label required={false}>{t("limsSupplier")}</Label>
+            <Controller
+              name="supplier"
+              control={control}
+              render={({ field }) => (
+                <AsyncSelect
+                  useOptions={useLimsSupplierOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={isReadOnly}
+                  placeholder={t("select", { entity: t("limsSupplier") })}
+                  initialSelectedOptions={seedOne(initialData?.supplier)}
+                />
+              )}
+            />
+          </div>
+          <div className="min-w-0">
+            <Label required={false}>{t("limsLocation")}</Label>
+            <Controller
+              name="location"
+              control={control}
+              render={({ field }) => (
+                <AsyncSelect
+                  useOptions={useLimsLocationOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={isReadOnly}
+                  placeholder={t("select", { entity: t("limsLocation") })}
+                  initialSelectedOptions={seedOne(initialData?.location)}
+                />
+              )}
+            />
+          </div>
+          {text("manufacturingDate", t("limsManufacturingDate"), false, "date")}
+          {text("expiryDate", t("limsExpiryDate"), false, "date")}
+          {text("supplierBatchNumber", t("limsSupplierBatchNumber"), false, "text")}
+          {text("sapBatchId", t("limsSapBatchId"), false, "text")}
+          {text("internalBatchId", t("limsInternalBatchId"), false, "text")}
+          {text("initialAmount", t("limsInitialAmount"), false, "number")}
+          {text("currentAmount", t("limsCurrentAmount"), false, "number")}
+          {text("unit", t("limsUnit"), false, "text")}
+          <div className="col-span-full min-w-0">
+            <Label>{t("description")}</Label>
+            <TextArea
+              disabled={isReadOnly}
+              value={description || ""}
+              onChange={(val) => setValue("description", val, { shouldValidate: true })}
+              className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+          <div className="col-span-full min-w-0">
+            <SubFormGrid<LimsConsumptionRow>
+              label={t("limsConsumptionRecords")}
+              rows={consumptions}
+              onChange={setConsumptions}
+              disabled={isReadOnly}
+              columns={[
+                { key: "consumedOn", header: t("limsConsumedOn"), type: "date" },
+                { key: "consumedBy", header: t("limsConsumedBy") },
+                { key: "amount", header: t("limsAmount"), type: "number" },
+                { key: "unit", header: t("limsUnit") },
+                { key: "remarks", header: t("limsRemarks") }
+              ]}
+            />
+          </div>
+          <div className="col-span-full min-w-0">
+            <SubFormGrid<LimsParameterValue>
+              label={t("limsParameters")}
+              rows={parameters}
+              onChange={setParameters}
+              disabled={isReadOnly}
+              columns={[
+                { key: "identity", header: t("limsIdentity") },
+                { key: "value", header: t("limsValue") },
+                { key: "unit", header: t("limsUnit") }
+              ]}
+            />
+          </div>
+          <LimsAttachmentsField attachments={attachments} disabled={isReadOnly} />
+        </div>
+
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+            {t("cancel")}
+          </Button>
+          {!isReadOnly ? (
+            <Button type="submit" variant="primary" loading={busy}>
+              {t("save")}
+            </Button>
+          ) : null}
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default LimsStockBatchForm;

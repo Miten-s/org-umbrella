@@ -190,6 +190,12 @@ layer(base);
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+  html {
+    /* Always reserve the scrollbar gutter so locking body scroll when a modal
+       opens (body { overflow: hidden }) doesn't remove the scrollbar and shift
+       the whole page ~15px — the "background flicker/movement" on modal open. */
+    scrollbar-gutter: stable;
+  }
   body {
     @apply relative font-normal font-outfit z-1 bg-gray-50;
   }
@@ -283,6 +289,85 @@ layer(base);
 }
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
   background-color: #344054;
+}
+
+@utility modal-scrollbar {
+  scrollbar-gutter: stable;
+  scrollbar-color: #98a2b3 transparent;
+  scrollbar-width: thin;
+
+  &::-webkit-scrollbar {
+    width: 12px;
+  }
+
+  &::-webkit-scrollbar-track {
+    margin-block: 18px;
+    border-radius: 999px;
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    min-height: 56px;
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background: #98a2b3;
+    background-clip: content-box;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: #667085;
+    background-clip: content-box;
+  }
+}
+
+.dark .modal-scrollbar {
+  scrollbar-color: #667085 transparent;
+}
+
+.dark .modal-scrollbar::-webkit-scrollbar-thumb {
+  background: #667085;
+  background-clip: content-box;
+}
+
+.dark .modal-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #98a2b3;
+  background-clip: content-box;
+}
+
+/* Global classy/rounded scrollbar for ANY scroll area inside a modal, so every
+   modal matches without each form opting into `modal-scrollbar`. The Modal
+   wrapper carries `.modal`; its inner scroll containers are the descendants. */
+.modal *::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.modal *::-webkit-scrollbar-track {
+  background: transparent;
+}
+.modal *::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: #cbd5e1;
+  background-clip: content-box;
+}
+.modal *::-webkit-scrollbar-thumb:hover {
+  background: #98a2b3;
+  background-clip: content-box;
+}
+.modal * {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+.dark .modal *::-webkit-scrollbar-thumb {
+  background: #475467;
+  background-clip: content-box;
+}
+.dark .modal *::-webkit-scrollbar-thumb:hover {
+  background: #667085;
+  background-clip: content-box;
+}
+.dark .modal * {
+  scrollbar-color: #475467 transparent;
 }
 
 @layer utilities {
@@ -452,6 +537,20 @@ layer(base);
 .app-data-table .ag-cell,
 .app-data-table .ag-header-cell {
   border-right: none;
+}
+
+/* Vertically center cell content within the row height (custom cellRenderers
+   otherwise top-align). Horizontal alignment stays with the cell's own class.
+   The child min-width:0 keeps single-line truncation working inside the flex.
+   `.dt-grid` is the new DataTable; `.app-data-table` is the frozen table. */
+.app-data-table .ag-cell,
+.dt-grid .ag-cell {
+  display: flex;
+  align-items: center;
+}
+.app-data-table .ag-cell > *,
+.dt-grid .ag-cell > * {
+  min-width: 0;
 }
 
 .app-data-table .ag-row:last-child .ag-cell {
@@ -919,4 +1018,71 @@ span.flatpickr-weekday,
 }
 .animate-fadeIn {
   animation: fadeIn 0.15s ease-out;
+}
+
+/* ── Premium floating pill (table bulk-selection bar) ───────────────────── */
+/* Enters from below with a fade + slight scale; leaves upward + soft fade.  */
+@keyframes pill-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes pill-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+}
+/* easeOutQuint on enter for that settled, high-end feel; snappier exit. */
+.animate-pill-in {
+  animation: pill-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-pill-out {
+  animation: pill-out 0.22s cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+/* ── Premium toast (success / error / info / loading) ───────────────────── */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+}
+.animate-toast-in {
+  animation: toast-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-toast-out {
+  animation: toast-out 0.24s cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pill-in,
+  .animate-pill-out,
+  .animate-toast-in,
+  .animate-toast-out {
+    animation-duration: 0.01ms;
+  }
 }

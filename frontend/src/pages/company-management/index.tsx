@@ -6,8 +6,11 @@ import { useEffect, useState } from "react";
 import { getCompany, updateCompany } from "@/services/admin.service";
 import { Company } from "@/types/common.types";
 import CreateCompanyModal from "./CreateCompanyModal";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "@/lib/toast";
 
 const CompanyManagement = () => {
+  const { refreshAuth } = useAuth();
   const { isOpen, openModal, closeModal } = useModal();
   const { t } = useTranslation();
 
@@ -19,14 +22,16 @@ const CompanyManagement = () => {
     const res = await getCompany();
     setCompanies(res.company);
   };
-
   useEffect(() => {
     fetchCompanies();
   }, [refresh]);
 
   const handleSave = async (data: any) => {
     if (activeCompany) {
-      await updateCompany(activeCompany._id, data);
+      const companyId = activeCompany._id || (activeCompany as any).id;
+      await updateCompany(companyId, data);
+      await refreshAuth();
+      toast("Company updated successfully.", "success");
     }
     setActiveCompany(null);
     setRefresh((prev) => !prev);
@@ -69,7 +74,7 @@ const CompanyManagement = () => {
       <Modal
         isOpen={isOpen}
         onClose={closeModal}
-        className="max-w-[900px] max-h-[90vh] m-4 overflow-y-auto"
+        className="max-w-[900px] max-h-[90vh]"
       >
         <CreateCompanyModal
           onClose={closeModal}

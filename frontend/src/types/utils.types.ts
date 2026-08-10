@@ -159,6 +159,148 @@ export const PageUrl: PageUrlType = {
     path: "/gxp-service/create-new-service-request",
     matchPattern: /^\/gxp-service\/create-new-service-request$/i,
     pageTitle: "Create a new Service Request"
+  },
+  // #endregion
+
+  // #region LIMS
+  LIMS: {
+    path: "/lims",
+    matchPattern: /^\/lims$/i,
+    pageTitle: "LIMS"
+  },
+
+  // LIMS → Lab Access
+  LIMSUsers: {
+    path: "/lims/users",
+    matchPattern: /^\/lims\/users$/i,
+    pageTitle: "Lab Users"
+  },
+  LIMSRoles: {
+    path: "/lims/roles",
+    matchPattern: /^\/lims\/roles$/i,
+    pageTitle: "Lab Roles"
+  },
+  LIMSGroups: {
+    path: "/lims/groups",
+    matchPattern: /^\/lims\/groups$/i,
+    pageTitle: "Lab Groups"
+  },
+
+  // LIMS → Lab Setup
+  LIMSProjects: {
+    path: "/lims/projects",
+    matchPattern: /^\/lims\/projects$/i,
+    pageTitle: "Projects"
+  },
+  LIMSStudies: {
+    path: "/lims/studies",
+    matchPattern: /^\/lims\/studies$/i,
+    pageTitle: "Studies"
+  },
+  LIMSSuppliers: {
+    path: "/lims/suppliers",
+    matchPattern: /^\/lims\/suppliers$/i,
+    pageTitle: "Suppliers"
+  },
+  LIMSCustomers: {
+    path: "/lims/customers",
+    matchPattern: /^\/lims\/customers$/i,
+    pageTitle: "Customers"
+  },
+  LIMSLocations: {
+    path: "/lims/locations",
+    matchPattern: /^\/lims\/locations$/i,
+    pageTitle: "Storage Locations"
+  },
+  LIMSStocks: {
+    path: "/lims/stocks",
+    matchPattern: /^\/lims\/stocks$/i,
+    pageTitle: "Stock Items"
+  },
+  LIMSParameters: {
+    path: "/lims/parameters",
+    matchPattern: /^\/lims\/parameters$/i,
+    pageTitle: "Parameters"
+  },
+  LIMSStockBatches: {
+    path: "/lims/stock-batches",
+    matchPattern: /^\/lims\/stock-batches$/i,
+    pageTitle: "Stock Batches"
+  },
+  LIMSAliquots: {
+    path: "/lims/aliquots",
+    matchPattern: /^\/lims\/aliquots$/i,
+    pageTitle: "Aliquots"
+  },
+  LIMSInstruments: {
+    path: "/lims/instruments",
+    matchPattern: /^\/lims\/instruments$/i,
+    pageTitle: "Instruments"
+  },
+  LIMSInstrumentParts: {
+    path: "/lims/instrument-parts",
+    matchPattern: /^\/lims\/instrument-parts$/i,
+    pageTitle: "Instrument Parts"
+  },
+  LIMSCalibrations: {
+    path: "/lims/calibrations",
+    matchPattern: /^\/lims\/calibrations$/i,
+    pageTitle: "Calibrations"
+  },
+  LIMSInspectionPlans: {
+    path: "/lims/inspection-plans",
+    matchPattern: /^\/lims\/inspection-plans$/i,
+    pageTitle: "Inspection Plans"
+  },
+  LIMSAnalyses: {
+    path: "/lims/analyses",
+    matchPattern: /^\/lims\/analyses$/i,
+    pageTitle: "Analyses"
+  },
+  LIMSTestGroups: {
+    path: "/lims/test-groups",
+    matchPattern: /^\/lims\/test-groups$/i,
+    pageTitle: "Test Groups"
+  },
+  LIMSSpecifications: {
+    path: "/lims/specifications",
+    matchPattern: /^\/lims\/specifications$/i,
+    pageTitle: "Specifications"
+  },
+  LIMSBatches: {
+    path: "/lims/batches",
+    matchPattern: /^\/lims\/batches$/i,
+    pageTitle: "Batches"
+  },
+  LIMSLots: {
+    path: "/lims/lots",
+    matchPattern: /^\/lims\/lots$/i,
+    pageTitle: "Lots"
+  },
+  LIMSSamples: {
+    path: "/lims/samples",
+    matchPattern: /^\/lims\/samples$/i,
+    pageTitle: "Samples"
+  },
+  LIMSTests: {
+    path: "/lims/tests",
+    matchPattern: /^\/lims\/tests$/i,
+    pageTitle: "Tests"
+  },
+  LIMSResults: {
+    path: "/lims/results",
+    matchPattern: /^\/lims\/results$/i,
+    pageTitle: "Results"
+  },
+  LIMSSchedulers: {
+    path: "/lims/schedulers",
+    matchPattern: /^\/lims\/schedulers$/i,
+    pageTitle: "Schedulers"
+  },
+  LIMSPhrases: {
+    path: "/lims/phrases",
+    matchPattern: /^\/lims\/phrases$/i,
+    pageTitle: "Pick Lists"
   }
   // #endregion
 };

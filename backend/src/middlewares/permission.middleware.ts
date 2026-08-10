@@ -3,16 +3,16 @@ import { isSuperAdmin } from "../utils/common.util";
 
 export const checkPermissions = (requiredPermissions: string[] = []): any => {
   return (req: Request, res: Response, next: NextFunction) => {
-    const userPermissions =
-      (req.user?.roles ?? []).flatMap((role) =>
-        role.permissions?.map((permission) => permission.name)
-      ) ?? [];
+    const roles: any[] = (req.user as any)?.roles ?? [];
+    const userPermissions = roles.flatMap((role: any) =>
+      (role.permissions ?? []).map((permission: any) => permission.name)
+    );
 
     const hasSome = requiredPermissions.some((p) =>
       userPermissions.includes(p)
     );
 
-    if (!hasSome && !isSuperAdmin(req.user))
+    if (!hasSome && !isSuperAdmin(req.user as any))
       return res.status(403).json({ error: "permission denied" });
 
     next();

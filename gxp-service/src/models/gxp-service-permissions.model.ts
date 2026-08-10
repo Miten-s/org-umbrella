@@ -1,40 +1,56 @@
-import mongoose, { Schema } from "mongoose";
+import { Model, DataTypes } from "sequelize";
+import { sequelize } from "../configs/db.sequelize";
 
-export interface IGxpServicePortalPermissions {
+export interface IGxpServicePortalPermission {
+  id: string;
   permissionName: string;
-  description: string;
-  createdBy: string;
-  modifiedBy: string;
+  description?: string;
+  createdBy?: string;
+  modifiedBy?: string;
 }
 
-const GxpServicePortalPermissionsSchema = new Schema(
+export class GxpServicePortalPermission extends Model<IGxpServicePortalPermission> implements IGxpServicePortalPermission {
+  public id!: string;
+  public permissionName!: string;
+  public description!: string;
+  public createdBy!: string;
+  public modifiedBy!: string;
+  public readonly created_at!: Date;
+  public readonly updated_at!: Date;
+}
+
+GxpServicePortalPermission.init(
   {
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     permissionName: {
-      type: String,
-      required: true
+      type: DataTypes.STRING,
+      allowNull: false,
+      field: "permission_name"
     },
     description: {
-      type: String,
-      maxlength: 50
+      type: DataTypes.STRING(50),
+      allowNull: true
     },
     createdBy: {
-      type: String,
-      maxlength: 40
+      type: DataTypes.STRING(40),
+      allowNull: true,
+      field: "created_by"
     },
     modifiedBy: {
-      type: String,
-      maxlength: 40
+      type: DataTypes.STRING(40),
+      allowNull: true,
+      field: "modified_by"
     }
   },
   {
-    timestamps: true,
-    collection: "gxp-service-permissions"
+    sequelize,
+    tableName: "gxp_permissions",
+    underscored: true,
+    timestamps: true
   }
 );
-
-const GxpServicePortalPermissionsModel = mongoose.model(
-  "GxpServicePortalPermission",
-  GxpServicePortalPermissionsSchema
-);
-
-export default GxpServicePortalPermissionsModel;
+export default GxpServicePortalPermission;

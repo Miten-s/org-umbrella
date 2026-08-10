@@ -451,7 +451,7 @@ const RolesAndPermissions = () => {
               ? `Are you sure you want to delete these ${pendingDeleteRoles.length} roles?`
               : `${t("deleteEntityPrompt", {
                   entityName: pendingDeleteRoles[0]?.name
-                })} ?`}
+                })}`}
           </div>
 
           {pendingDeleteRoles.length ? (

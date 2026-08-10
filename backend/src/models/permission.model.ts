@@ -1,45 +1,57 @@
-import mongoose, { Document, Schema } from "mongoose";
+import { Model, DataTypes } from "sequelize";
+import { sequelize } from "../configs/db.sequelize";
 
-export interface IPermission extends Document {
+export interface IPermission {
+  id: string;
   name: string;
-  description: string;
-  deletedAt: Date;
+  description?: string;
   type?: string;
-  modifiedOn?: Date;
-  modifiedBy?: string;
-}
-enum PermissionType {
-  DEFAULT = "default",
-  GXP_SERVICE = "gxp_service"
+  deletedAt?: Date | null;
 }
 
-const PermissionSchema = new Schema(
+export class Permission extends Model<IPermission> implements IPermission {
+  public id!: string;
+  public name!: string;
+  public description!: string;
+  public type!: string;
+  public deletedAt!: Date | null;
+  public readonly created_at!: Date;
+  public readonly updated_at!: Date;
+}
+
+Permission.init(
   {
-    name: { type: String, required: true },
-    description: { type: String },
-    deletedAt: { type: Date, default: null },
-    type: {
-      type: String,
-      enum: PermissionType,
-      default: PermissionType.DEFAULT
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
     },
-    modifiedOn: { type: Date },
-    modifiedBy: { type: Schema.Types.ObjectId, ref: "User" }
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true
+    },
+    description: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    type: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: "default"
+    },
+    deletedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: "deleted_at"
+    }
   },
-  { timestamps: true }
-);
-
-PermissionSchema.index({ name: 1 }, { unique: true });
-
-PermissionSchema.pre(
-  ["find", "findOne", "findOneAndUpdate", "countDocuments"],
-  async function () {
-    if (this.getOptions()?.includeDeleted) return;
-    this.where({ deletedAt: null });
+  {
+    sequelize,
+    tableName: "permissions",
+    underscored: true,
+    timestamps: true,
+    paranoid: true
   }
 );
-
-export const Permission = mongoose.model<IPermission>(
-  "Permission",
-  PermissionSchema
-);
+export default Permission;

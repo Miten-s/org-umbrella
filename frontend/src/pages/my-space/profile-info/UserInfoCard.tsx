@@ -5,6 +5,7 @@ import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { useAuth } from "@/context/AuthContext";
 import { updateUser } from "@/services/admin.service";
+import { toast } from "@/lib/toast";
 import { useGlobalContext } from "@/context";
 import { useTranslation } from "react-i18next";
 import Input from "@/components/common/form/input/InputField";
@@ -35,7 +36,12 @@ export default function UserInfoCard() {
   const isSuperAdmin = user.roles?.some((role) =>
     role.permissions?.some((permission) => permission.name === "OPERATE:ALL")
   );
-  const { register, handleSubmit, control } = useForm<UserInfoFormValues>({
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { isSubmitting }
+  } = useForm<UserInfoFormValues>({
     defaultValues: {
       name: user?.name || "",
       status: user?.status === "active",
@@ -59,6 +65,7 @@ export default function UserInfoCard() {
         status: data.status ? "active" : "disabled"
       };
       await updateUser(user._id, payload);
+      toast("Profile updated successfully.", "success");
       setReFetch(!reFetch);
       closeModal();
     } catch (error) {
@@ -220,10 +227,11 @@ export default function UserInfoCard() {
                 variant="outline"
                 type="button"
                 onClick={closeModal}
+                disabled={isSubmitting}
               >
                 Close
               </Button>
-              <Button size="sm" type="submit">
+              <Button size="sm" type="submit" loading={isSubmitting}>
                 Save Changes
               </Button>
             </div>

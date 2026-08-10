@@ -1,52 +1,85 @@
-import { Schema, model, Document } from "mongoose";
+import { Model, DataTypes } from "sequelize";
+import { sequelize } from "../configs/db.sequelize";
 
-export interface ILocation extends Document {
+export interface ILocation {
+  id: string;
   locationName: string;
+  locationCode?: string;
   description?: string;
   comments?: string;
   status: "active" | "disabled";
-  deletedAt: Date;
+  deletedAt?: Date | null;
   modifiedOn?: Date;
   modifiedBy?: string;
 }
 
-const LocationSchema = new Schema<ILocation>(
+export class Location extends Model<ILocation> implements ILocation {
+  public id!: string;
+  public locationName!: string;
+  public locationCode!: string;
+  public description!: string;
+  public comments!: string;
+  public status!: "active" | "disabled";
+  public deletedAt!: Date | null;
+  public modifiedOn!: Date;
+  public modifiedBy!: string;
+  public readonly created_at!: Date;
+  public readonly updated_at!: Date;
+}
+
+Location.init(
   {
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     locationName: {
-      type: String,
-      required: true,
-      unique: true
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+      field: "location_name"
+    },
+    locationCode: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: "location_code"
     },
     description: {
-      type: String,
-      default: ""
+      type: DataTypes.TEXT,
+      allowNull: true
     },
     comments: {
-      type: String,
-      default: ""
+      type: DataTypes.TEXT,
+      allowNull: true
     },
     status: {
-      type: String,
-      enum: ["active", "disabled"],
-      default: "active"
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: "active"
     },
-    modifiedOn: { type: Date },
-    modifiedBy: { type: Schema.Types.ObjectId, ref: "User" },
-    deletedAt: { type: Date, default: null }
+    deletedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: "deleted_at"
+    },
+    modifiedOn: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: "modified_on"
+    },
+    modifiedBy: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: "modified_by"
+    }
   },
-  { timestamps: true }
-);
-
-LocationSchema.pre(
-  ["find", "findOne", "findOneAndUpdate", "countDocuments"],
-  async function () {
-    if (this.getOptions()?.includeDeleted) return;
-    this.where({ deletedAt: null });
+  {
+    sequelize,
+    tableName: "locations",
+    underscored: true,
+    timestamps: true,
+    paranoid: true
   }
 );
-
-LocationSchema.pre("save", async function () {
-  this.set("modifiedOn", new Date());
-});
-
-export const Location = model<ILocation>("Location", LocationSchema);
+export default Location;

@@ -1,8 +1,10 @@
 import { Request } from "express";
+import { Op } from "sequelize";
+import { randomUUID } from "crypto";
 import { IServiceRequest } from "../models/gxp-service-service-requests.model";
 import * as repo from "../repo/gxp-service-service-requests.repo";
 import GxpServiceRequestAttachmentModel from "../models/gxp-service-request-attachments.model";
-import { GxpServiceAppModuleModel } from "../models/gxp-service-application-modules.model";
+import GxpServiceAppModuleModel from "../models/gxp-service-application-modules.model";
 import GxpServiceAppRoleModel from "../models/gxp-service-application-roles.model";
 import GxpServiceAppServiceModel from "../models/gxp-service-application-services.model";
 import { resolveIds } from "./mixed-id-resolution.service";
@@ -54,6 +56,19 @@ const buildServiceRequestId = (applicationName: string, sequence: number): strin
     normalizeServiceRequestCodeSegment(applicationName) || "APP";
   const paddedSequence = String(sequence).padStart(4, "0");
   return `SR_${normalizedAppName}_${paddedSequence}`;
+};
+
+const MAX_SERVICE_REQUEST_ID_ATTEMPTS = 5;
+
+/** True when the error is a unique-constraint violation on serviceRequestId. */
+const isServiceRequestIdConflict = (err: any): boolean => {
+  if (err?.name !== "SequelizeUniqueConstraintError") return false;
+  const paths = (err.errors || []).map((e: any) => String(e?.path ?? ""));
+  return (
+    paths.some(
+      (p: string) => p === "serviceRequestId" || p === "service_request_id"
+    ) || /service_request_id|serviceRequestId/i.test(String(err?.message ?? ""))
+  );
 };
 
 export const createServiceRequest = async (
@@ -125,45 +140,69 @@ export const createServiceRequest = async (
     throw new Error("Application is required");
   }
 
-  const applicationRecord = await GxpServiceApplicationModel.findById(
-    applicationId
-  )
-    .select({ applicationName: 1 })
-    .lean();
+  const applicationRecord = await GxpServiceApplicationModel.findByPk(
+    applicationId,
+    {
+      attributes: ["applicationName"],
+      raw: true
+    }
+  );
 
   if (!applicationRecord?.applicationName) {
     throw new Error("Application not found");
   }
 
-  const nextSequence = await repo.getNextServiceRequestSequence(applicationId);
-  payload.serviceRequestId = buildServiceRequestId(
-    applicationRecord.applicationName,
-    nextSequence
-  );
+  // `id` is the PK (varchar, no DB default) — generate a UUID for it
+  payload.id = randomUUID();
+  // Model FK column is `applicationId`, not `application`
+  payload.applicationId = applicationId;
+  delete payload.application;
 
-  const newRequest = await repo.createServiceRequest(payload);
+  // The per-application counter can lag behind existing rows, so the generated
+  // `serviceRequestId` (SR_APP_XXXX) may already exist and the insert fails on a
+  // unique constraint. Retry, bumping the sequence each time, so the transient
+  // collision resolves itself instead of forcing the user to re-submit.
+  let newRequest;
+  for (let attempt = 0; ; attempt++) {
+    const nextSequence = await repo.getNextServiceRequestSequence(applicationId);
+    payload.serviceRequestId = buildServiceRequestId(
+      applicationRecord.applicationName,
+      nextSequence
+    );
+    try {
+      newRequest = await repo.createServiceRequest(payload);
+      break;
+    } catch (err) {
+      if (
+        isServiceRequestIdConflict(err) &&
+        attempt < MAX_SERVICE_REQUEST_ID_ATTEMPTS
+      ) {
+        continue;
+      }
+      if (isServiceRequestIdConflict(err)) {
+        throw new Error(
+          "Could not generate a unique service request ID. Please try again."
+        );
+      }
+      throw err;
+    }
+  }
 
   // Attachments
   if (attachments?.length) {
-    const createdAttachments = await Promise.all(
+    await Promise.all(
       attachments.map((attachment) =>
         GxpServiceRequestAttachmentModel.create({
-          srvId: newRequest._id,
+          serviceRequestId: newRequest.id,
           attachment,
           active: true,
-          createdBy: data.createdBy
+          createdBy: data.createdBy || null
         })
       )
     );
-
-    newRequest.attachments = createdAttachments.map((doc) =>
-      doc._id.toString()
-    );
-
-    await newRequest.save();
   }
 
-  return newRequest;
+  return await repo.getServiceRequestById(newRequest.id);
 };
 
 
@@ -290,49 +329,74 @@ export const updateRequest = async (
   delete payload.requestType;
   delete payload.serviceRequestId;
 
+  // Normalize application → applicationId for Sequelize FK column
+  if ("application" in payload) {
+    const appId = extractSingleId(payload.application);
+    if (appId) payload.applicationId = appId;
+    delete payload.application;
+  }
+
   if (!existingRequest.serviceRequestId) {
-    const applicationId = extractSingleId(
-      payload.application ?? existingRequest.application
-    );
+    const applicationId =
+      (payload.applicationId as string | undefined) ??
+      extractSingleId(existingRequest.application);
     if (!applicationId) {
       throw new Error("Application is required");
     }
 
-    const applicationRecord = await GxpServiceApplicationModel.findById(
-      applicationId
-    )
-      .select({ applicationName: 1 })
-      .lean();
+    const applicationRecord = await GxpServiceApplicationModel.findByPk(
+      applicationId,
+      {
+        attributes: ["applicationName"],
+        raw: true
+      }
+    );
 
     if (!applicationRecord?.applicationName) {
       throw new Error("Application not found");
     }
 
     const nextSequence = await repo.getNextServiceRequestSequence(applicationId);
+    // For update, serviceRequestId is a separate column in the model
+    // (the model stores it in the `serviceRequestId` field, separate from the PK `id`)
+    // But since `id` is already the SR_APP_XXXX string acting as PK,
+    // we don't need to reassign it here for updates.
     payload.serviceRequestId = buildServiceRequestId(
       applicationRecord.applicationName,
       nextSequence
     );
   }
 
-  // Attachments
+  // Attachments — reconcile: keep the ids the client still lists, delete the
+  // rest (the ones the user removed), then add the newly-uploaded files. Only
+  // when the client actually sent the attachments field, so a partial update
+  // that omits it leaves existing attachments untouched.
+  if ("attachments" in data) {
+    const keptAttachmentIds = Array.isArray((data as any).attachments)
+      ? ((data as any).attachments as unknown[]).map(String).filter(Boolean)
+      : [];
+    await GxpServiceRequestAttachmentModel.destroy({
+      where: {
+        serviceRequestId: id,
+        ...(keptAttachmentIds.length ? { id: { [Op.notIn]: keptAttachmentIds } } : {})
+      }
+    });
+  }
   if (attachments?.length) {
-    const createdAttachments = await Promise.all(
+    await Promise.all(
       attachments.map((attachment) =>
         GxpServiceRequestAttachmentModel.create({
-          srvId: id,
+          serviceRequestId: id,
           attachment,
           active: true,
-          createdBy: data.modifiedBy // Assuming modifiedBy is passed
+          createdBy: data.modifiedBy || null
         })
       )
     );
-
-    const newIds = createdAttachments.map((d) => d._id.toString());
-    payload.attachments = [...(payload.attachments || []), ...newIds];
   }
 
-  return await repo.updateServiceRequest(id, payload);
+  await repo.updateServiceRequest(id, payload);
+  return await repo.getServiceRequestById(id);
 };
 
 export const deleteRequest = async (id: string) => {

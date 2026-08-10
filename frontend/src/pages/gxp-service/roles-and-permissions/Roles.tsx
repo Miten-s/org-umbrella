@@ -161,7 +161,7 @@ const Roles = () => {
     () => [
       {
         key: "create-role",
-        label: t("create", { entity: t("gxpRoles") }),
+        label: t("create", { entity: t("role") }),
         className: "whitespace-nowrap",
         icon: PlusIcon,
         onClick: () => {
@@ -208,7 +208,7 @@ const Roles = () => {
       },
       {
         key: "edit",
-        label: "Edit role",
+        label: t("edit", { entity: t("role") }),
         tooltip: "Edit role",
         icon: PencilIcon,
         placement: "inline",
@@ -230,7 +230,7 @@ const Roles = () => {
         onClick: (role) => setPendingDeleteRoles([role])
       }
     ],
-    [openModal]
+    [openModal, t]
   );
 
   const columnDefs = useMemo<ColDef<RoleRecord>[]>(
@@ -308,7 +308,7 @@ const Roles = () => {
 
   return (
     <>
-      <div className="flex flex-col lg:h-[calc(100dvh-132px)] lg:min-h-0">
+      <div className="flex h-full min-h-0 flex-col">
         <AppDataTable<RoleRecord>
           actionsColumnHeader={t("actions")}
           bulkActions={bulkActions}
@@ -386,7 +386,7 @@ const Roles = () => {
               ? `Are you sure you want to delete these ${pendingDeleteRoles.length} roles?`
               : `${t("deleteEntityPrompt", {
                   entityName: pendingDeleteRoles[0]?.name
-                })} ?`}
+                })}`}
           </div>
 
           {pendingDeleteRoles.length ? (

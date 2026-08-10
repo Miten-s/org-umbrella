@@ -1,0 +1,10 @@
+# Ratchet: lint + format-check ONLY the staged files, with zero-warnings. This
+# blocks NEW lint warnings/errors without being held hostage by pre-existing
+# ones in files you didn't touch, and needs no lint-staged dependency. The full
+# repo gates (typecheck, lint, prettier, tests, build) run in CI.
+staged=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^frontend/src/.*\.(ts|tsx)$' | sed 's|^frontend/||')
+[ -z "$staged" ] && exit 0
+
+cd frontend
+echo "$staged" | xargs npx eslint --max-warnings=0 --config ./eslint.config.js
+echo "$staged" | xargs npx prettier --check

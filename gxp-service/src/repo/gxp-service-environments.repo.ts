@@ -1,27 +1,41 @@
-import GxpServiceEnvironmentModel from "../models/gxp-service-environments.model";
-import { PaginationOptions, escapeRegex } from "../utils/pagination.util";
+import Environment, { IEnvironment } from "../models/gxp-service-environments.model";
+import { PaginationOptions } from "../utils/pagination.util";
+import { Op } from "sequelize";
 
-export const createEnvironment = async (data: any) => {
-  return await GxpServiceEnvironmentModel.create(data);
+const formatEnv = (env: any) => {
+  if (!env) return null;
+  const json = env.toJSON ? env.toJSON() : { ...env };
+  json._id = json.id;
+  json.isActive = json.status === "enabled";
+  return json;
 };
 
+export const createEnvironment = async (data: any) => {
+  const mapped = { ...data };
+  if (mapped.isActive === true) mapped.status = "enabled";
+  if (mapped.isActive === false) mapped.status = "disabled";
+  const doc = await Environment.create(mapped);
+  return formatEnv(doc);
+};
 
 export const findAllEnvironments = async (options: PaginationOptions) => {
   const { page, limit, skip, search } = options;
-  const filter: any = {};
+  const where: any = {};
   if (search) {
-    const sanitizedSearch = escapeRegex(search);
-    filter.$or = [
-      { environmentName: { $regex: sanitizedSearch, $options: "i" } },
-      { description: { $regex: sanitizedSearch, $options: "i" } }
+    const sanitizedSearch = `%${search}%`;
+    where[Op.or] = [
+      { environmentName: { [Op.iLike]: sanitizedSearch } },
+      { description: { [Op.iLike]: sanitizedSearch } }
     ];
   }
-  const [data, totalCount] = await Promise.all([
-    GxpServiceEnvironmentModel.find(filter).skip(skip).limit(limit).lean(),
-    GxpServiceEnvironmentModel.countDocuments(filter).exec()
-  ]);
+  const { count: totalCount, rows: data } = await Environment.findAndCountAll({
+    where,
+    offset: skip,
+    limit,
+    order: [["created_at", "DESC"]]
+  });
   return {
-    data,
+    data: data.map(formatEnv),
     metadata: {
       totalCount,
       currentPage: page,
@@ -32,46 +46,64 @@ export const findAllEnvironments = async (options: PaginationOptions) => {
 };
 
 export const findEnvironment = async (_id: string) => {
-  return await GxpServiceEnvironmentModel.findOne({ _id });
+  const doc = await Environment.findByPk(_id);
+  return formatEnv(doc);
 };
 
 export const updateEnvironment = async (_id: string, data: any) => {
-  return await GxpServiceEnvironmentModel.findOneAndUpdate({ _id }, data, {
-    new: true
-  });
+  const env = await Environment.findByPk(_id);
+  if (!env) return null;
+  const mapped = { ...data };
+  if (mapped.isActive === true) mapped.status = "enabled";
+  if (mapped.isActive === false) mapped.status = "disabled";
+  await env.update(mapped);
+  return formatEnv(env);
 };
 
 export const disableEnvironment = async (_id: string) => {
-  return await GxpServiceEnvironmentModel.findOneAndUpdate(
-    { _id },
-    { isActive: false },
-    { new: true }
-  );
+  const env = await Environment.findByPk(_id);
+  if (!env) return null;
+  await env.update({ status: "disabled" });
+  return formatEnv(env);
 };
 
 export const enableEnvironment = async (_id: string) => {
-  return await GxpServiceEnvironmentModel.findOneAndUpdate(
-    { _id },
-    { isActive: true },
-    { new: true }
-  );
+  const env = await Environment.findByPk(_id);
+  if (!env) return null;
+  await env.update({ status: "enabled" });
+  return formatEnv(env);
 };
 
-export const deleteEnvironment  = async (environmentId: string) => {
-  return await GxpServiceEnvironmentModel.deleteMany({ _id: { $eq: environmentId } });
-}
+export const deleteEnvironment = async (environmentId: string) => {
+  const env = await Environment.findByPk(environmentId);
+  if (!env) return null;
+  await env.destroy();
+  return formatEnv(env);
+};
 
 export const findEnvironmentsByIds = async (ids: string[]) => {
-  return await GxpServiceEnvironmentModel.find({ _id: { $in: ids } }).lean();
+  const data = await Environment.findAll({
+    where: { id: ids }
+  });
+  return data.map(formatEnv);
 };
 
 export const findEnvironmentsByFilter = async (filter: any) => {
-  return await GxpServiceEnvironmentModel.find(filter).lean();
+  const where = { ...filter };
+  if (where._id) {
+    where.id = where._id;
+    delete where._id;
+  }
+  if (where.environmentName && typeof where.environmentName === "object" && where.environmentName.$regex) {
+    // Convert Mongo regex to Op.iRegexp
+    where.environmentName = { [Op.iRegexp]: where.environmentName.$regex.source || where.environmentName.$regex };
+  }
+  const data = await Environment.findAll({ where });
+  return data.map(formatEnv);
 };
 
 export const bulkDeleteEnvironments = async (ids: string[], session?: any) => {
-  return await GxpServiceEnvironmentModel.deleteMany(
-    { _id: { $in: ids } },
-    { session }
-  );
+  return await Environment.destroy({
+    where: { id: ids }
+  });
 };

@@ -4,13 +4,11 @@ import {
   IsOptional,
   IsArray,
   MinLength,
-  Matches,
   IsEnum,
-  IsMongoId,
+  IsUUID,
   IsBoolean,
   ValidateIf
 } from "class-validator";
-import { Types } from "mongoose";
 
 export class CreateUserDTO {
   @IsString({ message: "Full Name is required and must be a string." })
@@ -29,11 +27,11 @@ export class CreateUserDTO {
 
   @IsOptional()
   @IsArray({ message: "Roles must be an array of role IDs." })
-  @Matches(/^[0-9a-fA-F]{24}$/, {
+  @IsUUID(4, {
     each: true,
-    message: "Each role ID must be a valid MongoDB ObjectId."
+    message: "Each role ID must be a valid UUID."
   })
-  roles?: Types.ObjectId[];
+  roles?: string[];
 
   @IsEnum(["Admin", "User"], {
     message: "User type must be 'Admin' or 'User'."
@@ -49,15 +47,15 @@ export class CreateUserDTO {
   phone!: string;
 
   @ValidateIf((obj) => obj.userType === "User")
-  @IsMongoId({ message: "Department must be a valid MongoDB ObjectId." })
+  @IsUUID(4, { message: "Department must be a valid UUID." })
   department!: string;
 
   @ValidateIf((obj) => obj.userType === "User")
-  @IsMongoId({ message: "Designation must be a valid MongoDB ObjectId." })
+  @IsUUID(4, { message: "Designation must be a valid UUID." })
   designation!: string;
 
   @ValidateIf((obj) => obj.userType === "User")
-  @IsMongoId({ message: "Location must be a valid MongoDB ObjectId." })
+  @IsUUID(4, { message: "Location must be a valid UUID." })
   location?: string;
 
   @ValidateIf((obj) => obj.userType === "User")

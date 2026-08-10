@@ -4,6 +4,7 @@ interface CheckboxProps {
   label?: string;
   checked: boolean;
   className?: string;
+  labelClassName?: string;
   id?: string;
   onChange: (checked: boolean) => void;
   disabled?: boolean;
@@ -15,27 +16,30 @@ const Checkbox: React.FC<CheckboxProps> = ({
   id,
   onChange,
   className = "",
+  labelClassName = "",
   disabled = false
 }) => {
   return (
     <label
-      className={`flex items-center space-x-3 group cursor-pointer ${
+      className={`group flex min-w-0 cursor-pointer items-start gap-3 ${
         disabled ? "cursor-not-allowed opacity-60" : ""
       }`}
     >
-      <div className="relative w-5 h-5">
+      <div className="relative h-5 w-5 shrink-0">
         <input
           id={id}
           type="checkbox"
-          className={`w-5 h-5 appearance-none cursor-pointer dark:border-gray-700 border border-gray-300 checked:border-transparent rounded-md checked:bg-brand-500 disabled:opacity-60 
-          ${className}`}
+          className={`h-5 w-5 appearance-none rounded-md border border-gray-300 checked:border-transparent checked:bg-brand-500 disabled:opacity-60 dark:border-gray-700 ${
+            disabled ? "cursor-not-allowed" : "cursor-pointer"
+          } ${className}`}
           checked={checked}
           onChange={(e) => onChange(e.target.checked)}
           disabled={disabled}
         />
+
         {checked && (
           <svg
-            className="absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-none top-1/2 left-1/2"
+            className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
             xmlns="http://www.w3.org/2000/svg"
             width="14"
             height="14"
@@ -51,9 +55,10 @@ const Checkbox: React.FC<CheckboxProps> = ({
             />
           </svg>
         )}
-        {disabled && (
+
+        {disabled && checked && (
           <svg
-            className="absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-none top-1/2 left-1/2"
+            className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
             xmlns="http://www.w3.org/2000/svg"
             width="14"
             height="14"
@@ -70,8 +75,11 @@ const Checkbox: React.FC<CheckboxProps> = ({
           </svg>
         )}
       </div>
+
       {label && (
-        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+        <span
+          className={`min-w-0 flex-1 break-words text-sm font-medium leading-5 text-gray-800 dark:text-gray-200 ${labelClassName}`}
+        >
           {label}
         </span>
       )}

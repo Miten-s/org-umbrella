@@ -34,8 +34,25 @@ export const errorHandler = (
   let statusCode: number;
   let message: string;
 
-  // Handle Mongoose Validation Error
-  if (err?.name === "ValidationError") {
+  // Handle Sequelize Unique Constraint Error
+  if (err?.name === "SequelizeUniqueConstraintError") {
+    statusCode = 400;
+    const field = (err as any).errors?.[0]?.path || "field";
+    message = `Duplicate value for field "${field}".`;
+  }
+  // Handle Sequelize Validation Error
+  else if (err?.name === "SequelizeValidationError") {
+    statusCode = 400;
+    message = (err as any).errors?.map((e: any) => e.message).join(", ") || err.message;
+  }
+  // Handle Sequelize Foreign Key Constraint Error
+  else if (err?.name === "SequelizeForeignKeyConstraintError") {
+    statusCode = 400;
+    message = `Foreign key constraint violation: ${(err as any).parent?.detail || err.message}`;
+  }
+
+  // Handle Mongoose Validation Error (Backward compatibility)
+  else if (err?.name === "ValidationError") {
     statusCode = 400;
     message = Object.values(err?.errors ?? {})
       .map((e) => e.message)

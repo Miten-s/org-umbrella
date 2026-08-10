@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { Dropdown } from "./Dropdown";
 import { DropdownItem } from "./DropdownItem";
 import { ChevronDownIcon } from "@/public/icons";
@@ -9,6 +9,9 @@ interface SelectDropdownProps {
   onChange: (val: string) => void;
   placeholder: string;
   disabled?: boolean;
+  portal?: boolean;
+  dropdownMaxHeight?: number;
+  listMaxHeight?: number;
 }
 
 export const SelectDropdown: React.FC<SelectDropdownProps> = ({
@@ -16,10 +19,14 @@ export const SelectDropdown: React.FC<SelectDropdownProps> = ({
   value,
   onChange,
   placeholder,
-  disabled = false
+  disabled = false,
+  portal = false,
+  dropdownMaxHeight = 250,
+  listMaxHeight = 180
 }) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [portalStyle, setPortalStyle] = useState<CSSProperties>();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const selectedOption = useMemo(
@@ -56,6 +63,48 @@ export const SelectDropdown: React.FC<SelectDropdownProps> = ({
     }
   }, [disabled, open]);
 
+  useEffect(() => {
+    if (!portal || !open) {
+      setPortalStyle(undefined);
+      return;
+    }
+
+    const updatePortalPosition = () => {
+      const triggerRect = dropdownRef.current?.getBoundingClientRect();
+      if (!triggerRect) return;
+
+      const viewportPadding = 16;
+      const availableBelow =
+        window.innerHeight - triggerRect.bottom - viewportPadding;
+      const availableAbove = triggerRect.top - viewportPadding;
+      const openAbove =
+        availableBelow < dropdownMaxHeight && availableAbove > availableBelow;
+      const maxHeight = Math.min(
+        dropdownMaxHeight,
+        Math.max(openAbove ? availableAbove : availableBelow, 160)
+      );
+
+      setPortalStyle({
+        left: triggerRect.left,
+        maxHeight,
+        top: openAbove ? undefined : triggerRect.bottom,
+        bottom: openAbove
+          ? window.innerHeight - triggerRect.top + 8
+          : undefined,
+        width: triggerRect.width
+      });
+    };
+
+    updatePortalPosition();
+    window.addEventListener("resize", updatePortalPosition);
+    window.addEventListener("scroll", updatePortalPosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updatePortalPosition);
+      window.removeEventListener("scroll", updatePortalPosition, true);
+    };
+  }, [dropdownMaxHeight, open, portal]);
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
@@ -88,7 +137,11 @@ export const SelectDropdown: React.FC<SelectDropdownProps> = ({
         <Dropdown
           isOpen={open}
           onClose={() => setOpen(false)}
-          className="w-full max-h-[250px] overflow-hidden"
+          className="w-full overflow-hidden"
+          position={portal ? "fixed" : "absolute"}
+          portal={portal}
+          style={portal ? portalStyle : { maxHeight: dropdownMaxHeight }}
+          onMouseDown={(event) => event.stopPropagation()}
         >
           {options.length > 0 && (
             <div className="px-3 pb-2">
@@ -102,7 +155,7 @@ export const SelectDropdown: React.FC<SelectDropdownProps> = ({
             </div>
           )}
 
-          <div className="max-h-[180px] overflow-auto">
+          <div className="overflow-auto" style={{ maxHeight: listMaxHeight }}>
             {filteredOptions.length === 0 ? (
               <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-300">
                 No data found

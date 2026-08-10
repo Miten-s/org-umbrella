@@ -1,27 +1,56 @@
 import GxpServiceUser from "../models/gxp-service-users.model";
-import { PaginationOptions, escapeRegex } from "../utils/pagination.util";
+import { PaginationOptions } from "../utils/pagination.util";
+import { Op } from "sequelize";
+import crypto from "crypto";
+
+const formatUser = (user: any) => {
+  if (!user) return null;
+  const json = user.toJSON ? user.toJSON() : { ...user };
+  json._id = json.id;
+
+  // Reconstruct user object
+  json.user = {
+    id: json.authUserId,
+    name: json.userName
+  };
+  return json;
+};
 
 export const createUserRepo = async (data: any) => {
-  const user = new GxpServiceUser(data);
-  return await user.save();
+  const payload = {
+    id: data.id || crypto.randomUUID(),
+    authUserId: data.user?.id,
+    userName: data.user?.name,
+    userType: data.userType,
+    roles: data.roles || [],
+    description: data.description,
+    status: data.status || "enabled",
+    trainingCompleted: data.trainingCompleted !== undefined ? data.trainingCompleted : false,
+    createdBy: data.createdBy,
+    modifiedBy: data.modifiedBy
+  };
+  const doc = await GxpServiceUser.create(payload);
+  return formatUser(doc);
 };
 
 export const findAllUsersRepo = async (options: PaginationOptions) => {
   const { page, limit, skip, search } = options;
-  const filter: any = {};
+  const where: any = {};
   if (search) {
-    const sanitizedSearch = escapeRegex(search);
-    filter.$or = [
-      { "user.name": { $regex: sanitizedSearch, $options: "i" } },
-      { description: { $regex: sanitizedSearch, $options: "i" } }
+    const sanitizedSearch = `%${search}%`;
+    where[Op.or] = [
+      { userName: { [Op.iLike]: sanitizedSearch } },
+      { description: { [Op.iLike]: sanitizedSearch } }
     ];
   }
-  const [data, totalCount] = await Promise.all([
-    GxpServiceUser.find(filter).skip(skip).limit(limit).lean(),
-    GxpServiceUser.countDocuments(filter).exec()
-  ]);
+  const { count: totalCount, rows: data } = await GxpServiceUser.findAndCountAll({
+    where,
+    offset: skip,
+    limit,
+    order: [["created_at", "DESC"]]
+  });
   return {
-    data,
+    data: data.map(formatUser),
     metadata: {
       totalCount,
       currentPage: page,
@@ -32,17 +61,35 @@ export const findAllUsersRepo = async (options: PaginationOptions) => {
 };
 
 export const findUserByIdRepo = async (id: string) => {
-  return await GxpServiceUser.findById(id).lean();
+  const doc = await GxpServiceUser.findByPk(id);
+  return formatUser(doc);
 };
 
 export const updateUserRepo = async (id: string, data: any) => {
-  try {
-    return await GxpServiceUser.findByIdAndUpdate(id, data, {
-      new: true
-    }).lean();
-  } catch (error) {
-    throw error;
+  const user = await GxpServiceUser.findByPk(id);
+  if (!user) return null;
+
+  const payload: any = {
+    userType: data.userType,
+    roles: data.roles,
+    description: data.description,
+    status: data.status,
+    trainingCompleted: data.trainingCompleted,
+    modifiedBy: data.modifiedBy
+  };
+
+  if (data.user) {
+    payload.authUserId = data.user.id;
+    payload.userName = data.user.name;
   }
+
+  // Remove undefined fields
+  Object.keys(payload).forEach((key) => {
+    if (payload[key] === undefined) delete payload[key];
+  });
+
+  await user.update(payload);
+  return formatUser(user);
 };
 
 export const disableUserRepo = async (id: string) => {
@@ -54,9 +101,14 @@ export const enableUserRepo = async (id: string, comments: any) => {
 };
 
 export const deleteUserRepo = async (id: string) => {
-  return await GxpServiceUser.findByIdAndDelete(id);
+  const user = await GxpServiceUser.findByPk(id);
+  if (!user) return null;
+  await user.destroy();
+  return formatUser(user);
 };
 
 export const bulkDeleteUsersRepo = async (ids: string[]) => {
-  return await GxpServiceUser.deleteMany({ _id: { $in: ids } });
+  return await GxpServiceUser.destroy({
+    where: { id: ids }
+  });
 };

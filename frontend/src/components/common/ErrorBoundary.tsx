@@ -1,5 +1,7 @@
 import { Component, ErrorInfo, ReactNode } from "react";
 import { getErrorMessage } from "@/utils/error.utils";
+import { logoutUser } from "@/services/admin.service";
+import { AUTH_TOKEN_KEY, SYSTEM_ROUTES } from "@/utils/common.constants";
 
 type ErrorBoundaryProps = {
   children: ReactNode;
@@ -26,14 +28,34 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     this.setState({ error: null });
   };
 
-  handleReload = () => {
-    window.location.reload();
+  /**
+   * The boundary sits above Router and AuthProvider, so navigation and sign-out
+   * use browser APIs rather than hooks.
+   */
+  handleBack = () => {
+    this.setState({ error: null });
+    window.history.back();
+  };
+
+  handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch {
+      // Signing out locally still has to succeed even if the call fails.
+    } finally {
+      sessionStorage.removeItem(AUTH_TOKEN_KEY);
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      window.location.assign(SYSTEM_ROUTES.LOGIN);
+    }
   };
 
   render() {
     if (!this.state.error) {
       return this.props.children;
     }
+
+    // A fresh tab has a single history entry, so there is nowhere to go back to.
+    const canGoBack = window.history.length > 1;
 
     return (
       <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10 text-gray-900 dark:bg-gray-950 dark:text-white">
@@ -59,13 +81,25 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
             >
               Try again
             </button>
-            <button
-              type="button"
-              onClick={this.handleReload}
-              className="inline-flex h-10 items-center justify-center rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800 dark:focus:ring-offset-gray-900"
-            >
-              Reload page
-            </button>
+            {/* Offer a way back if there's somewhere to go; otherwise the only
+                sensible escape from a broken shell is to sign out. */}
+            {canGoBack ? (
+              <button
+                type="button"
+                onClick={this.handleBack}
+                className="inline-flex h-10 items-center justify-center rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800 dark:focus:ring-offset-gray-900"
+              >
+                Go back
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void this.handleLogout()}
+                className="inline-flex h-10 items-center justify-center rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800 dark:focus:ring-offset-gray-900"
+              >
+                Log out
+              </button>
+            )}
           </div>
         </section>
       </main>

@@ -33,7 +33,7 @@ const CreateGxpPermissionModal = ({
     handleSubmit,
     setValue,
     control,
-    formState: { errors }
+    formState: { errors, isSubmitting }
   } = useForm<CreateGxpPermissionForm>({
     resolver: zodResolver(getGxpPermissionSchema),
     defaultValues: {
@@ -86,11 +86,16 @@ const CreateGxpPermissionModal = ({
 
         {/* Action Buttons */}
         <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" type="button" onClick={onClose}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary">
+            <Button type="submit" variant="primary" loading={isSubmitting}>
               {t("save")}
             </Button>
           ) : null}

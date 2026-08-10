@@ -17,7 +17,7 @@ const Login = () => {
   const {
     register,
     handleSubmit,
-    formState: { errors }
+    formState: { errors, isSubmitting }
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema)
   });
@@ -96,7 +96,7 @@ const Login = () => {
               )}
             </div>
             <div>
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" loading={isSubmitting}>
                 Sign In
               </Button>
             </div>

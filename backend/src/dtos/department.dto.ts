@@ -3,8 +3,10 @@ import {
   IsOptional,
   IsEnum,
   IsDateString,
-  IsMongoId
+  Matches
 } from "class-validator";
+
+const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 // To Validate the Request Body While Creating a New Department
 export class CreateDepartmentDto {
@@ -12,11 +14,11 @@ export class CreateDepartmentDto {
   readonly departmentName!: string;
 
   @IsString({ message: "Location manager is required and must be a string." })
-  @IsMongoId({ message: "Id must be valid" })
+  @Matches(uuidRegex, { message: "Id must be valid" })
   readonly departmentManager!: string;
 
   @IsString({ message: "Location is required and must be a string." })
-  @IsMongoId({ message: "Id must be valid" })
+  @Matches(uuidRegex, { message: "Id must be valid" })
   readonly departmentGroupLocation!: string;
 
   @IsOptional()
@@ -47,11 +49,11 @@ export class CreateDepartmentDto {
 // To Validate the Request Body While Updating a New Department
 export class UpdateDepartmentDto {
   @IsOptional()
-  @IsMongoId({ message: "Id must be valid" })
+  @Matches(uuidRegex, { message: "Id must be valid" })
   readonly departmentManager?: string;
 
   @IsOptional()
-  @IsMongoId({ message: "Id must be valid" })
+  @Matches(uuidRegex, { message: "Id must be valid" })
   readonly departmentGroupLocation?: string;
 
   @IsOptional()

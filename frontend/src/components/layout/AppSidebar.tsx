@@ -9,7 +9,10 @@ import {
   HorizontaLDots,
   UserIcon,
   CompanyIcon,
-  BoltIcon
+  BoltIcon,
+  FlaskIcon,
+  LabAccessIcon,
+  TaskIcon
 } from "../../public/icons";
 import { useSidebar } from "../../context/SidebarContext";
 import { PageUrl } from "@/types/utils.types";
@@ -17,7 +20,10 @@ import { useAuth } from "@/context/AuthContext";
 import {
   hasPermission,
   ADMIN_PERMISSIONS,
-  GXP_PERMISSIONS
+  GXP_PERMISSIONS,
+  LIMS_ACCESS_PERMISSIONS,
+  LIMS_SETUP_PERMISSIONS,
+  LIMS_EXECUTION_PERMISSIONS
 } from "@/utils/permissions";
 import { useTranslation } from "react-i18next";
 
@@ -34,7 +40,6 @@ const AppSidebar: React.FC = () => {
   const location = useLocation();
   const { user } = useAuth();
   const { t } = useTranslation();
-console.log("User in AppSidebar:", user);
   const navItems: NavItem[] = useMemo(
     () => [
       {
@@ -140,6 +145,62 @@ console.log("User in AppSidebar:", user);
             name: t("gxpCreateNewServiceRequest"),
             path: PageUrl.GXPCreateNewServiceRequest.path
           }
+        ]
+      },
+      {
+        icon: <LabAccessIcon />,
+        name: t("limsLabAccess"),
+        permissions: LIMS_ACCESS_PERMISSIONS,
+        subItems: [
+          { name: t("limsUsers"), path: PageUrl.LIMSUsers.path },
+          { name: t("limsRoles"), path: PageUrl.LIMSRoles.path },
+          { name: t("limsGroups"), path: PageUrl.LIMSGroups.path }
+        ]
+      },
+      {
+        icon: <FlaskIcon />,
+        name: t("limsLabSetup"),
+        permissions: LIMS_SETUP_PERMISSIONS,
+        subItems: [
+          { name: t("limsProjects"), path: PageUrl.LIMSProjects.path },
+          { name: t("limsStudies"), path: PageUrl.LIMSStudies.path },
+          { name: t("limsSuppliers"), path: PageUrl.LIMSSuppliers.path },
+          { name: t("limsCustomers"), path: PageUrl.LIMSCustomers.path },
+          { name: t("limsLocations"), path: PageUrl.LIMSLocations.path },
+          { name: t("limsStocks"), path: PageUrl.LIMSStocks.path },
+          { name: t("limsParameters"), path: PageUrl.LIMSParameters.path },
+          { name: t("limsStockBatches"), path: PageUrl.LIMSStockBatches.path },
+          { name: t("limsAliquots"), path: PageUrl.LIMSAliquots.path },
+          { name: t("limsInstruments"), path: PageUrl.LIMSInstruments.path },
+          {
+            name: t("limsInstrumentParts"),
+            path: PageUrl.LIMSInstrumentParts.path
+          },
+          { name: t("limsCalibrations"), path: PageUrl.LIMSCalibrations.path },
+          {
+            name: t("limsInspectionPlans"),
+            path: PageUrl.LIMSInspectionPlans.path
+          },
+          { name: t("limsAnalyses"), path: PageUrl.LIMSAnalyses.path },
+          { name: t("limsTestGroups"), path: PageUrl.LIMSTestGroups.path },
+          {
+            name: t("limsSpecifications"),
+            path: PageUrl.LIMSSpecifications.path
+          },
+          { name: t("limsPhrases"), path: PageUrl.LIMSPhrases.path }
+        ]
+      },
+      {
+        icon: <TaskIcon />,
+        name: t("limsLabExecutions"),
+        permissions: LIMS_EXECUTION_PERMISSIONS,
+        subItems: [
+          { name: t("limsBatches"), path: PageUrl.LIMSBatches.path },
+          { name: t("limsLots"), path: PageUrl.LIMSLots.path },
+          { name: t("limsSamples"), path: PageUrl.LIMSSamples.path },
+          { name: t("limsTests"), path: PageUrl.LIMSTests.path },
+          { name: t("limsResults"), path: PageUrl.LIMSResults.path },
+          { name: t("limsSchedulers"), path: PageUrl.LIMSSchedulers.path }
         ]
       },
       {
@@ -253,22 +314,19 @@ console.log("User in AppSidebar:", user);
           {nav.subItems ? (
             <button
               onClick={() => handleSubmenuToggle(index, menuType)}
-              className={`menu-item group ${
-                openSubmenu?.type === menuType && openSubmenu?.index === index
+              className={`menu-item group ${openSubmenu?.type === menuType && openSubmenu?.index === index
                   ? "menu-item-active"
                   : "menu-item-inactive"
-              } cursor-pointer ${
-                !isExpanded && !isHovered
+                } cursor-pointer ${!isExpanded && !isHovered
                   ? "lg:justify-center"
                   : "lg:justify-start"
-              }`}
+                }`}
             >
               <span
-                className={`menu-item-icon-size  ${
-                  openSubmenu?.type === menuType && openSubmenu?.index === index
+                className={`menu-item-icon-size  ${openSubmenu?.type === menuType && openSubmenu?.index === index
                     ? "menu-item-icon-active"
                     : "menu-item-icon-inactive"
-                }`}
+                  }`}
               >
                 {nav.icon}
               </span>
@@ -277,12 +335,11 @@ console.log("User in AppSidebar:", user);
               )}
               {(isExpanded || isHovered || isMobileOpen) && (
                 <ChevronDownIcon
-                  className={`ml-auto w-5 h-5 transition-transform duration-200 ${
-                    openSubmenu?.type === menuType &&
-                    openSubmenu?.index === index
+                  className={`ml-auto w-5 h-5 transition-transform duration-200 ${openSubmenu?.type === menuType &&
+                      openSubmenu?.index === index
                       ? "rotate-180 text-brand-500"
                       : ""
-                  }`}
+                    }`}
                 />
               )}
             </button>
@@ -290,16 +347,14 @@ console.log("User in AppSidebar:", user);
             nav.path && (
               <Link
                 to={nav.path}
-                className={`menu-item group ${
-                  isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
-                }`}
+                className={`menu-item group ${isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
+                  }`}
               >
                 <span
-                  className={`menu-item-icon-size ${
-                    isActive(nav.path)
+                  className={`menu-item-icon-size ${isActive(nav.path)
                       ? "menu-item-icon-active"
                       : "menu-item-icon-inactive"
-                  }`}
+                    }`}
                 >
                   {nav.icon}
                 </span>
@@ -327,32 +382,29 @@ console.log("User in AppSidebar:", user);
                   <li key={subItem.name}>
                     <Link
                       to={subItem.path}
-                      className={`menu-dropdown-item ${
-                        isActive(subItem.path)
+                      className={`menu-dropdown-item ${isActive(subItem.path)
                           ? "menu-dropdown-item-active"
                           : "menu-dropdown-item-inactive"
-                      }`}
+                        }`}
                     >
                       {subItem.name}
                       <span className="flex items-center gap-1 ml-auto">
                         {subItem.new && (
                           <span
-                            className={`ml-auto ${
-                              isActive(subItem.path)
+                            className={`ml-auto ${isActive(subItem.path)
                                 ? "menu-dropdown-badge-active"
                                 : "menu-dropdown-badge-inactive"
-                            } menu-dropdown-badge`}
+                              } menu-dropdown-badge`}
                           >
                             new
                           </span>
                         )}
                         {subItem.pro && (
                           <span
-                            className={`ml-auto ${
-                              isActive(subItem.path)
+                            className={`ml-auto ${isActive(subItem.path)
                                 ? "menu-dropdown-badge-active"
                                 : "menu-dropdown-badge-inactive"
-                            } menu-dropdown-badge`}
+                              } menu-dropdown-badge`}
                           >
                             pro
                           </span>
@@ -371,13 +423,12 @@ console.log("User in AppSidebar:", user);
 
   return (
     <aside
-      className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
-        ${
-          isExpanded || isMobileOpen
+      className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 lg:left-[max(0px,calc((100vw-2400px)/2))] bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200
+        ${isExpanded || isMobileOpen
+          ? "w-[290px]"
+          : isHovered
             ? "w-[290px]"
-            : isHovered
-              ? "w-[290px]"
-              : "w-[90px]"
+            : "w-[90px]"
         }
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0`}
@@ -385,9 +436,8 @@ console.log("User in AppSidebar:", user);
       onMouseLeave={() => setIsHovered(false)}
     >
       <div
-        className={`py-4 flex ${
-          !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
-        }`}
+        className={`py-4 flex ${!isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
+          }`}
       >
         <Link to={PageUrl.Dashboard.path} className="flex items-center gap-2">
           {isExpanded || isHovered || isMobileOpen ? (
@@ -404,11 +454,10 @@ console.log("User in AppSidebar:", user);
           <div className="flex flex-col gap-4">
             <div>
               <h2
-                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                  !isExpanded && !isHovered
+                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${!isExpanded && !isHovered
                     ? "lg:justify-center"
                     : "justify-start"
-                }`}
+                  }`}
               >
                 {isExpanded || isHovered || isMobileOpen ? (
                   "Menu"

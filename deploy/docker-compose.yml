@@ -1,0 +1,87 @@
+# Test-environment stack for the `test` branch — everything on one EC2 box.
+# Run from the repo root:  docker compose -f deploy/docker-compose.yml up -d --build
+name: umbrella-test
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: umbrella_auth_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    # Bound to loopback ONLY — never 0.0.0.0. The database is not reachable from
+    # outside the instance, but an SSH tunnel can reach it (see DEPLOY.md §13).
+    # Dropping the "127.0.0.1:" prefix would publish it to the internet.
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d umbrella_auth_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 9000
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      AUTH_POSTGRES_URI: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/umbrella_auth_db
+    volumes:
+      # Persist uploads outside the container. Both API services share one
+      # volume so either can serve a file the other wrote.
+      - uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    expose:
+      - "9000"
+
+  gxp-service:
+    build:
+      context: ../gxp-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 9001
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      GXP_POSTGRES_URI: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/gxp_workflow_db
+      AUTH_POSTGRES_URI: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/umbrella_auth_db
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    expose:
+      - "9001"
+
+  web:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        # Same-origin paths — nginx proxies these to the services above, so the
+        # browser never issues a cross-origin request.
+        VITE_API_BASE_URL: /auth/v1/api
+        VITE_API_GXP_BASE_URL: /gxp/v1/api
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - gxp-service
+
+volumes:
+  pgdata:
+  uploads:

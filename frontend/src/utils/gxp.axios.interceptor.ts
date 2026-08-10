@@ -47,6 +47,12 @@ gxpApi.interceptors.response.use(
       _retry?: boolean;
     };
 
+    // Ignore aborted/canceled requests (e.g. React Query aborting an in-flight
+    // query when a modal closes). These are not user-facing errors, so never toast.
+    if (error.code === "ERR_CANCELED" || error.name === "CanceledError") {
+      return Promise.reject(error);
+    }
+
     if (
       error.response?.status === 401 &&
       (error?.response?.data as { message?: string })?.message ===
