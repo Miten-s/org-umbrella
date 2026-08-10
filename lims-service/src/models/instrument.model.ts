@@ -1,3 +1,5 @@
+import PhraseEntry from "./phrase-entry.model";
+import Group from "./group.model";
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 import Location from "./location.model";
@@ -17,11 +19,13 @@ export interface IInstrument {
   deletedBy?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
+  modifiedBy?: string | null;
 }
 
 export class Instrument extends Model<IInstrument> implements IInstrument {
   public id!: string;
-  public name!: string;
+
+public name!: string;
   public description!: string | null;
   public locationId!: string | null;
   public supplierId!: string | null;
@@ -31,6 +35,8 @@ export class Instrument extends Model<IInstrument> implements IInstrument {
   public isDeleted!: boolean;
   public deletedAt!: Date | null;
   public deletedBy!: string | null;
+  public modifiedBy!: string | null;
+
 }
 
 Instrument.init(
@@ -43,9 +49,10 @@ Instrument.init(
     serialNumber: { type: DataTypes.STRING(100), allowNull: true, field: "serial_number" },
     statusPhraseId: { type: DataTypes.UUID, allowNull: true, field: "status_phrase_id" },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
-    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "is_deleted" },
+    isDeleted: {  type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false,  field: "is_deleted" },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" }
+    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" },
+    modifiedBy: { type: DataTypes.UUID, allowNull: true, field: "modified_by" }
   },
   {
     sequelize,
@@ -61,5 +68,9 @@ Instrument.belongsTo(Location, { foreignKey: "location_id", as: "location" });
 
 Supplier.hasMany(Instrument, { foreignKey: "supplier_id", as: "instruments" });
 Instrument.belongsTo(Supplier, { foreignKey: "supplier_id", as: "supplier" });
+
+// ─── Auto-generated associations ───
+Instrument.belongsTo(Group, { foreignKey: "group_id", targetKey: "id", as: "group" });
+Instrument.belongsTo(PhraseEntry, { foreignKey: "status_phrase_id", targetKey: "id", as: "statusPhrase" });
 
 export default Instrument;

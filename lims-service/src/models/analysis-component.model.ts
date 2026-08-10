@@ -1,3 +1,5 @@
+import PhraseEntry from "./phrase-entry.model";
+import Group from "./group.model";
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 import Analysis from "./analysis.model";
@@ -16,11 +18,13 @@ export interface IAnalysisComponent {
   deletedBy?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
+  modifiedBy?: string | null;
 }
 
 export class AnalysisComponent extends Model<IAnalysisComponent> implements IAnalysisComponent {
   public id!: string;
-  public analysisId!: string;
+
+public analysisId!: string;
   public name!: string;
   public componentTypePhraseId!: string;
   public unitPhraseId!: string | null;
@@ -30,6 +34,8 @@ export class AnalysisComponent extends Model<IAnalysisComponent> implements IAna
   public isDeleted!: boolean;
   public deletedAt!: Date | null;
   public deletedBy!: string | null;
+  public modifiedBy!: string | null;
+
 }
 
 AnalysisComponent.init(
@@ -42,9 +48,10 @@ AnalysisComponent.init(
     sortOrder: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1, field: "sort_order" },
     isRequired: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true, field: "is_required" },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
-    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "is_deleted" },
+    isDeleted: {  type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false,  field: "is_deleted" },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" }
+    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" },
+    modifiedBy: { type: DataTypes.UUID, allowNull: true, field: "modified_by" }
   },
   {
     sequelize,
@@ -57,5 +64,10 @@ AnalysisComponent.init(
 
 Analysis.hasMany(AnalysisComponent, { foreignKey: "analysis_id", as: "components" });
 AnalysisComponent.belongsTo(Analysis, { foreignKey: "analysis_id", as: "analysis" });
+
+// ─── Auto-generated associations ───
+AnalysisComponent.belongsTo(Group, { foreignKey: "group_id", targetKey: "id", as: "group" });
+AnalysisComponent.belongsTo(PhraseEntry, { foreignKey: "unit_phrase_id", targetKey: "id", as: "unitPhrase" });
+AnalysisComponent.belongsTo(PhraseEntry, { foreignKey: "component_type_phrase_id", targetKey: "id", as: "componentTypePhrase" });
 
 export default AnalysisComponent;

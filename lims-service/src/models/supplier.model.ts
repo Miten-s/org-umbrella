@@ -1,3 +1,5 @@
+import PhraseEntry from "./phrase-entry.model";
+import Group from "./group.model";
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 
@@ -14,6 +16,7 @@ export interface ISupplier {
   deletedBy?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
+  modifiedBy?: string | null;
 }
 
 export class Supplier extends Model<ISupplier> implements ISupplier {
@@ -27,6 +30,8 @@ export class Supplier extends Model<ISupplier> implements ISupplier {
   public isDeleted!: boolean;
   public deletedAt!: Date | null;
   public deletedBy!: string | null;
+  public modifiedBy!: string | null;
+
 }
 
 Supplier.init(
@@ -38,9 +43,10 @@ Supplier.init(
     ratingPhraseId: { type: DataTypes.UUID, allowNull: true, field: "rating_phrase_id" },
     notes: { type: DataTypes.TEXT, allowNull: true },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
-    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "is_deleted" },
+    isDeleted: {  type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false,  field: "is_deleted" },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" }
+    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" },
+    modifiedBy: { type: DataTypes.UUID, allowNull: true, field: "modified_by" }
   },
   {
     sequelize,
@@ -50,5 +56,9 @@ Supplier.init(
     paranoid: false
   }
 );
+
+// ─── Auto-generated associations ───
+Supplier.belongsTo(Group, { foreignKey: "group_id", targetKey: "id", as: "group" });
+Supplier.belongsTo(PhraseEntry, { foreignKey: "rating_phrase_id", targetKey: "id", as: "ratingPhrase" });
 
 export default Supplier;

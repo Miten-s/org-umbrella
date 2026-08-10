@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import express, { Application } from "express";
 import dotenv from "dotenv";
 import rateLimit from "express-rate-limit";
@@ -27,6 +28,8 @@ app.use(
 
 app.use(cookieParser());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.set("query parser", "extended");
 
 connectDB();
 initKafkaConsumers();

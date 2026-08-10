@@ -1,10 +1,10 @@
-import { IsString, IsNotEmpty, IsOptional, IsUUID, IsInt, IsBoolean, IsNumber, IsDateString } from "class-validator";
+import { IsString, IsNotEmpty, IsOptional, IsUUID, IsInt, IsBoolean, IsNumber, IsDateString, IsArray } from "class-validator";
 
 // Batch DTOs
 export class CreateBatchDto {
   @IsString()
   @IsNotEmpty()
-  batchNumber!: string;
+  batchId!: string;
 
   @IsString()
   @IsOptional()
@@ -13,12 +13,16 @@ export class CreateBatchDto {
   @IsUUID()
   @IsOptional()
   statusPhraseId?: string;
+
+  @IsArray()
+  @IsOptional()
+  attachments?: any[];
 }
 
 export class UpdateBatchDto {
   @IsString()
   @IsOptional()
-  batchNumber?: string;
+  batchId?: string;
 
   @IsString()
   @IsOptional()
@@ -27,6 +31,13 @@ export class UpdateBatchDto {
   @IsUUID()
   @IsOptional()
   statusPhraseId?: string;
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
+
+  @IsArray()
+  @IsOptional()
+  attachments?: any[];
 }
 
 // Lot DTOs
@@ -37,7 +48,7 @@ export class CreateLotDto {
 
   @IsString()
   @IsNotEmpty()
-  lotNumber!: string;
+  lotId!: string;
 
   @IsString()
   @IsOptional()
@@ -46,12 +57,16 @@ export class CreateLotDto {
   @IsUUID()
   @IsOptional()
   statusPhraseId?: string;
+
+  @IsArray()
+  @IsOptional()
+  attachments?: any[];
 }
 
 export class UpdateLotDto {
   @IsString()
   @IsOptional()
-  lotNumber?: string;
+  lotId?: string;
 
   @IsString()
   @IsOptional()
@@ -60,6 +75,13 @@ export class UpdateLotDto {
   @IsUUID()
   @IsOptional()
   statusPhraseId?: string;
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
+
+  @IsArray()
+  @IsOptional()
+  attachments?: any[];
 }
 
 // Sample DTOs
@@ -70,7 +92,7 @@ export class CreateSampleDto {
 
   @IsString()
   @IsNotEmpty()
-  sampleNumber!: string;
+  sampleId!: string;
 
   @IsString()
   @IsOptional()
@@ -87,6 +109,10 @@ export class CreateSampleDto {
   @IsUUID()
   @IsOptional()
   testGroupId?: string;
+
+  @IsArray()
+  @IsOptional()
+  attachments?: any[];
 }
 
 export class UpdateSampleDto {
@@ -101,6 +127,13 @@ export class UpdateSampleDto {
   @IsInt()
   @IsOptional()
   priority?: number;
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
+
+  @IsArray()
+  @IsOptional()
+  attachments?: any[];
 }
 
 // Bulk Login Sample DTO
@@ -135,6 +168,15 @@ export class CreateTestDto {
   @IsUUID()
   @IsOptional()
   instrumentId?: string;
+
+  @IsArray()
+  @IsOptional()
+  attachments?: any[];
+
+  @IsArray()
+  @IsOptional()
+  testWindows?: any[];
+
 }
 
 export class UpdateTestDto {
@@ -145,6 +187,13 @@ export class UpdateTestDto {
   @IsUUID()
   @IsOptional()
   instrumentId?: string;
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
+
+  @IsArray()
+  @IsOptional()
+  attachments?: any[];
 }
 
 // Test Window DTOs
@@ -166,6 +215,9 @@ export class UpdateTestWindowDto {
   @IsUUID()
   @IsOptional()
   statusPhraseId?: string;
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
 }
 
 // Result DTOs
@@ -191,4 +243,8 @@ export class CreateResultDto {
   dateValue?: string;
 }
 
-export class UpdateResultDto extends CreateResultDto {}
+export class UpdateResultDto extends CreateResultDto {
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
+}

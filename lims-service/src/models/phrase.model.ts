@@ -13,19 +13,23 @@ export interface IPhrase {
   deletedBy?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
+  modifiedBy?: string | null;
 }
 
 export class Phrase extends Model<IPhrase> implements IPhrase {
   public id!: string;
-  public name!: string;
+
+public name!: string;
   public description!: string | null;
   public isSystem!: boolean;
   public groupId!: string | null;
   public isDeleted!: boolean;
   public deletedAt!: Date | null;
   public deletedBy!: string | null;
+  public modifiedBy!: string | null;
 
   public readonly entries?: PhraseEntry[];
+
 }
 
 Phrase.init(
@@ -55,12 +59,11 @@ Phrase.init(
       allowNull: true,
       field: "group_id"
     },
-    isDeleted: {
+    isDeleted: { 
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false,
-      field: "is_deleted"
-    },
+       field: "is_deleted" },
     deletedAt: {
       type: DataTypes.DATE,
       allowNull: true,
@@ -70,7 +73,8 @@ Phrase.init(
       type: DataTypes.UUID,
       allowNull: true,
       field: "deleted_by"
-    }
+    },
+    modifiedBy: { type: DataTypes.UUID, allowNull: true, field: "modified_by" }
   },
   {
     sequelize,

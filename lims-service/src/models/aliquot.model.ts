@@ -1,3 +1,4 @@
+import Group from "./group.model";
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 import StockBatch from "./stock-batch.model";
@@ -17,11 +18,13 @@ export interface IAliquot {
   deletedBy?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
+  modifiedBy?: string | null;
 }
 
 export class Aliquot extends Model<IAliquot> implements IAliquot {
   public id!: string;
-  public batchId!: string;
+
+public batchId!: string;
   public aliquotLabel!: string;
   public locationId!: string | null;
   public initialAmount!: number;
@@ -31,6 +34,8 @@ export class Aliquot extends Model<IAliquot> implements IAliquot {
   public isDeleted!: boolean;
   public deletedAt!: Date | null;
   public deletedBy!: string | null;
+  public modifiedBy!: string | null;
+
 }
 
 Aliquot.init(
@@ -43,9 +48,10 @@ Aliquot.init(
     currentAmount: { type: DataTypes.DECIMAL(10, 2), allowNull: false, field: "current_amount" },
     expiryDate: { type: DataTypes.DATE, allowNull: true, field: "expiry_date" },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
-    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "is_deleted" },
+    isDeleted: {  type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false,  field: "is_deleted" },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" }
+    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" },
+    modifiedBy: { type: DataTypes.UUID, allowNull: true, field: "modified_by" }
   },
   {
     sequelize,
@@ -61,5 +67,8 @@ Aliquot.belongsTo(StockBatch, { foreignKey: "batch_id", as: "batch" });
 
 Location.hasMany(Aliquot, { foreignKey: "location_id", as: "aliquots" });
 Aliquot.belongsTo(Location, { foreignKey: "location_id", as: "location" });
+
+// ─── Auto-generated associations ───
+Aliquot.belongsTo(Group, { foreignKey: "group_id", targetKey: "id", as: "group" });
 
 export default Aliquot;

@@ -1,3 +1,6 @@
+import { bulkSoftDelete, bulkDuplicate as duplicateBulk } from "../utils/bulk.util";
+import * as auditService from "./audit.service";
+import { Project } from "../models/project.model";
 import * as repo from "../repo/project.repo";
 import { AppError } from "../types/common.types";
 
@@ -39,4 +42,28 @@ export const deleteProject = async (id: string, deletedBy: string) => {
     throw error;
   }
   await repo.deleteProjectRepo(id, deletedBy);
+};
+
+export const bulkDelete = async (ids: string[], changeReason?: string, userId: string = "system", userName: string = "system") => {
+  return await bulkSoftDelete({ Model: Project, ids, entityName: "PROJECT", deletedBy: userId, deletedByName: userName, changeReason });
+};
+
+export const bulkDuplicate = async (ids: string[], userId: string = "system", userName: string = "system") => {
+  return await duplicateBulk({ Model: Project, ids, labelField: "name", entityName: "PROJECT", createdBy: userId, createdByName: userName });
+};
+
+export const restore = async (id: string, changeReason?: string, userId: string = "system", userName: string = "system") => {
+  const record = await repo.getProjectByIdRepo(id);
+  if (!record) {
+    const error: any = new Error("Record not found");
+    error.statusCode = 404;
+    throw error;
+  }
+  await Project.update({ isDeleted: false }, { where: { id } as any });
+  await auditService.createAuditLog({ entityName: "PROJECT", entityId: id, action: "RESTORE", oldValue: null, newValue: null, changeReason, performedBy: userId, performedByName: userName });
+  return await repo.getProjectByIdRepo(id);
+};
+
+export const getAuditLogs = async (id: string, page: number = 1, limit: number = 20) => {
+  return await auditService.getAuditLogsForEntity("PROJECT", id, page, limit);
 };

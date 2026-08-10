@@ -1,6 +1,13 @@
 import { Request, Response, NextFunction } from "express";
 import { logError } from "../configs/logger.config";
 
+export class AppError extends Error {
+  constructor(public message: string, public statusCode: number = 500) {
+    super(message);
+    this.name = "AppError";
+  }
+}
+
 export const errorHandler = (
   err: any,
   _req: Request,

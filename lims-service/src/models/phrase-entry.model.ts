@@ -11,6 +11,7 @@ export interface IPhraseEntry {
   isDeleted: boolean;
   createdAt?: Date;
   updatedAt?: Date;
+  modifiedBy?: string | null;
 }
 
 export class PhraseEntry extends Model<IPhraseEntry> implements IPhraseEntry {
@@ -57,12 +58,11 @@ PhraseEntry.init(
       defaultValue: false,
       field: "is_system"
     },
-    isDeleted: {
+    isDeleted: { 
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false,
-      field: "is_deleted"
-    }
+       field: "is_deleted" }
   },
   {
     sequelize,

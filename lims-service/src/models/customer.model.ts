@@ -1,3 +1,4 @@
+import Group from "./group.model";
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 import { Project } from "./project.model";
@@ -15,6 +16,7 @@ export interface ICustomer {
   deletedBy?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
+  modifiedBy?: string | null;
 }
 
 export class Customer extends Model<ICustomer> implements ICustomer {
@@ -28,8 +30,10 @@ export class Customer extends Model<ICustomer> implements ICustomer {
   public isDeleted!: boolean;
   public deletedAt!: Date | null;
   public deletedBy!: string | null;
+  public modifiedBy!: string | null;
 
   public readonly projects?: Project[];
+
 }
 
 Customer.init(
@@ -41,9 +45,10 @@ Customer.init(
     address: { type: DataTypes.TEXT, allowNull: true },
     notes: { type: DataTypes.TEXT, allowNull: true },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
-    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "is_deleted" },
+    isDeleted: {  type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false,  field: "is_deleted" },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" }
+    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" },
+    modifiedBy: { type: DataTypes.UUID, allowNull: true, field: "modified_by" }
   },
   {
     sequelize,
@@ -53,5 +58,8 @@ Customer.init(
     paranoid: false
   }
 );
+
+// ─── Auto-generated associations ───
+Customer.belongsTo(Group, { foreignKey: "group_id", targetKey: "id", as: "group" });
 
 export default Customer;

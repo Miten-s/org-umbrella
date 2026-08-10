@@ -1,3 +1,4 @@
+import Group from "./group.model";
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 
@@ -12,6 +13,7 @@ export interface IInspectionPlan {
   deletedBy?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
+  modifiedBy?: string | null;
 }
 
 export class InspectionPlan extends Model<IInspectionPlan> implements IInspectionPlan {
@@ -23,6 +25,8 @@ export class InspectionPlan extends Model<IInspectionPlan> implements IInspectio
   public isDeleted!: boolean;
   public deletedAt!: Date | null;
   public deletedBy!: string | null;
+  public modifiedBy!: string | null;
+
 }
 
 InspectionPlan.init(
@@ -32,9 +36,10 @@ InspectionPlan.init(
     description: { type: DataTypes.TEXT, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
-    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "is_deleted" },
+    isDeleted: {  type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false,  field: "is_deleted" },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" }
+    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" },
+    modifiedBy: { type: DataTypes.UUID, allowNull: true, field: "modified_by" }
   },
   {
     sequelize,
@@ -44,5 +49,8 @@ InspectionPlan.init(
     paranoid: false
   }
 );
+
+// ─── Auto-generated associations ───
+InspectionPlan.belongsTo(Group, { foreignKey: "group_id", targetKey: "id", as: "group" });
 
 export default InspectionPlan;

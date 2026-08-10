@@ -1,3 +1,6 @@
+import { bulkSoftDelete, bulkDuplicate as duplicateBulk } from "../utils/bulk.util";
+import * as auditService from "./audit.service";
+import { Sample } from "../models/sample.model";
 import * as repo from "../repo/sample.repo";
 import * as testRepo from "../repo/test.repo";
 import * as testWindowRepo from "../repo/test-window.repo";
@@ -60,7 +63,7 @@ export const loginSample = async (data: any, userId: string) => {
 export const bulkLoginSamples = async (data: any, userId: string) => {
   // data.sampleNumbers is a space-separated or comma-separated string
   const numbers = data.sampleNumbers.split(/[\s,]+/).filter((n: string) => n.trim() !== "");
-  
+
   const promises = numbers.map((num: string) => {
     const singleData = {
       ...data,
@@ -107,4 +110,28 @@ export const deleteSample = async (id: string, deletedBy: string) => {
     throw error;
   }
   await repo.deleteSampleRepo(id, deletedBy);
+};
+
+export const bulkDelete = async (ids: string[], changeReason?: string, userId: string = "system", userName: string = "system") => {
+  return await bulkSoftDelete({ Model: Sample, ids, entityName: "SAMPLE", deletedBy: userId, deletedByName: userName, changeReason });
+};
+
+export const bulkDuplicate = async (ids: string[], userId: string = "system", userName: string = "system") => {
+  return await duplicateBulk({ Model: Sample, ids, labelField: "sampleId", entityName: "SAMPLE", createdBy: userId, createdByName: userName });
+};
+
+export const restore = async (id: string, changeReason?: string, userId: string = "system", userName: string = "system") => {
+  const record = await repo.getSampleByIdRepo(id);
+  if (!record) {
+    const error: any = new Error("Record not found");
+    error.statusCode = 404;
+    throw error;
+  }
+  await Sample.update({ isDeleted: false }, { where: { id } as any });
+  await auditService.createAuditLog({ entityName: "SAMPLE", entityId: id, action: "RESTORE", oldValue: null, newValue: null, changeReason, performedBy: userId, performedByName: userName });
+  return await repo.getSampleByIdRepo(id);
+};
+
+export const getAuditLogs = async (id: string, page: number = 1, limit: number = 20) => {
+  return await auditService.getAuditLogsForEntity("SAMPLE", id, page, limit);
 };

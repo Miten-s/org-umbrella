@@ -1,3 +1,5 @@
+import PhraseEntry from "./phrase-entry.model";
+import Group from "./group.model";
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 import Instrument from "./instrument.model";
@@ -17,11 +19,13 @@ export interface ICalibration {
   deletedBy?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
+  modifiedBy?: string | null;
 }
 
 export class Calibration extends Model<ICalibration> implements ICalibration {
   public id!: string;
-  public scheduleId!: string | null;
+
+public scheduleId!: string | null;
   public instrumentId!: string;
   public performedBy!: string | null;
   public performedAt!: Date;
@@ -31,6 +35,8 @@ export class Calibration extends Model<ICalibration> implements ICalibration {
   public isDeleted!: boolean;
   public deletedAt!: Date | null;
   public deletedBy!: string | null;
+  public modifiedBy!: string | null;
+
 }
 
 Calibration.init(
@@ -43,9 +49,10 @@ Calibration.init(
     resultPhraseId: { type: DataTypes.UUID, allowNull: false, field: "result_phrase_id" },
     notes: { type: DataTypes.TEXT, allowNull: true },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
-    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "is_deleted" },
+    isDeleted: {  type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false,  field: "is_deleted" },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" }
+    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" },
+    modifiedBy: { type: DataTypes.UUID, allowNull: true, field: "modified_by" }
   },
   {
     sequelize,
@@ -61,5 +68,9 @@ Calibration.belongsTo(Instrument, { foreignKey: "instrument_id", as: "instrument
 
 CalibrationSchedule.hasMany(Calibration, { foreignKey: "schedule_id", as: "calibrations" });
 Calibration.belongsTo(CalibrationSchedule, { foreignKey: "schedule_id", as: "schedule" });
+
+// ─── Auto-generated associations ───
+Calibration.belongsTo(Group, { foreignKey: "group_id", targetKey: "id", as: "group" });
+Calibration.belongsTo(PhraseEntry, { foreignKey: "result_phrase_id", targetKey: "id", as: "resultPhrase" });
 
 export default Calibration;

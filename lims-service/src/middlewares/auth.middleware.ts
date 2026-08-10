@@ -12,7 +12,8 @@ export const authenticate = async (
 
   if (!token) {
     res.status(401).json({ error: "Authentication token not found" });
-    return;
+
+return;
   }
 
   try {

@@ -1,3 +1,5 @@
+import PhraseEntry from "./phrase-entry.model";
+import Group from "./group.model";
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 
@@ -12,6 +14,7 @@ export interface IBatch {
   deletedBy?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
+  modifiedBy?: string | null;
 }
 
 export class Batch extends Model<IBatch> implements IBatch {
@@ -23,6 +26,8 @@ export class Batch extends Model<IBatch> implements IBatch {
   public isDeleted!: boolean;
   public deletedAt!: Date | null;
   public deletedBy!: string | null;
+  public modifiedBy!: string | null;
+
 }
 
 Batch.init(
@@ -32,9 +37,10 @@ Batch.init(
     description: { type: DataTypes.TEXT, allowNull: true },
     statusPhraseId: { type: DataTypes.UUID, allowNull: true, field: "status_phrase_id" },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
-    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "is_deleted" },
+    isDeleted: {  type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false,  field: "is_deleted" },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" }
+    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" },
+    modifiedBy: { type: DataTypes.UUID, allowNull: true, field: "modified_by" }
   },
   {
     sequelize,
@@ -44,5 +50,9 @@ Batch.init(
     paranoid: false
   }
 );
+
+// ─── Auto-generated associations ───
+Batch.belongsTo(Group, { foreignKey: "group_id", targetKey: "id", as: "group" });
+Batch.belongsTo(PhraseEntry, { foreignKey: "status_phrase_id", targetKey: "id", as: "statusPhrase" });
 
 export default Batch;

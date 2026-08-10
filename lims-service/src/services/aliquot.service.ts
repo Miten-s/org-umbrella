@@ -1,3 +1,6 @@
+import { bulkSoftDelete, bulkDuplicate as duplicateBulk } from "../utils/bulk.util";
+import * as auditService from "./audit.service";
+import { Aliquot } from "../models/aliquot.model";
 import * as repo from "../repo/aliquot.repo";
 import { getStockBatchByIdRepo, updateStockBatchRepo } from "../repo/stock-batch.repo";
 import { AppError } from "../types/common.types";
@@ -19,7 +22,7 @@ export const createAliquot = async (data: any) => {
 
   // Transactionally deduct from parent and create aliquot (skipped explicit transaction object for simplicity here, but recommended for prod)
   await updateStockBatchRepo(parentBatch.id, { currentAmount: parentBatch.currentAmount - data.initialAmount });
-  
+
   return await repo.createAliquotRepo(data);
 };
 
@@ -57,4 +60,28 @@ export const deleteAliquot = async (id: string, deletedBy: string) => {
     throw error;
   }
   await repo.deleteAliquotRepo(id, deletedBy);
+};
+
+export const bulkDelete = async (ids: string[], changeReason?: string, userId: string = "system", userName: string = "system") => {
+  return await bulkSoftDelete({ Model: Aliquot, ids, entityName: "ALIQUOT", deletedBy: userId, deletedByName: userName, changeReason });
+};
+
+export const bulkDuplicate = async (ids: string[], userId: string = "system", userName: string = "system") => {
+  return await duplicateBulk({ Model: Aliquot, ids, labelField: "id", entityName: "ALIQUOT", createdBy: userId, createdByName: userName });
+};
+
+export const restore = async (id: string, changeReason?: string, userId: string = "system", userName: string = "system") => {
+  const record = await repo.getAliquotByIdRepo(id);
+  if (!record) {
+    const error: any = new Error("Record not found");
+    error.statusCode = 404;
+    throw error;
+  }
+  await Aliquot.update({ isDeleted: false }, { where: { id } as any });
+  await auditService.createAuditLog({ entityName: "ALIQUOT", entityId: id, action: "RESTORE", oldValue: null, newValue: null, changeReason, performedBy: userId, performedByName: userName });
+  return await repo.getAliquotByIdRepo(id);
+};
+
+export const getAuditLogs = async (id: string, page: number = 1, limit: number = 20) => {
+  return await auditService.getAuditLogsForEntity("ALIQUOT", id, page, limit);
 };

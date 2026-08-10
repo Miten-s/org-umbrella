@@ -16,7 +16,8 @@ export const createAuditLog = async (context: AuditContext): Promise<void> => {
       performedByName: context.performedByName,
       performedAt: new Date()
     });
-  } catch (error) {
+
+} catch (error) {
     logError("Failed to write audit log", { context, error }, "createAuditLog", "audit.service.ts");
   }
 };

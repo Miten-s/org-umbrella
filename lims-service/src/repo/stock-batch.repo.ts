@@ -1,9 +1,12 @@
+import { formatLimsEntity } from "../utils/format.util";
+import { getSafeFilters } from "../utils/query.util";
+import Group from "../models/group.model";
 import StockBatch from "../models/stock-batch.model";
 import Stock from "../models/stock.model";
 import { Transaction } from "sequelize";
 
 export const createStockBatchRepo = async (data: any, transaction?: Transaction) => {
-  return await StockBatch.create(data, { transaction });
+  return formatLimsEntity(await StockBatch.create(data, { transaction }));
 };
 
 export const updateStockBatchRepo = async (id: string, data: any, transaction?: Transaction) => {
@@ -11,22 +14,26 @@ export const updateStockBatchRepo = async (id: string, data: any, transaction?: 
   return await getStockBatchByIdRepo(id, transaction);
 };
 
-export const getStockBatchByIdRepo = async (id: string, transaction?: Transaction) => {
-  return await StockBatch.findOne({ 
+export const getStockBatchByIdRepo = async (id: string, transaction?: Transaction, includeRemoved = false) => {
+  return formatLimsEntity(await StockBatch.findOne({ 
     where: { id, isDeleted: false }, 
-    include: [{ model: Stock, as: "stock" }],
+    include: [
+      { model: Group, as: "group", attributes: ["id", "name"] },
+      { model: Stock, as: "stock" }],
     transaction 
-  });
+  }));
 };
 
-export const getAllStockBatchesRepo = async (skip: number, limit: number, filters: any = {}) => {
-  return await StockBatch.findAndCountAll({
-    where: { isDeleted: false, ...filters },
-    include: [{ model: Stock, as: "stock" }],
+export const getAllStockBatchesRepo = async (skip: number, limit: number, filters: any = {}, includeRemoved = false, sortBy = "createdAt", sortDir: "ASC" | "DESC" = "DESC") => {
+  return formatLimsEntity(await StockBatch.findAndCountAll({
+    where: { ...(includeRemoved ? {} : { isDeleted: false }), ...getSafeFilters(StockBatch, filters) },
+    include: [
+      { model: Group, as: "group", attributes: ["id", "name"] },
+      { model: Stock, as: "stock" }],
     offset: skip,
     limit,
     order: [["receivedDate", "DESC"]]
-  });
+  }));
 };
 
 export const deleteStockBatchRepo = async (id: string, deletedBy: string, transaction?: Transaction) => {

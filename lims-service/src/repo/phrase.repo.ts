@@ -1,3 +1,5 @@
+import { formatLimsEntity } from "../utils/format.util";
+import { getSafeFilters } from "../utils/query.util";
 import Phrase from "../models/phrase.model";
 import PhraseEntry from "../models/phrase-entry.model";
 import { sequelize } from "../configs/db.sequelize";
@@ -10,7 +12,7 @@ export const createPhraseRepo = async (
 ) => {
   const execute = async (t: Transaction) => {
     const phrase = await Phrase.create(phraseData, { transaction: t });
-    
+
     if (entriesData && entriesData.length > 0) {
       const mappedEntries = entriesData.map((entry) => ({
         ...entry,
@@ -64,8 +66,8 @@ export const updatePhraseRepo = async (
   return sequelize.transaction(execute);
 };
 
-export const getPhraseByIdRepo = async (id: string, transaction?: Transaction) => {
-  return await Phrase.findOne({
+export const getPhraseByIdRepo = async (id: string, transaction?: Transaction, includeRemoved = false) => {
+  return formatLimsEntity(await Phrase.findOne({
     where: { id, isDeleted: false },
     include: [
       {
@@ -77,11 +79,11 @@ export const getPhraseByIdRepo = async (id: string, transaction?: Transaction) =
     ],
     order: [[{ model: PhraseEntry, as: "entries" }, "sortOrder", "ASC"]],
     transaction
-  });
+  }));
 };
 
 export const getPhraseByNameRepo = async (name: string, transaction?: Transaction) => {
-  return await Phrase.findOne({
+  return formatLimsEntity(await Phrase.findOne({
     where: { name, isDeleted: false },
     include: [
       {
@@ -93,13 +95,13 @@ export const getPhraseByNameRepo = async (name: string, transaction?: Transactio
     ],
     order: [[{ model: PhraseEntry, as: "entries" }, "sortOrder", "ASC"]],
     transaction
-  });
+  }));
 };
 
-export const getAllPhrasesRepo = async (skip: number, limit: number, filters: any = {}) => {
+export const getAllPhrasesRepo = async (skip: number, limit: number, filters: any = {}, includeRemoved = false, sortBy = "createdAt", sortDir: "ASC" | "DESC" = "DESC") => {
   const where: any = { isDeleted: false, ...filters };
-  
-  return await Phrase.findAndCountAll({
+
+  return formatLimsEntity(await Phrase.findAndCountAll({
     where,
     offset: skip,
     limit,
@@ -112,7 +114,7 @@ export const getAllPhrasesRepo = async (skip: number, limit: number, filters: an
         required: false
       }
     ]
-  });
+  }));
 };
 
 export const deletePhraseRepo = async (

@@ -39,6 +39,10 @@ export const up = async (queryInterface: QueryInterface): Promise<void> => {
       type: DataTypes.UUID,
       allowNull: true
     },
+    modified_by: {
+      type: DataTypes.UUID,
+      allowNull: true
+    },
     created_at: {
       type: DataTypes.DATE,
       allowNull: false

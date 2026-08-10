@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsUUID, IsInt, IsDateString } from "class-validator";
+import { IsString, IsNotEmpty, IsOptional, IsUUID, IsInt, IsDateString, IsArray } from "class-validator";
 
 // Instrument DTOs
 export class CreateInstrumentDto {
@@ -8,7 +8,7 @@ export class CreateInstrumentDto {
 
   @IsString()
   @IsOptional()
-  description?: string;
+  type?: string;
 
   @IsUUID()
   @IsOptional()
@@ -25,9 +25,21 @@ export class CreateInstrumentDto {
   @IsUUID()
   @IsOptional()
   statusPhraseId?: string;
+
+  @IsString()
+  @IsOptional()
+  status?: string;
+
+  @IsArray()
+  @IsOptional()
+  attachments?: any[];
 }
 
-export class UpdateInstrumentDto extends CreateInstrumentDto {}
+export class UpdateInstrumentDto extends CreateInstrumentDto {
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
+}
 
 // Instrument Part DTOs
 export class CreateInstrumentPartDto {
@@ -41,7 +53,7 @@ export class CreateInstrumentPartDto {
 
   @IsString()
   @IsOptional()
-  partNumber?: string;
+  partId?: string;
 
   @IsDateString()
   @IsOptional()
@@ -50,6 +62,14 @@ export class CreateInstrumentPartDto {
   @IsInt()
   @IsOptional()
   expectedLifetimeDays?: number;
+
+  @IsString()
+  @IsOptional()
+  status?: string;
+
+  @IsArray()
+  @IsOptional()
+  attachments?: any[];
 }
 
 export class UpdateInstrumentPartDto {
@@ -59,7 +79,7 @@ export class UpdateInstrumentPartDto {
 
   @IsString()
   @IsOptional()
-  partNumber?: string;
+  partId?: string;
 
   @IsDateString()
   @IsOptional()
@@ -68,6 +88,17 @@ export class UpdateInstrumentPartDto {
   @IsInt()
   @IsOptional()
   expectedLifetimeDays?: number;
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
+
+  @IsString()
+  @IsOptional()
+  status?: string;
+
+  @IsArray()
+  @IsOptional()
+  attachments?: any[];
 }
 
 // Calibration Schedule DTOs
@@ -101,6 +132,9 @@ export class UpdateCalibrationScheduleDto {
   @IsDateString()
   @IsOptional()
   nextDueDate?: string;
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
 }
 
 // Calibration DTOs
@@ -128,6 +162,15 @@ export class CreateCalibrationDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @IsString()
+  @IsOptional()
+  status?: string;
+
+  @IsArray()
+  @IsOptional()
+  calibrationSchedules?: any[];
+
 }
 
 export class UpdateCalibrationDto {
@@ -146,6 +189,13 @@ export class UpdateCalibrationDto {
   @IsString()
   @IsOptional()
   notes?: string;
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
+
+  @IsString()
+  @IsOptional()
+  status?: string;
 }
 
 // Inspection Plan DTOs
@@ -161,9 +211,18 @@ export class CreateInspectionPlanDto {
   @IsInt()
   @IsOptional()
   version?: number;
+
+  @IsArray()
+  @IsOptional()
+  inspectionPersonnel?: any[];
+
 }
 
-export class UpdateInspectionPlanDto extends CreateInspectionPlanDto {}
+export class UpdateInspectionPlanDto extends CreateInspectionPlanDto {
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
+}
 
 // Inspection Personnel DTOs
 export class CreateInspectionPersonnelDto {
@@ -204,4 +263,7 @@ export class UpdateInspectionPersonnelDto {
   @IsString()
   @IsOptional()
   stepDescription?: string;
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
 }

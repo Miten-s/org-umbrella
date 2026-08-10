@@ -1,3 +1,4 @@
+import Group from "./group.model";
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 import InspectionPlan from "./inspection-plan.model";
@@ -15,11 +16,13 @@ export interface IInspectionPersonnel {
   deletedBy?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
+  modifiedBy?: string | null;
 }
 
 export class InspectionPersonnel extends Model<IInspectionPersonnel> implements IInspectionPersonnel {
   public id!: string;
-  public planId!: string;
+
+public planId!: string;
   public stepOrder!: number;
   public roleId!: string | null;
   public userId!: string | null;
@@ -28,6 +31,8 @@ export class InspectionPersonnel extends Model<IInspectionPersonnel> implements 
   public isDeleted!: boolean;
   public deletedAt!: Date | null;
   public deletedBy!: string | null;
+  public modifiedBy!: string | null;
+
 }
 
 InspectionPersonnel.init(
@@ -39,9 +44,10 @@ InspectionPersonnel.init(
     userId: { type: DataTypes.UUID, allowNull: true, field: "user_id" },
     stepDescription: { type: DataTypes.STRING(255), allowNull: true, field: "step_description" },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
-    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "is_deleted" },
+    isDeleted: {  type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false,  field: "is_deleted" },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" }
+    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" },
+    modifiedBy: { type: DataTypes.UUID, allowNull: true, field: "modified_by" }
   },
   {
     sequelize,
@@ -54,5 +60,8 @@ InspectionPersonnel.init(
 
 InspectionPlan.hasMany(InspectionPersonnel, { foreignKey: "plan_id", as: "personnelSteps" });
 InspectionPersonnel.belongsTo(InspectionPlan, { foreignKey: "plan_id", as: "plan" });
+
+// ─── Auto-generated associations ───
+InspectionPersonnel.belongsTo(Group, { foreignKey: "group_id", targetKey: "id", as: "group" });
 
 export default InspectionPersonnel;

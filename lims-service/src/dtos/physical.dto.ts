@@ -1,10 +1,10 @@
-import { IsString, IsNotEmpty, IsOptional, IsUUID, IsNumber, IsDateString } from "class-validator";
+import { IsString, IsNotEmpty, IsOptional, IsUUID, IsNumber, IsDateString, IsArray } from "class-validator";
 
 // Location DTOs
 export class CreateLocationDto {
   @IsString()
   @IsNotEmpty()
-  name!: string;
+  locationName!: string;
 
   @IsUUID()
   @IsOptional()
@@ -17,9 +17,21 @@ export class CreateLocationDto {
   @IsString()
   @IsOptional()
   description?: string;
+
+  @IsString()
+  @IsOptional()
+  status?: string;
+
+  @IsArray()
+  @IsOptional()
+  attachments?: any[];
 }
 
-export class UpdateLocationDto extends CreateLocationDto {}
+export class UpdateLocationDto extends CreateLocationDto {
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
+}
 
 // Stock Parameter DTOs
 export class CreateStockParameterDto {
@@ -36,13 +48,17 @@ export class CreateStockParameterDto {
   description?: string;
 }
 
-export class UpdateStockParameterDto extends CreateStockParameterDto {}
+export class UpdateStockParameterDto extends CreateStockParameterDto {
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
+}
 
 // Stock DTOs
 export class CreateStockDto {
   @IsString()
   @IsNotEmpty()
-  name!: string;
+  stockName!: string;
 
   @IsString()
   @IsOptional()
@@ -59,9 +75,22 @@ export class CreateStockDto {
   @IsUUID()
   @IsOptional()
   unitPhraseId?: string;
+
+  @IsArray()
+  @IsOptional()
+  attachments?: any[];
+
+  @IsArray()
+  @IsOptional()
+  stockParameters?: any[];
+
 }
 
-export class UpdateStockDto extends CreateStockDto {}
+export class UpdateStockDto extends CreateStockDto {
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
+}
 
 // Stock Batch DTOs
 export class CreateStockBatchDto {
@@ -96,6 +125,14 @@ export class CreateStockBatchDto {
   @IsDateString()
   @IsOptional()
   receivedDate?: string;
+
+  @IsString()
+  @IsOptional()
+  status?: string;
+
+  @IsArray()
+  @IsOptional()
+  attachments?: any[];
 }
 
 export class UpdateStockBatchDto {
@@ -118,6 +155,17 @@ export class UpdateStockBatchDto {
   @IsDateString()
   @IsOptional()
   expiryDate?: string;
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
+
+  @IsString()
+  @IsOptional()
+  status?: string;
+
+  @IsArray()
+  @IsOptional()
+  attachments?: any[];
 }
 
 // Aliquot DTOs
@@ -163,4 +211,7 @@ export class UpdateAliquotDto {
   @IsDateString()
   @IsOptional()
   expiryDate?: string;
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
 }

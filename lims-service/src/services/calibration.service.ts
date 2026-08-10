@@ -1,3 +1,8 @@
+import * as childRepo from "../repo/calibration-schedule.repo";
+import { sequelize } from "../configs/db.sequelize";
+import { bulkSoftDelete, bulkDuplicate as duplicateBulk } from "../utils/bulk.util";
+import * as auditService from "./audit.service";
+import { Calibration } from "../models/calibration.model";
 import * as repo from "../repo/calibration.repo";
 import { AppError } from "../types/common.types";
 
@@ -24,14 +29,14 @@ export const createCalibration = async (data: any) => {
   return calibration;
 };
 
-export const updateCalibration = async (id: string, data: any) => {
+export const updateCalibration = async (id: string, data: any, userId: string = "system") => {
   const existing = await repo.getCalibrationByIdRepo(id);
   if (!existing) {
     const error: AppError = new Error("Calibration not found");
     error.statusCode = 404;
     throw error;
   }
-  
+
   const updated = await repo.updateCalibrationRepo(id, data);
 
   if (data.notes && data.notes.toLowerCase().includes("failed")) {
@@ -70,4 +75,28 @@ export const deleteCalibration = async (id: string, deletedBy: string) => {
     throw error;
   }
   await repo.deleteCalibrationRepo(id, deletedBy);
+};
+
+export const bulkDelete = async (ids: string[], changeReason?: string, userId: string = "system", userName: string = "system") => {
+  return await bulkSoftDelete({ Model: Calibration, ids, entityName: "CALIBRATION", deletedBy: userId, deletedByName: userName, changeReason });
+};
+
+export const bulkDuplicate = async (ids: string[], userId: string = "system", userName: string = "system") => {
+  return await duplicateBulk({ Model: Calibration, ids, labelField: "id", entityName: "CALIBRATION", createdBy: userId, createdByName: userName });
+};
+
+export const restore = async (id: string, changeReason?: string, userId: string = "system", userName: string = "system") => {
+  const record = await repo.getCalibrationByIdRepo(id);
+  if (!record) {
+    const error: any = new Error("Record not found");
+    error.statusCode = 404;
+    throw error;
+  }
+  await Calibration.update({ isDeleted: false }, { where: { id } as any });
+  await auditService.createAuditLog({ entityName: "CALIBRATION", entityId: id, action: "RESTORE", oldValue: null, newValue: null, changeReason, performedBy: userId, performedByName: userName });
+  return await repo.getCalibrationByIdRepo(id);
+};
+
+export const getAuditLogs = async (id: string, page: number = 1, limit: number = 20) => {
+  return await auditService.getAuditLogsForEntity("CALIBRATION", id, page, limit);
 };

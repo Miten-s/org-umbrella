@@ -1,3 +1,5 @@
+import Group from "./group.model";
+import PhraseEntry from "./phrase-entry.model";
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 import Lot from "./lot.model";
@@ -19,11 +21,13 @@ export interface ISample {
   deletedBy?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
+  modifiedBy?: string | null;
 }
 
 export class Sample extends Model<ISample> implements ISample {
   public id!: string;
-  public lotId!: string | null;
+
+public lotId!: string | null;
   public sampleNumber!: string;
   public description!: string | null;
   public statusPhraseId!: string | null;
@@ -35,6 +39,8 @@ export class Sample extends Model<ISample> implements ISample {
   public isDeleted!: boolean;
   public deletedAt!: Date | null;
   public deletedBy!: string | null;
+  public modifiedBy!: string | null;
+
 }
 
 Sample.init(
@@ -49,9 +55,10 @@ Sample.init(
     priority: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 },
     testGroupId: { type: DataTypes.UUID, allowNull: true, field: "test_group_id" },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
-    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "is_deleted" },
+    isDeleted: {  type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false,  field: "is_deleted" },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" }
+    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" },
+    modifiedBy: { type: DataTypes.UUID, allowNull: true, field: "modified_by" }
   },
   {
     sequelize,
@@ -67,5 +74,9 @@ Sample.belongsTo(Lot, { foreignKey: "lot_id", as: "lot" });
 
 TestGroup.hasMany(Sample, { foreignKey: "test_group_id", as: "samples" });
 Sample.belongsTo(TestGroup, { foreignKey: "test_group_id", as: "testGroup" });
+
+// ─── Auto-generated associations ───
+Sample.belongsTo(Group, { foreignKey: "group_id", targetKey: "id", as: "group" });
+Sample.belongsTo(PhraseEntry, { foreignKey: "status_phrase_id", targetKey: "id", as: "statusPhrase" });
 
 export default Sample;

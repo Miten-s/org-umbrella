@@ -1,14 +1,14 @@
-import { IsString, IsNotEmpty, IsOptional, IsUUID, IsDateString } from "class-validator";
+import { IsString, IsNotEmpty, IsOptional, IsUUID, IsDateString, IsArray } from "class-validator";
 
 // Customer DTOs
 export class CreateCustomerDto {
   @IsString()
   @IsNotEmpty()
-  name!: string;
+  customerName!: string;
 
   @IsString()
   @IsOptional()
-  contactEmail?: string;
+  email?: string;
 
   @IsString()
   @IsOptional()
@@ -20,20 +20,28 @@ export class CreateCustomerDto {
 
   @IsString()
   @IsOptional()
-  notes?: string;
+  description?: string;
+
+  @IsArray()
+  @IsOptional()
+  attachments?: any[];
 }
 
-export class UpdateCustomerDto extends CreateCustomerDto {}
+export class UpdateCustomerDto extends CreateCustomerDto {
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
+}
 
 // Supplier DTOs
 export class CreateSupplierDto {
   @IsString()
   @IsNotEmpty()
-  name!: string;
+  supplierName!: string;
 
   @IsString()
   @IsOptional()
-  contactEmail?: string;
+  email?: string;
 
   @IsString()
   @IsOptional()
@@ -45,20 +53,28 @@ export class CreateSupplierDto {
 
   @IsString()
   @IsOptional()
-  notes?: string;
+  description?: string;
+
+  @IsArray()
+  @IsOptional()
+  attachments?: any[];
 }
 
-export class UpdateSupplierDto extends CreateSupplierDto {}
+export class UpdateSupplierDto extends CreateSupplierDto {
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
+}
 
 // Project DTOs
 export class CreateProjectDto {
   @IsString()
   @IsNotEmpty()
-  name!: string;
+  projectId!: string;
 
   @IsString()
   @IsOptional()
-  description?: string;
+  details?: string;
 
   @IsUUID()
   @IsOptional()
@@ -79,9 +95,17 @@ export class CreateProjectDto {
   @IsUUID()
   @IsOptional()
   statusPhraseId?: string;
+
+  @IsArray()
+  @IsOptional()
+  attachments?: any[];
 }
 
-export class UpdateProjectDto extends CreateProjectDto {}
+export class UpdateProjectDto extends CreateProjectDto {
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
+}
 
 // Study DTOs
 export class CreateStudyDto {
@@ -95,7 +119,7 @@ export class CreateStudyDto {
 
   @IsString()
   @IsOptional()
-  description?: string;
+  details?: string;
 
   @IsUUID()
   @IsOptional()
@@ -104,6 +128,10 @@ export class CreateStudyDto {
   @IsUUID()
   @IsOptional()
   statusPhraseId?: string;
+
+  @IsArray()
+  @IsOptional()
+  attachments?: any[];
 }
 
 export class UpdateStudyDto {
@@ -113,7 +141,7 @@ export class UpdateStudyDto {
 
   @IsString()
   @IsOptional()
-  description?: string;
+  details?: string;
 
   @IsUUID()
   @IsOptional()
@@ -122,4 +150,11 @@ export class UpdateStudyDto {
   @IsUUID()
   @IsOptional()
   statusPhraseId?: string;
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
+
+  @IsArray()
+  @IsOptional()
+  attachments?: any[];
 }

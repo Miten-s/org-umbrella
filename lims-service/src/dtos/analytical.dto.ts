@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsUUID, IsInt, IsBoolean, IsNumber } from "class-validator";
+import { IsString, IsNotEmpty, IsOptional, IsUUID, IsInt, IsBoolean, IsNumber, IsArray } from "class-validator";
 
 // Analysis DTOs
 export class CreateAnalysisDto {
@@ -25,9 +25,18 @@ export class CreateAnalysisDto {
   @IsUUID()
   @IsOptional()
   inspectionPlanId?: string;
+
+  @IsArray()
+  @IsOptional()
+  components?: any[];
+
 }
 
-export class UpdateAnalysisDto extends CreateAnalysisDto {}
+export class UpdateAnalysisDto extends CreateAnalysisDto {
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
+}
 
 // Analysis Component DTOs
 export class CreateAnalysisComponentDto {
@@ -76,6 +85,9 @@ export class UpdateAnalysisComponentDto {
   @IsBoolean()
   @IsOptional()
   isRequired?: boolean;
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
 }
 
 // Test Group DTOs
@@ -87,9 +99,18 @@ export class CreateTestGroupDto {
   @IsString()
   @IsOptional()
   description?: string;
+
+  @IsArray()
+  @IsOptional()
+  testGroupItems?: any[];
+
 }
 
-export class UpdateTestGroupDto extends CreateTestGroupDto {}
+export class UpdateTestGroupDto extends CreateTestGroupDto {
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
+}
 
 // Test Group Item DTOs
 export class CreateTestGroupItemDto {
@@ -114,6 +135,9 @@ export class UpdateTestGroupItemDto {
   @IsInt()
   @IsOptional()
   sortOrder?: number;
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
 }
 
 // Specification DTOs
@@ -133,9 +157,22 @@ export class CreateSpecificationDto {
   @IsUUID()
   @IsOptional()
   statusPhraseId?: string;
+
+  @IsArray()
+  @IsOptional()
+  attachments?: any[];
+
+  @IsArray()
+  @IsOptional()
+  specLimits?: any[];
+
 }
 
-export class UpdateSpecificationDto extends CreateSpecificationDto {}
+export class UpdateSpecificationDto extends CreateSpecificationDto {
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
+}
 
 // Spec Limit DTOs
 export class CreateSpecLimitDto {
@@ -180,4 +217,7 @@ export class UpdateSpecLimitDto {
   @IsBoolean()
   @IsOptional()
   targetBoolean?: boolean;
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
 }

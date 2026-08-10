@@ -49,4 +49,7 @@ export class UpdatePhraseDto {
   @Type(() => PhraseEntryDto)
   @IsOptional()
   entries?: PhraseEntryDto[];
+  @IsString()
+  @IsOptional()
+  changeReason?: string;
 }

@@ -2,6 +2,10 @@ import { Router } from "express";
 import { authenticate } from "../middlewares/auth.middleware";
 import auditRoutes from "./audit.routes";
 import phraseRoutes from "./phrase.routes";
+import groupRoutes from "./group.routes";
+import roleRoutes from "./role.routes";
+import limsUserRoutes from "./lims-user.routes";
+import schedulerRoutes from "./scheduler.routes";
 import customerRoutes from "./customer.routes";
 import supplierRoutes from "./supplier.routes";
 import projectRoutes from "./project.routes";
@@ -33,11 +37,14 @@ import API_ROUTES from "../utils/routes";
 
 const commonRouter: Router = Router();
 
-// LIMS Users - skip auth to allow syncing from backend (if needed later)
-// commonRouter.use(API_ROUTES.LIMS_USERS, limsUserRouter);
-
-// All other routes require authentication
+// All routes require authentication
 commonRouter.use(authenticate);
+
+// Access Management
+commonRouter.use(API_ROUTES.GROUPS, groupRoutes);
+commonRouter.use(API_ROUTES.ROLES, roleRoutes);
+commonRouter.use(API_ROUTES.LIMS_USERS, limsUserRoutes);
+commonRouter.use(API_ROUTES.SCHEDULERS, schedulerRoutes);
 
 // Feature Routes
 commonRouter.use(API_ROUTES.PHRASES, phraseRoutes);

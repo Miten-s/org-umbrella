@@ -1,3 +1,5 @@
+import { formatLimsEntity } from "../utils/format.util";
+import { getSafeFilters } from "../utils/query.util";
 import AuditLog, { AuditAction } from "../models/audit-log.model";
 
 export const createAuditLogRepo = async (data: {
@@ -11,7 +13,7 @@ export const createAuditLogRepo = async (data: {
   performedByName: string;
   performedAt: Date;
 }) => {
-  return await AuditLog.create(data);
+  return formatLimsEntity(await AuditLog.create(data));
 };
 
 export const getAuditLogsForEntityRepo = async (
@@ -20,12 +22,12 @@ export const getAuditLogsForEntityRepo = async (
   skip: number,
   limit: number
 ) => {
-  return await AuditLog.findAndCountAll({
+  return formatLimsEntity(await AuditLog.findAndCountAll({
     where: { entityName, entityId },
     order: [["performed_at", "DESC"]],
     offset: skip,
     limit
-  });
+  }));
 };
 
 export const getAllAuditLogsRepo = async (
@@ -33,10 +35,10 @@ export const getAllAuditLogsRepo = async (
   limit: number,
   whereFilters: any
 ) => {
-  return await AuditLog.findAndCountAll({
+  return formatLimsEntity(await AuditLog.findAndCountAll({
     where: whereFilters,
     order: [["performed_at", "DESC"]],
     offset: skip,
     limit
-  });
+  }));
 };

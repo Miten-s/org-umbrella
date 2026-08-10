@@ -1,3 +1,4 @@
+import { BulkOperationDto, RestoreOperationDto } from "../dtos/common.dto";
 import { Request, Response } from "express";
 import asyncHandler from "../middlewares/error.middleware";
 import * as instrumentPartService from "../services/instrument-part.service";
@@ -35,4 +36,37 @@ export const deleteInstrumentPart = asyncHandler(async (req: Request, res: Respo
   const userId = req.user?.id || "system";
   await instrumentPartService.deleteInstrumentPart(id, userId);
   res.status(200).json({ message: getMessage(CUSTOM_MESSAGES.ENTITY_DELETED, "Instrument Part") });
+});
+
+export const bulkDelete = asyncHandler(async (req: Request, res: Response) => {
+  const { ids, changeReason } = req.body as BulkOperationDto;
+  const userId = String(req.user?.id || "system");
+  const userName = String(req.user?.fullName || "system");
+  const count = await instrumentPartService.bulkDelete(ids, changeReason, userId, userName);
+  res.status(200).json({ message: `${count} record(s) removed`, count });
+});
+
+export const bulkDuplicate = asyncHandler(async (req: Request, res: Response) => {
+  const { ids } = req.body as BulkOperationDto;
+  const userId = String(req.user?.id || "system");
+  const userName = String(req.user?.fullName || "system");
+  const count = await instrumentPartService.bulkDuplicate(ids, userId, userName);
+  res.status(200).json({ message: `${count} record(s) duplicated`, count });
+});
+
+export const restore = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params as { id: string };
+  const { changeReason } = req.body as RestoreOperationDto;
+  const userId = String(req.user?.id || "system");
+  const userName = String(req.user?.fullName || "system");
+  const restored = await instrumentPartService.restore(id, changeReason, userId, userName);
+  res.status(200).json({ message: "Record restored", data: restored });
+});
+
+export const getAuditLogs = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params as { id: string };
+  const page = Number(req.query["page"] || 1);
+  const limit = Number(req.query["limit"] || 20);
+  const result = await instrumentPartService.getAuditLogs(id, page, limit);
+  res.status(200).json({ audit: result.logs, total: result.total });
 });

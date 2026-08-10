@@ -1,3 +1,6 @@
+import { bulkSoftDelete, bulkDuplicate as duplicateBulk } from "../utils/bulk.util";
+import * as auditService from "./audit.service";
+import { StockParameter } from "../models/stock-parameter.model";
 import * as repo from "../repo/stock-parameter.repo";
 import { AppError } from "../types/common.types";
 
@@ -39,4 +42,28 @@ export const deleteStockParameter = async (id: string, deletedBy: string) => {
     throw error;
   }
   await repo.deleteStockParameterRepo(id, deletedBy);
+};
+
+export const bulkDelete = async (ids: string[], changeReason?: string, userId: string = "system", userName: string = "system") => {
+  return await bulkSoftDelete({ Model: StockParameter, ids, entityName: "STOCK_PARAMETER", deletedBy: userId, deletedByName: userName, changeReason });
+};
+
+export const bulkDuplicate = async (ids: string[], userId: string = "system", userName: string = "system") => {
+  return await duplicateBulk({ Model: StockParameter, ids, labelField: "id", entityName: "STOCK_PARAMETER", createdBy: userId, createdByName: userName });
+};
+
+export const restore = async (id: string, changeReason?: string, userId: string = "system", userName: string = "system") => {
+  const record = await repo.getStockParameterByIdRepo(id);
+  if (!record) {
+    const error: any = new Error("Record not found");
+    error.statusCode = 404;
+    throw error;
+  }
+  await StockParameter.update({ isDeleted: false }, { where: { id } as any });
+  await auditService.createAuditLog({ entityName: "STOCK_PARAMETER", entityId: id, action: "RESTORE", oldValue: null, newValue: null, changeReason, performedBy: userId, performedByName: userName });
+  return await repo.getStockParameterByIdRepo(id);
+};
+
+export const getAuditLogs = async (id: string, page: number = 1, limit: number = 20) => {
+  return await auditService.getAuditLogsForEntity("STOCK_PARAMETER", id, page, limit);
 };

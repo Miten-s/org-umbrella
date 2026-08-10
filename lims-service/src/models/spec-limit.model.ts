@@ -1,3 +1,4 @@
+import Group from "./group.model";
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 import Specification from "./specification.model";
@@ -17,11 +18,13 @@ export interface ISpecLimit {
   deletedBy?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
+  modifiedBy?: string | null;
 }
 
 export class SpecLimit extends Model<ISpecLimit> implements ISpecLimit {
   public id!: string;
-  public specificationId!: string;
+
+public specificationId!: string;
   public analysisComponentId!: string;
   public minValue!: number | null;
   public maxValue!: number | null;
@@ -31,6 +34,8 @@ export class SpecLimit extends Model<ISpecLimit> implements ISpecLimit {
   public isDeleted!: boolean;
   public deletedAt!: Date | null;
   public deletedBy!: string | null;
+  public modifiedBy!: string | null;
+
 }
 
 SpecLimit.init(
@@ -43,9 +48,10 @@ SpecLimit.init(
     targetText: { type: DataTypes.STRING(255), allowNull: true, field: "target_text" },
     targetBoolean: { type: DataTypes.BOOLEAN, allowNull: true, field: "target_boolean" },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
-    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "is_deleted" },
+    isDeleted: {  type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false,  field: "is_deleted" },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" }
+    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" },
+    modifiedBy: { type: DataTypes.UUID, allowNull: true, field: "modified_by" }
   },
   {
     sequelize,
@@ -61,5 +67,8 @@ SpecLimit.belongsTo(Specification, { foreignKey: "specification_id", as: "specif
 
 AnalysisComponent.hasMany(SpecLimit, { foreignKey: "analysis_component_id", as: "specLimits" });
 SpecLimit.belongsTo(AnalysisComponent, { foreignKey: "analysis_component_id", as: "analysisComponent" });
+
+// ─── Auto-generated associations ───
+SpecLimit.belongsTo(Group, { foreignKey: "group_id", targetKey: "id", as: "group" });
 
 export default SpecLimit;

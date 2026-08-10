@@ -1,3 +1,5 @@
+import PhraseEntry from "./phrase-entry.model";
+import Group from "./group.model";
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 
@@ -13,6 +15,7 @@ export interface ISpecification {
   deletedBy?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
+  modifiedBy?: string | null;
 }
 
 export class Specification extends Model<ISpecification> implements ISpecification {
@@ -25,6 +28,8 @@ export class Specification extends Model<ISpecification> implements ISpecificati
   public isDeleted!: boolean;
   public deletedAt!: Date | null;
   public deletedBy!: string | null;
+  public modifiedBy!: string | null;
+
 }
 
 Specification.init(
@@ -35,9 +40,10 @@ Specification.init(
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 },
     statusPhraseId: { type: DataTypes.UUID, allowNull: true, field: "status_phrase_id" },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
-    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "is_deleted" },
+    isDeleted: {  type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false,  field: "is_deleted" },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" }
+    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" },
+    modifiedBy: { type: DataTypes.UUID, allowNull: true, field: "modified_by" }
   },
   {
     sequelize,
@@ -47,5 +53,9 @@ Specification.init(
     paranoid: false
   }
 );
+
+// ─── Auto-generated associations ───
+Specification.belongsTo(Group, { foreignKey: "group_id", targetKey: "id", as: "group" });
+Specification.belongsTo(PhraseEntry, { foreignKey: "status_phrase_id", targetKey: "id", as: "statusPhrase" });
 
 export default Specification;

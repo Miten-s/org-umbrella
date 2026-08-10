@@ -1,3 +1,5 @@
+import PhraseEntry from "./phrase-entry.model";
+import Group from "./group.model";
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 import Sample from "./sample.model";
@@ -16,11 +18,13 @@ export interface ITest {
   deletedBy?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
+  modifiedBy?: string | null;
 }
 
 export class Test extends Model<ITest> implements ITest {
   public id!: string;
-  public sampleId!: string;
+
+public sampleId!: string;
   public analysisId!: string;
   public statusPhraseId!: string | null;
   public instrumentId!: string | null;
@@ -28,6 +32,8 @@ export class Test extends Model<ITest> implements ITest {
   public isDeleted!: boolean;
   public deletedAt!: Date | null;
   public deletedBy!: string | null;
+  public modifiedBy!: string | null;
+
 }
 
 Test.init(
@@ -38,9 +44,10 @@ Test.init(
     statusPhraseId: { type: DataTypes.UUID, allowNull: true, field: "status_phrase_id" },
     instrumentId: { type: DataTypes.UUID, allowNull: true, field: "instrument_id" },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
-    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "is_deleted" },
+    isDeleted: {  type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false,  field: "is_deleted" },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" }
+    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" },
+    modifiedBy: { type: DataTypes.UUID, allowNull: true, field: "modified_by" }
   },
   {
     sequelize,
@@ -59,5 +66,9 @@ Test.belongsTo(Analysis, { foreignKey: "analysis_id", as: "analysis" });
 
 Instrument.hasMany(Test, { foreignKey: "instrument_id", as: "tests" });
 Test.belongsTo(Instrument, { foreignKey: "instrument_id", as: "instrument" });
+
+// ─── Auto-generated associations ───
+Test.belongsTo(Group, { foreignKey: "group_id", targetKey: "id", as: "group" });
+Test.belongsTo(PhraseEntry, { foreignKey: "status_phrase_id", targetKey: "id", as: "statusPhrase" });
 
 export default Test;

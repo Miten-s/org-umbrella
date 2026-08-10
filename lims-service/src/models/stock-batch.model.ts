@@ -1,3 +1,4 @@
+import Group from "./group.model";
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 import Stock from "./stock.model";
@@ -20,11 +21,13 @@ export interface IStockBatch {
   deletedBy?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
+  modifiedBy?: string | null;
 }
 
 export class StockBatch extends Model<IStockBatch> implements IStockBatch {
   public id!: string;
-  public stockId!: string;
+
+public stockId!: string;
   public batchNumber!: string;
   public supplierId!: string | null;
   public locationId!: string | null;
@@ -36,6 +39,8 @@ export class StockBatch extends Model<IStockBatch> implements IStockBatch {
   public isDeleted!: boolean;
   public deletedAt!: Date | null;
   public deletedBy!: string | null;
+  public modifiedBy!: string | null;
+
 }
 
 StockBatch.init(
@@ -50,9 +55,10 @@ StockBatch.init(
     expiryDate: { type: DataTypes.DATE, allowNull: true, field: "expiry_date" },
     receivedDate: { type: DataTypes.DATE, allowNull: true, field: "received_date" },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
-    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "is_deleted" },
+    isDeleted: {  type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false,  field: "is_deleted" },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" }
+    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" },
+    modifiedBy: { type: DataTypes.UUID, allowNull: true, field: "modified_by" }
   },
   {
     sequelize,
@@ -71,5 +77,8 @@ StockBatch.belongsTo(Location, { foreignKey: "location_id", as: "location" });
 
 Supplier.hasMany(StockBatch, { foreignKey: "supplier_id", as: "batches" });
 StockBatch.belongsTo(Supplier, { foreignKey: "supplier_id", as: "supplier" });
+
+// ─── Auto-generated associations ───
+StockBatch.belongsTo(Group, { foreignKey: "group_id", targetKey: "id", as: "group" });
 
 export default StockBatch;

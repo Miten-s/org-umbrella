@@ -1,3 +1,5 @@
+import PhraseEntry from "./phrase-entry.model";
+import Group from "./group.model";
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 
@@ -13,6 +15,7 @@ export interface ILocation {
   deletedBy?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
+  modifiedBy?: string | null;
 }
 
 export class Location extends Model<ILocation> implements ILocation {
@@ -25,10 +28,12 @@ export class Location extends Model<ILocation> implements ILocation {
   public isDeleted!: boolean;
   public deletedAt!: Date | null;
   public deletedBy!: string | null;
+  public modifiedBy!: string | null;
 
   // Self-referencing relationships will be configured here
   public readonly children?: Location[];
   public readonly parent?: Location;
+
 }
 
 Location.init(
@@ -39,9 +44,10 @@ Location.init(
     locationTypePhraseId: { type: DataTypes.UUID, allowNull: true, field: "location_type_phrase_id" },
     description: { type: DataTypes.TEXT, allowNull: true },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
-    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "is_deleted" },
+    isDeleted: {  type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false,  field: "is_deleted" },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" }
+    deletedBy: { type: DataTypes.UUID, allowNull: true, field: "deleted_by" },
+    modifiedBy: { type: DataTypes.UUID, allowNull: true, field: "modified_by" }
   },
   {
     sequelize,
@@ -54,5 +60,9 @@ Location.init(
 
 Location.hasMany(Location, { foreignKey: "parent_id", as: "children" });
 Location.belongsTo(Location, { foreignKey: "parent_id", as: "parent" });
+
+// ─── Auto-generated associations ───
+Location.belongsTo(Group, { foreignKey: "group_id", targetKey: "id", as: "group" });
+Location.belongsTo(PhraseEntry, { foreignKey: "location_type_phrase_id", targetKey: "id", as: "locationTypePhrase" });
 
 export default Location;
