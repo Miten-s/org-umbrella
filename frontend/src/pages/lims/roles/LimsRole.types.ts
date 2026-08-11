@@ -5,14 +5,11 @@ export interface LimsRef {
   name?: string;
 }
 
-/** One granted entry — the spec's "entry selection for each permission". */
-export interface LimsRoleEntry extends Record<string, unknown> {
-  entry?: string;
-  canView?: boolean;
-  canCreate?: boolean;
-  canEdit?: boolean;
-  canRemove?: boolean;
-}
+/**
+ * A granted permission — the spec's "entry selection for each permission". Assigned
+ * from the seeded LIMS_PERMISSIONS catalog (see LimsRole.api.ts), never authored here.
+ */
+export type LimsRolePermissionRef = { id?: string; name?: string } | string;
 
 export interface LimsRole {
   id: string;
@@ -22,7 +19,7 @@ export interface LimsRole {
   name: string;
   description?: string;
   group?: LimsRef | null;
-  entries?: LimsRoleEntry[];
+  permissions?: LimsRolePermissionRef[];
   isRemoved?: boolean;
   modifiedOn?: string | null;
   modifiedBy?: string | null;
@@ -33,6 +30,18 @@ export interface LimsRolePayload {
   name: string;
   description?: string;
   group?: string;
-  entries?: LimsRoleEntry[];
+  /** Permission ids from the seeded catalog. */
+  permissions?: string[];
   changeReason?: string;
 }
+
+/** A LIMS permission option {id, name} used to map picker selections (by name) → ids. */
+export interface LimsPermissionOption {
+  id: string;
+  name: string;
+}
+
+export const getLimsRolePermissionNames = (role: LimsRole): string[] =>
+  (role.permissions ?? [])
+    .map((permission) => (typeof permission === "string" ? permission : (permission?.name ?? "")))
+    .filter(Boolean);

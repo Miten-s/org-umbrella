@@ -26,10 +26,10 @@ import LimsRoleForm, { type LimsRoleFormMode } from "./LimsRoleForm";
 import type { LimsRole, LimsRolePayload } from "./LimsRole.types";
 
 /**
- * LIMS Pick Lists (Phrases) — Track A module.
+ * LIMS Lab Roles — Track A module.
  *
- * System pick lists are seeded by the backend and must not be removed or
- * cloned; their values can still be edited. Those actions are hidden per row.
+ * Permissions themselves are a seeded, read-only catalog (see LimsRole.api.ts) —
+ * roles only assign a subset of it via PermissionPicker.
  */
 const LimsRoleList = () => {
   const { t } = useTranslation();
@@ -54,25 +54,25 @@ const LimsRoleList = () => {
     fetchList
   });
 
-  const createPhrase = useCreateLimsRole();
-  const updatePhrase = useUpdateLimsRole();
+  const createRole = useCreateLimsRole();
+  const updateRole = useUpdateLimsRole();
   const bulkClone = useBulkCloneLimsRole();
   const bulkDelete = useBulkDeleteLimsRole();
-  const restorePhrase = useRestoreLimsRole();
+  const restoreRole = useRestoreLimsRole();
 
   const busy =
-    createPhrase.isPending ||
-    updatePhrase.isPending ||
+    createRole.isPending ||
+    updateRole.isPending ||
     bulkClone.isPending ||
     bulkDelete.isPending ||
-    restorePhrase.isPending;
+    restoreRole.isPending;
 
   const columnDefs = useMemo(() => getLimsRoleColumns({ t }), [t]);
 
   const openForm = useCallback(
-    (mode: LimsRoleFormMode, phrase: LimsRole | null) => {
+    (mode: LimsRoleFormMode, role: LimsRole | null) => {
       setFormMode(mode);
-      setActive(phrase);
+      setActive(role);
       openModal();
     },
     [openModal]
@@ -90,14 +90,14 @@ const LimsRoleList = () => {
       closeModal();
       return;
     }
-    await createPhrase.mutateAsync(payload);
+    await createRole.mutateAsync(payload);
     handleCloseForm();
   };
 
   const confirmUpdate = async (reason: string) => {
     const pending = compliance.pendingUpdate;
     if (!pending) return;
-    await updatePhrase.mutateAsync({
+    await updateRole.mutateAsync({
       id: pending.id,
       payload: { ...pending.payload, changeReason: reason }
     });
@@ -110,7 +110,7 @@ const LimsRoleList = () => {
     () => [
       {
         key: "delete",
-        label: (count) => (count > 1 ? "Remove pick lists" : "Remove pick list"),
+        label: (count) => (count > 1 ? "Remove roles" : "Remove role"),
         icon: TrashBinIcon,
         variant: "destructive",
         permission: LIMS_PERMISSIONS.DELETE_ROLE,
@@ -131,19 +131,19 @@ const LimsRoleList = () => {
     () => [
       {
         key: "view",
-        label: "View pick list",
+        label: "View role",
         icon: EyeIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_ROLE,
-        onClick: (phrase) => openForm("view", phrase)
+        onClick: (role) => openForm("view", role)
       },
       {
         key: "edit",
-        label: "Edit pick list",
+        label: "Edit role",
         icon: PencilIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.UPDATE_ROLE,
-        onClick: (phrase) => openForm("edit", phrase)
+        onClick: (role) => openForm("edit", role)
       },
       {
         key: "audit",
@@ -151,35 +151,35 @@ const LimsRoleList = () => {
         icon: TimeIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.VIEW_ROLE,
-        onClick: (phrase) => compliance.openAudit(phrase)
+        onClick: (role) => compliance.openAudit(role)
       },
       {
         key: "clone",
-        label: "Copy pick list",
+        label: "Copy role",
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_ROLE,
-        onClick: (phrase) => bulkClone.mutate({ mode: "ids", ids: [phrase.id] })
+        onClick: (role) => bulkClone.mutate({ mode: "ids", ids: [role.id] })
       },
       {
         key: "restore",
-        label: "Restore pick list",
+        label: "Restore role",
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.UPDATE_ROLE,
-        hidden: (phrase: LimsRole) => !phrase.isRemoved,
-        onClick: (phrase) => compliance.requestRestore(phrase)
+        hidden: (role: LimsRole) => !role.isRemoved,
+        onClick: (role) => compliance.requestRestore(role)
       },
       {
         key: "delete",
-        label: "Remove pick list",
+        label: "Remove role",
         icon: TrashBinIcon,
         placement: "menu",
         tone: "danger",
         permission: LIMS_PERMISSIONS.DELETE_ROLE,
-        hidden: (phrase: LimsRole) => Boolean(phrase.isRemoved),
-        onClick: (phrase) =>
-          compliance.requestDelete({ mode: "ids", ids: [phrase.id] }, 1, [phrase.name])
+        hidden: (role: LimsRole) => Boolean(role.isRemoved),
+        onClick: (role) =>
+          compliance.requestDelete({ mode: "ids", ids: [role.id] }, 1, [role.name])
       }
     ],
     [bulkClone, compliance, openForm]
@@ -191,7 +191,7 @@ const LimsRoleList = () => {
         table={table}
         columnDefs={columnDefs}
         tableName={t("limsRoles")}
-        searchPlaceholder="Search pick lists…"
+        searchPlaceholder="Search roles…"
         enableSelection
         fillAvailableHeight
         busy={busy}
@@ -220,25 +220,25 @@ const LimsRoleList = () => {
       <Modal
         isOpen={isOpen}
         onClose={handleCloseForm}
-        className="m-4 max-h-[90vh] max-w-[1000px] overflow-y-auto overflow-x-hidden dark:bg-gray-900"
+        className="m-4 max-w-[1000px] overflow-x-hidden dark:bg-gray-900"
       >
         <LimsRoleForm
           mode={formMode}
           initialData={active}
           onClose={handleCloseForm}
           onSubmit={handleSave}
-          submitting={createPhrase.isPending || updatePhrase.isPending}
+          submitting={createRole.isPending || updateRole.isPending}
         />
       </Modal>
 
       <LimsComplianceDialogs
         compliance={compliance}
-        entityLabel="pick list"
-        entityLabelPlural="pick lists"
+        entityLabel="role"
+        entityLabelPlural="roles"
         getRecordLabel={(row) => row.roleId || row.name}
-        updating={updatePhrase.isPending}
+        updating={updateRole.isPending}
         deleting={bulkDelete.isPending}
-        restoring={restorePhrase.isPending}
+        restoring={restoreRole.isPending}
         auditEntries={auditQuery.data ?? []}
         auditLoading={auditQuery.isLoading}
         onUpdate={confirmUpdate}
@@ -253,7 +253,7 @@ const LimsRoleList = () => {
         onRestore={async (reason) => {
           const pending = compliance.pendingRestore;
           if (pending) {
-            await restorePhrase.mutateAsync({ id: pending.id, changeReason: reason });
+            await restoreRole.mutateAsync({ id: pending.id, changeReason: reason });
           }
           compliance.clearRestore();
         }}

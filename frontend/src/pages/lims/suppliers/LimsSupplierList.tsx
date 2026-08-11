@@ -231,7 +231,7 @@ const LimsSupplierList = () => {
       <Modal
         isOpen={isOpen}
         onClose={handleCloseForm}
-        className="m-4 max-h-[90vh] max-w-[1000px] overflow-y-auto overflow-x-hidden dark:bg-gray-900"
+        className="m-4 max-w-[1000px] overflow-x-hidden dark:bg-gray-900"
       >
         <LimsSupplierForm
           mode={formMode}

@@ -4,7 +4,7 @@ import { TagListCell } from "@/components/data/cells/TagListCell";
 import { TruncateCell } from "@/components/data/cells/TruncateCell";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import type { TFunction } from "i18next";
-import type { LimsRole, LimsRoleEntry, LimsRef } from "./LimsRole.types";
+import { getLimsRolePermissionNames, type LimsRole, type LimsRef } from "./LimsRole.types";
 
 const refLabel = (ref: LimsRef | null | undefined) => ref?.name ?? "";
 
@@ -28,20 +28,23 @@ export const getLimsRoleColumns = ({ t }: { t: TFunction }): ColDef<LimsRole>[] 
       params.data ? <AvatarCell label={params.data.name} fallbackInitial="P" /> : null
   },
   {
-    colId: "entries",
-    headerName: t("limsRoleEntries"),
+    colId: "permissions",
+    headerName: t("permissions"),
     flex: 1.4,
     minWidth: 260,
     sortable: false,
+    valueGetter: ({ data }) => (data ? getLimsRolePermissionNames(data).join(", ") : ""),
     // Rule from MIGRATION.md §3-6: multi-item arrays use TagListCell.
-    cellRenderer: (params: ICellRendererParams<LimsRole>) => (
-      <TagListCell<LimsRoleEntry>
-        items={params.data?.entries}
-        getLabel={(row) => String(row.entry ?? "")}
-        getKey={(row, index) => String(row.entry ?? index)}
-        tooltipHeaderLabel={t("limsRoleEntries")}
-      />
-    )
+    cellRenderer: (params: ICellRendererParams<LimsRole>) => {
+      const names = params.data ? getLimsRolePermissionNames(params.data) : [];
+      return (
+        <TagListCell
+          items={names}
+          getLabel={(name) => name}
+          tooltipHeaderLabel={`${t("permissions")} (${names.length})`}
+        />
+      );
+    }
   },
   {
     colId: "group",

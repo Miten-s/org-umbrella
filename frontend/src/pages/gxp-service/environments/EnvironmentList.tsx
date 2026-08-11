@@ -176,7 +176,7 @@ const EnvironmentList = () => {
       <Modal
         isOpen={isOpen}
         onClose={handleCloseForm}
-        className="m-4 max-h-[90vh] max-w-[900px] overflow-y-auto overflow-x-hidden dark:bg-gray-900"
+        className="m-4 max-w-[900px] overflow-x-hidden dark:bg-gray-900"
       >
         <EnvironmentForm
           mode={formMode}

@@ -1,11 +1,15 @@
 import api from "@/utils/axios.interceptor";
 import { buildServerParams, toListResult } from "@/lib/query/listAdapter";
-import { bulkSelectionToBody, type BulkSelection } from "@/lib/query/listTypes";
 import type { ServerListParams } from "@/lib/query/listTypes";
 import { PermissionType } from "@/utils/common.constants";
-import type { GxpPermission, GxpPermissionPayload } from "./Permission.types";
+import type { GxpPermission } from "./Permission.types";
 
-/** GXP Permission API — admin `/permissions` endpoint, scoped to GXP_SERVICE. */
+/**
+ * GXP Permission API — admin `/permissions` endpoint, scoped to GXP_SERVICE.
+ * Read-only: the catalog is seeded by the backend (migration), not created or
+ * edited from the UI — see backend/src/migrations/012-seed-initial-data.ts for
+ * the seeding pattern.
+ */
 const ROUTE = "/permissions";
 
 export const fetchPermissionList = async (params: ServerListParams, signal?: AbortSignal) => {
@@ -20,19 +24,4 @@ export const fetchPermissionList = async (params: ServerListParams, signal?: Abo
     permissionName: p.permissionName ?? (p as unknown as { name?: string }).name ?? ""
   }));
   return result;
-};
-
-export const createPermission = async (payload: GxpPermissionPayload) => {
-  const response = await api.post(ROUTE, payload);
-  return response.data;
-};
-
-export const updatePermission = async (id: string, payload: GxpPermissionPayload) => {
-  const response = await api.patch(`${ROUTE}/${id}`, payload);
-  return response.data;
-};
-
-export const bulkDeletePermission = async (selection: BulkSelection) => {
-  const response = await api.post(`${ROUTE}/bulk-delete`, bulkSelectionToBody(selection));
-  return response.data;
 };

@@ -8,14 +8,15 @@ import Label from "@/components/common/form/Label";
 import TextArea from "@/components/common/form/input/TextArea";
 import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
-import SubFormGrid from "@/components/data/SubFormGrid";
+import PermissionPicker from "@/components/data/PermissionPicker";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
+import { useLimsRolePermissions } from "./LimsRole.queries";
 import { limsRoleSchema, type LimsRoleFormValues } from "./LimsRole.schema";
-import type {
-  LimsRole,
-  LimsRoleEntry,
-  LimsRolePayload,
-  LimsRef
+import {
+  getLimsRolePermissionNames,
+  type LimsRole,
+  type LimsRolePayload,
+  type LimsRef
 } from "./LimsRole.types";
 
 export type LimsRoleFormMode = "create" | "edit" | "view";
@@ -43,7 +44,11 @@ const LimsRoleForm = ({
 
   const identityLocked = isReadOnly;
 
-  const [entries, setEntries] = useState<LimsRoleEntry[]>(initialData?.entries ?? []);
+  // Permissions are assigned from the seeded catalog below — never typed in free-form.
+  const { data: rolePermissions = [] } = useLimsRolePermissions();
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>(
+    initialData ? getLimsRolePermissionNames(initialData) : []
+  );
 
   const {
     register,
@@ -64,12 +69,17 @@ const LimsRoleForm = ({
   const description = useWatch({ control, name: "description" });
   const busy = submitting || isSubmitting;
 
+  // Selected permission NAMEs → ids from the fetched catalog, same mapping GxP roles use.
+  const handleFormSubmit = (values: LimsRoleFormValues) => {
+    const permissionIds = selectedPermissions
+      .map((name) => rolePermissions.find((p) => p.name === name)?.id)
+      .filter((id): id is string => Boolean(id));
+    return onSubmit({ ...values, permissions: permissionIds });
+  };
+
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-      <form
-        onSubmit={handleSubmit((values) => onSubmit({ ...values, entries }))}
-        className="min-w-0 space-y-4"
-      >
+      <form onSubmit={handleSubmit(handleFormSubmit)} className="min-w-0 space-y-4">
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsRole") })
@@ -135,22 +145,14 @@ const LimsRoleForm = ({
             />
           </div>
 
-          {/* The selectable values — added even on system pick lists. */}
+          {/* Permissions — assigned from the seeded catalog, never created here. */}
           <div className="min-w-0 md:col-span-2">
-            <SubFormGrid<LimsRoleEntry>
-              label={t("limsRoleEntries")}
-              rows={entries}
-              onChange={setEntries}
+            <PermissionPicker
+              allPermissions={rolePermissions.map((p) => p.name)}
+              selected={selectedPermissions}
+              onChange={setSelectedPermissions}
               disabled={isReadOnly}
-              addLabel={t("limsAddEntry")}
-              emptyLabel={t("limsNoRoleEntries")}
-              columns={[
-                { key: "entry", header: t("limsEntry") },
-                { key: "canView", header: t("limsCanView"), type: "checkbox" },
-                { key: "canCreate", header: t("limsCanCreate"), type: "checkbox" },
-                { key: "canEdit", header: t("limsCanEdit"), type: "checkbox" },
-                { key: "canRemove", header: t("limsCanRemove"), type: "checkbox" }
-              ]}
+              label={t("permissions")}
             />
           </div>
         </div>

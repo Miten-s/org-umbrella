@@ -1,4 +1,5 @@
 import { newId, registerEntity, type MockRow } from "./db";
+import { LIMS_PERMISSIONS } from "@/utils/permissions";
 
 /**
  * Seed data for the mocked lims-service. Entities the frontend hasn't built a
@@ -220,7 +221,22 @@ const studies: MockRow[] = [
   isRemoved: false
 }));
 
-const ENTRY_NAMES = ["Samples", "Tests", "Results", "Specifications", "Instruments"];
+// --- Permissions — seeded, read-only catalog served by /lims-permissions --------
+// Mirrors how the real backend would seed this table (see
+// backend/src/migrations/012-seed-initial-data.ts for the pattern): one row per
+// LIMS_PERMISSIONS entry. Roles only ever pick a subset of it; nothing here is
+// created or edited from the UI.
+export const limsPermissionCatalog: MockRow[] = Object.values(LIMS_PERMISSIONS).map((name) => ({
+  id: newId(),
+  name,
+  description: `Grants ${String(name)}`
+}));
+
+const permissionRef = (name: string) => {
+  const permission = limsPermissionCatalog.find((p) => p.name === name);
+  return permission ? ref(String(permission.id), String(permission.name)) : null;
+};
+
 const roles: MockRow[] = [
   ["ROLE-001", "Lab Analyst"],
   ["ROLE-002", "Lab Supervisor"],
@@ -232,13 +248,18 @@ const roles: MockRow[] = [
   name,
   description: `${name} role`,
   group: ref(groupIds[index % 4], String(groups[index % 4].name)),
-  entries: ENTRY_NAMES.slice(0, index + 2).map((entry) => ({
-    entry,
-    canView: true,
-    canCreate: index > 0,
-    canEdit: index > 0,
-    canRemove: index > 1
-  })),
+  permissions: [
+    permissionRef(LIMS_PERMISSIONS.VIEW_SAMPLE),
+    permissionRef(LIMS_PERMISSIONS.VIEW_TEST),
+    permissionRef(LIMS_PERMISSIONS.VIEW_RESULT),
+    ...(index > 0
+      ? [
+          permissionRef(LIMS_PERMISSIONS.CREATE_SAMPLE),
+          permissionRef(LIMS_PERMISSIONS.UPDATE_SAMPLE)
+        ]
+      : []),
+    ...(index > 1 ? [permissionRef(LIMS_PERMISSIONS.DELETE_SAMPLE)] : [])
+  ].filter((entry): entry is { id: string; name: string } => entry !== null),
   isRemoved: false
 }));
 

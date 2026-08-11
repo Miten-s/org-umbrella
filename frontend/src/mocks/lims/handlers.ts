@@ -9,7 +9,7 @@ import {
   softDelete,
   updateRow
 } from "./db";
-import { phraseEntries, registerLimsFixtures } from "./fixtures";
+import { limsPermissionCatalog, phraseEntries, registerLimsFixtures } from "./fixtures";
 
 registerLimsFixtures();
 
@@ -120,4 +120,28 @@ const phraseEntriesHandler = http.get(url("lims-phrases/entries"), ({ request })
   });
 });
 
-export const limsHandlers = [phraseEntriesHandler, ...entityHandlers];
+/**
+ * Permission catalog — read-only, seeded by the backend. No create/update/delete:
+ * roles only ever pick a subset via the Lab Roles form's PermissionPicker.
+ * Registered ahead of the generic entity handlers since it isn't one.
+ */
+const permissionsHandler = http.get(url("lims-permissions"), ({ request }) => {
+  const params = new URL(request.url).searchParams;
+  const search = (params.get("search") ?? "").toLowerCase();
+
+  const permissions = limsPermissionCatalog.filter((permission) =>
+    search ? String(permission.name ?? "").toLowerCase().includes(search) : true
+  );
+
+  return HttpResponse.json({
+    permissions,
+    metadata: {
+      totalCount: permissions.length,
+      currentPage: 1,
+      limit: Math.max(permissions.length, 1),
+      totalPages: 1
+    }
+  });
+});
+
+export const limsHandlers = [phraseEntriesHandler, permissionsHandler, ...entityHandlers];

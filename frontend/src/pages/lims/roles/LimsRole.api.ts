@@ -1,11 +1,14 @@
 import limsApi from "@/utils/lims.axios.interceptor";
 import { buildServerParams, toListResult, toOptionsPage } from "@/lib/query/listAdapter";
+import { normalizeList } from "@/lib/query/normalizeId";
+import { extractList } from "@/utils/listResponse";
 import { bulkSelectionToBody, type BulkSelection } from "@/lib/query/listTypes";
 import type { ServerListParams } from "@/lib/query/listTypes";
-import type { LimsRole, LimsRolePayload } from "./LimsRole.types";
+import type { LimsPermissionOption, LimsRole, LimsRolePayload } from "./LimsRole.types";
 
-/** LIMS Pick List API. Pure HTTP — toasts live in the mutation layer. */
+/** LIMS Role API. Pure HTTP — toasts live in the mutation layer. */
 const ROUTE = "/lims-roles";
+const PERMISSIONS_ROUTE = "/lims-permissions";
 const DATA_KEYS = ["roles", "data"];
 const RELATION_KEYS = ["group"];
 
@@ -69,4 +72,17 @@ export const restoreLimsRole = async (id: string, changeReason: string) => {
 export const fetchLimsRoleAudit = async (id: string, signal?: AbortSignal) => {
   const response = await limsApi.get(`${ROUTE}/${id}/audit`, { signal });
   return response.data;
+};
+
+/**
+ * All LIMS permissions (id + name) for the role form's permission picker. This is a
+ * read-only catalog seeded by the backend — there is no create/update/delete here.
+ */
+export const fetchLimsRolePermissions = async (
+  signal?: AbortSignal
+): Promise<LimsPermissionOption[]> => {
+  const response = await limsApi.get(PERMISSIONS_ROUTE, { params: { limit: 200 }, signal });
+  return normalizeList<{ id?: string; _id?: string; name: string }>(
+    extractList(response.data, ["permissions"])
+  ).map((p) => ({ id: p.id, name: p.name }));
 };

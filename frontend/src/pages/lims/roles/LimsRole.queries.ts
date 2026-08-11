@@ -10,6 +10,7 @@ import {
   createLimsRole,
   fetchLimsRoleOptions,
   fetchLimsRoleAudit,
+  fetchLimsRolePermissions,
   restoreLimsRole,
   updateLimsRole
 } from "./LimsRole.api";
@@ -19,7 +20,8 @@ export const limsRoleKeys = {
   all: ["limsRole"] as const,
   list: (params: ServerListParams) => ["limsRole", "list", params] as const,
   audit: (id: string) => ["limsRole", "audit", id] as const,
-  options: ["limsRole", "options"] as const
+  options: ["limsRole", "options"] as const,
+  permissions: ["limsRole", "permissions"] as const
 };
 
 
@@ -49,6 +51,13 @@ export const useLimsRoleAudit = (id?: string) =>
     enabled: Boolean(id)
   });
 
+/** All LIMS permissions for the role form's picker — the seeded, read-only catalog. */
+export const useLimsRolePermissions = () =>
+  useQuery({
+    queryKey: limsRoleKeys.permissions,
+    queryFn: ({ signal }) => fetchLimsRolePermissions(signal)
+  });
+
 const useInvalidate = () => {
   const queryClient = useQueryClient();
   return () => queryClient.invalidateQueries({ queryKey: limsRoleKeys.all });
@@ -61,7 +70,7 @@ export const useCreateLimsRole = () => {
   return useMutation({
     mutationFn: (payload: LimsRolePayload) => createLimsRole(payload),
     onSuccess: () => {
-      toast("Pick list created successfully.", "success");
+      toast("Role created successfully.", "success");
       invalidate();
     }
   });
@@ -73,7 +82,7 @@ export const useUpdateLimsRole = () => {
     mutationFn: ({ id, payload }: { id: string; payload: LimsRolePayload }) =>
       updateLimsRole(id, payload),
     onSuccess: () => {
-      toast("Pick list updated successfully.", "success");
+      toast("Role updated successfully.", "success");
       invalidate();
     }
   });
@@ -93,8 +102,8 @@ export const useBulkDeleteLimsRole = () => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
       toast(
         count && count > 1
-          ? `${count} pick lists removed successfully.`
-          : "Pick list removed successfully.",
+          ? `${count} roles removed successfully.`
+          : "Role removed successfully.",
         "success"
       );
       invalidate();
@@ -110,8 +119,8 @@ export const useBulkCloneLimsRole = () => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
       toast(
         count && count > 1
-          ? `${count} pick lists copied successfully.`
-          : "Pick list copied successfully.",
+          ? `${count} roles copied successfully.`
+          : "Role copied successfully.",
         "success"
       );
       invalidate();
@@ -125,7 +134,7 @@ export const useRestoreLimsRole = () => {
     mutationFn: ({ id, changeReason }: { id: string; changeReason: string }) =>
       restoreLimsRole(id, changeReason),
     onSuccess: () => {
-      toast("Pick list restored successfully.", "success");
+      toast("Role restored successfully.", "success");
       invalidate();
     }
   });
