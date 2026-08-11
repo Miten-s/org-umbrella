@@ -3,9 +3,10 @@ import { useTranslation } from "react-i18next";
 
 import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
+import LimsShowRemovedSwitch from "@/components/lims/LimsShowRemovedSwitch";
+import { LIMS_SUPPORTS_SEARCH } from "@/utils/lims.backend.shim";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
-import Switch from "@/components/common/form/switch/Switch";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
@@ -214,6 +215,7 @@ const LimsLocationList = () => {
         table={table}
         columnDefs={columnDefs}
         tableName={t("limsLocations")}
+        searchable={LIMS_SUPPORTS_SEARCH}
         searchPlaceholder="Search storage locations…"
         enableSelection
         fillAvailableHeight
@@ -221,11 +223,7 @@ const LimsLocationList = () => {
         rowActions={rowActions}
         bulkActions={bulkActions}
         titleExtra={
-          <Switch
-            checked={includeRemoved}
-            onChange={setIncludeRemoved}
-            label={t("limsShowRemoved")}
-          />
+          <LimsShowRemovedSwitch checked={includeRemoved} onChange={setIncludeRemoved} />
         }
         toolbarActions={[
           {

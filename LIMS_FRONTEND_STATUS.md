@@ -109,6 +109,80 @@ have neither (`find src/pages -name "*.test.*"` → 0 outside LIMS).
 
 ---
 
+## 4b. Talking to the real `lims-service` today
+
+Set `VITE_ENABLE_LIMS_MOCKS=false` in `.env`. That switches the 26 modules onto the running
+service via **`src/utils/lims.backend.shim.ts`**, a temporary adapter that turns itself on
+whenever mocks are off.
+
+Nothing in the 26 modules was rewritten to match the current backend. Every divergence lives
+in that one file as data, so closing a punch-list item means deleting a line there — not
+touching 26 modules twice.
+
+**Endpoint coverage — 111 of 142 wired:**
+
+| | Count | Status |
+|---|---|---|
+| 22 entities × 5 CRUD endpoints | 110 | wired |
+| Per-record audit | 1 | wired (path rewrite works around G5) |
+| 6 child routes × 5 endpoints | 30 | **not wired — blocked on decision S2** |
+| Global audit list (`GET /audit/audit`) | 1 | no LIMS page consumes it |
+
+The six unwired routes are `analysis-components`, `spec-limits`, `test-group-items`,
+`inspection-personnel`, `test-windows` and `calibrations` (the completed-event log). They back
+the sub-form grids. Our forms send child rows nested in the parent payload; the backend exposes
+them as separate CRUD routes. Held until S2 is decided, because nested and standalone need
+different frontend code and the punch list recommends nested.
+
+Note that only **5 of the 13 sub-form grids** have a backend route at all, so settling S2 fixes
+Analyses, Specifications, Test Groups, Inspection Plans and Samples — the other 8 grids stay
+blocked on new tables regardless.
+
+**Calibrations points at `/calibration-schedules`, not `/calibrations`** — the module models a
+recurring plan, and `/calibrations` records one completed event. Needs confirming with the
+backend developer.
+
+**What the shim translates** (each maps to an item in `LIMS_BACKEND_PUNCHLIST.md`):
+
+| Divergence | Handled how |
+|---|---|
+| `/lims-suppliers` vs `/suppliers` (M1, M3) | route rewritten |
+| `PATCH /:id` vs `PUT /:id` (M2) | verb rewritten |
+| Column names differ (S1) | per-entity whitelist map |
+| Relations come back as bare UUIDs (B3) | emitted as `{ id, name: "" }` — id kept, label left blank rather than invented |
+| `isDeleted` vs `isRemoved` (B4) | renamed on the way out |
+| No `bulk-delete` / `bulk-duplicate` (B1) | fanned out over the per-record endpoints — every call is real, nothing is resolved client-side |
+| Audit at `/audit/audit/:entity/:id` (B1, G5) | path rewritten; `{ logs }` reshaped into audit rows, diffed per field when `oldValue` arrives |
+| `sortBy` / `filter[]` / `includeRemoved` ignored (M5, M6, B4) | stripped from the query string |
+
+**What is hidden, not faked** (STANDARDS.md §10):
+
+- **Search box** — the service parses `search` and never uses it (G4), so it would return the
+  unfiltered list. Hidden until that is fixed.
+- **"Show removed" toggle** — removed rows can't be listed or restored (B4). Hidden.
+- **Restore** — already only appears on removed rows, which can never load. Unreachable.
+- **Lab Groups / Lab Roles / Lab Users / Schedulers** — no backend routes at all (B2). These
+  four pages fail with one clear message naming the punch-list item, rather than a bare 404.
+- **File attachments** — no upload handling exists; saving with a file attached is refused with
+  a message instead of a confusing "No data provided" 400.
+
+**Field coverage per entity** — how many of each module's form fields survive the round trip.
+The remainder is punch-list item **S1**, and is why integration is worth doing now for the
+plumbing but not worth QA-ing feature by feature yet:
+
+| Good (≥55%) | Partial (35–55%) | Structurally different (<35%) | No route |
+|---|---|---|---|
+| Pick Lists, Test Groups, Analyses | Customers, Suppliers, Projects, Studies, Locations, Parameters, Specifications, Inspection Plans, Batches, Lots, Stock Batches | Stock, Instruments, Instrument Parts, Samples, Tests, Aliquots, Results, Calibrations | Lab Groups, Lab Roles, Lab Users, Schedulers |
+
+Calibrations is the widest gap: the backend models a completed calibration *event*, the UI
+models a recurring calibration *plan*.
+
+**When the punch list closes:** delete `lims.backend.shim.ts`, the `LIMS_SHIM_ENABLED` import
+in `lims.axios.interceptor.ts`, and the guard inside `components/lims/LimsShowRemovedSwitch.tsx`.
+Nothing else changes.
+
+---
+
 ## 5. When `lims-service` goes live
 
 **Delete:**

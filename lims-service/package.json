@@ -29,6 +29,7 @@
     "multer": "^2.2.0",
     "pg": "^8.22.0",
     "pg-hstore": "^2.3.4",
+    "reflect-metadata": "^0.2.2",
     "sequelize": "^6.37.8",
     "winston": "^3.19.0",
     "winston-daily-rotate-file": "^5.0.0"

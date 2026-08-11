@@ -4,7 +4,7 @@ import { AUTH_TOKEN_KEY } from "./common.constants";
 import { getErrorMessage } from "./error.utils";
 
 const BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:9002/v1/api";
+  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:9001/v1/api";
 
 const api = axios.create({
   baseURL: BASE_URL,
