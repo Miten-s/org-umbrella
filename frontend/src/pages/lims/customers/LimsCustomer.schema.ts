@@ -30,8 +30,7 @@ export const limsCustomerSchema = z.object({
   otherInformation: z
     .string()
     .max(500, "Additional notes must not exceed 500 characters")
-    .optional(),
-  linkedProjects: z.array(z.string()).optional()
+    .optional()
 });
 
 export type LimsCustomerFormValues = z.infer<typeof limsCustomerSchema>;

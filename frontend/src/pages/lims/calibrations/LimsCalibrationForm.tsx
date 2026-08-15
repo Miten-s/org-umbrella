@@ -103,7 +103,7 @@ const LimsCalibrationForm = ({
           {text("calibrationId", t("limsCalibrationId"), true, "text")}
           {text("calibrationName", t("limsCalibrationName"), true, "text")}
           <div className="min-w-0">
-            <Label required={false}>{t("limsInstrument")}</Label>
+            <Label required>{t("limsInstrument")}</Label>
             <Controller
               name="instrument"
               control={control}
@@ -113,11 +113,15 @@ const LimsCalibrationForm = ({
                   value={field.value}
                   onChange={field.onChange}
                   disabled={isReadOnly}
+                  error={!!errors.instrument}
                   placeholder={t("select", { entity: t("limsInstrument") })}
                   initialSelectedOptions={seedOne(initialData?.instrument)}
                 />
               )}
             />
+            {errors.instrument ? (
+              <p className="mt-1 text-xs text-red-500">{errors.instrument.message}</p>
+            ) : null}
           </div>
           <div className="min-w-0">
             <Label required={false}>{t("limsCalibrationType")}</Label>

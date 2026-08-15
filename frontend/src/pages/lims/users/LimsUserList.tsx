@@ -48,6 +48,7 @@ const LimsUserList = () => {
     queryKey: [...limsUserKeys.all, { includeRemoved }],
     fetchList
   });
+  console.log("table", table);
 
   const create = useCreateLimsUser();
   const update = useUpdateLimsUser();
@@ -101,7 +102,7 @@ const LimsUserList = () => {
     setFormMode("create");
   };
 
-  const label = (row: LimsUser) => String(row.user?.name ?? row.id);
+  const label = (row: LimsUser) => String(row.userName ?? row.id);
 
   const bulkActions = useMemo<DataTableBulkAction[]>(
     () => [

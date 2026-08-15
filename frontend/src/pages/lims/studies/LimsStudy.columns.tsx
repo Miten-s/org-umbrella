@@ -3,9 +3,8 @@ import { StatusPill } from "@/components/data/cells/StatusPill";
 import { TruncateCell } from "@/components/data/cells/TruncateCell";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import type { TFunction } from "i18next";
-import type { LimsStudy, LimsRef } from "./LimsStudy.types";
-
-const refLabel = (ref: LimsRef | null | undefined) => ref?.name ?? "";
+import { refLabel } from "@/utils/refLabel";
+import type { LimsStudy } from "./LimsStudy.types";
 
 /** Column factory (STANDARDS.md §8). */
 export const getLimsStudyColumns = ({ t }: { t: TFunction }): ColDef<LimsStudy>[] => [

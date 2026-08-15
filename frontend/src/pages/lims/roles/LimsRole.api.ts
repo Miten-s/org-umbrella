@@ -82,7 +82,10 @@ export const fetchLimsRolePermissions = async (
   signal?: AbortSignal
 ): Promise<LimsPermissionOption[]> => {
   const response = await limsApi.get(PERMISSIONS_ROUTE, { params: { limit: 200 }, signal });
-  return normalizeList<{ id?: string; _id?: string; name: string }>(
+  // The catalog row has no `name` — `code` (e.g. "LIMS:CREATE:ALIQUOT") is both
+  // the human-facing picker value and what PermissionPicker.groupPermissions
+  // parses via split(":"). `label` is display-only text, not usable here.
+  return normalizeList<{ id?: string; _id?: string; code: string }>(
     extractList(response.data, ["permissions"])
-  ).map((p) => ({ id: p.id, name: p.name }));
+  ).map((p) => ({ id: p.id, name: p.code }));
 };

@@ -7,7 +7,17 @@ import { sequelize } from "../configs/db.sequelize";
  * is the discriminator instead of one audit table per entity — same data,
  * one migration, one index to maintain.
  */
-export type AuditAction = "CREATE" | "UPDATE" | "DELETE" | "RESTORE";
+/**
+ * CANCEL/REACTIVATE are execution-only: cancelling a sample is a business
+ * outcome, distinct from DELETE/RESTORE which hide and unhide a record.
+ */
+export type AuditAction =
+  | "CREATE"
+  | "UPDATE"
+  | "DELETE"
+  | "RESTORE"
+  | "CANCEL"
+  | "REACTIVATE";
 
 export interface IAuditLog {
   id?: string;
@@ -56,7 +66,7 @@ AuditLog.init(
       field: "entity_id"
     },
     action: {
-      type: DataTypes.ENUM("CREATE", "UPDATE", "DELETE", "RESTORE"),
+      type: DataTypes.STRING(20),
       allowNull: false
     },
     oldValue: {

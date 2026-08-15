@@ -50,7 +50,6 @@ export interface LimsSchedulerPayload {
   planTime?: string;
   leadTimeValue?: number | string;
   leadTimeUnit?: string;
-  lastRunDate?: string;
   nextRunDate?: string;
   description?: string;
   autoLogin?: boolean;

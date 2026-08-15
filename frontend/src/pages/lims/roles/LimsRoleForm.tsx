@@ -69,13 +69,13 @@ const LimsRoleForm = ({
   const description = useWatch({ control, name: "description" });
   const busy = submitting || isSubmitting;
 
-  // Selected permission NAMEs → ids from the fetched catalog, same mapping GxP roles use.
-  const handleFormSubmit = (values: LimsRoleFormValues) => {
-    const permissionIds = selectedPermissions
-      .map((name) => rolePermissions.find((p) => p.name === name)?.id)
-      .filter((id): id is string => Boolean(id));
-    return onSubmit({ ...values, permissions: permissionIds });
-  };
+  // selectedPermissions already holds catalogue codes ("LIMS:CREATE:SAMPLE") —
+  // that IS the wire format the backend's permissions[] expects (it parses the
+  // code into entity+action itself). No id lookup needed; there was one here
+  // sending catalog row ids instead, which the backend can't parse, so every
+  // save silently landed as an empty permission set.
+  const handleFormSubmit = (values: LimsRoleFormValues) =>
+    onSubmit({ ...values, permissions: selectedPermissions });
 
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { invalidateAllLims } from "@/lib/query/invalidateLims";
 import { toast } from "@/lib/toast";
 import { useAsyncOptions } from "@/hooks/useAsyncOptions";
 import { extractList } from "@/utils/listResponse";
@@ -50,7 +51,7 @@ export const useLimsGroupAudit = (id?: string) =>
 
 const useInvalidateLimsGroups = () => {
   const queryClient = useQueryClient();
-  return () => queryClient.invalidateQueries({ queryKey: limsGroupKeys.all });
+  return () => invalidateAllLims(queryClient);
 };
 
 // Rule 2: one SUCCESS toast per action here; never an onError toast.

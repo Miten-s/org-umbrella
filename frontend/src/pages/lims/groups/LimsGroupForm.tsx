@@ -49,8 +49,9 @@ const LimsGroupForm = ({
       groupId: initialData?.groupId ?? "LIMS_",
       name: initialData?.name ?? "",
       description: initialData?.description ?? "",
-      ownedBy: initialData?.ownedBy?.id ?? "",
-      parentGroup: initialData?.parentGroup?.id ?? ""
+      ownedBy: initialData?.ownedBy?.id ?? ""
+      // parentGroup intentionally not collected here — see the commented-out
+      // field below.
     }
   });
 
@@ -116,6 +117,13 @@ const LimsGroupForm = ({
             {err("ownedBy")}
           </div>
 
+          {/*
+            Parent Group — commented out: we don't have a clear, agreed
+            answer for what a lab admin is supposed to do with this field
+            when creating a group, so we're not asking them to fill in
+            something we can't explain yet. Not collected in defaultValues
+            above either, so saving an existing group leaves its current
+            parentGroup untouched rather than clearing it.
           <div className="min-w-0">
             <Label>{t("limsParentGroup")}</Label>
             <Controller
@@ -135,6 +143,7 @@ const LimsGroupForm = ({
             />
             {err("parentGroup")}
           </div>
+          */}
 
           <div className="min-w-0 md:col-span-2">
             <Label>{t("description")}</Label>

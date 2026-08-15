@@ -8,6 +8,7 @@ import Label from "@/components/common/form/Label";
 import TextArea from "@/components/common/form/input/TextArea";
 import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
+import { seedRefOption } from "@/utils/refLabel";
 import SubFormGrid from "@/components/data/SubFormGrid";
 import LimsAttachmentsField from "@/components/lims/LimsAttachmentsField";
 import { useAttachments } from "@/hooks/useAttachments";
@@ -195,7 +196,7 @@ const LimsInstrumentForm = ({
                   onChange={field.onChange}
                   disabled={isReadOnly}
                   placeholder={t("select", { entity: t("limsLocation") })}
-                  initialSelectedOptions={seedOne(initialData?.location)}
+                  initialSelectedOptions={seedRefOption(initialData?.location)}
                 />
               )}
             />

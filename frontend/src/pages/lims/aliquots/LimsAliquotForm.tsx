@@ -10,8 +10,9 @@ import AsyncSelect from "@/components/data/AsyncSelect";
 import SubFormGrid from "@/components/data/SubFormGrid";
 
 import { useLimsStockBatchOptions } from "@/pages/lims/stock-batches/LimsStockBatch.queries";
+import { seedRefOption } from "@/utils/refLabel";
 import { limsAliquotSchema, type LimsAliquotFormValues } from "./LimsAliquot.schema";
-import type { LimsAliquot, LimsAliquotPayload, LimsRef, LimsAliquotRow } from "./LimsAliquot.types";
+import type { LimsAliquot, LimsAliquotPayload, LimsAliquotRow } from "./LimsAliquot.types";
 
 export type LimsAliquotFormMode = "create" | "edit" | "view";
 
@@ -22,10 +23,6 @@ interface LimsAliquotFormProps {
   onSubmit: (payload: LimsAliquotPayload) => Promise<void> | void;
   submitting?: boolean;
 }
-
-/** Seeds a dropdown label from the record's nested ref — no extra fetch. */
-const seedOne = (ref: LimsRef | null | undefined) =>
-  ref?.id && ref.name ? [{ value: ref.id, label: ref.name }] : undefined;
 
 const LimsAliquotForm = ({
   mode = "create",
@@ -101,7 +98,7 @@ const LimsAliquotForm = ({
                   onChange={field.onChange}
                   disabled={isReadOnly}
                   placeholder={t("select", { entity: t("limsStockBatch") })}
-                  initialSelectedOptions={seedOne(initialData?.stockBatch)}
+                  initialSelectedOptions={seedRefOption(initialData?.stockBatch)}
                 />
               )}
             />

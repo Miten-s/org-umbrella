@@ -4,9 +4,8 @@ import { TagListCell } from "@/components/data/cells/TagListCell";
 import { TruncateCell } from "@/components/data/cells/TruncateCell";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import type { TFunction } from "i18next";
+import { refLabel } from "@/utils/refLabel";
 import type { LimsRef, LimsUser } from "./LimsUser.types";
-
-const refLabel = (ref: LimsRef | null | undefined) => ref?.name ?? "";
 
 /** Column factory (STANDARDS.md §8). */
 export const getLimsUserColumns = ({ t }: { t: TFunction }): ColDef<LimsUser>[] => [
@@ -15,7 +14,7 @@ export const getLimsUserColumns = ({ t }: { t: TFunction }): ColDef<LimsUser>[] 
     headerName: t("user"),
     flex: 1.1,
     minWidth: 210,
-    valueGetter: (params) => params.data?.user?.name ?? "",
+    valueGetter: (params) => params.data?.userName ?? "",
     cellRenderer: (params: ICellRendererParams<LimsUser>) =>
       params.data ? (
         <AvatarCell label={String(params.value ?? "")} fallbackInitial="U" showAvatar />

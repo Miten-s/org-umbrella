@@ -1,0 +1,35 @@
+# Local-dev Postgres for backend / gxp-service / lims-service, replacing the
+# shared Neon instance. Runs on 5433 (not 5432) so it never collides with a
+# system-installed Postgres. Fresh volume — no data is copied from Neon,
+# each service builds its own schema via its built-in migration runner on
+# first connect.
+#
+# Usage:
+#   docker compose -f docker-compose.local.yml up -d
+#   docker compose -f docker-compose.local.yml down        # stop, keep data
+#   docker compose -f docker-compose.local.yml down -v     # stop, wipe data
+name: umbrella-local
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      # POSTGRES_DB is intentionally omitted — init-databases.sh creates all
+      # three databases the services need.
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - umbrella_local_pgdata:/var/lib/postgresql/data
+      - ./deploy/postgres/init-local-databases.sh:/docker-entrypoint-initdb.d/init-local-databases.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  umbrella_local_pgdata:

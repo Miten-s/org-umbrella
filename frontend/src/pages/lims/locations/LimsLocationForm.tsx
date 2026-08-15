@@ -38,12 +38,6 @@ const seedOne = (ref: LimsRef | string | null | undefined, label: (r: LimsRef) =
   return text ? [{ value: ref.id, label: text }] : undefined;
 };
 
-const seedMany = (refs: LimsRef[] | undefined, label: (r: LimsRef) => string) =>
-  (refs ?? [])
-    .filter((ref) => ref?.id)
-    .map((ref) => ({ value: ref.id, label: label(ref) }))
-    .filter((option) => option.label);
-
 const refId = (ref: LimsRef | string | null | undefined): string => {
   if (!ref) return "";
   return typeof ref === "string" ? ref : ref.id;
@@ -75,7 +69,6 @@ const LimsLocationForm = ({
       locationType: refId(initialData?.locationType),
       group: refId(initialData?.group),
       parentLocation: refId(initialData?.parentLocation),
-      subLocations: (initialData?.subLocations ?? []).map((ref) => ref.id),
       otherInformation: initialData?.otherInformation ?? ""
     }
   });
@@ -200,25 +193,24 @@ const LimsLocationForm = ({
           </div>
 
           <div className="min-w-0">
+            {/* subLocations is derived from the child side (Location.parentLocation),
+                not a column here — nothing to write back to, so this is read-only,
+                not a picker. */}
             <Label>{t("limsSubLocations")}</Label>
-            <Controller
-              name="subLocations"
-              control={control}
-              render={({ field }) => (
-                <AsyncSelect
-                  multi
-                  useOptions={useLimsLocationOptions}
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={isReadOnly}
-                  placeholder={t("select", { entity: t("limsSubLocations") })}
-                  initialSelectedOptions={seedMany(initialData?.subLocations, (r) =>
-                    String(r.locationName ?? r.name ?? "")
-                  )}
-                />
+            <div className="flex min-h-11 flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 dark:border-gray-700 dark:bg-gray-800">
+              {(initialData?.subLocations ?? []).length ? (
+                (initialData?.subLocations ?? []).map((ref) => (
+                  <span
+                    key={ref.id}
+                    className="rounded-full bg-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-200"
+                  >
+                    {ref.locationName ?? ref.name}
+                  </span>
+                ))
+              ) : (
+                <span className="text-sm text-gray-500 dark:text-gray-400">—</span>
               )}
-            />
-            {err("subLocations")}
+            </div>
           </div>
 
           <div className="min-w-0 md:col-span-2">

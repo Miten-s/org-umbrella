@@ -16,7 +16,6 @@ export const limsSchedulerSchema = z.object({
   planTime: z.string().max(500).optional(),
   leadTimeValue: z.union([z.number(), z.string()]).optional(),
   leadTimeUnit: z.string().max(500).optional(),
-  lastRunDate: z.string().max(500).optional(),
   nextRunDate: z.string().max(500).optional(),
   description: z.string().max(500).optional(),
   autoLogin: z.boolean().optional(),

@@ -12,6 +12,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import type { UseServerTableReturn } from "@/hooks/useServerTable";
 import type { BulkSelection } from "@/lib/query/listTypes";
+import { getErrorMessage, isForbiddenError } from "@/utils/error.utils";
 import { CloseLineIcon } from "@/public/icons";
 import {
   AllCommunityModule,
@@ -230,6 +231,9 @@ export function DataTable<T extends { id: string }>({
   const firstLoading = table.isLoading && table.rows.length === 0;
   const showEmpty = !table.isLoading && !table.isError && table.rows.length === 0;
 
+  const forbidden = table.isError && isForbiddenError(table.error);
+  const errorMessage = getErrorMessage(table.error, "Failed to load records.");
+
   // pagination window numbers
   const currentPage = Math.min(Math.max(1, table.page), Math.max(1, table.totalPages));
 
@@ -255,77 +259,77 @@ export function DataTable<T extends { id: string }>({
           overlays the grid on selection (see below), so the table never shifts. */}
       <div className="border-b border-gray-200 px-4 py-4 dark:border-gray-800 sm:px-5">
         <>
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              <div className="flex flex-wrap items-center gap-3">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {tableName}
-                </h2>
-                <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                  {table.total} total
-                </span>
-                {titleExtra}
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex flex-wrap items-center gap-3">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {tableName}
+              </h2>
+              <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                {table.total} total
+              </span>
+              {titleExtra}
 
-                {/* Server tabs — inline (compact) so every table keeps a single
+              {/* Server tabs — inline (compact) so every table keeps a single
                     header row (consistent height, one more data row). Only when
                     the server can actually filter (hide-don't-fake §10). */}
-                {tabs.length && caps.canFilter ? (
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {tabs.map((tab) => {
-                      const isActive = tab.key === activeTab;
-                      return (
-                        <button
-                          key={tab.key}
-                          type="button"
-                          className={[
-                            "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
-                            isActive
-                              ? "border-brand-500 bg-brand-500 text-white"
-                              : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
-                          ].join(" ")}
-                          onClick={() => onTabChange(tab)}
-                        >
-                          {tab.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center xl:justify-end">
-                {searchable ? (
-                  <div className="w-full min-w-[220px] sm:w-[280px]">
-                    <Input
-                      value={table.search}
-                      onChange={(event) => table.setSearch(event.target.value)}
-                      placeholder={searchPlaceholder}
-                    />
-                  </div>
-                ) : null}
-
-                {toolbarActions.map((action) => {
-                  const context = { activeTabKey: activeTab, filteredRows: table.rows, selectedRows: [] };
-                  const label = typeof action.label === "function" ? action.label(context) : action.label;
-                  const Icon = action.icon;
-                  return (
-                    <Button
-                      key={action.key}
-                      className={action.className}
-                      disabled={busy}
-                      permission={action.permission}
-                      permissionLogic={action.permissionLogic}
-                      size="sm"
-                      startIcon={Icon ? <Icon className="h-4 w-4" /> : undefined}
-                      variant={action.variant ?? "outline"}
-                      onClick={() => void action.onClick(context)}
-                    >
-                      {label}
-                    </Button>
-                  );
-                })}
-              </div>
+              {tabs.length && caps.canFilter ? (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {tabs.map((tab) => {
+                    const isActive = tab.key === activeTab;
+                    return (
+                      <button
+                        key={tab.key}
+                        type="button"
+                        className={[
+                          "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
+                          isActive
+                            ? "border-brand-500 bg-brand-500 text-white"
+                            : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+                        ].join(" ")}
+                        onClick={() => onTabChange(tab)}
+                      >
+                        {tab.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
             </div>
-          </>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center xl:justify-end">
+              {searchable ? (
+                <div className="w-full min-w-[220px] sm:w-[280px]">
+                  <Input
+                    value={table.search}
+                    onChange={(event) => table.setSearch(event.target.value)}
+                    placeholder={searchPlaceholder}
+                  />
+                </div>
+              ) : null}
+
+              {toolbarActions.map((action) => {
+                const context = { activeTabKey: activeTab, filteredRows: table.rows, selectedRows: [] };
+                const label = typeof action.label === "function" ? action.label(context) : action.label;
+                const Icon = action.icon;
+                return (
+                  <Button
+                    key={action.key}
+                    className={action.className}
+                    disabled={busy}
+                    permission={action.permission}
+                    permissionLogic={action.permissionLogic}
+                    size="sm"
+                    startIcon={Icon ? <Icon className="h-4 w-4" /> : undefined}
+                    variant={action.variant ?? "outline"}
+                    onClick={() => void action.onClick(context)}
+                  >
+                    {label}
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+        </>
       </div>
 
       {/* error banner (kept above grid, non-blocking when stale data exists) */}
@@ -340,7 +344,10 @@ export function DataTable<T extends { id: string }>({
         {firstLoading ? (
           <TableSkeleton rows={6} columns={Math.min(columnDefs.length + 1, 5)} />
         ) : table.isError && table.rows.length === 0 ? (
-          <ErrorState message="Failed to load records." onRetry={() => void table.refetch()} />
+          <ErrorState
+            message={errorMessage}
+            onRetry={() => void table.refetch()}
+          />
         ) : showEmpty ? (
           <EmptyState
             title={emptyState?.title ?? "Nothing here yet"}
@@ -363,11 +370,11 @@ export function DataTable<T extends { id: string }>({
               rowSelection={
                 enableSelection
                   ? {
-                      checkboxes: true,
-                      headerCheckbox: true,
-                      mode: "multiRow",
-                      enableClickSelection: false
-                    }
+                    checkboxes: true,
+                    headerCheckbox: true,
+                    mode: "multiRow",
+                    enableClickSelection: false
+                  }
                   : undefined
               }
               suppressCellFocus
@@ -400,9 +407,8 @@ export function DataTable<T extends { id: string }>({
       {pillMounted ? (
         <div className="pointer-events-none absolute inset-x-0 bottom-6 z-30 flex justify-center px-4">
           <div
-            className={`pointer-events-auto flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-gray-900/95 px-4 py-2.5 shadow-2xl shadow-gray-950/40 ring-1 ring-black/5 backdrop-blur-md dark:bg-gray-950/95 ${
-              pillLeaving ? "animate-pill-out" : "animate-pill-in"
-            }`}
+            className={`pointer-events-auto flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-gray-900/95 px-4 py-2.5 shadow-2xl shadow-gray-950/40 ring-1 ring-black/5 backdrop-blur-md dark:bg-gray-950/95 ${pillLeaving ? "animate-pill-out" : "animate-pill-in"
+              }`}
           >
             <span className="inline-flex items-center gap-2 text-sm font-medium text-gray-100">
               <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-brand-500 px-2 text-xs font-semibold text-white shadow-sm shadow-brand-500/40">
@@ -437,11 +443,10 @@ export function DataTable<T extends { id: string }>({
                     permissionLogic={action.permissionLogic}
                     startIcon={Icon ? <Icon className="h-[18px] w-[18px]" /> : undefined}
                     variant="ghost"
-                    className={`gap-2 !rounded-lg !px-3 !py-1.5 text-sm font-medium transition-colors ${
-                      action.variant === "destructive"
+                    className={`gap-2 !rounded-lg !px-3 !py-1.5 text-sm font-medium transition-colors ${action.variant === "destructive"
                         ? "text-red-400 hover:bg-red-500/10 hover:text-red-300"
                         : "text-gray-100 hover:bg-white/10"
-                    }`}
+                      }`}
                     onClick={async () => {
                       setRunningBulkKey(action.key);
                       try {

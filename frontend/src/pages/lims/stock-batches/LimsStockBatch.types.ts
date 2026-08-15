@@ -54,7 +54,6 @@ export interface LimsStockBatch {
 
 export interface LimsStockBatchPayload {
   stock: string;
-  batchNumber?: number | string;
   status?: string;
   project?: string;
   supplier?: string;

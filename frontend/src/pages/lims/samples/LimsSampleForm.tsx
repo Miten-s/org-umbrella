@@ -56,7 +56,6 @@ const LimsSampleForm = ({
   } = useForm<LimsSampleFormValues>({
     resolver: zodResolver(limsSampleSchema),
     defaultValues: {
-      sampleId: initialData?.sampleId ?? "",
       idText: initialData?.idText ?? "",
       sampleName: initialData?.sampleName ?? "",
       project: initialData?.project?.id ?? "",
@@ -115,7 +114,14 @@ const LimsSampleForm = ({
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
-          {text("sampleId", t("limsSampleId"), true, "text")}
+          <div className="min-w-0">
+            {/* sampleId is server-locked (crud-factory drops any client value on
+                write) — shown read-only, same as idNumeric, never collected as input. */}
+            <Label>{t("limsSampleId")}</Label>
+            <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+              {initialData?.sampleId ?? "—"}
+            </p>
+          </div>
           <div className="min-w-0">
             <Label>{t("limsIdNumeric")}</Label>
             <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">

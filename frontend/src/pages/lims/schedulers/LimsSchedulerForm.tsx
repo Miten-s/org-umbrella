@@ -17,6 +17,7 @@ import { useLimsTestGroupOptions } from "@/pages/lims/test-groups/LimsTestGroup.
 import { useLimsSpecificationOptions } from "@/pages/lims/specifications/LimsSpecification.queries";
 import { useSampleTypeOptions } from "@/pages/lims/phrases/LimsPhrase.queries";
 import { useLimsUserOptions } from "@/pages/lims/users/LimsUser.options";
+import { seedRefOption } from "@/utils/refLabel";
 import { limsSchedulerSchema, type LimsSchedulerFormValues } from "./LimsScheduler.schema";
 import type { LimsScheduler, LimsSchedulerPayload, LimsRef } from "./LimsScheduler.types";
 
@@ -67,7 +68,6 @@ const LimsSchedulerForm = ({
       planTime: initialData?.planTime ?? "",
       leadTimeValue: initialData?.leadTimeValue ?? "",
       leadTimeUnit: initialData?.leadTimeUnit ?? "",
-      lastRunDate: initialData?.lastRunDate ?? "",
       nextRunDate: initialData?.nextRunDate ?? "",
       description: initialData?.description ?? "",
       autoLogin: initialData?.autoLogin ?? false,
@@ -243,7 +243,7 @@ const LimsSchedulerForm = ({
                   onChange={field.onChange}
                   disabled={isReadOnly}
                   placeholder={t("select", { entity: t("limsOwner") })}
-                  initialSelectedOptions={seedOne(initialData?.owner)}
+                  initialSelectedOptions={seedRefOption(initialData?.owner)}
                 />
               )}
             />
@@ -280,7 +280,14 @@ const LimsSchedulerForm = ({
               )}
             />
           </div>
-          {text("lastRunDate", t("limsLastRunDate"), false, "date")}
+          <div className="min-w-0">
+            {/* lastRunDate is set by the scheduler runner, never by a form
+                submission — shown read-only, never collected as input. */}
+            <Label>{t("limsLastRunDate")}</Label>
+            <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+              {initialData?.lastRunDate ?? "—"}
+            </p>
+          </div>
           {text("nextRunDate", t("limsNextRunDate"), false, "date")}
           <div className="min-w-0">
             <Label>{t("limsGeneratedCount")}</Label>

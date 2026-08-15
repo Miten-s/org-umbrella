@@ -19,7 +19,6 @@ export const limsLocationSchema = z.object({
   locationType: z.string().optional(),
   group: z.string().optional(),
   parentLocation: z.string().optional(),
-  subLocations: z.array(z.string()).optional(),
   otherInformation: z
     .string()
     .max(500, "Additional notes must not exceed 500 characters")

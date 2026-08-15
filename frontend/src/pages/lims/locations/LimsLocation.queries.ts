@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { invalidateAllLims } from "@/lib/query/invalidateLims";
 import { toast } from "@/lib/toast";
 import { useAsyncOptions } from "@/hooks/useAsyncOptions";
 import { extractList } from "@/utils/listResponse";
@@ -52,7 +53,7 @@ export const useLimsLocationOptions = (args: {
 
 const useInvalidateLimsLocations = () => {
   const queryClient = useQueryClient();
-  return () => queryClient.invalidateQueries({ queryKey: limsLocationKeys.all });
+  return () => invalidateAllLims(queryClient);
 };
 
 // MIGRATION.md Rule 2: exactly one SUCCESS toast per action, owned here.

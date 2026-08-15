@@ -30,8 +30,7 @@ export interface LimsResult {
 }
 
 export interface LimsResultPayload {
-  resultId: string;
-  test?: string;
+  test: string;
   sample?: string;
   analysis?: string;
   componentId?: string;

@@ -20,6 +20,8 @@ import { BulkOperationDto, RestoreOperationDto } from "../dtos/common.dto";
 import { authorize } from "../middlewares/authorize.middleware";
 import { LimsAction } from "./permissions";
 import { ChildConfig, readChildren, syncAllChildren } from "./nested-children";
+import { applyBusinessId, BusinessIdConfig, peekBusinessId } from "./business-id";
+import { registerEntity } from "./entity-registry";
 
 /**
  * The generic engine behind every one of the 26 LIMS entities (spec §2's
@@ -55,6 +57,12 @@ export interface CrudConfig<M extends Model> {
   permissionEntity: string;
   /** Business-unique field used to suffix bulk-duplicate copies, e.g. "supplierId". */
   uniqueField?: string;
+  /**
+   * Human-readable business ID (`LOC-000001`). When set, the field is
+   * server-generated: as an overridable suggestion for master data, and
+   * unconditionally for Sample/Test/Result (`locked: true`).
+   */
+  businessId?: BusinessIdConfig;
   /** Columns matched by the free-text `search` query param. */
   searchFields: string[];
   /** Sequelize `include` for nested relations — never return bare UUIDs (spec §3). */
@@ -70,6 +78,14 @@ export interface CrudConfig<M extends Model> {
   relationFields?: Record<string, string>;
   /** Sub-forms sent nested in the parent payload (spec §6). */
   children?: ChildConfig[];
+  /**
+   * Always-applied WHERE fragment, ANDed into every read.
+   *
+   * Results use it for `isLatest: true` so lists and lookups return the
+   * current version of each measurement, never the superseded history — which
+   * is also the predicate their partial index is built on.
+   */
+  baseWhere?: WhereOptions;
   /**
    * Global reference data (Pick Lists): rows are visible to every group and
    * are NOT stamped with the creator's home group. Only these tables may carry
@@ -207,7 +223,10 @@ export const buildCrudRepo = <M extends Model>(config: CrudConfig<M>) => {
     transaction?: Transaction,
     includeRemoved = false
   ): Promise<M | null> => {
-    const where: WhereOptions = includeRemoved ? { id } : { id, isDeleted: false };
+    const where: WhereOptions = {
+      ...(config.baseWhere ?? {}),
+      ...(includeRemoved ? { id } : { id, isDeleted: false })
+    };
     return model.findOne({ where, include: relations, transaction });
   };
 
@@ -237,6 +256,7 @@ export const buildCrudRepo = <M extends Model>(config: CrudConfig<M>) => {
   }) => {
     const { skip, limit, search, includeRemoved, sortBy, sortDir, filters, scope } = params;
     const where: WhereOptions = {
+      ...(config.baseWhere ?? {}),
       ...(includeRemoved ? {} : { isDeleted: false }),
       ...getSafeFilters(model, filters)
     };
@@ -285,11 +305,88 @@ export const buildCrudRepo = <M extends Model>(config: CrudConfig<M>) => {
 
 export type CrudRepo<M extends Model> = ReturnType<typeof buildCrudRepo<M>>;
 
+/**
+ * Postgres's UNIQUE constraint on a business id is case-sensitive by default,
+ * so "GOOGLE-COPY" and "google-copy" sail through as if they were different
+ * records. A business id is a human-typed label, not a case-sensitive key —
+ * every entity's `uniqueField` goes through this before the DB gets a chance
+ * to let the collision through. Same message shape as the raw constraint
+ * violation (error.middleware.ts), so callers can't tell which one fired.
+ */
+const assertUniqueCaseInsensitive = async (
+  model: ModelStatic<any>,
+  field: string,
+  value: unknown,
+  transaction: Transaction,
+  excludeId?: string
+) => {
+  if (typeof value !== "string" || !value.trim()) return;
+
+  // Plain attribute-keyed where, not col()/fn() — every model here is
+  // `underscored: true` (JS `supplierId` -> DB `supplier_id`), and col()
+  // takes a raw SQL identifier, so col("supplierId") looks for a column
+  // that was never created and 500s. Object-key where clauses map correctly.
+  const existing = await model.findOne({
+    where: {
+      [field]: { [Op.iLike]: value.replace(/[%_\\]/g, "\\$&") },
+      ...(excludeId ? { id: { [Op.ne]: excludeId } } : {})
+    },
+    transaction
+  });
+
+  if (existing) {
+    throw Object.assign(
+      new Error(`A record with this value already exists: "${value}" (${field}).`),
+      { statusCode: 400 }
+    );
+  }
+};
+
+/**
+ * Same "-(1)", "-(2)" numbering as gxp-service's bulkDuplicate — detect an
+ * existing "-(N)" suffix, strip it back to the true base, find the highest N
+ * already in use among records sharing that base, and pick the next one.
+ * Replaces blindly appending "-COPY" every time, which stacked into
+ * "-COPY-COPY" on a second copy and then collided outright.
+ */
+const nextCopyValue = async (
+  model: ModelStatic<any>,
+  field: string,
+  sourceValue: string,
+  transaction: Transaction
+): Promise<string> => {
+  const match = sourceValue.match(/^(.*)-\((\d+)\)$/);
+  const baseName = match ? match[1] : sourceValue;
+
+  const escaped = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = `^${escaped}(?:-\\((\\d+)\\))?$`;
+
+  const rows = await model.findAll({
+    attributes: [field],
+    where: { [field]: { [Op.iRegexp]: pattern } },
+    transaction
+  });
+
+  const re = new RegExp(pattern, "i");
+  let maxIndex = 0;
+  for (const row of rows) {
+    const value = String((row as any).get(field) ?? "");
+    const found = value.match(re)?.[1];
+    if (found) maxIndex = Math.max(maxIndex, parseInt(found, 10));
+  }
+
+  return `${baseName}-(${maxIndex + 1})`;
+};
+
 // ---------------------------------------------------------------------------
 // Service layer — owns transactions + audit-log writes.
 // ---------------------------------------------------------------------------
 
 export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
+  // So anything holding only the permission code (attachments) can write audit
+  // rows under the same entityName this service uses.
+  registerEntity(config.permissionEntity, config.entityName);
+
   const repo = buildCrudRepo(config);
   const { model, entityName, uniqueField, beforeCreate, beforeUpdate, postFormat } = config;
   const shape = (formatted: any) => applyPostFormat(formatted, postFormat);
@@ -299,13 +396,24 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     const payload = config.normalizePayload ? config.normalizePayload(raw) : raw;
     return sequelize.transaction(async (transaction) => {
       const mapped = toColumns(config, payload);
-      const data = beforeCreate ? await beforeCreate(mapped) : mapped;
+
+      // Business ID before `beforeCreate`, so an entity that derives something
+      // from it (Stock Batch's `stockId/batchNumber`) sees the settled value.
+      const withBusinessId = config.businessId
+        ? await applyBusinessId(model, config.permissionEntity, config.businessId, mapped, transaction)
+        : mapped;
+
+      const data = beforeCreate ? await beforeCreate(withBusinessId) : withBusinessId;
 
       // Stamp the creator's home group when the caller didn't pick one. This is
       // what keeps data partitioned without the user choosing a group by hand
       // on every single record.
       if (hasGroupColumn && !config.globalReference && !data.groupId && ctx.scope.homeGroupId) {
         data.groupId = ctx.scope.homeGroupId;
+      }
+
+      if (uniqueField) {
+        await assertUniqueCaseInsensitive(model, uniqueField, data[uniqueField], transaction);
       }
 
       const created = await repo.create(data, transaction);
@@ -367,7 +475,19 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
       if (!existing) return null;
       const oldValue = existing.toJSON();
       const mapped = toColumns(config, payload);
+
+      // A locked business ID is the record's identity in the lab's paperwork —
+      // Sample SMP-000042 must still be SMP-000042 tomorrow. Silently drop any
+      // attempt to change it rather than 400, so an edit that round-trips the
+      // whole record (which every form does) still succeeds.
+      if (config.businessId?.locked) delete mapped[config.businessId.field];
+
       const data = beforeUpdate ? await beforeUpdate(mapped, existing) : mapped;
+
+      if (uniqueField && data[uniqueField] !== undefined) {
+        await assertUniqueCaseInsensitive(model, uniqueField, data[uniqueField], transaction, id);
+      }
+
       const updated = await repo.update(id, { ...data, modifiedBy: ctx.actor.id }, transaction);
 
       const { oldChildren, newChildren, deltas } = await syncAllChildren(
@@ -464,7 +584,7 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
         delete clone.deletedAt;
         delete clone.deletedBy;
         if (uniqueField && clone[uniqueField]) {
-          clone[uniqueField] = `${clone[uniqueField]}-COPY`;
+          clone[uniqueField] = await nextCopyValue(model, uniqueField, String(clone[uniqueField]), transaction);
         }
         const row = await repo.create(clone, transaction);
         await writeAudit({
@@ -620,11 +740,27 @@ export const buildCrudRouter = <M extends Model>(params: {
   permissionEntity: string;
   createDto?: any;
   updateDto?: any;
+  /** Both required to expose `GET /next-id` for the create form's prefill. */
+  model?: ModelStatic<M>;
+  businessId?: BusinessIdConfig;
 }): Router => {
-  const { service, entityName, permissionEntity, createDto, updateDto } = params;
+  const { service, entityName, permissionEntity, createDto, updateDto, model, businessId } = params;
   const controller = buildCrudController(service, entityName);
   const router = Router();
   const can = (action: LimsAction) => authorize(permissionEntity, action);
+
+  // Suggestion for the create form. Non-consuming, so opening a form and
+  // abandoning it doesn't burn a number. Locked entities don't expose it —
+  // there is nothing for the user to pre-fill.
+  if (model && businessId && !businessId.locked) {
+    router.get(
+      API_ROUTES.NEXT_ID,
+      can("CREATE"),
+      asyncHandler(async (_req: Request, res: Response) => {
+        res.status(200).json({ data: { [businessId.field]: await peekBusinessId(model, permissionEntity, businessId) } });
+      })
+    );
+  }
 
   router.get(API_ROUTES.PARAMS + "/audit", can("VIEW"), controller.getAuditLogs);
   router.get(API_ROUTES.ROOT, can("VIEW"), controller.getAll);

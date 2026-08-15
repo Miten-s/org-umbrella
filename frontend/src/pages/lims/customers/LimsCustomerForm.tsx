@@ -12,7 +12,6 @@ import LimsAttachmentsField from "@/components/lims/LimsAttachmentsField";
 import { useAttachments } from "@/hooks/useAttachments";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useRatingOptions } from "@/pages/lims/phrases/LimsPhrase.queries";
-import { useLimsProjectOptions } from "@/pages/lims/projects/LimsProject.queries";
 import { limsCustomerSchema, type LimsCustomerFormValues } from "./LimsCustomer.schema";
 import type { LimsRef, LimsCustomer, LimsCustomerPayload } from "./LimsCustomer.types";
 
@@ -59,7 +58,6 @@ const LimsCustomerForm = ({
       contactPhone: initialData?.contactPhone ?? "",
       email: initialData?.email ?? "",
       otherInformation: initialData?.otherInformation ?? "",
-      linkedProjects: (initialData?.linkedProjects ?? []).map((ref) => ref.id),
       address: {
         line1: initialData?.address?.line1 ?? "",
         line2: initialData?.address?.line2 ?? "",
@@ -165,24 +163,24 @@ const LimsCustomerForm = ({
           </div>
 
           <div className="col-span-full min-w-0">
+            {/* linkedProjects is derived from the Project side (Project.customer),
+                not a Customer column — there is nothing here to write back to, so
+                this is read-only, not a picker. */}
             <Label>{t("limsLinkedProjects")}</Label>
-            <Controller
-              name="linkedProjects"
-              control={control}
-              render={({ field }) => (
-                <AsyncSelect
-                  multi
-                  useOptions={useLimsProjectOptions}
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={isReadOnly}
-                  placeholder={t("select", { entity: t("limsLinkedProjects") })}
-                  initialSelectedOptions={(initialData?.linkedProjects ?? [])
-                    .filter((ref) => ref?.id && ref.name)
-                    .map((ref) => ({ value: ref.id, label: String(ref.name) }))}
-                />
+            <div className="flex min-h-11 flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 dark:border-gray-700 dark:bg-gray-800">
+              {(initialData?.linkedProjects ?? []).length ? (
+                (initialData?.linkedProjects ?? []).map((ref) => (
+                  <span
+                    key={ref.id}
+                    className="rounded-full bg-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-200"
+                  >
+                    {ref.name}
+                  </span>
+                ))
+              ) : (
+                <span className="text-sm text-gray-500 dark:text-gray-400">—</span>
               )}
-            />
+            </div>
           </div>
 
           <div className="col-span-full min-w-0">

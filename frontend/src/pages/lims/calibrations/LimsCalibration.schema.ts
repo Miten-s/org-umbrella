@@ -4,7 +4,7 @@ import { z } from "zod";
 export const limsCalibrationSchema = z.object({
   calibrationId: z.string().min(1, "This field is required").max(150),
   calibrationName: z.string().min(1, "This field is required").max(150),
-  instrument: z.string().max(500).optional(),
+  instrument: z.string().min(1, "This field is required").max(500),
   calibrationType: z.string().max(500).optional(),
   status: z.string().max(500).optional(),
   plan: z.string().max(500).optional(),

@@ -6,7 +6,7 @@ export const limsInstrumentPartSchema = z.object({
   partName: z.string().min(1, "This field is required").max(150),
   status: z.string().max(500).optional(),
   group: z.string().max(500).optional(),
-  instrument: z.string().max(500).optional(),
+  instrument: z.string().min(1, "This field is required").max(500),
   location: z.string().max(500).optional(),
   supplier: z.string().max(500).optional(),
   dateInstalled: z.string().max(500).optional(),

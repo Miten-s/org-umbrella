@@ -2,9 +2,8 @@ import { StatusPill } from "@/components/data/cells/StatusPill";
 import { TruncateCell } from "@/components/data/cells/TruncateCell";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import type { TFunction } from "i18next";
-import type { LimsAliquot, LimsRef } from "./LimsAliquot.types";
-
-const refLabel = (ref: LimsRef | null | undefined) => ref?.name ?? "";
+import { refLabel } from "@/utils/refLabel";
+import type { LimsAliquot } from "./LimsAliquot.types";
 
 /** Column factory (STANDARDS.md §8). */
 export const getLimsAliquotColumns = ({ t }: { t: TFunction }): ColDef<LimsAliquot>[] => [

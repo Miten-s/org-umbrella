@@ -56,7 +56,6 @@ export interface LimsSample {
 }
 
 export interface LimsSamplePayload {
-  sampleId: string;
   idText?: string;
   sampleName: string;
   project?: string;

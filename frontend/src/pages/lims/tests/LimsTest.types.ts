@@ -44,7 +44,6 @@ export interface LimsTest {
 }
 
 export interface LimsTestPayload {
-  testId: string;
   testName: string;
   sample?: string;
   analysis?: string;

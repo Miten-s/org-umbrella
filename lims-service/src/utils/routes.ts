@@ -15,6 +15,7 @@ const API_ROUTES = {
   GROUPS: "/lims-groups",
   ROLES: "/lims-roles",
   PERMISSIONS: "/lims-permissions",
+  ATTACHMENTS: "/lims-attachments",
   LIMS_USERS: "/lims-users",
   SCHEDULERS: "/lims-schedulers",
 
@@ -46,6 +47,8 @@ const API_ROUTES = {
 
   // Common per-entity sub-paths, appended to the prefixes above.
   PARAMS: "/:id",
+  // Must be registered before PARAMS, or "/:id" swallows it.
+  NEXT_ID: "/next-id",
   BULK_DELETE: "/bulk-delete",
   BULK_DUPLICATE: "/bulk-duplicate",
   RESTORE: "/restore/:id",

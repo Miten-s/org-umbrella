@@ -16,6 +16,7 @@ export const locationConfig: CrudConfig<Location> = {
   entityName: "Storage Location",
   permissionEntity: "LOCATION",
   uniqueField: "locationId",
+  businessId: { field: "locationId", prefix: "LOC" },
   searchFields: ["locationId", "locationName", "description"],
   defaultSortBy: "locationName",
   relations: [
@@ -53,5 +54,7 @@ export default buildCrudRouter({
   entityName: locationConfig.entityName,
   permissionEntity: locationConfig.permissionEntity,
   createDto: CreateLocationDto,
-  updateDto: UpdateLocationDto
+  updateDto: UpdateLocationDto,
+  model: Location,
+  businessId: locationConfig.businessId
 });

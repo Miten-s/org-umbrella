@@ -2,8 +2,7 @@ import { z } from "zod";
 
 /** Rule 3: friendly, inline validation mirroring the server's rules. */
 export const limsResultSchema = z.object({
-  resultId: z.string().min(1, "This field is required").max(150),
-  test: z.string().max(500).optional(),
+  test: z.string().min(1, "This field is required").max(500),
   sample: z.string().max(500).optional(),
   analysis: z.string().max(500).optional(),
   componentId: z.string().max(500).optional(),

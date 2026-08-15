@@ -8,6 +8,7 @@ import Label from "@/components/common/form/Label";
 import TextArea from "@/components/common/form/input/TextArea";
 import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
+import { seedRefOption } from "@/utils/refLabel";
 import SubFormGrid from "@/components/data/SubFormGrid";
 import LimsAttachmentsField from "@/components/lims/LimsAttachmentsField";
 import { useAttachments } from "@/hooks/useAttachments";
@@ -56,7 +57,6 @@ const LimsStockBatchForm = ({
     resolver: zodResolver(limsStockBatchSchema),
     defaultValues: {
       stock: initialData?.stock?.id ?? "",
-      batchNumber: initialData?.batchNumber ?? "",
       status: initialData?.status?.id ?? "",
       project: initialData?.project?.id ?? "",
       supplier: initialData?.supplier?.id ?? "",
@@ -122,12 +122,11 @@ const LimsStockBatchForm = ({
                   onChange={field.onChange}
                   disabled={isReadOnly}
                   placeholder={t("select", { entity: t("limsStock") })}
-                  initialSelectedOptions={seedOne(initialData?.stock)}
+                  initialSelectedOptions={seedRefOption(initialData?.stock)}
                 />
               )}
             />
           </div>
-          {text("batchNumber", t("limsBatchNumber"), false, "number")}
           <div className="min-w-0">
             <Label>{t("limsStockBatchId")}</Label>
             <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
@@ -180,7 +179,7 @@ const LimsStockBatchForm = ({
                   onChange={field.onChange}
                   disabled={isReadOnly}
                   placeholder={t("select", { entity: t("limsSupplier") })}
-                  initialSelectedOptions={seedOne(initialData?.supplier)}
+                  initialSelectedOptions={seedRefOption(initialData?.supplier)}
                 />
               )}
             />

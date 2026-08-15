@@ -2,7 +2,6 @@ import { z } from "zod";
 
 /** Rule 3: friendly, inline validation mirroring the server's rules. */
 export const limsSampleSchema = z.object({
-  sampleId: z.string().min(1, "This field is required").max(150),
   idText: z.string().max(500).optional(),
   sampleName: z.string().min(1, "This field is required").max(150),
   project: z.string().max(500).optional(),

@@ -7,6 +7,7 @@ import Label from "@/components/common/form/Label";
 import Switch from "@/components/common/form/switch/Switch";
 import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
+import { seedRefOption } from "@/utils/refLabel";
 
 import { useLimsTestOptions } from "@/pages/lims/tests/LimsTest.queries";
 import { useLimsSampleOptions } from "@/pages/lims/samples/LimsSample.queries";
@@ -48,7 +49,6 @@ const LimsResultForm = ({
   } = useForm<LimsResultFormValues>({
     resolver: zodResolver(limsResultSchema),
     defaultValues: {
-      resultId: initialData?.resultId ?? "",
       test: initialData?.test?.id ?? "",
       sample: initialData?.sample?.id ?? "",
       analysis: initialData?.analysis?.id ?? "",
@@ -100,9 +100,16 @@ const LimsResultForm = ({
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
-          {text("resultId", t("limsResultId"), true, "text")}
           <div className="min-w-0">
-            <Label required={false}>{t("limsTest")}</Label>
+            {/* resultId is server-locked (crud-factory drops any client value on
+                write) — shown read-only, never collected as input. */}
+            <Label>{t("limsResultId")}</Label>
+            <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+              {initialData?.resultId ?? "—"}
+            </p>
+          </div>
+          <div className="min-w-0">
+            <Label required>{t("limsTest")}</Label>
             <Controller
               name="test"
               control={control}
@@ -112,11 +119,15 @@ const LimsResultForm = ({
                   value={field.value}
                   onChange={field.onChange}
                   disabled={isReadOnly}
+                  error={!!errors.test}
                   placeholder={t("select", { entity: t("limsTest") })}
-                  initialSelectedOptions={seedOne(initialData?.test)}
+                  initialSelectedOptions={seedRefOption(initialData?.test)}
                 />
               )}
             />
+            {errors.test ? (
+              <p className="mt-1 text-xs text-red-500">{errors.test.message}</p>
+            ) : null}
           </div>
           <div className="min-w-0">
             <Label required={false}>{t("limsSample")}</Label>

@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import asyncHandler from "./error.middleware";
 import { getUserContext, hasPermission } from "../services/user-context.service";
 import AccessBypassLog from "../models/access-bypass-log.model";
-import { LimsAction } from "../utils/permissions";
+import { LimsAction, LimsEntity, LIMS_ENTITIES } from "../utils/permissions";
 import { logError } from "../configs/logger.config";
 
 /**
@@ -41,13 +41,26 @@ const logBypass = (req: Request, entity: string, action: LimsAction) => {
 };
 
 /**
- * @param entity Catalogue entity code, e.g. "SAMPLE".
+ * @param entity Catalogue entity code, e.g. "SAMPLE". May be a function of the
+ *   request for routes that serve many entities — attachments are checked
+ *   against whichever parent they hang off, so attaching a file to a Sample
+ *   needs Sample permission, not a separate "attachment" permission.
  * @param action The action this specific route performs. Passed explicitly
  *   rather than derived from the HTTP verb, because the verb lies:
  *   `POST /bulk-delete` deletes and `PATCH /restore/:id` is not an update.
  */
-export const authorize = (entity: string, action: LimsAction) =>
+export const authorize = (entity: string | ((req: Request) => string | undefined), action: LimsAction) =>
   asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const resolved = typeof entity === "function" ? entity(req) : entity;
+
+    if (!resolved) {
+      return res.status(400).json({ message: "entityName is required." });
+    }
+
+    if (!LIMS_ENTITIES.includes(resolved as LimsEntity)) {
+      return res.status(400).json({ message: `Unknown entity "${resolved}".` });
+    }
+
     const platformUserId = req.user?.id;
 
     if (!platformUserId) {
@@ -63,13 +76,13 @@ export const authorize = (entity: string, action: LimsAction) =>
       });
     }
 
-    if (!hasPermission(context, action, entity)) {
+    if (!hasPermission(context, action, resolved)) {
       return res.status(403).json({
-        message: `You do not have permission to ${action.toLowerCase()} ${entity.toLowerCase().replace(/_/g, " ")} records.`
+        message: `You do not have permission to ${action.toLowerCase()} ${resolved.toLowerCase().replace(/_/g, " ")} records.`
       });
     }
 
-    if (context.operateAll) logBypass(req, entity, action);
+    if (context.operateAll) logBypass(req, resolved, action);
 
     req.access = context;
     next();

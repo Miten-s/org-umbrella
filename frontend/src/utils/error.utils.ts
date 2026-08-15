@@ -82,3 +82,11 @@ export const getErrorMessage = (
 
   return fallback;
 };
+
+/**
+ * True for a 403 (authenticated but not allowed). Callers use this to skip
+ * offering "Retry" — the request didn't fail, it was correctly refused, and
+ * retrying it changes nothing without an admin granting access.
+ */
+export const isForbiddenError = (error: unknown): boolean =>
+  isRecord(error) && isRecord(error.response) && error.response.status === 403;

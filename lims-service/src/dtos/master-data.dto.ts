@@ -254,11 +254,36 @@ export class UpdateRoleDto {
 
 // ─── Lab Users ──────────────────────────────────────────────────────────────
 
-export class CreateLimsUserDto {
-  /** Platform user id — LIMS grants access to an existing user, never creates one. */
+/** `{ id, name }` of the platform user the picker selected. */
+export class PlatformUserRefDto {
   @IsString()
   @IsNotEmpty()
-  userId!: string;
+  id!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  name?: string;
+}
+
+export class CreateLimsUserDto {
+  /**
+   * The selected platform user, as the picker sends it. LIMS grants access to
+   * an existing user and never creates one.
+   *
+   * `userId`/`userName` are the columns behind this and are accepted directly
+   * too, for callers that already hold the id. The entity's `normalizePayload`
+   * splits `user` into the two — and one of the two forms must be present, or
+   * the row would reference nobody.
+   */
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PlatformUserRefDto)
+  user?: PlatformUserRefDto;
+
+  @IsOptional()
+  @IsString()
+  userId?: string;
 
   @IsOptional()
   @IsString()
@@ -298,6 +323,11 @@ export class CreateLimsUserDto {
 
 export class UpdateLimsUserDto {
   @IsOptional()
+  @ValidateNested()
+  @Type(() => PlatformUserRefDto)
+  user?: PlatformUserRefDto;
+
+  @IsOptional()
   @IsUUID("4")
   group?: string;
 
@@ -336,10 +366,11 @@ export class UpdateLimsUserDto {
 // ─── Locations ──────────────────────────────────────────────────────────────
 
 export class CreateLocationDto {
+  /** Optional: server generates `LOC-000001` when the client omits it. */
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   @MaxLength(100)
-  locationId!: string;
+  locationId?: string;
 
   @IsString()
   @IsNotEmpty()

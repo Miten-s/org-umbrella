@@ -7,6 +7,7 @@ import Label from "@/components/common/form/Label";
 import TextArea from "@/components/common/form/input/TextArea";
 import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
+import { seedRefOption } from "@/utils/refLabel";
 import LimsAttachmentsField from "@/components/lims/LimsAttachmentsField";
 import { useAttachments } from "@/hooks/useAttachments";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
@@ -149,7 +150,7 @@ const LimsStudyForm = ({
                   onChange={field.onChange}
                   disabled={isReadOnly}
                   placeholder={t("select", { entity: t("limsSupervisor") })}
-                  initialSelectedOptions={seedOne(initialData?.supervisor)}
+                  initialSelectedOptions={seedRefOption(initialData?.supervisor)}
                 />
               )}
             />

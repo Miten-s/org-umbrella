@@ -46,7 +46,6 @@ export interface LimsLocationPayload {
   locationType?: string;
   group?: string;
   parentLocation?: string;
-  subLocations?: string[];
   otherInformation?: string;
   /** Existing attachment ids to KEEP; the server deletes the rest. */
   keptAttachmentIds?: string[];

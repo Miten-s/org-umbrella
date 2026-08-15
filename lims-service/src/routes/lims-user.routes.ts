@@ -49,9 +49,21 @@ export const limsUserConfig: CrudConfig<LimsUser> = {
   ],
   relationFields: { group: "groupId", location: "locationId" },
 
-  // ["<uuid>", …] → [{ groupId: "<uuid>" }, …] so the child sync can diff them.
   normalizePayload: (payload) => {
     const next = { ...payload };
+
+    // The picker sends the chosen platform user as `user: { id, name }` —
+    // one object, because that is what an AsyncSelect yields. Split it into
+    // the two columns. `userName` is denormalised here because the platform
+    // user lives in the auth database and cannot be joined.
+    if (next.user && typeof next.user === "object") {
+      const { id, name } = next.user as { id?: string; name?: string };
+      if (id) next.userId = id;
+      if (name) next.userName = name;
+      delete next.user;
+    }
+
+    // ["<uuid>", …] → [{ groupId: "<uuid>" }, …] so the child sync can diff them.
     if (Array.isArray(next.accessGroups)) {
       next.accessGroups = next.accessGroups.map((id: string) => ({ groupId: id }));
     }
@@ -59,6 +71,21 @@ export const limsUserConfig: CrudConfig<LimsUser> = {
       next.roles = next.roles.map((id: string) => ({ roleId: id }));
     }
     return next;
+  },
+
+  /**
+   * `user` and `userId` are both optional on the DTO so either shape is
+   * accepted, which means neither being present has to be caught here — the
+   * column is NOT NULL and would otherwise surface as a raw database error.
+   */
+  beforeCreate: (payload) => {
+    if (!payload.userId) {
+      throw Object.assign(
+        new Error("Select the platform user this lab user grants access to."),
+        { statusCode: 400 }
+      );
+    }
+    return payload;
   },
 
   children: [

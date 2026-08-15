@@ -14,8 +14,12 @@ const DATA_KEYS = ["users", "data"];
 
 interface LimsUserRow extends Record<string, unknown> {
   id: string;
-  /** LIMS user records wrap the platform user as `{ id, name }`. */
-  user?: { id: string; name?: string };
+  /**
+   * The API returns the platform user as flat columns, not a nested `user`
+   * object — lims-service can't SQL-join across databases, so this is
+   * denormalized onto the row rather than a populated relation.
+   */
+  userName?: string;
 }
 
 export const limsUserKeys = {
@@ -35,7 +39,7 @@ export const fetchLimsUserOptions = async (
   return toOptionsPage<LimsUserRow>(
     response.data,
     params,
-    (row) => String(row.user?.name ?? ""),
+    (row) => String(row.userName ?? ""),
     DATA_KEYS
   );
 };

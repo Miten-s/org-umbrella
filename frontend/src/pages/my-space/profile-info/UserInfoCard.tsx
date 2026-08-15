@@ -31,6 +31,7 @@ const formatDateTime = (value?: string | number | Date) =>
 export default function UserInfoCard() {
   const { isOpen, closeModal } = useModal();
   const { user } = useAuth();
+  console.log("user", user);
   const { t } = useTranslation();
   const { setReFetch, reFetch } = useGlobalContext();
   const isSuperAdmin = user.roles?.some((role) =>

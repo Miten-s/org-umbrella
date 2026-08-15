@@ -11,7 +11,6 @@ export const limsUserSchema = z.object({
   location: z.string().optional(),
   accessGroups: z.array(z.string()).optional(),
   roles: z.array(z.string()).min(1, "Assign at least one lab role"),
-  signature: z.string().max(200).optional(),
   description: z.string().max(500).optional(),
   trainingCompleted: z.boolean().optional()
 });

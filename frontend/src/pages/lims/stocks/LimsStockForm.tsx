@@ -8,6 +8,7 @@ import Label from "@/components/common/form/Label";
 import TextArea from "@/components/common/form/input/TextArea";
 import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
+import { seedRefOption, seedRefOptions } from "@/utils/refLabel";
 import SubFormGrid from "@/components/data/SubFormGrid";
 import LimsAttachmentsField from "@/components/lims/LimsAttachmentsField";
 import { useAttachments } from "@/hooks/useAttachments";
@@ -179,7 +180,7 @@ const LimsStockForm = ({
                   onChange={field.onChange}
                   disabled={isReadOnly}
                   placeholder={t("select", { entity: t("limsDefaultLocation") })}
-                  initialSelectedOptions={seedOne(initialData?.defaultLocation)}
+                  initialSelectedOptions={seedRefOption(initialData?.defaultLocation)}
                 />
               )}
             />
@@ -196,7 +197,7 @@ const LimsStockForm = ({
                   onChange={field.onChange}
                   disabled={isReadOnly}
                   placeholder={t("select", { entity: t("limsPreferredSupplier") })}
-                  initialSelectedOptions={seedOne(initialData?.preferredSupplier)}
+                  initialSelectedOptions={seedRefOption(initialData?.preferredSupplier)}
                 />
               )}
             />
@@ -213,7 +214,7 @@ const LimsStockForm = ({
                   onChange={field.onChange}
                   disabled={isReadOnly}
                   placeholder={t("select", { entity: t("limsSuppliers") })}
-                  initialSelectedOptions={seedMany(initialData?.suppliers)}
+                  initialSelectedOptions={seedRefOptions(initialData?.suppliers)}
                 />
               )}
             />

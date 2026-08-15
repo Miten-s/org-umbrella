@@ -24,6 +24,15 @@ export interface ChildConfig {
    * `id` when the client echoes it back.
    */
   matchKey?: string;
+  /**
+   * The children are independent records this parent merely claims, not rows
+   * it owns — Batch↔Lot and Lot↔Sample. Selecting is re-parenting: a row
+   * dropped from the list has its foreign key cleared instead of being
+   * deleted, and one added is an UPDATE of an existing record, never an
+   * INSERT. Without this, deselecting a lot from a batch would destroy the
+   * lot and every sample under it.
+   */
+  detachOnly?: boolean;
 }
 
 /** What changed in one child collection — the shape stored on the audit row. */
@@ -100,6 +109,16 @@ export const syncChildren = async (
           to: data
         });
       }
+    } else if (config.detachOnly) {
+      // Claim an existing record rather than creating one.
+      const claimId = raw.id ?? key;
+      if (claimId) {
+        await config.model.update({ [config.foreignKey]: parentId } as any, {
+          where: { id: claimId } as any,
+          transaction
+        });
+        delta.added.push({ id: claimId });
+      }
     } else {
       await config.model.create({ ...data, [config.foreignKey]: parentId } as any, { transaction });
       delta.added.push(data);
@@ -108,7 +127,15 @@ export const syncChildren = async (
 
   const orphans = before.filter((row) => !seen.has(keyOf(row, config)));
   for (const orphan of orphans) {
-    await config.model.destroy({ where: { id: orphan.id } as any, transaction });
+    if (config.detachOnly) {
+      // Release, don't destroy — the record outlives this parent.
+      await config.model.update({ [config.foreignKey]: null } as any, {
+        where: { id: orphan.id } as any,
+        transaction
+      });
+    } else {
+      await config.model.destroy({ where: { id: orphan.id } as any, transaction });
+    }
     delta.removed.push(pick(orphan, config.fields));
   }
 

@@ -3,7 +3,6 @@ import { z } from "zod";
 /** Rule 3: friendly, inline validation mirroring the server's rules. */
 export const limsStockBatchSchema = z.object({
   stock: z.string().min(1, "This field is required").max(150),
-  batchNumber: z.union([z.number(), z.string()]).optional(),
   status: z.string().max(500).optional(),
   project: z.string().max(500).optional(),
   supplier: z.string().max(500).optional(),

@@ -8,6 +8,7 @@ import Label from "@/components/common/form/Label";
 import TextArea from "@/components/common/form/input/TextArea";
 import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
+import { seedRefOption } from "@/utils/refLabel";
 import SubFormGrid from "@/components/data/SubFormGrid";
 import LimsAttachmentsField from "@/components/lims/LimsAttachmentsField";
 import { useAttachments } from "@/hooks/useAttachments";
@@ -146,7 +147,7 @@ const LimsInstrumentPartForm = ({
             />
           </div>
           <div className="min-w-0">
-            <Label required={false}>{t("limsInstrument")}</Label>
+            <Label required>{t("limsInstrument")}</Label>
             <Controller
               name="instrument"
               control={control}
@@ -156,11 +157,15 @@ const LimsInstrumentPartForm = ({
                   value={field.value}
                   onChange={field.onChange}
                   disabled={isReadOnly}
+                  error={!!errors.instrument}
                   placeholder={t("select", { entity: t("limsInstrument") })}
                   initialSelectedOptions={seedOne(initialData?.instrument)}
                 />
               )}
             />
+            {errors.instrument ? (
+              <p className="mt-1 text-xs text-red-500">{errors.instrument.message}</p>
+            ) : null}
           </div>
           <div className="min-w-0">
             <Label required={false}>{t("limsLocation")}</Label>
@@ -174,7 +179,7 @@ const LimsInstrumentPartForm = ({
                   onChange={field.onChange}
                   disabled={isReadOnly}
                   placeholder={t("select", { entity: t("limsLocation") })}
-                  initialSelectedOptions={seedOne(initialData?.location)}
+                  initialSelectedOptions={seedRefOption(initialData?.location)}
                 />
               )}
             />

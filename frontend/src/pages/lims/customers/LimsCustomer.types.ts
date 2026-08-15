@@ -54,7 +54,6 @@ export interface LimsCustomerPayload {
   email?: string;
   address?: LimsAddress;
   otherInformation?: string;
-  linkedProjects?: string[];
   keptAttachmentIds?: string[];
   changeReason?: string;
 }

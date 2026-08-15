@@ -20,7 +20,14 @@ export interface LimsUser {
   id: string;
   /** @deprecated compatibility shim — read `id`. */
   _id: string;
-  user: LimsUserRef;
+  /**
+   * The platform user, as the API actually returns it: flat columns, not a
+   * nested relation — lims-service can't SQL-join across databases, so this
+   * is denormalized onto the row rather than populated. `LimsUserPayload.user`
+   * (below) is a different shape: what the form SENDS, not what comes back.
+   */
+  userId?: string;
+  userName?: string;
   group?: LimsRef | null;
   location?: LimsRef | null;
   accessGroups?: LimsRef[];

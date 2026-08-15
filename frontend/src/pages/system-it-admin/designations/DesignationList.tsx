@@ -168,7 +168,7 @@ const DesignationList = () => {
         ]}
         emptyState={{
           title: "No designations found",
-          action: { label: t("create", { entity: t("designation") }), onClick: () => openForm("create", null) }
+          // action: { label: t("create", { entity: t("designation") }), onClick: () => openForm("create", null) }
         }}
       />
 
