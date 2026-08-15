@@ -68,6 +68,12 @@ export const connectDB = async (): Promise<void> => {
     const { seedPermissions } = await import("../services/permission.service");
     await seedPermissions();
 
+    // Warn if a pick list the UI reads is missing or empty. Not seeded
+    // automatically: the values are a lab's own configuration, so overwriting
+    // them on every boot would undo their edits.
+    const { reportPhraseHealth } = await import("../services/phrase-health.service");
+    await reportPhraseHealth();
+
     await authSequelize.authenticate();
     console.log("umbrella_auth_db secondary connection connected successfully!");
   } catch (error) {

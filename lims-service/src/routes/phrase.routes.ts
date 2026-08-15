@@ -103,6 +103,73 @@ router.get(
   })
 );
 
+/**
+ * "Above mentioned Phrases pre created and can't be deleted" (spec §B.17).
+ *
+ * The `isSystem` flag existed but nothing enforced it, so a system pick list
+ * could be removed like any other record — and deleting RATING silently
+ * empties the Rating dropdown on both Suppliers and Customers, with no error
+ * anywhere to explain why. The lists themselves are protected here; the VALUES
+ * inside them stay fully editable, which is the point of the split.
+ *
+ * Registered before the CRUD router so it intercepts the same paths.
+ */
+const SYSTEM_LIST_MESSAGE =
+  "This is a system pick list and cannot be removed — the forms that read it " +
+  "would stop working. You can still add, rename or remove the values inside it.";
+
+const blockSystemDelete = asyncHandler(async (req: Request, res: Response, next) => {
+  const record = await Phrase.findByPk(req.params["id"] as string);
+  if (record?.isSystem) return res.status(409).json({ message: SYSTEM_LIST_MESSAGE });
+  next();
+});
+
+router.delete("/:id", authorize("PHRASE", "DELETE"), blockSystemDelete);
+
+/**
+ * Renaming the code breaks a system list exactly as deleting it does — the
+ * dropdown queries `?phrase=LOCATION_TYPE` and simply stops matching. The form
+ * disables the field, but a disabled input is a courtesy, not a control.
+ *
+ * Only the code is frozen: name, description and the values stay editable.
+ */
+router.patch(
+  "/:id",
+  authorize("PHRASE", "UPDATE"),
+  asyncHandler(async (req: Request, res: Response, next) => {
+    const incoming = (req.body as { phrase?: string })?.phrase;
+    if (!incoming) return next();
+
+    const record = await Phrase.findByPk(req.params["id"] as string);
+    if (record?.isSystem && incoming !== record.phrase) {
+      return res.status(409).json({
+        message:
+          `"${record.phrase}" is a system pick list and its code cannot be changed — ` +
+          "the forms that read it would stop finding it. Its name, description and " +
+          "values can all be edited."
+      });
+    }
+    next();
+  })
+);
+
+router.post(
+  "/bulk-delete",
+  authorize("PHRASE", "DELETE"),
+  asyncHandler(async (req: Request, res: Response, next) => {
+    const ids = (req.body as { ids?: string[] })?.ids ?? [];
+    const system = await Phrase.findAll({ where: { id: ids, isSystem: true } });
+    if (system.length) {
+      return res.status(409).json({
+        message: SYSTEM_LIST_MESSAGE,
+        // Name them, so the UI can say which rows to deselect.
+        systemPickLists: system.map((row) => row.phrase)
+      });
+    }
+    next();
+  })
+);
+
 router.use(crudRouter);
 
 export default router;
