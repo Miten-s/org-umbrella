@@ -39,6 +39,8 @@ export class TestRowDto {
   @IsOptional() @IsString() @MaxLength(200) testName?: string;
   @IsOptional() @IsString() @MaxLength(150) instrumentCategory?: string;
   @IsOptional() @IsString() @MaxLength(150) instrumentType?: string;
+  /** The grid sends the picked instrument under its own name. */
+  @IsOptional() @IsUUID("4") instrument?: string;
   @IsOptional() @IsUUID("4") instrumentId?: string;
   @IsOptional() @IsInt() replicateCount?: number;
   @IsOptional() @IsInt() sortOrder?: number;

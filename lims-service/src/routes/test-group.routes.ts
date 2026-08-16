@@ -30,6 +30,9 @@ export const testGroupConfig: CrudConfig<TestGroup> = {
       model: TestGroupItem,
       foreignKey: "testGroupId",
       fields: ["testName", "instrumentCategory", "instrumentType", "instrumentId", "replicateCount", "sortOrder"],
+      // The grid sends the chosen instrument as `instrument`; the column is
+      // `instrumentId`.
+      relationFields: { instrument: "instrumentId" },
       matchKey: "testName"
     }
   ]

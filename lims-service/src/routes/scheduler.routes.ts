@@ -29,7 +29,7 @@ export const schedulerConfig: CrudConfig<Scheduler> = {
     { model: TestGroup, as: "testGroup", attributes: ["id", "testGroupId", "name"], required: false },
     { model: Specification, as: "specification", attributes: ["id", "specId", "name"], required: false },
     { model: PhraseEntry, as: "sampleType", attributes: ["id", "phraseEntryId", "name"], required: false },
-    { model: LimsUser, as: "owner", attributes: ["id", "userName"], required: false }
+    { model: LimsUser, as: "owner", attributes: ["id", "userName", ["user_name", "name"]], required: false }
   ],
   relationFields: {
     group: "groupId",

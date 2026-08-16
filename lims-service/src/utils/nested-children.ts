@@ -33,6 +33,16 @@ export interface ChildConfig {
    * lot and every sample under it.
    */
   detachOnly?: boolean;
+  /**
+   * Payload key → child column, e.g. `{ instrument: "instrumentId" }`.
+   *
+   * The same convention the parent level uses: the client names a relation
+   * after the thing and sends a bare id, while the column is `<name>Id`.
+   * Without this the key simply isn't in `fields`, so `pick()` drops it — the
+   * user selects an instrument, saves, and the cell comes back empty with no
+   * error anywhere.
+   */
+  relationFields?: Record<string, string>;
 }
 
 /** What changed in one child collection — the shape stored on the audit row. */
@@ -42,9 +52,24 @@ export interface ChildDelta {
   changed: { key: string; from: Record<string, any>; to: Record<string, any> }[];
 }
 
-const pick = (row: Record<string, any>, fields: string[]) => {
+const pick = (
+  row: Record<string, any>,
+  fields: string[],
+  relationFields: Record<string, string> = {}
+) => {
+  const mapped: Record<string, any> = { ...row };
+
+  for (const [key, column] of Object.entries(relationFields)) {
+    if (!(key in mapped)) continue;
+    const value = mapped[key];
+    delete mapped[key];
+    // "" means the picker was cleared — store NULL, not an empty string in a
+    // UUID column.
+    if (value !== undefined) mapped[column] = value === "" ? null : value;
+  }
+
   const out: Record<string, any> = {};
-  for (const field of fields) if (row[field] !== undefined) out[field] = row[field];
+  for (const field of fields) if (mapped[field] !== undefined) out[field] = mapped[field];
   return out;
 };
 
@@ -95,7 +120,7 @@ export const syncChildren = async (
   const delta: ChildDelta = { added: [], removed: [], changed: [] };
 
   for (const raw of incoming) {
-    const data = pick(raw, config.fields);
+    const data = pick(raw, config.fields, config.relationFields);
     const key = keyOf(raw, config);
     const existing = key ? beforeByKey.get(key) : undefined;
 
@@ -105,7 +130,7 @@ export const syncChildren = async (
         await config.model.update(data as any, { where: { id: existing.id } as any, transaction });
         delta.changed.push({
           key,
-          from: pick(existing, config.fields),
+          from: pick(existing, config.fields, config.relationFields),
           to: data
         });
       }
@@ -136,7 +161,7 @@ export const syncChildren = async (
     } else {
       await config.model.destroy({ where: { id: orphan.id } as any, transaction });
     }
-    delta.removed.push(pick(orphan, config.fields));
+    delta.removed.push(pick(orphan, config.fields, config.relationFields));
   }
 
   return { before, after: await readChildren(config, parentId, transaction), delta };

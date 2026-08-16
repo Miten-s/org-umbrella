@@ -313,6 +313,28 @@ export type CrudRepo<M extends Model> = ReturnType<typeof buildCrudRepo<M>>;
  * to let the collision through. Same message shape as the raw constraint
  * violation (error.middleware.ts), so callers can't tell which one fired.
  */
+/**
+ * Trim the fields that identify a record.
+ *
+ * `"spec id "` and `"spec id"` are different strings, so the unique index
+ * accepts both and the list then shows two rows that look identical — the user
+ * has no way to tell them apart, and no way to see why the duplicate was
+ * allowed. Whitespace is never meaningful in an identifier, so it is removed
+ * before both the uniqueness check and the write.
+ *
+ * Applies to the business ID and to `uniqueField`; other strings (names,
+ * descriptions) are left exactly as typed.
+ */
+const trimIdentifiers = <M extends Model>(
+  config: CrudConfig<M>,
+  data: Record<string, any>
+): Record<string, any> => {
+  for (const field of [config.uniqueField, config.businessId?.field]) {
+    if (field && typeof data[field] === "string") data[field] = data[field].trim();
+  }
+  return data;
+};
+
 const assertUniqueCaseInsensitive = async (
   model: ModelStatic<any>,
   field: string,
@@ -412,6 +434,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
         data.groupId = ctx.scope.homeGroupId;
       }
 
+      trimIdentifiers(config, data);
+
       if (uniqueField) {
         await assertUniqueCaseInsensitive(model, uniqueField, data[uniqueField], transaction);
       }
@@ -483,6 +507,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
       if (config.businessId?.locked) delete mapped[config.businessId.field];
 
       const data = beforeUpdate ? await beforeUpdate(mapped, existing) : mapped;
+
+      trimIdentifiers(config, data);
 
       if (uniqueField && data[uniqueField] !== undefined) {
         await assertUniqueCaseInsensitive(model, uniqueField, data[uniqueField], transaction, id);
@@ -583,10 +609,18 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
         delete clone.isDeleted;
         delete clone.deletedAt;
         delete clone.deletedBy;
-        if (uniqueField && clone[uniqueField]) {
+        if (config.businessId) {
+         delete clone[config.businessId.field];
+          Object.assign(
+            clone,
+            await applyBusinessId(model, config.permissionEntity, config.businessId, clone, transaction)
+          );
+        } else if (uniqueField && clone[uniqueField]) {
           clone[uniqueField] = await nextCopyValue(model, uniqueField, String(clone[uniqueField]), transaction);
         }
-        const row = await repo.create(clone, transaction);
+        const prepared = beforeCreate ? await beforeCreate(clone) : clone;
+
+        const row = await repo.create(prepared, transaction);
         await writeAudit({
           entityName,
           entityId: row!.get("id") as string,

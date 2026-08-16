@@ -21,7 +21,7 @@ export const studyConfig: CrudConfig<Study> = {
   relations: [
     { model: Group, as: "group", attributes: ["id", "name"], required: false },
     { model: Project, as: "project", attributes: ["id", "projectId", "name"], required: false },
-    { model: LimsUser, as: "supervisor", attributes: ["id", "userName"], required: false }
+    { model: LimsUser, as: "supervisor", attributes: ["id", "userName", ["user_name", "name"]], required: false }
   ],
   relationFields: { group: "groupId", project: "projectId", supervisor: "supervisorId" }
 };

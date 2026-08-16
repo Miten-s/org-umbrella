@@ -21,8 +21,8 @@ export const instrumentPartConfig: CrudConfig<InstrumentPart> = {
     { model: Group, as: "group", attributes: ["id", "name"], required: false },
     { model: Instrument, as: "instrument", attributes: ["id", "instrumentId", "name"], required: false },
     { model: PhraseEntry, as: "status", attributes: ["id", "phraseEntryId", "name"], required: false },
-    { model: Location, as: "location", attributes: ["id", "locationId", "locationName"], required: false },
-    { model: Supplier, as: "supplier", attributes: ["id", "supplierId", "supplierName"], required: false },
+    { model: Location, as: "location", attributes: ["id", "locationId", "locationName", ["location_name", "name"]], required: false },
+    { model: Supplier, as: "supplier", attributes: ["id", "supplierId", "supplierName", ["supplier_name", "name"]], required: false },
     { model: MaintenanceRecord, as: "maintenance", required: false }
   ],
   relationFields: {

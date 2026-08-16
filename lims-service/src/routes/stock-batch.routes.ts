@@ -27,11 +27,11 @@ export const stockBatchConfig: CrudConfig<StockBatch> = {
   defaultSortBy: "stockBatchId",
   relations: [
     { model: Group, as: "group", attributes: ["id", "name"], required: false },
-    { model: Stock, as: "stock", attributes: ["id", "stockId", "stockName"], required: false },
+    { model: Stock, as: "stock", attributes: ["id", "stockId", "stockName", ["stock_name", "name"]], required: false },
     { model: PhraseEntry, as: "status", attributes: ["id", "phraseEntryId", "name"], required: false },
     { model: Project, as: "project", attributes: ["id", "projectId", "name"], required: false },
-    { model: Supplier, as: "supplier", attributes: ["id", "supplierId", "supplierName"], required: false },
-    { model: Location, as: "location", attributes: ["id", "locationId", "locationName"], required: false },
+    { model: Supplier, as: "supplier", attributes: ["id", "supplierId", "supplierName", ["supplier_name", "name"]], required: false },
+    { model: Location, as: "location", attributes: ["id", "locationId", "locationName", ["location_name", "name"]], required: false },
     { model: StockBatchConsumption, as: "consumptions", required: false },
     { model: StockBatchParameterValue, as: "parameters", required: false }
   ],

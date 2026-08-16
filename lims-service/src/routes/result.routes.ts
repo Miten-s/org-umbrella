@@ -36,7 +36,7 @@ export const resultConfig: CrudConfig<Result> = {
   entityName: "Result",
   permissionEntity: "RESULT",
   uniqueField: "resultId",
-  businessId: { field: "resultId", prefix: "RES", locked: true },
+  businessId: { field: "resultId", prefix: "RES", locked: true, pad: 10 },
   searchFields: ["resultId", "componentName", "value"],
   // Only the current version of each measurement is listed; the superseded
   // rows stay in the table and are reachable through /:id/versions.
@@ -44,9 +44,9 @@ export const resultConfig: CrudConfig<Result> = {
   defaultSortBy: "createdAt",
   relations: [
     { model: Group, as: "group", attributes: ["id", "name"], required: false },
-    { model: Test, as: "test", attributes: ["id", "testId", "testName"], required: false },
+    { model: Test, as: "test", attributes: ["id", "testId", "testName", ["test_name", "name"]], required: false },
     { model: Instrument, as: "instrument", attributes: ["id", "instrumentId", "name"], required: false },
-    { model: Stock, as: "stock", attributes: ["id", "stockId", "stockName"], required: false }
+    { model: Stock, as: "stock", attributes: ["id", "stockId", "stockName", ["stock_name", "name"]], required: false }
   ],
   relationFields: {
     group: "groupId",

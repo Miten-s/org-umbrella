@@ -50,3 +50,16 @@ export const normalizeIdWithRelations = <T extends Record<string, any>>(
   }
   return base;
 };
+
+/**
+ * The id out of a relation, whichever shape it arrives in.
+ *
+ * A relation reads back as a nested `{ id, name }` but writes as a bare id, so
+ * a select cell seeded straight from the record compares an object against its
+ * options, matches nothing, and renders its placeholder — the saved value looks
+ * lost when it isn't. Used when seeding sub-form grids from a loaded record.
+ */
+export const refId = (value: unknown): string =>
+  typeof value === "string"
+    ? value
+    : ((value as { id?: string } | null | undefined)?.id ?? "");

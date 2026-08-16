@@ -26,29 +26,20 @@ export const inspectionPlanConfig: CrudConfig<InspectionPlan> = {
       as: "personnel",
       required: false,
       include: [
-        { model: LimsUser, as: "person", attributes: ["id", "userName"], required: false },
+        { model: LimsUser, as: "person", attributes: ["id", "userName", ["user_name", "name"]], required: false },
         { model: Role, as: "role", attributes: ["id", "roleId", "name"], required: false }
       ]
     }
   ],
   relationFields: { group: "groupId" },
-  normalizePayload: (payload) => {
-    if (!Array.isArray(payload.personnel)) return payload;
-    return {
-      ...payload,
-      personnel: payload.personnel.map((row: Record<string, any>) => ({
-        inspectionType: row.inspectionType,
-        personId: row.personId ?? row.person ?? null,
-        roleId: row.roleId ?? row.role ?? null
-      }))
-    };
-  },
   children: [
     {
       field: "personnel",
       model: InspectionPersonnel,
       foreignKey: "inspectionPlanId",
-      fields: ["inspectionType", "personId", "roleId"]
+      fields: ["inspectionType", "personId", "roleId"],
+      // The grid names them after the thing; the columns are `<name>Id`.
+      relationFields: { person: "personId", role: "roleId" }
     }
   ]
 };

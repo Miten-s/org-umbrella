@@ -17,12 +17,12 @@ export const testConfig: CrudConfig<Test> = {
   entityName: "Test",
   permissionEntity: "TEST",
   uniqueField: "testId",
-  businessId: { field: "testId", prefix: "TST", locked: true },
+  businessId: { field: "testId", prefix: "TST", locked: true, pad: 10 },
   searchFields: ["testId", "testName", "description"],
   defaultSortBy: "createdAt",
   relations: [
     { model: Group, as: "group", attributes: ["id", "name"], required: false },
-    { model: Sample, as: "sample", attributes: ["id", "sampleId", "sampleName"], required: false },
+    { model: Sample, as: "sample", attributes: ["id", "sampleId", "sampleName", ["sample_name", "name"]], required: false },
     { model: Analysis, as: "analysis", attributes: ["id", "analysisId", "name"], required: false },
     { model: Instrument, as: "instrument", attributes: ["id", "instrumentId", "name"], required: false }
   ],

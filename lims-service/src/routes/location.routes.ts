@@ -24,13 +24,13 @@ export const locationConfig: CrudConfig<Location> = {
     {
       model: Location,
       as: "parentLocation",
-      attributes: ["id", "locationId", "locationName"],
+      attributes: ["id", "locationId", "locationName", ["location_name", "name"]],
       required: false
     },
     {
       model: Location,
       as: "subLocations",
-      attributes: ["id", "locationId", "locationName"],
+      attributes: ["id", "locationId", "locationName", ["location_name", "name"]],
       required: false
     },
     {

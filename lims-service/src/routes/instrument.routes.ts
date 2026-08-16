@@ -23,9 +23,9 @@ export const instrumentConfig: CrudConfig<Instrument> = {
     { model: PhraseEntry, as: "type", attributes: ["id", "phraseEntryId", "name"], required: false },
     { model: PhraseEntry, as: "measurementType", attributes: ["id", "phraseEntryId", "name"], required: false },
     { model: PhraseEntry, as: "status", attributes: ["id", "phraseEntryId", "name"], required: false },
-    { model: Location, as: "location", attributes: ["id", "locationId", "locationName"], required: false },
-    { model: Supplier, as: "supplier", attributes: ["id", "supplierId", "supplierName"], required: false },
-    { model: InstrumentPart, as: "parts", attributes: ["id", "partId", "partName"], required: false },
+    { model: Location, as: "location", attributes: ["id", "locationId", "locationName", ["location_name", "name"]], required: false },
+    { model: Supplier, as: "supplier", attributes: ["id", "supplierId", "supplierName", ["supplier_name", "name"]], required: false },
+    { model: InstrumentPart, as: "parts", attributes: ["id", "partId", "partName", ["part_name", "name"]], required: false },
     { model: InstrumentParameterValue, as: "parameters", required: false },
     { model: MaintenanceRecord, as: "maintenance", required: false }
   ],

@@ -23,15 +23,33 @@ export interface BusinessIdConfig {
   prefix: string;
   /** true = always server-generated, client value discarded. */
   locked?: boolean;
+  /**
+   * Digits to pad to. Defaults to 6 (`LOC-000001`), which is right for master
+   * data — nobody creates a million storage locations.
+   *
+   * The execution entities need more, and the difference is not academic:
+   * at the stated volumes (10k samples, 100k tests, 1M results per day) a
+   * 6-digit counter is exhausted in 100 days, 10 days, and **one day**
+   * respectively.
+   *
+   * Overflowing is not a crash — `padStart` widens rather than truncates, the
+   * columns are STRING(100+) and the counter is BIGINT — but the ids stop
+   * being fixed-width, and sorting them as text puts `RES-1000000` before
+   * `RES-999999`. Sizing the pad for a decade of volume keeps them ordered.
+   */
+  pad?: number;
 }
 
-const PAD = 6;
+const DEFAULT_PAD = 6;
 
 /** How many times to skip ahead when a generated number is already taken. */
 const MAX_COLLISION_RETRIES = 50;
 
-export const formatBusinessId = (prefix: string, value: number | string): string =>
-  `${prefix}-${String(value).padStart(PAD, "0")}`;
+export const formatBusinessId = (
+  prefix: string,
+  value: number | string,
+  pad: number = DEFAULT_PAD
+): string => `${prefix}-${String(value).padStart(pad, "0")}`;
 
 /**
  * Claim the next number for an entity. Atomic: the `ON CONFLICT DO UPDATE` runs
@@ -69,7 +87,11 @@ export const nextBusinessId = async <M extends Model>(
   transaction?: Transaction
 ): Promise<string> => {
   for (let attempt = 0; attempt < MAX_COLLISION_RETRIES; attempt += 1) {
-    const candidate = formatBusinessId(config.prefix, await claimNextValue(entity, config.prefix, transaction));
+    const candidate = formatBusinessId(
+      config.prefix,
+      await claimNextValue(entity, config.prefix, transaction),
+      config.pad
+    );
 
     const taken = await model.count({
       where: { [config.field]: candidate } as any,
@@ -112,12 +134,12 @@ export const peekBusinessId = async <M extends Model>(
 
   for (let attempt = 0; attempt < MAX_COLLISION_RETRIES; attempt += 1) {
     candidate += 1;
-    const value = formatBusinessId(config.prefix, candidate);
+    const value = formatBusinessId(config.prefix, candidate, config.pad);
     const taken = await model.count({ where: { [config.field]: value } as any, paranoid: false });
     if (taken === 0) return value;
   }
 
-  return formatBusinessId(config.prefix, candidate);
+  return formatBusinessId(config.prefix, candidate, config.pad);
 };
 
 /**

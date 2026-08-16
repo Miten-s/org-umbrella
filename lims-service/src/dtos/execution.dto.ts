@@ -65,6 +65,9 @@ export class TestWindowRowDto {
   @IsOptional() @IsBoolean() outOfRange?: boolean;
   @IsOptional() @IsDateString() enteredOn?: string;
   @IsOptional() @IsString() @MaxLength(200) enteredBy?: string;
+  /** The grid sends these under the relation's own name. */
+  @IsOptional() @IsUUID("4") instrument?: string;
+  @IsOptional() @IsUUID("4") stock?: string;
   @IsOptional() @IsUUID("4") instrumentId?: string;
   @IsOptional() @IsUUID("4") stockId?: string;
 }

@@ -29,7 +29,7 @@ export const limsUserConfig: CrudConfig<LimsUser> = {
     {
       model: Location,
       as: "location",
-      attributes: ["id", "locationId", "locationName"],
+      attributes: ["id", "locationId", "locationName", ["location_name", "name"]],
       required: false
     },
     {

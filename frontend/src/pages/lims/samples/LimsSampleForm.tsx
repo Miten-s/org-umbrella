@@ -18,6 +18,9 @@ import { useLimsTestGroupOptions } from "@/pages/lims/test-groups/LimsTestGroup.
 import { useLimsLocationOptions } from "@/pages/lims/locations/LimsLocation.queries";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsStockBatchOptions } from "@/pages/lims/stock-batches/LimsStockBatch.queries";
+import { useLimsInstrumentOptions } from "@/pages/lims/instruments/LimsInstrument.queries";
+import { useLimsStockOptions } from "@/pages/lims/stocks/LimsStock.queries";
+import { refId } from "@/lib/query/normalizeId";
 import { limsSampleSchema, type LimsSampleFormValues } from "./LimsSample.schema";
 import type { LimsSample, LimsSamplePayload, LimsRef, LimsTestWindowRow } from "./LimsSample.types";
 
@@ -45,7 +48,21 @@ const LimsSampleForm = ({
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
   const attachments = useAttachments(initialData?.attachments);
-  const [testWindows, setTestWindows] = useState<LimsTestWindowRow[]>(initialData?.testWindows ?? []);
+  /**
+   * `instrument` and `stock` are references: nested `{id, name}` on read, bare
+   * id on write. A select cell needs the id, or the saved value renders as the
+   * placeholder.
+   */
+  const [testWindows, setTestWindows] = useState<LimsTestWindowRow[]>(() =>
+    (initialData?.testWindows ?? []).map((row) => ({
+      ...row,
+      instrument: refId(row.instrument ?? (row as { instrumentId?: string }).instrumentId),
+      stock: refId(row.stock ?? (row as { stockId?: string }).stockId)
+    }))
+  );
+
+  const windowInstrumentOptions = useLimsInstrumentOptions({ search: "" });
+  const windowStockOptions = useLimsStockOptions({ search: "" });
 
   const {
     register,
@@ -100,7 +117,7 @@ const LimsSampleForm = ({
   );
 
   return (
-    <div className="modal-scrollbar max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+    <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
         onSubmit={handleSubmit((values) => onSubmit({ ...values, testWindows, keptAttachmentIds: attachments.keptIds }, attachments.newFiles))}
         className="min-w-0 space-y-4"
@@ -289,8 +306,18 @@ const LimsSampleForm = ({
                 { key: "outOfRange", header: t("limsOutOfRange"), type: "checkbox" },
                 { key: "enteredOn", header: t("limsEnteredOn"), type: "date" },
                 { key: "enteredBy", header: t("limsEnteredBy") },
-                { key: "instrument", header: t("limsInstrument") },
-                { key: "stock", header: t("limsStock") }
+                {
+                  key: "instrument",
+                  header: t("limsInstrument"),
+                  type: "select",
+                  options: windowInstrumentOptions.options
+                },
+                {
+                  key: "stock",
+                  header: t("limsStock"),
+                  type: "select",
+                  options: windowStockOptions.options
+                }
               ]}
             />
           </div>

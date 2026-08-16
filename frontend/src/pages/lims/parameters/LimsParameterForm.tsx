@@ -52,7 +52,7 @@ const LimsParameterForm = ({
   const busy = submitting || isSubmitting;
 
   return (
-    <div className="modal-scrollbar max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+    <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form onSubmit={handleSubmit((values) => onSubmit(values))} className="min-w-0 space-y-4">
         <h2 className="text-xl font-semibold">
           {isReadOnly

@@ -10,6 +10,8 @@ import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import SubFormGrid from "@/components/data/SubFormGrid";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
+import { refId } from "@/lib/query/normalizeId";
+import { useLimsInstrumentOptions } from "@/pages/lims/instruments/LimsInstrument.queries";
 import { limsTestGroupSchema, type LimsTestGroupFormValues } from "./LimsTestGroup.schema";
 import type {
   LimsTestGroup,
@@ -43,7 +45,19 @@ const LimsTestGroupForm = ({
 
   const identityLocked = isReadOnly;
 
-  const [tests, setTests] = useState<LimsTestRow[]>(initialData?.tests ?? []);
+  /**
+   * `instrument` is a reference. On read it arrives as a nested `{id, name}`
+   * (or just `instrumentId`); a select cell needs the bare id or it matches no
+   * option and renders blank.
+   */
+  const [tests, setTests] = useState<LimsTestRow[]>(() =>
+    (initialData?.tests ?? []).map((row) => ({
+      ...row,
+      instrument: refId(row.instrument ?? (row as { instrumentId?: string }).instrumentId)
+    }))
+  );
+
+  const instrumentOptions = useLimsInstrumentOptions({ search: "" });
 
   const {
     register,
@@ -65,7 +79,7 @@ const LimsTestGroupForm = ({
   const busy = submitting || isSubmitting;
 
   return (
-    <div className="modal-scrollbar max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+    <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
         onSubmit={handleSubmit((values) => onSubmit({ ...values, tests }))}
         className="min-w-0 space-y-4"
@@ -148,7 +162,12 @@ const LimsTestGroupForm = ({
                 { key: "testName", header: t("limsTestName") },
                 { key: "instrumentCategory", header: t("limsInstrumentCategory") },
                 { key: "instrumentType", header: t("limsInstrumentType") },
-                { key: "instrument", header: t("limsInstrument") },
+                {
+                  key: "instrument",
+                  header: t("limsInstrument"),
+                  type: "select",
+                  options: instrumentOptions.options
+                },
                 { key: "replicateCount", header: t("limsReplicateCount"), type: "number" }
               ]}
             />

@@ -213,6 +213,18 @@ layer(base);
   @apply text-gray-700 hover:bg-gray-100 group-hover:text-gray-700 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-gray-300;
 }
 
+/*
+ * The sliding highlight paints hover, so the rows must not paint their own —
+ * `menu-item-inactive` and `menu-dropdown-item-inactive` both carry a
+ * `hover:bg-*`, which would show through underneath as a second, static block.
+ *
+ * Unlayered, so it wins against the Tailwind utilities regardless of order.
+ */
+.menu-item:hover,
+.menu-dropdown-item:hover {
+  background-color: transparent;
+}
+
 @utility menu-item-icon {
   @apply text-gray-500 group-hover:text-gray-700 dark:text-gray-400;
 }

@@ -23,7 +23,7 @@ export const calibrationConfig: CrudConfig<Calibration> = {
     { model: Instrument, as: "instrument", attributes: ["id", "instrumentId", "name"], required: false },
     { model: PhraseEntry, as: "calibrationType", attributes: ["id", "phraseEntryId", "name"], required: false },
     { model: PhraseEntry, as: "status", attributes: ["id", "phraseEntryId", "name"], required: false },
-    { model: LimsUser, as: "owner", attributes: ["id", "userName"], required: false }
+    { model: LimsUser, as: "owner", attributes: ["id", "userName", ["user_name", "name"]], required: false }
   ],
   relationFields: {
     group: "groupId",

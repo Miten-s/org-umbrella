@@ -17,8 +17,8 @@ export const lotConfig: CrudConfig<Lot> = {
   defaultSortBy: "createdAt",
   relations: [
     { model: Group, as: "group", attributes: ["id", "name"], required: false },
-    { model: Batch, as: "batch", attributes: ["id", "batchId", "batchName"], required: false },
-    { model: Sample, as: "samples", attributes: ["id", "sampleId", "sampleName"], required: false }
+    { model: Batch, as: "batch", attributes: ["id", "batchId", "batchName", ["batch_name", "name"]], required: false },
+    { model: Sample, as: "samples", attributes: ["id", "sampleId", "sampleName", ["sample_name", "name"]], required: false }
   ],
   relationFields: { group: "groupId", batch: "batchId" },
   normalizePayload: (payload) => {

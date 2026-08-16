@@ -12,6 +12,12 @@ interface SelectDropdownProps {
   portal?: boolean;
   dropdownMaxHeight?: number;
   listMaxHeight?: number;
+  /**
+   * Accessible name for the trigger. Needed where no visible <Label> is
+   * attached — a SubFormGrid cell is labelled by its column header, which is
+   * in a separate <th>.
+   */
+  ariaLabel?: string;
 }
 
 export const SelectDropdown: React.FC<SelectDropdownProps> = ({
@@ -22,7 +28,8 @@ export const SelectDropdown: React.FC<SelectDropdownProps> = ({
   disabled = false,
   portal = false,
   dropdownMaxHeight = 250,
-  listMaxHeight = 180
+  listMaxHeight = 180,
+  ariaLabel
 }) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -109,6 +116,9 @@ export const SelectDropdown: React.FC<SelectDropdownProps> = ({
     <div className="relative" ref={dropdownRef}>
       <button
         type="button"
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={open}
         disabled={disabled}
         className={[
           "w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-left dark:text-gray-100 flex justify-between items-center min-h-[42px]",

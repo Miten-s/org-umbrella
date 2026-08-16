@@ -11,7 +11,10 @@ import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import SubFormGrid from "@/components/data/SubFormGrid";
 
+import { refId } from "@/lib/query/normalizeId";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
+import { useLimsUserOptions } from "@/pages/lims/users/LimsUser.options";
+import { useLimsRoleOptions } from "@/pages/lims/roles/LimsRole.queries";
 import { limsInspectionPlanSchema, type LimsInspectionPlanFormValues } from "./LimsInspectionPlan.schema";
 import type { LimsInspectionPlan, LimsInspectionPlanPayload, LimsRef, LimsPersonnelRow } from "./LimsInspectionPlan.types";
 
@@ -38,7 +41,28 @@ const LimsInspectionPlanForm = ({
 }: LimsInspectionPlanFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
-  const [personnel, setPersonnel] = useState<LimsPersonnelRow[]>(initialData?.personnel ?? []);
+  /**
+   * The server returns each personnel row's person and role as nested
+   * `{ id, name }` refs, but a select cell needs the bare id to match one of
+   * its options. Without this the saved values silently render as the
+   * "Select Person" placeholder — the record looks empty even though it isn't.
+   */
+  const [personnel, setPersonnel] = useState<LimsPersonnelRow[]>(() =>
+    (initialData?.personnel ?? []).map((row) => ({
+      ...row,
+      person: refId(row.person),
+      role: refId(row.role)
+    }))
+  );
+
+  /**
+   * Person and Role are references, not free text — the server stores them as
+   * foreign keys to Lab Users and Lab Roles. The grid previously rendered them
+   * as text inputs, so anything typed failed validation with "person must be a
+   * UUID". These feed `type: "select"` columns instead.
+   */
+  const personOptions = useLimsUserOptions({ search: "" });
+  const roleOptions = useLimsRoleOptions({ search: "" });
 
   const {
     register,
@@ -82,7 +106,7 @@ const LimsInspectionPlanForm = ({
   );
 
   return (
-    <div className="modal-scrollbar max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+    <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
         onSubmit={handleSubmit((values) => onSubmit({ ...values, personnel }))}
         className="min-w-0 space-y-4"
@@ -155,9 +179,29 @@ const LimsInspectionPlanForm = ({
               onChange={setPersonnel}
               disabled={isReadOnly}
               columns={[
-                { key: "inspectionType", header: t("limsInspectionEntryType") },
-                { key: "person", header: t("limsPerson") },
-                { key: "role", header: t("limsRole") }
+                {
+                  key: "inspectionType",
+                  header: t("limsInspectionEntryType"),
+                  type: "select",
+                  // Spec §B.13.h: the entry type decides whether the row names
+                  // a person or a role.
+                  options: [
+                    { label: t("limsPerson"), value: "User" },
+                    { label: t("limsRole"), value: "Role" }
+                  ]
+                },
+                {
+                  key: "person",
+                  header: t("limsPerson"),
+                  type: "select",
+                  options: personOptions.options
+                },
+                {
+                  key: "role",
+                  header: t("limsRole"),
+                  type: "select",
+                  options: roleOptions.options
+                }
               ]}
             />
           </div>

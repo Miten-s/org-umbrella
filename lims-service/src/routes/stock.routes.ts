@@ -29,13 +29,13 @@ export const stockConfig: CrudConfig<Stock> = {
   relations: [
     { model: Group, as: "group", attributes: ["id", "name"], required: false },
     { model: PhraseEntry, as: "stockType", attributes: ["id", "phraseEntryId", "name"], required: false },
-    { model: LimsUser, as: "operator", attributes: ["id", "userName"], required: false },
-    { model: Location, as: "defaultLocation", attributes: ["id", "locationId", "locationName"], required: false },
-    { model: Supplier, as: "preferredSupplier", attributes: ["id", "supplierId", "supplierName"], required: false },
+    { model: LimsUser, as: "operator", attributes: ["id", "userName", ["user_name", "name"]], required: false },
+    { model: Location, as: "defaultLocation", attributes: ["id", "locationId", "locationName", ["location_name", "name"]], required: false },
+    { model: Supplier, as: "preferredSupplier", attributes: ["id", "supplierId", "supplierName", ["supplier_name", "name"]], required: false },
     {
       model: Supplier,
       as: "suppliers",
-      attributes: ["id", "supplierId", "supplierName"],
+      attributes: ["id", "supplierId", "supplierName", ["supplier_name", "name"]],
       through: { attributes: [] },
       required: false
     },

@@ -25,18 +25,18 @@ export const sampleConfig: CrudConfig<Sample> = {
   entityName: "Sample",
   permissionEntity: "SAMPLE",
   uniqueField: "sampleId",
-  businessId: { field: "sampleId", prefix: "SMP", locked: true },
+  businessId: { field: "sampleId", prefix: "SMP", locked: true, pad: 9 },
   searchFields: ["sampleId", "idText", "sampleName", "lotNumber", "serialNumber"],
   defaultSortBy: "createdAt",
   relations: [
     { model: Group, as: "group", attributes: ["id", "name"], required: false },
-    { model: Lot, as: "lot", attributes: ["id", "lotId", "lotName"], required: false },
+    { model: Lot, as: "lot", attributes: ["id", "lotId", "lotName", ["lot_name", "name"]], required: false },
     { model: Project, as: "project", attributes: ["id", "projectId", "name"], required: false },
     { model: PhraseEntry, as: "sampleType", attributes: ["id", "phraseEntryId", "name"], required: false },
     { model: Specification, as: "specification", attributes: ["id", "specId", "name"], required: false },
     { model: TestGroup, as: "testGroup", attributes: ["id", "testGroupId", "name"], required: false },
-    { model: Location, as: "location", attributes: ["id", "locationId", "locationName"], required: false },
-    { model: StockBatch, as: "stockBatch", attributes: ["id", "stockBatchId"], required: false },
+    { model: Location, as: "location", attributes: ["id", "locationId", "locationName", ["location_name", "name"]], required: false },
+    { model: StockBatch, as: "stockBatch", attributes: ["id", "stockBatchId", ["stock_batch_id", "name"]], required: false },
     { model: TestWindow, as: "testWindows", required: false }
   ],
   children: [
@@ -50,6 +50,7 @@ export const sampleConfig: CrudConfig<Sample> = {
         "testId", "analysisName", "componentId", "componentName", "description",
         "value", "unit", "outOfRange", "enteredOn", "enteredBy", "instrumentId", "stockId"
       ],
+      relationFields: { instrument: "instrumentId", stock: "stockId" },
       matchKey: "componentId"
     }
   ],

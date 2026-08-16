@@ -22,7 +22,7 @@ export const aliquotConfig: CrudConfig<AliquotSet> = {
     {
       model: StockBatch,
       as: "stockBatch",
-      attributes: ["id", "stockBatchId", "batchNumber"],
+      attributes: ["id", "stockBatchId", "batchNumber", ["stock_batch_id", "name"]],
       required: false
     },
     { model: Aliquot, as: "aliquots", required: false }

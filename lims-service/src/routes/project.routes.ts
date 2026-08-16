@@ -16,8 +16,8 @@ export const projectConfig: CrudConfig<Project> = {
   defaultSortBy: "name",
   relations: [
     { model: Group, as: "group", attributes: ["id", "name"], required: false },
-    { model: Customer, as: "customer", attributes: ["id", "customerId", "customerName"], required: false },
-    { model: LimsUser, as: "supervisor", attributes: ["id", "userName"], required: false }
+    { model: Customer, as: "customer", attributes: ["id", "customerId", "customerName", ["customer_name", "name"]], required: false },
+    { model: LimsUser, as: "supervisor", attributes: ["id", "userName", ["user_name", "name"]], required: false }
   ],
   relationFields: { group: "groupId", customer: "customerId", supervisor: "supervisorId" }
 };

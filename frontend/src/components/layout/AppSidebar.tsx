@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
 import appLogo from "../../public/images/logo-transparant.png";
 import appSmLogo from "../../public/images/umbrella-clipart-cover.jpg";
@@ -34,6 +35,22 @@ type NavItem = {
   permissions?: string[];
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
 };
+
+/**
+ * Sliding hover highlight. One shared `layoutId`, so only ever one exists and
+ * it glides between rows; the outer span is its own stacking context because
+ * Framer sets an inline z-index while animating.
+ */
+const HoverHighlight = () => (
+  <span className="pointer-events-none absolute inset-0 isolate z-0">
+    <motion.span
+      layoutId="sidebar-hover"
+      aria-hidden="true"
+      className="absolute inset-0 rounded-lg bg-gray-100 dark:bg-white/[0.06]"
+      transition={{ type: "spring", stiffness: 550, damping: 45, mass: 0.5 }}
+    />
+  </span>
+);
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
@@ -151,32 +168,48 @@ const AppSidebar: React.FC = () => {
         icon: <LabAccessIcon />,
         name: t("limsLabAccess"),
         permissions: LIMS_ACCESS_PERMISSIONS,
+        // Setup order: a group exists first, then a role, then the user that
+        // is assigned both.
         subItems: [
-          { name: t("limsUsers"), path: PageUrl.LIMSUsers.path },
+          { name: t("limsGroups"), path: PageUrl.LIMSGroups.path },
           { name: t("limsRoles"), path: PageUrl.LIMSRoles.path },
-          { name: t("limsGroups"), path: PageUrl.LIMSGroups.path }
+          { name: t("limsUsers"), path: PageUrl.LIMSUsers.path }
         ]
       },
       {
         icon: <FlaskIcon />,
         name: t("limsLabSetup"),
         permissions: LIMS_SETUP_PERMISSIONS,
+        // Ordered the way a lab is actually configured: each entry only
+        // depends on ones above it.
         subItems: [
+          // Reference data — every dropdown in LIMS reads from it.
+          { name: t("limsPhrases"), path: PageUrl.LIMSPhrases.path },
+
+          // Commercial: a project belongs to a customer, a study to a project.
+          { name: t("limsCustomers"), path: PageUrl.LIMSCustomers.path },
+          { name: t("limsSuppliers"), path: PageUrl.LIMSSuppliers.path },
           { name: t("limsProjects"), path: PageUrl.LIMSProjects.path },
           { name: t("limsStudies"), path: PageUrl.LIMSStudies.path },
-          { name: t("limsSuppliers"), path: PageUrl.LIMSSuppliers.path },
-          { name: t("limsCustomers"), path: PageUrl.LIMSCustomers.path },
+
+          // Materials: where things live, then the stock, its batches, and the
+          // aliquots split off them.
           { name: t("limsLocations"), path: PageUrl.LIMSLocations.path },
-          { name: t("limsStocks"), path: PageUrl.LIMSStocks.path },
           { name: t("limsParameters"), path: PageUrl.LIMSParameters.path },
+          { name: t("limsStocks"), path: PageUrl.LIMSStocks.path },
           { name: t("limsStockBatches"), path: PageUrl.LIMSStockBatches.path },
           { name: t("limsAliquots"), path: PageUrl.LIMSAliquots.path },
+
+          // Equipment: an instrument, its parts, and its calibration schedule.
           { name: t("limsInstruments"), path: PageUrl.LIMSInstruments.path },
           {
             name: t("limsInstrumentParts"),
             path: PageUrl.LIMSInstrumentParts.path
           },
           { name: t("limsCalibrations"), path: PageUrl.LIMSCalibrations.path },
+
+          // Methods: who reviews, what is measured, what is run together, and
+          // the limits results are judged against.
           {
             name: t("limsInspectionPlans"),
             path: PageUrl.LIMSInspectionPlans.path
@@ -186,14 +219,15 @@ const AppSidebar: React.FC = () => {
           {
             name: t("limsSpecifications"),
             path: PageUrl.LIMSSpecifications.path
-          },
-          { name: t("limsPhrases"), path: PageUrl.LIMSPhrases.path }
+          }
         ]
       },
       {
         icon: <TaskIcon />,
         name: t("limsLabExecutions"),
         permissions: LIMS_EXECUTION_PERMISSIONS,
+        // The material's own journey: batch → lot → sample → test → result.
+        // Schedulers last: a tool that raises this work, not a step in it.
         subItems: [
           { name: t("limsBatches"), path: PageUrl.LIMSBatches.path },
           { name: t("limsLots"), path: PageUrl.LIMSLots.path },
@@ -242,6 +276,8 @@ const AppSidebar: React.FC = () => {
     {}
   );
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  /** The row the pointer is on — parents and sub-items share one key space. */
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
 
   // const isActive = (path: string) => location.pathname === path;
   const isActive = useCallback(
@@ -309,12 +345,18 @@ const AppSidebar: React.FC = () => {
 
   const renderMenuItems = (items: NavItem[], menuType: "main" | "others") => (
     <ul className="flex flex-col gap-4">
-      {items.map((nav, index) => (
+      {items.map((nav, index) => {
+        const key = `${menuType}-${index}`;
+        return (
         <li key={nav.name}>
+          {/* Wrapper keeps the highlight on the row, not the submenu below it. */}
+          <div className="relative">
+          {hoveredKey === key && <HoverHighlight />}
           {nav.subItems ? (
             <button
+              onMouseEnter={() => setHoveredKey(key)}
               onClick={() => handleSubmenuToggle(index, menuType)}
-              className={`menu-item group ${openSubmenu?.type === menuType && openSubmenu?.index === index
+              className={`menu-item group relative z-10 ${openSubmenu?.type === menuType && openSubmenu?.index === index
                   ? "menu-item-active"
                   : "menu-item-inactive"
                 } cursor-pointer ${!isExpanded && !isHovered
@@ -346,8 +388,9 @@ const AppSidebar: React.FC = () => {
           ) : (
             nav.path && (
               <Link
+                onMouseEnter={() => setHoveredKey(key)}
                 to={nav.path}
-                className={`menu-item group ${isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
+                className={`menu-item group relative z-10 ${isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
                   }`}
               >
                 <span
@@ -364,6 +407,7 @@ const AppSidebar: React.FC = () => {
               </Link>
             )
           )}
+          </div>
           {nav.subItems && (isExpanded || isHovered || isMobileOpen) && (
             <div
               ref={(el) => {
@@ -378,11 +422,13 @@ const AppSidebar: React.FC = () => {
               }}
             >
               <ul className="mt-2 space-y-1 ml-9">
-                {nav.subItems.map((subItem) => (
-                  <li key={subItem.name}>
+                {nav.subItems.map((subItem, subIndex) => (
+                  <li key={subItem.name} className="relative">
+                    {hoveredKey === `${key}-${subIndex}` && <HoverHighlight />}
                     <Link
+                      onMouseEnter={() => setHoveredKey(`${key}-${subIndex}`)}
                       to={subItem.path}
-                      className={`menu-dropdown-item ${isActive(subItem.path)
+                      className={`menu-dropdown-item relative z-10 ${isActive(subItem.path)
                           ? "menu-dropdown-item-active"
                           : "menu-dropdown-item-inactive"
                         }`}
@@ -417,7 +463,8 @@ const AppSidebar: React.FC = () => {
             </div>
           )}
         </li>
-      ))}
+        );
+      })}
     </ul>
   );
 
@@ -433,7 +480,10 @@ const AppSidebar: React.FC = () => {
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0`}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        setHoveredKey(null);
+      }}
     >
       <div
         className={`py-4 flex ${!isExpanded && !isHovered ? "lg:justify-center" : "justify-start"

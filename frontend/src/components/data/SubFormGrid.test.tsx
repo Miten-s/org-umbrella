@@ -60,7 +60,18 @@ describe("SubFormGrid", () => {
     expect(screen.getByLabelText("Name")).toHaveValue("pH");
     expect(screen.getByLabelText("Qty")).toHaveValue(3);
     expect(screen.getByLabelText("Active")).toBeChecked();
-    expect(screen.getByLabelText("Type")).toHaveValue("Numeric");
+    // Select cells render the shared SelectDropdown, whose trigger is a button
+    // showing the chosen option's label — not an <input> with a value.
+    expect(screen.getByLabelText("Type")).toHaveTextContent("Numeric");
+  });
+
+  it("writes back the option picked from a select cell", () => {
+    const onChange = renderGrid([{ name: "pH", type: "Numeric" }]);
+
+    fireEvent.click(screen.getByLabelText("Type"));
+    fireEvent.click(screen.getByText("Text"));
+
+    expect(onChange).toHaveBeenCalledWith([{ name: "pH", type: "Text" }]);
   });
 
   it("appends a blank row via the add button", () => {
@@ -113,6 +124,37 @@ describe("SubFormGrid", () => {
     expect(screen.queryByRole("button", { name: "limsAddRow" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /delete/ })).not.toBeInTheDocument();
     expect(screen.getByLabelText("Name")).toBeDisabled();
+  });
+
+  it("stacks into cards once there are too many columns for a row", () => {
+    // Analysis Components has 13; a table row squeezes each input to a few
+    // characters behind a horizontal scrollbar.
+    const wide = Array.from({ length: 9 }, (_, i) => ({
+      key: `f${i}` as const,
+      header: `Field ${i}`
+    }));
+
+    const onChange = vi.fn();
+    render(
+      <SubFormGrid<Record<string, unknown>>
+        label="Components"
+        columns={wide}
+        rows={[{ f0: "a" }]}
+        onChange={onChange}
+      />
+    );
+
+    // No header row — each field carries its own label instead.
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.getByText("Components 1")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Field 3"), { target: { value: "x" } });
+    expect(onChange).toHaveBeenCalledWith([{ f0: "a", f3: "x" }]);
+  });
+
+  it("keeps the table layout for narrow grids", () => {
+    renderGrid([{ name: "pH" }]);
+    expect(screen.getByRole("table")).toBeInTheDocument();
   });
 
   it("can hide only the add button, keeping rows removable", () => {
