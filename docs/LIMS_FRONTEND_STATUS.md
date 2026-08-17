@@ -3,7 +3,7 @@
 Companion to [LIMS_BACKEND_SPEC.md](./LIMS_BACKEND_SPEC.md) (give that one to the backend dev).
 This file is the frontend picture: what's built, what's left, how to run it, and what gets deleted when `lims-service` goes live.
 
-Branch: `test` · Frontend standard: [frontend/STANDARDS.md](./frontend/STANDARDS.md) · Migration rules: [frontend/MIGRATION.md](./frontend/MIGRATION.md)
+Branch: `test` · Frontend standard: [STANDARDS.md](./STANDARDS.md) · Migration rules: [MIGRATION.md](./MIGRATION.md)
 
 ---
 
