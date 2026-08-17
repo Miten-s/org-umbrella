@@ -16,6 +16,7 @@ export interface UserContext {
   /** lims_users.id — not the platform user id. */
   limsUserId: string;
   platformUserId: string;
+  userName: string | null;
   /** Home group: stamped on records this user creates. */
   homeGroupId: string | null;
   /** Access groups, already expanded down the hierarchy. */
@@ -117,6 +118,7 @@ export const getUserContext = async (platformUserId: string): Promise<UserContex
   const context: UserContext = {
     limsUserId: limsUser.id,
     platformUserId,
+    userName: limsUser.userName ?? null,
     homeGroupId: limsUser.groupId,
     accessGroupIds: await expandGroupIds([...new Set(directGroupIds)]),
     operateAll,

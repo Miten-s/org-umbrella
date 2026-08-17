@@ -672,7 +672,22 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
       offset: (page - 1) * limit,
       limit
     });
-    return { logs: formatLimsEntity(rows), total: count };
+    /*
+     * `who` / `when` / `uniqueId` alias the stored columns, because that is
+     * what the audit dialog reads. The originals are kept for API callers.
+     * Without them the trail rendered with empty Who and When columns.
+     */
+    const logs = (formatLimsEntity(rows) as Record<string, any>[]).map((row) => ({
+      ...row,
+      uniqueId: row.id,
+      // Name only — never the raw id. A uuid in a "Who" column tells a reader
+      // nothing; blank at least reads as "not recorded". `performedBy` stays on
+      // the row for anyone who needs to resolve it.
+      who: row.performedByName ?? null,
+      when: row.performedAt ?? null
+    }));
+
+    return { logs, total: count };
   };
 
   return { create, getById, getAll, update, remove, bulkDelete, bulkDuplicate, restore, getAuditLogs };

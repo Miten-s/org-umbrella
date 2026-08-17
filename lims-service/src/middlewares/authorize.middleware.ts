@@ -84,6 +84,13 @@ export const authorize = (entity: string | ((req: Request) => string | undefined
 
     if (context.operateAll) logBypass(req, resolved, action);
 
+    // The platform token carries only `{ id, email }`, so without this every
+    // audit row is written with a null "who". The name is already loaded here
+    // for the permission check.
+    if (req.user && !req.user.fullName && context.userName) {
+      req.user.fullName = context.userName;
+    }
+
     req.access = context;
     next();
   });

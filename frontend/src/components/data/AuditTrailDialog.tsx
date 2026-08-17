@@ -39,8 +39,14 @@ const readableValue = (value: unknown): string => {
   if (Array.isArray(value)) return value.length ? `${value.length} item(s)` : "";
   if (typeof value === "object") {
     const obj = value as Record<string, unknown>;
-    const label = obj.name ?? obj.locationName ?? obj.userName ?? obj.supplierName ?? obj.entry;
-    return label !== undefined ? String(label) : JSON.stringify(value);
+    const label =
+      obj.name ??
+      obj.locationName ??
+      obj.userName ??
+      obj.supplierName ??
+      obj.entry ??
+      Object.entries(obj).find(([key]) => key.endsWith("Name"))?.[1];
+    return label !== undefined && label !== null ? String(label) : "";
   }
   return String(value);
 };
@@ -65,6 +71,9 @@ const diffEntry = (entry: LimsAuditEntry): DiffRow[] => {
   const rows: DiffRow[] = [];
   for (const key of keys) {
     if (META_FIELDS.has(key)) continue;
+    // `ownerId` is the UUID behind `owner`. When both are in the snapshot the
+    // relation already says it in words, so the raw column is duplicate noise.
+    if (key.endsWith("Id") && keys.has(key.slice(0, -2))) continue;
     const before = readableValue(oldObj?.[key]);
     const after = readableValue(newObj?.[key]);
     if (before === after) continue;

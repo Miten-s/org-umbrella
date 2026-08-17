@@ -25,7 +25,7 @@ const modules: DashboardModule[] = [
     id: "lims",
     title: "LIMS",
     description: "Lab setup, stock, instruments and specifications",
-    route: PageUrl.LIMSLocations.path,
+    route: PageUrl.LIMSTests.path,
     icon: FlaskIcon
   },
   {

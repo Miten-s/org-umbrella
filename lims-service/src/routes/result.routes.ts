@@ -1,6 +1,8 @@
 import { Router, Request, Response } from "express";
 import Result from "../models/result.model";
 import Test from "../models/test.model";
+import Sample from "../models/sample.model";
+import Analysis from "../models/analysis.model";
 import Instrument from "../models/instrument.model";
 import Stock from "../models/stock.model";
 import Group from "../models/group.model";
@@ -44,7 +46,26 @@ export const resultConfig: CrudConfig<Result> = {
   defaultSortBy: "createdAt",
   relations: [
     { model: Group, as: "group", attributes: ["id", "name"], required: false },
-    { model: Test, as: "test", attributes: ["id", "testId", "testName", ["test_name", "name"]], required: false },
+    {
+      model: Test,
+      as: "test",
+      attributes: ["id", "testId", "testName", ["test_name", "name"]],
+      required: false,
+      include: [
+        {
+          model: Sample,
+          as: "sample",
+          attributes: ["id", "sampleId", "sampleName", ["sample_name", "name"]],
+          required: false
+        },
+        {
+          model: Analysis,
+          as: "analysis",
+          attributes: ["id", "analysisId", "name"],
+          required: false
+        }
+      ]
+    },
     { model: Instrument, as: "instrument", attributes: ["id", "instrumentId", "name"], required: false },
     { model: Stock, as: "stock", attributes: ["id", "stockId", "stockName", ["stock_name", "name"]], required: false }
   ],
@@ -53,7 +74,12 @@ export const resultConfig: CrudConfig<Result> = {
     test: "testId",
     instrument: "instrumentId",
     stock: "stockId"
-  }
+  },
+  postFormat: (row) => ({
+    ...row,
+    sample: row.test?.sample ?? null,
+    analysis: row.test?.analysis ?? null
+  })
 };
 
 const base = buildCrudService(resultConfig);
