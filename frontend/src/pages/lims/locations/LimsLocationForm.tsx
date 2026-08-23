@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
@@ -10,6 +11,7 @@ import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import { useAttachments } from "@/hooks/useAttachments";
 import { isImageName } from "@/lib/attachments";
+import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { getGxpImageUrl } from "@/services/utils.service";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLocationTypeOptions } from "@/pages/lims/phrases/LimsPhrase.queries";
@@ -54,6 +56,21 @@ const LimsLocationForm = ({
   const isReadOnly = mode === "view";
   const attachments = useAttachments(initialData?.attachments);
 
+  // Captured once per record — also the no-change baseline `submit` diffs
+  // against, so Save is a no-op when nothing actually differs from it.
+  const initialValues = useMemo<LimsLocationFormValues>(
+    () => ({
+      locationId: initialData?.locationId ?? "",
+      locationName: initialData?.locationName ?? "",
+      description: initialData?.description ?? "",
+      locationType: refId(initialData?.locationType),
+      group: refId(initialData?.group),
+      parentLocation: refId(initialData?.parentLocation),
+      otherInformation: initialData?.otherInformation ?? ""
+    }),
+    [initialData]
+  );
+
   const {
     register,
     control,
@@ -62,15 +79,7 @@ const LimsLocationForm = ({
     formState: { errors, isSubmitting }
   } = useForm<LimsLocationFormValues>({
     resolver: zodResolver(limsLocationSchema),
-    defaultValues: {
-      locationId: initialData?.locationId ?? "",
-      locationName: initialData?.locationName ?? "",
-      description: initialData?.description ?? "",
-      locationType: refId(initialData?.locationType),
-      group: refId(initialData?.group),
-      parentLocation: refId(initialData?.parentLocation),
-      otherInformation: initialData?.otherInformation ?? ""
-    }
+    defaultValues: initialValues
   });
 
   const description = useWatch({ control, name: "description" });
@@ -82,12 +91,18 @@ const LimsLocationForm = ({
       <p className="mt-1 text-xs text-red-500">{errors[field]?.message as string}</p>
     ) : null;
 
-  const submit = handleSubmit((values) =>
+  const submit = handleSubmit((values) => {
+    // Edit + nothing actually changed: skip the reason modal, update call,
+    // and audit entry entirely — a no-op Save just closes.
+    if (mode === "edit" && !attachments.isDirty && isPayloadEqual(values, initialValues)) {
+      onClose();
+      return;
+    }
     onSubmit(
       { ...values, keptAttachmentIds: attachments.keptIds },
       attachments.newFiles
-    )
-  );
+    );
+  });
 
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">

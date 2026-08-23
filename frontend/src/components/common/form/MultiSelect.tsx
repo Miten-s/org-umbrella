@@ -91,7 +91,11 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
     };
 
     const handleEscape = (event: KeyboardEvent) => {
+      // Both this and the parent Modal listen on `document` — without
+      // stopImmediatePropagation the Modal's own Escape handler fires right
+      // after and closes the whole form too, discarding everything entered.
       if (event.key === "Escape") {
+        event.stopImmediatePropagation();
         setIsOpen(false);
       }
     };

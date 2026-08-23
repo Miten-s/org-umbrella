@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import { Op } from "sequelize";
 import Result from "../models/result.model";
 import Test from "../models/test.model";
 import Sample from "../models/sample.model";
@@ -6,6 +7,7 @@ import Analysis from "../models/analysis.model";
 import Instrument from "../models/instrument.model";
 import Stock from "../models/stock.model";
 import Group from "../models/group.model";
+import AuditLog from "../models/audit-log.model";
 import {
   buildCrudRouter,
   buildCrudService,
@@ -66,8 +68,18 @@ export const resultConfig: CrudConfig<Result> = {
         }
       ]
     },
-    { model: Instrument, as: "instrument", attributes: ["id", "instrumentId", "name"], required: false },
-    { model: Stock, as: "stock", attributes: ["id", "stockId", "stockName", ["stock_name", "name"]], required: false }
+    {
+      model: Instrument,
+      as: "instrument",
+      attributes: ["id", "instrumentId", "name"],
+      required: false
+    },
+    {
+      model: Stock,
+      as: "stock",
+      attributes: ["id", "stockId", "stockName", ["stock_name", "name"]],
+      required: false
+    }
   ],
   relationFields: {
     group: "groupId",
@@ -126,25 +138,32 @@ const updateAsNewVersion = async (
 
     // Retire the current row first: the unique partial index allows only one
     // isLatest row per (test, component), so this must happen before insert.
-    await Result.update(
-      { isLatest: false, modifiedBy: ctx.actor.id } as any,
-      { where: { id: current.id } as any, transaction }
-    );
+    await Result.update({ isLatest: false, modifiedBy: ctx.actor.id } as any, {
+      where: { id: current.id } as any,
+      transaction
+    });
 
     const created = await Result.create(
       {
         // Everything not being amended is carried forward verbatim.
         resultId: current.resultId,
         testId: current.testId,
-        componentId: current.componentId,
-        componentName: current.componentName,
+        // Editable on amend, same as componentName — see UpdateResultDto's
+        // comment. Both were hardcoded to the OLD value here, so an edited
+        // Component ID/Name never actually saved.
+        componentId: payload.componentId ?? current.componentId,
+        componentName: payload.componentName ?? current.componentName,
         unit: payload.unit ?? current.unit,
         value: payload.value ?? current.value,
         outOfRange: payload.outOfRange ?? current.outOfRange,
         instrumentId: payload.instrumentId ?? current.instrumentId,
         stockId: payload.stockId ?? current.stockId,
         enteredBy: payload.enteredBy ?? ctx.actor.fullName ?? ctx.actor.id,
-        enteredOn: new Date(),
+        // Was hardcoded to "now" unconditionally, so amending any OTHER
+        // field (e.g. just Value) silently rewrote this to the save's
+        // server time — audit-trail noise that looked like an intentional
+        // change to a field the user never touched.
+        enteredOn: payload.enteredOn ?? current.enteredOn,
         status: current.status,
         groupId: current.groupId,
         version: current.version + 1,
@@ -169,7 +188,68 @@ const updateAsNewVersion = async (
   });
 };
 
-const service = { ...base, update: updateAsNewVersion } as typeof base;
+/**
+ * Every amendment inserts a new physical row (`updateAsNewVersion` above), so
+ * the generic `getAuditLogs(entityId)` — which filters strictly by that one
+ * row's id — only ever finds the UPDATE entry written for the current
+ * version. The original CREATE lives under the *previous* version's row id
+ * and was invisible from the UI: a QA reviewer could see the latest edit but
+ * never who created the Result or its original value.
+ *
+ * Walk the `supersedesId` chain back to the original row and pull every
+ * version's audit entries together, so the trail reads as one continuous
+ * history the way a single mutable record's would.
+ */
+const getResultAuditLogs = async (
+  entityId: string,
+  page: number,
+  limit: number,
+  ctx: CrudContext
+) => {
+  const current = await Result.findOne({ where: { id: entityId } as any });
+  if (!current) return null;
+
+  if (
+    !ctx.scope.operateAll &&
+    current.groupId &&
+    !ctx.scope.accessGroupIds.includes(current.groupId)
+  ) {
+    return null;
+  }
+
+  const chainIds = [current.id];
+  let cursor = current.supersedesId;
+  while (cursor && !chainIds.includes(cursor)) {
+    chainIds.push(cursor);
+    const ancestor = await Result.findOne({ where: { id: cursor } as any });
+    cursor = ancestor?.supersedesId ?? null;
+  }
+
+  const { count, rows } = await AuditLog.findAndCountAll({
+    where: {
+      entityName: resultConfig.entityName,
+      entityId: { [Op.in]: chainIds }
+    },
+    order: [["performedAt", "DESC"]],
+    offset: (page - 1) * limit,
+    limit
+  });
+
+  const logs = (formatLimsEntity(rows) as Record<string, any>[]).map((row) => ({
+    ...row,
+    uniqueId: row.id,
+    who: row.performedByName ?? null,
+    when: row.performedAt ?? null
+  }));
+
+  return { logs, total: count };
+};
+
+const service = {
+  ...base,
+  update: updateAsNewVersion,
+  getAuditLogs: getResultAuditLogs
+} as typeof base;
 
 const router = buildCrudRouter({
   service,
@@ -191,8 +271,14 @@ router.get(
     if (!record) return res.status(404).json({ message: "Result not found." });
 
     const scope = req.access!;
-    if (!scope.operateAll && record.groupId && !scope.accessGroupIds.includes(record.groupId)) {
-      return res.status(403).json({ message: "Result is outside your groups." });
+    if (
+      !scope.operateAll &&
+      record.groupId &&
+      !scope.accessGroupIds.includes(record.groupId)
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Result is outside your groups." });
     }
 
     const versions = await Result.findAll({

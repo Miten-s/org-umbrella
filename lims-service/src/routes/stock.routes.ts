@@ -6,7 +6,11 @@ import Location from "../models/location.model";
 import Supplier from "../models/supplier.model";
 import StockSupplier from "../models/stock-supplier.model";
 import StockParameterValue from "../models/stock-parameter-value.model";
-import { buildCrudRouter, buildCrudService, CrudConfig } from "../utils/crud-factory";
+import {
+  buildCrudRouter,
+  buildCrudService,
+  CrudConfig
+} from "../utils/crud-factory";
 import { CreateStockDto, UpdateStockDto } from "../dtos/commercial.dto";
 
 /**
@@ -28,14 +32,49 @@ export const stockConfig: CrudConfig<Stock> = {
   defaultSortBy: "stockName",
   relations: [
     { model: Group, as: "group", attributes: ["id", "name"], required: false },
-    { model: PhraseEntry, as: "stockType", attributes: ["id", "phraseEntryId", "name"], required: false },
-    { model: LimsUser, as: "operator", attributes: ["id", "userName", ["user_name", "name"]], required: false },
-    { model: Location, as: "defaultLocation", attributes: ["id", "locationId", "locationName", ["location_name", "name"]], required: false },
-    { model: Supplier, as: "preferredSupplier", attributes: ["id", "supplierId", "supplierName", ["supplier_name", "name"]], required: false },
+    {
+      model: PhraseEntry,
+      as: "stockType",
+      attributes: ["id", "phraseEntryId", "name"],
+      required: false
+    },
+    {
+      model: LimsUser,
+      as: "operator",
+      attributes: ["id", "userName", ["user_name", "name"]],
+      required: false
+    },
+    {
+      model: Location,
+      as: "defaultLocation",
+      attributes: [
+        "id",
+        "locationId",
+        "locationName",
+        ["location_name", "name"]
+      ],
+      required: false
+    },
+    {
+      model: Supplier,
+      as: "preferredSupplier",
+      attributes: [
+        "id",
+        "supplierId",
+        "supplierName",
+        ["supplier_name", "name"]
+      ],
+      required: false
+    },
     {
       model: Supplier,
       as: "suppliers",
-      attributes: ["id", "supplierId", "supplierName", ["supplier_name", "name"]],
+      attributes: [
+        "id",
+        "supplierId",
+        "supplierName",
+        ["supplier_name", "name"]
+      ],
       through: { attributes: [] },
       required: false
     },
@@ -48,6 +87,12 @@ export const stockConfig: CrudConfig<Stock> = {
     defaultLocation: "defaultLocationId",
     preferredSupplier: "preferredSupplierId"
   },
+
+  // The list table doesn't render anything from the (multi-)Suppliers or
+  // Parameters grids — Edit/View-only. `preferredSupplier` above is the
+  // single relation the list does show, and is untouched by this.
+  listExcludeRelations: ["suppliers", "parameters"],
+
   normalizePayload: (payload) => {
     if (!Array.isArray(payload.suppliers)) return payload;
     return {
@@ -84,5 +129,6 @@ export default buildCrudRouter({
   createDto: CreateStockDto,
   updateDto: UpdateStockDto,
   model: Stock,
-  businessId: stockConfig.businessId
+  businessId: stockConfig.businessId,
+  hasAttachments: true
 });

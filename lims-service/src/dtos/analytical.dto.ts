@@ -71,7 +71,10 @@ export class CreateAnalysisDto {
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsString() details?: string;
 
-  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => ComponentRowDto)
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ComponentRowDto)
   components?: ComponentRowDto[];
 }
 
@@ -86,7 +89,10 @@ export class UpdateAnalysisDto {
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsString() details?: string;
 
-  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => ComponentRowDto)
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ComponentRowDto)
   components?: ComponentRowDto[];
 
   @IsOptional() @IsString() changeReason?: string;
@@ -100,7 +106,10 @@ export class CreateTestGroupDto {
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsUUID("4") group?: string;
 
-  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => TestRowDto)
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TestRowDto)
   tests?: TestRowDto[];
 }
 
@@ -110,7 +119,10 @@ export class UpdateTestGroupDto {
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsUUID("4") group?: string;
 
-  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => TestRowDto)
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TestRowDto)
   tests?: TestRowDto[];
 
   @IsOptional() @IsString() changeReason?: string;
@@ -124,7 +136,10 @@ export class CreateSpecificationDto {
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsUUID("4") group?: string;
 
-  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => LimitRowDto)
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => LimitRowDto)
   limits?: LimitRowDto[];
 }
 
@@ -134,8 +149,19 @@ export class UpdateSpecificationDto {
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsUUID("4") group?: string;
 
-  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => LimitRowDto)
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => LimitRowDto)
   limits?: LimitRowDto[];
 
   @IsOptional() @IsString() changeReason?: string;
+  // New file attachments arrive on `req.files` (multer), separately from
+  // this JSON payload — this is only the "which existing ones survive"
+  // half of the reconcile. Declared here so `whitelist: true` doesn't
+  // strip it before the controller ever sees it.
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  keptAttachmentIds?: string[];
 }

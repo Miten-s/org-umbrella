@@ -307,9 +307,11 @@ export class CreateLimsUserDto {
   @IsUUID("4", { each: true })
   roles!: string[];
 
+  // No @MaxLength: this carries the signature pad's full base64 data URI
+  // (easily several KB), not a filename — the 200-char cap rejected every
+  // real signature outright. See migration 011 / lims-user.model.ts.
   @IsOptional()
   @IsString()
-  @MaxLength(200)
   signature?: string;
 
   @IsOptional()
@@ -345,9 +347,11 @@ export class UpdateLimsUserDto {
   @IsUUID("4", { each: true })
   roles?: string[];
 
+  // No @MaxLength: this carries the signature pad's full base64 data URI
+  // (easily several KB), not a filename — the 200-char cap rejected every
+  // real signature outright. See migration 011 / lims-user.model.ts.
   @IsOptional()
   @IsString()
-  @MaxLength(200)
   signature?: string;
 
   @IsOptional()

@@ -21,6 +21,12 @@ export const fetchLimsProjectList = async (
   return toListResult<LimsProject>(response.data, params, DATA_KEYS, RELATION_KEYS);
 };
 
+/** Used by Studies to snapshot the selected Project's own Details text. */
+export const fetchLimsProjectById = async (id: string, signal?: AbortSignal) => {
+  const response = await limsApi.get(`${ROUTE}/${id}`, { signal });
+  return (response.data?.data ?? response.data) as LimsProject;
+};
+
 /** Options for Stock, Stock Batches and Instruments. */
 export const fetchLimsProjectOptions = async (
   args: { search: string; page: number },
@@ -88,7 +94,11 @@ export const restoreLimsProject = async (id: string, changeReason: string) => {
   return response.data;
 };
 
-export const fetchLimsProjectAudit = async (id: string, signal?: AbortSignal) => {
-  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { signal });
+export const fetchLimsProjectAudit = async (
+  id: string,
+  signal?: AbortSignal,
+  params?: { page?: number; limit?: number }
+) => {
+  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { params, signal });
   return response.data;
 };

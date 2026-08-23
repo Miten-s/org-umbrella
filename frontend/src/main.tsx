@@ -3,6 +3,10 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import { GlobalContextProvider } from "./context/GlobalContextProvider";
 import "./index.css";
+// JS-side import, not a CSS @import: this file's leading @charset must be the very
+// first thing in its own stylesheet, which a mid-file CSS @import can't guarantee
+// once Vite inlines it — this path bundles it separately instead.
+import "react-datepicker/dist/react-datepicker.css";
 import { ThemeProvider } from "./context/ThemeProvider";
 import ToastProvider from "./lib/ToastProvider";
 import "./i18n";

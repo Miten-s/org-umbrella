@@ -42,12 +42,29 @@ export class LimsUser extends Model<ILimsUser> implements ILimsUser {
 
 LimsUser.init(
   {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    userId: { type: DataTypes.STRING(100), allowNull: false, unique: true, field: "user_id" },
-    userName: { type: DataTypes.STRING(200), allowNull: true, field: "user_name" },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    userId: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      unique: true,
+      field: "user_id"
+    },
+    userName: {
+      type: DataTypes.STRING(200),
+      allowNull: true,
+      field: "user_name"
+    },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
     locationId: { type: DataTypes.UUID, allowNull: true, field: "location_id" },
-    signature: { type: DataTypes.STRING(200), allowNull: true },
+    // TEXT, not a short filename column: the signature pad sends a full
+    // `data:image/png;base64,...` string (migration 011). System IT
+    // Administration's Users instead upload a real file and store just the
+    // filename here — the better long-term shape for this too.
+    signature: { type: DataTypes.TEXT, allowNull: true },
     description: { type: DataTypes.TEXT, allowNull: true },
     trainingCompleted: {
       type: DataTypes.BOOLEAN,
@@ -62,8 +79,16 @@ LimsUser.init(
       field: "is_deleted"
     },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.STRING(100), allowNull: true, field: "deleted_by" },
-    modifiedBy: { type: DataTypes.STRING(100), allowNull: true, field: "modified_by" }
+    deletedBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "deleted_by"
+    },
+    modifiedBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "modified_by"
+    }
   },
   { sequelize, tableName: "lims_users", underscored: true, timestamps: true }
 );

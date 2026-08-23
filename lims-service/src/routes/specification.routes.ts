@@ -1,8 +1,15 @@
 import Specification from "../models/specification.model";
 import SpecLimit from "../models/spec-limit.model";
 import Group from "../models/group.model";
-import { buildCrudRouter, buildCrudService, CrudConfig } from "../utils/crud-factory";
-import { CreateSpecificationDto, UpdateSpecificationDto } from "../dtos/analytical.dto";
+import {
+  buildCrudRouter,
+  buildCrudService,
+  CrudConfig
+} from "../utils/crud-factory";
+import {
+  CreateSpecificationDto,
+  UpdateSpecificationDto
+} from "../dtos/analytical.dto";
 
 /** Specifications and their limit rows. */
 export const specificationConfig: CrudConfig<Specification> = {
@@ -18,12 +25,27 @@ export const specificationConfig: CrudConfig<Specification> = {
     { model: SpecLimit, as: "limits", required: false }
   ],
   relationFields: { group: "groupId" },
+
+  // The list column only shows a count (LimsSpecification.columns.tsx:
+  // `limits?.length`) — no row content needed for the list at all.
+  listRelationAttributes: { limits: ["id"] },
+
   children: [
     {
       field: "limits",
       model: SpecLimit,
       foreignKey: "specificationId",
-      fields: ["analysisName", "componentName", "min", "max", "text", "phrase", "boolean", "calculation", "sortOrder"],
+      fields: [
+        "analysisName",
+        "componentName",
+        "min",
+        "max",
+        "text",
+        "phrase",
+        "boolean",
+        "calculation",
+        "sortOrder"
+      ],
       matchKey: "componentName"
     }
   ]
@@ -38,5 +60,6 @@ export default buildCrudRouter({
   createDto: CreateSpecificationDto,
   updateDto: UpdateSpecificationDto,
   model: Specification,
-  businessId: specificationConfig.businessId
+  businessId: specificationConfig.businessId,
+  hasAttachments: true
 });

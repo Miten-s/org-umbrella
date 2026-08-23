@@ -6,6 +6,13 @@ import type { LimsScheduler, LimsSchedulerPayload } from "./LimsScheduler.types"
 
 /** LimsScheduler API. Pure HTTP — toasts live in the mutation layer. */
 const ROUTE = "/lims-schedulers";
+
+/** Full record for the Edit/View modal — fetched on demand when it opens,
+ * not reused from the list row (see useLimsRecordById). */
+export const fetchLimsSchedulerById = async (id: string, signal?: AbortSignal) => {
+  const response = await limsApi.get(`${ROUTE}/${id}`, { signal });
+  return (response.data?.data ?? response.data) as LimsScheduler;
+};
 const DATA_KEYS = ["schedulers", "data"];
 const RELATION_KEYS = ["group", "project", "analysis", "testGroup", "specification", "sampleType", "owner"];
 
@@ -71,7 +78,11 @@ export const restoreLimsScheduler = async (id: string, changeReason: string) => 
   return response.data;
 };
 
-export const fetchLimsSchedulerAudit = async (id: string, signal?: AbortSignal) => {
-  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { signal });
+export const fetchLimsSchedulerAudit = async (
+  id: string,
+  signal?: AbortSignal,
+  params?: { page?: number; limit?: number }
+) => {
+  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { params, signal });
   return response.data;
 };

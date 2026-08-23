@@ -2,7 +2,11 @@ import TestGroup from "../models/test-group.model";
 import TestGroupItem from "../models/test-group-item.model";
 import Group from "../models/group.model";
 import Instrument from "../models/instrument.model";
-import { buildCrudRouter, buildCrudService, CrudConfig } from "../utils/crud-factory";
+import {
+  buildCrudRouter,
+  buildCrudService,
+  CrudConfig
+} from "../utils/crud-factory";
 import { CreateTestGroupDto, UpdateTestGroupDto } from "../dtos/analytical.dto";
 
 /** Test Groups — the reusable test list applied when logging a sample. */
@@ -20,16 +24,37 @@ export const testGroupConfig: CrudConfig<TestGroup> = {
       model: TestGroupItem,
       as: "tests",
       required: false,
-      include: [{ model: Instrument, as: "instrument", attributes: ["id", "instrumentId", "name"], required: false }]
+      include: [
+        {
+          model: Instrument,
+          as: "instrument",
+          attributes: ["id", "instrumentId", "name"],
+          required: false
+        }
+      ]
     }
   ],
   relationFields: { group: "groupId" },
+
+  // The list column only renders each test's name (LimsTestGroup.columns.tsx)
+  // — not its instrument, category, type, or replicate count, and the nested
+  // Instrument include isn't read at all. The Edit form still gets the full
+  // row + instrument via `relations` above; this only slims the list copy.
+  listRelationAttributes: { tests: ["id", "testName"] },
+
   children: [
     {
       field: "tests",
       model: TestGroupItem,
       foreignKey: "testGroupId",
-      fields: ["testName", "instrumentCategory", "instrumentType", "instrumentId", "replicateCount", "sortOrder"],
+      fields: [
+        "testName",
+        "instrumentCategory",
+        "instrumentType",
+        "instrumentId",
+        "replicateCount",
+        "sortOrder"
+      ],
       // The grid sends the chosen instrument as `instrument`; the column is
       // `instrumentId`.
       relationFields: { instrument: "instrumentId" },

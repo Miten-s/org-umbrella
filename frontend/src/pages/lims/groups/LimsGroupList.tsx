@@ -1,16 +1,26 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction
+} from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
-import { CopyIcon, EyeIcon, PencilIcon, PlusIcon, TimeIcon, TrashBinIcon } from "@/public/icons";
+import {
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TimeIcon,
+  TrashBinIcon
+} from "@/public/icons";
 import { fetchLimsGroupList } from "./LimsGroup.api";
 import { getLimsGroupColumns } from "./LimsGroup.columns";
 import {
@@ -20,7 +30,8 @@ import {
   useCreateLimsGroup,
   useLimsGroupAudit,
   useRestoreLimsGroup,
-  useUpdateLimsGroup
+  useUpdateLimsGroup,
+  useLimsGroupById
 } from "./LimsGroup.queries";
 import LimsGroupForm, { type LimsGroupFormMode } from "./LimsGroupForm";
 import type { LimsGroup, LimsGroupPayload } from "./LimsGroup.types";
@@ -30,12 +41,19 @@ const LimsGroupList = () => {
   const { t } = useTranslation();
   const { isOpen, openModal, closeModal } = useModal();
 
-  const [active, setActive] = useState<LimsGroup | null>(null);
+  // Only the id of the row being edited/viewed — the list row itself is
+  // never passed into the form; the full record (including attachments)
+  // is fetched fresh the moment the modal actually needs it.
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsGroupFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
 
   const compliance = useLimsCompliance<LimsGroup, LimsGroupPayload>();
   const auditQuery = useLimsGroupAudit(compliance.auditRow?.id);
+  const detailQuery = useLimsGroupById(
+    activeId ?? undefined,
+    isOpen && formMode !== "create"
+  );
 
   const fetchList = useCallback(
     (params: Parameters<typeof fetchLimsGroupList>[1], signal?: AbortSignal) =>
@@ -67,7 +85,7 @@ const LimsGroupList = () => {
   const openForm = useCallback(
     (mode: LimsGroupFormMode, group: LimsGroup | null) => {
       setFormMode(mode);
-      setActive(group);
+      setActiveId(group?.id ?? null);
       openModal();
     },
     [openModal]
@@ -75,13 +93,13 @@ const LimsGroupList = () => {
 
   const handleCloseForm = () => {
     closeModal();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
   const handleSave = async (payload: LimsGroupPayload) => {
-    if (active) {
-      compliance.requestUpdate(active.id, payload);
+    if (activeId) {
+      compliance.requestUpdate(activeId, payload);
       closeModal();
       return;
     }
@@ -97,7 +115,7 @@ const LimsGroupList = () => {
       payload: { ...pending.payload, changeReason: reason }
     });
     compliance.clearUpdate();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
@@ -116,7 +134,8 @@ const LimsGroupList = () => {
       },
       {
         key: "delete",
-        label: (count) => (count > 1 ? "Remove lab groups" : "Remove lab group"),
+        label: (count) =>
+          count > 1 ? "Remove lab groups" : "Remove lab group",
         icon: TrashBinIcon,
         variant: "destructive",
         permission: LIMS_PERMISSIONS.DELETE_GROUP,
@@ -125,7 +144,9 @@ const LimsGroupList = () => {
             selection,
             count,
             selection.mode === "ids"
-              ? table.rows.filter((row) => selection.ids.includes(row.id)).map((row) => row.name)
+              ? table.rows
+                  .filter((row) => selection.ids.includes(row.id))
+                  .map((row) => row.name)
               : []
           )
       }
@@ -185,7 +206,9 @@ const LimsGroupList = () => {
         permission: LIMS_PERMISSIONS.DELETE_GROUP,
         hidden: (group: LimsGroup) => Boolean(group.isRemoved),
         onClick: (group) =>
-          compliance.requestDelete({ mode: "ids", ids: [group.id] }, 1, [group.name])
+          compliance.requestDelete({ mode: "ids", ids: [group.id] }, 1, [
+            group.name
+          ])
       }
     ],
     [bulkClone, compliance, openForm]
@@ -228,13 +251,21 @@ const LimsGroupList = () => {
         onClose={handleCloseForm}
         className="m-4 max-w-[900px] overflow-x-hidden dark:bg-gray-900"
       >
-        <LimsGroupForm
-          mode={formMode}
-          initialData={active}
-          onClose={handleCloseForm}
-          onSubmit={handleSave}
-          submitting={createGroup.isPending || updateGroup.isPending}
-        />
+        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+          <div className="flex min-h-[300px] items-center justify-center p-10">
+            <LoadingSpinner fullScreen={false} />
+          </div>
+        ) : (
+          <LimsGroupForm
+            mode={formMode}
+            initialData={
+              formMode === "create" ? null : (detailQuery.data ?? null)
+            }
+            onClose={handleCloseForm}
+            onSubmit={handleSave}
+            submitting={createGroup.isPending || updateGroup.isPending}
+          />
+        )}
       </Modal>
 
       <LimsComplianceDialogs
@@ -245,13 +276,23 @@ const LimsGroupList = () => {
         updating={updateGroup.isPending}
         deleting={bulkDelete.isPending}
         restoring={restoreGroup.isPending}
-        auditEntries={auditQuery.data ?? []}
+        auditEntries={auditQuery.entries}
+
         auditLoading={auditQuery.isLoading}
+
+        auditHasNextPage={auditQuery.hasNextPage}
+
+        auditFetchingNextPage={auditQuery.isFetchingNextPage}
+
+        onAuditLoadMore={auditQuery.fetchNextPage}
         onUpdate={confirmUpdate}
         onDelete={async (reason) => {
           const pending = compliance.pendingDelete;
           if (pending) {
-            await bulkDelete.mutateAsync({ selection: pending.selection, changeReason: reason });
+            await bulkDelete.mutateAsync({
+              selection: pending.selection,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearDelete();
@@ -259,7 +300,10 @@ const LimsGroupList = () => {
         onRestore={async (reason) => {
           const pending = compliance.pendingRestore;
           if (pending) {
-            await restoreGroup.mutateAsync({ id: pending.id, changeReason: reason });
+            await restoreGroup.mutateAsync({
+              id: pending.id,
+              changeReason: reason
+            });
           }
           compliance.clearRestore();
         }}

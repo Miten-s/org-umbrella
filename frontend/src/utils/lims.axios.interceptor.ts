@@ -3,8 +3,13 @@ import { toast } from "@/lib/toast";
 import { getErrorMessage } from "./error.utils";
 import { AUTH_TOKEN_KEY } from "./common.constants";
 
-/** lims-service. backend runs on 9002 and gxp-service on 9001. */
-const BASE_URL =
+/**
+ * lims-service. backend runs on 9002 and gxp-service on 9001. Exported so
+ * `getLimsImageUrl` (utils.service.ts) derives attachment URLs from this same
+ * value instead of re-declaring it — one env var to change for a production
+ * deploy, not two things that can drift apart.
+ */
+export const BASE_URL =
   import.meta.env.VITE_API_LIMS_BASE_URL ?? "http://localhost:9003/v1/api";
 
 const limsApi = axios.create({

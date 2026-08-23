@@ -6,6 +6,13 @@ import type { LimsInstrumentPart, LimsInstrumentPartPayload } from "./LimsInstru
 
 /** LimsInstrumentPart API. Pure HTTP — toasts live in the mutation layer. */
 const ROUTE = "/lims-instrument-parts";
+
+/** Full record for the Edit/View modal — fetched on demand when it opens,
+ * not reused from the list row (see useLimsRecordById). */
+export const fetchLimsInstrumentPartById = async (id: string, signal?: AbortSignal) => {
+  const response = await limsApi.get(`${ROUTE}/${id}`, { signal });
+  return (response.data?.data ?? response.data) as LimsInstrumentPart;
+};
 const DATA_KEYS = ["instrumentParts", "data"];
 const RELATION_KEYS = ["group", "status", "location", "supplier", "instrument"];
 
@@ -88,7 +95,11 @@ export const restoreLimsInstrumentPart = async (id: string, changeReason: string
   return response.data;
 };
 
-export const fetchLimsInstrumentPartAudit = async (id: string, signal?: AbortSignal) => {
-  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { signal });
+export const fetchLimsInstrumentPartAudit = async (
+  id: string,
+  signal?: AbortSignal,
+  params?: { page?: number; limit?: number }
+) => {
+  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { params, signal });
   return response.data;
 };

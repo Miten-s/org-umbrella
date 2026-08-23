@@ -6,6 +6,13 @@ import type { LimsParameter, LimsParameterPayload } from "./LimsParameter.types"
 
 /** LIMS Parameter API. Pure HTTP — toasts live in the mutation layer. */
 const ROUTE = "/lims-parameters";
+
+/** Full record for the Edit/View modal — fetched on demand when it opens,
+ * not reused from the list row (see useLimsRecordById). */
+export const fetchLimsParameterById = async (id: string, signal?: AbortSignal) => {
+  const response = await limsApi.get(`${ROUTE}/${id}`, { signal });
+  return (response.data?.data ?? response.data) as LimsParameter;
+};
 const DATA_KEYS = ["parameters", "data"];
 const RELATION_KEYS = ["parameterType"];
 
@@ -71,7 +78,11 @@ export const restoreLimsParameter = async (id: string, changeReason: string) => 
   return response.data;
 };
 
-export const fetchLimsParameterAudit = async (id: string, signal?: AbortSignal) => {
-  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { signal });
+export const fetchLimsParameterAudit = async (
+  id: string,
+  signal?: AbortSignal,
+  params?: { page?: number; limit?: number }
+) => {
+  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { params, signal });
   return response.data;
 };

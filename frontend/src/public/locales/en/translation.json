@@ -302,6 +302,7 @@
   "limsAuditNewValue": "New value",
   "limsAuditWhy": "Why",
   "limsNoAuditEntries": "No audit entries yet",
+  "limsAuditLoadMore": "Load older entries",
   "limsInstrumentPart": "Instrument Part",
   "limsPartId": "Part ID",
   "limsPartName": "Part name",

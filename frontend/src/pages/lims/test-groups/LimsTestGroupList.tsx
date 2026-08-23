@@ -1,16 +1,26 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction
+} from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
-import { CopyIcon, EyeIcon, PencilIcon, PlusIcon, TimeIcon, TrashBinIcon } from "@/public/icons";
+import {
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TimeIcon,
+  TrashBinIcon
+} from "@/public/icons";
 import { fetchLimsTestGroupList } from "./LimsTestGroup.api";
 import { getLimsTestGroupColumns } from "./LimsTestGroup.columns";
 import {
@@ -20,31 +30,46 @@ import {
   useCreateLimsTestGroup,
   useLimsTestGroupAudit,
   useRestoreLimsTestGroup,
-  useUpdateLimsTestGroup
+  useUpdateLimsTestGroup,
+  useLimsTestGroupById
 } from "./LimsTestGroup.queries";
-import LimsTestGroupForm, { type LimsTestGroupFormMode } from "./LimsTestGroupForm";
-import type { LimsTestGroup, LimsTestGroupPayload } from "./LimsTestGroup.types";
+import LimsTestGroupForm, {
+  type LimsTestGroupFormMode
+} from "./LimsTestGroupForm";
+import type {
+  LimsTestGroup,
+  LimsTestGroupPayload
+} from "./LimsTestGroup.types";
 
 /**
- * LIMS Pick Lists (Phrases) — Track A module.
+ * LIMS Test Groups — Track A module.
  *
- * System pick lists are seeded by the backend and must not be removed or
+ * System test groups are seeded by the backend and must not be removed or
  * cloned; their values can still be edited. Those actions are hidden per row.
  */
 const LimsTestGroupList = () => {
   const { t } = useTranslation();
   const { isOpen, openModal, closeModal } = useModal();
 
-  const [active, setActive] = useState<LimsTestGroup | null>(null);
+  // Only the id of the row being edited/viewed — the list row itself is
+  // never passed into the form; the full record (including attachments)
+  // is fetched fresh the moment the modal actually needs it.
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsTestGroupFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
 
   const compliance = useLimsCompliance<LimsTestGroup, LimsTestGroupPayload>();
   const auditQuery = useLimsTestGroupAudit(compliance.auditRow?.id);
+  const detailQuery = useLimsTestGroupById(
+    activeId ?? undefined,
+    isOpen && formMode !== "create"
+  );
 
   const fetchList = useCallback(
-    (params: Parameters<typeof fetchLimsTestGroupList>[1], signal?: AbortSignal) =>
-      fetchLimsTestGroupList(includeRemoved, params, signal),
+    (
+      params: Parameters<typeof fetchLimsTestGroupList>[1],
+      signal?: AbortSignal
+    ) => fetchLimsTestGroupList(includeRemoved, params, signal),
     [includeRemoved]
   );
 
@@ -72,7 +97,7 @@ const LimsTestGroupList = () => {
   const openForm = useCallback(
     (mode: LimsTestGroupFormMode, phrase: LimsTestGroup | null) => {
       setFormMode(mode);
-      setActive(phrase);
+      setActiveId(phrase?.id ?? null);
       openModal();
     },
     [openModal]
@@ -80,13 +105,13 @@ const LimsTestGroupList = () => {
 
   const handleCloseForm = () => {
     closeModal();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
   const handleSave = async (payload: LimsTestGroupPayload) => {
-    if (active) {
-      compliance.requestUpdate(active.id, payload);
+    if (activeId) {
+      compliance.requestUpdate(activeId, payload);
       closeModal();
       return;
     }
@@ -102,7 +127,7 @@ const LimsTestGroupList = () => {
       payload: { ...pending.payload, changeReason: reason }
     });
     compliance.clearUpdate();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
@@ -110,7 +135,8 @@ const LimsTestGroupList = () => {
     () => [
       {
         key: "delete",
-        label: (count) => (count > 1 ? "Remove pick lists" : "Remove pick list"),
+        label: (count) =>
+          count > 1 ? "Remove test groups" : "Remove test group",
         icon: TrashBinIcon,
         variant: "destructive",
         permission: LIMS_PERMISSIONS.DELETE_TEST_GROUP,
@@ -119,7 +145,9 @@ const LimsTestGroupList = () => {
             selection,
             count,
             selection.mode === "ids"
-              ? table.rows.filter((row) => selection.ids.includes(row.id)).map((row) => row.name)
+              ? table.rows
+                  .filter((row) => selection.ids.includes(row.id))
+                  .map((row) => row.name)
               : []
           )
       }
@@ -131,7 +159,7 @@ const LimsTestGroupList = () => {
     () => [
       {
         key: "view",
-        label: "View pick list",
+        label: "View test group",
         icon: EyeIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_TEST_GROUP,
@@ -139,7 +167,7 @@ const LimsTestGroupList = () => {
       },
       {
         key: "edit",
-        label: "Edit pick list",
+        label: "Edit test group",
         icon: PencilIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.UPDATE_TEST_GROUP,
@@ -155,7 +183,7 @@ const LimsTestGroupList = () => {
       },
       {
         key: "clone",
-        label: "Copy pick list",
+        label: "Copy test group",
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_TEST_GROUP,
@@ -163,7 +191,7 @@ const LimsTestGroupList = () => {
       },
       {
         key: "restore",
-        label: "Restore pick list",
+        label: "Restore test group",
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.UPDATE_TEST_GROUP,
@@ -172,14 +200,16 @@ const LimsTestGroupList = () => {
       },
       {
         key: "delete",
-        label: "Remove pick list",
+        label: "Remove test group",
         icon: TrashBinIcon,
         placement: "menu",
         tone: "danger",
         permission: LIMS_PERMISSIONS.DELETE_TEST_GROUP,
         hidden: (phrase: LimsTestGroup) => Boolean(phrase.isRemoved),
         onClick: (phrase) =>
-          compliance.requestDelete({ mode: "ids", ids: [phrase.id] }, 1, [phrase.name])
+          compliance.requestDelete({ mode: "ids", ids: [phrase.id] }, 1, [
+            phrase.name
+          ])
       }
     ],
     [bulkClone, compliance, openForm]
@@ -191,7 +221,7 @@ const LimsTestGroupList = () => {
         table={table}
         columnDefs={columnDefs}
         tableName={t("limsTestGroups")}
-        searchPlaceholder="Search pick lists…"
+        searchPlaceholder="Search test groups…"
         enableSelection
         fillAvailableHeight
         busy={busy}
@@ -222,30 +252,48 @@ const LimsTestGroupList = () => {
         onClose={handleCloseForm}
         className="m-4 max-w-[1000px] overflow-x-hidden dark:bg-gray-900"
       >
-        <LimsTestGroupForm
-          mode={formMode}
-          initialData={active}
-          onClose={handleCloseForm}
-          onSubmit={handleSave}
-          submitting={createPhrase.isPending || updatePhrase.isPending}
-        />
+        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+          <div className="flex min-h-[300px] items-center justify-center p-10">
+            <LoadingSpinner fullScreen={false} />
+          </div>
+        ) : (
+          <LimsTestGroupForm
+            mode={formMode}
+            initialData={
+              formMode === "create" ? null : (detailQuery.data ?? null)
+            }
+            onClose={handleCloseForm}
+            onSubmit={handleSave}
+            submitting={createPhrase.isPending || updatePhrase.isPending}
+          />
+        )}
       </Modal>
 
       <LimsComplianceDialogs
         compliance={compliance}
-        entityLabel="pick list"
-        entityLabelPlural="pick lists"
+        entityLabel="test group"
+        entityLabelPlural="test groups"
         getRecordLabel={(row) => row.testGroupId || row.name}
         updating={updatePhrase.isPending}
         deleting={bulkDelete.isPending}
         restoring={restorePhrase.isPending}
-        auditEntries={auditQuery.data ?? []}
+        auditEntries={auditQuery.entries}
+
         auditLoading={auditQuery.isLoading}
+
+        auditHasNextPage={auditQuery.hasNextPage}
+
+        auditFetchingNextPage={auditQuery.isFetchingNextPage}
+
+        onAuditLoadMore={auditQuery.fetchNextPage}
         onUpdate={confirmUpdate}
         onDelete={async (reason) => {
           const pending = compliance.pendingDelete;
           if (pending) {
-            await bulkDelete.mutateAsync({ selection: pending.selection, changeReason: reason });
+            await bulkDelete.mutateAsync({
+              selection: pending.selection,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearDelete();
@@ -253,7 +301,10 @@ const LimsTestGroupList = () => {
         onRestore={async (reason) => {
           const pending = compliance.pendingRestore;
           if (pending) {
-            await restorePhrase.mutateAsync({ id: pending.id, changeReason: reason });
+            await restorePhrase.mutateAsync({
+              id: pending.id,
+              changeReason: reason
+            });
           }
           compliance.clearRestore();
         }}

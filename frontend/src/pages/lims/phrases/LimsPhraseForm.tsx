@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
@@ -10,6 +10,7 @@ import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import SubFormGrid from "@/components/data/SubFormGrid";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
+import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { limsPhraseSchema, type LimsPhraseFormValues } from "./LimsPhrase.schema";
 import type {
   LimsPhrase,
@@ -48,7 +49,20 @@ const LimsPhraseForm = ({
   const isSystem = Boolean(initialData?.isSystem);
   const identityLocked = isReadOnly || isSystem;
 
-  const [entries, setEntries] = useState<LimsPhraseEntry[]>(initialData?.entries ?? []);
+  const initialEntriesRef = useRef(initialData?.entries ?? []);
+  const [entries, setEntries] = useState<LimsPhraseEntry[]>(initialEntriesRef.current);
+
+  // Captured once per record — also the no-change baseline `submit` diffs
+  // against, so Save is a no-op when nothing actually differs from it.
+  const initialValues = useMemo<LimsPhraseFormValues>(
+    () => ({
+      phrase: initialData?.phrase ?? "",
+      name: initialData?.name ?? "",
+      description: initialData?.description ?? "",
+      group: initialData?.group?.id ?? ""
+    }),
+    [initialData]
+  );
 
   const {
     register,
@@ -58,12 +72,7 @@ const LimsPhraseForm = ({
     formState: { errors, isSubmitting }
   } = useForm<LimsPhraseFormValues>({
     resolver: zodResolver(limsPhraseSchema),
-    defaultValues: {
-      phrase: initialData?.phrase ?? "",
-      name: initialData?.name ?? "",
-      description: initialData?.description ?? "",
-      group: initialData?.group?.id ?? ""
-    }
+    defaultValues: initialValues
   });
 
   const description = useWatch({ control, name: "description" });
@@ -72,7 +81,19 @@ const LimsPhraseForm = ({
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
-        onSubmit={handleSubmit((values) => onSubmit({ ...values, entries }))}
+        onSubmit={handleSubmit((values) => {
+          // Edit + nothing actually changed: skip the reason modal, update
+          // call, and audit entry entirely — a no-op Save just closes.
+          if (
+            mode === "edit" &&
+            isPayloadEqual(values, initialValues) &&
+            isPayloadEqual(entries, initialEntriesRef.current)
+          ) {
+            onClose();
+            return;
+          }
+          onSubmit({ ...values, entries });
+        })}
         className="min-w-0 space-y-4"
       >
         <h2 className="text-xl font-semibold">

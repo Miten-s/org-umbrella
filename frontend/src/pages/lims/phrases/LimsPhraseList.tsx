@@ -1,16 +1,26 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction
+} from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
-import { CopyIcon, EyeIcon, PencilIcon, PlusIcon, TimeIcon, TrashBinIcon } from "@/public/icons";
+import {
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TimeIcon,
+  TrashBinIcon
+} from "@/public/icons";
 import { fetchLimsPhraseList } from "./LimsPhrase.api";
 import { getLimsPhraseColumns } from "./LimsPhrase.columns";
 import {
@@ -20,7 +30,8 @@ import {
   useCreateLimsPhrase,
   useLimsPhraseAudit,
   useRestoreLimsPhrase,
-  useUpdateLimsPhrase
+  useUpdateLimsPhrase,
+  useLimsPhraseById
 } from "./LimsPhrase.queries";
 import LimsPhraseForm, { type LimsPhraseFormMode } from "./LimsPhraseForm";
 import type { LimsPhrase, LimsPhrasePayload } from "./LimsPhrase.types";
@@ -35,12 +46,19 @@ const LimsPhraseList = () => {
   const { t } = useTranslation();
   const { isOpen, openModal, closeModal } = useModal();
 
-  const [active, setActive] = useState<LimsPhrase | null>(null);
+  // Only the id of the row being edited/viewed — the list row itself is
+  // never passed into the form; the full record (including attachments)
+  // is fetched fresh the moment the modal actually needs it.
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsPhraseFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
 
   const compliance = useLimsCompliance<LimsPhrase, LimsPhrasePayload>();
   const auditQuery = useLimsPhraseAudit(compliance.auditRow?.id);
+  const detailQuery = useLimsPhraseById(
+    activeId ?? undefined,
+    isOpen && formMode !== "create"
+  );
 
   const fetchList = useCallback(
     (params: Parameters<typeof fetchLimsPhraseList>[1], signal?: AbortSignal) =>
@@ -72,7 +90,7 @@ const LimsPhraseList = () => {
   const openForm = useCallback(
     (mode: LimsPhraseFormMode, phrase: LimsPhrase | null) => {
       setFormMode(mode);
-      setActive(phrase);
+      setActiveId(phrase?.id ?? null);
       openModal();
     },
     [openModal]
@@ -80,13 +98,13 @@ const LimsPhraseList = () => {
 
   const handleCloseForm = () => {
     closeModal();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
   const handleSave = async (payload: LimsPhrasePayload) => {
-    if (active) {
-      compliance.requestUpdate(active.id, payload);
+    if (activeId) {
+      compliance.requestUpdate(activeId, payload);
       closeModal();
       return;
     }
@@ -102,15 +120,27 @@ const LimsPhraseList = () => {
       payload: { ...pending.payload, changeReason: reason }
     });
     compliance.clearUpdate();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
   const bulkActions = useMemo<DataTableBulkAction[]>(
     () => [
       {
+        key: "clone",
+        label: (count) => (count > 1 ? "Copy pick lists" : "Copy pick list"),
+        icon: CopyIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.CREATE_PHRASE,
+        onClick: async (selection) => {
+          await bulkClone.mutateAsync(selection);
+          table.clearSelection();
+        }
+      },
+      {
         key: "delete",
-        label: (count) => (count > 1 ? "Remove pick lists" : "Remove pick list"),
+        label: (count) =>
+          count > 1 ? "Remove pick lists" : "Remove pick list",
         icon: TrashBinIcon,
         variant: "destructive",
         permission: LIMS_PERMISSIONS.DELETE_PHRASE,
@@ -119,12 +149,14 @@ const LimsPhraseList = () => {
             selection,
             count,
             selection.mode === "ids"
-              ? table.rows.filter((row) => selection.ids.includes(row.id)).map((row) => row.name)
+              ? table.rows
+                  .filter((row) => selection.ids.includes(row.id))
+                  .map((row) => row.name)
               : []
           )
       }
     ],
-    [compliance, table]
+    [bulkClone, compliance, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsPhrase>[]>(
@@ -180,9 +212,12 @@ const LimsPhraseList = () => {
         tone: "danger",
         permission: LIMS_PERMISSIONS.DELETE_PHRASE,
         // System pick lists cannot be deleted (spec p.25).
-        hidden: (phrase: LimsPhrase) => Boolean(phrase.isSystem) || Boolean(phrase.isRemoved),
+        hidden: (phrase: LimsPhrase) =>
+          Boolean(phrase.isSystem) || Boolean(phrase.isRemoved),
         onClick: (phrase) =>
-          compliance.requestDelete({ mode: "ids", ids: [phrase.id] }, 1, [phrase.name])
+          compliance.requestDelete({ mode: "ids", ids: [phrase.id] }, 1, [
+            phrase.name
+          ])
       }
     ],
     [bulkClone, compliance, openForm]
@@ -225,13 +260,21 @@ const LimsPhraseList = () => {
         onClose={handleCloseForm}
         className="m-4 max-w-[1000px] overflow-x-hidden dark:bg-gray-900"
       >
-        <LimsPhraseForm
-          mode={formMode}
-          initialData={active}
-          onClose={handleCloseForm}
-          onSubmit={handleSave}
-          submitting={createPhrase.isPending || updatePhrase.isPending}
-        />
+        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+          <div className="flex min-h-[300px] items-center justify-center p-10">
+            <LoadingSpinner fullScreen={false} />
+          </div>
+        ) : (
+          <LimsPhraseForm
+            mode={formMode}
+            initialData={
+              formMode === "create" ? null : (detailQuery.data ?? null)
+            }
+            onClose={handleCloseForm}
+            onSubmit={handleSave}
+            submitting={createPhrase.isPending || updatePhrase.isPending}
+          />
+        )}
       </Modal>
 
       <LimsComplianceDialogs
@@ -242,13 +285,23 @@ const LimsPhraseList = () => {
         updating={updatePhrase.isPending}
         deleting={bulkDelete.isPending}
         restoring={restorePhrase.isPending}
-        auditEntries={auditQuery.data ?? []}
+        auditEntries={auditQuery.entries}
+
         auditLoading={auditQuery.isLoading}
+
+        auditHasNextPage={auditQuery.hasNextPage}
+
+        auditFetchingNextPage={auditQuery.isFetchingNextPage}
+
+        onAuditLoadMore={auditQuery.fetchNextPage}
         onUpdate={confirmUpdate}
         onDelete={async (reason) => {
           const pending = compliance.pendingDelete;
           if (pending) {
-            await bulkDelete.mutateAsync({ selection: pending.selection, changeReason: reason });
+            await bulkDelete.mutateAsync({
+              selection: pending.selection,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearDelete();
@@ -256,7 +309,10 @@ const LimsPhraseList = () => {
         onRestore={async (reason) => {
           const pending = compliance.pendingRestore;
           if (pending) {
-            await restorePhrase.mutateAsync({ id: pending.id, changeReason: reason });
+            await restorePhrase.mutateAsync({
+              id: pending.id,
+              changeReason: reason
+            });
           }
           compliance.clearRestore();
         }}

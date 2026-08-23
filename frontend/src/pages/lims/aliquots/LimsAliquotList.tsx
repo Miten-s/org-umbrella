@@ -1,16 +1,26 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction
+} from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
-import { CopyIcon, EyeIcon, PencilIcon, PlusIcon, TimeIcon, TrashBinIcon } from "@/public/icons";
+import {
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TimeIcon,
+  TrashBinIcon
+} from "@/public/icons";
 import { fetchLimsAliquotList } from "./LimsAliquot.api";
 import { getLimsAliquotColumns } from "./LimsAliquot.columns";
 import {
@@ -20,7 +30,8 @@ import {
   useCreateLimsAliquot,
   useLimsAliquotAudit,
   useRestoreLimsAliquot,
-  useUpdateLimsAliquot
+  useUpdateLimsAliquot,
+  useLimsAliquotById
 } from "./LimsAliquot.queries";
 import LimsAliquotForm, { type LimsAliquotFormMode } from "./LimsAliquotForm";
 import type { LimsAliquot, LimsAliquotPayload } from "./LimsAliquot.types";
@@ -30,16 +41,25 @@ const LimsAliquotList = () => {
   const { t } = useTranslation();
   const { isOpen, openModal, closeModal } = useModal();
 
-  const [active, setActive] = useState<LimsAliquot | null>(null);
+  // Only the id of the row being edited/viewed — the list row itself is
+  // never passed into the form; the full record (including attachments)
+  // is fetched fresh the moment the modal actually needs it.
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsAliquotFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
 
   const compliance = useLimsCompliance<LimsAliquot, LimsAliquotPayload>();
   const auditQuery = useLimsAliquotAudit(compliance.auditRow?.id);
+  const detailQuery = useLimsAliquotById(
+    activeId ?? undefined,
+    isOpen && formMode !== "create"
+  );
 
   const fetchList = useCallback(
-    (params: Parameters<typeof fetchLimsAliquotList>[1], signal?: AbortSignal) =>
-      fetchLimsAliquotList(includeRemoved, params, signal),
+    (
+      params: Parameters<typeof fetchLimsAliquotList>[1],
+      signal?: AbortSignal
+    ) => fetchLimsAliquotList(includeRemoved, params, signal),
     [includeRemoved]
   );
 
@@ -67,7 +87,7 @@ const LimsAliquotList = () => {
   const openForm = useCallback(
     (mode: LimsAliquotFormMode, row: LimsAliquot | null) => {
       setFormMode(mode);
-      setActive(row);
+      setActiveId(row?.id ?? null);
       openModal();
     },
     [openModal]
@@ -75,13 +95,13 @@ const LimsAliquotList = () => {
 
   const handleCloseForm = () => {
     closeModal();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
   const handleSave = async (payload: LimsAliquotPayload) => {
-    if (active) {
-      compliance.requestUpdate(active.id, payload);
+    if (activeId) {
+      compliance.requestUpdate(activeId, payload);
       closeModal();
       return;
     }
@@ -97,11 +117,12 @@ const LimsAliquotList = () => {
       payload: { ...pending.payload, changeReason: reason }
     });
     compliance.clearUpdate();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
-  const label = (row: LimsAliquot) => String(row.aliquotSetId ?? row.aliquotSetId ?? "");
+  const label = (row: LimsAliquot) =>
+    String(row.aliquotSetId ?? row.aliquotSetId ?? "");
 
   const bulkActions = useMemo<DataTableBulkAction[]>(
     () => [
@@ -127,7 +148,9 @@ const LimsAliquotList = () => {
             selection,
             count,
             selection.mode === "ids"
-              ? table.rows.filter((row) => selection.ids.includes(row.id)).map(label)
+              ? table.rows
+                  .filter((row) => selection.ids.includes(row.id))
+                  .map(label)
               : []
           )
       }
@@ -186,7 +209,10 @@ const LimsAliquotList = () => {
         tone: "danger",
         permission: LIMS_PERMISSIONS.DELETE_ALIQUOT,
         hidden: (row: LimsAliquot) => Boolean(row.isRemoved),
-        onClick: (row) => compliance.requestDelete({ mode: "ids", ids: [row.id] }, 1, [label(row)])
+        onClick: (row) =>
+          compliance.requestDelete({ mode: "ids", ids: [row.id] }, 1, [
+            label(row)
+          ])
       }
     ],
     [bulkClone, compliance, openForm, t]
@@ -229,13 +255,21 @@ const LimsAliquotList = () => {
         onClose={handleCloseForm}
         className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
       >
-        <LimsAliquotForm
-          mode={formMode}
-          initialData={active}
-          onClose={handleCloseForm}
-          onSubmit={handleSave}
-          submitting={create.isPending || update.isPending}
-        />
+        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+          <div className="flex min-h-[300px] items-center justify-center p-10">
+            <LoadingSpinner fullScreen={false} />
+          </div>
+        ) : (
+          <LimsAliquotForm
+            mode={formMode}
+            initialData={
+              formMode === "create" ? null : (detailQuery.data ?? null)
+            }
+            onClose={handleCloseForm}
+            onSubmit={handleSave}
+            submitting={create.isPending || update.isPending}
+          />
+        )}
       </Modal>
 
       <LimsComplianceDialogs
@@ -246,13 +280,23 @@ const LimsAliquotList = () => {
         updating={update.isPending}
         deleting={bulkDelete.isPending}
         restoring={restore.isPending}
-        auditEntries={auditQuery.data ?? []}
+        auditEntries={auditQuery.entries}
+
         auditLoading={auditQuery.isLoading}
+
+        auditHasNextPage={auditQuery.hasNextPage}
+
+        auditFetchingNextPage={auditQuery.isFetchingNextPage}
+
+        onAuditLoadMore={auditQuery.fetchNextPage}
         onUpdate={confirmUpdate}
         onDelete={async (reason) => {
           const pending = compliance.pendingDelete;
           if (pending) {
-            await bulkDelete.mutateAsync({ selection: pending.selection, changeReason: reason });
+            await bulkDelete.mutateAsync({
+              selection: pending.selection,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearDelete();

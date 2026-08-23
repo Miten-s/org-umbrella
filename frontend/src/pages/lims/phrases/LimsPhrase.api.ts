@@ -9,6 +9,13 @@ const ROUTE = "/lims-phrases";
 const DATA_KEYS = ["phrases", "data"];
 const RELATION_KEYS = ["group"];
 
+/** Full record for the Edit/View modal — fetched on demand when it opens,
+ * not reused from the list row (see useLimsRecordById). */
+export const fetchLimsPhraseById = async (id: string, signal?: AbortSignal) => {
+  const response = await limsApi.get(`${ROUTE}/${id}`, { signal });
+  return (response.data?.data ?? response.data) as LimsPhrase;
+};
+
 /**
  * Phrase codes seeded by the backend. Each drives one "pick from a list"
  * dropdown elsewhere in LIMS — see LIMS_BACKEND_SPEC.md §6.
@@ -104,7 +111,11 @@ export const restoreLimsPhrase = async (id: string, changeReason: string) => {
   return response.data;
 };
 
-export const fetchLimsPhraseAudit = async (id: string, signal?: AbortSignal) => {
-  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { signal });
+export const fetchLimsPhraseAudit = async (
+  id: string,
+  signal?: AbortSignal,
+  params?: { page?: number; limit?: number }
+) => {
+  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { params, signal });
   return response.data;
 };

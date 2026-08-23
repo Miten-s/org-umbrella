@@ -1,16 +1,26 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction
+} from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
-import { CopyIcon, EyeIcon, PencilIcon, PlusIcon, TimeIcon, TrashBinIcon } from "@/public/icons";
+import {
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TimeIcon,
+  TrashBinIcon
+} from "@/public/icons";
 import { fetchLimsLocationList } from "./LimsLocation.api";
 import { getLimsLocationColumns } from "./LimsLocation.columns";
 import {
@@ -20,9 +30,12 @@ import {
   useCreateLimsLocation,
   useLimsLocationAudit,
   useRestoreLimsLocation,
-  useUpdateLimsLocation
+  useUpdateLimsLocation,
+  useLimsLocationById
 } from "./LimsLocation.queries";
-import LimsLocationForm, { type LimsLocationFormMode } from "./LimsLocationForm";
+import LimsLocationForm, {
+  type LimsLocationFormMode
+} from "./LimsLocationForm";
 import type { LimsLocation, LimsLocationPayload } from "./LimsLocation.types";
 
 /**
@@ -37,19 +50,28 @@ const LimsLocationList = () => {
   const { t } = useTranslation();
   const { isOpen, openModal, closeModal } = useModal();
 
-  const [active, setActive] = useState<LimsLocation | null>(null);
+  // Only the id of the row being edited/viewed — the list row itself is
+  // never passed into the form; the full record (including attachments)
+  // is fetched fresh the moment the modal actually needs it.
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsLocationFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
 
   // Change reason + restore + audit, shared across every LIMS module.
   const compliance = useLimsCompliance<LimsLocation, LimsLocationPayload>();
   const auditQuery = useLimsLocationAudit(compliance.auditRow?.id);
+  const detailQuery = useLimsLocationById(
+    activeId ?? undefined,
+    isOpen && formMode !== "create"
+  );
 
   // MIGRATION.md §3.1-E: the bespoke list flag lives in the query key so
   // flipping it refetches, and is passed through a fetchList closure.
   const fetchList = useCallback(
-    (params: Parameters<typeof fetchLimsLocationList>[1], signal?: AbortSignal) =>
-      fetchLimsLocationList(includeRemoved, params, signal),
+    (
+      params: Parameters<typeof fetchLimsLocationList>[1],
+      signal?: AbortSignal
+    ) => fetchLimsLocationList(includeRemoved, params, signal),
     [includeRemoved]
   );
 
@@ -77,7 +99,7 @@ const LimsLocationList = () => {
   const openForm = useCallback(
     (mode: LimsLocationFormMode, location: LimsLocation | null) => {
       setFormMode(mode);
-      setActive(location);
+      setActiveId(location?.id ?? null);
       openModal();
     },
     [openModal]
@@ -85,14 +107,14 @@ const LimsLocationList = () => {
 
   const handleCloseForm = () => {
     closeModal();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
   /** Create writes straight away; edit collects a change reason first. */
   const handleSave = async (payload: LimsLocationPayload, files: File[]) => {
-    if (active) {
-      compliance.requestUpdate(active.id, payload, files);
+    if (activeId) {
+      compliance.requestUpdate(activeId, payload, files);
       closeModal();
       return;
     }
@@ -109,7 +131,7 @@ const LimsLocationList = () => {
       files: pending.files
     });
     compliance.clearUpdate();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
@@ -117,7 +139,8 @@ const LimsLocationList = () => {
     () => [
       {
         key: "clone",
-        label: (count) => (count > 1 ? "Copy storage locations" : "Copy storage location"),
+        label: (count) =>
+          count > 1 ? "Copy storage locations" : "Copy storage location",
         icon: CopyIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_LOCATION,
@@ -180,7 +203,8 @@ const LimsLocationList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_LOCATION,
-        onClick: (location) => bulkClone.mutate({ mode: "ids", ids: [location.id] })
+        onClick: (location) =>
+          bulkClone.mutate({ mode: "ids", ids: [location.id] })
       },
       {
         key: "restore",
@@ -245,13 +269,21 @@ const LimsLocationList = () => {
         onClose={handleCloseForm}
         className="m-4 max-w-[900px] overflow-x-hidden dark:bg-gray-900"
       >
-        <LimsLocationForm
-          mode={formMode}
-          initialData={active}
-          onClose={handleCloseForm}
-          onSubmit={handleSave}
-          submitting={createLocation.isPending || updateLocation.isPending}
-        />
+        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+          <div className="flex min-h-[300px] items-center justify-center p-10">
+            <LoadingSpinner fullScreen={false} />
+          </div>
+        ) : (
+          <LimsLocationForm
+            mode={formMode}
+            initialData={
+              formMode === "create" ? null : (detailQuery.data ?? null)
+            }
+            onClose={handleCloseForm}
+            onSubmit={handleSave}
+            submitting={createLocation.isPending || updateLocation.isPending}
+          />
+        )}
       </Modal>
 
       <LimsComplianceDialogs
@@ -262,8 +294,15 @@ const LimsLocationList = () => {
         updating={updateLocation.isPending}
         deleting={bulkDelete.isPending}
         restoring={restoreLocation.isPending}
-        auditEntries={auditQuery.data ?? []}
+        auditEntries={auditQuery.entries}
+
         auditLoading={auditQuery.isLoading}
+
+        auditHasNextPage={auditQuery.hasNextPage}
+
+        auditFetchingNextPage={auditQuery.isFetchingNextPage}
+
+        onAuditLoadMore={auditQuery.fetchNextPage}
         onUpdate={confirmUpdate}
         onDelete={async (reason) => {
           const pending = compliance.pendingDelete;
@@ -279,7 +318,10 @@ const LimsLocationList = () => {
         onRestore={async (reason) => {
           const pending = compliance.pendingRestore;
           if (pending) {
-            await restoreLocation.mutateAsync({ id: pending.id, changeReason: reason });
+            await restoreLocation.mutateAsync({
+              id: pending.id,
+              changeReason: reason
+            });
           }
           compliance.clearRestore();
         }}

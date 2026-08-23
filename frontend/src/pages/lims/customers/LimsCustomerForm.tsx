@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
@@ -12,6 +13,7 @@ import LimsAttachmentsField from "@/components/lims/LimsAttachmentsField";
 import { useAttachments } from "@/hooks/useAttachments";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useRatingOptions } from "@/pages/lims/phrases/LimsPhrase.queries";
+import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { limsCustomerSchema, type LimsCustomerFormValues } from "./LimsCustomer.schema";
 import type { LimsRef, LimsCustomer, LimsCustomerPayload } from "./LimsCustomer.types";
 
@@ -39,15 +41,10 @@ const LimsCustomerForm = ({
   const isReadOnly = mode === "view";
   const attachments = useAttachments(initialData?.attachments);
 
-  const {
-    register,
-    control,
-    handleSubmit,
-    setValue,
-    formState: { errors, isSubmitting }
-  } = useForm<LimsCustomerFormValues>({
-    resolver: zodResolver(limsCustomerSchema),
-    defaultValues: {
+  // Captured once per record — also the no-change baseline `submit` diffs
+  // against, so Save is a no-op when nothing actually differs from it.
+  const initialValues = useMemo<LimsCustomerFormValues>(
+    () => ({
       customerId: initialData?.customerId ?? "",
       customerName: initialData?.customerName ?? "",
       description: initialData?.description ?? "",
@@ -66,7 +63,19 @@ const LimsCustomerForm = ({
         zipcode: initialData?.address?.zipcode ?? "",
         country: initialData?.address?.country ?? ""
       }
-    }
+    }),
+    [initialData]
+  );
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isSubmitting }
+  } = useForm<LimsCustomerFormValues>({
+    resolver: zodResolver(limsCustomerSchema),
+    defaultValues: initialValues
   });
 
   const description = useWatch({ control, name: "description" });
@@ -89,12 +98,18 @@ const LimsCustomerForm = ({
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
-        onSubmit={handleSubmit((values) =>
+        onSubmit={handleSubmit((values) => {
+          // Edit + nothing actually changed: skip the reason modal, update
+          // call, and audit entry entirely — a no-op Save just closes.
+          if (mode === "edit" && !attachments.isDirty && isPayloadEqual(values, initialValues)) {
+            onClose();
+            return;
+          }
           onSubmit(
             { ...values, keptAttachmentIds: attachments.keptIds },
             attachments.newFiles
-          )
-        )}
+          );
+        })}
         className="min-w-0 space-y-4"
       >
         <h2 className="text-xl font-semibold">

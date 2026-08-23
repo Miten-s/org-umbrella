@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
@@ -12,6 +12,7 @@ import SubFormGrid from "@/components/data/SubFormGrid";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { refId } from "@/lib/query/normalizeId";
 import { useLimsInstrumentOptions } from "@/pages/lims/instruments/LimsInstrument.queries";
+import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { limsTestGroupSchema, type LimsTestGroupFormValues } from "./LimsTestGroup.schema";
 import type {
   LimsTestGroup,
@@ -50,14 +51,27 @@ const LimsTestGroupForm = ({
    * (or just `instrumentId`); a select cell needs the bare id or it matches no
    * option and renders blank.
    */
-  const [tests, setTests] = useState<LimsTestRow[]>(() =>
+  const initialTestsRef = useRef(
     (initialData?.tests ?? []).map((row) => ({
       ...row,
       instrument: refId(row.instrument ?? (row as { instrumentId?: string }).instrumentId)
     }))
   );
+  const [tests, setTests] = useState<LimsTestRow[]>(initialTestsRef.current);
 
   const instrumentOptions = useLimsInstrumentOptions({ search: "" });
+
+  // Captured once per record — also the no-change baseline `submit` diffs
+  // against, so Save is a no-op when nothing actually differs from it.
+  const initialValues = useMemo<LimsTestGroupFormValues>(
+    () => ({
+      testGroupId: initialData?.testGroupId ?? "",
+      name: initialData?.name ?? "",
+      description: initialData?.description ?? "",
+      group: initialData?.group?.id ?? ""
+    }),
+    [initialData]
+  );
 
   const {
     register,
@@ -67,12 +81,7 @@ const LimsTestGroupForm = ({
     formState: { errors, isSubmitting }
   } = useForm<LimsTestGroupFormValues>({
     resolver: zodResolver(limsTestGroupSchema),
-    defaultValues: {
-      testGroupId: initialData?.testGroupId ?? "",
-      name: initialData?.name ?? "",
-      description: initialData?.description ?? "",
-      group: initialData?.group?.id ?? ""
-    }
+    defaultValues: initialValues
   });
 
   const description = useWatch({ control, name: "description" });
@@ -81,7 +90,19 @@ const LimsTestGroupForm = ({
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
-        onSubmit={handleSubmit((values) => onSubmit({ ...values, tests }))}
+        onSubmit={handleSubmit((values) => {
+          // Edit + nothing actually changed: skip the reason modal, update
+          // call, and audit entry entirely — a no-op Save just closes.
+          if (
+            mode === "edit" &&
+            isPayloadEqual(values, initialValues) &&
+            isPayloadEqual(tests, initialTestsRef.current)
+          ) {
+            onClose();
+            return;
+          }
+          onSubmit({ ...values, tests });
+        })}
         className="min-w-0 space-y-4"
       >
         <h2 className="text-xl font-semibold">
@@ -149,7 +170,7 @@ const LimsTestGroupForm = ({
             />
           </div>
 
-          {/* The selectable values — added even on system pick lists. */}
+          {/* The selectable values — added even on system test groups. */}
           <div className="min-w-0 md:col-span-2">
             <SubFormGrid<LimsTestRow>
               label={t("limsTestList")}

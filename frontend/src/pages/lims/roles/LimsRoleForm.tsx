@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
@@ -10,6 +10,7 @@ import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import PermissionPicker from "@/components/data/PermissionPicker";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
+import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { useLimsRolePermissions } from "./LimsRole.queries";
 import { limsRoleSchema, type LimsRoleFormValues } from "./LimsRole.schema";
 import {
@@ -46,8 +47,21 @@ const LimsRoleForm = ({
 
   // Permissions are assigned from the seeded catalog below — never typed in free-form.
   const { data: rolePermissions = [] } = useLimsRolePermissions();
+  const initialPermissionsRef = useRef(initialData ? getLimsRolePermissionNames(initialData) : []);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>(
-    initialData ? getLimsRolePermissionNames(initialData) : []
+    initialPermissionsRef.current
+  );
+
+  // Captured once per record — also the no-change baseline `submit` diffs
+  // against, so Save is a no-op when nothing actually differs from it.
+  const initialValues = useMemo<LimsRoleFormValues>(
+    () => ({
+      roleId: initialData?.roleId ?? "",
+      name: initialData?.name ?? "",
+      description: initialData?.description ?? "",
+      group: initialData?.group?.id ?? ""
+    }),
+    [initialData]
   );
 
   const {
@@ -58,12 +72,7 @@ const LimsRoleForm = ({
     formState: { errors, isSubmitting }
   } = useForm<LimsRoleFormValues>({
     resolver: zodResolver(limsRoleSchema),
-    defaultValues: {
-      roleId: initialData?.roleId ?? "",
-      name: initialData?.name ?? "",
-      description: initialData?.description ?? "",
-      group: initialData?.group?.id ?? ""
-    }
+    defaultValues: initialValues
   });
 
   const description = useWatch({ control, name: "description" });
@@ -74,8 +83,24 @@ const LimsRoleForm = ({
   // code into entity+action itself). No id lookup needed; there was one here
   // sending catalog row ids instead, which the backend can't parse, so every
   // save silently landed as an empty permission set.
-  const handleFormSubmit = (values: LimsRoleFormValues) =>
+  const handleFormSubmit = (values: LimsRoleFormValues) => {
+    // Edit + nothing actually changed: skip the reason modal, update call,
+    // and audit entry entirely — a no-op Save just closes. Permissions are
+    // a set, not a sequence, so compare sorted (toggling one off and back
+    // on shouldn't count as a change just because it moved to the end).
+    if (
+      mode === "edit" &&
+      isPayloadEqual(values, initialValues) &&
+      isPayloadEqual(
+        [...selectedPermissions].sort(),
+        [...initialPermissionsRef.current].sort()
+      )
+    ) {
+      onClose();
+      return;
+    }
     onSubmit({ ...values, permissions: selectedPermissions });
+  };
 
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">

@@ -504,28 +504,70 @@ layer(base);
   @apply h-auto! w-auto!;
 }
 
-.flatpickr-wrapper {
+/* react-datepicker theme — the header (month/year, prev/next) is our own markup via
+   renderCustomHeader in DateField.tsx, so only the popup shell, day grid and time list
+   need theming here. */
+/* Clears the modal's z-99, but stays below the month/year Dropdown (z-[1200] in
+   Dropdown.tsx) that opens on top of this calendar's own custom header. `!important`
+   because react-datepicker's own base CSS sets z-index:1 on this same selector and,
+   loaded via a JS import in main.tsx (after this file), would otherwise win the
+   cascade on source order alone. */
+.react-datepicker-popper {
+  z-index: 200 !important;
+}
+.react-datepicker-wrapper {
   @apply w-full;
 }
-.flatpickr-calendar {
-  @apply mt-2 bg-white! rounded-xl! p-5! border! border-gray-200! text-gray-500! dark:bg-gray-dark! dark:text-gray-400! dark:shadow-theme-xl! 2xsm:w-auto!;
+.react-datepicker {
+  @apply mt-2! rounded-xl! border! border-gray-200! bg-white! p-5! font-outfit! text-gray-500! shadow-theme-xl! dark:border-gray-700! dark:bg-gray-dark! dark:text-gray-400!;
 }
-
-.flatpickr-months .flatpickr-prev-month:hover svg,
-.flatpickr-months .flatpickr-next-month:hover svg {
-  @apply stroke-brand-500;
+.react-datepicker__triangle {
+  @apply hidden!;
 }
-.flatpickr-calendar.arrowTop:before,
-.flatpickr-calendar.arrowTop:after {
-  @apply hidden;
+.react-datepicker__month-container {
+  @apply float-none!;
 }
-
-.flatpickr-current-month {
-  @apply p-0!;
+.react-datepicker__day-names,
+.react-datepicker__week {
+  @apply flex! justify-between!;
 }
-.flatpickr-current-month .cur-month,
-.flatpickr-current-month input.cur-year {
-  @apply h-auto! pt-0! text-lg! font-medium! text-gray-800! dark:text-white/90!;
+.react-datepicker__day-name {
+  @apply m-0.5! flex! h-9! w-9! items-center! justify-center! text-theme-sm! font-medium! text-gray-500! dark:text-gray-400!;
+}
+.react-datepicker__month {
+  @apply m-0! mt-2!;
+}
+.react-datepicker__day {
+  @apply m-0.5! flex! h-9! w-9! items-center! justify-center! rounded-md! text-theme-sm! font-medium! text-gray-800! hover:bg-gray-50! dark:text-white/90! dark:hover:bg-white/5!;
+}
+.react-datepicker__day--outside-month {
+  @apply text-gray-400! dark:text-white/30!;
+}
+.react-datepicker__day--today:not(.react-datepicker__day--selected) {
+  @apply border! border-gray-300! dark:border-gray-600!;
+}
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  @apply border-brand-500! bg-brand-500! text-white! hover:bg-brand-500! dark:text-white!;
+}
+.react-datepicker__day--disabled {
+  @apply cursor-not-allowed! text-gray-300! hover:bg-transparent! dark:text-white/20!;
+}
+.react-datepicker__input-container input:focus {
+  @apply outline-none!;
+}
+.react-datepicker--time-only,
+.react-datepicker--time-only .react-datepicker__time-container {
+  @apply w-auto!;
+}
+.react-datepicker__time-container {
+  @apply border-gray-200! dark:border-gray-700!;
+}
+.react-datepicker__time-list-item {
+  @apply flex! items-center! text-theme-sm! text-gray-800! dark:text-white/90! dark:hover:bg-white/5!;
+}
+.react-datepicker__time-list-item--selected {
+  @apply bg-brand-500! text-white! hover:bg-brand-500! dark:hover:bg-brand-500!;
 }
 
 .app-data-table .ag-root-wrapper {
@@ -644,135 +686,6 @@ layer(base);
 
 .dark .app-data-table__empty-message {
   color: #98a2b3;
-}
-
-.flatpickr-prev-month,
-.flatpickr-next-month {
-  @apply p-0!;
-}
-
-.flatpickr-weekdays {
-  @apply h-auto mt-6 mb-4 bg-transparent!;
-}
-
-.flatpickr-weekday {
-  @apply text-theme-sm! font-medium! text-gray-500! dark:text-gray-400! bg-transparent!;
-}
-
-.flatpickr-day {
-  @apply flex! items-center! text-theme-sm! font-medium! text-gray-800! dark:text-white/90! dark:hover:border-gray-300! dark:hover:bg-gray-900!;
-}
-.flatpickr-day.nextMonthDay,
-.flatpickr-day.prevMonthDay {
-  @apply text-gray-400!;
-}
-
-.flatpickr-months > .flatpickr-month {
-  background: none !important;
-}
-.flatpickr-month .flatpickr-current-month .flatpickr-monthDropdown-months {
-  background: none !important;
-  appearance: none;
-  background-image: none !important;
-  font-weight: 500;
-}
-.flatpickr-month
-  .flatpickr-current-month
-  .flatpickr-monthDropdown-months:focus {
-  outline: none !important;
-  border: 0 !important;
-}
-.flatpickr-months .flatpickr-prev-month,
-.flatpickr-months .flatpickr-next-month {
-  @apply top-7! dark:fill-white! dark:text-white! bg-transparent!;
-}
-.flatpickr-months .flatpickr-prev-month.flatpickr-prev-month,
-.flatpickr-months .flatpickr-next-month.flatpickr-prev-month {
-  @apply left-7!;
-}
-.flatpickr-months .flatpickr-prev-month.flatpickr-next-month,
-.flatpickr-months .flatpickr-next-month.flatpickr-next-month {
-  @apply right-7!;
-}
-.flatpickr-days {
-  @apply border-0!;
-}
-span.flatpickr-weekday,
-.flatpickr-months .flatpickr-month {
-  @apply dark:fill-white! dark:text-white! bg-none!;
-}
-.flatpickr-innerContainer {
-  @apply border-b-0!;
-}
-.flatpickr-months .flatpickr-month {
-  @apply bg-none!;
-}
-.flatpickr-day.inRange {
-  box-shadow:
-    -5px 0 0 #f9fafb,
-    5px 0 0 #f9fafb !important;
-  @apply dark:shadow-datepicker!;
-}
-.flatpickr-day.inRange,
-.flatpickr-day.prevMonthDay.inRange,
-.flatpickr-day.nextMonthDay.inRange,
-.flatpickr-day.today.inRange,
-.flatpickr-day.prevMonthDay.today.inRange,
-.flatpickr-day.nextMonthDay.today.inRange,
-.flatpickr-day:hover,
-.flatpickr-day.prevMonthDay:hover,
-.flatpickr-day.nextMonthDay:hover,
-.flatpickr-day:focus,
-.flatpickr-day.prevMonthDay:focus,
-.flatpickr-day.nextMonthDay:focus {
-  @apply border-gray-50! bg-gray-50! dark:border-0! dark:border-white/5! dark:bg-white/5!;
-}
-.flatpickr-day.selected,
-.flatpickr-day.startRange,
-.flatpickr-day.selected,
-.flatpickr-day.endRange {
-  @apply text-white! dark:text-white!;
-}
-.flatpickr-day.selected,
-.flatpickr-day.startRange,
-.flatpickr-day.endRange,
-.flatpickr-day.selected.inRange,
-.flatpickr-day.startRange.inRange,
-.flatpickr-day.endRange.inRange,
-.flatpickr-day.selected:focus,
-.flatpickr-day.startRange:focus,
-.flatpickr-day.endRange:focus,
-.flatpickr-day.selected:hover,
-.flatpickr-day.startRange:hover,
-.flatpickr-day.endRange:hover,
-.flatpickr-day.selected.prevMonthDay,
-.flatpickr-day.startRange.prevMonthDay,
-.flatpickr-day.endRange.prevMonthDay,
-.flatpickr-day.selected.nextMonthDay,
-.flatpickr-day.startRange.nextMonthDay,
-.flatpickr-day.endRange.nextMonthDay {
-  background: #465fff;
-  @apply border-brand-500! bg-brand-500! hover:border-brand-500! hover:bg-brand-500!;
-}
-.flatpickr-day.selected.startRange + .endRange:not(:nth-child(7n + 1)),
-.flatpickr-day.startRange.startRange + .endRange:not(:nth-child(7n + 1)),
-.flatpickr-day.endRange.startRange + .endRange:not(:nth-child(7n + 1)) {
-  box-shadow: -10px 0 0 #465fff;
-}
-
-.flatpickr-months .flatpickr-prev-month svg,
-.flatpickr-months .flatpickr-next-month svg,
-.flatpickr-months .flatpickr-prev-month,
-.flatpickr-months .flatpickr-next-month {
-  @apply hover:fill-none!;
-}
-.flatpickr-months .flatpickr-prev-month:hover svg,
-.flatpickr-months .flatpickr-next-month:hover svg {
-  fill: none !important;
-}
-
-.flatpickr-calendar.static {
-  @apply right-0;
 }
 
 .fc .fc-view-harness {

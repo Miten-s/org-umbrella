@@ -8,6 +8,13 @@ import type { LimsPermissionOption, LimsRole, LimsRolePayload } from "./LimsRole
 
 /** LIMS Role API. Pure HTTP — toasts live in the mutation layer. */
 const ROUTE = "/lims-roles";
+
+/** Full record for the Edit/View modal — fetched on demand when it opens,
+ * not reused from the list row (see useLimsRecordById). */
+export const fetchLimsRoleById = async (id: string, signal?: AbortSignal) => {
+  const response = await limsApi.get(`${ROUTE}/${id}`, { signal });
+  return (response.data?.data ?? response.data) as LimsRole;
+};
 const PERMISSIONS_ROUTE = "/lims-permissions";
 const DATA_KEYS = ["roles", "data"];
 const RELATION_KEYS = ["group"];
@@ -69,8 +76,12 @@ export const restoreLimsRole = async (id: string, changeReason: string) => {
   return response.data;
 };
 
-export const fetchLimsRoleAudit = async (id: string, signal?: AbortSignal) => {
-  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { signal });
+export const fetchLimsRoleAudit = async (
+  id: string,
+  signal?: AbortSignal,
+  params?: { page?: number; limit?: number }
+) => {
+  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { params, signal });
   return response.data;
 };
 

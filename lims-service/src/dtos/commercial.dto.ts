@@ -57,7 +57,11 @@ export class CreateCustomerDto {
   @IsOptional() @IsString() @MaxLength(200) contactName?: string;
   @IsOptional() @IsString() @MaxLength(50) contactPhone?: string;
   @IsOptional() @IsString() @MaxLength(200) email?: string;
-  @IsOptional() @IsObject() @ValidateNested() @Type(() => AddressDto) address?: AddressDto;
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => AddressDto)
+  address?: AddressDto;
   @IsOptional() @IsString() otherInformation?: string;
 }
 
@@ -71,9 +75,21 @@ export class UpdateCustomerDto {
   @IsOptional() @IsString() @MaxLength(200) contactName?: string;
   @IsOptional() @IsString() @MaxLength(50) contactPhone?: string;
   @IsOptional() @IsString() @MaxLength(200) email?: string;
-  @IsOptional() @IsObject() @ValidateNested() @Type(() => AddressDto) address?: AddressDto;
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => AddressDto)
+  address?: AddressDto;
   @IsOptional() @IsString() otherInformation?: string;
   @IsOptional() @IsString() changeReason?: string;
+  // New file attachments arrive on `req.files` (multer), separately from
+  // this JSON payload — this is only the "which existing ones survive"
+  // half of the reconcile. Declared here so `whitelist: true` doesn't
+  // strip it before the controller ever sees it.
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  keptAttachmentIds?: string[];
 }
 
 // ─── Suppliers ──────────────────────────────────────────────────────────────
@@ -90,7 +106,11 @@ export class CreateSupplierDto {
   @IsOptional() @IsString() @MaxLength(200) contactName?: string;
   @IsOptional() @IsString() @MaxLength(50) contactPhone?: string;
   @IsOptional() @IsString() @MaxLength(200) email?: string;
-  @IsOptional() @IsObject() @ValidateNested() @Type(() => AddressDto) address?: AddressDto;
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => AddressDto)
+  address?: AddressDto;
 }
 
 export class UpdateSupplierDto {
@@ -103,8 +123,20 @@ export class UpdateSupplierDto {
   @IsOptional() @IsString() @MaxLength(200) contactName?: string;
   @IsOptional() @IsString() @MaxLength(50) contactPhone?: string;
   @IsOptional() @IsString() @MaxLength(200) email?: string;
-  @IsOptional() @IsObject() @ValidateNested() @Type(() => AddressDto) address?: AddressDto;
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => AddressDto)
+  address?: AddressDto;
   @IsOptional() @IsString() changeReason?: string;
+  // New file attachments arrive on `req.files` (multer), separately from
+  // this JSON payload — this is only the "which existing ones survive"
+  // half of the reconcile. Declared here so `whitelist: true` doesn't
+  // strip it before the controller ever sees it.
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  keptAttachmentIds?: string[];
 }
 
 // ─── Projects ───────────────────────────────────────────────────────────────
@@ -132,6 +164,14 @@ export class UpdateProjectDto {
   @IsOptional() @IsString() @MaxLength(200) customerContact?: string;
   @IsOptional() @IsUUID("4") supervisor?: string;
   @IsOptional() @IsString() changeReason?: string;
+  // New file attachments arrive on `req.files` (multer), separately from
+  // this JSON payload — this is only the "which existing ones survive"
+  // half of the reconcile. Declared here so `whitelist: true` doesn't
+  // strip it before the controller ever sees it.
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  keptAttachmentIds?: string[];
 }
 
 // ─── Studies ────────────────────────────────────────────────────────────────
@@ -159,6 +199,14 @@ export class UpdateStudyDto {
   @IsOptional() @IsString() projectDetails?: string;
   @IsOptional() @IsUUID("4") supervisor?: string;
   @IsOptional() @IsString() changeReason?: string;
+  // New file attachments arrive on `req.files` (multer), separately from
+  // this JSON payload — this is only the "which existing ones survive"
+  // half of the reconcile. Declared here so `whitelist: true` doesn't
+  // strip it before the controller ever sees it.
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  keptAttachmentIds?: string[];
 }
 
 // ─── Parameters ─────────────────────────────────────────────────────────────
@@ -234,6 +282,14 @@ export class UpdateStockDto {
   parameters?: ParameterValueDto[];
 
   @IsOptional() @IsString() changeReason?: string;
+  // New file attachments arrive on `req.files` (multer), separately from
+  // this JSON payload — this is only the "which existing ones survive"
+  // half of the reconcile. Declared here so `whitelist: true` doesn't
+  // strip it before the controller ever sees it.
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  keptAttachmentIds?: string[];
 }
 
 // ─── Stock Batches ──────────────────────────────────────────────────────────
@@ -307,6 +363,14 @@ export class UpdateStockBatchDto {
   parameters?: ParameterValueDto[];
 
   @IsOptional() @IsString() changeReason?: string;
+  // New file attachments arrive on `req.files` (multer), separately from
+  // this JSON payload — this is only the "which existing ones survive"
+  // half of the reconcile. Declared here so `whitelist: true` doesn't
+  // strip it before the controller ever sees it.
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  keptAttachmentIds?: string[];
 }
 
 // ─── Aliquots ───────────────────────────────────────────────────────────────

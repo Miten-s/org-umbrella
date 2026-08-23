@@ -5,8 +5,15 @@ import Group from "../models/group.model";
 import PhraseEntry from "../models/phrase-entry.model";
 import Location from "../models/location.model";
 import Supplier from "../models/supplier.model";
-import { buildCrudRouter, buildCrudService, CrudConfig } from "../utils/crud-factory";
-import { CreateInstrumentPartDto, UpdateInstrumentPartDto } from "../dtos/instrument.dto";
+import {
+  buildCrudRouter,
+  buildCrudService,
+  CrudConfig
+} from "../utils/crud-factory";
+import {
+  CreateInstrumentPartDto,
+  UpdateInstrumentPartDto
+} from "../dtos/instrument.dto";
 
 /** Instrument Parts. Its maintenance rows share a table with the instrument's. */
 export const instrumentPartConfig: CrudConfig<InstrumentPart> = {
@@ -15,14 +22,50 @@ export const instrumentPartConfig: CrudConfig<InstrumentPart> = {
   permissionEntity: "INSTRUMENT_PART",
   uniqueField: "partId",
   businessId: { field: "partId", prefix: "PART" },
-  searchFields: ["partId", "partName", "serialNumber", "modelNumber", "manufacturer"],
+  searchFields: [
+    "partId",
+    "partName",
+    "serialNumber",
+    "modelNumber",
+    "manufacturer"
+  ],
   defaultSortBy: "partName",
   relations: [
     { model: Group, as: "group", attributes: ["id", "name"], required: false },
-    { model: Instrument, as: "instrument", attributes: ["id", "instrumentId", "name"], required: false },
-    { model: PhraseEntry, as: "status", attributes: ["id", "phraseEntryId", "name"], required: false },
-    { model: Location, as: "location", attributes: ["id", "locationId", "locationName", ["location_name", "name"]], required: false },
-    { model: Supplier, as: "supplier", attributes: ["id", "supplierId", "supplierName", ["supplier_name", "name"]], required: false },
+    {
+      model: Instrument,
+      as: "instrument",
+      attributes: ["id", "instrumentId", "name"],
+      required: false
+    },
+    {
+      model: PhraseEntry,
+      as: "status",
+      attributes: ["id", "phraseEntryId", "name"],
+      required: false
+    },
+    {
+      model: Location,
+      as: "location",
+      attributes: [
+        "id",
+        "locationId",
+        "locationName",
+        ["location_name", "name"]
+      ],
+      required: false
+    },
+    {
+      model: Supplier,
+      as: "supplier",
+      attributes: [
+        "id",
+        "supplierId",
+        "supplierName",
+        ["supplier_name", "name"]
+      ],
+      required: false
+    },
     { model: MaintenanceRecord, as: "maintenance", required: false }
   ],
   relationFields: {
@@ -32,6 +75,11 @@ export const instrumentPartConfig: CrudConfig<InstrumentPart> = {
     location: "locationId",
     supplier: "supplierId"
   },
+
+  // The list table doesn't render anything from the Maintenance grid —
+  // Edit/View-only.
+  listExcludeRelations: ["maintenance"],
+
   children: [
     {
       field: "maintenance",
@@ -52,5 +100,6 @@ export default buildCrudRouter({
   createDto: CreateInstrumentPartDto,
   updateDto: UpdateInstrumentPartDto,
   model: InstrumentPart,
-  businessId: instrumentPartConfig.businessId
+  businessId: instrumentPartConfig.businessId,
+  hasAttachments: true
 });

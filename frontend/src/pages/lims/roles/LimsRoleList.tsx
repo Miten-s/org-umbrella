@@ -1,16 +1,26 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction
+} from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
-import { CopyIcon, EyeIcon, PencilIcon, PlusIcon, TimeIcon, TrashBinIcon } from "@/public/icons";
+import {
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TimeIcon,
+  TrashBinIcon
+} from "@/public/icons";
 import { fetchLimsRoleList } from "./LimsRole.api";
 import { getLimsRoleColumns } from "./LimsRole.columns";
 import {
@@ -20,7 +30,8 @@ import {
   useCreateLimsRole,
   useLimsRoleAudit,
   useRestoreLimsRole,
-  useUpdateLimsRole
+  useUpdateLimsRole,
+  useLimsRoleById
 } from "./LimsRole.queries";
 import LimsRoleForm, { type LimsRoleFormMode } from "./LimsRoleForm";
 import type { LimsRole, LimsRolePayload } from "./LimsRole.types";
@@ -35,12 +46,19 @@ const LimsRoleList = () => {
   const { t } = useTranslation();
   const { isOpen, openModal, closeModal } = useModal();
 
-  const [active, setActive] = useState<LimsRole | null>(null);
+  // Only the id of the row being edited/viewed — the list row itself is
+  // never passed into the form; the full record (including attachments)
+  // is fetched fresh the moment the modal actually needs it.
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsRoleFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
 
   const compliance = useLimsCompliance<LimsRole, LimsRolePayload>();
   const auditQuery = useLimsRoleAudit(compliance.auditRow?.id);
+  const detailQuery = useLimsRoleById(
+    activeId ?? undefined,
+    isOpen && formMode !== "create"
+  );
 
   const fetchList = useCallback(
     (params: Parameters<typeof fetchLimsRoleList>[1], signal?: AbortSignal) =>
@@ -72,7 +90,7 @@ const LimsRoleList = () => {
   const openForm = useCallback(
     (mode: LimsRoleFormMode, role: LimsRole | null) => {
       setFormMode(mode);
-      setActive(role);
+      setActiveId(role?.id ?? null);
       openModal();
     },
     [openModal]
@@ -80,13 +98,13 @@ const LimsRoleList = () => {
 
   const handleCloseForm = () => {
     closeModal();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
   const handleSave = async (payload: LimsRolePayload) => {
-    if (active) {
-      compliance.requestUpdate(active.id, payload);
+    if (activeId) {
+      compliance.requestUpdate(activeId, payload);
       closeModal();
       return;
     }
@@ -102,7 +120,7 @@ const LimsRoleList = () => {
       payload: { ...pending.payload, changeReason: reason }
     });
     compliance.clearUpdate();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
@@ -119,7 +137,9 @@ const LimsRoleList = () => {
             selection,
             count,
             selection.mode === "ids"
-              ? table.rows.filter((row) => selection.ids.includes(row.id)).map((row) => row.name)
+              ? table.rows
+                  .filter((row) => selection.ids.includes(row.id))
+                  .map((row) => row.name)
               : []
           )
       }
@@ -179,7 +199,9 @@ const LimsRoleList = () => {
         permission: LIMS_PERMISSIONS.DELETE_ROLE,
         hidden: (role: LimsRole) => Boolean(role.isRemoved),
         onClick: (role) =>
-          compliance.requestDelete({ mode: "ids", ids: [role.id] }, 1, [role.name])
+          compliance.requestDelete({ mode: "ids", ids: [role.id] }, 1, [
+            role.name
+          ])
       }
     ],
     [bulkClone, compliance, openForm]
@@ -222,13 +244,21 @@ const LimsRoleList = () => {
         onClose={handleCloseForm}
         className="m-4 max-w-[1000px] overflow-x-hidden dark:bg-gray-900"
       >
-        <LimsRoleForm
-          mode={formMode}
-          initialData={active}
-          onClose={handleCloseForm}
-          onSubmit={handleSave}
-          submitting={createRole.isPending || updateRole.isPending}
-        />
+        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+          <div className="flex min-h-[300px] items-center justify-center p-10">
+            <LoadingSpinner fullScreen={false} />
+          </div>
+        ) : (
+          <LimsRoleForm
+            mode={formMode}
+            initialData={
+              formMode === "create" ? null : (detailQuery.data ?? null)
+            }
+            onClose={handleCloseForm}
+            onSubmit={handleSave}
+            submitting={createRole.isPending || updateRole.isPending}
+          />
+        )}
       </Modal>
 
       <LimsComplianceDialogs
@@ -239,13 +269,23 @@ const LimsRoleList = () => {
         updating={updateRole.isPending}
         deleting={bulkDelete.isPending}
         restoring={restoreRole.isPending}
-        auditEntries={auditQuery.data ?? []}
+        auditEntries={auditQuery.entries}
+
         auditLoading={auditQuery.isLoading}
+
+        auditHasNextPage={auditQuery.hasNextPage}
+
+        auditFetchingNextPage={auditQuery.isFetchingNextPage}
+
+        onAuditLoadMore={auditQuery.fetchNextPage}
         onUpdate={confirmUpdate}
         onDelete={async (reason) => {
           const pending = compliance.pendingDelete;
           if (pending) {
-            await bulkDelete.mutateAsync({ selection: pending.selection, changeReason: reason });
+            await bulkDelete.mutateAsync({
+              selection: pending.selection,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearDelete();
@@ -253,7 +293,10 @@ const LimsRoleList = () => {
         onRestore={async (reason) => {
           const pending = compliance.pendingRestore;
           if (pending) {
-            await restoreRole.mutateAsync({ id: pending.id, changeReason: reason });
+            await restoreRole.mutateAsync({
+              id: pending.id,
+              changeReason: reason
+            });
           }
           compliance.clearRestore();
         }}

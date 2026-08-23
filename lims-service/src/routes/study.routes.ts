@@ -2,7 +2,11 @@ import Study from "../models/study.model";
 import Group from "../models/group.model";
 import Project from "../models/project.model";
 import LimsUser from "../models/lims-user.model";
-import { buildCrudRouter, buildCrudService, CrudConfig } from "../utils/crud-factory";
+import {
+  buildCrudRouter,
+  buildCrudService,
+  CrudConfig
+} from "../utils/crud-factory";
 import { CreateStudyDto, UpdateStudyDto } from "../dtos/commercial.dto";
 
 /**
@@ -20,10 +24,24 @@ export const studyConfig: CrudConfig<Study> = {
   defaultSortBy: "name",
   relations: [
     { model: Group, as: "group", attributes: ["id", "name"], required: false },
-    { model: Project, as: "project", attributes: ["id", "projectId", "name"], required: false },
-    { model: LimsUser, as: "supervisor", attributes: ["id", "userName", ["user_name", "name"]], required: false }
+    {
+      model: Project,
+      as: "project",
+      attributes: ["id", "projectId", "name"],
+      required: false
+    },
+    {
+      model: LimsUser,
+      as: "supervisor",
+      attributes: ["id", "userName", ["user_name", "name"]],
+      required: false
+    }
   ],
-  relationFields: { group: "groupId", project: "projectId", supervisor: "supervisorId" }
+  relationFields: {
+    group: "groupId",
+    project: "projectId",
+    supervisor: "supervisorId"
+  }
 };
 
 const service = buildCrudService(studyConfig);
@@ -35,5 +53,6 @@ export default buildCrudRouter({
   createDto: CreateStudyDto,
   updateDto: UpdateStudyDto,
   model: Study,
-  businessId: studyConfig.businessId
+  businessId: studyConfig.businessId,
+  hasAttachments: true
 });

@@ -7,6 +7,8 @@ interface ModalProps {
   children: React.ReactNode;
   showCloseButton?: boolean; // New prop to control close button visibility
   isFullscreen?: boolean; // Default to false for backwards compatibility
+  /** Fires on the scrollable content div — e.g. to trigger infinite-scroll loading. */
+  onScroll?: React.UIEventHandler<HTMLDivElement>;
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -15,7 +17,8 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   className,
   showCloseButton = true, // Default to true for backwards compatibility
-  isFullscreen = false
+  isFullscreen = false,
+  onScroll
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -67,6 +70,7 @@ export const Modal: React.FC<ModalProps> = ({
         className={`${contentClasses}  ${className}`}
         style={{ transform: "translateZ(0)", willChange: "transform" }}
         onClick={(e) => e.stopPropagation()}
+        onScroll={onScroll}
       >
         {showCloseButton && (
           <button

@@ -1,9 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLimsAuditTrail } from "@/hooks/useLimsAuditTrail";
+import { useLimsRecordById } from "@/hooks/useLimsRecordById";
 import { invalidateAllLims } from "@/lib/query/invalidateLims";
 import { toast } from "@/lib/toast";
 import { useAsyncOptions } from "@/hooks/useAsyncOptions";
-import { extractList } from "@/utils/listResponse";
-import type { LimsAuditEntry } from "@/components/data/AuditTrailDialog";
 import type { BulkSelection, ServerListParams } from "@/lib/query/listTypes";
 import {
   bulkCloneLimsTestGroup,
@@ -12,7 +12,8 @@ import {
   fetchLimsTestGroupOptions,
   fetchLimsTestGroupAudit,
   restoreLimsTestGroup,
-  updateLimsTestGroup
+  updateLimsTestGroup,
+  fetchLimsTestGroupById
 } from "./LimsTestGroup.api";
 import type { LimsTestGroupPayload } from "./LimsTestGroup.types";
 
@@ -39,15 +40,18 @@ export const useLimsTestGroupOptions = (args: {
   });
 
 export const useLimsTestGroupAudit = (id?: string) =>
-  useQuery({
+  useLimsAuditTrail({
     queryKey: limsTestGroupKeys.audit(id ?? "none"),
-    queryFn: async ({ signal }) =>
-      extractList<LimsAuditEntry>(await fetchLimsTestGroupAudit(id as string, signal), [
-        "audit",
-        "auditTrail",
-        "entries"
-      ]),
-    enabled: Boolean(id)
+    fetchPage: fetchLimsTestGroupAudit,
+    id
+  });
+
+export const useLimsTestGroupById = (id?: string, enabled = true) =>
+  useLimsRecordById({
+    queryKey: limsTestGroupKeys.all,
+    fetchById: fetchLimsTestGroupById,
+    id,
+    enabled
   });
 
 const useInvalidate = () => {
@@ -62,7 +66,7 @@ export const useCreateLimsTestGroup = () => {
   return useMutation({
     mutationFn: (payload: LimsTestGroupPayload) => createLimsTestGroup(payload),
     onSuccess: () => {
-      toast("Pick list created successfully.", "success");
+      toast("Test group created successfully.", "success");
       invalidate();
     }
   });
@@ -74,7 +78,7 @@ export const useUpdateLimsTestGroup = () => {
     mutationFn: ({ id, payload }: { id: string; payload: LimsTestGroupPayload }) =>
       updateLimsTestGroup(id, payload),
     onSuccess: () => {
-      toast("Pick list updated successfully.", "success");
+      toast("Test group updated successfully.", "success");
       invalidate();
     }
   });
@@ -94,8 +98,8 @@ export const useBulkDeleteLimsTestGroup = () => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
       toast(
         count && count > 1
-          ? `${count} pick lists removed successfully.`
-          : "Pick list removed successfully.",
+          ? `${count} test groups removed successfully.`
+          : "Test group removed successfully.",
         "success"
       );
       invalidate();
@@ -111,8 +115,8 @@ export const useBulkCloneLimsTestGroup = () => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
       toast(
         count && count > 1
-          ? `${count} pick lists copied successfully.`
-          : "Pick list copied successfully.",
+          ? `${count} test groups copied successfully.`
+          : "Test group copied successfully.",
         "success"
       );
       invalidate();
@@ -126,7 +130,7 @@ export const useRestoreLimsTestGroup = () => {
     mutationFn: ({ id, changeReason }: { id: string; changeReason: string }) =>
       restoreLimsTestGroup(id, changeReason),
     onSuccess: () => {
-      toast("Pick list restored successfully.", "success");
+      toast("Test group restored successfully.", "success");
       invalidate();
     }
   });

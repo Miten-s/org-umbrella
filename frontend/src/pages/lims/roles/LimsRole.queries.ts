@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLimsAuditTrail } from "@/hooks/useLimsAuditTrail";
+import { useLimsRecordById } from "@/hooks/useLimsRecordById";
 import { invalidateAllLims } from "@/lib/query/invalidateLims";
 import { toast } from "@/lib/toast";
 import { useAsyncOptions } from "@/hooks/useAsyncOptions";
-import { extractList } from "@/utils/listResponse";
-import type { LimsAuditEntry } from "@/components/data/AuditTrailDialog";
 import type { BulkSelection, ServerListParams } from "@/lib/query/listTypes";
 import {
   bulkCloneLimsRole,
@@ -13,7 +13,8 @@ import {
   fetchLimsRoleAudit,
   fetchLimsRolePermissions,
   restoreLimsRole,
-  updateLimsRole
+  updateLimsRole,
+  fetchLimsRoleById
 } from "./LimsRole.api";
 import type { LimsRolePayload } from "./LimsRole.types";
 
@@ -41,15 +42,18 @@ export const useLimsRoleOptions = (args: {
   });
 
 export const useLimsRoleAudit = (id?: string) =>
-  useQuery({
+  useLimsAuditTrail({
     queryKey: limsRoleKeys.audit(id ?? "none"),
-    queryFn: async ({ signal }) =>
-      extractList<LimsAuditEntry>(await fetchLimsRoleAudit(id as string, signal), [
-        "audit",
-        "auditTrail",
-        "entries"
-      ]),
-    enabled: Boolean(id)
+    fetchPage: fetchLimsRoleAudit,
+    id
+  });
+
+export const useLimsRoleById = (id?: string, enabled = true) =>
+  useLimsRecordById({
+    queryKey: limsRoleKeys.all,
+    fetchById: fetchLimsRoleById,
+    id,
+    enabled
   });
 
 /** All LIMS permissions for the role form's picker — the seeded, read-only catalog. */

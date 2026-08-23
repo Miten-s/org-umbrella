@@ -1,16 +1,26 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction
+} from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
-import { CopyIcon, EyeIcon, PencilIcon, PlusIcon, TimeIcon, TrashBinIcon } from "@/public/icons";
+import {
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TimeIcon,
+  TrashBinIcon
+} from "@/public/icons";
 import { fetchLimsProjectList } from "./LimsProject.api";
 import { getLimsProjectColumns } from "./LimsProject.columns";
 import {
@@ -20,7 +30,8 @@ import {
   useCreateLimsProject,
   useLimsProjectAudit,
   useRestoreLimsProject,
-  useUpdateLimsProject
+  useUpdateLimsProject,
+  useLimsProjectById
 } from "./LimsProject.queries";
 import LimsProjectForm, { type LimsProjectFormMode } from "./LimsProjectForm";
 import type { LimsProject, LimsProjectPayload } from "./LimsProject.types";
@@ -30,16 +41,25 @@ const LimsProjectList = () => {
   const { t } = useTranslation();
   const { isOpen, openModal, closeModal } = useModal();
 
-  const [active, setActive] = useState<LimsProject | null>(null);
+  // Only the id of the row being edited/viewed — the list row itself is
+  // never passed into the form; the full record (including attachments)
+  // is fetched fresh the moment the modal actually needs it.
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsProjectFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
 
   const compliance = useLimsCompliance<LimsProject, LimsProjectPayload>();
   const auditQuery = useLimsProjectAudit(compliance.auditRow?.id);
+  const detailQuery = useLimsProjectById(
+    activeId ?? undefined,
+    isOpen && formMode !== "create"
+  );
 
   const fetchList = useCallback(
-    (params: Parameters<typeof fetchLimsProjectList>[1], signal?: AbortSignal) =>
-      fetchLimsProjectList(includeRemoved, params, signal),
+    (
+      params: Parameters<typeof fetchLimsProjectList>[1],
+      signal?: AbortSignal
+    ) => fetchLimsProjectList(includeRemoved, params, signal),
     [includeRemoved]
   );
 
@@ -67,7 +87,7 @@ const LimsProjectList = () => {
   const openForm = useCallback(
     (mode: LimsProjectFormMode, project: LimsProject | null) => {
       setFormMode(mode);
-      setActive(project);
+      setActiveId(project?.id ?? null);
       openModal();
     },
     [openModal]
@@ -75,13 +95,13 @@ const LimsProjectList = () => {
 
   const handleCloseForm = () => {
     closeModal();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
   const handleSave = async (payload: LimsProjectPayload, files: File[]) => {
-    if (active) {
-      compliance.requestUpdate(active.id, payload, files);
+    if (activeId) {
+      compliance.requestUpdate(activeId, payload, files);
       closeModal();
       return;
     }
@@ -98,7 +118,7 @@ const LimsProjectList = () => {
       files: pending.files
     });
     compliance.clearUpdate();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
@@ -168,7 +188,8 @@ const LimsProjectList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_PROJECT,
-        onClick: (project) => bulkClone.mutate({ mode: "ids", ids: [project.id] })
+        onClick: (project) =>
+          bulkClone.mutate({ mode: "ids", ids: [project.id] })
       },
       {
         key: "restore",
@@ -233,13 +254,21 @@ const LimsProjectList = () => {
         onClose={handleCloseForm}
         className="m-4 max-w-[1000px] overflow-x-hidden dark:bg-gray-900"
       >
-        <LimsProjectForm
-          mode={formMode}
-          initialData={active}
-          onClose={handleCloseForm}
-          onSubmit={handleSave}
-          submitting={createProject.isPending || updateProject.isPending}
-        />
+        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+          <div className="flex min-h-[300px] items-center justify-center p-10">
+            <LoadingSpinner fullScreen={false} />
+          </div>
+        ) : (
+          <LimsProjectForm
+            mode={formMode}
+            initialData={
+              formMode === "create" ? null : (detailQuery.data ?? null)
+            }
+            onClose={handleCloseForm}
+            onSubmit={handleSave}
+            submitting={createProject.isPending || updateProject.isPending}
+          />
+        )}
       </Modal>
 
       <LimsComplianceDialogs
@@ -250,13 +279,23 @@ const LimsProjectList = () => {
         updating={updateProject.isPending}
         deleting={bulkDelete.isPending}
         restoring={restoreProject.isPending}
-        auditEntries={auditQuery.data ?? []}
+        auditEntries={auditQuery.entries}
+
         auditLoading={auditQuery.isLoading}
+
+        auditHasNextPage={auditQuery.hasNextPage}
+
+        auditFetchingNextPage={auditQuery.isFetchingNextPage}
+
+        onAuditLoadMore={auditQuery.fetchNextPage}
         onUpdate={confirmUpdate}
         onDelete={async (reason) => {
           const pending = compliance.pendingDelete;
           if (pending) {
-            await bulkDelete.mutateAsync({ selection: pending.selection, changeReason: reason });
+            await bulkDelete.mutateAsync({
+              selection: pending.selection,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearDelete();
@@ -264,7 +303,10 @@ const LimsProjectList = () => {
         onRestore={async (reason) => {
           const pending = compliance.pendingRestore;
           if (pending) {
-            await restoreProject.mutateAsync({ id: pending.id, changeReason: reason });
+            await restoreProject.mutateAsync({
+              id: pending.id,
+              changeReason: reason
+            });
           }
           compliance.clearRestore();
         }}

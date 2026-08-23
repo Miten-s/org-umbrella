@@ -7,8 +7,15 @@ import Supplier from "../models/supplier.model";
 import Location from "../models/location.model";
 import StockBatchConsumption from "../models/stock-batch-consumption.model";
 import StockBatchParameterValue from "../models/stock-batch-parameter-value.model";
-import { buildCrudRouter, buildCrudService, CrudConfig } from "../utils/crud-factory";
-import { CreateStockBatchDto, UpdateStockBatchDto } from "../dtos/commercial.dto";
+import {
+  buildCrudRouter,
+  buildCrudService,
+  CrudConfig
+} from "../utils/crud-factory";
+import {
+  CreateStockBatchDto,
+  UpdateStockBatchDto
+} from "../dtos/commercial.dto";
 
 /**
  * Stock Batches — actual physical material.
@@ -23,15 +30,55 @@ export const stockBatchConfig: CrudConfig<StockBatch> = {
   entityName: "Stock Batch",
   permissionEntity: "STOCK_BATCH",
   uniqueField: "stockBatchId",
-  searchFields: ["stockBatchId", "supplierBatchNumber", "sapBatchId", "internalBatchId"],
+  searchFields: [
+    "stockBatchId",
+    "supplierBatchNumber",
+    "sapBatchId",
+    "internalBatchId"
+  ],
   defaultSortBy: "stockBatchId",
   relations: [
     { model: Group, as: "group", attributes: ["id", "name"], required: false },
-    { model: Stock, as: "stock", attributes: ["id", "stockId", "stockName", ["stock_name", "name"]], required: false },
-    { model: PhraseEntry, as: "status", attributes: ["id", "phraseEntryId", "name"], required: false },
-    { model: Project, as: "project", attributes: ["id", "projectId", "name"], required: false },
-    { model: Supplier, as: "supplier", attributes: ["id", "supplierId", "supplierName", ["supplier_name", "name"]], required: false },
-    { model: Location, as: "location", attributes: ["id", "locationId", "locationName", ["location_name", "name"]], required: false },
+    {
+      model: Stock,
+      as: "stock",
+      attributes: ["id", "stockId", "stockName", ["stock_name", "name"]],
+      required: false
+    },
+    {
+      model: PhraseEntry,
+      as: "status",
+      attributes: ["id", "phraseEntryId", "name"],
+      required: false
+    },
+    {
+      model: Project,
+      as: "project",
+      attributes: ["id", "projectId", "name"],
+      required: false
+    },
+    {
+      model: Supplier,
+      as: "supplier",
+      attributes: [
+        "id",
+        "supplierId",
+        "supplierName",
+        ["supplier_name", "name"]
+      ],
+      required: false
+    },
+    {
+      model: Location,
+      as: "location",
+      attributes: [
+        "id",
+        "locationId",
+        "locationName",
+        ["location_name", "name"]
+      ],
+      required: false
+    },
     { model: StockBatchConsumption, as: "consumptions", required: false },
     { model: StockBatchParameterValue, as: "parameters", required: false }
   ],
@@ -43,6 +90,11 @@ export const stockBatchConfig: CrudConfig<StockBatch> = {
     supplier: "supplierId",
     location: "locationId"
   },
+
+  // The list table doesn't render anything from the Consumption records or
+  // Parameters grids — Edit/View-only.
+  listExcludeRelations: ["consumptions", "parameters"],
+
   /**
    * Derive the batch number and composite id.
    *
@@ -56,7 +108,9 @@ export const stockBatchConfig: CrudConfig<StockBatch> = {
     const parent = await Stock.findByPk(payload.stockId as string);
 
     if (!parent) {
-      throw Object.assign(new Error("The selected stock does not exist."), { statusCode: 400 });
+      throw Object.assign(new Error("The selected stock does not exist."), {
+        statusCode: 400
+      });
     }
 
     const highest = (await StockBatch.max("batchNumber", {
@@ -95,5 +149,6 @@ export default buildCrudRouter({
   entityName: stockBatchConfig.entityName,
   permissionEntity: stockBatchConfig.permissionEntity,
   createDto: CreateStockBatchDto,
-  updateDto: UpdateStockBatchDto
+  updateDto: UpdateStockBatchDto,
+  hasAttachments: true
 });

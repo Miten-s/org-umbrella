@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
@@ -11,6 +12,7 @@ import LimsAttachmentsField from "@/components/lims/LimsAttachmentsField";
 import { useAttachments } from "@/hooks/useAttachments";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsLotOptions } from "@/pages/lims/lots/LimsLot.queries";
+import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { limsBatchSchema, type LimsBatchFormValues } from "./LimsBatch.schema";
 import type { LimsBatch, LimsBatchPayload, LimsRef } from "./LimsBatch.types";
 
@@ -44,6 +46,19 @@ const LimsBatchForm = ({
   const isReadOnly = mode === "view";
   const attachments = useAttachments(initialData?.attachments);
 
+  // Captured once per record — also the no-change baseline `submit` diffs
+  // against, so Save is a no-op when nothing actually differs from it.
+  const initialValues = useMemo<LimsBatchFormValues>(
+    () => ({
+      batchId: initialData?.batchId ?? "",
+      batchName: initialData?.batchName ?? "",
+      group: initialData?.group?.id ?? "",
+      lots: (initialData?.lots ?? []).map((ref) => ref.id),
+      description: initialData?.description ?? "",
+    }),
+    [initialData]
+  );
+
   const {
     register,
     control,
@@ -52,13 +67,7 @@ const LimsBatchForm = ({
     formState: { errors, isSubmitting }
   } = useForm<LimsBatchFormValues>({
     resolver: zodResolver(limsBatchSchema),
-    defaultValues: {
-      batchId: initialData?.batchId ?? "",
-      batchName: initialData?.batchName ?? "",
-      group: initialData?.group?.id ?? "",
-      lots: (initialData?.lots ?? []).map((ref) => ref.id),
-      description: initialData?.description ?? "",
-    }
+    defaultValues: initialValues
   });
 
   const description = useWatch({ control, name: "description" });
@@ -86,7 +95,15 @@ const LimsBatchForm = ({
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
-        onSubmit={handleSubmit((values) => onSubmit({ ...values, keptAttachmentIds: attachments.keptIds }, attachments.newFiles))}
+        onSubmit={handleSubmit((values) => {
+          // Edit + nothing actually changed: skip the reason modal, update
+          // call, and audit entry entirely — a no-op Save just closes.
+          if (mode === "edit" && !attachments.isDirty && isPayloadEqual(values, initialValues)) {
+            onClose();
+            return;
+          }
+          onSubmit({ ...values, keptAttachmentIds: attachments.keptIds }, attachments.newFiles);
+        })}
         className="min-w-0 space-y-4"
       >
         <h2 className="text-xl font-semibold">

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
@@ -12,7 +13,9 @@ import LimsAttachmentsField from "@/components/lims/LimsAttachmentsField";
 import { useAttachments } from "@/hooks/useAttachments";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsProjectOptions } from "@/pages/lims/projects/LimsProject.queries";
+import { fetchLimsProjectById } from "@/pages/lims/projects/LimsProject.api";
 import { useLimsUserOptions } from "@/pages/lims/users/LimsUser.options";
+import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { limsStudySchema, type LimsStudyFormValues } from "./LimsStudy.schema";
 import type { LimsStudy, LimsStudyPayload, LimsRef } from "./LimsStudy.types";
 
@@ -42,15 +45,10 @@ const LimsStudyForm = ({
   const isReadOnly = mode === "view";
   const attachments = useAttachments(initialData?.attachments);
 
-  const {
-    register,
-    control,
-    handleSubmit,
-    setValue,
-    formState: { errors, isSubmitting }
-  } = useForm<LimsStudyFormValues>({
-    resolver: zodResolver(limsStudySchema),
-    defaultValues: {
+  // Captured once per record — also the no-change baseline `submit` diffs
+  // against, so Save is a no-op when nothing actually differs from it.
+  const initialValues = useMemo<LimsStudyFormValues>(
+    () => ({
       studyId: initialData?.studyId ?? "",
       name: initialData?.name ?? "",
       studyCode: initialData?.studyCode ?? "",
@@ -59,12 +57,40 @@ const LimsStudyForm = ({
       project: initialData?.project?.id ?? "",
       projectDetails: initialData?.projectDetails ?? "",
       supervisor: initialData?.supervisor?.id ?? ""
-    }
+    }),
+    [initialData]
+  );
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isSubmitting }
+  } = useForm<LimsStudyFormValues>({
+    resolver: zodResolver(limsStudySchema),
+    defaultValues: initialValues
   });
 
   const details = useWatch({ control, name: "details" });
   const projectDetails = useWatch({ control, name: "projectDetails" });
   const busy = submitting || isSubmitting;
+
+  // "Project details" is a snapshot of the selected Project's own Details
+  // text (see study.routes.ts / study.model.ts) — the client's job to fill
+  // it, which never actually happened here: the field was permanently
+  // `disabled` with nothing populating it, so it stayed blank regardless of
+  // what Project was picked. Only refetch on an actual selection change —
+  // never on load, or a Study's own already-saved (possibly since-edited)
+  // snapshot would get silently overwritten by the Project's current text.
+  const fillProjectDetails = async (projectId: string) => {
+    try {
+      const project = await fetchLimsProjectById(projectId);
+      setValue("projectDetails", project?.details ?? "", { shouldValidate: true });
+    } catch {
+      // Non-critical — leave the existing snapshot alone if the lookup fails.
+    }
+  };
 
   const text = (name: keyof LimsStudyFormValues, label: string, required = false) => (
     <div className="min-w-0">
@@ -82,9 +108,15 @@ const LimsStudyForm = ({
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
-        onSubmit={handleSubmit((values) =>
-          onSubmit({ ...values, keptAttachmentIds: attachments.keptIds }, attachments.newFiles)
-        )}
+        onSubmit={handleSubmit((values) => {
+          // Edit + nothing actually changed: skip the reason modal, update
+          // call, and audit entry entirely — a no-op Save just closes.
+          if (mode === "edit" && !attachments.isDirty && isPayloadEqual(values, initialValues)) {
+            onClose();
+            return;
+          }
+          onSubmit({ ...values, keptAttachmentIds: attachments.keptIds }, attachments.newFiles);
+        })}
         className="min-w-0 space-y-4"
       >
         <h2 className="text-xl font-semibold">
@@ -128,6 +160,9 @@ const LimsStudyForm = ({
                   useOptions={useLimsProjectOptions}
                   value={field.value}
                   onChange={field.onChange}
+                  onChangeOption={(option) => {
+                    if (option) void fillProjectDetails(option.value);
+                  }}
                   disabled={isReadOnly}
                   placeholder={t("select", { entity: t("limsProject") })}
                   initialSelectedOptions={seedOne(initialData?.project)}

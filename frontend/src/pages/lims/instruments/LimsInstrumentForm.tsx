@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
 
 import Input from "@/components/common/form/input/InputField";
+import DateField from "@/components/common/form/input/DateField";
 import Label from "@/components/common/form/Label";
 import TextArea from "@/components/common/form/input/TextArea";
 import Button from "@/components/ui/button/Button";
@@ -12,6 +13,7 @@ import { seedRefOption } from "@/utils/refLabel";
 import SubFormGrid from "@/components/data/SubFormGrid";
 import LimsAttachmentsField from "@/components/lims/LimsAttachmentsField";
 import { useAttachments } from "@/hooks/useAttachments";
+import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { useInstrumentStatusOptions, useInstrumentTypeOptions, useMeasurementTypeOptions } from "@/pages/lims/phrases/LimsPhrase.queries";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsLocationOptions } from "@/pages/lims/locations/LimsLocation.queries";
@@ -43,18 +45,15 @@ const LimsInstrumentForm = ({
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
   const attachments = useAttachments(initialData?.attachments);
-  const [parameters, setParameters] = useState<LimsParameterValue[]>(initialData?.parameters ?? []);
-  const [maintenance, setMaintenance] = useState<LimsMaintenanceRow[]>(initialData?.maintenance ?? []);
+  const initialParametersRef = useRef(initialData?.parameters ?? []);
+  const [parameters, setParameters] = useState<LimsParameterValue[]>(initialParametersRef.current);
+  const initialMaintenanceRef = useRef(initialData?.maintenance ?? []);
+  const [maintenance, setMaintenance] = useState<LimsMaintenanceRow[]>(initialMaintenanceRef.current);
 
-  const {
-    register,
-    control,
-    handleSubmit,
-    setValue,
-    formState: { errors, isSubmitting }
-  } = useForm<LimsInstrumentFormValues>({
-    resolver: zodResolver(limsInstrumentSchema),
-    defaultValues: {
+  // Captured once per record — also the no-change baseline `submit` diffs
+  // against, so Save is a no-op when nothing actually differs from it.
+  const initialValues = useMemo<LimsInstrumentFormValues>(
+    () => ({
       instrumentId: initialData?.instrumentId ?? "",
       name: initialData?.name ?? "",
       type: initialData?.type?.id ?? "",
@@ -72,7 +71,19 @@ const LimsInstrumentForm = ({
       measuringInformation: initialData?.measuringInformation ?? "",
       msaInformation: initialData?.msaInformation ?? "",
       details: initialData?.details ?? "",
-    }
+    }),
+    [initialData]
+  );
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isSubmitting }
+  } = useForm<LimsInstrumentFormValues>({
+    resolver: zodResolver(limsInstrumentSchema),
+    defaultValues: initialValues
   });
 
   const measuringInformation = useWatch({ control, name: "measuringInformation" });
@@ -88,21 +99,57 @@ const LimsInstrumentForm = ({
   ) => (
     <div className="min-w-0">
       <Label required={required}>{label}</Label>
-      <Input
-        {...register(name)}
-        type={type}
-        disabled={isReadOnly}
-        error={!!errors[name]}
-        hint={errors[name]?.message as string}
-        className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-      />
+      {type === "date" || type === "time" ? (
+        <Controller
+          name={name}
+          control={control}
+          render={({ field }) => (
+            <DateField
+              mode={type}
+              value={field.value as string}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              disabled={isReadOnly}
+              error={!!errors[name]}
+              hint={errors[name]?.message as string}
+              className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            />
+          )}
+        />
+      ) : (
+        <Input
+          {...register(name)}
+          type={type}
+          disabled={isReadOnly}
+          error={!!errors[name]}
+          hint={errors[name]?.message as string}
+          className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+        />
+      )}
     </div>
   );
 
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
-        onSubmit={handleSubmit((values) => onSubmit({ ...values, parameters, maintenance, keptAttachmentIds: attachments.keptIds }, attachments.newFiles))}
+        onSubmit={handleSubmit((values) => {
+          // Edit + nothing actually changed: skip the reason modal, update
+          // call, and audit entry entirely — a no-op Save just closes.
+          if (
+            mode === "edit" &&
+            !attachments.isDirty &&
+            isPayloadEqual(values, initialValues) &&
+            isPayloadEqual(parameters, initialParametersRef.current) &&
+            isPayloadEqual(maintenance, initialMaintenanceRef.current)
+          ) {
+            onClose();
+            return;
+          }
+          onSubmit(
+            { ...values, parameters, maintenance, keptAttachmentIds: attachments.keptIds },
+            attachments.newFiles
+          );
+        })}
         className="min-w-0 space-y-4"
       >
         <h2 className="text-xl font-semibold">

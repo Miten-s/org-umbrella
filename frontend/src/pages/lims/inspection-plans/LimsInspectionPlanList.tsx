@@ -1,16 +1,26 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction
+} from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
-import { CopyIcon, EyeIcon, PencilIcon, PlusIcon, TimeIcon, TrashBinIcon } from "@/public/icons";
+import {
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TimeIcon,
+  TrashBinIcon
+} from "@/public/icons";
 import { fetchLimsInspectionPlanList } from "./LimsInspectionPlan.api";
 import { getLimsInspectionPlanColumns } from "./LimsInspectionPlan.columns";
 import {
@@ -20,26 +30,45 @@ import {
   useCreateLimsInspectionPlan,
   useLimsInspectionPlanAudit,
   useRestoreLimsInspectionPlan,
-  useUpdateLimsInspectionPlan
+  useUpdateLimsInspectionPlan,
+  useLimsInspectionPlanById
 } from "./LimsInspectionPlan.queries";
-import LimsInspectionPlanForm, { type LimsInspectionPlanFormMode } from "./LimsInspectionPlanForm";
-import type { LimsInspectionPlan, LimsInspectionPlanPayload } from "./LimsInspectionPlan.types";
+import LimsInspectionPlanForm, {
+  type LimsInspectionPlanFormMode
+} from "./LimsInspectionPlanForm";
+import type {
+  LimsInspectionPlan,
+  LimsInspectionPlanPayload
+} from "./LimsInspectionPlan.types";
 
 /** LimsInspectionPlan list — built to STANDARDS.md and the MIGRATION.md §5 definition of done. */
 const LimsInspectionPlanList = () => {
   const { t } = useTranslation();
   const { isOpen, openModal, closeModal } = useModal();
 
-  const [active, setActive] = useState<LimsInspectionPlan | null>(null);
-  const [formMode, setFormMode] = useState<LimsInspectionPlanFormMode>("create");
+  // Only the id of the row being edited/viewed — the list row itself is
+  // never passed into the form; the full record (including attachments)
+  // is fetched fresh the moment the modal actually needs it.
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [formMode, setFormMode] =
+    useState<LimsInspectionPlanFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
 
-  const compliance = useLimsCompliance<LimsInspectionPlan, LimsInspectionPlanPayload>();
+  const compliance = useLimsCompliance<
+    LimsInspectionPlan,
+    LimsInspectionPlanPayload
+  >();
   const auditQuery = useLimsInspectionPlanAudit(compliance.auditRow?.id);
+  const detailQuery = useLimsInspectionPlanById(
+    activeId ?? undefined,
+    isOpen && formMode !== "create"
+  );
 
   const fetchList = useCallback(
-    (params: Parameters<typeof fetchLimsInspectionPlanList>[1], signal?: AbortSignal) =>
-      fetchLimsInspectionPlanList(includeRemoved, params, signal),
+    (
+      params: Parameters<typeof fetchLimsInspectionPlanList>[1],
+      signal?: AbortSignal
+    ) => fetchLimsInspectionPlanList(includeRemoved, params, signal),
     [includeRemoved]
   );
 
@@ -67,7 +96,7 @@ const LimsInspectionPlanList = () => {
   const openForm = useCallback(
     (mode: LimsInspectionPlanFormMode, row: LimsInspectionPlan | null) => {
       setFormMode(mode);
-      setActive(row);
+      setActiveId(row?.id ?? null);
       openModal();
     },
     [openModal]
@@ -75,13 +104,13 @@ const LimsInspectionPlanList = () => {
 
   const handleCloseForm = () => {
     closeModal();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
   const handleSave = async (payload: LimsInspectionPlanPayload) => {
-    if (active) {
-      compliance.requestUpdate(active.id, payload);
+    if (activeId) {
+      compliance.requestUpdate(activeId, payload);
       closeModal();
       return;
     }
@@ -97,11 +126,12 @@ const LimsInspectionPlanList = () => {
       payload: { ...pending.payload, changeReason: reason }
     });
     compliance.clearUpdate();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
-  const label = (row: LimsInspectionPlan) => String(row.inspectionId ?? row.name ?? "");
+  const label = (row: LimsInspectionPlan) =>
+    String(row.inspectionId ?? row.name ?? "");
 
   const bulkActions = useMemo<DataTableBulkAction[]>(
     () => [
@@ -127,7 +157,9 @@ const LimsInspectionPlanList = () => {
             selection,
             count,
             selection.mode === "ids"
-              ? table.rows.filter((row) => selection.ids.includes(row.id)).map(label)
+              ? table.rows
+                  .filter((row) => selection.ids.includes(row.id))
+                  .map(label)
               : []
           )
       }
@@ -186,7 +218,10 @@ const LimsInspectionPlanList = () => {
         tone: "danger",
         permission: LIMS_PERMISSIONS.DELETE_INSPECTION_PLAN,
         hidden: (row: LimsInspectionPlan) => Boolean(row.isRemoved),
-        onClick: (row) => compliance.requestDelete({ mode: "ids", ids: [row.id] }, 1, [label(row)])
+        onClick: (row) =>
+          compliance.requestDelete({ mode: "ids", ids: [row.id] }, 1, [
+            label(row)
+          ])
       }
     ],
     [bulkClone, compliance, openForm, t]
@@ -229,13 +264,21 @@ const LimsInspectionPlanList = () => {
         onClose={handleCloseForm}
         className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
       >
-        <LimsInspectionPlanForm
-          mode={formMode}
-          initialData={active}
-          onClose={handleCloseForm}
-          onSubmit={handleSave}
-          submitting={create.isPending || update.isPending}
-        />
+        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+          <div className="flex min-h-[300px] items-center justify-center p-10">
+            <LoadingSpinner fullScreen={false} />
+          </div>
+        ) : (
+          <LimsInspectionPlanForm
+            mode={formMode}
+            initialData={
+              formMode === "create" ? null : (detailQuery.data ?? null)
+            }
+            onClose={handleCloseForm}
+            onSubmit={handleSave}
+            submitting={create.isPending || update.isPending}
+          />
+        )}
       </Modal>
 
       <LimsComplianceDialogs
@@ -246,13 +289,23 @@ const LimsInspectionPlanList = () => {
         updating={update.isPending}
         deleting={bulkDelete.isPending}
         restoring={restore.isPending}
-        auditEntries={auditQuery.data ?? []}
+        auditEntries={auditQuery.entries}
+
         auditLoading={auditQuery.isLoading}
+
+        auditHasNextPage={auditQuery.hasNextPage}
+
+        auditFetchingNextPage={auditQuery.isFetchingNextPage}
+
+        onAuditLoadMore={auditQuery.fetchNextPage}
         onUpdate={confirmUpdate}
         onDelete={async (reason) => {
           const pending = compliance.pendingDelete;
           if (pending) {
-            await bulkDelete.mutateAsync({ selection: pending.selection, changeReason: reason });
+            await bulkDelete.mutateAsync({
+              selection: pending.selection,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearDelete();

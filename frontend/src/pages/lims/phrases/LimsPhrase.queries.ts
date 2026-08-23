@@ -1,9 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLimsAuditTrail } from "@/hooks/useLimsAuditTrail";
+import { useLimsRecordById } from "@/hooks/useLimsRecordById";
 import { invalidateAllLims } from "@/lib/query/invalidateLims";
 import { toast } from "@/lib/toast";
 import { useAsyncOptions } from "@/hooks/useAsyncOptions";
-import { extractList } from "@/utils/listResponse";
-import type { LimsAuditEntry } from "@/components/data/AuditTrailDialog";
 import type { BulkSelection, ServerListParams } from "@/lib/query/listTypes";
 import {
   PHRASE_CODES,
@@ -14,7 +14,8 @@ import {
   fetchPhraseEntryOptions,
   restoreLimsPhrase,
   updateLimsPhrase,
-  type PhraseCode
+  type PhraseCode,
+  fetchLimsPhraseById
 } from "./LimsPhrase.api";
 import type { LimsPhrasePayload } from "./LimsPhrase.types";
 
@@ -61,15 +62,18 @@ export const useApprovalStatusOptions = makePhraseOptionsHook(PHRASE_CODES.APPRO
 export const useSampleTypeOptions = makePhraseOptionsHook(PHRASE_CODES.SAMPLE_TYPE);
 
 export const useLimsPhraseAudit = (id?: string) =>
-  useQuery({
+  useLimsAuditTrail({
     queryKey: limsPhraseKeys.audit(id ?? "none"),
-    queryFn: async ({ signal }) =>
-      extractList<LimsAuditEntry>(await fetchLimsPhraseAudit(id as string, signal), [
-        "audit",
-        "auditTrail",
-        "entries"
-      ]),
-    enabled: Boolean(id)
+    fetchPage: fetchLimsPhraseAudit,
+    id
+  });
+
+export const useLimsPhraseById = (id?: string, enabled = true) =>
+  useLimsRecordById({
+    queryKey: limsPhraseKeys.all,
+    fetchById: fetchLimsPhraseById,
+    id,
+    enabled
   });
 
 const useInvalidate = () => {

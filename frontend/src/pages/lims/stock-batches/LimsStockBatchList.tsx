@@ -1,16 +1,26 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction
+} from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
-import { CopyIcon, EyeIcon, PencilIcon, PlusIcon, TimeIcon, TrashBinIcon } from "@/public/icons";
+import {
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TimeIcon,
+  TrashBinIcon
+} from "@/public/icons";
 import { fetchLimsStockBatchList } from "./LimsStockBatch.api";
 import { getLimsStockBatchColumns } from "./LimsStockBatch.columns";
 import {
@@ -20,26 +30,41 @@ import {
   useCreateLimsStockBatch,
   useLimsStockBatchAudit,
   useRestoreLimsStockBatch,
-  useUpdateLimsStockBatch
+  useUpdateLimsStockBatch,
+  useLimsStockBatchById
 } from "./LimsStockBatch.queries";
-import LimsStockBatchForm, { type LimsStockBatchFormMode } from "./LimsStockBatchForm";
-import type { LimsStockBatch, LimsStockBatchPayload } from "./LimsStockBatch.types";
+import LimsStockBatchForm, {
+  type LimsStockBatchFormMode
+} from "./LimsStockBatchForm";
+import type {
+  LimsStockBatch,
+  LimsStockBatchPayload
+} from "./LimsStockBatch.types";
 
 /** LimsStockBatch list — built to STANDARDS.md and the MIGRATION.md §5 definition of done. */
 const LimsStockBatchList = () => {
   const { t } = useTranslation();
   const { isOpen, openModal, closeModal } = useModal();
 
-  const [active, setActive] = useState<LimsStockBatch | null>(null);
+  // Only the id of the row being edited/viewed — the list row itself is
+  // never passed into the form; the full record (including attachments)
+  // is fetched fresh the moment the modal actually needs it.
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsStockBatchFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
 
   const compliance = useLimsCompliance<LimsStockBatch, LimsStockBatchPayload>();
   const auditQuery = useLimsStockBatchAudit(compliance.auditRow?.id);
+  const detailQuery = useLimsStockBatchById(
+    activeId ?? undefined,
+    isOpen && formMode !== "create"
+  );
 
   const fetchList = useCallback(
-    (params: Parameters<typeof fetchLimsStockBatchList>[1], signal?: AbortSignal) =>
-      fetchLimsStockBatchList(includeRemoved, params, signal),
+    (
+      params: Parameters<typeof fetchLimsStockBatchList>[1],
+      signal?: AbortSignal
+    ) => fetchLimsStockBatchList(includeRemoved, params, signal),
     [includeRemoved]
   );
 
@@ -67,7 +92,7 @@ const LimsStockBatchList = () => {
   const openForm = useCallback(
     (mode: LimsStockBatchFormMode, row: LimsStockBatch | null) => {
       setFormMode(mode);
-      setActive(row);
+      setActiveId(row?.id ?? null);
       openModal();
     },
     [openModal]
@@ -75,13 +100,13 @@ const LimsStockBatchList = () => {
 
   const handleCloseForm = () => {
     closeModal();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
   const handleSave = async (payload: LimsStockBatchPayload, files: File[]) => {
-    if (active) {
-      compliance.requestUpdate(active.id, payload, files);
+    if (activeId) {
+      compliance.requestUpdate(activeId, payload, files);
       closeModal();
       return;
     }
@@ -94,14 +119,16 @@ const LimsStockBatchList = () => {
     if (!pending) return;
     await update.mutateAsync({
       id: pending.id,
-      payload: { ...pending.payload, changeReason: reason }, files: pending.files
+      payload: { ...pending.payload, changeReason: reason },
+      files: pending.files
     });
     compliance.clearUpdate();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
-  const label = (row: LimsStockBatch) => String(row.stockBatchId ?? row.stockBatchId ?? "");
+  const label = (row: LimsStockBatch) =>
+    String(row.stockBatchId ?? row.stockBatchId ?? "");
 
   const bulkActions = useMemo<DataTableBulkAction[]>(
     () => [
@@ -127,7 +154,9 @@ const LimsStockBatchList = () => {
             selection,
             count,
             selection.mode === "ids"
-              ? table.rows.filter((row) => selection.ids.includes(row.id)).map(label)
+              ? table.rows
+                  .filter((row) => selection.ids.includes(row.id))
+                  .map(label)
               : []
           )
       }
@@ -186,7 +215,10 @@ const LimsStockBatchList = () => {
         tone: "danger",
         permission: LIMS_PERMISSIONS.DELETE_STOCK_BATCH,
         hidden: (row: LimsStockBatch) => Boolean(row.isRemoved),
-        onClick: (row) => compliance.requestDelete({ mode: "ids", ids: [row.id] }, 1, [label(row)])
+        onClick: (row) =>
+          compliance.requestDelete({ mode: "ids", ids: [row.id] }, 1, [
+            label(row)
+          ])
       }
     ],
     [bulkClone, compliance, openForm, t]
@@ -229,13 +261,21 @@ const LimsStockBatchList = () => {
         onClose={handleCloseForm}
         className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
       >
-        <LimsStockBatchForm
-          mode={formMode}
-          initialData={active}
-          onClose={handleCloseForm}
-          onSubmit={handleSave}
-          submitting={create.isPending || update.isPending}
-        />
+        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+          <div className="flex min-h-[300px] items-center justify-center p-10">
+            <LoadingSpinner fullScreen={false} />
+          </div>
+        ) : (
+          <LimsStockBatchForm
+            mode={formMode}
+            initialData={
+              formMode === "create" ? null : (detailQuery.data ?? null)
+            }
+            onClose={handleCloseForm}
+            onSubmit={handleSave}
+            submitting={create.isPending || update.isPending}
+          />
+        )}
       </Modal>
 
       <LimsComplianceDialogs
@@ -246,13 +286,23 @@ const LimsStockBatchList = () => {
         updating={update.isPending}
         deleting={bulkDelete.isPending}
         restoring={restore.isPending}
-        auditEntries={auditQuery.data ?? []}
+        auditEntries={auditQuery.entries}
+
         auditLoading={auditQuery.isLoading}
+
+        auditHasNextPage={auditQuery.hasNextPage}
+
+        auditFetchingNextPage={auditQuery.isFetchingNextPage}
+
+        onAuditLoadMore={auditQuery.fetchNextPage}
         onUpdate={confirmUpdate}
         onDelete={async (reason) => {
           const pending = compliance.pendingDelete;
           if (pending) {
-            await bulkDelete.mutateAsync({ selection: pending.selection, changeReason: reason });
+            await bulkDelete.mutateAsync({
+              selection: pending.selection,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearDelete();

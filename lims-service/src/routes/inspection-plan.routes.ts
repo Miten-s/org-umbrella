@@ -3,8 +3,15 @@ import InspectionPersonnel from "../models/inspection-personnel.model";
 import Group from "../models/group.model";
 import LimsUser from "../models/lims-user.model";
 import Role from "../models/role.model";
-import { buildCrudRouter, buildCrudService, CrudConfig } from "../utils/crud-factory";
-import { CreateInspectionPlanDto, UpdateInspectionPlanDto } from "../dtos/instrument.dto";
+import {
+  buildCrudRouter,
+  buildCrudService,
+  CrudConfig
+} from "../utils/crud-factory";
+import {
+  CreateInspectionPlanDto,
+  UpdateInspectionPlanDto
+} from "../dtos/instrument.dto";
 
 /**
  * Inspection Plans. Each personnel row names either a person or a role — the
@@ -26,12 +33,28 @@ export const inspectionPlanConfig: CrudConfig<InspectionPlan> = {
       as: "personnel",
       required: false,
       include: [
-        { model: LimsUser, as: "person", attributes: ["id", "userName", ["user_name", "name"]], required: false },
-        { model: Role, as: "role", attributes: ["id", "roleId", "name"], required: false }
+        {
+          model: LimsUser,
+          as: "person",
+          attributes: ["id", "userName", ["user_name", "name"]],
+          required: false
+        },
+        {
+          model: Role,
+          as: "role",
+          attributes: ["id", "roleId", "name"],
+          required: false
+        }
       ]
     }
   ],
   relationFields: { group: "groupId" },
+
+  // The list column only shows a count (LimsInspectionPlan.columns.tsx:
+  // `personnel?.length`) — neither the person/role sub-relations nor any
+  // other column is read for the list.
+  listRelationAttributes: { personnel: ["id"] },
+
   children: [
     {
       field: "personnel",

@@ -1,9 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLimsAuditTrail } from "@/hooks/useLimsAuditTrail";
+import { useLimsRecordById } from "@/hooks/useLimsRecordById";
 import { invalidateAllLims } from "@/lib/query/invalidateLims";
 import { toast } from "@/lib/toast";
 import { useAsyncOptions } from "@/hooks/useAsyncOptions";
-import { extractList } from "@/utils/listResponse";
-import type { LimsAuditEntry } from "@/components/data/AuditTrailDialog";
 import type { BulkSelection, ServerListParams } from "@/lib/query/listTypes";
 import {
   bulkCloneLimsScheduler,
@@ -12,7 +12,8 @@ import {
   fetchLimsSchedulerAudit,
   fetchLimsSchedulerOptions,
   restoreLimsScheduler,
-  updateLimsScheduler
+  updateLimsScheduler,
+  fetchLimsSchedulerById
 } from "./LimsScheduler.api";
 import type { LimsSchedulerPayload } from "./LimsScheduler.types";
 
@@ -38,15 +39,18 @@ export const useLimsSchedulerOptions = (args: {
   });
 
 export const useLimsSchedulerAudit = (id?: string) =>
-  useQuery({
+  useLimsAuditTrail({
     queryKey: limsSchedulerKeys.audit(id ?? "none"),
-    queryFn: async ({ signal }) =>
-      extractList<LimsAuditEntry>(await fetchLimsSchedulerAudit(id as string, signal), [
-        "audit",
-        "auditTrail",
-        "entries"
-      ]),
-    enabled: Boolean(id)
+    fetchPage: fetchLimsSchedulerAudit,
+    id
+  });
+
+export const useLimsSchedulerById = (id?: string, enabled = true) =>
+  useLimsRecordById({
+    queryKey: limsSchedulerKeys.all,
+    fetchById: fetchLimsSchedulerById,
+    id,
+    enabled
   });
 
 const useInvalidate = () => {

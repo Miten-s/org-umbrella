@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
 
 import Input from "@/components/common/form/input/InputField";
+import DateField from "@/components/common/form/input/DateField";
 import Label from "@/components/common/form/Label";
 import TextArea from "@/components/common/form/input/TextArea";
 import Button from "@/components/ui/button/Button";
@@ -12,6 +13,7 @@ import { seedRefOption } from "@/utils/refLabel";
 import SubFormGrid from "@/components/data/SubFormGrid";
 import LimsAttachmentsField from "@/components/lims/LimsAttachmentsField";
 import { useAttachments } from "@/hooks/useAttachments";
+import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { useLimsStockOptions } from "@/pages/lims/stocks/LimsStock.queries";
 import { useStockBatchStatusOptions } from "@/pages/lims/phrases/LimsPhrase.queries";
 import { useLimsProjectOptions } from "@/pages/lims/projects/LimsProject.queries";
@@ -44,18 +46,15 @@ const LimsStockBatchForm = ({
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
   const attachments = useAttachments(initialData?.attachments);
-  const [consumptions, setConsumptions] = useState<LimsConsumptionRow[]>(initialData?.consumptions ?? []);
-  const [parameters, setParameters] = useState<LimsParameterValue[]>(initialData?.parameters ?? []);
+  const initialConsumptionsRef = useRef(initialData?.consumptions ?? []);
+  const [consumptions, setConsumptions] = useState<LimsConsumptionRow[]>(initialConsumptionsRef.current);
+  const initialParametersRef = useRef(initialData?.parameters ?? []);
+  const [parameters, setParameters] = useState<LimsParameterValue[]>(initialParametersRef.current);
 
-  const {
-    register,
-    control,
-    handleSubmit,
-    setValue,
-    formState: { errors, isSubmitting }
-  } = useForm<LimsStockBatchFormValues>({
-    resolver: zodResolver(limsStockBatchSchema),
-    defaultValues: {
+  // Captured once per record — also the no-change baseline `submit` diffs
+  // against, so Save is a no-op when nothing actually differs from it.
+  const initialValues = useMemo<LimsStockBatchFormValues>(
+    () => ({
       stock: initialData?.stock?.id ?? "",
       status: initialData?.status?.id ?? "",
       project: initialData?.project?.id ?? "",
@@ -70,7 +69,19 @@ const LimsStockBatchForm = ({
       currentAmount: initialData?.currentAmount ?? "",
       unit: initialData?.unit ?? "",
       description: initialData?.description ?? "",
-    }
+    }),
+    [initialData]
+  );
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isSubmitting }
+  } = useForm<LimsStockBatchFormValues>({
+    resolver: zodResolver(limsStockBatchSchema),
+    defaultValues: initialValues
   });
 
   const description = useWatch({ control, name: "description" });
@@ -84,21 +95,57 @@ const LimsStockBatchForm = ({
   ) => (
     <div className="min-w-0">
       <Label required={required}>{label}</Label>
-      <Input
-        {...register(name)}
-        type={type}
-        disabled={isReadOnly}
-        error={!!errors[name]}
-        hint={errors[name]?.message as string}
-        className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-      />
+      {type === "date" || type === "time" ? (
+        <Controller
+          name={name}
+          control={control}
+          render={({ field }) => (
+            <DateField
+              mode={type}
+              value={field.value as string}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              disabled={isReadOnly}
+              error={!!errors[name]}
+              hint={errors[name]?.message as string}
+              className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            />
+          )}
+        />
+      ) : (
+        <Input
+          {...register(name)}
+          type={type}
+          disabled={isReadOnly}
+          error={!!errors[name]}
+          hint={errors[name]?.message as string}
+          className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+        />
+      )}
     </div>
   );
 
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
-        onSubmit={handleSubmit((values) => onSubmit({ ...values, consumptions, parameters, keptAttachmentIds: attachments.keptIds }, attachments.newFiles))}
+        onSubmit={handleSubmit((values) => {
+          // Edit + nothing actually changed: skip the reason modal, update
+          // call, and audit entry entirely — a no-op Save just closes.
+          if (
+            mode === "edit" &&
+            !attachments.isDirty &&
+            isPayloadEqual(values, initialValues) &&
+            isPayloadEqual(consumptions, initialConsumptionsRef.current) &&
+            isPayloadEqual(parameters, initialParametersRef.current)
+          ) {
+            onClose();
+            return;
+          }
+          onSubmit(
+            { ...values, consumptions, parameters, keptAttachmentIds: attachments.keptIds },
+            attachments.newFiles
+          );
+        })}
         className="min-w-0 space-y-4"
       >
         <h2 className="text-xl font-semibold">

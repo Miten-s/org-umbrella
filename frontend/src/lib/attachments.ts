@@ -23,6 +23,13 @@ export const prettifyAttachmentName = (path: string): string => {
  * Normalize a raw attachments array (from the backend, where the file path lives
  * under `attachment`) into display entries carrying the row `id` (the update
  * keep-list identifier) and the `path` (for the preview URL).
+ *
+ * The `<timestamp>-<name>` heuristic below only recovers a readable name when
+ * the stored filename actually embeds the original one, which is gxp-service's
+ * convention — lims-service deliberately stores a random name instead (never
+ * builds a path from client input) and sends the real original separately as
+ * `fileName`. Prefer that when a backend provides it; the heuristic stays as
+ * the fallback for callers that don't.
  */
 export const toExistingAttachments = (raw: unknown): ExistingAttachment[] =>
   (Array.isArray(raw) ? raw : [])
@@ -35,7 +42,7 @@ export const toExistingAttachments = (raw: unknown): ExistingAttachment[] =>
       return {
         id: String(a?._id ?? a?.id ?? path),
         path,
-        name: prettifyAttachmentName(path)
+        name: (typeof a === "object" && a?.fileName) || prettifyAttachmentName(path)
       };
     })
     .filter(Boolean) as ExistingAttachment[];

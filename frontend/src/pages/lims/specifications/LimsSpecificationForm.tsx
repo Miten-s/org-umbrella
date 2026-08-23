@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
@@ -12,6 +12,7 @@ import SubFormGrid from "@/components/data/SubFormGrid";
 import LimsAttachmentsField from "@/components/lims/LimsAttachmentsField";
 import { useAttachments } from "@/hooks/useAttachments";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
+import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { limsSpecificationSchema, type LimsSpecificationFormValues } from "./LimsSpecification.schema";
 import type { LimsSpecification, LimsSpecificationPayload, LimsRef, LimsLimitRow } from "./LimsSpecification.types";
 
@@ -39,7 +40,20 @@ const LimsSpecificationForm = ({
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
   const attachments = useAttachments(initialData?.attachments);
-  const [limits, setLimits] = useState<LimsLimitRow[]>(initialData?.limits ?? []);
+  const initialLimitsRef = useRef(initialData?.limits ?? []);
+  const [limits, setLimits] = useState<LimsLimitRow[]>(initialLimitsRef.current);
+
+  // Captured once per record — also the no-change baseline `submit` diffs
+  // against, so Save is a no-op when nothing actually differs from it.
+  const initialValues = useMemo<LimsSpecificationFormValues>(
+    () => ({
+      specId: initialData?.specId ?? "",
+      name: initialData?.name ?? "",
+      group: initialData?.group?.id ?? "",
+      description: initialData?.description ?? "",
+    }),
+    [initialData]
+  );
 
   const {
     register,
@@ -49,12 +63,7 @@ const LimsSpecificationForm = ({
     formState: { errors, isSubmitting }
   } = useForm<LimsSpecificationFormValues>({
     resolver: zodResolver(limsSpecificationSchema),
-    defaultValues: {
-      specId: initialData?.specId ?? "",
-      name: initialData?.name ?? "",
-      group: initialData?.group?.id ?? "",
-      description: initialData?.description ?? "",
-    }
+    defaultValues: initialValues
   });
 
   const description = useWatch({ control, name: "description" });
@@ -82,7 +91,23 @@ const LimsSpecificationForm = ({
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
-        onSubmit={handleSubmit((values) => onSubmit({ ...values, limits, keptAttachmentIds: attachments.keptIds }, attachments.newFiles))}
+        onSubmit={handleSubmit((values) => {
+          // Edit + nothing actually changed: skip the reason modal, update
+          // call, and audit entry entirely — a no-op Save just closes.
+          if (
+            mode === "edit" &&
+            !attachments.isDirty &&
+            isPayloadEqual(values, initialValues) &&
+            isPayloadEqual(limits, initialLimitsRef.current)
+          ) {
+            onClose();
+            return;
+          }
+          onSubmit(
+            { ...values, limits, keptAttachmentIds: attachments.keptIds },
+            attachments.newFiles
+          );
+        })}
         className="min-w-0 space-y-4"
       >
         <h2 className="text-xl font-semibold">

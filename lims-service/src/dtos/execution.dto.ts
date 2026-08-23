@@ -1,6 +1,14 @@
 import {
-  IsArray, IsBoolean, IsDateString, IsInt, IsNotEmpty, IsOptional,
-  IsString, IsUUID, MaxLength, ValidateNested
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  ValidateNested
 } from "class-validator";
 import { Type } from "class-transformer";
 
@@ -26,6 +34,14 @@ export class UpdateBatchDto {
   @IsOptional() @IsUUID("4") group?: string;
   @IsOptional() @IsArray() @IsUUID("4", { each: true }) lots?: string[];
   @IsOptional() @IsString() changeReason?: string;
+  // New file attachments arrive on `req.files` (multer), separately from
+  // this JSON payload — this is only the "which existing ones survive"
+  // half of the reconcile. Declared here so `whitelist: true` doesn't
+  // strip it before the controller ever sees it.
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  keptAttachmentIds?: string[];
 }
 
 // ─── Lots ───────────────────────────────────────────────────────────────────
@@ -45,6 +61,14 @@ export class UpdateLotDto {
   @IsOptional() @IsUUID("4") batch?: string;
   @IsOptional() @IsArray() @IsUUID("4", { each: true }) samples?: string[];
   @IsOptional() @IsString() changeReason?: string;
+  // New file attachments arrive on `req.files` (multer), separately from
+  // this JSON payload — this is only the "which existing ones survive"
+  // half of the reconcile. Declared here so `whitelist: true` doesn't
+  // strip it before the controller ever sees it.
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  keptAttachmentIds?: string[];
 }
 
 /**
@@ -95,11 +119,22 @@ export class CreateSampleDto {
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsString() comments?: string;
 
-  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => TestWindowRowDto)
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TestWindowRowDto)
   testWindows?: TestWindowRowDto[];
 }
 export class UpdateSampleDto extends CreateSampleDto {
   @IsOptional() @IsString() changeReason?: string;
+  // New file attachments arrive on `req.files` (multer), separately from
+  // this JSON payload — this is only the "which existing ones survive"
+  // half of the reconcile. Declared here so `whitelist: true` doesn't
+  // strip it before the controller ever sees it.
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  keptAttachmentIds?: string[];
 }
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
@@ -113,6 +148,15 @@ export class CreateTestDto {
   @IsOptional() @IsDateString() loginDate?: string;
   @IsOptional() @IsString() @MaxLength(200) loginBy?: string;
   @IsOptional() @IsString() description?: string;
+
+  // The Test form's result-entry grid — was silently dropped here (whitelist
+  // validation strips undeclared properties), so it never persisted despite
+  // the frontend always sending it. See test.routes.ts.
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TestWindowRowDto)
+  components?: TestWindowRowDto[];
 }
 export class UpdateTestDto {
   @IsOptional() @IsString() @MaxLength(200) testName?: string;
@@ -124,6 +168,20 @@ export class UpdateTestDto {
   @IsOptional() @IsString() @MaxLength(200) loginBy?: string;
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsString() changeReason?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TestWindowRowDto)
+  components?: TestWindowRowDto[];
+  // New file attachments arrive on `req.files` (multer), separately from
+  // this JSON payload — this is only the "which existing ones survive"
+  // half of the reconcile. Declared here so `whitelist: true` doesn't
+  // strip it before the controller ever sees it.
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  keptAttachmentIds?: string[];
 }
 
 // ─── Results ────────────────────────────────────────────────────────────────
@@ -147,6 +205,13 @@ export class CreateResultDto {
  * GxP audit will not accept.
  */
 export class UpdateResultDto {
+  // The Result form's Component ID field is editable on Update too (not
+  // locked, unlike the server-generated resultId), so a mistyped value can
+  // be corrected on an amend. If it collides with another current Result on
+  // the same Test, the partial unique index on (test_id, component_id)
+  // rejects the insert — surfaced as a friendly message, not a raw error.
+  @IsOptional() @IsString() @MaxLength(100) componentId?: string;
+  @IsOptional() @IsString() @MaxLength(200) componentName?: string;
   @IsOptional() @IsString() value?: string;
   @IsOptional() @IsString() @MaxLength(50) unit?: string;
   @IsOptional() @IsBoolean() outOfRange?: boolean;
@@ -154,7 +219,8 @@ export class UpdateResultDto {
   @IsOptional() @IsUUID("4") stock?: string;
   @IsOptional() @IsString() @MaxLength(200) enteredBy?: string;
 
-  @IsString() @IsNotEmpty({ message: "A change reason is required to amend a result" })
+  @IsString()
+  @IsNotEmpty({ message: "A change reason is required to amend a result" })
   changeReason!: string;
 }
 

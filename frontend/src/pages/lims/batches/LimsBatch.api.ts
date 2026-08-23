@@ -6,6 +6,13 @@ import type { LimsBatch, LimsBatchPayload } from "./LimsBatch.types";
 
 /** LimsBatch API. Pure HTTP — toasts live in the mutation layer. */
 const ROUTE = "/lims-batches";
+
+/** Full record for the Edit/View modal — fetched on demand when it opens,
+ * not reused from the list row (see useLimsRecordById). */
+export const fetchLimsBatchById = async (id: string, signal?: AbortSignal) => {
+  const response = await limsApi.get(`${ROUTE}/${id}`, { signal });
+  return (response.data?.data ?? response.data) as LimsBatch;
+};
 const DATA_KEYS = ["batches", "data"];
 const RELATION_KEYS = ["group"];
 
@@ -88,7 +95,11 @@ export const restoreLimsBatch = async (id: string, changeReason: string) => {
   return response.data;
 };
 
-export const fetchLimsBatchAudit = async (id: string, signal?: AbortSignal) => {
-  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { signal });
+export const fetchLimsBatchAudit = async (
+  id: string,
+  signal?: AbortSignal,
+  params?: { page?: number; limit?: number }
+) => {
+  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { params, signal });
   return response.data;
 };

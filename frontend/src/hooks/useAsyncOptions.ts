@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useDebouncedValue } from "./useDebouncedValue";
 import type { AsyncOption, OptionsPage } from "@/lib/query/listTypes";
@@ -52,7 +52,14 @@ export const useAsyncOptions = ({
       fetchPage({ search: debouncedSearch, page: pageParam as number }, signal),
     initialPageParam: 1,
     getNextPageParam: (lastPage: OptionsPage) => lastPage.nextPage,
-    enabled
+    enabled,
+    // Without this, typing a new search term is a different query key, so
+    // `data` goes briefly `undefined` (not just "loading") while it
+    // refetches — the rendered list drops to empty/loading and then
+    // reappears with a new array, right as a virtualized row a viewer just
+    // clicked could still be mid-transition. Keeping the previous page
+    // visible until the new one lands removes that window entirely.
+    placeholderData: keepPreviousData
   });
 
   const loadedOptions = useMemo<AsyncOption[]>(

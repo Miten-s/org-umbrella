@@ -1,7 +1,11 @@
 import Supplier from "../models/supplier.model";
 import Group from "../models/group.model";
 import PhraseEntry from "../models/phrase-entry.model";
-import { buildCrudRouter, buildCrudService, CrudConfig } from "../utils/crud-factory";
+import {
+  buildCrudRouter,
+  buildCrudService,
+  CrudConfig
+} from "../utils/crud-factory";
 import { CreateSupplierDto, UpdateSupplierDto } from "../dtos/commercial.dto";
 
 /** Suppliers. Referenced by Stock (preferred + many) and Stock Batches. */
@@ -15,7 +19,12 @@ export const supplierConfig: CrudConfig<Supplier> = {
   defaultSortBy: "supplierName",
   relations: [
     { model: Group, as: "group", attributes: ["id", "name"], required: false },
-    { model: PhraseEntry, as: "rating", attributes: ["id", "phraseEntryId", "name"], required: false }
+    {
+      model: PhraseEntry,
+      as: "rating",
+      attributes: ["id", "phraseEntryId", "name"],
+      required: false
+    }
   ],
   relationFields: { group: "groupId", rating: "ratingId" }
 };
@@ -29,5 +38,6 @@ export default buildCrudRouter({
   createDto: CreateSupplierDto,
   updateDto: UpdateSupplierDto,
   model: Supplier,
-  businessId: supplierConfig.businessId
+  businessId: supplierConfig.businessId,
+  hasAttachments: true
 });

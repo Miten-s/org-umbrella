@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import Label from "@/components/common/form/Label";
 import FileUpload from "@/components/common/form/input/FileUpload";
 import { isImageName } from "@/lib/attachments";
-import { getGxpImageUrl } from "@/services/utils.service";
+import { getLimsImageUrl } from "@/services/utils.service";
 import type { UseAttachmentsReturn } from "@/hooks/useAttachments";
 
 interface LimsAttachmentsFieldProps {
@@ -36,7 +36,7 @@ const LimsAttachmentsField = ({ attachments, disabled = false }: LimsAttachments
             >
               {isImageName(file.path) ? (
                 <img
-                  src={getGxpImageUrl(file.path)}
+                  src={getLimsImageUrl(file.path)}
                   alt={file.name}
                   className="h-10 w-10 rounded border border-gray-200 object-cover dark:border-gray-700"
                 />

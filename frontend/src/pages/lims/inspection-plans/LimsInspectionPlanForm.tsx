@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
@@ -12,6 +12,7 @@ import AsyncSelect from "@/components/data/AsyncSelect";
 import SubFormGrid from "@/components/data/SubFormGrid";
 
 import { refId } from "@/lib/query/normalizeId";
+import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsUserOptions } from "@/pages/lims/users/LimsUser.options";
 import { useLimsRoleOptions } from "@/pages/lims/roles/LimsRole.queries";
@@ -47,13 +48,14 @@ const LimsInspectionPlanForm = ({
    * its options. Without this the saved values silently render as the
    * "Select Person" placeholder — the record looks empty even though it isn't.
    */
-  const [personnel, setPersonnel] = useState<LimsPersonnelRow[]>(() =>
+  const initialPersonnelRef = useRef(
     (initialData?.personnel ?? []).map((row) => ({
       ...row,
       person: refId(row.person),
       role: refId(row.role)
     }))
   );
+  const [personnel, setPersonnel] = useState<LimsPersonnelRow[]>(initialPersonnelRef.current);
 
   /**
    * Person and Role are references, not free text — the server stores them as
@@ -64,6 +66,20 @@ const LimsInspectionPlanForm = ({
   const personOptions = useLimsUserOptions({ search: "" });
   const roleOptions = useLimsRoleOptions({ search: "" });
 
+  // Captured once per record — also the no-change baseline `submit` diffs
+  // against, so Save is a no-op when nothing actually differs from it.
+  const initialValues = useMemo<LimsInspectionPlanFormValues>(
+    () => ({
+      inspectionId: initialData?.inspectionId ?? "",
+      name: initialData?.name ?? "",
+      inspectionType: initialData?.inspectionType ?? "",
+      group: initialData?.group?.id ?? "",
+      description: initialData?.description ?? "",
+      details: initialData?.details ?? "",
+    }),
+    [initialData]
+  );
+
   const {
     register,
     control,
@@ -72,14 +88,7 @@ const LimsInspectionPlanForm = ({
     formState: { errors, isSubmitting }
   } = useForm<LimsInspectionPlanFormValues>({
     resolver: zodResolver(limsInspectionPlanSchema),
-    defaultValues: {
-      inspectionId: initialData?.inspectionId ?? "",
-      name: initialData?.name ?? "",
-      inspectionType: initialData?.inspectionType ?? "",
-      group: initialData?.group?.id ?? "",
-      description: initialData?.description ?? "",
-      details: initialData?.details ?? "",
-    }
+    defaultValues: initialValues
   });
 
   const description = useWatch({ control, name: "description" });
@@ -108,7 +117,19 @@ const LimsInspectionPlanForm = ({
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
-        onSubmit={handleSubmit((values) => onSubmit({ ...values, personnel }))}
+        onSubmit={handleSubmit((values) => {
+          // Edit + nothing actually changed: skip the reason modal, update
+          // call, and audit entry entirely — a no-op Save just closes.
+          if (
+            mode === "edit" &&
+            isPayloadEqual(values, initialValues) &&
+            isPayloadEqual(personnel, initialPersonnelRef.current)
+          ) {
+            onClose();
+            return;
+          }
+          onSubmit({ ...values, personnel });
+        })}
         className="min-w-0 space-y-4"
       >
         <h2 className="text-xl font-semibold">

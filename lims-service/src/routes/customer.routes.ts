@@ -2,7 +2,11 @@ import Customer from "../models/customer.model";
 import Group from "../models/group.model";
 import PhraseEntry from "../models/phrase-entry.model";
 import Project from "../models/project.model";
-import { buildCrudRouter, buildCrudService, CrudConfig } from "../utils/crud-factory";
+import {
+  buildCrudRouter,
+  buildCrudService,
+  CrudConfig
+} from "../utils/crud-factory";
 import { CreateCustomerDto, UpdateCustomerDto } from "../dtos/commercial.dto";
 
 /**
@@ -19,8 +23,18 @@ export const customerConfig: CrudConfig<Customer> = {
   defaultSortBy: "customerName",
   relations: [
     { model: Group, as: "group", attributes: ["id", "name"], required: false },
-    { model: PhraseEntry, as: "rating", attributes: ["id", "phraseEntryId", "name"], required: false },
-    { model: Project, as: "linkedProjects", attributes: ["id", "projectId", "name"], required: false }
+    {
+      model: PhraseEntry,
+      as: "rating",
+      attributes: ["id", "phraseEntryId", "name"],
+      required: false
+    },
+    {
+      model: Project,
+      as: "linkedProjects",
+      attributes: ["id", "projectId", "name"],
+      required: false
+    }
   ],
   relationFields: { group: "groupId", rating: "ratingId" }
 };
@@ -34,5 +48,6 @@ export default buildCrudRouter({
   createDto: CreateCustomerDto,
   updateDto: UpdateCustomerDto,
   model: Customer,
-  businessId: customerConfig.businessId
+  businessId: customerConfig.businessId,
+  hasAttachments: true
 });

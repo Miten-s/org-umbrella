@@ -1,5 +1,6 @@
 import Button from "@/components/ui/button/Button";
 import Label from "@/components/common/form/Label";
+import DateField from "@/components/common/form/input/DateField";
 import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
 import { PlusIcon, TrashBinIcon } from "@/public/icons";
 import { useTranslation } from "react-i18next";
@@ -103,6 +104,17 @@ function SubFormGrid<R extends Record<string, unknown>>({
           // overflow container and the modal's, either of which would clip the
           // menu open downwards.
           portal
+        />
+      );
+    }
+
+    if (column.type === "date") {
+      return (
+        <DateField
+          mode="date"
+          value={String(value ?? "")}
+          onChange={(next) => updateCell(rowIndex, column.key, next)}
+          disabled={disabled}
         />
       );
     }

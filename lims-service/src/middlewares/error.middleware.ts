@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { CUSTOM_MESSAGES, getMessage } from "../utils/common.util";
+import { CUSTOM_MESSAGES, friendlyUniqueConflictMessage, getMessage } from "../utils/common.util";
 import ENV from "../utils/environment";
 
 interface CustomError extends Error {
@@ -28,14 +28,11 @@ export const errorHandler = (
   if (err?.name === "SequelizeUniqueConstraintError") {
     statusCode = 400;
     const errors = (err as any).errors || [];
-    const conflict = errors
-      .map((e: any) => e?.value)
-      .filter((v: unknown) => v !== undefined && v !== null && v !== "")
-      .join(", ");
-    const fields = errors.map((e: any) => e?.path).filter(Boolean).join(", ") || "field";
-    message = conflict
-      ? `A record with this value already exists: "${conflict}" (${fields}).`
-      : `Duplicate value for field "${fields}".`;
+    const fields = errors.map((e: any) => e?.path).filter(Boolean);
+    const values = errors.map((e: any) => e?.value);
+    // Never a raw UUID or snake_case column name in a user-facing toast —
+    // see friendlyUniqueConflictMessage for why.
+    message = friendlyUniqueConflictMessage(fields, values);
   } else if (err?.name === "SequelizeValidationError") {
     statusCode = 400;
     const errors = (err as any).errors || [];

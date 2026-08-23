@@ -1,16 +1,26 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction
+} from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
-import { CopyIcon, EyeIcon, PencilIcon, PlusIcon, TimeIcon, TrashBinIcon } from "@/public/icons";
+import {
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TimeIcon,
+  TrashBinIcon
+} from "@/public/icons";
 import { fetchLimsResultList } from "./LimsResult.api";
 import { getLimsResultColumns } from "./LimsResult.columns";
 import {
@@ -20,7 +30,8 @@ import {
   useCreateLimsResult,
   useLimsResultAudit,
   useRestoreLimsResult,
-  useUpdateLimsResult
+  useUpdateLimsResult,
+  useLimsResultById
 } from "./LimsResult.queries";
 import LimsResultForm, { type LimsResultFormMode } from "./LimsResultForm";
 import type { LimsResult, LimsResultPayload } from "./LimsResult.types";
@@ -30,12 +41,19 @@ const LimsResultList = () => {
   const { t } = useTranslation();
   const { isOpen, openModal, closeModal } = useModal();
 
-  const [active, setActive] = useState<LimsResult | null>(null);
+  // Only the id of the row being edited/viewed — the list row itself is
+  // never passed into the form; the full record (including attachments)
+  // is fetched fresh the moment the modal actually needs it.
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsResultFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
 
   const compliance = useLimsCompliance<LimsResult, LimsResultPayload>();
   const auditQuery = useLimsResultAudit(compliance.auditRow?.id);
+  const detailQuery = useLimsResultById(
+    activeId ?? undefined,
+    isOpen && formMode !== "create"
+  );
 
   const fetchList = useCallback(
     (params: Parameters<typeof fetchLimsResultList>[1], signal?: AbortSignal) =>
@@ -67,7 +85,7 @@ const LimsResultList = () => {
   const openForm = useCallback(
     (mode: LimsResultFormMode, row: LimsResult | null) => {
       setFormMode(mode);
-      setActive(row);
+      setActiveId(row?.id ?? null);
       openModal();
     },
     [openModal]
@@ -75,13 +93,13 @@ const LimsResultList = () => {
 
   const handleCloseForm = () => {
     closeModal();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
   const handleSave = async (payload: LimsResultPayload) => {
-    if (active) {
-      compliance.requestUpdate(active.id, payload);
+    if (activeId) {
+      compliance.requestUpdate(activeId, payload);
       closeModal();
       return;
     }
@@ -97,11 +115,12 @@ const LimsResultList = () => {
       payload: { ...pending.payload, changeReason: reason }
     });
     compliance.clearUpdate();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
-  const label = (row: LimsResult) => String(row.resultId ?? row.componentName ?? "");
+  const label = (row: LimsResult) =>
+    String(row.resultId ?? row.componentName ?? "");
 
   const bulkActions = useMemo<DataTableBulkAction[]>(
     () => [
@@ -127,7 +146,9 @@ const LimsResultList = () => {
             selection,
             count,
             selection.mode === "ids"
-              ? table.rows.filter((row) => selection.ids.includes(row.id)).map(label)
+              ? table.rows
+                  .filter((row) => selection.ids.includes(row.id))
+                  .map(label)
               : []
           )
       }
@@ -186,7 +207,10 @@ const LimsResultList = () => {
         tone: "danger",
         permission: LIMS_PERMISSIONS.DELETE_RESULT,
         hidden: (row: LimsResult) => Boolean(row.isRemoved),
-        onClick: (row) => compliance.requestDelete({ mode: "ids", ids: [row.id] }, 1, [label(row)])
+        onClick: (row) =>
+          compliance.requestDelete({ mode: "ids", ids: [row.id] }, 1, [
+            label(row)
+          ])
       }
     ],
     [bulkClone, compliance, openForm, t]
@@ -229,13 +253,21 @@ const LimsResultList = () => {
         onClose={handleCloseForm}
         className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
       >
-        <LimsResultForm
-          mode={formMode}
-          initialData={active}
-          onClose={handleCloseForm}
-          onSubmit={handleSave}
-          submitting={create.isPending || update.isPending}
-        />
+        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+          <div className="flex min-h-[300px] items-center justify-center p-10">
+            <LoadingSpinner fullScreen={false} />
+          </div>
+        ) : (
+          <LimsResultForm
+            mode={formMode}
+            initialData={
+              formMode === "create" ? null : (detailQuery.data ?? null)
+            }
+            onClose={handleCloseForm}
+            onSubmit={handleSave}
+            submitting={create.isPending || update.isPending}
+          />
+        )}
       </Modal>
 
       <LimsComplianceDialogs
@@ -246,13 +278,23 @@ const LimsResultList = () => {
         updating={update.isPending}
         deleting={bulkDelete.isPending}
         restoring={restore.isPending}
-        auditEntries={auditQuery.data ?? []}
+        auditEntries={auditQuery.entries}
+
         auditLoading={auditQuery.isLoading}
+
+        auditHasNextPage={auditQuery.hasNextPage}
+
+        auditFetchingNextPage={auditQuery.isFetchingNextPage}
+
+        onAuditLoadMore={auditQuery.fetchNextPage}
         onUpdate={confirmUpdate}
         onDelete={async (reason) => {
           const pending = compliance.pendingDelete;
           if (pending) {
-            await bulkDelete.mutateAsync({ selection: pending.selection, changeReason: reason });
+            await bulkDelete.mutateAsync({
+              selection: pending.selection,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearDelete();

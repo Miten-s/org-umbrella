@@ -1,9 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLimsAuditTrail } from "@/hooks/useLimsAuditTrail";
+import { useLimsRecordById } from "@/hooks/useLimsRecordById";
 import { invalidateAllLims } from "@/lib/query/invalidateLims";
 import { toast } from "@/lib/toast";
 import { useAsyncOptions } from "@/hooks/useAsyncOptions";
-import { extractList } from "@/utils/listResponse";
-import type { LimsAuditEntry } from "@/components/data/AuditTrailDialog";
 import type { BulkSelection, ServerListParams } from "@/lib/query/listTypes";
 import {
   bulkCloneLimsGroup,
@@ -12,7 +12,8 @@ import {
   fetchLimsGroupAudit,
   fetchLimsGroupOptions,
   restoreLimsGroup,
-  updateLimsGroup
+  updateLimsGroup,
+  fetchLimsGroupById
 } from "./LimsGroup.api";
 import type { LimsGroupPayload } from "./LimsGroup.types";
 
@@ -38,15 +39,18 @@ export const useLimsGroupOptions = (args: {
   });
 
 export const useLimsGroupAudit = (id?: string) =>
-  useQuery({
+  useLimsAuditTrail({
     queryKey: limsGroupKeys.audit(id ?? "none"),
-    queryFn: async ({ signal }) =>
-      extractList<LimsAuditEntry>(await fetchLimsGroupAudit(id as string, signal), [
-        "audit",
-        "auditTrail",
-        "entries"
-      ]),
-    enabled: Boolean(id)
+    fetchPage: fetchLimsGroupAudit,
+    id
+  });
+
+export const useLimsGroupById = (id?: string, enabled = true) =>
+  useLimsRecordById({
+    queryKey: limsGroupKeys.all,
+    fetchById: fetchLimsGroupById,
+    id,
+    enabled
   });
 
 const useInvalidateLimsGroups = () => {

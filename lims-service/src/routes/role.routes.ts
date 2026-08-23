@@ -1,10 +1,19 @@
 import Role from "../models/role.model";
 import RoleEntry from "../models/role-entry.model";
 import Group from "../models/group.model";
-import { buildCrudRouter, buildCrudService, CrudConfig } from "../utils/crud-factory";
+import {
+  buildCrudRouter,
+  buildCrudService,
+  CrudConfig
+} from "../utils/crud-factory";
 import { CreateRoleDto, UpdateRoleDto } from "../dtos/master-data.dto";
 import { invalidateAllUserContexts } from "../services/user-context.service";
-import { ACTION_COLUMN, LimsAction, LIMS_ACTIONS } from "../utils/permissions";
+import {
+  ACTION_COLUMN,
+  LimsAction,
+  LIMS_ACTIONS,
+  OPERATE_ALL
+} from "../utils/permissions";
 
 /**
  * Lab Roles.
@@ -19,7 +28,9 @@ import { ACTION_COLUMN, LimsAction, LIMS_ACTIONS } from "../utils/permissions";
  */
 
 /** "LIMS:CREATE:SAMPLE" → { entity: "SAMPLE", action: "CREATE" } */
-const parseCode = (code: string): { entity: string; action: LimsAction } | null => {
+const parseCode = (
+  code: string
+): { entity: string; action: LimsAction } | null => {
   const [prefix, action, entity] = code.split(":");
   if (prefix !== "LIMS" || !action || !entity) return null;
   if (!LIMS_ACTIONS.includes(action as LimsAction)) return null;
@@ -68,7 +79,14 @@ export const roleConfig: CrudConfig<Role> = {
     {
       model: RoleEntry,
       as: "entries",
-      attributes: ["id", "entry", "canView", "canCreate", "canEdit", "canRemove"],
+      attributes: [
+        "id",
+        "entry",
+        "canView",
+        "canCreate",
+        "canEdit",
+        "canRemove"
+      ],
       required: false
     }
   ],
@@ -76,10 +94,27 @@ export const roleConfig: CrudConfig<Role> = {
 
   // Accept the flat shape by folding it into the grid shape before anything
   // else looks at the payload. `entries` wins if a client somehow sends both.
+  //
+  // `OPERATE:ALL` is pulled out first: it's not an entity permission at all
+  // (`parseCode` requires the "LIMS:<ACTION>:<ENTITY>" shape and silently
+  // drops anything else, this code included) — it's Role's own top-level
+  // `operateAll` column, the one that bypasses group filtering entirely.
+  // The Role form's "ALL / Operate" checkbox sends it through the same flat
+  // `permissions[]` array as everything else, so without this split it was
+  // parsed as garbage and discarded: checking it showed a success toast but
+  // never actually persisted anything, on either the entries grid or
+  // `operateAll` — a real gap given what that flag grants.
   normalizePayload: (payload) => {
-    if (payload.entries !== undefined || payload.permissions === undefined) return payload;
-    const { permissions, ...rest } = payload;
-    return { ...rest, entries: permissionsToEntries(permissions as string[]) };
+    const next = { ...payload };
+    if (next.entries === undefined && next.permissions !== undefined) {
+      const codes = next.permissions as string[];
+      next.operateAll = codes.includes(OPERATE_ALL);
+      next.entries = permissionsToEntries(
+        codes.filter((code) => code !== OPERATE_ALL)
+      );
+      delete next.permissions;
+    }
+    return next;
   },
 
   children: [
@@ -92,8 +127,16 @@ export const roleConfig: CrudConfig<Role> = {
     }
   ],
 
-  // Return both shapes so either client works unchanged.
-  postFormat: (row) => ({ ...row, permissions: entriesToPermissions(row.entries) }),
+  // Return both shapes so either client works unchanged. `OPERATE:ALL` is
+  // stitched back into the flat list from the real `operateAll` column, the
+  // same place `normalizePayload` pulled it out of.
+  postFormat: (row) => ({
+    ...row,
+    permissions: [
+      ...(row.operateAll ? [OPERATE_ALL] : []),
+      ...entriesToPermissions(row.entries)
+    ]
+  }),
 
   // A permission change must take effect on the very next request.
   afterWrite: invalidateAllUserContexts

@@ -3,7 +3,11 @@ import AnalysisComponent from "../models/analysis-component.model";
 import Group from "../models/group.model";
 import PhraseEntry from "../models/phrase-entry.model";
 import InspectionPlan from "../models/inspection-plan.model";
-import { buildCrudRouter, buildCrudService, CrudConfig } from "../utils/crud-factory";
+import {
+  buildCrudRouter,
+  buildCrudService,
+  CrudConfig
+} from "../utils/crud-factory";
 import { CreateAnalysisDto, UpdateAnalysisDto } from "../dtos/analytical.dto";
 
 /** Analyses, with the Component grid nested. */
@@ -17,9 +21,24 @@ export const analysisConfig: CrudConfig<Analysis> = {
   defaultSortBy: "name",
   relations: [
     { model: Group, as: "group", attributes: ["id", "name"], required: false },
-    { model: PhraseEntry, as: "analysisType", attributes: ["id", "phraseEntryId", "name"], required: false },
-    { model: PhraseEntry, as: "approvalStatus", attributes: ["id", "phraseEntryId", "name"], required: false },
-    { model: InspectionPlan, as: "inspectionPlan", attributes: ["id", "inspectionId", "name"], required: false },
+    {
+      model: PhraseEntry,
+      as: "analysisType",
+      attributes: ["id", "phraseEntryId", "name"],
+      required: false
+    },
+    {
+      model: PhraseEntry,
+      as: "approvalStatus",
+      attributes: ["id", "phraseEntryId", "name"],
+      required: false
+    },
+    {
+      model: InspectionPlan,
+      as: "inspectionPlan",
+      attributes: ["id", "inspectionId", "name"],
+      required: false
+    },
     { model: AnalysisComponent, as: "components", required: false }
   ],
   relationFields: {
@@ -28,13 +47,32 @@ export const analysisConfig: CrudConfig<Analysis> = {
     approvalStatus: "approvalStatusId",
     inspectionPlan: "inspectionPlanId"
   },
+
+  // The list column only shows a count (LimsAnalysis.columns.tsx:
+  // `components?.length`) — no row content needed for the list at all.
+  listRelationAttributes: { components: ["id"] },
+
   children: [
     {
       field: "components",
       model: AnalysisComponent,
       foreignKey: "analysisId",
-      fields: ["componentId", "name", "description", "type", "unit", "calculation", "formula",
-               "option", "list", "entity", "entityCriteria", "min", "max", "sortOrder"],
+      fields: [
+        "componentId",
+        "name",
+        "description",
+        "type",
+        "unit",
+        "calculation",
+        "formula",
+        "option",
+        "list",
+        "entity",
+        "entityCriteria",
+        "min",
+        "max",
+        "sortOrder"
+      ],
       matchKey: "componentId"
     }
   ]

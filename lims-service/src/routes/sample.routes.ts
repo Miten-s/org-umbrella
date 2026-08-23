@@ -8,7 +8,11 @@ import StockBatch from "../models/stock-batch.model";
 import PhraseEntry from "../models/phrase-entry.model";
 import Group from "../models/group.model";
 import TestWindow from "../models/test-window.model";
-import { buildCrudRouter, buildCrudService, CrudConfig } from "../utils/crud-factory";
+import {
+  buildCrudRouter,
+  buildCrudService,
+  CrudConfig
+} from "../utils/crud-factory";
 import { CreateSampleDto, UpdateSampleDto } from "../dtos/execution.dto";
 import { attachCancelRoutes } from "../utils/cancel-routes";
 
@@ -26,17 +30,63 @@ export const sampleConfig: CrudConfig<Sample> = {
   permissionEntity: "SAMPLE",
   uniqueField: "sampleId",
   businessId: { field: "sampleId", prefix: "SMP", locked: true, pad: 9 },
-  searchFields: ["sampleId", "idText", "sampleName", "lotNumber", "serialNumber"],
+  searchFields: [
+    "sampleId",
+    "idText",
+    "sampleName",
+    "lotNumber",
+    "serialNumber"
+  ],
   defaultSortBy: "createdAt",
   relations: [
     { model: Group, as: "group", attributes: ["id", "name"], required: false },
-    { model: Lot, as: "lot", attributes: ["id", "lotId", "lotName", ["lot_name", "name"]], required: false },
-    { model: Project, as: "project", attributes: ["id", "projectId", "name"], required: false },
-    { model: PhraseEntry, as: "sampleType", attributes: ["id", "phraseEntryId", "name"], required: false },
-    { model: Specification, as: "specification", attributes: ["id", "specId", "name"], required: false },
-    { model: TestGroup, as: "testGroup", attributes: ["id", "testGroupId", "name"], required: false },
-    { model: Location, as: "location", attributes: ["id", "locationId", "locationName", ["location_name", "name"]], required: false },
-    { model: StockBatch, as: "stockBatch", attributes: ["id", "stockBatchId", ["stock_batch_id", "name"]], required: false },
+    {
+      model: Lot,
+      as: "lot",
+      attributes: ["id", "lotId", "lotName", ["lot_name", "name"]],
+      required: false
+    },
+    {
+      model: Project,
+      as: "project",
+      attributes: ["id", "projectId", "name"],
+      required: false
+    },
+    {
+      model: PhraseEntry,
+      as: "sampleType",
+      attributes: ["id", "phraseEntryId", "name"],
+      required: false
+    },
+    {
+      model: Specification,
+      as: "specification",
+      attributes: ["id", "specId", "name"],
+      required: false
+    },
+    {
+      model: TestGroup,
+      as: "testGroup",
+      attributes: ["id", "testGroupId", "name"],
+      required: false
+    },
+    {
+      model: Location,
+      as: "location",
+      attributes: [
+        "id",
+        "locationId",
+        "locationName",
+        ["location_name", "name"]
+      ],
+      required: false
+    },
+    {
+      model: StockBatch,
+      as: "stockBatch",
+      attributes: ["id", "stockBatchId", ["stock_batch_id", "name"]],
+      required: false
+    },
     { model: TestWindow, as: "testWindows", required: false }
   ],
   children: [
@@ -47,11 +97,26 @@ export const sampleConfig: CrudConfig<Sample> = {
       model: TestWindow,
       foreignKey: "sampleId",
       fields: [
-        "testId", "analysisName", "componentId", "componentName", "description",
-        "value", "unit", "outOfRange", "enteredOn", "enteredBy", "instrumentId", "stockId"
+        "testId",
+        "analysisName",
+        "componentId",
+        "componentName",
+        "description",
+        "value",
+        "unit",
+        "outOfRange",
+        "enteredOn",
+        "enteredBy",
+        "instrumentId",
+        "stockId"
       ],
       relationFields: { instrument: "instrumentId", stock: "stockId" },
-      matchKey: "componentId"
+      matchKey: "componentId",
+      // A Test's own `components` grid (test.routes.ts) stamps rows into
+      // this same table with a `testId` set. Without this scope, saving this
+      // grid would see those rows as orphans (right sampleId, just not in
+      // THIS submitted list) and delete them out from under the Test.
+      scopeWhere: { testId: null }
     }
   ],
   relationFields: {
@@ -63,7 +128,11 @@ export const sampleConfig: CrudConfig<Sample> = {
     testGroup: "testGroupId",
     location: "locationId",
     stockBatch: "stockBatchId"
-  }
+  },
+
+  // The list table doesn't render anything from the Test windows grid —
+  // Edit/View-only.
+  listExcludeRelations: ["testWindows"]
 };
 
 const service = buildCrudService(sampleConfig);
@@ -73,7 +142,8 @@ const router = buildCrudRouter({
   entityName: sampleConfig.entityName,
   permissionEntity: sampleConfig.permissionEntity,
   createDto: CreateSampleDto,
-  updateDto: UpdateSampleDto
+  updateDto: UpdateSampleDto,
+  hasAttachments: true
 });
 
 export default attachCancelRoutes(router, {

@@ -1,9 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLimsAuditTrail } from "@/hooks/useLimsAuditTrail";
+import { useLimsRecordById } from "@/hooks/useLimsRecordById";
 import { invalidateAllLims } from "@/lib/query/invalidateLims";
 import { toast } from "@/lib/toast";
 import { useAsyncOptions } from "@/hooks/useAsyncOptions";
-import { extractList } from "@/utils/listResponse";
-import type { LimsAuditEntry } from "@/components/data/AuditTrailDialog";
 import type { BulkSelection, ServerListParams } from "@/lib/query/listTypes";
 import {
   bulkCloneLimsCalibration,
@@ -12,7 +12,8 @@ import {
   fetchLimsCalibrationAudit,
   fetchLimsCalibrationOptions,
   restoreLimsCalibration,
-  updateLimsCalibration
+  updateLimsCalibration,
+  fetchLimsCalibrationById
 } from "./LimsCalibration.api";
 import type { LimsCalibrationPayload } from "./LimsCalibration.types";
 
@@ -38,15 +39,18 @@ export const useLimsCalibrationOptions = (args: {
   });
 
 export const useLimsCalibrationAudit = (id?: string) =>
-  useQuery({
+  useLimsAuditTrail({
     queryKey: limsCalibrationKeys.audit(id ?? "none"),
-    queryFn: async ({ signal }) =>
-      extractList<LimsAuditEntry>(await fetchLimsCalibrationAudit(id as string, signal), [
-        "audit",
-        "auditTrail",
-        "entries"
-      ]),
-    enabled: Boolean(id)
+    fetchPage: fetchLimsCalibrationAudit,
+    id
+  });
+
+export const useLimsCalibrationById = (id?: string, enabled = true) =>
+  useLimsRecordById({
+    queryKey: limsCalibrationKeys.all,
+    fetchById: fetchLimsCalibrationById,
+    id,
+    enabled
   });
 
 const useInvalidate = () => {

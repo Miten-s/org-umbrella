@@ -84,7 +84,11 @@ const repair = (instance: unknown, seen = new Set<unknown>()): void => {
         const value = obj[field];
         if (value === "") {
           obj[field] = null;
-        } else if (typeof value === "string" && value.trim() !== "" && !Number.isNaN(Number(value))) {
+        } else if (
+          typeof value === "string" &&
+          value.trim() !== "" &&
+          !Number.isNaN(Number(value))
+        ) {
           obj[field] = Number(value);
         }
       }
@@ -115,17 +119,58 @@ const collectMessages = (errors: any[], path = ""): string[] =>
   errors.flatMap((err) => {
     const where = path ? `${path}.${err.property}` : err.property;
     const own = Object.values(err.constraints ?? {}) as string[];
-    const nested = err.children?.length ? collectMessages(err.children, where) : [];
+    const nested = err.children?.length
+      ? collectMessages(err.children, where)
+      : [];
     return [...own, ...nested];
   });
 
-/** Mirrors gxp-service/src/middlewares/validate-dto.middleware.ts (same intent, adapted to its multipart handling). */
-export const validateDto = (dtoClass: any, type?: "body" | "query" | "params"): any => {
+/**
+ * Mirrors gxp-service/src/middlewares/validate-dto.middleware.ts, including
+ * the multipart handling that comment already claimed but never actually
+ * carried over: a save with new file attachments arrives as
+ * `multipart/form-data` (multer.middleware.ts parses it ahead of this), with
+ * the real payload JSON-stringified under a `data` field rather than as the
+ * body directly — busboy/multer only knows how to give you form fields as
+ * strings. Without unwrapping it here, `target` was `undefined` (nothing
+ * upstream parses multipart into `req.body` otherwise) and every field
+ * validation ever crashed with a raw `plainToInstance` TypeError before a
+ * single entity ever got as far as its own field-level errors.
+ */
+export const validateDto = (
+  dtoClass: any,
+  type?: "body" | "query" | "params"
+): any => {
   return async (req: Request, res: Response, next: NextFunction) => {
     const targetType = type ?? "body";
     const target = req[targetType];
 
-    const dtoObject = plainToInstance(dtoClass, target);
+    let payloadForValidation: any = target;
+    const isMultipartWrapped =
+      targetType === "body" &&
+      target &&
+      typeof target === "object" &&
+      "data" in target;
+
+    if (isMultipartWrapped) {
+      const rawData = (target as Record<string, unknown>).data;
+      if (typeof rawData !== "string") {
+        return res.status(400).json({
+          error: "Validation failed",
+          errors: ["Invalid payload format"]
+        });
+      }
+      try {
+        payloadForValidation = JSON.parse(rawData);
+      } catch {
+        return res.status(400).json({
+          error: "Validation failed",
+          errors: ["Invalid payload format"]
+        });
+      }
+    }
+
+    const dtoObject = plainToInstance(dtoClass, payloadForValidation);
 
     // Repair AFTER transformation, not before: `plainToInstance` has by then
     // turned each nested row into an instance of its own DTO class, so the
@@ -133,14 +178,25 @@ export const validateDto = (dtoClass: any, type?: "body" | "query" | "params"): 
     // consumptions, analysis components) carry exactly the same string-typed
     // numbers as the top level and were failing identically.
     repair(dtoObject);
-    const errors = await validate(dtoObject, { whitelist: true, forbidNonWhitelisted: false });
+    const errors = await validate(dtoObject, {
+      whitelist: true,
+      forbidNonWhitelisted: false
+    });
 
     if (errors.length > 0) {
       const errorMessages = collectMessages(errors);
-      return res.status(400).json({ error: "Validation failed", errors: errorMessages });
+      return res
+        .status(400)
+        .json({ error: "Validation failed", errors: errorMessages });
     }
 
-    req[targetType] = dtoObject;
+    // Keep the other multipart fields (multer put files on `req.files`, not
+    // here, so there's nothing else on `target` today besides `data` — but
+    // preserving it rather than clobbering `req.body` outright costs nothing
+    // and matches gxp-service's own version).
+    req[targetType] = isMultipartWrapped
+      ? { ...(target as Record<string, unknown>), data: dtoObject }
+      : dtoObject;
     next();
   };
 };

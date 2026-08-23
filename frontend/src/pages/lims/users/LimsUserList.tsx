@@ -1,16 +1,28 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction
+} from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { toast } from "@/lib/toast";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
-import { CopyIcon, EyeIcon, PencilIcon, PlusIcon, TimeIcon, TrashBinIcon } from "@/public/icons";
+import {
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TimeIcon,
+  TrashBinIcon
+} from "@/public/icons";
 import { fetchLimsUserList } from "./LimsUser.api";
 import { getLimsUserColumns } from "./LimsUser.columns";
 import {
@@ -20,7 +32,8 @@ import {
   useCreateLimsUser,
   useLimsUserAudit,
   useRestoreLimsUser,
-  useUpdateLimsUser
+  useUpdateLimsUser,
+  useLimsUserById
 } from "./LimsUser.queries";
 import LimsUserForm, { type LimsUserFormMode } from "./LimsUserForm";
 import type { LimsUser, LimsUserPayload } from "./LimsUser.types";
@@ -29,13 +42,30 @@ import type { LimsUser, LimsUserPayload } from "./LimsUser.types";
 const LimsUserList = () => {
   const { t } = useTranslation();
   const { isOpen, openModal, closeModal } = useModal();
+  // Removing your own Lab User row is a total, self-inflicted lockout — no
+  // LIMS access means no way to use this app's own Restore to undo it. The
+  // API rejects it either way (lims-user.routes.ts); this just keeps the
+  // option from being offered in the first place.
+  const currentUser = useCurrentUser();
+  const isSelf = useCallback(
+    (row: LimsUser | undefined) =>
+      Boolean(currentUser?.id) && row?.userId === currentUser?.id,
+    [currentUser?.id]
+  );
 
-  const [active, setActive] = useState<LimsUser | null>(null);
+  // Only the id of the row being edited/viewed — the list row itself is
+  // never passed into the form; the full record (including attachments)
+  // is fetched fresh the moment the modal actually needs it.
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsUserFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
 
   const compliance = useLimsCompliance<LimsUser, LimsUserPayload>();
   const auditQuery = useLimsUserAudit(compliance.auditRow?.id);
+  const detailQuery = useLimsUserById(
+    activeId ?? undefined,
+    isOpen && formMode !== "create"
+  );
 
   const fetchList = useCallback(
     (params: Parameters<typeof fetchLimsUserList>[1], signal?: AbortSignal) =>
@@ -68,7 +98,7 @@ const LimsUserList = () => {
   const openForm = useCallback(
     (mode: LimsUserFormMode, row: LimsUser | null) => {
       setFormMode(mode);
-      setActive(row);
+      setActiveId(row?.id ?? null);
       openModal();
     },
     [openModal]
@@ -76,13 +106,13 @@ const LimsUserList = () => {
 
   const handleCloseForm = () => {
     closeModal();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
   const handleSave = async (payload: LimsUserPayload) => {
-    if (active) {
-      compliance.requestUpdate(active.id, payload);
+    if (activeId) {
+      compliance.requestUpdate(activeId, payload);
       closeModal();
       return;
     }
@@ -98,7 +128,7 @@ const LimsUserList = () => {
       payload: { ...pending.payload, changeReason: reason }
     });
     compliance.clearUpdate();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
@@ -123,17 +153,47 @@ const LimsUserList = () => {
         icon: TrashBinIcon,
         variant: "destructive",
         permission: LIMS_PERMISSIONS.DELETE_USER,
-        onClick: (selection, count) =>
+        onClick: (selection, count) => {
+          // "all" (select-across-pages) mode can't be filtered client-side —
+          // if it happens to include the caller's own row, the API's own
+          // guard (lims-user.routes.ts) rejects the whole batch rather than
+          // silently locking them out.
+          let filtered = selection;
+          let excludedSelf = false;
+          if (selection.mode === "ids") {
+            const rowsById = new Map(table.rows.map((row) => [row.id, row]));
+            const ids = selection.ids.filter((id) => !isSelf(rowsById.get(id)));
+            excludedSelf = ids.length !== selection.ids.length;
+            filtered = { ...selection, ids };
+          }
+          // Selection was ONLY your own row — nothing left to confirm.
+          // Without this, an empty-but-real confirmation dialog still
+          // opened, reachable even though it could never actually remove
+          // anything.
+          if (
+            filtered.mode === "ids" &&
+            filtered.ids.length === 0 &&
+            excludedSelf
+          ) {
+            toast(
+              "You cannot remove your own Lab User record. Ask another administrator to do it.",
+              "error"
+            );
+            return;
+          }
           compliance.requestDelete(
-            selection,
-            count,
-            selection.mode === "ids"
-              ? table.rows.filter((row) => selection.ids.includes(row.id)).map(label)
+            filtered,
+            excludedSelf ? count - 1 : count,
+            filtered.mode === "ids"
+              ? table.rows
+                  .filter((row) => filtered.ids.includes(row.id))
+                  .map(label)
               : []
-          )
+          );
+        }
       }
     ],
-    [bulkClone, compliance, t, table]
+    [bulkClone, compliance, isSelf, t, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsUser>[]>(
@@ -186,11 +246,14 @@ const LimsUserList = () => {
         placement: "menu",
         tone: "danger",
         permission: LIMS_PERMISSIONS.DELETE_USER,
-        hidden: (row: LimsUser) => Boolean(row.isRemoved),
-        onClick: (row) => compliance.requestDelete({ mode: "ids", ids: [row.id] }, 1, [label(row)])
+        hidden: (row: LimsUser) => Boolean(row.isRemoved) || isSelf(row),
+        onClick: (row) =>
+          compliance.requestDelete({ mode: "ids", ids: [row.id] }, 1, [
+            label(row)
+          ])
       }
     ],
-    [bulkClone, compliance, openForm, t]
+    [bulkClone, compliance, isSelf, openForm, t]
   );
 
   return (
@@ -230,13 +293,21 @@ const LimsUserList = () => {
         onClose={handleCloseForm}
         className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
       >
-        <LimsUserForm
-          mode={formMode}
-          initialData={active}
-          onClose={handleCloseForm}
-          onSubmit={handleSave}
-          submitting={create.isPending || update.isPending}
-        />
+        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+          <div className="flex min-h-[300px] items-center justify-center p-10">
+            <LoadingSpinner fullScreen={false} />
+          </div>
+        ) : (
+          <LimsUserForm
+            mode={formMode}
+            initialData={
+              formMode === "create" ? null : (detailQuery.data ?? null)
+            }
+            onClose={handleCloseForm}
+            onSubmit={handleSave}
+            submitting={create.isPending || update.isPending}
+          />
+        )}
       </Modal>
 
       <LimsComplianceDialogs
@@ -247,13 +318,23 @@ const LimsUserList = () => {
         updating={update.isPending}
         deleting={bulkDelete.isPending}
         restoring={restore.isPending}
-        auditEntries={auditQuery.data ?? []}
+        auditEntries={auditQuery.entries}
+
         auditLoading={auditQuery.isLoading}
+
+        auditHasNextPage={auditQuery.hasNextPage}
+
+        auditFetchingNextPage={auditQuery.isFetchingNextPage}
+
+        onAuditLoadMore={auditQuery.fetchNextPage}
         onUpdate={confirmUpdate}
         onDelete={async (reason) => {
           const pending = compliance.pendingDelete;
           if (pending) {
-            await bulkDelete.mutateAsync({ selection: pending.selection, changeReason: reason });
+            await bulkDelete.mutateAsync({
+              selection: pending.selection,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearDelete();

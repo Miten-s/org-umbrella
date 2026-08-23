@@ -6,8 +6,15 @@ import Group from "../models/group.model";
 import PhraseEntry from "../models/phrase-entry.model";
 import Location from "../models/location.model";
 import Supplier from "../models/supplier.model";
-import { buildCrudRouter, buildCrudService, CrudConfig } from "../utils/crud-factory";
-import { CreateInstrumentDto, UpdateInstrumentDto } from "../dtos/instrument.dto";
+import {
+  buildCrudRouter,
+  buildCrudService,
+  CrudConfig
+} from "../utils/crud-factory";
+import {
+  CreateInstrumentDto,
+  UpdateInstrumentDto
+} from "../dtos/instrument.dto";
 
 /** Instruments, with their Parameters and Maintenance grids nested. */
 export const instrumentConfig: CrudConfig<Instrument> = {
@@ -16,16 +23,62 @@ export const instrumentConfig: CrudConfig<Instrument> = {
   permissionEntity: "INSTRUMENT",
   uniqueField: "instrumentId",
   businessId: { field: "instrumentId", prefix: "INS" },
-  searchFields: ["instrumentId", "name", "serialNumber", "modelNumber", "manufacturer"],
+  searchFields: [
+    "instrumentId",
+    "name",
+    "serialNumber",
+    "modelNumber",
+    "manufacturer"
+  ],
   defaultSortBy: "name",
   relations: [
     { model: Group, as: "group", attributes: ["id", "name"], required: false },
-    { model: PhraseEntry, as: "type", attributes: ["id", "phraseEntryId", "name"], required: false },
-    { model: PhraseEntry, as: "measurementType", attributes: ["id", "phraseEntryId", "name"], required: false },
-    { model: PhraseEntry, as: "status", attributes: ["id", "phraseEntryId", "name"], required: false },
-    { model: Location, as: "location", attributes: ["id", "locationId", "locationName", ["location_name", "name"]], required: false },
-    { model: Supplier, as: "supplier", attributes: ["id", "supplierId", "supplierName", ["supplier_name", "name"]], required: false },
-    { model: InstrumentPart, as: "parts", attributes: ["id", "partId", "partName", ["part_name", "name"]], required: false },
+    {
+      model: PhraseEntry,
+      as: "type",
+      attributes: ["id", "phraseEntryId", "name"],
+      required: false
+    },
+    {
+      model: PhraseEntry,
+      as: "measurementType",
+      attributes: ["id", "phraseEntryId", "name"],
+      required: false
+    },
+    {
+      model: PhraseEntry,
+      as: "status",
+      attributes: ["id", "phraseEntryId", "name"],
+      required: false
+    },
+    {
+      model: Location,
+      as: "location",
+      attributes: [
+        "id",
+        "locationId",
+        "locationName",
+        ["location_name", "name"]
+      ],
+      required: false
+    },
+    {
+      model: Supplier,
+      as: "supplier",
+      attributes: [
+        "id",
+        "supplierId",
+        "supplierName",
+        ["supplier_name", "name"]
+      ],
+      required: false
+    },
+    {
+      model: InstrumentPart,
+      as: "parts",
+      attributes: ["id", "partId", "partName", ["part_name", "name"]],
+      required: false
+    },
     { model: InstrumentParameterValue, as: "parameters", required: false },
     { model: MaintenanceRecord, as: "maintenance", required: false }
   ],
@@ -37,6 +90,11 @@ export const instrumentConfig: CrudConfig<Instrument> = {
     location: "locationId",
     supplier: "supplierId"
   },
+
+  // The list table doesn't render anything from the Parameters or
+  // Maintenance grids — Edit/View-only.
+  listExcludeRelations: ["parameters", "maintenance"],
+
   children: [
     {
       field: "parameters",
@@ -64,5 +122,6 @@ export default buildCrudRouter({
   createDto: CreateInstrumentDto,
   updateDto: UpdateInstrumentDto,
   model: Instrument,
-  businessId: instrumentConfig.businessId
+  businessId: instrumentConfig.businessId,
+  hasAttachments: true
 });

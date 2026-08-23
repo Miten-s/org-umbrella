@@ -6,6 +6,13 @@ import type { LimsAnalysis, LimsAnalysisPayload } from "./LimsAnalysis.types";
 
 /** LimsAnalysis API. Pure HTTP — toasts live in the mutation layer. */
 const ROUTE = "/lims-analyses";
+
+/** Full record for the Edit/View modal — fetched on demand when it opens,
+ * not reused from the list row (see useLimsRecordById). */
+export const fetchLimsAnalysisById = async (id: string, signal?: AbortSignal) => {
+  const response = await limsApi.get(`${ROUTE}/${id}`, { signal });
+  return (response.data?.data ?? response.data) as LimsAnalysis;
+};
 const DATA_KEYS = ["analyses", "data"];
 const RELATION_KEYS = ["group", "analysisType", "inspectionPlan", "approvalStatus"];
 
@@ -71,7 +78,11 @@ export const restoreLimsAnalysis = async (id: string, changeReason: string) => {
   return response.data;
 };
 
-export const fetchLimsAnalysisAudit = async (id: string, signal?: AbortSignal) => {
-  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { signal });
+export const fetchLimsAnalysisAudit = async (
+  id: string,
+  signal?: AbortSignal,
+  params?: { page?: number; limit?: number }
+) => {
+  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { params, signal });
   return response.data;
 };

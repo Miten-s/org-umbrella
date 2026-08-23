@@ -25,12 +25,17 @@ export const locationConfig: CrudConfig<Location> = {
       model: Location,
       as: "parentLocation",
       attributes: ["id", "locationId", "locationName", ["location_name", "name"]],
+      where: { isDeleted: false },
       required: false
     },
     {
+      // Without this filter a soft-deleted child kept showing on the parent's
+      // "Sub locations" chip list — the include has no soft-delete predicate
+      // of its own, unlike the top-level row.
       model: Location,
       as: "subLocations",
       attributes: ["id", "locationId", "locationName", ["location_name", "name"]],
+      where: { isDeleted: false },
       required: false
     },
     {

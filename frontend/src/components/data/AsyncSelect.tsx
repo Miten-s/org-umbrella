@@ -217,7 +217,14 @@ export const AsyncSelect = (props: AsyncSelectProps) => {
       }
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
+      // Both this and the parent Modal listen on `document`; without this the
+      // Modal's own Escape handler fires right after and closes the whole
+      // form, discarding everything typed — Escape should dismiss only the
+      // open dropdown.
+      if (e.key === "Escape") {
+        e.stopImmediatePropagation();
+        close();
+      }
     };
     document.addEventListener("mousedown", onDocMouseDown);
     document.addEventListener("keydown", onKey);
@@ -254,11 +261,19 @@ export const AsyncSelect = (props: AsyncSelectProps) => {
   }, [open, listMaxHeight]);
 
   // --- virtualization ---
+  // `getItemKey` defaults to raw array index, which tracks a *slot*, not an
+  // *option* — when a search re-sorts/replaces the array, a row's cached
+  // position can be silently reused for a different option at the same
+  // index while a stale-vs-current render is still settling, which is
+  // exactly how a click can commit a different record than the one visibly
+  // labeled at that position. Keying by the option's own value ties each
+  // rendered slot to a stable identity instead of a position.
   const virtualizer = useVirtualizer({
     count: options.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => optionHeight,
-    overscan: ROW_OVERSCAN
+    overscan: ROW_OVERSCAN,
+    getItemKey: (index) => options[index]?.value ?? index
   });
 
   // Infinite scroll: fetch next page as the last virtual rows come into view.

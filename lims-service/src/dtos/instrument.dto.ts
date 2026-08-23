@@ -52,10 +52,16 @@ export class CreateInstrumentDto {
   @IsOptional() @IsString() msaInformation?: string;
   @IsOptional() @IsString() details?: string;
 
-  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => ParameterValueDto)
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ParameterValueDto)
   parameters?: ParameterValueDto[];
 
-  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => MaintenanceRowDto)
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MaintenanceRowDto)
   maintenance?: MaintenanceRowDto[];
 }
 
@@ -79,13 +85,27 @@ export class UpdateInstrumentDto {
   @IsOptional() @IsString() msaInformation?: string;
   @IsOptional() @IsString() details?: string;
 
-  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => ParameterValueDto)
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ParameterValueDto)
   parameters?: ParameterValueDto[];
 
-  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => MaintenanceRowDto)
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MaintenanceRowDto)
   maintenance?: MaintenanceRowDto[];
 
   @IsOptional() @IsString() changeReason?: string;
+  // New file attachments arrive on `req.files` (multer), separately from
+  // this JSON payload — this is only the "which existing ones survive"
+  // half of the reconcile. Declared here so `whitelist: true` doesn't
+  // strip it before the controller ever sees it.
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  keptAttachmentIds?: string[];
 }
 
 // ─── Instrument Parts ───────────────────────────────────────────────────────
@@ -111,7 +131,10 @@ export class CreateInstrumentPartDto {
   @IsOptional() @IsString() measuringInformation?: string;
   @IsOptional() @IsString() details?: string;
 
-  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => MaintenanceRowDto)
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MaintenanceRowDto)
   maintenance?: MaintenanceRowDto[];
 }
 
@@ -132,10 +155,21 @@ export class UpdateInstrumentPartDto {
   @IsOptional() @IsString() measuringInformation?: string;
   @IsOptional() @IsString() details?: string;
 
-  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => MaintenanceRowDto)
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MaintenanceRowDto)
   maintenance?: MaintenanceRowDto[];
 
   @IsOptional() @IsString() changeReason?: string;
+  // New file attachments arrive on `req.files` (multer), separately from
+  // this JSON payload — this is only the "which existing ones survive"
+  // half of the reconcile. Declared here so `whitelist: true` doesn't
+  // strip it before the controller ever sees it.
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  keptAttachmentIds?: string[];
 }
 
 // ─── Calibrations ───────────────────────────────────────────────────────────
@@ -192,7 +226,10 @@ export class CreateInspectionPlanDto {
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsString() details?: string;
 
-  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => PersonnelRowDto)
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PersonnelRowDto)
   personnel?: PersonnelRowDto[];
 }
 
@@ -204,7 +241,10 @@ export class UpdateInspectionPlanDto {
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsString() details?: string;
 
-  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => PersonnelRowDto)
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PersonnelRowDto)
   personnel?: PersonnelRowDto[];
 
   @IsOptional() @IsString() changeReason?: string;

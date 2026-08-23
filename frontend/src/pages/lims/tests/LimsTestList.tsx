@@ -1,16 +1,26 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction
+} from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
-import { CopyIcon, EyeIcon, PencilIcon, PlusIcon, TimeIcon, TrashBinIcon } from "@/public/icons";
+import {
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TimeIcon,
+  TrashBinIcon
+} from "@/public/icons";
 import { fetchLimsTestList } from "./LimsTest.api";
 import { getLimsTestColumns } from "./LimsTest.columns";
 import {
@@ -19,6 +29,7 @@ import {
   useBulkDeleteLimsTest,
   useCreateLimsTest,
   useLimsTestAudit,
+  useLimsTestById,
   useRestoreLimsTest,
   useUpdateLimsTest
 } from "./LimsTest.queries";
@@ -30,12 +41,21 @@ const LimsTestList = () => {
   const { t } = useTranslation();
   const { isOpen, openModal, closeModal } = useModal();
 
-  const [active, setActive] = useState<LimsTest | null>(null);
+  // Only the id of the row being edited/viewed — the list row itself is
+  // never passed into the form. The list query only carries the columns the
+  // table displays (see LimsTest.api.ts's list vs by-id shape); the full
+  // record, including attachments, is fetched fresh below the moment the
+  // modal actually needs it.
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsTestFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
 
   const compliance = useLimsCompliance<LimsTest, LimsTestPayload>();
   const auditQuery = useLimsTestAudit(compliance.auditRow?.id);
+  const detailQuery = useLimsTestById(
+    activeId ?? undefined,
+    isOpen && formMode !== "create"
+  );
 
   const fetchList = useCallback(
     (params: Parameters<typeof fetchLimsTestList>[1], signal?: AbortSignal) =>
@@ -67,7 +87,7 @@ const LimsTestList = () => {
   const openForm = useCallback(
     (mode: LimsTestFormMode, row: LimsTest | null) => {
       setFormMode(mode);
-      setActive(row);
+      setActiveId(row?.id ?? null);
       openModal();
     },
     [openModal]
@@ -75,13 +95,13 @@ const LimsTestList = () => {
 
   const handleCloseForm = () => {
     closeModal();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
   const handleSave = async (payload: LimsTestPayload, files: File[]) => {
-    if (active) {
-      compliance.requestUpdate(active.id, payload, files);
+    if (activeId) {
+      compliance.requestUpdate(activeId, payload, files);
       closeModal();
       return;
     }
@@ -94,10 +114,11 @@ const LimsTestList = () => {
     if (!pending) return;
     await update.mutateAsync({
       id: pending.id,
-      payload: { ...pending.payload, changeReason: reason }, files: pending.files
+      payload: { ...pending.payload, changeReason: reason },
+      files: pending.files
     });
     compliance.clearUpdate();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
@@ -127,7 +148,9 @@ const LimsTestList = () => {
             selection,
             count,
             selection.mode === "ids"
-              ? table.rows.filter((row) => selection.ids.includes(row.id)).map(label)
+              ? table.rows
+                  .filter((row) => selection.ids.includes(row.id))
+                  .map(label)
               : []
           )
       }
@@ -186,7 +209,10 @@ const LimsTestList = () => {
         tone: "danger",
         permission: LIMS_PERMISSIONS.DELETE_TEST,
         hidden: (row: LimsTest) => Boolean(row.isRemoved),
-        onClick: (row) => compliance.requestDelete({ mode: "ids", ids: [row.id] }, 1, [label(row)])
+        onClick: (row) =>
+          compliance.requestDelete({ mode: "ids", ids: [row.id] }, 1, [
+            label(row)
+          ])
       }
     ],
     [bulkClone, compliance, openForm, t]
@@ -229,13 +255,21 @@ const LimsTestList = () => {
         onClose={handleCloseForm}
         className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
       >
-        <LimsTestForm
-          mode={formMode}
-          initialData={active}
-          onClose={handleCloseForm}
-          onSubmit={handleSave}
-          submitting={create.isPending || update.isPending}
-        />
+        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+          <div className="flex min-h-[300px] items-center justify-center p-10">
+            <LoadingSpinner fullScreen={false} />
+          </div>
+        ) : (
+          <LimsTestForm
+            mode={formMode}
+            initialData={
+              formMode === "create" ? null : (detailQuery.data ?? null)
+            }
+            onClose={handleCloseForm}
+            onSubmit={handleSave}
+            submitting={create.isPending || update.isPending}
+          />
+        )}
       </Modal>
 
       <LimsComplianceDialogs
@@ -246,13 +280,23 @@ const LimsTestList = () => {
         updating={update.isPending}
         deleting={bulkDelete.isPending}
         restoring={restore.isPending}
-        auditEntries={auditQuery.data ?? []}
+        auditEntries={auditQuery.entries}
+
         auditLoading={auditQuery.isLoading}
+
+        auditHasNextPage={auditQuery.hasNextPage}
+
+        auditFetchingNextPage={auditQuery.isFetchingNextPage}
+
+        onAuditLoadMore={auditQuery.fetchNextPage}
         onUpdate={confirmUpdate}
         onDelete={async (reason) => {
           const pending = compliance.pendingDelete;
           if (pending) {
-            await bulkDelete.mutateAsync({ selection: pending.selection, changeReason: reason });
+            await bulkDelete.mutateAsync({
+              selection: pending.selection,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearDelete();

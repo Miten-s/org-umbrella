@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
@@ -9,6 +10,7 @@ import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import { useLimsUserOptions } from "@/pages/lims/users/LimsUser.options";
 import { useLimsGroupOptions } from "./LimsGroup.queries";
+import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { limsGroupSchema, type LimsGroupFormValues } from "./LimsGroup.schema";
 import type { LimsGroup, LimsGroupPayload, LimsGroupRef } from "./LimsGroup.types";
 
@@ -36,6 +38,21 @@ const LimsGroupForm = ({
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
 
+  // Captured once per record — also the no-change baseline `submit` diffs
+  // against, so Save is a no-op when nothing actually differs from it.
+  const initialValues = useMemo<LimsGroupFormValues>(
+    () => ({
+      // The spec prefixes LIMS group ids with `LIMS_`.
+      groupId: initialData?.groupId ?? "LIMS_",
+      name: initialData?.name ?? "",
+      description: initialData?.description ?? "",
+      ownedBy: initialData?.ownedBy?.id ?? ""
+      // parentGroup intentionally not collected here — see the commented-out
+      // field below.
+    }),
+    [initialData]
+  );
+
   const {
     register,
     control,
@@ -44,15 +61,7 @@ const LimsGroupForm = ({
     formState: { errors, isSubmitting }
   } = useForm<LimsGroupFormValues>({
     resolver: zodResolver(limsGroupSchema),
-    defaultValues: {
-      // The spec prefixes LIMS group ids with `LIMS_`.
-      groupId: initialData?.groupId ?? "LIMS_",
-      name: initialData?.name ?? "",
-      description: initialData?.description ?? "",
-      ownedBy: initialData?.ownedBy?.id ?? ""
-      // parentGroup intentionally not collected here — see the commented-out
-      // field below.
-    }
+    defaultValues: initialValues
   });
 
   const description = useWatch({ control, name: "description" });
@@ -65,7 +74,18 @@ const LimsGroupForm = ({
 
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-      <form onSubmit={handleSubmit((values) => onSubmit(values))} className="min-w-0 space-y-4">
+      <form
+        onSubmit={handleSubmit((values) => {
+          // Edit + nothing actually changed: skip the reason modal, update
+          // call, and audit entry entirely — a no-op Save just closes.
+          if (mode === "edit" && isPayloadEqual(values, initialValues)) {
+            onClose();
+            return;
+          }
+          onSubmit(values);
+        })}
+        className="min-w-0 space-y-4"
+      >
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsGroup") })

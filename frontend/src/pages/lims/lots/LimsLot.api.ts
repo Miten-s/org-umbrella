@@ -6,6 +6,13 @@ import type { LimsLot, LimsLotPayload } from "./LimsLot.types";
 
 /** LimsLot API. Pure HTTP — toasts live in the mutation layer. */
 const ROUTE = "/lims-lots";
+
+/** Full record for the Edit/View modal — fetched on demand when it opens,
+ * not reused from the list row (see useLimsRecordById). */
+export const fetchLimsLotById = async (id: string, signal?: AbortSignal) => {
+  const response = await limsApi.get(`${ROUTE}/${id}`, { signal });
+  return (response.data?.data ?? response.data) as LimsLot;
+};
 const DATA_KEYS = ["lots", "data"];
 const RELATION_KEYS = ["group"];
 
@@ -88,7 +95,11 @@ export const restoreLimsLot = async (id: string, changeReason: string) => {
   return response.data;
 };
 
-export const fetchLimsLotAudit = async (id: string, signal?: AbortSignal) => {
-  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { signal });
+export const fetchLimsLotAudit = async (
+  id: string,
+  signal?: AbortSignal,
+  params?: { page?: number; limit?: number }
+) => {
+  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { params, signal });
   return response.data;
 };

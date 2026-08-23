@@ -1,16 +1,26 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction
+} from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
-import { CopyIcon, EyeIcon, PencilIcon, PlusIcon, TimeIcon, TrashBinIcon } from "@/public/icons";
+import {
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TimeIcon,
+  TrashBinIcon
+} from "@/public/icons";
 import { fetchLimsCustomerList } from "./LimsCustomer.api";
 import { getLimsCustomerColumns } from "./LimsCustomer.columns";
 import {
@@ -20,9 +30,12 @@ import {
   useCreateLimsCustomer,
   useLimsCustomerAudit,
   useRestoreLimsCustomer,
-  useUpdateLimsCustomer
+  useUpdateLimsCustomer,
+  useLimsCustomerById
 } from "./LimsCustomer.queries";
-import LimsCustomerForm, { type LimsCustomerFormMode } from "./LimsCustomerForm";
+import LimsCustomerForm, {
+  type LimsCustomerFormMode
+} from "./LimsCustomerForm";
 import type { LimsCustomer, LimsCustomerPayload } from "./LimsCustomer.types";
 
 /** LIMS Customers — Track A module. */
@@ -30,16 +43,25 @@ const LimsCustomerList = () => {
   const { t } = useTranslation();
   const { isOpen, openModal, closeModal } = useModal();
 
-  const [active, setActive] = useState<LimsCustomer | null>(null);
+  // Only the id of the row being edited/viewed — the list row itself is
+  // never passed into the form; the full record (including attachments)
+  // is fetched fresh the moment the modal actually needs it.
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsCustomerFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
 
   const compliance = useLimsCompliance<LimsCustomer, LimsCustomerPayload>();
   const auditQuery = useLimsCustomerAudit(compliance.auditRow?.id);
+  const detailQuery = useLimsCustomerById(
+    activeId ?? undefined,
+    isOpen && formMode !== "create"
+  );
 
   const fetchList = useCallback(
-    (params: Parameters<typeof fetchLimsCustomerList>[1], signal?: AbortSignal) =>
-      fetchLimsCustomerList(includeRemoved, params, signal),
+    (
+      params: Parameters<typeof fetchLimsCustomerList>[1],
+      signal?: AbortSignal
+    ) => fetchLimsCustomerList(includeRemoved, params, signal),
     [includeRemoved]
   );
 
@@ -67,7 +89,7 @@ const LimsCustomerList = () => {
   const openForm = useCallback(
     (mode: LimsCustomerFormMode, customer: LimsCustomer | null) => {
       setFormMode(mode);
-      setActive(customer);
+      setActiveId(customer?.id ?? null);
       openModal();
     },
     [openModal]
@@ -75,13 +97,13 @@ const LimsCustomerList = () => {
 
   const handleCloseForm = () => {
     closeModal();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
   const handleSave = async (payload: LimsCustomerPayload, files: File[]) => {
-    if (active) {
-      compliance.requestUpdate(active.id, payload, files);
+    if (activeId) {
+      compliance.requestUpdate(activeId, payload, files);
       closeModal();
       return;
     }
@@ -98,7 +120,7 @@ const LimsCustomerList = () => {
       files: pending.files
     });
     compliance.clearUpdate();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
@@ -168,7 +190,8 @@ const LimsCustomerList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_CUSTOMER,
-        onClick: (customer) => bulkClone.mutate({ mode: "ids", ids: [customer.id] })
+        onClick: (customer) =>
+          bulkClone.mutate({ mode: "ids", ids: [customer.id] })
       },
       {
         key: "restore",
@@ -233,13 +256,21 @@ const LimsCustomerList = () => {
         onClose={handleCloseForm}
         className="m-4 max-w-[1000px] overflow-x-hidden dark:bg-gray-900"
       >
-        <LimsCustomerForm
-          mode={formMode}
-          initialData={active}
-          onClose={handleCloseForm}
-          onSubmit={handleSave}
-          submitting={createCustomer.isPending || updateCustomer.isPending}
-        />
+        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+          <div className="flex min-h-[300px] items-center justify-center p-10">
+            <LoadingSpinner fullScreen={false} />
+          </div>
+        ) : (
+          <LimsCustomerForm
+            mode={formMode}
+            initialData={
+              formMode === "create" ? null : (detailQuery.data ?? null)
+            }
+            onClose={handleCloseForm}
+            onSubmit={handleSave}
+            submitting={createCustomer.isPending || updateCustomer.isPending}
+          />
+        )}
       </Modal>
 
       <LimsComplianceDialogs
@@ -250,13 +281,23 @@ const LimsCustomerList = () => {
         updating={updateCustomer.isPending}
         deleting={bulkDelete.isPending}
         restoring={restoreCustomer.isPending}
-        auditEntries={auditQuery.data ?? []}
+        auditEntries={auditQuery.entries}
+
         auditLoading={auditQuery.isLoading}
+
+        auditHasNextPage={auditQuery.hasNextPage}
+
+        auditFetchingNextPage={auditQuery.isFetchingNextPage}
+
+        onAuditLoadMore={auditQuery.fetchNextPage}
         onUpdate={confirmUpdate}
         onDelete={async (reason) => {
           const pending = compliance.pendingDelete;
           if (pending) {
-            await bulkDelete.mutateAsync({ selection: pending.selection, changeReason: reason });
+            await bulkDelete.mutateAsync({
+              selection: pending.selection,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearDelete();
@@ -264,7 +305,10 @@ const LimsCustomerList = () => {
         onRestore={async (reason) => {
           const pending = compliance.pendingRestore;
           if (pending) {
-            await restoreCustomer.mutateAsync({ id: pending.id, changeReason: reason });
+            await restoreCustomer.mutateAsync({
+              id: pending.id,
+              changeReason: reason
+            });
           }
           compliance.clearRestore();
         }}

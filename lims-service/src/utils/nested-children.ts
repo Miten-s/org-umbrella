@@ -43,13 +43,36 @@ export interface ChildConfig {
    * error anywhere.
    */
   relationFields?: Record<string, string>;
+  /**
+   * Extra fixed columns to stamp on every newly-created child row, derived
+   * from the parent record — for a child table with a NOT NULL column this
+   * config's own `foreignKey` doesn't cover. Test's `components` reuses
+   * Sample's `TestWindow` table (keyed here by `testId`, not `sampleId`),
+   * and `sampleId` is still required there.
+   */
+  extraFields?: (parent: Record<string, any>) => Record<string, any>;
+  /**
+   * Extra fixed WHERE, ANDed into the replace-set's own "before" lookup —
+   * for a child table two different parents can both stamp rows into (Test's
+   * `components` and Sample's `testWindows` are the same `lims_test_windows`
+   * table). Without this, Sample's replace-set would see a Test-owned row as
+   * an orphan (foreignKey `sampleId` matches, but it wasn't in Sample's
+   * submitted list) and delete it out from under the Test. Sample's config
+   * scopes to `{ testId: null }` so it only ever replaces its own,
+   * not-yet-claimed-by-a-Test rows.
+   */
+  scopeWhere?: Record<string, any>;
 }
 
 /** What changed in one child collection — the shape stored on the audit row. */
 export interface ChildDelta {
   added: Record<string, any>[];
   removed: Record<string, any>[];
-  changed: { key: string; from: Record<string, any>; to: Record<string, any> }[];
+  changed: {
+    key: string;
+    from: Record<string, any>;
+    to: Record<string, any>;
+  }[];
 }
 
 const pick = (
@@ -69,7 +92,8 @@ const pick = (
   }
 
   const out: Record<string, any> = {};
-  for (const field of fields) if (mapped[field] !== undefined) out[field] = mapped[field];
+  for (const field of fields)
+    if (mapped[field] !== undefined) out[field] = mapped[field];
   return out;
 };
 
@@ -79,7 +103,11 @@ const keyOf = (row: Record<string, any>, config: ChildConfig): string => {
   return String(value ?? row.id ?? "");
 };
 
-const differs = (a: Record<string, any>, b: Record<string, any>, fields: string[]) =>
+const differs = (
+  a: Record<string, any>,
+  b: Record<string, any>,
+  fields: string[]
+) =>
   fields.some((field) => {
     const left = a[field] ?? null;
     const right = b[field] ?? null;
@@ -93,7 +121,7 @@ export const readChildren = async (
   transaction?: Transaction
 ): Promise<Record<string, any>[]> => {
   const rows = await config.model.findAll({
-    where: { [config.foreignKey]: parentId } as any,
+    where: { [config.foreignKey]: parentId, ...config.scopeWhere } as any,
     transaction
   });
   return rows.map((row) => row.toJSON() as Record<string, any>);
@@ -109,8 +137,13 @@ export const syncChildren = async (
   config: ChildConfig,
   parentId: string,
   incoming: Record<string, any>[] | undefined,
-  transaction?: Transaction
-): Promise<{ before: Record<string, any>[]; after: Record<string, any>[]; delta: ChildDelta } | null> => {
+  transaction?: Transaction,
+  parent: Record<string, any> = {}
+): Promise<{
+  before: Record<string, any>[];
+  after: Record<string, any>[];
+  delta: ChildDelta;
+} | null> => {
   if (incoming === undefined) return null;
 
   const before = await readChildren(config, parentId, transaction);
@@ -127,7 +160,10 @@ export const syncChildren = async (
     if (existing) {
       seen.add(key);
       if (differs(existing, data, config.fields)) {
-        await config.model.update(data as any, { where: { id: existing.id } as any, transaction });
+        await config.model.update(data as any, {
+          where: { id: existing.id } as any,
+          transaction
+        });
         delta.changed.push({
           key,
           from: pick(existing, config.fields, config.relationFields),
@@ -145,7 +181,11 @@ export const syncChildren = async (
         delta.added.push({ id: claimId });
       }
     } else {
-      await config.model.create({ ...data, [config.foreignKey]: parentId } as any, { transaction });
+      const extra = config.extraFields ? config.extraFields(parent) : {};
+      await config.model.create(
+        { ...data, ...extra, [config.foreignKey]: parentId } as any,
+        { transaction }
+      );
       delta.added.push(data);
     }
   }
@@ -159,12 +199,19 @@ export const syncChildren = async (
         transaction
       });
     } else {
-      await config.model.destroy({ where: { id: orphan.id } as any, transaction });
+      await config.model.destroy({
+        where: { id: orphan.id } as any,
+        transaction
+      });
     }
     delta.removed.push(pick(orphan, config.fields, config.relationFields));
   }
 
-  return { before, after: await readChildren(config, parentId, transaction), delta };
+  return {
+    before,
+    after: await readChildren(config, parentId, transaction),
+    delta
+  };
 };
 
 /**
@@ -180,7 +227,8 @@ export const syncAllChildren = async (
   children: ChildConfig[] | undefined,
   parentId: string,
   payload: Record<string, any>,
-  transaction?: Transaction
+  transaction?: Transaction,
+  parent: Record<string, any> = {}
 ): Promise<{
   oldChildren: Record<string, any>;
   newChildren: Record<string, any>;
@@ -191,13 +239,23 @@ export const syncAllChildren = async (
   const deltas: Record<string, ChildDelta> = {};
 
   for (const config of children ?? []) {
-    const result = await syncChildren(config, parentId, payload[config.field], transaction);
+    const result = await syncChildren(
+      config,
+      parentId,
+      payload[config.field],
+      transaction,
+      parent
+    );
     if (!result) continue;
 
     oldChildren[config.field] = result.before;
     newChildren[config.field] = result.after;
 
-    if (result.delta.added.length || result.delta.removed.length || result.delta.changed.length) {
+    if (
+      result.delta.added.length ||
+      result.delta.removed.length ||
+      result.delta.changed.length
+    ) {
       deltas[config.field] = result.delta;
     }
   }

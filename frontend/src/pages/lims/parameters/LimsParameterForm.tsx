@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
@@ -7,6 +8,7 @@ import Label from "@/components/common/form/Label";
 import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import { useParameterTypeOptions } from "@/pages/lims/phrases/LimsPhrase.queries";
+import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { limsParameterSchema, type LimsParameterFormValues } from "./LimsParameter.schema";
 import type { LimsParameter, LimsParameterPayload, LimsRef } from "./LimsParameter.types";
 
@@ -33,6 +35,19 @@ const LimsParameterForm = ({
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
 
+  // Captured once per record — also the no-change baseline `submit` diffs
+  // against, so Save is a no-op when nothing actually differs from it.
+  const initialValues = useMemo<LimsParameterFormValues>(
+    () => ({
+      parameterId: initialData?.parameterId ?? "",
+      parameterName: initialData?.parameterName ?? "",
+      parameterType: initialData?.parameterType?.id ?? "",
+      defaultValue: initialData?.defaultValue ?? "",
+      unit: initialData?.unit ?? ""
+    }),
+    [initialData]
+  );
+
   const {
     register,
     control,
@@ -40,20 +55,25 @@ const LimsParameterForm = ({
     formState: { errors, isSubmitting }
   } = useForm<LimsParameterFormValues>({
     resolver: zodResolver(limsParameterSchema),
-    defaultValues: {
-      parameterId: initialData?.parameterId ?? "",
-      parameterName: initialData?.parameterName ?? "",
-      parameterType: initialData?.parameterType?.id ?? "",
-      defaultValue: initialData?.defaultValue ?? "",
-      unit: initialData?.unit ?? ""
-    }
+    defaultValues: initialValues
   });
 
   const busy = submitting || isSubmitting;
 
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-      <form onSubmit={handleSubmit((values) => onSubmit(values))} className="min-w-0 space-y-4">
+      <form
+        onSubmit={handleSubmit((values) => {
+          // Edit + nothing actually changed: skip the reason modal, update
+          // call, and audit entry entirely — a no-op Save just closes.
+          if (mode === "edit" && isPayloadEqual(values, initialValues)) {
+            onClose();
+            return;
+          }
+          onSubmit(values);
+        })}
+        className="min-w-0 space-y-4"
+      >
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsParameter") })

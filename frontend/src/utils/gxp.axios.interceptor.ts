@@ -3,7 +3,10 @@ import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import { AUTH_TOKEN_KEY } from "./common.constants";
 import { getErrorMessage } from "./error.utils";
 
-const BASE_URL =
+// Exported so `getGxpImageUrl` (utils.service.ts) derives attachment URLs
+// from this same value instead of re-declaring it — one env var to change
+// for a production deploy, not two things that can drift apart.
+export const BASE_URL =
   import.meta.env.VITE_API_GXP_BASE_URL ?? "http://localhost:9001/v1/api";
 
 const gxpApi = axios.create({

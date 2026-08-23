@@ -20,6 +20,33 @@ export const getMessage = (message: string, entity?: string) => {
   return !entity ? message : message.replace("{{entity}}", entity);
 };
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** "test_id" -> "Test", "component_id" -> "Component". Never a raw DB column in a user-facing message. */
+const humanizeField = (raw: string): string => {
+  const label = raw.trim().replace(/_id$/i, "").replace(/[_-]+/g, " ").trim();
+  return label ? label.replace(/\b\w/g, (c) => c.toUpperCase()) : "record";
+};
+
+/**
+ * A friendly "already exists" message for a uniqueness conflict — never a raw
+ * UUID or a raw snake_case column name, per the QA finding that both leaked
+ * straight into user-facing toasts (Lab Users' `userId`, Results' composite
+ * `test_id, component_id`).
+ *
+ * The value is only shown when it is something a lab analyst actually typed
+ * (not a UUID foreign key) — a UUID tells them nothing useful.
+ */
+export const friendlyUniqueConflictMessage = (fields: string[], values: unknown[] = []): string => {
+  const fieldLabel = fields.filter(Boolean).map(humanizeField).join(" + ") || "record";
+  const shown = values
+    .filter((v): v is string | number => v !== undefined && v !== null && v !== "")
+    .filter((v) => !UUID_RE.test(String(v)));
+  return shown.length
+    ? `A record with this ${fieldLabel} already exists: "${shown.join(", ")}".`
+    : `A record with this ${fieldLabel} already exists.`;
+};
+
 export const removeUndefinedEntries = <T extends Record<string, unknown>>(obj: T): T => {
   Object.keys(obj).forEach((key) => {
     if (obj[key] === undefined) {

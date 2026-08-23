@@ -22,6 +22,10 @@ interface LimsComplianceDialogsProps<TRow extends { id: string }, TPayload> {
 
   auditEntries: LimsAuditEntry[];
   auditLoading?: boolean;
+  /** Infinite-scroll paging for the audit trail (useLimsAuditTrail) — optional, unmigrated callers are unaffected. */
+  auditHasNextPage?: boolean;
+  auditFetchingNextPage?: boolean;
+  onAuditLoadMore?: () => void;
 }
 
 /**
@@ -41,7 +45,10 @@ function LimsComplianceDialogs<TRow extends { id: string }, TPayload>({
   deleting = false,
   restoring = false,
   auditEntries,
-  auditLoading = false
+  auditLoading = false,
+  auditHasNextPage = false,
+  auditFetchingNextPage = false,
+  onAuditLoadMore
 }: LimsComplianceDialogsProps<TRow, TPayload>) {
   const { t } = useTranslation();
   const deleteCount = compliance.pendingDelete?.count ?? 0;
@@ -93,6 +100,9 @@ function LimsComplianceDialogs<TRow extends { id: string }, TPayload>({
         recordLabel={compliance.auditRow ? getRecordLabel(compliance.auditRow) : undefined}
         entries={auditEntries}
         loading={auditLoading}
+        hasNextPage={auditHasNextPage}
+        isFetchingNextPage={auditFetchingNextPage}
+        onLoadMore={onAuditLoadMore}
       />
     </>
   );

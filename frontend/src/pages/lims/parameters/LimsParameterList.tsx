@@ -1,16 +1,26 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction
+} from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
-import { CopyIcon, EyeIcon, PencilIcon, PlusIcon, TimeIcon, TrashBinIcon } from "@/public/icons";
+import {
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TimeIcon,
+  TrashBinIcon
+} from "@/public/icons";
 import { fetchLimsParameterList } from "./LimsParameter.api";
 import { getLimsParameterColumns } from "./LimsParameter.columns";
 import {
@@ -20,26 +30,41 @@ import {
   useCreateLimsParameter,
   useLimsParameterAudit,
   useRestoreLimsParameter,
-  useUpdateLimsParameter
+  useUpdateLimsParameter,
+  useLimsParameterById
 } from "./LimsParameter.queries";
-import LimsParameterForm, { type LimsParameterFormMode } from "./LimsParameterForm";
-import type { LimsParameter, LimsParameterPayload } from "./LimsParameter.types";
+import LimsParameterForm, {
+  type LimsParameterFormMode
+} from "./LimsParameterForm";
+import type {
+  LimsParameter,
+  LimsParameterPayload
+} from "./LimsParameter.types";
 
 /** LIMS Parameters — Track A module. */
 const LimsParameterList = () => {
   const { t } = useTranslation();
   const { isOpen, openModal, closeModal } = useModal();
 
-  const [active, setActive] = useState<LimsParameter | null>(null);
+  // Only the id of the row being edited/viewed — the list row itself is
+  // never passed into the form; the full record (including attachments)
+  // is fetched fresh the moment the modal actually needs it.
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsParameterFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
 
   const compliance = useLimsCompliance<LimsParameter, LimsParameterPayload>();
   const auditQuery = useLimsParameterAudit(compliance.auditRow?.id);
+  const detailQuery = useLimsParameterById(
+    activeId ?? undefined,
+    isOpen && formMode !== "create"
+  );
 
   const fetchList = useCallback(
-    (params: Parameters<typeof fetchLimsParameterList>[1], signal?: AbortSignal) =>
-      fetchLimsParameterList(includeRemoved, params, signal),
+    (
+      params: Parameters<typeof fetchLimsParameterList>[1],
+      signal?: AbortSignal
+    ) => fetchLimsParameterList(includeRemoved, params, signal),
     [includeRemoved]
   );
 
@@ -67,7 +92,7 @@ const LimsParameterList = () => {
   const openForm = useCallback(
     (mode: LimsParameterFormMode, parameter: LimsParameter | null) => {
       setFormMode(mode);
-      setActive(parameter);
+      setActiveId(parameter?.id ?? null);
       openModal();
     },
     [openModal]
@@ -75,13 +100,13 @@ const LimsParameterList = () => {
 
   const handleCloseForm = () => {
     closeModal();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
   const handleSave = async (payload: LimsParameterPayload) => {
-    if (active) {
-      compliance.requestUpdate(active.id, payload);
+    if (activeId) {
+      compliance.requestUpdate(activeId, payload);
       closeModal();
       return;
     }
@@ -97,7 +122,7 @@ const LimsParameterList = () => {
       payload: { ...pending.payload, changeReason: reason }
     });
     compliance.clearUpdate();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
@@ -116,7 +141,8 @@ const LimsParameterList = () => {
       },
       {
         key: "delete",
-        label: (count) => (count > 1 ? "Remove parameters" : "Remove parameter"),
+        label: (count) =>
+          count > 1 ? "Remove parameters" : "Remove parameter",
         icon: TrashBinIcon,
         variant: "destructive",
         permission: LIMS_PERMISSIONS.DELETE_PARAMETER,
@@ -167,7 +193,8 @@ const LimsParameterList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_PARAMETER,
-        onClick: (parameter) => bulkClone.mutate({ mode: "ids", ids: [parameter.id] })
+        onClick: (parameter) =>
+          bulkClone.mutate({ mode: "ids", ids: [parameter.id] })
       },
       {
         key: "restore",
@@ -232,13 +259,21 @@ const LimsParameterList = () => {
         onClose={handleCloseForm}
         className="m-4 max-w-[900px] overflow-x-hidden dark:bg-gray-900"
       >
-        <LimsParameterForm
-          mode={formMode}
-          initialData={active}
-          onClose={handleCloseForm}
-          onSubmit={handleSave}
-          submitting={createParameter.isPending || updateParameter.isPending}
-        />
+        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+          <div className="flex min-h-[300px] items-center justify-center p-10">
+            <LoadingSpinner fullScreen={false} />
+          </div>
+        ) : (
+          <LimsParameterForm
+            mode={formMode}
+            initialData={
+              formMode === "create" ? null : (detailQuery.data ?? null)
+            }
+            onClose={handleCloseForm}
+            onSubmit={handleSave}
+            submitting={createParameter.isPending || updateParameter.isPending}
+          />
+        )}
       </Modal>
 
       <LimsComplianceDialogs
@@ -249,13 +284,23 @@ const LimsParameterList = () => {
         updating={updateParameter.isPending}
         deleting={bulkDelete.isPending}
         restoring={restoreParameter.isPending}
-        auditEntries={auditQuery.data ?? []}
+        auditEntries={auditQuery.entries}
+
         auditLoading={auditQuery.isLoading}
+
+        auditHasNextPage={auditQuery.hasNextPage}
+
+        auditFetchingNextPage={auditQuery.isFetchingNextPage}
+
+        onAuditLoadMore={auditQuery.fetchNextPage}
         onUpdate={confirmUpdate}
         onDelete={async (reason) => {
           const pending = compliance.pendingDelete;
           if (pending) {
-            await bulkDelete.mutateAsync({ selection: pending.selection, changeReason: reason });
+            await bulkDelete.mutateAsync({
+              selection: pending.selection,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearDelete();
@@ -263,7 +308,10 @@ const LimsParameterList = () => {
         onRestore={async (reason) => {
           const pending = compliance.pendingRestore;
           if (pending) {
-            await restoreParameter.mutateAsync({ id: pending.id, changeReason: reason });
+            await restoreParameter.mutateAsync({
+              id: pending.id,
+              changeReason: reason
+            });
           }
           compliance.clearRestore();
         }}

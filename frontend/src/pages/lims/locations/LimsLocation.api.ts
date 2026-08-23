@@ -13,6 +13,13 @@ import type { LimsLocation, LimsLocationPayload } from "./LimsLocation.types";
  * layer (MIGRATION.md Rule 2).
  */
 const ROUTE = "/lims-locations";
+
+/** Full record for the Edit/View modal — fetched on demand when it opens,
+ * not reused from the list row (see useLimsRecordById). */
+export const fetchLimsLocationById = async (id: string, signal?: AbortSignal) => {
+  const response = await limsApi.get(`${ROUTE}/${id}`, { signal });
+  return (response.data?.data ?? response.data) as LimsLocation;
+};
 const DATA_KEYS = ["locations", "data"];
 /** Relations the server returns nested; normalized so `.id` is canonical. */
 const RELATION_KEYS = ["group", "parentLocation", "locationType"];
@@ -111,7 +118,11 @@ export const restoreLimsLocation = async (id: string, changeReason: string) => {
   return response.data;
 };
 
-export const fetchLimsLocationAudit = async (id: string, signal?: AbortSignal) => {
-  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { signal });
+export const fetchLimsLocationAudit = async (
+  id: string,
+  signal?: AbortSignal,
+  params?: { page?: number; limit?: number }
+) => {
+  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { params, signal });
   return response.data;
 };

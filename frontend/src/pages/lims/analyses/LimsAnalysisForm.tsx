@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
@@ -13,6 +13,7 @@ import SubFormGrid from "@/components/data/SubFormGrid";
 import { useAnalysisTypeOptions, useApprovalStatusOptions } from "@/pages/lims/phrases/LimsPhrase.queries";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsInspectionPlanOptions } from "@/pages/lims/inspection-plans/LimsInspectionPlan.queries";
+import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { limsAnalysisSchema, type LimsAnalysisFormValues } from "./LimsAnalysis.schema";
 import type { LimsAnalysis, LimsAnalysisPayload, LimsRef, LimsComponentRow } from "./LimsAnalysis.types";
 
@@ -39,17 +40,13 @@ const LimsAnalysisForm = ({
 }: LimsAnalysisFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
-  const [components, setComponents] = useState<LimsComponentRow[]>(initialData?.components ?? []);
+  const initialComponentsRef = useRef(initialData?.components ?? []);
+  const [components, setComponents] = useState<LimsComponentRow[]>(initialComponentsRef.current);
 
-  const {
-    register,
-    control,
-    handleSubmit,
-    setValue,
-    formState: { errors, isSubmitting }
-  } = useForm<LimsAnalysisFormValues>({
-    resolver: zodResolver(limsAnalysisSchema),
-    defaultValues: {
+  // Captured once per record — also the no-change baseline `submit` diffs
+  // against, so Save is a no-op when nothing actually differs from it.
+  const initialValues = useMemo<LimsAnalysisFormValues>(
+    () => ({
       analysisId: initialData?.analysisId ?? "",
       name: initialData?.name ?? "",
       analysisType: initialData?.analysisType?.id ?? "",
@@ -59,7 +56,19 @@ const LimsAnalysisForm = ({
       sopReference: initialData?.sopReference ?? "",
       description: initialData?.description ?? "",
       details: initialData?.details ?? "",
-    }
+    }),
+    [initialData]
+  );
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isSubmitting }
+  } = useForm<LimsAnalysisFormValues>({
+    resolver: zodResolver(limsAnalysisSchema),
+    defaultValues: initialValues
   });
 
   const description = useWatch({ control, name: "description" });
@@ -88,7 +97,19 @@ const LimsAnalysisForm = ({
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
-        onSubmit={handleSubmit((values) => onSubmit({ ...values, components }))}
+        onSubmit={handleSubmit((values) => {
+          // Edit + nothing actually changed: skip the reason modal, update
+          // call, and audit entry entirely — a no-op Save just closes.
+          if (
+            mode === "edit" &&
+            isPayloadEqual(values, initialValues) &&
+            isPayloadEqual(components, initialComponentsRef.current)
+          ) {
+            onClose();
+            return;
+          }
+          onSubmit({ ...values, components });
+        })}
         className="min-w-0 space-y-4"
       >
         <h2 className="text-xl font-semibold">

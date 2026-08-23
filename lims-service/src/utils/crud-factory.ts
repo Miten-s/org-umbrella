@@ -12,7 +12,11 @@ import { getListQuery } from "../utils/pagination.util";
 import { getSafeFilters } from "../utils/query.util";
 import { formatLimsEntity } from "../utils/format.util";
 import { writeAudit, AuditActor } from "../utils/audit.util";
-import { getMessage, CUSTOM_MESSAGES } from "../utils/common.util";
+import {
+  getMessage,
+  CUSTOM_MESSAGES,
+  friendlyUniqueConflictMessage
+} from "../utils/common.util";
 import { sequelize } from "../configs/db.sequelize";
 import API_ROUTES from "../utils/routes";
 import { validateDto } from "../middlewares/validate-dto.middleware";
@@ -20,8 +24,14 @@ import { BulkOperationDto, RestoreOperationDto } from "../dtos/common.dto";
 import { authorize } from "../middlewares/authorize.middleware";
 import { LimsAction } from "./permissions";
 import { ChildConfig, readChildren, syncAllChildren } from "./nested-children";
-import { applyBusinessId, BusinessIdConfig, peekBusinessId } from "./business-id";
+import {
+  applyBusinessId,
+  BusinessIdConfig,
+  peekBusinessId
+} from "./business-id";
 import { registerEntity } from "./entity-registry";
+import Attachment from "../models/attachment.model";
+import { uploadAttachments } from "../middlewares/multer.middleware";
 
 /**
  * The generic engine behind every one of the 26 LIMS entities (spec §2's
@@ -79,6 +89,29 @@ export interface CrudConfig<M extends Model> {
   /** Sub-forms sent nested in the parent payload (spec §6). */
   children?: ChildConfig[];
   /**
+   * Relation aliases (matching a `relations` entry's `as`) to leave out of
+   * the LIST query specifically — findById still includes everything. Only
+   * for a sub-form grid CONFIRMED not read by that entity's list columns
+   * (directly, or via `postFormat`); several entities' lists do render
+   * something derived from a child grid, so this is opt-in per relation,
+   * checked one at a time, not a blanket "children are list-only" rule.
+   */
+  listExcludeRelations?: string[];
+  /**
+   * For a relation kept in the list query (not in `listExcludeRelations`)
+   * but whose full shape — every column, any nested include — is only
+   * needed by the Edit/View form: restricts it to just these columns for
+   * `findAll` specifically, and drops any nested `include` on it entirely
+   * (the list never needs a relation of a relation). `findById` always uses
+   * the relation exactly as declared in `relations`, unchanged.
+   *
+   * Standing rule for anyone adding a relation here later: size it to what
+   * the list actually renders. A `.length` count needs only `["id"]`; a tag
+   * list of names needs `["id", <the one label column it reads>]`. The full
+   * shape belongs in `relations`, for the form — this is the list's diet.
+   */
+  listRelationAttributes?: Record<string, string[]>;
+  /**
    * Always-applied WHERE fragment, ANDed into every read.
    *
    * Results use it for `isLatest: true` so lists and lookups return the
@@ -107,7 +140,9 @@ export interface CrudConfig<M extends Model> {
   afterWrite?: () => Promise<void> | void;
   defaultSortBy?: string;
   /** Mutate/derive the payload before create (e.g. auto-generated IDs). */
-  beforeCreate?: (payload: Record<string, any>) => Promise<Record<string, any>> | Record<string, any>;
+  beforeCreate?: (
+    payload: Record<string, any>
+  ) => Promise<Record<string, any>> | Record<string, any>;
   /** Mutate/derive the payload before update. */
   beforeUpdate?: (
     payload: Record<string, any>,
@@ -122,10 +157,18 @@ export interface CrudConfig<M extends Model> {
   postFormat?: (row: Record<string, any>) => Record<string, any>;
 }
 
-const applyPostFormat = (formatted: any, postFormat?: (row: Record<string, any>) => Record<string, any>) => {
-  if (!postFormat || formatted === null || formatted === undefined) return formatted;
+const applyPostFormat = (
+  formatted: any,
+  postFormat?: (row: Record<string, any>) => Record<string, any>
+) => {
+  if (!postFormat || formatted === null || formatted === undefined)
+    return formatted;
   if (Array.isArray(formatted)) return formatted.map((row) => postFormat(row));
-  if (formatted.rows) return { ...formatted, rows: formatted.rows.map((row: any) => postFormat(row)) };
+  if (formatted.rows)
+    return {
+      ...formatted,
+      rows: formatted.rows.map((row: any) => postFormat(row))
+    };
   return postFormat(formatted);
 };
 
@@ -145,6 +188,108 @@ const contextFromRequest = (req: Request): CrudContext => ({
       }
     : { accessGroupIds: [], homeGroupId: null, operateAll: false }
 });
+
+/**
+ * A save with new file attachments arrives as `multipart/form-data`: the real
+ * payload is JSON-stringified under a `data` field (multer only gives you
+ * form fields as strings) and files land on `req.files` separately.
+ * `validateDto` already unwraps `data` into a validated DTO instance and
+ * leaves it at `req.body.data`; a plain JSON request is untouched, so
+ * `req.body` is still the payload directly there. `req.files` is the
+ * reliable signal for which case this is — nothing else sets it.
+ */
+const payloadFromRequest = (req: Request): Record<string, any> => {
+  const body = req.body as Record<string, any> | undefined;
+  return req.files && body && typeof body === "object" && "data" in body
+    ? (body.data as Record<string, any>)
+    : (body ?? {});
+};
+
+/**
+ * Attachments for one record, shaped for `toExistingAttachments` on the
+ * frontend (`attachment` is its first-checked path key). `entityName` here is
+ * the same human label `writeAudit` already uses everywhere else in this
+ * engine — Attachment has no real foreign key to its parent (see migration
+ * 005), just this polymorphic `entityName` + `entityId` pair.
+ */
+const attachmentsFor = async (
+  entityName: string,
+  entityId: string,
+  transaction?: Transaction
+) => {
+  const rows = await Attachment.findAll({
+    where: { entityName, entityId, isDeleted: false } as any,
+    order: [["createdAt", "DESC"]],
+    transaction
+  });
+  return rows.map((row) => ({
+    id: row.id,
+    attachment: `/${row.storedName}`,
+    fileName: row.fileName,
+    comment: row.comment,
+    uploadedByName: row.uploadedByName
+  }));
+};
+
+/**
+ * The write half: persists any newly-uploaded files as Attachment rows, and
+ * on an update, soft-deletes whichever existing ones weren't in the kept
+ * list — the same replace-set idea every other sub-form in this engine uses,
+ * just against a polymorphic table instead of a real child association.
+ * `keptAttachmentIds` undefined means "the client didn't touch attachments
+ * at all" (a create, or an update that never opened that field) — leave
+ * existing rows alone entirely, same convention as `syncChildren`.
+ *
+ * Returns the file names added/removed so the caller can fold them into the
+ * same audit row as the rest of the update — see `childChanges.attachments`
+ * in `update` below.
+ */
+const reconcileAttachments = async (
+  entityName: string,
+  entityId: string,
+  files: Express.Multer.File[] | undefined,
+  keptAttachmentIds: string[] | undefined,
+  ctx: CrudContext,
+  transaction?: Transaction
+): Promise<{ added: string[]; removed: string[] }> => {
+  const removed: string[] = [];
+  if (keptAttachmentIds !== undefined) {
+    const existing = await Attachment.findAll({
+      where: { entityName, entityId, isDeleted: false } as any,
+      transaction
+    });
+    for (const row of existing) {
+      if (keptAttachmentIds.includes(row.id)) continue;
+      row.isDeleted = true;
+      row.deletedAt = new Date();
+      row.deletedBy = ctx.actor.id;
+      await row.save({ transaction });
+      removed.push(row.fileName);
+    }
+  }
+
+  const added: string[] = [];
+  for (const file of files ?? []) {
+    await Attachment.create(
+      {
+        entityName,
+        entityId,
+        fileName: file.originalname,
+        storedName: file.filename,
+        mimeType: file.mimetype,
+        sizeBytes: file.size,
+        uploadedBy: ctx.actor.id,
+        uploadedByName: ctx.actor.fullName ?? null,
+        // Same rule every other record's own groupId follows.
+        groupId: ctx.scope.homeGroupId ?? null
+      } as any,
+      { transaction }
+    );
+    added.push(file.originalname);
+  }
+
+  return { added, removed };
+};
 
 /**
  * Rewrites `{ parentGroup: "<uuid>" }` into `{ parentGroupId: "<uuid>" }` and
@@ -201,7 +346,11 @@ const withGroupScope = <M extends Model>(
   where: WhereOptions
 ): WhereOptions => {
   const scoped = groupWhere(model, scope);
-  if (!Object.keys(scoped).length && !Object.getOwnPropertySymbols(scoped).length) return where;
+  if (
+    !Object.keys(scoped).length &&
+    !Object.getOwnPropertySymbols(scoped).length
+  )
+    return where;
   return { [Op.and]: [where, scoped] } as WhereOptions;
 };
 
@@ -209,10 +358,67 @@ const withGroupScope = <M extends Model>(
 // Repo layer
 // ---------------------------------------------------------------------------
 
-export const buildCrudRepo = <M extends Model>(config: CrudConfig<M>) => {
-  const { model, relations = [], searchFields, defaultSortBy = "createdAt" } = config;
+/**
+ * Every soft-deletable relation include gets `isDeleted: false` unless the
+ * config already set its own `where` — the include has no such filter by
+ * default, so a still-referenced but removed row (a deleted Lab Group, a
+ * deleted parent Location) kept showing up under its old name, everywhere
+ * that relation is included, until someone spotted it. One place to fix it
+ * for every entity rather than a `where` added by hand to each of the ~90
+ * `{ model, as, ... }` includes across the route configs.
+ */
+const scopeSoftDeletableIncludes = (
+  relations: IncludeOptions[]
+): IncludeOptions[] =>
+  relations.map((include) => {
+    const target = include.model as ModelStatic<any> | undefined;
+    const hasIsDeleted = Boolean(
+      target?.getAttributes && "isDeleted" in target.getAttributes()
+    );
+    const nested = include.include
+      ? scopeSoftDeletableIncludes(include.include as IncludeOptions[])
+      : include.include;
+    return {
+      ...include,
+      ...(hasIsDeleted && !include.where
+        ? { where: { isDeleted: false } }
+        : {}),
+      ...(nested ? { include: nested } : {})
+    };
+  });
 
-  const create = async (data: Record<string, any>, transaction?: Transaction) => {
+export const buildCrudRepo = <M extends Model>(config: CrudConfig<M>) => {
+  const { model, searchFields, defaultSortBy = "createdAt" } = config;
+  const relations = scopeSoftDeletableIncludes(config.relations ?? []);
+
+  // A sub-form grid's full child array (Sample's Test windows, Aliquot's
+  // list of aliquots, ...) is only ever needed by the Edit/View form — EXCEPT
+  // where the list table renders something derived from it too (Lab Roles'
+  // Permissions column reads `entries` via postFormat, Batches' list column
+  // reads `lots` directly, and several others — verified per entity, not
+  // assumed, since it's wrong more often than not). `relations` stays the
+  // shared source both findAll and findById read from; this only opts
+  // specific, checked relations out of the LIST query specifically.
+  const listRelations = relations
+    .filter(
+      (r) => !(config.listExcludeRelations ?? []).includes(r.as as string)
+    )
+    .map((r) => {
+      const attrs = config.listRelationAttributes?.[r.as as string];
+      if (!attrs) return r;
+      // A relation kept for the list but only needed at a fraction of its
+      // full shape (e.g. a `.length` count, or one label column of a tag
+      // list) — drop any nested include with it, since the list never needs
+      // a relation of a relation either.
+      const trimmed = { ...r, attributes: attrs };
+      delete trimmed.include;
+      return trimmed;
+    });
+
+  const create = async (
+    data: Record<string, any>,
+    transaction?: Transaction
+  ) => {
     const row = await model.create(data as any, { transaction });
     return findByIdUnscoped(row.get("id") as string, transaction);
   };
@@ -236,7 +442,9 @@ export const buildCrudRepo = <M extends Model>(config: CrudConfig<M>) => {
     transaction?: Transaction,
     includeRemoved = false
   ): Promise<M | null> => {
-    const base: WhereOptions = includeRemoved ? { id } : { id, isDeleted: false };
+    const base: WhereOptions = includeRemoved
+      ? { id }
+      : { id, isDeleted: false };
     return model.findOne({
       where: withGroupScope(model, scope, base),
       include: relations,
@@ -254,7 +462,16 @@ export const buildCrudRepo = <M extends Model>(config: CrudConfig<M>) => {
     filters: Record<string, string>;
     scope: AccessScope;
   }) => {
-    const { skip, limit, search, includeRemoved, sortBy, sortDir, filters, scope } = params;
+    const {
+      skip,
+      limit,
+      search,
+      includeRemoved,
+      sortBy,
+      sortDir,
+      filters,
+      scope
+    } = params;
     const where: WhereOptions = {
       ...(config.baseWhere ?? {}),
       ...(includeRemoved ? {} : { isDeleted: false }),
@@ -268,11 +485,13 @@ export const buildCrudRepo = <M extends Model>(config: CrudConfig<M>) => {
     }
 
     const orderColumn =
-      sortBy && Object.keys(model.getAttributes()).includes(sortBy) ? sortBy : defaultSortBy;
+      sortBy && Object.keys(model.getAttributes()).includes(sortBy)
+        ? sortBy
+        : defaultSortBy;
 
     return model.findAndCountAll({
       where: withGroupScope(model, scope, where),
-      include: relations,
+      include: listRelations,
       offset: skip,
       limit,
       order: [[orderColumn, sortDir]],
@@ -280,12 +499,20 @@ export const buildCrudRepo = <M extends Model>(config: CrudConfig<M>) => {
     });
   };
 
-  const update = async (id: string, data: Record<string, any>, transaction?: Transaction) => {
+  const update = async (
+    id: string,
+    data: Record<string, any>,
+    transaction?: Transaction
+  ) => {
     await model.update(data as any, { where: { id } as any, transaction });
     return findByIdUnscoped(id, transaction, true);
   };
 
-  const softDelete = async (ids: string[], deletedBy: string, transaction?: Transaction) => {
+  const softDelete = async (
+    ids: string[],
+    deletedBy: string,
+    transaction?: Transaction
+  ) => {
     return model.update(
       { isDeleted: true, deletedAt: new Date(), deletedBy } as any,
       { where: { id: ids } as any, transaction }
@@ -300,7 +527,15 @@ export const buildCrudRepo = <M extends Model>(config: CrudConfig<M>) => {
     return findByIdUnscoped(id, transaction, true);
   };
 
-  return { create, findById, findByIdUnscoped, findAll, update, softDelete, restore };
+  return {
+    create,
+    findById,
+    findByIdUnscoped,
+    findAll,
+    update,
+    softDelete,
+    restore
+  };
 };
 
 export type CrudRepo<M extends Model> = ReturnType<typeof buildCrudRepo<M>>;
@@ -330,7 +565,8 @@ const trimIdentifiers = <M extends Model>(
   data: Record<string, any>
 ): Record<string, any> => {
   for (const field of [config.uniqueField, config.businessId?.field]) {
-    if (field && typeof data[field] === "string") data[field] = data[field].trim();
+    if (field && typeof data[field] === "string")
+      data[field] = data[field].trim();
   }
   return data;
 };
@@ -357,9 +593,14 @@ const assertUniqueCaseInsensitive = async (
   });
 
   if (existing) {
+    // Never a raw UUID or column name in a user-facing toast — e.g. Lab
+    // User's `userId` is a foreign key to the platform user, not something
+    // a lab analyst typed, so it must not be echoed back verbatim.
     throw Object.assign(
-      new Error(`A record with this value already exists: "${value}" (${field}).`),
-      { statusCode: 400 }
+      new Error(friendlyUniqueConflictMessage([field], [value])),
+      {
+        statusCode: 400
+      }
     );
   }
 };
@@ -400,6 +641,20 @@ const nextCopyValue = async (
   return `${baseName}-(${maxIndex + 1})`;
 };
 
+/**
+ * The human-readable label field, e.g. "name"/"customerName" — whichever
+ * `searchFields` entry looks like a display name and isn't the id field
+ * already being suffixed. `undefined` when the entity has none (e.g. Stock
+ * Batch, which is identified purely by its business id).
+ */
+const inferNameField = <M extends Model>(
+  config: CrudConfig<M>,
+  uniqueField?: string
+): string | undefined =>
+  config.searchFields.find(
+    (field) => field !== uniqueField && /name$/i.test(field)
+  );
+
 // ---------------------------------------------------------------------------
 // Service layer — owns transactions + audit-log writes.
 // ---------------------------------------------------------------------------
@@ -410,65 +665,95 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
   registerEntity(config.permissionEntity, config.entityName);
 
   const repo = buildCrudRepo(config);
-  const { model, entityName, uniqueField, beforeCreate, beforeUpdate, postFormat } = config;
+  const {
+    model,
+    entityName,
+    uniqueField,
+    beforeCreate,
+    beforeUpdate,
+    postFormat
+  } = config;
   const shape = (formatted: any) => applyPostFormat(formatted, postFormat);
   const hasGroupColumn = Object.keys(model.getAttributes()).includes("groupId");
 
   const create = async (raw: Record<string, any>, ctx: CrudContext) => {
-    const payload = config.normalizePayload ? config.normalizePayload(raw) : raw;
-    return sequelize.transaction(async (transaction) => {
-      const mapped = toColumns(config, payload);
+    const payload = config.normalizePayload
+      ? config.normalizePayload(raw)
+      : raw;
+    return sequelize
+      .transaction(async (transaction) => {
+        const mapped = toColumns(config, payload);
 
-      // Business ID before `beforeCreate`, so an entity that derives something
-      // from it (Stock Batch's `stockId/batchNumber`) sees the settled value.
-      const withBusinessId = config.businessId
-        ? await applyBusinessId(model, config.permissionEntity, config.businessId, mapped, transaction)
-        : mapped;
+        // Business ID before `beforeCreate`, so an entity that derives something
+        // from it (Stock Batch's `stockId/batchNumber`) sees the settled value.
+        const withBusinessId = config.businessId
+          ? await applyBusinessId(
+              model,
+              config.permissionEntity,
+              config.businessId,
+              mapped,
+              transaction
+            )
+          : mapped;
 
-      const data = beforeCreate ? await beforeCreate(withBusinessId) : withBusinessId;
+        const data = beforeCreate
+          ? await beforeCreate(withBusinessId)
+          : withBusinessId;
 
-      // Stamp the creator's home group when the caller didn't pick one. This is
-      // what keeps data partitioned without the user choosing a group by hand
-      // on every single record.
-      if (hasGroupColumn && !config.globalReference && !data.groupId && ctx.scope.homeGroupId) {
-        data.groupId = ctx.scope.homeGroupId;
-      }
+        // Stamp the creator's home group when the caller didn't pick one. This is
+        // what keeps data partitioned without the user choosing a group by hand
+        // on every single record.
+        if (
+          hasGroupColumn &&
+          !config.globalReference &&
+          !data.groupId &&
+          ctx.scope.homeGroupId
+        ) {
+          data.groupId = ctx.scope.homeGroupId;
+        }
 
-      trimIdentifiers(config, data);
+        trimIdentifiers(config, data);
 
-      if (uniqueField) {
-        await assertUniqueCaseInsensitive(model, uniqueField, data[uniqueField], transaction);
-      }
+        if (uniqueField) {
+          await assertUniqueCaseInsensitive(
+            model,
+            uniqueField,
+            data[uniqueField],
+            transaction
+          );
+        }
 
-      const created = await repo.create(data, transaction);
-      const parentId = created!.get("id") as string;
+        const created = await repo.create(data, transaction);
+        const parentId = created!.get("id") as string;
 
-      // Sub-forms go in the same transaction, so the parent and its rows are
-      // never half-saved.
-      const { newChildren, deltas } = await syncAllChildren(
-        config.children,
-        parentId,
-        payload,
-        transaction
-      );
+        // Sub-forms go in the same transaction, so the parent and its rows are
+        // never half-saved.
+        const { newChildren, deltas } = await syncAllChildren(
+          config.children,
+          parentId,
+          payload,
+          transaction,
+          created!.toJSON()
+        );
 
-      await writeAudit({
-        entityName,
-        entityId: parentId,
-        action: "CREATE",
-        newValue: { ...created!.toJSON(), ...newChildren },
-        childChanges: Object.keys(deltas).length ? deltas : null,
-        changeReason: payload.changeReason,
-        actor: ctx.actor,
-        transaction
+        await writeAudit({
+          entityName,
+          entityId: parentId,
+          action: "CREATE",
+          newValue: { ...created!.toJSON(), ...newChildren },
+          childChanges: Object.keys(deltas).length ? deltas : null,
+          changeReason: payload.changeReason,
+          actor: ctx.actor,
+          transaction
+        });
+
+        const reloaded = await repo.findByIdUnscoped(parentId, transaction);
+        return shape(formatLimsEntity(reloaded ?? created));
+      })
+      .then(async (result) => {
+        await afterWrite();
+        return result;
       });
-
-      const reloaded = await repo.findByIdUnscoped(parentId, transaction);
-      return shape(formatLimsEntity(reloaded ?? created));
-    }).then(async (result) => {
-      await afterWrite();
-      return result;
-    });
   };
 
   const afterWrite = async () => {
@@ -489,178 +774,325 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
       filters: Record<string, string>;
     },
     ctx: CrudContext
-  ) => shape(formatLimsEntity(await repo.findAll({ ...query, scope: ctx.scope })));
+  ) =>
+    shape(formatLimsEntity(await repo.findAll({ ...query, scope: ctx.scope })));
 
-  const update = async (id: string, raw: Record<string, any>, ctx: CrudContext) => {
-    const payload = config.normalizePayload ? config.normalizePayload(raw) : raw;
-    return sequelize.transaction(async (transaction) => {
-      // Scoped lookup: a record outside the caller's groups is not theirs to edit.
-      const existing = await repo.findById(id, ctx.scope, transaction, true);
-      if (!existing) return null;
-      const oldValue = existing.toJSON();
-      const mapped = toColumns(config, payload);
+  const update = async (
+    id: string,
+    raw: Record<string, any>,
+    ctx: CrudContext,
+    files?: Express.Multer.File[]
+  ) => {
+    const payload = config.normalizePayload
+      ? config.normalizePayload(raw)
+      : raw;
+    return sequelize
+      .transaction(async (transaction) => {
+        // Scoped lookup: a record outside the caller's groups is not theirs to edit.
+        const existing = await repo.findById(id, ctx.scope, transaction, true);
+        if (!existing) return null;
+        const oldValue = existing.toJSON();
+        const mapped = toColumns(config, payload);
 
-      // A locked business ID is the record's identity in the lab's paperwork —
-      // Sample SMP-000042 must still be SMP-000042 tomorrow. Silently drop any
-      // attempt to change it rather than 400, so an edit that round-trips the
-      // whole record (which every form does) still succeeds.
-      if (config.businessId?.locked) delete mapped[config.businessId.field];
+        // A locked business ID is the record's identity in the lab's paperwork —
+        // Sample SMP-000042 must still be SMP-000042 tomorrow. Silently drop any
+        // attempt to change it rather than 400, so an edit that round-trips the
+        // whole record (which every form does) still succeeds.
+        if (config.businessId?.locked) delete mapped[config.businessId.field];
 
-      const data = beforeUpdate ? await beforeUpdate(mapped, existing) : mapped;
+        const data = beforeUpdate
+          ? await beforeUpdate(mapped, existing)
+          : mapped;
 
-      trimIdentifiers(config, data);
+        trimIdentifiers(config, data);
 
-      if (uniqueField && data[uniqueField] !== undefined) {
-        await assertUniqueCaseInsensitive(model, uniqueField, data[uniqueField], transaction, id);
-      }
-
-      const updated = await repo.update(id, { ...data, modifiedBy: ctx.actor.id }, transaction);
-
-      const { oldChildren, newChildren, deltas } = await syncAllChildren(
-        config.children,
-        id,
-        payload,
-        transaction
-      );
-
-      await writeAudit({
-        entityName,
-        entityId: id,
-        action: "UPDATE",
-        oldValue: { ...oldValue, ...oldChildren },
-        newValue: { ...updated!.toJSON(), ...newChildren },
-        childChanges: Object.keys(deltas).length ? deltas : null,
-        changeReason: payload.changeReason,
-        actor: ctx.actor,
-        transaction
-      });
-
-      const reloaded = await repo.findByIdUnscoped(id, transaction, true);
-      return shape(formatLimsEntity(reloaded ?? updated));
-    }).then(async (result) => {
-      await afterWrite();
-      return result;
-    });
-  };
-
-  const remove = async (id: string, changeReason: string | undefined, ctx: CrudContext) => {
-    return sequelize.transaction(async (transaction) => {
-      const existing = await repo.findById(id, ctx.scope, transaction);
-      if (!existing) return null;
-      await repo.softDelete([id], ctx.actor.id, transaction);
-      await writeAudit({
-        entityName,
-        entityId: id,
-        action: "DELETE",
-        oldValue: existing.toJSON(),
-        changeReason,
-        actor: ctx.actor,
-        transaction
-      });
-      return formatLimsEntity(existing);
-    }).then(async (result) => {
-      await afterWrite();
-      return result;
-    });
-  };
-
-  const bulkDelete = async (ids: string[], changeReason: string | undefined, ctx: CrudContext) => {
-    return sequelize.transaction(async (transaction) => {
-      // Filter to the ids actually in scope, so a bulk call can't be used to
-      // delete records the caller could not have seen one at a time.
-      const permitted: string[] = [];
-      for (const id of ids) {
-        const row = await repo.findById(id, ctx.scope, transaction);
-        if (row) permitted.push(id);
-      }
-      if (!permitted.length) return 0;
-
-      await repo.softDelete(permitted, ctx.actor.id, transaction);
-      await Promise.all(
-        permitted.map((id) =>
-          writeAudit({
-            entityName,
-            entityId: id,
-            action: "DELETE",
-            changeReason,
-            actor: ctx.actor,
-            transaction
-          })
-        )
-      );
-      return permitted.length;
-    }).then(async (result) => {
-      await afterWrite();
-      return result;
-    });
-  };
-
-  const bulkDuplicate = async (ids: string[], ctx: CrudContext) => {
-    return sequelize.transaction(async (transaction) => {
-      const created: any[] = [];
-      for (const id of ids) {
-        const source = await repo.findById(id, ctx.scope, transaction, true);
-        if (!source) continue;
-        const clone = source.toJSON() as Record<string, any>;
-        delete clone.id;
-        delete clone._id;
-        delete clone.createdAt;
-        delete clone.updatedAt;
-        delete clone.isDeleted;
-        delete clone.deletedAt;
-        delete clone.deletedBy;
-        if (config.businessId) {
-         delete clone[config.businessId.field];
-          Object.assign(
-            clone,
-            await applyBusinessId(model, config.permissionEntity, config.businessId, clone, transaction)
+        if (uniqueField && data[uniqueField] !== undefined) {
+          await assertUniqueCaseInsensitive(
+            model,
+            uniqueField,
+            data[uniqueField],
+            transaction,
+            id
           );
-        } else if (uniqueField && clone[uniqueField]) {
-          clone[uniqueField] = await nextCopyValue(model, uniqueField, String(clone[uniqueField]), transaction);
         }
-        const prepared = beforeCreate ? await beforeCreate(clone) : clone;
 
-        const row = await repo.create(prepared, transaction);
+        const updated = await repo.update(
+          id,
+          { ...data, modifiedBy: ctx.actor.id },
+          transaction
+        );
+
+        const { oldChildren, newChildren, deltas } = await syncAllChildren(
+          config.children,
+          id,
+          payload,
+          transaction,
+          { ...oldValue, ...updated!.toJSON() }
+        );
+
+        // Attachments are a polymorphic side table, not a real child
+        // association — `keptAttachmentIds` only ever appears on a DTO whose
+        // entity actually carries `LimsAttachmentsField`, so this is a no-op
+        // for every other entity. Reconciled here (inside the same
+        // transaction, before the audit write) rather than in the
+        // controller, so an add/remove shows up in this same audit row
+        // instead of vanishing silently.
+        const keptAttachmentIds = Array.isArray(payload.keptAttachmentIds)
+          ? (payload.keptAttachmentIds as string[])
+          : undefined;
+        let attachmentsBefore:
+          Awaited<ReturnType<typeof attachmentsFor>> | undefined;
+        let attachmentsAfter:
+          Awaited<ReturnType<typeof attachmentsFor>> | undefined;
+        if (files?.length || keptAttachmentIds !== undefined) {
+          attachmentsBefore = await attachmentsFor(entityName, id, transaction);
+          const attachmentDelta = await reconcileAttachments(
+            entityName,
+            id,
+            files,
+            keptAttachmentIds,
+            ctx,
+            transaction
+          );
+          attachmentsAfter = await attachmentsFor(entityName, id, transaction);
+          if (attachmentDelta.added.length || attachmentDelta.removed.length) {
+            deltas.attachments = {
+              added: attachmentDelta.added.map((fileName) => ({ fileName })),
+              removed: attachmentDelta.removed.map((fileName) => ({
+                fileName
+              })),
+              changed: []
+            };
+          }
+        }
+
         await writeAudit({
           entityName,
-          entityId: row!.get("id") as string,
-          action: "CREATE",
-          newValue: row!.toJSON(),
-          changeReason: "Copied from existing record",
+          entityId: id,
+          action: "UPDATE",
+          oldValue: {
+            ...oldValue,
+            ...oldChildren,
+            ...(attachmentsBefore ? { attachments: attachmentsBefore } : {})
+          },
+          newValue: {
+            ...updated!.toJSON(),
+            ...newChildren,
+            ...(attachmentsAfter ? { attachments: attachmentsAfter } : {})
+          },
+          childChanges: Object.keys(deltas).length ? deltas : null,
+          changeReason: payload.changeReason,
           actor: ctx.actor,
           transaction
         });
-        created.push(row);
-      }
-      return created.length;
-    }).then(async (result) => {
-      await afterWrite();
-      return result;
-    });
-  };
 
-  const restore = async (id: string, changeReason: string | undefined, ctx: CrudContext) => {
-    return sequelize.transaction(async (transaction) => {
-      const existing = await repo.findById(id, ctx.scope, transaction, true);
-      if (!existing) return null;
-      const restored = await repo.restore(id, transaction);
-      await writeAudit({
-        entityName,
-        entityId: id,
-        action: "RESTORE",
-        newValue: restored!.toJSON(),
-        changeReason,
-        actor: ctx.actor,
-        transaction
+        const reloaded = await repo.findByIdUnscoped(id, transaction, true);
+        return shape(formatLimsEntity(reloaded ?? updated));
+      })
+      .then(async (result) => {
+        await afterWrite();
+        return result;
       });
-      return shape(formatLimsEntity(restored));
-    }).then(async (result) => {
-      await afterWrite();
-      return result;
-    });
   };
 
-  const getAuditLogs = async (entityId: string, page: number, limit: number, ctx: CrudContext) => {
+  const remove = async (
+    id: string,
+    changeReason: string | undefined,
+    ctx: CrudContext
+  ) => {
+    return sequelize
+      .transaction(async (transaction) => {
+        const existing = await repo.findById(id, ctx.scope, transaction);
+        if (!existing) return null;
+        await repo.softDelete([id], ctx.actor.id, transaction);
+        await writeAudit({
+          entityName,
+          entityId: id,
+          action: "DELETE",
+          oldValue: existing.toJSON(),
+          changeReason,
+          actor: ctx.actor,
+          transaction
+        });
+        return formatLimsEntity(existing);
+      })
+      .then(async (result) => {
+        await afterWrite();
+        return result;
+      });
+  };
+
+  const bulkDelete = async (
+    ids: string[],
+    changeReason: string | undefined,
+    ctx: CrudContext
+  ) => {
+    return sequelize
+      .transaction(async (transaction) => {
+        // Filter to the ids actually in scope, so a bulk call can't be used to
+        // delete records the caller could not have seen one at a time.
+        const permitted: string[] = [];
+        for (const id of ids) {
+          const row = await repo.findById(id, ctx.scope, transaction);
+          if (row) permitted.push(id);
+        }
+        if (!permitted.length) return 0;
+
+        await repo.softDelete(permitted, ctx.actor.id, transaction);
+        await Promise.all(
+          permitted.map((id) =>
+            writeAudit({
+              entityName,
+              entityId: id,
+              action: "DELETE",
+              changeReason,
+              actor: ctx.actor,
+              transaction
+            })
+          )
+        );
+        return permitted.length;
+      })
+      .then(async (result) => {
+        await afterWrite();
+        return result;
+      });
+  };
+
+  const bulkDuplicate = async (ids: string[], ctx: CrudContext) => {
+    return sequelize
+      .transaction(async (transaction) => {
+        const created: any[] = [];
+        for (const id of ids) {
+          const source = await repo.findById(id, ctx.scope, transaction, true);
+          if (!source) continue;
+          const clone = source.toJSON() as Record<string, any>;
+          delete clone.id;
+          delete clone._id;
+          delete clone.createdAt;
+          delete clone.updatedAt;
+          delete clone.isDeleted;
+          delete clone.deletedAt;
+          delete clone.deletedBy;
+          if (config.businessId) {
+            delete clone[config.businessId.field];
+            Object.assign(
+              clone,
+              await applyBusinessId(
+                model,
+                config.permissionEntity,
+                config.businessId,
+                clone,
+                transaction
+              )
+            );
+          } else if (uniqueField && clone[uniqueField]) {
+            const copiedId = await nextCopyValue(
+              model,
+              uniqueField,
+              String(clone[uniqueField]),
+              transaction
+            );
+            clone[uniqueField] = copiedId;
+
+            // The id gets a "-(N)" suffix above; the display Name did not, so a
+            // cloned row was indistinguishable from its source in any list or
+            // picker showing only the (often-truncated) Name column. Carry the
+            // same suffix onto the name field, when this entity has one.
+            const nameField = inferNameField(config, uniqueField);
+            const suffix = copiedId.match(/-\(\d+\)$/)?.[0];
+            if (
+              nameField &&
+              suffix &&
+              typeof clone[nameField] === "string" &&
+              clone[nameField]
+            ) {
+              clone[nameField] = `${clone[nameField]}${suffix}`;
+            }
+          }
+          const prepared = beforeCreate ? await beforeCreate(clone) : clone;
+
+          const row = await repo.create(prepared, transaction);
+          const newParentId = row!.get("id") as string;
+
+          // Clone owned child sub-forms too. Not `detachOnly` ones — those are
+          // claimed, not owned, records (Batch's Lots, Lot's Samples); blindly
+          // "cloning" them would re-parent someone else's rows onto the copy
+          // rather than actually duplicate anything. Without this, "Copy"
+          // silently dropped every nested grid on the cloned record (Pick
+          // List Values, Aliquot rows, Role permission entries, ...) — this
+          // engine never touched `config.children` here at all.
+          for (const child of config.children ?? []) {
+            if (child.detachOnly) continue;
+            const sourceRows = await readChildren(child, id, transaction);
+            for (const childRow of sourceRows) {
+              const data: Record<string, any> = { ...childRow };
+              delete data.id;
+              delete data.createdAt;
+              delete data.updatedAt;
+              delete data[child.foreignKey];
+              const extra = child.extraFields
+                ? child.extraFields(row!.toJSON())
+                : {};
+              await child.model.create(
+                { ...data, ...extra, [child.foreignKey]: newParentId } as any,
+                { transaction }
+              );
+            }
+          }
+
+          await writeAudit({
+            entityName,
+            entityId: newParentId,
+            action: "CREATE",
+            newValue: row!.toJSON(),
+            changeReason: "Copied from existing record",
+            actor: ctx.actor,
+            transaction
+          });
+          created.push(row);
+        }
+        return created.length;
+      })
+      .then(async (result) => {
+        await afterWrite();
+        return result;
+      });
+  };
+
+  const restore = async (
+    id: string,
+    changeReason: string | undefined,
+    ctx: CrudContext
+  ) => {
+    return sequelize
+      .transaction(async (transaction) => {
+        const existing = await repo.findById(id, ctx.scope, transaction, true);
+        if (!existing) return null;
+        const restored = await repo.restore(id, transaction);
+        await writeAudit({
+          entityName,
+          entityId: id,
+          action: "RESTORE",
+          newValue: restored!.toJSON(),
+          changeReason,
+          actor: ctx.actor,
+          transaction
+        });
+        return shape(formatLimsEntity(restored));
+      })
+      .then(async (result) => {
+        await afterWrite();
+        return result;
+      });
+  };
+
+  const getAuditLogs = async (
+    entityId: string,
+    page: number,
+    limit: number,
+    ctx: CrudContext
+  ) => {
     // Audit history is as protected as the record it describes.
     const record = await repo.findById(entityId, ctx.scope, undefined, true);
     if (!record) return null;
@@ -677,23 +1109,37 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
      * what the audit dialog reads. The originals are kept for API callers.
      * Without them the trail rendered with empty Who and When columns.
      */
-    const logs = (formatLimsEntity(rows) as Record<string, any>[]).map((row) => ({
-      ...row,
-      uniqueId: row.id,
-      // Name only — never the raw id. A uuid in a "Who" column tells a reader
-      // nothing; blank at least reads as "not recorded". `performedBy` stays on
-      // the row for anyone who needs to resolve it.
-      who: row.performedByName ?? null,
-      when: row.performedAt ?? null
-    }));
+    const logs = (formatLimsEntity(rows) as Record<string, any>[]).map(
+      (row) => ({
+        ...row,
+        uniqueId: row.id,
+        // Name only — never the raw id. A uuid in a "Who" column tells a reader
+        // nothing; blank at least reads as "not recorded". `performedBy` stays on
+        // the row for anyone who needs to resolve it.
+        who: row.performedByName ?? null,
+        when: row.performedAt ?? null
+      })
+    );
 
     return { logs, total: count };
   };
 
-  return { create, getById, getAll, update, remove, bulkDelete, bulkDuplicate, restore, getAuditLogs };
+  return {
+    create,
+    getById,
+    getAll,
+    update,
+    remove,
+    bulkDelete,
+    bulkDuplicate,
+    restore,
+    getAuditLogs
+  };
 };
 
-export type CrudService<M extends Model> = ReturnType<typeof buildCrudService<M>>;
+export type CrudService<M extends Model> = ReturnType<
+  typeof buildCrudService<M>
+>;
 
 // ---------------------------------------------------------------------------
 // Controller layer
@@ -701,11 +1147,31 @@ export type CrudService<M extends Model> = ReturnType<typeof buildCrudService<M>
 
 export const buildCrudController = <M extends Model>(
   service: CrudService<M>,
-  entityName: string
+  entityName: string,
+  /**
+   * Whether this entity's form actually carries `LimsAttachmentsField` —
+   * gates both the extra `attachmentsFor` read on every getById/create/update
+   * and the write-side reconcile, so the ~13 entities that never had an
+   * attachments section don't pay for a query that will always come back
+   * empty (Results/Tests alone are 1M+/100k rows a day).
+   */
+  hasAttachments = false
 ) => ({
   create: asyncHandler(async (req: Request, res: Response) => {
-    const created = await service.create(req.body, contextFromRequest(req));
-    res.status(201).json({ message: getMessage(CUSTOM_MESSAGES.ENTITY_CREATED, entityName), data: created });
+    const payload = hasAttachments ? payloadFromRequest(req) : req.body;
+    const ctx = contextFromRequest(req);
+    const created = await service.create(payload, ctx);
+    if (hasAttachments) {
+      const id = (created as any)?.id as string;
+      const files = req.files as Express.Multer.File[] | undefined;
+      if (files?.length)
+        await reconcileAttachments(entityName, id, files, undefined, ctx);
+      (created as any).attachments = await attachmentsFor(entityName, id);
+    }
+    res.status(201).json({
+      message: getMessage(CUSTOM_MESSAGES.ENTITY_CREATED, entityName),
+      data: created
+    });
   }),
 
   getAll: asyncHandler(async (req: Request, res: Response) => {
@@ -723,27 +1189,77 @@ export const buildCrudController = <M extends Model>(
   }),
 
   getById: asyncHandler(async (req: Request, res: Response) => {
-    const item = await service.getById(req.params.id as string, contextFromRequest(req));
-    if (!item) return res.status(404).json({ message: getMessage(CUSTOM_MESSAGES.NOT_FOUND, entityName) });
+    const item = await service.getById(
+      req.params.id as string,
+      contextFromRequest(req)
+    );
+    if (!item)
+      return res
+        .status(404)
+        .json({ message: getMessage(CUSTOM_MESSAGES.NOT_FOUND, entityName) });
+    if (hasAttachments) {
+      (item as any).attachments = await attachmentsFor(
+        entityName,
+        req.params.id as string
+      );
+    }
     res.status(200).json({ data: item });
   }),
 
   update: asyncHandler(async (req: Request, res: Response) => {
-    const updated = await service.update(req.params.id as string, req.body, contextFromRequest(req));
-    if (!updated) return res.status(404).json({ message: getMessage(CUSTOM_MESSAGES.NOT_FOUND, entityName) });
-    res.status(200).json({ message: getMessage(CUSTOM_MESSAGES.ENTITY_UPDATED, entityName), data: updated });
+    const payload = hasAttachments ? payloadFromRequest(req) : req.body;
+    const ctx = contextFromRequest(req);
+    // `service.update` reconciles attachments itself now (inside the same
+    // transaction as the rest of the save) so the add/remove lands in the
+    // same audit row — see `childChanges.attachments` there.
+    const files = hasAttachments
+      ? (req.files as Express.Multer.File[] | undefined)
+      : undefined;
+    const updated = await service.update(
+      req.params.id as string,
+      payload,
+      ctx,
+      files
+    );
+    if (!updated)
+      return res
+        .status(404)
+        .json({ message: getMessage(CUSTOM_MESSAGES.NOT_FOUND, entityName) });
+    if (hasAttachments) {
+      (updated as any).attachments = await attachmentsFor(
+        entityName,
+        req.params.id as string
+      );
+    }
+    res.status(200).json({
+      message: getMessage(CUSTOM_MESSAGES.ENTITY_UPDATED, entityName),
+      data: updated
+    });
   }),
 
   remove: asyncHandler(async (req: Request, res: Response) => {
     const changeReason = (req.body as { changeReason?: string })?.changeReason;
-    const removed = await service.remove(req.params.id as string, changeReason, contextFromRequest(req));
-    if (!removed) return res.status(404).json({ message: getMessage(CUSTOM_MESSAGES.NOT_FOUND, entityName) });
-    res.status(200).json({ message: getMessage(CUSTOM_MESSAGES.ENTITY_DELETED, entityName) });
+    const removed = await service.remove(
+      req.params.id as string,
+      changeReason,
+      contextFromRequest(req)
+    );
+    if (!removed)
+      return res
+        .status(404)
+        .json({ message: getMessage(CUSTOM_MESSAGES.NOT_FOUND, entityName) });
+    res.status(200).json({
+      message: getMessage(CUSTOM_MESSAGES.ENTITY_DELETED, entityName)
+    });
   }),
 
   bulkDelete: asyncHandler(async (req: Request, res: Response) => {
     const { ids, changeReason } = req.body as BulkOperationDto;
-    const count = await service.bulkDelete(ids, changeReason, contextFromRequest(req));
+    const count = await service.bulkDelete(
+      ids,
+      changeReason,
+      contextFromRequest(req)
+    );
     res.status(200).json({ message: `${count} record(s) removed`, count });
   }),
 
@@ -755,9 +1271,19 @@ export const buildCrudController = <M extends Model>(
 
   restore: asyncHandler(async (req: Request, res: Response) => {
     const { changeReason } = req.body as RestoreOperationDto;
-    const restored = await service.restore(req.params.id as string, changeReason, contextFromRequest(req));
-    if (!restored) return res.status(404).json({ message: getMessage(CUSTOM_MESSAGES.NOT_FOUND, entityName) });
-    res.status(200).json({ message: getMessage(CUSTOM_MESSAGES.ENTITY_RESTORED, entityName), data: restored });
+    const restored = await service.restore(
+      req.params.id as string,
+      changeReason,
+      contextFromRequest(req)
+    );
+    if (!restored)
+      return res
+        .status(404)
+        .json({ message: getMessage(CUSTOM_MESSAGES.NOT_FOUND, entityName) });
+    res.status(200).json({
+      message: getMessage(CUSTOM_MESSAGES.ENTITY_RESTORED, entityName),
+      data: restored
+    });
   }),
 
   getAuditLogs: asyncHandler(async (req: Request, res: Response) => {
@@ -769,7 +1295,10 @@ export const buildCrudController = <M extends Model>(
       limit,
       contextFromRequest(req)
     );
-    if (!result) return res.status(404).json({ message: getMessage(CUSTOM_MESSAGES.NOT_FOUND, entityName) });
+    if (!result)
+      return res
+        .status(404)
+        .json({ message: getMessage(CUSTOM_MESSAGES.NOT_FOUND, entityName) });
     res.status(200).json({ audit: result.logs, total: result.total });
   })
 });
@@ -792,11 +1321,28 @@ export const buildCrudRouter = <M extends Model>(params: {
   /** Both required to expose `GET /next-id` for the create form's prefill. */
   model?: ModelStatic<M>;
   businessId?: BusinessIdConfig;
+  /** This entity's form carries `LimsAttachmentsField` — see buildCrudController. */
+  hasAttachments?: boolean;
 }): Router => {
-  const { service, entityName, permissionEntity, createDto, updateDto, model, businessId } = params;
-  const controller = buildCrudController(service, entityName);
+  const {
+    service,
+    entityName,
+    permissionEntity,
+    createDto,
+    updateDto,
+    model,
+    businessId,
+    hasAttachments = false
+  } = params;
+  const controller = buildCrudController(service, entityName, hasAttachments);
   const router = Router();
   const can = (action: LimsAction) => authorize(permissionEntity, action);
+  // No-op for a plain JSON request — multer only engages for an actual
+  // multipart body, so this is safe on every route regardless of whether
+  // this particular save happens to include new files.
+  const parseAttachments = hasAttachments
+    ? uploadAttachments.array("attachments")
+    : (_req: Request, _res: Response, next: () => void) => next();
 
   // Suggestion for the create form. Non-consuming, so opening a form and
   // abandoning it doesn't burn a number. Locked entities don't expose it —
@@ -806,18 +1352,31 @@ export const buildCrudRouter = <M extends Model>(params: {
       API_ROUTES.NEXT_ID,
       can("CREATE"),
       asyncHandler(async (_req: Request, res: Response) => {
-        res.status(200).json({ data: { [businessId.field]: await peekBusinessId(model, permissionEntity, businessId) } });
+        res.status(200).json({
+          data: {
+            [businessId.field]: await peekBusinessId(
+              model,
+              permissionEntity,
+              businessId
+            )
+          }
+        });
       })
     );
   }
 
-  router.get(API_ROUTES.PARAMS + "/audit", can("VIEW"), controller.getAuditLogs);
+  router.get(
+    API_ROUTES.PARAMS + "/audit",
+    can("VIEW"),
+    controller.getAuditLogs
+  );
   router.get(API_ROUTES.ROOT, can("VIEW"), controller.getAll);
   router.get(API_ROUTES.PARAMS, can("VIEW"), controller.getById);
 
   router.post(
     API_ROUTES.ROOT,
     can("CREATE"),
+    parseAttachments,
     createDto ? validateDto(createDto) : (_req, _res, next) => next(),
     controller.create
   );
@@ -837,6 +1396,7 @@ export const buildCrudRouter = <M extends Model>(params: {
   router.patch(
     API_ROUTES.PARAMS,
     can("UPDATE"),
+    parseAttachments,
     updateDto ? validateDto(updateDto) : (_req, _res, next) => next(),
     controller.update
   );

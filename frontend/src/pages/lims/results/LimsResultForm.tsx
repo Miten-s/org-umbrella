@@ -1,13 +1,16 @@
+import { useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
 
 import Input from "@/components/common/form/input/InputField";
+import DateField from "@/components/common/form/input/DateField";
 import Label from "@/components/common/form/Label";
 import Switch from "@/components/common/form/switch/Switch";
 import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import { seedRefOption } from "@/utils/refLabel";
+import { isPayloadEqual } from "@/lib/formChangeDetection";
 
 import { useLimsTestOptions } from "@/pages/lims/tests/LimsTest.queries";
 import { useLimsSampleOptions } from "@/pages/lims/samples/LimsSample.queries";
@@ -41,14 +44,10 @@ const LimsResultForm = ({
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
 
-  const {
-    register,
-    control,
-    handleSubmit,
-    formState: { errors, isSubmitting }
-  } = useForm<LimsResultFormValues>({
-    resolver: zodResolver(limsResultSchema),
-    defaultValues: {
+  // Captured once per record — also the no-change baseline `submit` diffs
+  // against, so Save is a no-op when nothing actually differs from it.
+  const initialValues = useMemo<LimsResultFormValues>(
+    () => ({
       test: initialData?.test?.id ?? "",
       sample: initialData?.sample?.id ?? "",
       analysis: initialData?.analysis?.id ?? "",
@@ -61,7 +60,18 @@ const LimsResultForm = ({
       enteredOn: initialData?.enteredOn ?? "",
       enteredBy: initialData?.enteredBy ?? "",
       outOfRange: initialData?.outOfRange ?? false,
-    }
+    }),
+    [initialData]
+  );
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting }
+  } = useForm<LimsResultFormValues>({
+    resolver: zodResolver(limsResultSchema),
+    defaultValues: initialValues
   });
 
   const busy = submitting || isSubmitting;
@@ -74,21 +84,48 @@ const LimsResultForm = ({
   ) => (
     <div className="min-w-0">
       <Label required={required}>{label}</Label>
-      <Input
-        {...register(name)}
-        type={type}
-        disabled={isReadOnly}
-        error={!!errors[name]}
-        hint={errors[name]?.message as string}
-        className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-      />
+      {type === "date" || type === "time" ? (
+        <Controller
+          name={name}
+          control={control}
+          render={({ field }) => (
+            <DateField
+              mode={type}
+              value={field.value as string}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              disabled={isReadOnly}
+              error={!!errors[name]}
+              hint={errors[name]?.message as string}
+              className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            />
+          )}
+        />
+      ) : (
+        <Input
+          {...register(name)}
+          type={type}
+          disabled={isReadOnly}
+          error={!!errors[name]}
+          hint={errors[name]?.message as string}
+          className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+        />
+      )}
     </div>
   );
 
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
-        onSubmit={handleSubmit((values) => onSubmit({ ...values }))}
+        onSubmit={handleSubmit((values) => {
+          // Edit + nothing actually changed: skip the reason modal, update
+          // call, and audit entry entirely — a no-op Save just closes.
+          if (mode === "edit" && isPayloadEqual(values, initialValues)) {
+            onClose();
+            return;
+          }
+          onSubmit({ ...values });
+        })}
         className="min-w-0 space-y-4"
       >
         <h2 className="text-xl font-semibold">

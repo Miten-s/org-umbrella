@@ -1,16 +1,26 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction
+} from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
-import { CopyIcon, EyeIcon, PencilIcon, PlusIcon, TimeIcon, TrashBinIcon } from "@/public/icons";
+import {
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TimeIcon,
+  TrashBinIcon
+} from "@/public/icons";
 import { fetchLimsInstrumentList } from "./LimsInstrument.api";
 import { getLimsInstrumentColumns } from "./LimsInstrument.columns";
 import {
@@ -20,26 +30,41 @@ import {
   useCreateLimsInstrument,
   useLimsInstrumentAudit,
   useRestoreLimsInstrument,
-  useUpdateLimsInstrument
+  useUpdateLimsInstrument,
+  useLimsInstrumentById
 } from "./LimsInstrument.queries";
-import LimsInstrumentForm, { type LimsInstrumentFormMode } from "./LimsInstrumentForm";
-import type { LimsInstrument, LimsInstrumentPayload } from "./LimsInstrument.types";
+import LimsInstrumentForm, {
+  type LimsInstrumentFormMode
+} from "./LimsInstrumentForm";
+import type {
+  LimsInstrument,
+  LimsInstrumentPayload
+} from "./LimsInstrument.types";
 
 /** LimsInstrument list — built to STANDARDS.md and the MIGRATION.md §5 definition of done. */
 const LimsInstrumentList = () => {
   const { t } = useTranslation();
   const { isOpen, openModal, closeModal } = useModal();
 
-  const [active, setActive] = useState<LimsInstrument | null>(null);
+  // Only the id of the row being edited/viewed — the list row itself is
+  // never passed into the form; the full record (including attachments)
+  // is fetched fresh the moment the modal actually needs it.
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsInstrumentFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
 
   const compliance = useLimsCompliance<LimsInstrument, LimsInstrumentPayload>();
   const auditQuery = useLimsInstrumentAudit(compliance.auditRow?.id);
+  const detailQuery = useLimsInstrumentById(
+    activeId ?? undefined,
+    isOpen && formMode !== "create"
+  );
 
   const fetchList = useCallback(
-    (params: Parameters<typeof fetchLimsInstrumentList>[1], signal?: AbortSignal) =>
-      fetchLimsInstrumentList(includeRemoved, params, signal),
+    (
+      params: Parameters<typeof fetchLimsInstrumentList>[1],
+      signal?: AbortSignal
+    ) => fetchLimsInstrumentList(includeRemoved, params, signal),
     [includeRemoved]
   );
 
@@ -67,7 +92,7 @@ const LimsInstrumentList = () => {
   const openForm = useCallback(
     (mode: LimsInstrumentFormMode, row: LimsInstrument | null) => {
       setFormMode(mode);
-      setActive(row);
+      setActiveId(row?.id ?? null);
       openModal();
     },
     [openModal]
@@ -75,13 +100,13 @@ const LimsInstrumentList = () => {
 
   const handleCloseForm = () => {
     closeModal();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
   const handleSave = async (payload: LimsInstrumentPayload, files: File[]) => {
-    if (active) {
-      compliance.requestUpdate(active.id, payload, files);
+    if (activeId) {
+      compliance.requestUpdate(activeId, payload, files);
       closeModal();
       return;
     }
@@ -94,14 +119,16 @@ const LimsInstrumentList = () => {
     if (!pending) return;
     await update.mutateAsync({
       id: pending.id,
-      payload: { ...pending.payload, changeReason: reason }, files: pending.files
+      payload: { ...pending.payload, changeReason: reason },
+      files: pending.files
     });
     compliance.clearUpdate();
-    setActive(null);
+    setActiveId(null);
     setFormMode("create");
   };
 
-  const label = (row: LimsInstrument) => String(row.instrumentId ?? row.name ?? "");
+  const label = (row: LimsInstrument) =>
+    String(row.instrumentId ?? row.name ?? "");
 
   const bulkActions = useMemo<DataTableBulkAction[]>(
     () => [
@@ -127,7 +154,9 @@ const LimsInstrumentList = () => {
             selection,
             count,
             selection.mode === "ids"
-              ? table.rows.filter((row) => selection.ids.includes(row.id)).map(label)
+              ? table.rows
+                  .filter((row) => selection.ids.includes(row.id))
+                  .map(label)
               : []
           )
       }
@@ -186,7 +215,10 @@ const LimsInstrumentList = () => {
         tone: "danger",
         permission: LIMS_PERMISSIONS.DELETE_INSTRUMENT,
         hidden: (row: LimsInstrument) => Boolean(row.isRemoved),
-        onClick: (row) => compliance.requestDelete({ mode: "ids", ids: [row.id] }, 1, [label(row)])
+        onClick: (row) =>
+          compliance.requestDelete({ mode: "ids", ids: [row.id] }, 1, [
+            label(row)
+          ])
       }
     ],
     [bulkClone, compliance, openForm, t]
@@ -229,13 +261,21 @@ const LimsInstrumentList = () => {
         onClose={handleCloseForm}
         className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
       >
-        <LimsInstrumentForm
-          mode={formMode}
-          initialData={active}
-          onClose={handleCloseForm}
-          onSubmit={handleSave}
-          submitting={create.isPending || update.isPending}
-        />
+        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+          <div className="flex min-h-[300px] items-center justify-center p-10">
+            <LoadingSpinner fullScreen={false} />
+          </div>
+        ) : (
+          <LimsInstrumentForm
+            mode={formMode}
+            initialData={
+              formMode === "create" ? null : (detailQuery.data ?? null)
+            }
+            onClose={handleCloseForm}
+            onSubmit={handleSave}
+            submitting={create.isPending || update.isPending}
+          />
+        )}
       </Modal>
 
       <LimsComplianceDialogs
@@ -246,13 +286,23 @@ const LimsInstrumentList = () => {
         updating={update.isPending}
         deleting={bulkDelete.isPending}
         restoring={restore.isPending}
-        auditEntries={auditQuery.data ?? []}
+        auditEntries={auditQuery.entries}
+
         auditLoading={auditQuery.isLoading}
+
+        auditHasNextPage={auditQuery.hasNextPage}
+
+        auditFetchingNextPage={auditQuery.isFetchingNextPage}
+
+        onAuditLoadMore={auditQuery.fetchNextPage}
         onUpdate={confirmUpdate}
         onDelete={async (reason) => {
           const pending = compliance.pendingDelete;
           if (pending) {
-            await bulkDelete.mutateAsync({ selection: pending.selection, changeReason: reason });
+            await bulkDelete.mutateAsync({
+              selection: pending.selection,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearDelete();

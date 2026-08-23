@@ -1,7 +1,8 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
+import { isPayloadEqual } from "@/lib/formChangeDetection";
 
 import Label from "@/components/common/form/Label";
 import TextArea from "@/components/common/form/input/TextArea";
@@ -10,7 +11,7 @@ import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import SignatureField, { type SignatureFieldHandle } from "@/components/common/SignatureField";
 import { getImageUrl } from "@/services/utils.service";
-import { useUserOptions } from "@/pages/system-it-admin/users/User.queries";
+import { useAvailablePlatformUserOptions } from "./LimsUser.options";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsLocationOptions } from "@/pages/lims/locations/LimsLocation.queries";
 import { useLimsRoleOptions } from "@/pages/lims/roles/LimsRole.queries";
@@ -59,14 +60,10 @@ const LimsUserForm = ({
   // read imperatively at submit time, not through react-hook-form.
   const signatureRef = useRef<SignatureFieldHandle>(null);
 
-  const {
-    control,
-    handleSubmit,
-    setValue,
-    formState: { errors, isSubmitting }
-  } = useForm<LimsUserFormValues>({
-    resolver: zodResolver(limsUserSchema),
-    defaultValues: {
+  // Captured once per record — also the no-change baseline `submit` diffs
+  // against, so Save is a no-op when nothing actually differs from it.
+  const initialValues = useMemo<LimsUserFormValues>(
+    () => ({
       userId: initialData?.userId ?? "",
       group: initialData?.group?.id ?? "",
       location: initialData?.location?.id ?? "",
@@ -74,7 +71,18 @@ const LimsUserForm = ({
       roles: (initialData?.roles ?? []).map((ref) => ref.id),
       description: initialData?.description ?? "",
       trainingCompleted: initialData?.trainingCompleted ?? false
-    }
+    }),
+    [initialData]
+  );
+
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isSubmitting }
+  } = useForm<LimsUserFormValues>({
+    resolver: zodResolver(limsUserSchema),
+    defaultValues: initialValues
   });
 
   const description = useWatch({ control, name: "description" });
@@ -93,6 +101,13 @@ const LimsUserForm = ({
     // Only carry a signature when one was actually (re)drawn — an untouched
     // pad on an edit must leave the existing signature alone, not blank it.
     const signature = signatureRef.current?.getSignature();
+
+    // Edit + nothing actually changed: skip the reason modal, update call,
+    // and audit entry entirely — a no-op Save just closes.
+    if (mode === "edit" && !signature && isPayloadEqual(values, initialValues)) {
+      onClose();
+      return;
+    }
 
     return onSubmit({
       user: { id: values.userId, name: selectedUserName },
@@ -125,7 +140,7 @@ const LimsUserForm = ({
               control={control}
               render={({ field }) => (
                 <AsyncSelect
-                  useOptions={useUserOptions}
+                  useOptions={useAvailablePlatformUserOptions}
                   value={field.value}
                   onChange={field.onChange}
                   onChangeOption={(option) => setSelectedUserName(option?.label ?? "")}

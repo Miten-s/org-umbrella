@@ -4,7 +4,12 @@ import UserRole from "../models/user-role.model";
 import Group from "../models/group.model";
 import Role from "../models/role.model";
 import Location from "../models/location.model";
-import { buildCrudRouter, buildCrudService, CrudConfig } from "../utils/crud-factory";
+import {
+  buildCrudRouter,
+  buildCrudService,
+  CrudConfig,
+  CrudContext
+} from "../utils/crud-factory";
 import { CreateLimsUserDto, UpdateLimsUserDto } from "../dtos/master-data.dto";
 import { invalidateAllUserContexts } from "../services/user-context.service";
 
@@ -29,7 +34,12 @@ export const limsUserConfig: CrudConfig<LimsUser> = {
     {
       model: Location,
       as: "location",
-      attributes: ["id", "locationId", "locationName", ["location_name", "name"]],
+      attributes: [
+        "id",
+        "locationId",
+        "locationName",
+        ["location_name", "name"]
+      ],
       required: false
     },
     {
@@ -49,6 +59,10 @@ export const limsUserConfig: CrudConfig<LimsUser> = {
   ],
   relationFields: { group: "groupId", location: "locationId" },
 
+  // `roles` stays in the list query — LimsUser.columns.tsx renders it.
+  // `accessGroups` doesn't appear anywhere on the list, only Edit/View.
+  listExcludeRelations: ["accessGroups"],
+
   normalizePayload: (payload) => {
     const next = { ...payload };
 
@@ -65,7 +79,9 @@ export const limsUserConfig: CrudConfig<LimsUser> = {
 
     // ["<uuid>", …] → [{ groupId: "<uuid>" }, …] so the child sync can diff them.
     if (Array.isArray(next.accessGroups)) {
-      next.accessGroups = next.accessGroups.map((id: string) => ({ groupId: id }));
+      next.accessGroups = next.accessGroups.map((id: string) => ({
+        groupId: id
+      }));
     }
     if (Array.isArray(next.roles)) {
       next.roles = next.roles.map((id: string) => ({ roleId: id }));
@@ -110,7 +126,45 @@ export const limsUserConfig: CrudConfig<LimsUser> = {
   afterWrite: invalidateAllUserContexts
 };
 
-const service = buildCrudService(limsUserConfig);
+const base = buildCrudService(limsUserConfig);
+
+const SELF_REMOVAL_MESSAGE =
+  "You cannot remove your own Lab User record — it would lock you out of LIMS " +
+  "with no way to undo it yourself. Ask another administrator to do it.";
+
+/**
+ * Removing your own Lab User record is a total, self-inflicted lockout: no
+ * LIMS access means no way to use the app's own Restore action to undo it —
+ * recovery needs someone with direct database access. Guard both the
+ * single-row and bulk paths the same way `authorize` resolves identity:
+ * `ctx.actor.id` is the platform user id, matching `LimsUser.userId`.
+ */
+const assertNotSelf = async (ids: string[], ctx: CrudContext) => {
+  const targets = await LimsUser.findAll({ where: { id: ids } as any });
+  if (targets.some((target) => target.userId === ctx.actor.id)) {
+    throw Object.assign(new Error(SELF_REMOVAL_MESSAGE), { statusCode: 400 });
+  }
+};
+
+const remove = async (
+  id: string,
+  changeReason: string | undefined,
+  ctx: CrudContext
+) => {
+  await assertNotSelf([id], ctx);
+  return base.remove(id, changeReason, ctx);
+};
+
+const bulkDelete = async (
+  ids: string[],
+  changeReason: string | undefined,
+  ctx: CrudContext
+) => {
+  await assertNotSelf(ids, ctx);
+  return base.bulkDelete(ids, changeReason, ctx);
+};
+
+const service = { ...base, remove, bulkDelete };
 
 export default buildCrudRouter({
   service,
