@@ -14,6 +14,10 @@ deploy.sh
 */.env.*
 .agents
 
-# The rules above ignore deploy/.env (correct — it holds real secrets) but the
-# `*/.env.*` glob also swallows the committed template. Re-include just that.
-!deploy/.env.example
+# Internal working docs and deployment config — this repo is code only.
+# (Note: this supersedes the old `!deploy/.env.example` re-include below it —
+# once the whole `deploy/` directory is excluded by a directory-matching
+# pattern, git won't look inside it for negations at all, so that exception
+# would silently stop working if left in place.)
+docs/
+deploy/
