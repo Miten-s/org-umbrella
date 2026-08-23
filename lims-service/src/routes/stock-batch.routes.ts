@@ -12,10 +12,14 @@ import {
   buildCrudService,
   CrudConfig
 } from "../utils/crud-factory";
+import { claimNextValue } from "../utils/business-id";
 import {
   CreateStockBatchDto,
   UpdateStockBatchDto
 } from "../dtos/commercial.dto";
+
+/** Same retry budget as business-id.ts's own collision loop. */
+const MAX_BATCH_NUMBER_RETRIES = 50;
 
 /**
  * Stock Batches — actual physical material.
@@ -98,14 +102,28 @@ export const stockBatchConfig: CrudConfig<StockBatch> = {
   /**
    * Derive the batch number and composite id.
    *
-   * The read of the current max is not inside the create transaction, so two
-   * simultaneous batches on the same stock could compute the same number. The
-   * unique index on (stock_id, batch_number) is what actually guarantees
-   * correctness — the loser gets a 400 and retries, which is the right trade
-   * against serialising every batch creation on one stock.
+   * `batchNumber` is claimed through the same atomic `lims_id_sequences`
+   * counter every business id uses (business-id.ts's `claimNextValue`), keyed
+   * per stock (`STOCK_BATCH:<stockId>`) rather than the entity-wide key a
+   * formatted business id would use. The previous version read
+   * `StockBatch.max("batchNumber", ...)` outside any lock, so two concurrent
+   * creates on the same stock could compute the same next number; the atomic
+   * `INSERT ... ON CONFLICT DO UPDATE ... RETURNING` this now goes through is
+   * serialised by Postgres row-locking the same way every other entity's
+   * business id already is.
+   *
+   * The retry-past-collisions loop exists for the same reason
+   * `nextBusinessId` has one: this counter starts fresh at 1 per stock, so
+   * any stock that already had batches before this counter existed would
+   * otherwise collide with its own real batch 1 on the very next create.
+   * Retrying past an already-taken number self-heals that with no manual
+   * data migration, the same way a hand-typed business id ahead of its
+   * counter is handled everywhere else.
    */
-  beforeCreate: async (payload) => {
-    const parent = await Stock.findByPk(payload.stockId as string);
+  beforeCreate: async (payload, transaction) => {
+    const parent = await Stock.findByPk(payload.stockId as string, {
+      transaction
+    });
 
     if (!parent) {
       throw Object.assign(new Error("The selected stock does not exist."), {
@@ -113,11 +131,31 @@ export const stockBatchConfig: CrudConfig<StockBatch> = {
       });
     }
 
-    const highest = (await StockBatch.max("batchNumber", {
-      where: { stockId: payload.stockId as string }
-    })) as number | null;
-
-    const batchNumber = Number(highest ?? 0) + 1;
+    let batchNumber: number | undefined;
+    for (let attempt = 0; attempt < MAX_BATCH_NUMBER_RETRIES; attempt += 1) {
+      const candidate = await claimNextValue(
+        `STOCK_BATCH:${parent.id}`,
+        "SB",
+        transaction
+      );
+      const taken = await StockBatch.count({
+        where: { stockId: parent.id, batchNumber: candidate } as any,
+        transaction,
+        paranoid: false
+      });
+      if (!taken) {
+        batchNumber = candidate;
+        break;
+      }
+    }
+    if (batchNumber === undefined) {
+      throw Object.assign(
+        new Error(
+          "Could not allocate a free batch number for this stock — try again."
+        ),
+        { statusCode: 409 }
+      );
+    }
 
     return {
       ...payload,

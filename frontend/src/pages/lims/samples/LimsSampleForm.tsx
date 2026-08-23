@@ -23,8 +23,16 @@ import { useLimsStockBatchOptions } from "@/pages/lims/stock-batches/LimsStockBa
 import { useLimsInstrumentOptions } from "@/pages/lims/instruments/LimsInstrument.queries";
 import { useLimsStockOptions } from "@/pages/lims/stocks/LimsStock.queries";
 import { refId } from "@/lib/query/normalizeId";
-import { limsSampleSchema, type LimsSampleFormValues } from "./LimsSample.schema";
-import type { LimsSample, LimsSamplePayload, LimsRef, LimsTestWindowRow } from "./LimsSample.types";
+import {
+  limsSampleSchema,
+  type LimsSampleFormValues
+} from "./LimsSample.schema";
+import type {
+  LimsSample,
+  LimsSamplePayload,
+  LimsRef,
+  LimsTestWindowRow
+} from "./LimsSample.types";
 
 export type LimsSampleFormMode = "create" | "edit" | "view";
 
@@ -58,14 +66,15 @@ const LimsSampleForm = ({
   const initialTestWindowsRef = useRef(
     (initialData?.testWindows ?? []).map((row) => ({
       ...row,
-      instrument: refId(row.instrument ?? (row as { instrumentId?: string }).instrumentId),
+      instrument: refId(
+        row.instrument ?? (row as { instrumentId?: string }).instrumentId
+      ),
       stock: refId(row.stock ?? (row as { stockId?: string }).stockId)
     }))
   );
-  const [testWindows, setTestWindows] = useState<LimsTestWindowRow[]>(initialTestWindowsRef.current);
-
-  const windowInstrumentOptions = useLimsInstrumentOptions({ search: "" });
-  const windowStockOptions = useLimsStockOptions({ search: "" });
+  const [testWindows, setTestWindows] = useState<LimsTestWindowRow[]>(
+    initialTestWindowsRef.current
+  );
 
   // Captured once per record — also the no-change baseline `submit` diffs
   // against, so Save is a no-op when nothing actually differs from it.
@@ -87,7 +96,7 @@ const LimsSampleForm = ({
       sampleStartDate: initialData?.sampleStartDate ?? "",
       sampleStartBy: initialData?.sampleStartBy ?? "",
       description: initialData?.description ?? "",
-      comments: initialData?.comments ?? "",
+      comments: initialData?.comments ?? ""
     }),
     [initialData]
   );
@@ -322,7 +331,9 @@ const LimsSampleForm = ({
             <TextArea
               disabled={isReadOnly}
               value={description || ""}
-              onChange={(val) => setValue("description", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("description", val, { shouldValidate: true })
+              }
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
@@ -331,7 +342,9 @@ const LimsSampleForm = ({
             <TextArea
               disabled={isReadOnly}
               value={comments || ""}
-              onChange={(val) => setValue("comments", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("comments", val, { shouldValidate: true })
+              }
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
@@ -348,29 +361,41 @@ const LimsSampleForm = ({
                 { key: "description", header: t("description") },
                 { key: "value", header: t("limsValue") },
                 { key: "unit", header: t("limsUnit") },
-                { key: "outOfRange", header: t("limsOutOfRange"), type: "checkbox" },
+                {
+                  key: "outOfRange",
+                  header: t("limsOutOfRange"),
+                  type: "checkbox"
+                },
                 { key: "enteredOn", header: t("limsEnteredOn"), type: "date" },
                 { key: "enteredBy", header: t("limsEnteredBy") },
                 {
                   key: "instrument",
                   header: t("limsInstrument"),
-                  type: "select",
-                  options: windowInstrumentOptions.options
+                  type: "async-select",
+                  useOptions: useLimsInstrumentOptions
                 },
                 {
                   key: "stock",
                   header: t("limsStock"),
-                  type: "select",
-                  options: windowStockOptions.options
+                  type: "async-select",
+                  useOptions: useLimsStockOptions
                 }
               ]}
             />
           </div>
-          <LimsAttachmentsField attachments={attachments} disabled={isReadOnly} />
+          <LimsAttachmentsField
+            attachments={attachments}
+            disabled={isReadOnly}
+          />
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (

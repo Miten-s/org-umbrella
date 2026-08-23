@@ -1,10 +1,18 @@
 import limsApi from "@/utils/lims.axios.interceptor";
-import { buildServerParams, toListResult, toOptionsPage } from "@/lib/query/listAdapter";
+import {
+  buildServerParams,
+  toListResult,
+  toOptionsPage
+} from "@/lib/query/listAdapter";
 import { normalizeList } from "@/lib/query/normalizeId";
 import { extractList } from "@/utils/listResponse";
 import { bulkSelectionToBody, type BulkSelection } from "@/lib/query/listTypes";
 import type { ServerListParams } from "@/lib/query/listTypes";
-import type { LimsPermissionOption, LimsRole, LimsRolePayload } from "./LimsRole.types";
+import type {
+  LimsPermissionOption,
+  LimsRole,
+  LimsRolePayload
+} from "./LimsRole.types";
 
 /** LIMS Role API. Pure HTTP — toasts live in the mutation layer. */
 const ROUTE = "/lims-roles";
@@ -25,10 +33,18 @@ export const fetchLimsRoleList = async (
   signal?: AbortSignal
 ) => {
   const response = await limsApi.get(ROUTE, {
-    params: { ...buildServerParams(params), includeRemoved: includeRemoved || undefined },
+    params: {
+      ...buildServerParams(params),
+      includeRemoved: includeRemoved || undefined
+    },
     signal
   });
-  return toListResult<LimsRole>(response.data, params, DATA_KEYS, RELATION_KEYS);
+  return toListResult<LimsRole>(
+    response.data,
+    params,
+    DATA_KEYS,
+    RELATION_KEYS
+  );
 };
 
 /** Options for other modules selecting this entity. */
@@ -41,8 +57,16 @@ export const fetchLimsRoleOptions = async (
     limit: 20,
     search: args.search || undefined
   };
-  const response = await limsApi.get(ROUTE, { params: buildServerParams(params), signal });
-  return toOptionsPage<LimsRole>(response.data, params, (row) => row.name, DATA_KEYS);
+  const response = await limsApi.get(ROUTE, {
+    params: buildServerParams(params),
+    signal
+  });
+  return toOptionsPage<LimsRole>(
+    response.data,
+    params,
+    (row) => row.name,
+    DATA_KEYS
+  );
 };
 
 export const createLimsRole = async (payload: LimsRolePayload) => {
@@ -67,12 +91,17 @@ export const bulkDeleteLimsRole = async (
 };
 
 export const bulkCloneLimsRole = async (selection: BulkSelection) => {
-  const response = await limsApi.post(`${ROUTE}/bulk-duplicate`, bulkSelectionToBody(selection));
+  const response = await limsApi.post(
+    `${ROUTE}/bulk-duplicate`,
+    bulkSelectionToBody(selection)
+  );
   return response.data;
 };
 
 export const restoreLimsRole = async (id: string, changeReason: string) => {
-  const response = await limsApi.patch(`${ROUTE}/restore/${id}`, { changeReason });
+  const response = await limsApi.patch(`${ROUTE}/restore/${id}`, {
+    changeReason
+  });
   return response.data;
 };
 
@@ -81,7 +110,10 @@ export const fetchLimsRoleAudit = async (
   signal?: AbortSignal,
   params?: { page?: number; limit?: number }
 ) => {
-  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { params, signal });
+  const response = await limsApi.get(`${ROUTE}/${id}/audit`, {
+    params,
+    signal
+  });
   return response.data;
 };
 
@@ -92,7 +124,10 @@ export const fetchLimsRoleAudit = async (
 export const fetchLimsRolePermissions = async (
   signal?: AbortSignal
 ): Promise<LimsPermissionOption[]> => {
-  const response = await limsApi.get(PERMISSIONS_ROUTE, { params: { limit: 200 }, signal });
+  const response = await limsApi.get(PERMISSIONS_ROUTE, {
+    params: { limit: 200 },
+    signal
+  });
   // The catalog row has no `name` — `code` (e.g. "LIMS:CREATE:ALIQUOT") is both
   // the human-facing picker value and what PermissionPicker.groupPermissions
   // parses via split(":"). `label` is display-only text, not usable here.

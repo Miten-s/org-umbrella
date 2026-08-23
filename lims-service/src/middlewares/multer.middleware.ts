@@ -19,6 +19,38 @@ if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 /** 25 MB. Instrument raw-data files are the large case the spec implies. */
 export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 
+/**
+ * Blocks the one class of file that turns "an attachment" into "code that
+ * runs on this origin": HTML/SVG/JS served back with its own content-type
+ * renders or executes in-browser. Everything else instrument/lab data comes
+ * in — including formats with no useful MIME type — is left alone; this is a
+ * denylist, not a format allowlist, on purpose (see LIMS_AUDIT finding C1).
+ */
+const DANGEROUS_MIME_TYPES = new Set([
+  "text/html",
+  "application/xhtml+xml",
+  "image/svg+xml",
+  "application/javascript",
+  "text/javascript",
+  "application/x-javascript"
+]);
+const DANGEROUS_EXTENSION = /\.(html?|xhtml|svg|m?js)$/i;
+
+const fileFilter: multer.Options["fileFilter"] = (_req, file, cb) => {
+  if (
+    DANGEROUS_MIME_TYPES.has(file.mimetype) ||
+    DANGEROUS_EXTENSION.test(file.originalname)
+  ) {
+    return cb(
+      Object.assign(
+        new Error("This file type can't be uploaded as an attachment."),
+        { statusCode: 400 }
+      )
+    );
+  }
+  cb(null, true);
+};
+
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
   filename: (_req, file, cb) => {
@@ -35,7 +67,8 @@ const storage = multer.diskStorage({
 
 export const uploadAttachment = multer({
   storage,
-  limits: { fileSize: MAX_UPLOAD_BYTES, files: 1 }
+  limits: { fileSize: MAX_UPLOAD_BYTES, files: 1 },
+  fileFilter
 });
 
 /**
@@ -46,7 +79,8 @@ export const uploadAttachment = multer({
  */
 export const uploadAttachments = multer({
   storage,
-  limits: { fileSize: MAX_UPLOAD_BYTES, files: 10 }
+  limits: { fileSize: MAX_UPLOAD_BYTES, files: 10 },
+  fileFilter
 });
 
 export const attachmentPath = (storedName: string) =>

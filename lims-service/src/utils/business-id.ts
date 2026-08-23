@@ -55,8 +55,15 @@ export const formatBusinessId = (
  * Claim the next number for an entity. Atomic: the `ON CONFLICT DO UPDATE` runs
  * as a single statement, so concurrent callers are serialised by row lock and
  * cannot receive the same value.
+ *
+ * Exported (beyond `nextBusinessId`'s own use) for callers that need a bare
+ * atomic counter rather than a formatted `PREFIX-000001` business id — e.g.
+ * Stock Batch's per-stock `batchNumber`, which needs its own counter per
+ * stock rather than one shared across the whole entity. Any string works as
+ * `entity` as long as it's unique to the thing being counted; `lims_id_sequences`
+ * keys on it.
  */
-const claimNextValue = async (
+export const claimNextValue = async (
   entity: string,
   prefix: string,
   transaction?: Transaction
@@ -135,7 +142,10 @@ export const peekBusinessId = async <M extends Model>(
   for (let attempt = 0; attempt < MAX_COLLISION_RETRIES; attempt += 1) {
     candidate += 1;
     const value = formatBusinessId(config.prefix, candidate, config.pad);
-    const taken = await model.count({ where: { [config.field]: value } as any, paranoid: false });
+    const taken = await model.count({
+      where: { [config.field]: value } as any,
+      paranoid: false
+    });
     if (taken === 0) return value;
   }
 

@@ -139,9 +139,16 @@ export interface CrudConfig<M extends Model> {
    */
   afterWrite?: () => Promise<void> | void;
   defaultSortBy?: string;
-  /** Mutate/derive the payload before create (e.g. auto-generated IDs). */
+  /**
+   * Mutate/derive the payload before create (e.g. auto-generated IDs). The
+   * transaction is the same one the rest of the create runs in — pass it
+   * through to anything that needs its own atomic read-then-write (e.g. a
+   * per-parent counter) instead of reading outside the transaction, which is
+   * exactly the race Stock Batch's `batchNumber` used to have.
+   */
   beforeCreate?: (
-    payload: Record<string, any>
+    payload: Record<string, any>,
+    transaction?: Transaction
   ) => Promise<Record<string, any>> | Record<string, any>;
   /** Mutate/derive the payload before update. */
   beforeUpdate?: (
@@ -697,7 +704,7 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
           : mapped;
 
         const data = beforeCreate
-          ? await beforeCreate(withBusinessId)
+          ? await beforeCreate(withBusinessId, transaction)
           : withBusinessId;
 
         // Stamp the creator's home group when the caller didn't pick one. This is

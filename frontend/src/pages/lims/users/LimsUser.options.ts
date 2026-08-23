@@ -38,7 +38,10 @@ export const fetchLimsUserOptions = async (
     limit: 20,
     search: args.search || undefined
   };
-  const response = await limsApi.get(ROUTE, { params: buildServerParams(params), signal });
+  const response = await limsApi.get(ROUTE, {
+    params: buildServerParams(params),
+    signal
+  });
   return toOptionsPage<LimsUserRow>(
     response.data,
     params,
@@ -71,13 +74,20 @@ export const useLimsUserOptions = (args: {
  * Save with "already exists" — after the whole form was filled in. Excluding
  * them here up front avoids that late, whole-form-losing failure.
  */
-const fetchLinkedPlatformUserIds = async (signal?: AbortSignal): Promise<Set<string>> => {
+const fetchLinkedPlatformUserIds = async (
+  signal?: AbortSignal
+): Promise<Set<string>> => {
   const response = await limsApi.get(ROUTE, {
-    params: { ...buildServerParams({ page: 1, limit: 500 }), includeRemoved: true },
+    params: {
+      ...buildServerParams({ page: 1, limit: 500 }),
+      includeRemoved: true
+    },
     signal
   });
   const rows = extractList<{ userId?: string }>(response.data, DATA_KEYS);
-  return new Set(rows.map((row) => row.userId).filter((id): id is string => Boolean(id)));
+  return new Set(
+    rows.map((row) => row.userId).filter((id): id is string => Boolean(id))
+  );
 };
 
 /**
@@ -101,5 +111,8 @@ export const useAvailablePlatformUserOptions = (args: {
 
   const excluded = linked.data;
   if (!excluded?.size) return base;
-  return { ...base, options: base.options.filter((option) => !excluded.has(option.value)) };
+  return {
+    ...base,
+    options: base.options.filter((option) => !excluded.has(option.value))
+  };
 };

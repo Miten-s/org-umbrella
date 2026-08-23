@@ -2,13 +2,17 @@ import { Router, Request, Response, NextFunction } from "express";
 import { Op } from "sequelize";
 import asyncHandler from "../middlewares/error.middleware";
 import { authorize } from "../middlewares/authorize.middleware";
-import { uploadAttachment, attachmentPath, removeStoredFile } from "../middlewares/multer.middleware";
+import {
+  uploadAttachment,
+  attachmentPath,
+  removeStoredFile
+} from "../middlewares/multer.middleware";
 import Attachment from "../models/attachment.model";
 import { writeAudit, AuditActor } from "../utils/audit.util";
 import { formatLimsEntity } from "../utils/format.util";
 import { getListQuery } from "../utils/pagination.util";
 import API_ROUTES from "../utils/routes";
-import { auditNameFor } from "../utils/entity-registry";
+import { auditNameFor, permissionEntityFor } from "../utils/entity-registry";
 
 /**
  * Files for every entity, through one endpoint.
@@ -33,20 +37,36 @@ const entityFromRequest = (req: Request): string | undefined =>
  * For `/:id` routes the parent isn't in the request — load the row first so
  * `authorize` can check against the real parent rather than a client-supplied
  * entity name, which would be trivially forgeable.
+ *
+ * `record.entityName` is the parent's human display name ("Instrument"),
+ * because that's what `Attachment` was stamped with at upload time (the same
+ * label `writeAudit` uses everywhere — see crud-factory.ts's
+ * `attachmentsFor`). `authorize()` checks permission CODES ("INSTRUMENT"),
+ * not display names, so this has to translate through the registry — without
+ * it, every id-keyed route (download, comment edit, remove) 400'd with
+ * "Unknown entity" for every attachment, since no display name is ever a
+ * valid `LIMS_ENTITIES` code.
  */
-const loadAttachment = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  const record = await Attachment.findOne({
-    where: { id: req.params["id"] as string, isDeleted: false }
-  });
+const loadAttachment = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const record = await Attachment.findOne({
+      where: { id: req.params["id"] as string, isDeleted: false }
+    });
 
-  if (!record) return res.status(404).json({ message: "Attachment not found." });
+    if (!record)
+      return res.status(404).json({ message: "Attachment not found." });
 
-  (req as Request & { attachment?: Attachment }).attachment = record;
-  req.body = { ...(req.body ?? {}), entityName: record.entityName };
-  next();
-});
+    (req as Request & { attachment?: Attachment }).attachment = record;
+    req.body = {
+      ...(req.body ?? {}),
+      entityName: permissionEntityFor(record.entityName)
+    };
+    next();
+  }
+);
 
-const loaded = (req: Request) => (req as Request & { attachment?: Attachment }).attachment!;
+const loaded = (req: Request) =>
+  (req as Request & { attachment?: Attachment }).attachment!;
 
 const actorFrom = (req: Request): AuditActor => ({
   id: req.user?.id ?? "system",
@@ -62,9 +82,13 @@ router.post(
   uploadAttachment.single("file"),
   authorize(entityFromRequest, "UPDATE"),
   asyncHandler(async (req: Request, res: Response) => {
-    const { entityName, entityId, comment } = req.body as Record<string, string>;
+    const { entityName, entityId, comment } = req.body as Record<
+      string,
+      string
+    >;
 
-    if (!req.file) return res.status(400).json({ message: "A file is required." });
+    if (!req.file)
+      return res.status(400).json({ message: "A file is required." });
 
     if (!entityId) {
       removeStoredFile(req.file.filename);
@@ -95,7 +119,10 @@ router.post(
       actor: actorFrom(req)
     });
 
-    res.status(201).json({ message: "Attachment uploaded", data: formatLimsEntity(created) });
+    res.status(201).json({
+      message: "Attachment uploaded",
+      data: formatLimsEntity(created)
+    });
   })
 );
 
@@ -106,7 +133,8 @@ router.get(
   asyncHandler(async (req: Request, res: Response) => {
     const { entityName, entityId } = req.query as Record<string, string>;
 
-    if (!entityId) return res.status(400).json({ message: "entityId is required." });
+    if (!entityId)
+      return res.status(400).json({ message: "entityId is required." });
 
     const { skip, limit } = getListQuery(req.query);
     const scope = req.access!;
@@ -119,7 +147,12 @@ router.get(
         // Same rule as every other list: only your groups, unless OPERATE:ALL.
         ...(scope.operateAll
           ? {}
-          : { [Op.or]: [{ groupId: { [Op.in]: scope.accessGroupIds } }, { groupId: null }] })
+          : {
+              [Op.or]: [
+                { groupId: { [Op.in]: scope.accessGroupIds } },
+                { groupId: null }
+              ]
+            })
       },
       offset: skip,
       limit,
@@ -165,11 +198,14 @@ router.patch(
       action: "UPDATE",
       oldValue: { attachmentComment: previous },
       newValue: { attachmentComment: record.comment },
-      changeReason: (req.body as { changeReason?: string }).changeReason ?? null,
+      changeReason:
+        (req.body as { changeReason?: string }).changeReason ?? null,
       actor: actorFrom(req)
     });
 
-    res.status(200).json({ message: "Attachment updated", data: formatLimsEntity(record) });
+    res
+      .status(200)
+      .json({ message: "Attachment updated", data: formatLimsEntity(record) });
   })
 );
 
@@ -193,7 +229,9 @@ router.delete(
       entityId: record.entityId,
       action: "UPDATE",
       oldValue: { attachmentRemoved: record.fileName, attachmentId: record.id },
-      changeReason: (req.body as { changeReason?: string })?.changeReason ?? "Attachment removed",
+      changeReason:
+        (req.body as { changeReason?: string })?.changeReason ??
+        "Attachment removed",
       actor: actorFrom(req)
     });
 

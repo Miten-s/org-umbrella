@@ -2,17 +2,35 @@ import Button from "@/components/ui/button/Button";
 import Label from "@/components/common/form/Label";
 import DateField from "@/components/common/form/input/DateField";
 import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
+import AsyncSelect from "@/components/data/AsyncSelect";
+import type { useAsyncOptions } from "@/hooks/useAsyncOptions";
 import { PlusIcon, TrashBinIcon } from "@/public/icons";
 import { useTranslation } from "react-i18next";
 
-export type SubFormColumnType = "text" | "number" | "date" | "checkbox" | "select";
+export type SubFormColumnType =
+  "text" | "number" | "date" | "checkbox" | "select" | "async-select";
 
 export interface SubFormColumn<R> {
   key: keyof R & string;
   header: string;
   type?: SubFormColumnType;
-  /** Required when `type` is "select". */
+  /** Required when `type` is "select" — a small, fixed set of choices. */
   options?: { label: string; value: string }[];
+  /**
+   * Required when `type` is "async-select" — a reference to another LIMS
+   * entity (Instrument, Stock, Lab User, …), searched and paginated from the
+   * server rather than loaded once as a flat list. This is the SAME bound
+   * `useXOptions` hook `AsyncSelect` takes on a normal (non-grid) field —
+   * pass the hook itself, e.g. `useOptions: useLimsInstrumentOptions`, not
+   * its already-called result. "select"'s static `options` only ever shows
+   * the first page it was handed, which is wrong for anything that can grow
+   * past a couple hundred rows (LIMS_AUDIT M5).
+   */
+  useOptions?: (args: {
+    search: string;
+    enabled?: boolean;
+    selectedValues?: string[];
+  }) => ReturnType<typeof useAsyncOptions>;
   placeholder?: string;
   /** Tailwind width class, e.g. "w-40". Defaults to an even share. */
   className?: string;
@@ -78,10 +96,28 @@ function SubFormGrid<R extends Record<string, unknown>>({
 }: SubFormGridProps<R>) {
   const { t } = useTranslation();
   const editable = !disabled;
-  const stacked = layout === "stacked" || (layout === "auto" && columns.length > STACK_THRESHOLD);
+  // An `async-select` cell needs real room — a search box, a truncatable
+  // label chip, a chevron — that a plain text/number/date cell doesn't.
+  // Packed into an even one-of-N table column alongside four other fields,
+  // it reads as cramped even well under `STACK_THRESHOLD`'s raw column
+  // count (Test Group's Test list is 5 columns, one of them `instrument`).
+  // "auto" treats any grid with at least one async-select column as needing
+  // the roomier stacked layout regardless of column count — grids with no
+  // async-select column (the majority: Analysis Components, Spec Limits,
+  // Stock Parameters, …) are unaffected.
+  const hasAsyncSelect = columns.some(
+    (column) => column.type === "async-select"
+  );
+  const stacked =
+    layout === "stacked" ||
+    (layout === "auto" && (columns.length > STACK_THRESHOLD || hasAsyncSelect));
 
   const updateCell = (rowIndex: number, key: string, value: unknown) =>
-    onChange(rows.map((row, index) => (index === rowIndex ? { ...row, [key]: value } : row)));
+    onChange(
+      rows.map((row, index) =>
+        index === rowIndex ? { ...row, [key]: value } : row
+      )
+    );
 
   const addRow = () => onChange([...rows, newRow ? newRow() : ({} as R)]);
 
@@ -91,13 +127,29 @@ function SubFormGrid<R extends Record<string, unknown>>({
   const renderCell = (row: R, rowIndex: number, column: SubFormColumn<R>) => {
     const value = row[column.key];
 
+    if (column.type === "async-select") {
+      return (
+        <AsyncSelect
+          useOptions={column.useOptions!}
+          value={String(value ?? "")}
+          onChange={(next) => updateCell(rowIndex, column.key, next)}
+          placeholder={
+            column.placeholder ?? t("select", { entity: column.header })
+          }
+          disabled={disabled}
+        />
+      );
+    }
+
     if (column.type === "select") {
       return (
         <SelectDropdown
           options={column.options ?? []}
           value={String(value ?? "")}
           onChange={(next) => updateCell(rowIndex, column.key, next)}
-          placeholder={column.placeholder ?? t("select", { entity: column.header })}
+          placeholder={
+            column.placeholder ?? t("select", { entity: column.header })
+          }
           disabled={disabled}
           ariaLabel={column.header}
           // Rendered through a portal: a grid cell sits inside the table's
@@ -127,7 +179,9 @@ function SubFormGrid<R extends Record<string, unknown>>({
           className="h-4 w-4 rounded border-gray-300 dark:border-gray-700"
           checked={Boolean(value)}
           disabled={disabled}
-          onChange={(event) => updateCell(rowIndex, column.key, event.target.checked)}
+          onChange={(event) =>
+            updateCell(rowIndex, column.key, event.target.checked)
+          }
         />
       );
     }
@@ -185,7 +239,10 @@ function SubFormGrid<R extends Record<string, unknown>>({
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {columns.map((column) => (
-              <div key={column.key} className={`min-w-0 ${column.className ?? ""}`}>
+              <div
+                key={column.key}
+                className={`min-w-0 ${column.className ?? ""}`}
+              >
                 <span className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
                   {column.header}
                 </span>
@@ -203,7 +260,13 @@ function SubFormGrid<R extends Record<string, unknown>>({
       <div className="mb-2 flex items-center justify-between gap-3">
         <Label className="mb-0">{label}</Label>
         {editable && allowAdd ? (
-          <Button size="sm" variant="outline" type="button" startIcon={<PlusIcon className="h-4 w-4" />} onClick={addRow}>
+          <Button
+            size="sm"
+            variant="outline"
+            type="button"
+            startIcon={<PlusIcon className="h-4 w-4" />}
+            onClick={addRow}
+          >
             {addLabel ?? t("limsAddRow")}
           </Button>
         ) : null}
@@ -218,58 +281,60 @@ function SubFormGrid<R extends Record<string, unknown>>({
           </div>
         )
       ) : (
-      <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-800">
-            <tr>
-              {columns.map((column) => (
-                <th
-                  key={column.key}
-                  scope="col"
-                  className={`whitespace-nowrap px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300 ${column.className ?? ""}`}
-                >
-                  {column.header}
-                </th>
-              ))}
-              {editable ? <th scope="col" className="w-16 px-3 py-2" /> : null}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-900">
-            {rows.length ? (
-              rows.map((row, rowIndex) => (
-                <tr key={rowIndex}>
-                  {columns.map((column) => (
-                    <td key={column.key} className="px-3 py-2 align-top">
-                      {renderCell(row, rowIndex, column)}
-                    </td>
-                  ))}
-                  {editable ? (
-                    <td className="px-3 py-2 text-right align-top">
-                      <button
-                        type="button"
-                        aria-label={`${t("delete")} ${rowIndex + 1}`}
-                        onClick={() => removeRow(rowIndex)}
-                        className="rounded p-1 text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10"
-                      >
-                        <TrashBinIcon className="h-4 w-4" />
-                      </button>
-                    </td>
-                  ) : null}
-                </tr>
-              ))
-            ) : (
+        <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
-                <td
-                  colSpan={columns.length + (editable ? 1 : 0)}
-                  className="px-3 py-6 text-center text-sm text-gray-500 dark:text-gray-400"
-                >
-                  {emptyLabel ?? t("limsNoRows")}
-                </td>
+                {columns.map((column) => (
+                  <th
+                    key={column.key}
+                    scope="col"
+                    className={`whitespace-nowrap px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300 ${column.className ?? ""}`}
+                  >
+                    {column.header}
+                  </th>
+                ))}
+                {editable ? (
+                  <th scope="col" className="w-16 px-3 py-2" />
+                ) : null}
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-900">
+              {rows.length ? (
+                rows.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {columns.map((column) => (
+                      <td key={column.key} className="px-3 py-2 align-top">
+                        {renderCell(row, rowIndex, column)}
+                      </td>
+                    ))}
+                    {editable ? (
+                      <td className="px-3 py-2 text-right align-top">
+                        <button
+                          type="button"
+                          aria-label={`${t("delete")} ${rowIndex + 1}`}
+                          onClick={() => removeRow(rowIndex)}
+                          className="rounded p-1 text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10"
+                        >
+                          <TrashBinIcon className="h-4 w-4" />
+                        </button>
+                      </td>
+                    ) : null}
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={columns.length + (editable ? 1 : 0)}
+                    className="px-3 py-6 text-center text-sm text-gray-500 dark:text-gray-400"
+                  >
+                    {emptyLabel ?? t("limsNoRows")}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {error ? <p className="mt-1 text-xs text-red-500">{error}</p> : null}

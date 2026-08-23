@@ -1,5 +1,9 @@
 import { Request, Response, NextFunction } from "express";
-import { CUSTOM_MESSAGES, friendlyUniqueConflictMessage, getMessage } from "../utils/common.util";
+import {
+  CUSTOM_MESSAGES,
+  friendlyUniqueConflictMessage,
+  getMessage
+} from "../utils/common.util";
 import ENV from "../utils/environment";
 
 interface CustomError extends Error {
@@ -39,10 +43,21 @@ export const errorHandler = (
     message = errors.map((e: any) => e.message).join(", ");
   } else if (err?.name === "SequelizeForeignKeyConstraintError") {
     statusCode = 400;
-    message = "This record is referenced by another record and cannot be removed.";
+    message =
+      "This record is referenced by another record and cannot be removed.";
   } else {
     statusCode = err?.statusCode ?? 500;
-    message = err?.message ?? getMessage(CUSTOM_MESSAGES.SOMETHING_WENT_WRONG);
+    // A `statusCode` set on the error means it was thrown deliberately, with
+    // a message written for the user (business-id.ts, crud-factory.ts, …) —
+    // safe to show as-is. Anything without one is an unexpected error (a
+    // driver/library exception, a bug), whose raw `message` can carry
+    // internal detail (a column name, a path, a SQL fragment) that must not
+    // reach the client outside development.
+    const isDeliberateAppError = err?.statusCode !== undefined;
+    message =
+      isDeliberateAppError || ENV.NODE_ENV === "development"
+        ? (err?.message ?? getMessage(CUSTOM_MESSAGES.SOMETHING_WENT_WRONG))
+        : getMessage(CUSTOM_MESSAGES.INTERNAL_SERVER_ERROR);
   }
 
   res.status(statusCode).json({

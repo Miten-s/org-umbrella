@@ -13,7 +13,10 @@ import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { refId } from "@/lib/query/normalizeId";
 import { useLimsInstrumentOptions } from "@/pages/lims/instruments/LimsInstrument.queries";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
-import { limsTestGroupSchema, type LimsTestGroupFormValues } from "./LimsTestGroup.schema";
+import {
+  limsTestGroupSchema,
+  type LimsTestGroupFormValues
+} from "./LimsTestGroup.schema";
 import type {
   LimsTestGroup,
   LimsTestRow,
@@ -54,12 +57,12 @@ const LimsTestGroupForm = ({
   const initialTestsRef = useRef(
     (initialData?.tests ?? []).map((row) => ({
       ...row,
-      instrument: refId(row.instrument ?? (row as { instrumentId?: string }).instrumentId)
+      instrument: refId(
+        row.instrument ?? (row as { instrumentId?: string }).instrumentId
+      )
     }))
   );
   const [tests, setTests] = useState<LimsTestRow[]>(initialTestsRef.current);
-
-  const instrumentOptions = useLimsInstrumentOptions({ search: "" });
 
   // Captured once per record — also the no-change baseline `submit` diffs
   // against, so Save is a no-op when nothing actually differs from it.
@@ -154,7 +157,9 @@ const LimsTestGroupForm = ({
               )}
             />
             {errors.group ? (
-              <p className="mt-1 text-xs text-red-500">{errors.group.message}</p>
+              <p className="mt-1 text-xs text-red-500">
+                {errors.group.message}
+              </p>
             ) : null}
           </div>
 
@@ -163,7 +168,9 @@ const LimsTestGroupForm = ({
             <TextArea
               disabled={isReadOnly}
               value={description || ""}
-              onChange={(val) => setValue("description", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("description", val, { shouldValidate: true })
+              }
               error={!!errors.description}
               hint={errors.description?.message}
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
@@ -181,22 +188,34 @@ const LimsTestGroupForm = ({
               emptyLabel={t("limsNoTests")}
               columns={[
                 { key: "testName", header: t("limsTestName") },
-                { key: "instrumentCategory", header: t("limsInstrumentCategory") },
+                {
+                  key: "instrumentCategory",
+                  header: t("limsInstrumentCategory")
+                },
                 { key: "instrumentType", header: t("limsInstrumentType") },
                 {
                   key: "instrument",
                   header: t("limsInstrument"),
-                  type: "select",
-                  options: instrumentOptions.options
+                  type: "async-select",
+                  useOptions: useLimsInstrumentOptions
                 },
-                { key: "replicateCount", header: t("limsReplicateCount"), type: "number" }
+                {
+                  key: "replicateCount",
+                  header: t("limsReplicateCount"),
+                  type: "number"
+                }
               ]}
             />
           </div>
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (

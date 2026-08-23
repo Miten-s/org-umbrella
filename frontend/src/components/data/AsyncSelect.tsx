@@ -120,16 +120,24 @@ export const AsyncSelect = (props: AsyncSelectProps) => {
     if (open) searchInputRef.current?.focus({ preventScroll: true });
   }, [open]);
 
-  const { options, resolvedSelected, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
-    useOptions({ search, enabled: open, selectedValues });
+  const {
+    options,
+    resolvedSelected,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage
+  } = useOptions({ search, enabled: open, selectedValues });
 
   // Persist resolved labels across searches so the trigger keeps showing them
   // even after the loaded pages change (e.g. the user types a new query).
   const labelCache = useRef<Map<string, string>>(new Map());
   useEffect(() => {
-    [...(initialSelectedOptions ?? []), ...options, ...resolvedSelected].forEach(
-      (o) => labelCache.current.set(o.value, o.label)
-    );
+    [
+      ...(initialSelectedOptions ?? []),
+      ...options,
+      ...resolvedSelected
+    ].forEach((o) => labelCache.current.set(o.value, o.label));
   }, [initialSelectedOptions, options, resolvedSelected]);
 
   // Resolve a value's label SYNCHRONOUSLY during render so the seeded label
@@ -155,7 +163,8 @@ export const AsyncSelect = (props: AsyncSelectProps) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [visibleCount, setVisibleCount] = useState<number>(0);
   const measureTextPx = useCallback((text: string, font: string) => {
-    if (!canvasRef.current) canvasRef.current = document.createElement("canvas");
+    if (!canvasRef.current)
+      canvasRef.current = document.createElement("canvas");
     const ctx = canvasRef.current.getContext("2d");
     if (!ctx) return text.length * 8;
     ctx.font = font;
@@ -178,7 +187,8 @@ export const AsyncSelect = (props: AsyncSelectProps) => {
       let used = 0;
       let count = 0;
       for (let i = 0; i < selectedLabels.length; i++) {
-        const w = measureTextPx(selectedLabels[i].label, font) + chipPaddingAndX;
+        const w =
+          measureTextPx(selectedLabels[i].label, font) + chipPaddingAndX;
         const next = count === 0 ? w : w + chipGap;
         if (used + next <= available) {
           used += next;
@@ -281,10 +291,20 @@ export const AsyncSelect = (props: AsyncSelectProps) => {
   useEffect(() => {
     const last = virtualItems[virtualItems.length - 1];
     if (!last) return;
-    if (last.index >= options.length - 1 && hasNextPage && !isFetchingNextPage) {
+    if (
+      last.index >= options.length - 1 &&
+      hasNextPage &&
+      !isFetchingNextPage
+    ) {
       void fetchNextPage();
     }
-  }, [virtualItems, options.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [
+    virtualItems,
+    options.length,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage
+  ]);
 
   const isSelected = useCallback(
     (value: string) => selectedValues.includes(value),
@@ -359,7 +379,8 @@ export const AsyncSelect = (props: AsyncSelectProps) => {
         labelFor(v).trim().toLowerCase() === trimmedSearch.toLowerCase()
     );
   const createLabel =
-    (props as MultiProps).createLabel?.(trimmedSearch) ?? `Add "${trimmedSearch}"`;
+    (props as MultiProps).createLabel?.(trimmedSearch) ??
+    `Add "${trimmedSearch}"`;
 
   return (
     <div className="relative">
@@ -370,7 +391,9 @@ export const AsyncSelect = (props: AsyncSelectProps) => {
         onClick={() => !disabled && setOpen((o) => !o)}
         className={[
           "flex min-h-[42px] w-full items-center justify-between gap-2 rounded-md border bg-white px-3 py-2 text-left dark:bg-gray-800 dark:text-gray-100",
-          error ? "border-error-400 dark:border-error-600" : "border-gray-300 dark:border-gray-700",
+          error
+            ? "border-error-400 dark:border-error-600"
+            : "border-gray-300 dark:border-gray-700",
           disabled ? "cursor-not-allowed opacity-60" : ""
         ].join(" ")}
       >
@@ -411,8 +434,8 @@ export const AsyncSelect = (props: AsyncSelectProps) => {
               )}
             </>
           ) : (
-            <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-sm text-gray-900 dark:bg-gray-700 dark:text-gray-100">
-              {labelFor(selectedValues[0])}
+            <span className="inline-flex min-w-0 max-w-full items-center rounded-full bg-gray-100 px-2 py-0.5 text-sm text-gray-900 dark:bg-gray-700 dark:text-gray-100">
+              <span className="truncate">{labelFor(selectedValues[0])}</span>
             </span>
           )}
         </span>

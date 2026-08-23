@@ -87,7 +87,23 @@ export const sampleConfig: CrudConfig<Sample> = {
       attributes: ["id", "stockBatchId", ["stock_batch_id", "name"]],
       required: false
     },
-    { model: TestWindow, as: "testWindows", required: false }
+    {
+      model: TestWindow,
+      as: "testWindows",
+      required: false,
+      // Must mirror the children config's own `scopeWhere` below. A test
+      // window a Test has already claimed (`testId` set) is that Test's own
+      // component now, not the sample's unclaimed pool — without this, the
+      // Edit form loaded EVERY test window regardless of who owns it, then
+      // resubmitted the whole lot on save. The children sync below only ever
+      // treats `testId IS NULL` rows as "existing" (so it can tell a claimed
+      // row apart from an orphan), so anything already claimed was invisible
+      // to the sync's own "before" set — every save saw zero matches, so it
+      // inserted a fresh, unclaimed copy of the entire submitted grid, which
+      // was then claimable and duplicatable all over again next save. That's
+      // a doubling bug, not a one-off: 3 rows became 6, then 12, then 24.
+      where: { testId: null }
+    }
   ],
   children: [
     // Bounded per sample (tens of rows), so nesting is safe here — the volume

@@ -16,8 +16,16 @@ import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsUserOptions } from "@/pages/lims/users/LimsUser.options";
 import { useLimsRoleOptions } from "@/pages/lims/roles/LimsRole.queries";
-import { limsInspectionPlanSchema, type LimsInspectionPlanFormValues } from "./LimsInspectionPlan.schema";
-import type { LimsInspectionPlan, LimsInspectionPlanPayload, LimsRef, LimsPersonnelRow } from "./LimsInspectionPlan.types";
+import {
+  limsInspectionPlanSchema,
+  type LimsInspectionPlanFormValues
+} from "./LimsInspectionPlan.schema";
+import type {
+  LimsInspectionPlan,
+  LimsInspectionPlanPayload,
+  LimsRef,
+  LimsPersonnelRow
+} from "./LimsInspectionPlan.types";
 
 export type LimsInspectionPlanFormMode = "create" | "edit" | "view";
 
@@ -55,17 +63,18 @@ const LimsInspectionPlanForm = ({
       role: refId(row.role)
     }))
   );
-  const [personnel, setPersonnel] = useState<LimsPersonnelRow[]>(initialPersonnelRef.current);
+  const [personnel, setPersonnel] = useState<LimsPersonnelRow[]>(
+    initialPersonnelRef.current
+  );
 
   /**
    * Person and Role are references, not free text — the server stores them as
    * foreign keys to Lab Users and Lab Roles. The grid previously rendered them
    * as text inputs, so anything typed failed validation with "person must be a
-   * UUID". These feed `type: "select"` columns instead.
+   * UUID". These feed `type: "async-select"` columns instead — Lab Users and
+   * Lab Roles are both open-ended lists, so the grid searches/paginates them
+   * the same way a normal `AsyncSelect` field would (see SubFormGrid).
    */
-  const personOptions = useLimsUserOptions({ search: "" });
-  const roleOptions = useLimsRoleOptions({ search: "" });
-
   // Captured once per record — also the no-change baseline `submit` diffs
   // against, so Save is a no-op when nothing actually differs from it.
   const initialValues = useMemo<LimsInspectionPlanFormValues>(
@@ -75,7 +84,7 @@ const LimsInspectionPlanForm = ({
       inspectionType: initialData?.inspectionType ?? "",
       group: initialData?.group?.id ?? "",
       description: initialData?.description ?? "",
-      details: initialData?.details ?? "",
+      details: initialData?.details ?? ""
     }),
     [initialData]
   );
@@ -152,7 +161,10 @@ const LimsInspectionPlanForm = ({
                 <SelectDropdown
                   value={field.value ?? ""}
                   onChange={field.onChange}
-                  options={[{ label: "Round robin", value: "Round robin" }, { label: "Linear", value: "Linear" }]}
+                  options={[
+                    { label: "Round robin", value: "Round robin" },
+                    { label: "Linear", value: "Linear" }
+                  ]}
                   placeholder={t("select", { entity: t("limsInspectionType") })}
                 />
               )}
@@ -180,7 +192,9 @@ const LimsInspectionPlanForm = ({
             <TextArea
               disabled={isReadOnly}
               value={description || ""}
-              onChange={(val) => setValue("description", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("description", val, { shouldValidate: true })
+              }
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
@@ -189,7 +203,9 @@ const LimsInspectionPlanForm = ({
             <TextArea
               disabled={isReadOnly}
               value={details || ""}
-              onChange={(val) => setValue("details", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("details", val, { shouldValidate: true })
+              }
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
@@ -214,14 +230,14 @@ const LimsInspectionPlanForm = ({
                 {
                   key: "person",
                   header: t("limsPerson"),
-                  type: "select",
-                  options: personOptions.options
+                  type: "async-select",
+                  useOptions: useLimsUserOptions
                 },
                 {
                   key: "role",
                   header: t("limsRole"),
-                  type: "select",
-                  options: roleOptions.options
+                  type: "async-select",
+                  useOptions: useLimsRoleOptions
                 }
               ]}
             />
@@ -229,7 +245,12 @@ const LimsInspectionPlanForm = ({
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
