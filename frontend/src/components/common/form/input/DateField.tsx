@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FC } from "react";
-import DatePicker from "react-datepicker";
+import DatePicker, { ReactDatePickerCustomHeaderProps } from "react-datepicker";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
@@ -93,7 +93,7 @@ const DateField: FC<DateFieldProps> = ({
       <DatePicker
         name={name}
         selected={selected}
-        onChange={(date) => onChange?.(date ? dayjs(date).format(fmt.value) : "")}
+        onChange={(date: Date | null) => onChange?.(date ? dayjs(date).format(fmt.value) : "")}
         onCalendarOpen={handleCalendarOpen}
         onCalendarClose={handleCalendarClose}
         disabled={disabled}
@@ -112,7 +112,7 @@ const DateField: FC<DateFieldProps> = ({
         timeCaption={mode === "time" ? "Time" : undefined}
         renderCustomHeader={
           mode === "date"
-            ? ({ date, changeYear, changeMonth, decreaseMonth, increaseMonth, prevMonthButtonDisabled, nextMonthButtonDisabled }) => (
+            ? ({ date, changeYear, changeMonth, decreaseMonth, increaseMonth, prevMonthButtonDisabled, nextMonthButtonDisabled }: ReactDatePickerCustomHeaderProps) => (
                 <div className="flex items-center justify-center gap-1.5 px-2 pb-2">
                   <button
                     type="button"

@@ -9,7 +9,7 @@ import TextArea from "@/components/common/form/input/TextArea";
 import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import { useLimsUserOptions } from "@/pages/lims/users/LimsUser.options";
-import { useLimsGroupOptions } from "./LimsGroup.queries";
+
 import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { limsGroupSchema, type LimsGroupFormValues } from "./LimsGroup.schema";
 import type { LimsGroup, LimsGroupPayload, LimsGroupRef } from "./LimsGroup.types";

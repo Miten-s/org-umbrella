@@ -35,11 +35,6 @@ interface LimsStockFormProps {
 const seedOne = (ref: LimsRef | null | undefined) =>
   ref?.id && ref.name ? [{ value: ref.id, label: ref.name }] : undefined;
 
-const seedMany = (refs: LimsRef[] | undefined) =>
-  (refs ?? [])
-    .filter((ref) => ref?.id && ref.name)
-    .map((ref) => ({ value: ref.id, label: String(ref.name) }));
-
 const LimsStockForm = ({
   mode = "create",
   initialData,
