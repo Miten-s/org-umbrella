@@ -23,7 +23,6 @@ RUN npm run build
 # --- Stage 3: runtime ---------------------------------------------------------
 FROM node:20-slim AS runner
 WORKDIR /app
-ENV NODE_ENV=production
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
@@ -31,7 +30,9 @@ COPY package.json ./
 
 RUN mkdir -p /app/uploads && chown -R node:node /app
 
+RUN npm install -g pm2
+
 USER node
 EXPOSE 9001
 
-CMD ["node", "dist/server.js"]
+CMD ["pm2-runtime", "dist/server.js"]

@@ -1,0 +1,113 @@
+name: lmis-app
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - umbrella_local_pgdata:/var/lib/postgresql/data
+      - ./deploy/postgres/init-local-databases.sh:/docker-entrypoint-initdb.d/init-local-databases.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    volumes:
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/backend_db
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - backend_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  gxp-service:
+    build:
+      context: ./gxp-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "9001:9001"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/gxp_db
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - gxp_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  lims-service:
+    build:
+      context: ./lims-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "9003:9003"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/lims_db
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - lims_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=/auth/v1/api
+        - VITE_API_GXP_BASE_URL=/gxp/v1/api
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - gxp-service
+
+volumes:
+  umbrella_local_pgdata:
+  redis_data:
+  backend_uploads:
+  gxp_uploads:
+  lims_uploads:

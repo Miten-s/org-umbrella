@@ -24,7 +24,6 @@ RUN npm run build
 # --- Stage 3: runtime ---------------------------------------------------------
 FROM node:20-slim AS runner
 WORKDIR /app
-ENV NODE_ENV=production
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
@@ -34,9 +33,11 @@ COPY package.json ./
 # volume, so uploads survive container replacement and image rebuilds.
 RUN mkdir -p /app/uploads && chown -R node:node /app
 
+# Install pm2 globally
+RUN npm install -g pm2
+
 USER node
 EXPOSE 9000
 
-# server.ts installs SIGTERM/SIGINT handlers that drain connections and close
-# the Sequelize pool, so the signal must reach node as PID 1 (no shell wrapper).
-CMD ["node", "dist/server.js"]
+# start the application using pm2
+CMD ["pm2-runtime", "dist/server.js"]
