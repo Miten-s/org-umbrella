@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - main
+      - mp/handle-access-module
   pull_request:
     branches:
       - main
+      - mp/handle-access-module
 
 env:
   DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}

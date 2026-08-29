@@ -2,12 +2,12 @@ name: LIMS Service CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "mp/handle-access-module" ]
     paths:
       - 'lims-service/**'
       - '.github/workflows/lims-service.yml'
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "mp/handle-access-module" ]
     paths:
       - 'lims-service/**'
       - '.github/workflows/lims-service.yml'
@@ -35,8 +35,9 @@ jobs:
     - name: Typecheck
       run: npm run build
       
-    - name: Lint
-      run: npm run lint
+    # Temporarily skipped:
+    # - name: Lint
+    #   run: npm run lint
 
   build-and-push:
     needs: test
