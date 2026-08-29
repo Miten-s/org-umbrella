@@ -12,7 +12,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import type { UseServerTableReturn } from "@/hooks/useServerTable";
 import type { BulkSelection } from "@/lib/query/listTypes";
-import { getErrorMessage, isForbiddenError } from "@/utils/error.utils";
+import { getErrorMessage } from "@/utils/error.utils";
 import { CloseLineIcon } from "@/public/icons";
 import {
   AllCommunityModule,
@@ -231,7 +231,6 @@ export function DataTable<T extends { id: string }>({
   const firstLoading = table.isLoading && table.rows.length === 0;
   const showEmpty = !table.isLoading && !table.isError && table.rows.length === 0;
 
-  const forbidden = table.isError && isForbiddenError(table.error);
   const errorMessage = getErrorMessage(table.error, "Failed to load records.");
 
   // pagination window numbers
