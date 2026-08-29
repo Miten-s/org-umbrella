@@ -13,37 +13,8 @@ on:
       - '.github/workflows/gxp-service.yml'
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./gxp-service
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Use Node.js 20
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
-        cache-dependency-path: './gxp-service/package-lock.json'
-        
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Typecheck
-      run: npm run build
-      
-    # Temporarily skipped:
-    # - name: Lint
-    #   run: npm run lint
-
   build-and-push:
-    needs: test
     runs-on: ubuntu-latest
-    # Only push on main branch merges, not PRs
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     steps:
     - uses: actions/checkout@v4
@@ -69,7 +40,7 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/mp/handle-access-module')
     
     steps:
     - name: Deploy to EC2

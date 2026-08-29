@@ -177,6 +177,13 @@ export const createRow = (entity: MockEntity, payload: Record<string, unknown>) 
   return row;
 };
 
+export const bulkCreateRows = (
+  entity: MockEntity,
+  payloads: Record<string, unknown>[]
+) => {
+  return payloads.map((payload) => createRow(entity, payload));
+};
+
 export const updateRow = (
   entity: MockEntity,
   id: string,

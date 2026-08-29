@@ -1,97 +1,11 @@
-name: CI/CD Pipeline
-
-on:
-  push:
-    branches:
-      - main
-      - mp/handle-access-module
-  pull_request:
-    branches:
-      - main
-      - mp/handle-access-module
-
-env:
-  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-  # You can choose to push to a single repository with different tags or multiple repositories.
-  # Here we use multiple repositories under the same Docker Hub user.
-  BACKEND_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/lmis-backend
-  FRONTEND_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/lmis-frontend
-  GXP_SERVICE_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/lmis-gxp-service
-  LIMS_SERVICE_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/lmis-lims-service
-
-jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
-    
-    # We only want to push images if it's a push to the main branch, not on PRs.
-    # For PRs, we'll just build them to ensure they compile.
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Docker Hub
-        # Only log in if we are going to push (on push to main)
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      # --- Build (and optionally push) Backend ---
-      - name: Build and push Backend
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          file: ./backend/Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: |
-            ${{ env.BACKEND_IMAGE }}:latest
-            ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # --- Build (and optionally push) Frontend ---
-      - name: Build and push Frontend
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frontend
-          file: ./frontend/Dockerfile
-          build-args: |
-            VITE_API_BASE_URL=/auth/v1/api
-            VITE_API_GXP_BASE_URL=/gxp/v1/api
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: |
-            ${{ env.FRONTEND_IMAGE }}:latest
-            ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # --- Build (and optionally push) GxP Service ---
-      - name: Build and push GxP Service
-        uses: docker/build-push-action@v5
-        with:
-          context: ./gxp-service
-          file: ./gxp-service/Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: |
-            ${{ env.GXP_SERVICE_IMAGE }}:latest
-            ${{ env.GXP_SERVICE_IMAGE }}:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # --- Build (and optionally push) LIMS Service ---
-      - name: Build and push LIMS Service
-        uses: docker/build-push-action@v5
-        with:
-          context: ./lims-service
-          file: ./lims-service/Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: |
-            ${{ env.LIMS_SERVICE_IMAGE }}:latest
-            ${{ env.LIMS_SERVICE_IMAGE }}:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+# This monolithic workflow has been deprecated and replaced by individual service pipelines:
+# - .github/workflows/backend.yml
+# - .github/workflows/frontend.yml
+# - .github/workflows/gxp-service.yml
+# - .github/workflows/lims-service.yml
+#
+# Each service workflow now independently detects changes in its directory (`paths:`)
+# and builds/pushes with standard naming (backend, frontend, gxp-service, lims-service).
+name: CI/CD Pipeline (Disabled)
+on: []
+jobs: {}
