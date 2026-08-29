@@ -5,6 +5,7 @@ import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
+import CopyStepper from "@/components/data/CopyStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -21,11 +22,12 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsProjectList } from "./LimsProject.api";
+import { fetchLimsProjectById, fetchLimsProjectList } from "./LimsProject.api";
 import { getLimsProjectColumns } from "./LimsProject.columns";
 import {
   limsProjectKeys,
   useBulkCloneLimsProject,
+  useBulkCopyLimsProject,
   useBulkDeleteLimsProject,
   useCreateLimsProject,
   useLimsProjectAudit,
@@ -47,6 +49,8 @@ const LimsProjectList = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsProjectFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
+  // Set instead of activeId/formMode while the Copy review flow is open.
+  const [copyIds, setCopyIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsProject, LimsProjectPayload>();
   const auditQuery = useLimsProjectAudit(compliance.auditRow?.id);
@@ -72,6 +76,7 @@ const LimsProjectList = () => {
   const createProject = useCreateLimsProject();
   const updateProject = useUpdateLimsProject();
   const bulkClone = useBulkCloneLimsProject();
+  const bulkCopy = useBulkCopyLimsProject();
   const bulkDelete = useBulkDeleteLimsProject();
   const restoreProject = useRestoreLimsProject();
 
@@ -79,6 +84,7 @@ const LimsProjectList = () => {
     createProject.isPending ||
     updateProject.isPending ||
     bulkClone.isPending ||
+    bulkCopy.isPending ||
     bulkDelete.isPending ||
     restoreProject.isPending;
 
@@ -93,10 +99,25 @@ const LimsProjectList = () => {
     [openModal]
   );
 
+  const openCopy = useCallback(
+    (ids: string[]) => {
+      setCopyIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
+    setCopyIds(null);
+  };
+
+  const handleSaveCopies = async (payloads: LimsProjectPayload[]) => {
+    await bulkCopy.mutateAsync(payloads);
+    handleCloseForm();
+    table.clearSelection();
   };
 
   const handleSave = async (payload: LimsProjectPayload, files: File[]) => {
@@ -131,6 +152,10 @@ const LimsProjectList = () => {
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_PROJECT,
         onClick: async (selection) => {
+          if (selection.mode === "ids") {
+            openCopy(selection.ids);
+            return;
+          }
           await bulkClone.mutateAsync(selection);
           table.clearSelection();
         }
@@ -153,7 +178,7 @@ const LimsProjectList = () => {
           )
       }
     ],
-    [bulkClone, compliance, table]
+    [bulkClone, compliance, openCopy, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsProject>[]>(
@@ -189,7 +214,7 @@ const LimsProjectList = () => {
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_PROJECT,
         onClick: (project) =>
-          bulkClone.mutate({ mode: "ids", ids: [project.id] })
+          openCopy([project.id])
       },
       {
         key: "restore",
@@ -214,7 +239,7 @@ const LimsProjectList = () => {
           ])
       }
     ],
-    [bulkClone, compliance, openForm]
+    [compliance, openCopy, openForm]
   );
 
   return (
@@ -255,7 +280,17 @@ const LimsProjectList = () => {
         className="m-4 max-w-[1000px] overflow-x-hidden dark:bg-gray-900"
         disableOuterScroll
       >
-        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        {copyIds ? (
+          <CopyStepper<LimsProject, LimsProjectPayload>
+            ids={copyIds}
+            fetchById={fetchLimsProjectById}
+            FormComponent={LimsProjectForm}
+            onSaveAll={handleSaveCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending}
+            entityLabel={t("limsProject")}
+          />
+        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>

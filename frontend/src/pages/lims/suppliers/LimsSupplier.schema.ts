@@ -30,3 +30,12 @@ export const limsSupplierSchema = z.object({
 });
 
 export type LimsSupplierFormValues = z.infer<typeof limsSupplierSchema>;
+
+/**
+ * Copy mode leaves the business ID blank + disabled (the server
+ * always mints a fresh one on save — see LimsSupplierForm) — same shape,
+ * minus the required check, so the blank field doesn't block Save.
+ */
+export const limsSupplierCopySchema = limsSupplierSchema.extend({
+  supplierId: z.string().max(50)
+});

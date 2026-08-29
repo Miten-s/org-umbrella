@@ -5,6 +5,7 @@ import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
+import CopyStepper from "@/components/data/CopyStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -21,11 +22,12 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsRoleList } from "./LimsRole.api";
+import { fetchLimsRoleById, fetchLimsRoleList } from "./LimsRole.api";
 import { getLimsRoleColumns } from "./LimsRole.columns";
 import {
   limsRoleKeys,
   useBulkCloneLimsRole,
+  useBulkCopyLimsRole,
   useBulkDeleteLimsRole,
   useCreateLimsRole,
   useLimsRoleAudit,
@@ -52,6 +54,8 @@ const LimsRoleList = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsRoleFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
+  // Set instead of activeId/formMode while the Copy review flow is open.
+  const [copyIds, setCopyIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsRole, LimsRolePayload>();
   const auditQuery = useLimsRoleAudit(compliance.auditRow?.id);
@@ -75,6 +79,7 @@ const LimsRoleList = () => {
   const createRole = useCreateLimsRole();
   const updateRole = useUpdateLimsRole();
   const bulkClone = useBulkCloneLimsRole();
+  const bulkCopy = useBulkCopyLimsRole();
   const bulkDelete = useBulkDeleteLimsRole();
   const restoreRole = useRestoreLimsRole();
 
@@ -82,6 +87,7 @@ const LimsRoleList = () => {
     createRole.isPending ||
     updateRole.isPending ||
     bulkClone.isPending ||
+    bulkCopy.isPending ||
     bulkDelete.isPending ||
     restoreRole.isPending;
 
@@ -96,10 +102,25 @@ const LimsRoleList = () => {
     [openModal]
   );
 
+  const openCopy = useCallback(
+    (ids: string[]) => {
+      setCopyIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
+    setCopyIds(null);
+  };
+
+  const handleSaveCopies = async (payloads: LimsRolePayload[]) => {
+    await bulkCopy.mutateAsync(payloads);
+    handleCloseForm();
+    table.clearSelection();
   };
 
   const handleSave = async (payload: LimsRolePayload) => {
@@ -127,6 +148,24 @@ const LimsRoleList = () => {
   const bulkActions = useMemo<DataTableBulkAction[]>(
     () => [
       {
+        key: "clone",
+        label: (count) => (count > 1 ? "Copy roles" : "Copy role"),
+        icon: CopyIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.CREATE_ROLE,
+        onClick: async (selection) => {
+          // See LimsAnalysisList: a specific checkbox selection opens the
+          // Copy review flow; "select all N matching filter" keeps the
+          // previous immediate server-side duplicate.
+          if (selection.mode === "ids") {
+            openCopy(selection.ids);
+            return;
+          }
+          await bulkClone.mutateAsync(selection);
+          table.clearSelection();
+        }
+      },
+      {
         key: "delete",
         label: (count) => (count > 1 ? "Remove roles" : "Remove role"),
         icon: TrashBinIcon,
@@ -144,7 +183,7 @@ const LimsRoleList = () => {
           )
       }
     ],
-    [compliance, table]
+    [bulkClone, compliance, openCopy, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsRole>[]>(
@@ -179,7 +218,7 @@ const LimsRoleList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_ROLE,
-        onClick: (role) => bulkClone.mutate({ mode: "ids", ids: [role.id] })
+        onClick: (role) => openCopy([role.id])
       },
       {
         key: "restore",
@@ -204,7 +243,7 @@ const LimsRoleList = () => {
           ])
       }
     ],
-    [bulkClone, compliance, openForm]
+    [compliance, openCopy, openForm]
   );
 
   return (
@@ -245,7 +284,17 @@ const LimsRoleList = () => {
         className="m-4 max-w-[1000px] overflow-x-hidden dark:bg-gray-900"
         disableOuterScroll
       >
-        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        {copyIds ? (
+          <CopyStepper<LimsRole, LimsRolePayload>
+            ids={copyIds}
+            fetchById={fetchLimsRoleById}
+            FormComponent={LimsRoleForm}
+            onSaveAll={handleSaveCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending}
+            entityLabel={t("limsRole")}
+          />
+        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>

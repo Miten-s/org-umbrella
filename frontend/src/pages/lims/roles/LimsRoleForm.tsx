@@ -20,7 +20,14 @@ import {
   type LimsRef
 } from "./LimsRole.types";
 
-export type LimsRoleFormMode = "create" | "edit" | "view";
+/**
+ * "copy" renders like "create" (fully editable) except roleId starts blank
+ * instead of pre-filled with the source's — Role has no server-minted
+ * business id, and the id is required server-side (`CreateRoleDto`), so it
+ * stays EDITABLE (not disabled): the user must type a new unique one
+ * before Save will succeed. Used by CopyStepper.
+ */
+export type LimsRoleFormMode = "create" | "edit" | "view" | "copy";
 
 interface LimsRoleFormProps {
   mode?: LimsRoleFormMode;
@@ -28,6 +35,15 @@ interface LimsRoleFormProps {
   onClose: () => void;
   onSubmit: (payload: LimsRolePayload) => Promise<void> | void;
   submitting?: boolean;
+  /** Overrides the submit button's label — CopyStepper uses this to say
+   * "Next" on every step but the last, where the batch actually saves. */
+  submitLabel?: string;
+  /** Set on the `<form>` element so an outside button (CopyStepper's
+   * header Next/Save) can submit it via `<Button form={formId}>`. */
+  formId?: string;
+  /** " (2 of 5)" appended after the title when Copy is reviewing more
+   * than one record — undefined otherwise. */
+  stepLabel?: string;
 }
 
 const seedOne = (ref: LimsRef | null | undefined) =>
@@ -38,14 +54,19 @@ const LimsRoleForm = ({
   initialData,
   onClose,
   onSubmit,
-  submitting = false
+  submitting = false,
+  submitLabel,
+  formId,
+  stepLabel
 }: LimsRoleFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
 
   const identityLocked = isReadOnly;
 
-  // Permissions are assigned from the seeded catalog below — never typed in free-form.
+  // Permissions are assigned from the seeded catalog below — never typed in
+  // free-form. Carried over on Copy just like every other field — only
+  // roleId/name (this record's identity) get blanked, not its permission set.
   const { data: rolePermissions = [] } = useLimsRolePermissions();
   const initialPermissionsRef = useRef(initialData ? getLimsRolePermissionNames(initialData) : []);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>(
@@ -56,12 +77,12 @@ const LimsRoleForm = ({
   // against, so Save is a no-op when nothing actually differs from it.
   const initialValues = useMemo<LimsRoleFormValues>(
     () => ({
-      roleId: initialData?.roleId ?? "",
+      roleId: mode === "copy" ? "" : (initialData?.roleId ?? ""),
       name: initialData?.name ?? "",
       description: initialData?.description ?? "",
       group: initialData?.group?.id ?? ""
     }),
-    [initialData]
+    [initialData, mode]
   );
 
   const {
@@ -104,13 +125,15 @@ const LimsRoleForm = ({
 
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-      <form onSubmit={handleSubmit(handleFormSubmit)} className="min-w-0 space-y-4">
+      <form id={formId} onSubmit={handleSubmit(handleFormSubmit)} className="min-w-0 space-y-4">
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsRole") })
-            : initialData
-              ? t("update", { entity: t("limsRole") })
-              : t("create", { entity: t("limsRole") })}
+            : mode === "copy"
+              ? `${t("copyEntity", { entity: t("limsRole") })}${stepLabel ?? ""}`
+              : initialData
+                ? t("update", { entity: t("limsRole") })
+                : t("create", { entity: t("limsRole") })}
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
@@ -188,7 +211,7 @@ const LimsRoleForm = ({
           </Button>
           {!isReadOnly ? (
             <Button type="submit" variant="primary" loading={busy}>
-              {t("save")}
+              {submitLabel ?? t("save")}
             </Button>
           ) : null}
         </div>

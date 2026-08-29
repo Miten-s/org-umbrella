@@ -125,6 +125,72 @@ const collectMessages = (errors: any[], path = ""): string[] =>
     return [...own, ...nested];
   });
 
+/** Shared by `validateDto` and `validateDtoArray` — repair, transform, validate one payload. */
+const validateOne = async (
+  dtoClass: any,
+  rawPayload: unknown
+): Promise<{ errors: string[]; value: any }> => {
+  const dtoObject: any = plainToInstance(dtoClass, rawPayload as object);
+  repair(dtoObject);
+  const errors = await validate(dtoObject, {
+    whitelist: true,
+    forbidNonWhitelisted: false
+  });
+  return { errors: collectMessages(errors), value: dtoObject };
+};
+
+/**
+ * Same field-level validation as `validateDto`, applied to EVERY item of an
+ * array field on the body (e.g. the Copy flow's batched save, `POST
+ * <route>/bulk-copy { records: [...] }`) instead of to the body itself.
+ *
+ * Without this, a batched save skipped the entity's own `createDto`
+ * entirely — `BulkCreateDto` only knows `records` is an array of objects,
+ * not what shape each one should be — so a mistyped field (an empty
+ * "Target Amount" on a NUMERIC column, say) sailed straight through to the
+ * database and came back as a raw Postgres error ("invalid input syntax
+ * for type numeric") instead of the same friendly, field-named message a
+ * plain Create would have given ("targetAmount must be a number").
+ *
+ * Every record's errors are collected (not just the first failing one) and
+ * prefixed with its 1-based position, so a batch of 10 with 2 bad rows
+ * reports both by number rather than making the user resubmit repeatedly
+ * to discover each one.
+ */
+export const validateDtoArray = (dtoClass: any, arrayField: string): any => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const items = (req.body as Record<string, unknown>)?.[arrayField];
+    if (!Array.isArray(items)) return next();
+
+    const allErrors: string[] = [];
+    const validated: any[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const { errors, value } = await validateOne(dtoClass, items[i]);
+      if (errors.length) {
+        // Suffixed, not prefixed: the frontend's error formatter
+        // (error.utils.ts's `humanizeOne`) only title-cases/splits the
+        // FIRST word of each message — e.g. "targetAmount must be a
+        // number" -> "Target amount must be a number". Putting "Record N"
+        // first would shadow that and leave the actual field name
+        // untouched. One record's own errors never need this suffix.
+        const suffix =
+          items.length > 1 ? ` (record ${i + 1} of ${items.length})` : "";
+        allErrors.push(...errors.map((msg) => `${msg}${suffix}`));
+      }
+      validated.push(value);
+    }
+
+    if (allErrors.length > 0) {
+      return res
+        .status(400)
+        .json({ error: "Validation failed", errors: allErrors });
+    }
+
+    (req.body as Record<string, unknown>)[arrayField] = validated;
+    next();
+  };
+};
+
 /**
  * Mirrors gxp-service/src/middlewares/validate-dto.middleware.ts, including
  * the multipart handling that comment already claimed but never actually
@@ -170,21 +236,18 @@ export const validateDto = (
       }
     }
 
-    const dtoObject = plainToInstance(dtoClass, payloadForValidation);
+    // Repair happens AFTER `plainToInstance` inside `validateOne`, not
+    // before: transformation has by then turned each nested row into an
+    // instance of its own DTO class, so the same metadata lookup works at
+    // every depth. Sub-form grids (aliquot rows, consumptions, analysis
+    // components) carry exactly the same string-typed numbers as the top
+    // level and were failing identically.
+    const { errors: errorMessages, value: dtoObject } = await validateOne(
+      dtoClass,
+      payloadForValidation
+    );
 
-    // Repair AFTER transformation, not before: `plainToInstance` has by then
-    // turned each nested row into an instance of its own DTO class, so the
-    // same metadata lookup works at every depth. Sub-form grids (aliquot rows,
-    // consumptions, analysis components) carry exactly the same string-typed
-    // numbers as the top level and were failing identically.
-    repair(dtoObject);
-    const errors = await validate(dtoObject, {
-      whitelist: true,
-      forbidNonWhitelisted: false
-    });
-
-    if (errors.length > 0) {
-      const errorMessages = collectMessages(errors);
+    if (errorMessages.length > 0) {
       return res
         .status(400)
         .json({ error: "Validation failed", errors: errorMessages });

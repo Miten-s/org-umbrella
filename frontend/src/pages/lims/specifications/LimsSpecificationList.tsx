@@ -5,6 +5,7 @@ import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
+import CopyStepper from "@/components/data/CopyStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -21,11 +22,12 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsSpecificationList } from "./LimsSpecification.api";
+import { fetchLimsSpecificationById, fetchLimsSpecificationList } from "./LimsSpecification.api";
 import { getLimsSpecificationColumns } from "./LimsSpecification.columns";
 import {
   limsSpecificationKeys,
   useBulkCloneLimsSpecification,
+  useBulkCopyLimsSpecification,
   useBulkDeleteLimsSpecification,
   useCreateLimsSpecification,
   useLimsSpecificationAudit,
@@ -52,6 +54,8 @@ const LimsSpecificationList = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsSpecificationFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
+  // Set instead of activeId/formMode while the Copy review flow is open.
+  const [copyIds, setCopyIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<
     LimsSpecification,
@@ -80,6 +84,7 @@ const LimsSpecificationList = () => {
   const create = useCreateLimsSpecification();
   const update = useUpdateLimsSpecification();
   const bulkClone = useBulkCloneLimsSpecification();
+  const bulkCopy = useBulkCopyLimsSpecification();
   const bulkDelete = useBulkDeleteLimsSpecification();
   const restore = useRestoreLimsSpecification();
 
@@ -87,6 +92,7 @@ const LimsSpecificationList = () => {
     create.isPending ||
     update.isPending ||
     bulkClone.isPending ||
+    bulkCopy.isPending ||
     bulkDelete.isPending ||
     restore.isPending;
 
@@ -101,10 +107,25 @@ const LimsSpecificationList = () => {
     [openModal]
   );
 
+  const openCopy = useCallback(
+    (ids: string[]) => {
+      setCopyIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
+    setCopyIds(null);
+  };
+
+  const handleSaveCopies = async (payloads: LimsSpecificationPayload[]) => {
+    await bulkCopy.mutateAsync(payloads);
+    handleCloseForm();
+    table.clearSelection();
   };
 
   const handleSave = async (
@@ -145,6 +166,10 @@ const LimsSpecificationList = () => {
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_SPECIFICATION,
         onClick: async (selection) => {
+          if (selection.mode === "ids") {
+            openCopy(selection.ids);
+            return;
+          }
           await bulkClone.mutateAsync(selection);
           table.clearSelection();
         }
@@ -167,7 +192,7 @@ const LimsSpecificationList = () => {
           )
       }
     ],
-    [bulkClone, compliance, t, table]
+    [bulkClone, compliance, openCopy, t, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsSpecification>[]>(
@@ -202,7 +227,7 @@ const LimsSpecificationList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_SPECIFICATION,
-        onClick: (row) => bulkClone.mutate({ mode: "ids", ids: [row.id] })
+        onClick: (row) => openCopy([row.id])
       },
       {
         key: "restore",
@@ -227,7 +252,7 @@ const LimsSpecificationList = () => {
           ])
       }
     ],
-    [bulkClone, compliance, openForm, t]
+    [compliance, openCopy, openForm, t]
   );
 
   return (
@@ -268,7 +293,17 @@ const LimsSpecificationList = () => {
         className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
         disableOuterScroll
       >
-        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        {copyIds ? (
+          <CopyStepper<LimsSpecification, LimsSpecificationPayload>
+            ids={copyIds}
+            fetchById={fetchLimsSpecificationById}
+            FormComponent={LimsSpecificationForm}
+            onSaveAll={handleSaveCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending}
+            entityLabel={t("limsSpecification")}
+          />
+        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>

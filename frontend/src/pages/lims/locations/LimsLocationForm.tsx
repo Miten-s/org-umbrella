@@ -16,10 +16,21 @@ import { getGxpImageUrl } from "@/services/utils.service";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLocationTypeOptions } from "@/pages/lims/phrases/LimsPhrase.queries";
 import { useLimsLocationOptions } from "./LimsLocation.queries";
-import { limsLocationSchema, type LimsLocationFormValues } from "./LimsLocation.schema";
+import {
+  limsLocationSchema,
+  limsLocationCopySchema,
+  type LimsLocationFormValues
+} from "./LimsLocation.schema";
 import type { LimsLocation, LimsLocationPayload, LimsRef } from "./LimsLocation.types";
 
-export type LimsLocationFormMode = "create" | "edit" | "view";
+/**
+ * "copy" renders like "create" (fully editable) except the business ID
+ * starts blank instead of pre-filled with the source's — stays EDITABLE,
+ * not disabled: `applyBusinessId` mints a fresh one only when the field
+ * is empty, and otherwise honors whatever the user typed (subject to the
+ * usual uniqueness check). Used by CopyStepper.
+ */
+export type LimsLocationFormMode = "create" | "edit" | "view" | "copy";
 
 interface LimsLocationFormProps {
   mode?: LimsLocationFormMode;
@@ -27,6 +38,15 @@ interface LimsLocationFormProps {
   onClose: () => void;
   onSubmit: (payload: LimsLocationPayload, files: File[]) => Promise<void> | void;
   submitting?: boolean;
+  /** Overrides the submit button's label — CopyStepper uses this to say
+   * "Next" on every step but the last, where the batch actually saves. */
+  submitLabel?: string;
+  /** Set on the `<form>` element so an outside button (CopyStepper's
+   * header Next/Save) can submit it via `<Button form={formId}>`. */
+  formId?: string;
+  /** " (2 of 5)" appended after the title when Copy is reviewing more
+   * than one record — undefined otherwise. */
+  stepLabel?: string;
 }
 
 /**
@@ -50,7 +70,10 @@ const LimsLocationForm = ({
   initialData,
   onClose,
   onSubmit,
-  submitting = false
+  submitting = false,
+  submitLabel,
+  formId,
+  stepLabel
 }: LimsLocationFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
@@ -60,7 +83,7 @@ const LimsLocationForm = ({
   // against, so Save is a no-op when nothing actually differs from it.
   const initialValues = useMemo<LimsLocationFormValues>(
     () => ({
-      locationId: initialData?.locationId ?? "",
+      locationId: mode === "copy" ? "" : (initialData?.locationId ?? ""),
       locationName: initialData?.locationName ?? "",
       description: initialData?.description ?? "",
       locationType: refId(initialData?.locationType),
@@ -68,7 +91,7 @@ const LimsLocationForm = ({
       parentLocation: refId(initialData?.parentLocation),
       otherInformation: initialData?.otherInformation ?? ""
     }),
-    [initialData]
+    [initialData, mode]
   );
 
   const {
@@ -78,7 +101,7 @@ const LimsLocationForm = ({
     setValue,
     formState: { errors, isSubmitting }
   } = useForm<LimsLocationFormValues>({
-    resolver: zodResolver(limsLocationSchema),
+    resolver: zodResolver(mode === "copy" ? limsLocationCopySchema : limsLocationSchema),
     defaultValues: initialValues
   });
 
@@ -106,11 +129,13 @@ const LimsLocationForm = ({
 
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-      <form onSubmit={submit} className="min-w-0 space-y-4">
+      <form id={formId} onSubmit={submit} className="min-w-0 space-y-4">
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsLocation") })
-            : initialData
+                        : mode === "copy"
+              ? `${t("copyEntity", { entity: t("limsLocation") })}${stepLabel ?? ""}`
+              : initialData
               ? t("update", { entity: t("limsLocation") })
               : t("create", { entity: t("limsLocation") })}
         </h2>
@@ -252,6 +277,7 @@ const LimsLocationForm = ({
             />
           </div>
 
+          {mode !== "copy" && (
           <div className="min-w-0 md:col-span-2">
             <Label>{t("limsAttachments")}</Label>
 
@@ -303,6 +329,7 @@ const LimsLocationForm = ({
               />
             ) : null}
           </div>
+          )}
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
@@ -311,7 +338,7 @@ const LimsLocationForm = ({
           </Button>
           {!isReadOnly ? (
             <Button type="submit" variant="primary" loading={busy}>
-              {t("save")}
+              {submitLabel ?? t("save")}
             </Button>
           ) : null}
         </div>

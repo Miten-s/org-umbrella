@@ -5,6 +5,7 @@ import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
+import CopyStepper from "@/components/data/CopyStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -21,11 +22,12 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsLocationList } from "./LimsLocation.api";
+import { fetchLimsLocationById, fetchLimsLocationList } from "./LimsLocation.api";
 import { getLimsLocationColumns } from "./LimsLocation.columns";
 import {
   limsLocationKeys,
   useBulkCloneLimsLocation,
+  useBulkCopyLimsLocation,
   useBulkDeleteLimsLocation,
   useCreateLimsLocation,
   useLimsLocationAudit,
@@ -56,6 +58,8 @@ const LimsLocationList = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsLocationFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
+  // Set instead of activeId/formMode while the Copy review flow is open.
+  const [copyIds, setCopyIds] = useState<string[] | null>(null);
 
   // Change reason + restore + audit, shared across every LIMS module.
   const compliance = useLimsCompliance<LimsLocation, LimsLocationPayload>();
@@ -84,6 +88,7 @@ const LimsLocationList = () => {
   const createLocation = useCreateLimsLocation();
   const updateLocation = useUpdateLimsLocation();
   const bulkClone = useBulkCloneLimsLocation();
+  const bulkCopy = useBulkCopyLimsLocation();
   const bulkDelete = useBulkDeleteLimsLocation();
   const restoreLocation = useRestoreLimsLocation();
 
@@ -91,6 +96,7 @@ const LimsLocationList = () => {
     createLocation.isPending ||
     updateLocation.isPending ||
     bulkClone.isPending ||
+    bulkCopy.isPending ||
     bulkDelete.isPending ||
     restoreLocation.isPending;
 
@@ -105,10 +111,25 @@ const LimsLocationList = () => {
     [openModal]
   );
 
+  const openCopy = useCallback(
+    (ids: string[]) => {
+      setCopyIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
+    setCopyIds(null);
+  };
+
+  const handleSaveCopies = async (payloads: LimsLocationPayload[]) => {
+    await bulkCopy.mutateAsync(payloads);
+    handleCloseForm();
+    table.clearSelection();
   };
 
   /** Create writes straight away; edit collects a change reason first. */
@@ -145,6 +166,10 @@ const LimsLocationList = () => {
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_LOCATION,
         onClick: async (selection) => {
+          if (selection.mode === "ids") {
+            openCopy(selection.ids);
+            return;
+          }
           await bulkClone.mutateAsync(selection);
           table.clearSelection();
         }
@@ -168,7 +193,7 @@ const LimsLocationList = () => {
           )
       }
     ],
-    [bulkClone, compliance, table]
+    [bulkClone, compliance, openCopy, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsLocation>[]>(
@@ -204,7 +229,7 @@ const LimsLocationList = () => {
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_LOCATION,
         onClick: (location) =>
-          bulkClone.mutate({ mode: "ids", ids: [location.id] })
+          openCopy([location.id])
       },
       {
         key: "restore",
@@ -229,7 +254,7 @@ const LimsLocationList = () => {
           ])
       }
     ],
-    [bulkClone, compliance, openForm]
+    [compliance, openCopy, openForm]
   );
 
   return (
@@ -270,7 +295,17 @@ const LimsLocationList = () => {
         className="m-4 max-w-[900px] overflow-x-hidden dark:bg-gray-900"
         disableOuterScroll
       >
-        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        {copyIds ? (
+          <CopyStepper<LimsLocation, LimsLocationPayload>
+            ids={copyIds}
+            fetchById={fetchLimsLocationById}
+            FormComponent={LimsLocationForm}
+            onSaveAll={handleSaveCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending}
+            entityLabel={t("limsLocation")}
+          />
+        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>

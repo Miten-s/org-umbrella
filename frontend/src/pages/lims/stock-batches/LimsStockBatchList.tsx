@@ -5,6 +5,7 @@ import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
+import CopyStepper from "@/components/data/CopyStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -21,11 +22,12 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsStockBatchList } from "./LimsStockBatch.api";
+import { fetchLimsStockBatchById, fetchLimsStockBatchList } from "./LimsStockBatch.api";
 import { getLimsStockBatchColumns } from "./LimsStockBatch.columns";
 import {
   limsStockBatchKeys,
   useBulkCloneLimsStockBatch,
+  useBulkCopyLimsStockBatch,
   useBulkDeleteLimsStockBatch,
   useCreateLimsStockBatch,
   useLimsStockBatchAudit,
@@ -52,6 +54,8 @@ const LimsStockBatchList = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsStockBatchFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
+  // Set instead of activeId/formMode while the Copy review flow is open.
+  const [copyIds, setCopyIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsStockBatch, LimsStockBatchPayload>();
   const auditQuery = useLimsStockBatchAudit(compliance.auditRow?.id);
@@ -77,6 +81,7 @@ const LimsStockBatchList = () => {
   const create = useCreateLimsStockBatch();
   const update = useUpdateLimsStockBatch();
   const bulkClone = useBulkCloneLimsStockBatch();
+  const bulkCopy = useBulkCopyLimsStockBatch();
   const bulkDelete = useBulkDeleteLimsStockBatch();
   const restore = useRestoreLimsStockBatch();
 
@@ -84,6 +89,7 @@ const LimsStockBatchList = () => {
     create.isPending ||
     update.isPending ||
     bulkClone.isPending ||
+    bulkCopy.isPending ||
     bulkDelete.isPending ||
     restore.isPending;
 
@@ -98,10 +104,25 @@ const LimsStockBatchList = () => {
     [openModal]
   );
 
+  const openCopy = useCallback(
+    (ids: string[]) => {
+      setCopyIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
+    setCopyIds(null);
+  };
+
+  const handleSaveCopies = async (payloads: LimsStockBatchPayload[]) => {
+    await bulkCopy.mutateAsync(payloads);
+    handleCloseForm();
+    table.clearSelection();
   };
 
   const handleSave = async (payload: LimsStockBatchPayload, files: File[]) => {
@@ -139,6 +160,10 @@ const LimsStockBatchList = () => {
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_STOCK_BATCH,
         onClick: async (selection) => {
+          if (selection.mode === "ids") {
+            openCopy(selection.ids);
+            return;
+          }
           await bulkClone.mutateAsync(selection);
           table.clearSelection();
         }
@@ -161,7 +186,7 @@ const LimsStockBatchList = () => {
           )
       }
     ],
-    [bulkClone, compliance, t, table]
+    [bulkClone, compliance, openCopy, t, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsStockBatch>[]>(
@@ -196,7 +221,7 @@ const LimsStockBatchList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_STOCK_BATCH,
-        onClick: (row) => bulkClone.mutate({ mode: "ids", ids: [row.id] })
+        onClick: (row) => openCopy([row.id])
       },
       {
         key: "restore",
@@ -221,7 +246,7 @@ const LimsStockBatchList = () => {
           ])
       }
     ],
-    [bulkClone, compliance, openForm, t]
+    [compliance, openCopy, openForm, t]
   );
 
   return (
@@ -262,7 +287,17 @@ const LimsStockBatchList = () => {
         className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
         disableOuterScroll
       >
-        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        {copyIds ? (
+          <CopyStepper<LimsStockBatch, LimsStockBatchPayload>
+            ids={copyIds}
+            fetchById={fetchLimsStockBatchById}
+            FormComponent={LimsStockBatchForm}
+            onSaveAll={handleSaveCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending}
+            entityLabel={t("limsStockBatch")}
+          />
+        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>

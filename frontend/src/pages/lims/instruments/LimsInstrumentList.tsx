@@ -5,6 +5,7 @@ import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
+import CopyStepper from "@/components/data/CopyStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -21,11 +22,12 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsInstrumentList } from "./LimsInstrument.api";
+import { fetchLimsInstrumentById, fetchLimsInstrumentList } from "./LimsInstrument.api";
 import { getLimsInstrumentColumns } from "./LimsInstrument.columns";
 import {
   limsInstrumentKeys,
   useBulkCloneLimsInstrument,
+  useBulkCopyLimsInstrument,
   useBulkDeleteLimsInstrument,
   useCreateLimsInstrument,
   useLimsInstrumentAudit,
@@ -52,6 +54,8 @@ const LimsInstrumentList = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsInstrumentFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
+  // Set instead of activeId/formMode while the Copy review flow is open.
+  const [copyIds, setCopyIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsInstrument, LimsInstrumentPayload>();
   const auditQuery = useLimsInstrumentAudit(compliance.auditRow?.id);
@@ -77,6 +81,7 @@ const LimsInstrumentList = () => {
   const create = useCreateLimsInstrument();
   const update = useUpdateLimsInstrument();
   const bulkClone = useBulkCloneLimsInstrument();
+  const bulkCopy = useBulkCopyLimsInstrument();
   const bulkDelete = useBulkDeleteLimsInstrument();
   const restore = useRestoreLimsInstrument();
 
@@ -84,6 +89,7 @@ const LimsInstrumentList = () => {
     create.isPending ||
     update.isPending ||
     bulkClone.isPending ||
+    bulkCopy.isPending ||
     bulkDelete.isPending ||
     restore.isPending;
 
@@ -98,10 +104,25 @@ const LimsInstrumentList = () => {
     [openModal]
   );
 
+  const openCopy = useCallback(
+    (ids: string[]) => {
+      setCopyIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
+    setCopyIds(null);
+  };
+
+  const handleSaveCopies = async (payloads: LimsInstrumentPayload[]) => {
+    await bulkCopy.mutateAsync(payloads);
+    handleCloseForm();
+    table.clearSelection();
   };
 
   const handleSave = async (payload: LimsInstrumentPayload, files: File[]) => {
@@ -139,6 +160,10 @@ const LimsInstrumentList = () => {
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_INSTRUMENT,
         onClick: async (selection) => {
+          if (selection.mode === "ids") {
+            openCopy(selection.ids);
+            return;
+          }
           await bulkClone.mutateAsync(selection);
           table.clearSelection();
         }
@@ -161,7 +186,7 @@ const LimsInstrumentList = () => {
           )
       }
     ],
-    [bulkClone, compliance, t, table]
+    [bulkClone, compliance, openCopy, t, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsInstrument>[]>(
@@ -196,7 +221,7 @@ const LimsInstrumentList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_INSTRUMENT,
-        onClick: (row) => bulkClone.mutate({ mode: "ids", ids: [row.id] })
+        onClick: (row) => openCopy([row.id])
       },
       {
         key: "restore",
@@ -221,7 +246,7 @@ const LimsInstrumentList = () => {
           ])
       }
     ],
-    [bulkClone, compliance, openForm, t]
+    [compliance, openCopy, openForm, t]
   );
 
   return (
@@ -262,7 +287,17 @@ const LimsInstrumentList = () => {
         className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
         disableOuterScroll
       >
-        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        {copyIds ? (
+          <CopyStepper<LimsInstrument, LimsInstrumentPayload>
+            ids={copyIds}
+            fetchById={fetchLimsInstrumentById}
+            FormComponent={LimsInstrumentForm}
+            onSaveAll={handleSaveCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending}
+            entityLabel={t("limsInstrument")}
+          />
+        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>

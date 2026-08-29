@@ -19,7 +19,10 @@ import {
 } from "../utils/common.util";
 import { sequelize } from "../configs/db.sequelize";
 import API_ROUTES from "../utils/routes";
-import { validateDto } from "../middlewares/validate-dto.middleware";
+import {
+  validateDto,
+  validateDtoArray
+} from "../middlewares/validate-dto.middleware";
 import {
   BulkOperationDto,
   BulkCreateDto,
@@ -820,7 +823,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
       newValue: { ...created!.toJSON(), ...newChildren },
       childChanges: Object.keys(deltas).length ? deltas : null,
       changeReason:
-        payload.changeReason ?? (warning ? "Copied from existing record" : undefined),
+        payload.changeReason ??
+        (warning ? "Copied from existing record" : undefined),
       actor: ctx.actor,
       transaction
     });
@@ -1527,6 +1531,14 @@ export const buildCrudRouter = <M extends Model>(params: {
     API_ROUTES.BULK_COPY,
     can("CREATE"),
     validateDto(BulkCreateDto),
+    // Validates each record in `records[]` against this entity's own
+    // createDto — same field-level checks (and the same "" -> null/number
+    // repair) a plain create already gets, so a batched save can't reach
+    // the database with something that would 400 anywhere else. Skipped
+    // only for the rare entity that never declared a createDto.
+    createDto
+      ? validateDtoArray(createDto, "records")
+      : (_req, _res, next) => next(),
     controller.bulkCreate
   );
 

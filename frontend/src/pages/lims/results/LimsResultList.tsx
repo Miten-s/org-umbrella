@@ -5,6 +5,7 @@ import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
+import CopyStepper from "@/components/data/CopyStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -21,11 +22,12 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsResultList } from "./LimsResult.api";
+import { fetchLimsResultById, fetchLimsResultList } from "./LimsResult.api";
 import { getLimsResultColumns } from "./LimsResult.columns";
 import {
   limsResultKeys,
   useBulkCloneLimsResult,
+  useBulkCopyLimsResult,
   useBulkDeleteLimsResult,
   useCreateLimsResult,
   useLimsResultAudit,
@@ -47,6 +49,8 @@ const LimsResultList = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsResultFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
+  // Set instead of activeId/formMode while the Copy review flow is open.
+  const [copyIds, setCopyIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsResult, LimsResultPayload>();
   const auditQuery = useLimsResultAudit(compliance.auditRow?.id);
@@ -70,6 +74,7 @@ const LimsResultList = () => {
   const create = useCreateLimsResult();
   const update = useUpdateLimsResult();
   const bulkClone = useBulkCloneLimsResult();
+  const bulkCopy = useBulkCopyLimsResult();
   const bulkDelete = useBulkDeleteLimsResult();
   const restore = useRestoreLimsResult();
 
@@ -77,6 +82,7 @@ const LimsResultList = () => {
     create.isPending ||
     update.isPending ||
     bulkClone.isPending ||
+    bulkCopy.isPending ||
     bulkDelete.isPending ||
     restore.isPending;
 
@@ -91,10 +97,25 @@ const LimsResultList = () => {
     [openModal]
   );
 
+  const openCopy = useCallback(
+    (ids: string[]) => {
+      setCopyIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
+    setCopyIds(null);
+  };
+
+  const handleSaveCopies = async (payloads: LimsResultPayload[]) => {
+    await bulkCopy.mutateAsync(payloads);
+    handleCloseForm();
+    table.clearSelection();
   };
 
   const handleSave = async (payload: LimsResultPayload) => {
@@ -131,6 +152,10 @@ const LimsResultList = () => {
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_RESULT,
         onClick: async (selection) => {
+          if (selection.mode === "ids") {
+            openCopy(selection.ids);
+            return;
+          }
           await bulkClone.mutateAsync(selection);
           table.clearSelection();
         }
@@ -153,7 +178,7 @@ const LimsResultList = () => {
           )
       }
     ],
-    [bulkClone, compliance, t, table]
+    [bulkClone, compliance, openCopy, t, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsResult>[]>(
@@ -188,7 +213,7 @@ const LimsResultList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_RESULT,
-        onClick: (row) => bulkClone.mutate({ mode: "ids", ids: [row.id] })
+        onClick: (row) => openCopy([row.id])
       },
       {
         key: "restore",
@@ -213,7 +238,7 @@ const LimsResultList = () => {
           ])
       }
     ],
-    [bulkClone, compliance, openForm, t]
+    [compliance, openCopy, openForm, t]
   );
 
   return (
@@ -254,7 +279,17 @@ const LimsResultList = () => {
         className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
         disableOuterScroll
       >
-        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        {copyIds ? (
+          <CopyStepper<LimsResult, LimsResultPayload>
+            ids={copyIds}
+            fetchById={fetchLimsResultById}
+            FormComponent={LimsResultForm}
+            onSaveAll={handleSaveCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending}
+            entityLabel={t("limsResult")}
+          />
+        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>

@@ -5,6 +5,7 @@ import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
+import CopyStepper from "@/components/data/CopyStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -21,11 +22,12 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsStudyList } from "./LimsStudy.api";
+import { fetchLimsStudyById, fetchLimsStudyList } from "./LimsStudy.api";
 import { getLimsStudyColumns } from "./LimsStudy.columns";
 import {
   limsStudyKeys,
   useBulkCloneLimsStudy,
+  useBulkCopyLimsStudy,
   useBulkDeleteLimsStudy,
   useCreateLimsStudy,
   useLimsStudyAudit,
@@ -47,6 +49,8 @@ const LimsStudyList = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsStudyFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
+  // Set instead of activeId/formMode while the Copy review flow is open.
+  const [copyIds, setCopyIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsStudy, LimsStudyPayload>();
   const auditQuery = useLimsStudyAudit(compliance.auditRow?.id);
@@ -70,6 +74,7 @@ const LimsStudyList = () => {
   const createStudy = useCreateLimsStudy();
   const updateStudy = useUpdateLimsStudy();
   const bulkClone = useBulkCloneLimsStudy();
+  const bulkCopy = useBulkCopyLimsStudy();
   const bulkDelete = useBulkDeleteLimsStudy();
   const restoreStudy = useRestoreLimsStudy();
 
@@ -77,6 +82,7 @@ const LimsStudyList = () => {
     createStudy.isPending ||
     updateStudy.isPending ||
     bulkClone.isPending ||
+    bulkCopy.isPending ||
     bulkDelete.isPending ||
     restoreStudy.isPending;
 
@@ -91,10 +97,25 @@ const LimsStudyList = () => {
     [openModal]
   );
 
+  const openCopy = useCallback(
+    (ids: string[]) => {
+      setCopyIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
+    setCopyIds(null);
+  };
+
+  const handleSaveCopies = async (payloads: LimsStudyPayload[]) => {
+    await bulkCopy.mutateAsync(payloads);
+    handleCloseForm();
+    table.clearSelection();
   };
 
   const handleSave = async (payload: LimsStudyPayload, files: File[]) => {
@@ -129,6 +150,10 @@ const LimsStudyList = () => {
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_STUDY,
         onClick: async (selection) => {
+          if (selection.mode === "ids") {
+            openCopy(selection.ids);
+            return;
+          }
           await bulkClone.mutateAsync(selection);
           table.clearSelection();
         }
@@ -151,7 +176,7 @@ const LimsStudyList = () => {
           )
       }
     ],
-    [bulkClone, compliance, table]
+    [bulkClone, compliance, openCopy, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsStudy>[]>(
@@ -186,7 +211,7 @@ const LimsStudyList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_STUDY,
-        onClick: (study) => bulkClone.mutate({ mode: "ids", ids: [study.id] })
+        onClick: (study) => openCopy([study.id])
       },
       {
         key: "restore",
@@ -211,7 +236,7 @@ const LimsStudyList = () => {
           ])
       }
     ],
-    [bulkClone, compliance, openForm]
+    [compliance, openCopy, openForm]
   );
 
   return (
@@ -252,7 +277,17 @@ const LimsStudyList = () => {
         className="m-4 max-w-[1000px] overflow-x-hidden dark:bg-gray-900"
         disableOuterScroll
       >
-        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        {copyIds ? (
+          <CopyStepper<LimsStudy, LimsStudyPayload>
+            ids={copyIds}
+            fetchById={fetchLimsStudyById}
+            FormComponent={LimsStudyForm}
+            onSaveAll={handleSaveCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending}
+            entityLabel={t("limsStudy")}
+          />
+        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>

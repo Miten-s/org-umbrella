@@ -22,7 +22,13 @@ import { useLimsLocationOptions } from "@/pages/lims/locations/LimsLocation.quer
 import { limsStockBatchSchema, type LimsStockBatchFormValues } from "./LimsStockBatch.schema";
 import type { LimsStockBatch, LimsStockBatchPayload, LimsRef, LimsConsumptionRow, LimsParameterValue } from "./LimsStockBatch.types";
 
-export type LimsStockBatchFormMode = "create" | "edit" | "view";
+/**
+ * "copy" renders like "create" (fully editable) — stockBatchId is
+ * server-derived either way (see the read-only display below). Attachments
+ * are hidden in this mode: the Copy flow's batch save is JSON-only and
+ * can't carry file uploads. Used by CopyStepper.
+ */
+export type LimsStockBatchFormMode = "create" | "edit" | "view" | "copy";
 
 interface LimsStockBatchFormProps {
   mode?: LimsStockBatchFormMode;
@@ -30,6 +36,15 @@ interface LimsStockBatchFormProps {
   onClose: () => void;
   onSubmit: (payload: LimsStockBatchPayload, files: File[]) => Promise<void> | void;
   submitting?: boolean;
+  /** Overrides the submit button's label — CopyStepper uses this to say
+   * "Next" on every step but the last, where the batch actually saves. */
+  submitLabel?: string;
+  /** Set on the `<form>` element so an outside button (CopyStepper's
+   * header Next/Save) can submit it via `<Button form={formId}>`. */
+  formId?: string;
+  /** " (2 of 5)" appended after the title when Copy is reviewing more
+   * than one record — undefined otherwise. */
+  stepLabel?: string;
 }
 
 /** Seeds a dropdown label from the record's nested ref — no extra fetch. */
@@ -41,7 +56,10 @@ const LimsStockBatchForm = ({
   initialData,
   onClose,
   onSubmit,
-  submitting = false
+  submitting = false,
+  submitLabel,
+  formId,
+  stepLabel
 }: LimsStockBatchFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
@@ -128,6 +146,7 @@ const LimsStockBatchForm = ({
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
+        id={formId}
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
@@ -151,9 +170,11 @@ const LimsStockBatchForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsStockBatch") })
-            : initialData
-              ? t("update", { entity: t("limsStockBatch") })
-              : t("create", { entity: t("limsStockBatch") })}
+            : mode === "copy"
+              ? `${t("copyEntity", { entity: t("limsStockBatch") })}${stepLabel ?? ""}`
+              : initialData
+                ? t("update", { entity: t("limsStockBatch") })
+                : t("create", { entity: t("limsStockBatch") })}
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
@@ -177,7 +198,7 @@ const LimsStockBatchForm = ({
           <div className="min-w-0">
             <Label>{t("limsStockBatchId")}</Label>
             <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-              {String(initialData?.stockBatchId ?? "—")}
+              {mode === "copy" ? "—" : String(initialData?.stockBatchId ?? "—")}
             </p>
           </div>
           <div className="min-w-0">
@@ -293,7 +314,9 @@ const LimsStockBatchForm = ({
               ]}
             />
           </div>
-          <LimsAttachmentsField attachments={attachments} disabled={isReadOnly} />
+          {mode !== "copy" && (
+            <LimsAttachmentsField attachments={attachments} disabled={isReadOnly} />
+          )}
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
@@ -302,7 +325,7 @@ const LimsStockBatchForm = ({
           </Button>
           {!isReadOnly ? (
             <Button type="submit" variant="primary" loading={busy}>
-              {t("save")}
+              {submitLabel ?? t("save")}
             </Button>
           ) : null}
         </div>

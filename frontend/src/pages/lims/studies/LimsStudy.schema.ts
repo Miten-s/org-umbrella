@@ -16,3 +16,12 @@ export const limsStudySchema = z.object({
 });
 
 export type LimsStudyFormValues = z.infer<typeof limsStudySchema>;
+
+/**
+ * Copy mode leaves the business ID blank + disabled (the server
+ * always mints a fresh one on save — see LimsStudyForm) — same shape,
+ * minus the required check, so the blank field doesn't block Save.
+ */
+export const limsStudyCopySchema = limsStudySchema.extend({
+  studyId: z.string().max(50)
+});

@@ -5,6 +5,7 @@ import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
+import CopyStepper from "@/components/data/CopyStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -21,11 +22,12 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsInstrumentPartList } from "./LimsInstrumentPart.api";
+import { fetchLimsInstrumentPartById, fetchLimsInstrumentPartList } from "./LimsInstrumentPart.api";
 import { getLimsInstrumentPartColumns } from "./LimsInstrumentPart.columns";
 import {
   limsInstrumentPartKeys,
   useBulkCloneLimsInstrumentPart,
+  useBulkCopyLimsInstrumentPart,
   useBulkDeleteLimsInstrumentPart,
   useCreateLimsInstrumentPart,
   useLimsInstrumentPartAudit,
@@ -53,6 +55,8 @@ const LimsInstrumentPartList = () => {
   const [formMode, setFormMode] =
     useState<LimsInstrumentPartFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
+  // Set instead of activeId/formMode while the Copy review flow is open.
+  const [copyIds, setCopyIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<
     LimsInstrumentPart,
@@ -81,6 +85,7 @@ const LimsInstrumentPartList = () => {
   const create = useCreateLimsInstrumentPart();
   const update = useUpdateLimsInstrumentPart();
   const bulkClone = useBulkCloneLimsInstrumentPart();
+  const bulkCopy = useBulkCopyLimsInstrumentPart();
   const bulkDelete = useBulkDeleteLimsInstrumentPart();
   const restore = useRestoreLimsInstrumentPart();
 
@@ -88,6 +93,7 @@ const LimsInstrumentPartList = () => {
     create.isPending ||
     update.isPending ||
     bulkClone.isPending ||
+    bulkCopy.isPending ||
     bulkDelete.isPending ||
     restore.isPending;
 
@@ -102,10 +108,25 @@ const LimsInstrumentPartList = () => {
     [openModal]
   );
 
+  const openCopy = useCallback(
+    (ids: string[]) => {
+      setCopyIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
+    setCopyIds(null);
+  };
+
+  const handleSaveCopies = async (payloads: LimsInstrumentPartPayload[]) => {
+    await bulkCopy.mutateAsync(payloads);
+    handleCloseForm();
+    table.clearSelection();
   };
 
   const handleSave = async (
@@ -146,6 +167,10 @@ const LimsInstrumentPartList = () => {
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_INSTRUMENT_PART,
         onClick: async (selection) => {
+          if (selection.mode === "ids") {
+            openCopy(selection.ids);
+            return;
+          }
           await bulkClone.mutateAsync(selection);
           table.clearSelection();
         }
@@ -168,7 +193,7 @@ const LimsInstrumentPartList = () => {
           )
       }
     ],
-    [bulkClone, compliance, t, table]
+    [bulkClone, compliance, openCopy, t, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsInstrumentPart>[]>(
@@ -203,7 +228,7 @@ const LimsInstrumentPartList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_INSTRUMENT_PART,
-        onClick: (row) => bulkClone.mutate({ mode: "ids", ids: [row.id] })
+        onClick: (row) => openCopy([row.id])
       },
       {
         key: "restore",
@@ -228,7 +253,7 @@ const LimsInstrumentPartList = () => {
           ])
       }
     ],
-    [bulkClone, compliance, openForm, t]
+    [compliance, openCopy, openForm, t]
   );
 
   return (
@@ -269,7 +294,17 @@ const LimsInstrumentPartList = () => {
         className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
         disableOuterScroll
       >
-        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        {copyIds ? (
+          <CopyStepper<LimsInstrumentPart, LimsInstrumentPartPayload>
+            ids={copyIds}
+            fetchById={fetchLimsInstrumentPartById}
+            FormComponent={LimsInstrumentPartForm}
+            onSaveAll={handleSaveCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending}
+            entityLabel={t("limsInstrumentPart")}
+          />
+        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>

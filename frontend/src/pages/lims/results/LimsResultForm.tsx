@@ -20,7 +20,12 @@ import { useLimsStockOptions } from "@/pages/lims/stocks/LimsStock.queries";
 import { limsResultSchema, type LimsResultFormValues } from "./LimsResult.schema";
 import type { LimsResult, LimsResultPayload, LimsRef } from "./LimsResult.types";
 
-export type LimsResultFormMode = "create" | "edit" | "view";
+/**
+ * "copy" renders like "create" (fully editable) — resultId/version are
+ * locked/server-generated either way (see the read-only displays below).
+ * Used by CopyStepper.
+ */
+export type LimsResultFormMode = "create" | "edit" | "view" | "copy";
 
 interface LimsResultFormProps {
   mode?: LimsResultFormMode;
@@ -28,6 +33,15 @@ interface LimsResultFormProps {
   onClose: () => void;
   onSubmit: (payload: LimsResultPayload) => Promise<void> | void;
   submitting?: boolean;
+  /** Overrides the submit button's label — CopyStepper uses this to say
+   * "Next" on every step but the last, where the batch actually saves. */
+  submitLabel?: string;
+  /** Set on the `<form>` element so an outside button (CopyStepper's
+   * header Next/Save) can submit it via `<Button form={formId}>`. */
+  formId?: string;
+  /** " (2 of 5)" appended after the title when Copy is reviewing more
+   * than one record — undefined otherwise. */
+  stepLabel?: string;
 }
 
 /** Seeds a dropdown label from the record's nested ref — no extra fetch. */
@@ -39,7 +53,10 @@ const LimsResultForm = ({
   initialData,
   onClose,
   onSubmit,
-  submitting = false
+  submitting = false,
+  submitLabel,
+  formId,
+  stepLabel
 }: LimsResultFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
@@ -117,6 +134,7 @@ const LimsResultForm = ({
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
+        id={formId}
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
@@ -131,18 +149,21 @@ const LimsResultForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsResult") })
-            : initialData
-              ? t("update", { entity: t("limsResult") })
-              : t("create", { entity: t("limsResult") })}
+            : mode === "copy"
+              ? `${t("copyEntity", { entity: t("limsResult") })}${stepLabel ?? ""}`
+              : initialData
+                ? t("update", { entity: t("limsResult") })
+                : t("create", { entity: t("limsResult") })}
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
           <div className="min-w-0">
             {/* resultId is server-locked (crud-factory drops any client value on
-                write) — shown read-only, never collected as input. */}
+                write) — shown read-only, never collected as input. Blank on
+                Copy: the source's id is not the new record's. */}
             <Label>{t("limsResultId")}</Label>
             <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-              {initialData?.resultId ?? "—"}
+              {mode === "copy" ? "—" : (initialData?.resultId ?? "—")}
             </p>
           </div>
           <div className="min-w-0">
@@ -207,7 +228,7 @@ const LimsResultForm = ({
           <div className="min-w-0">
             <Label>{t("limsVersion")}</Label>
             <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-              {String(initialData?.version ?? "—")}
+              {mode === "copy" ? "—" : String(initialData?.version ?? "—")}
             </p>
           </div>
           <div className="min-w-0">
@@ -270,7 +291,7 @@ const LimsResultForm = ({
           </Button>
           {!isReadOnly ? (
             <Button type="submit" variant="primary" loading={busy}>
-              {t("save")}
+              {submitLabel ?? t("save")}
             </Button>
           ) : null}
         </div>

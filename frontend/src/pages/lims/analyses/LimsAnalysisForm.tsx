@@ -23,9 +23,11 @@ import type { LimsAnalysis, LimsAnalysisPayload, LimsRef, LimsComponentRow } fro
 
 /**
  * "copy" renders exactly like "create" (fully editable, no diff-against-
- * baseline skip) except the business ID is forced blank + disabled — it's
- * always re-minted server-side on save, so showing/accepting a stale one
- * from the source record would be misleading. Used by CopyStepper.
+ * baseline skip) except the business ID starts blank instead of pre-filled
+ * with the source's — stays EDITABLE, not disabled: `applyBusinessId`
+ * mints a fresh one only when the field is empty, and otherwise honors
+ * whatever the user typed (subject to the usual uniqueness check), so
+ * there's no reason to lock it out. Used by CopyStepper.
  */
 export type LimsAnalysisFormMode = "create" | "edit" | "view" | "copy";
 
@@ -41,6 +43,9 @@ interface LimsAnalysisFormProps {
   /** Set on the `<form>` element so an outside button (CopyStepper's
    * header Next/Save) can submit it via `<Button form={formId}>`. */
   formId?: string;
+  /** " (2 of 5)" appended after the title when Copy is reviewing more
+   * than one record — undefined otherwise. */
+  stepLabel?: string;
 }
 
 /** Seeds a dropdown label from the record's nested ref — no extra fetch. */
@@ -54,7 +59,8 @@ const LimsAnalysisForm = ({
   onSubmit,
   submitting = false,
   submitLabel,
-  formId
+  formId,
+  stepLabel
 }: LimsAnalysisFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
@@ -138,14 +144,14 @@ const LimsAnalysisForm = ({
           {isReadOnly
             ? t("view", { entity: t("limsAnalysis") })
             : mode === "copy"
-              ? t("copyEntity", { entity: t("limsAnalysis") })
+              ? `${t("copyEntity", { entity: t("limsAnalysis") })}${stepLabel ?? ""}`
               : initialData
                 ? t("update", { entity: t("limsAnalysis") })
                 : t("create", { entity: t("limsAnalysis") })}
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
-          {text("analysisId", t("limsAnalysisId"), true, "text", mode === "copy")}
+          {text("analysisId", t("limsAnalysisId"), true, "text")}
           {text("name", t("name"), true, "text")}
           <div className="min-w-0">
             <Label required={false}>{t("limsAnalysisType")}</Label>

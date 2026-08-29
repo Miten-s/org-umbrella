@@ -20,12 +20,22 @@ import type { LimsComponentRow } from "@/pages/lims/analyses/LimsAnalysis.types"
 import { isPayloadEqual } from "@/lib/formChangeDetection";
 import {
   limsSpecificationSchema,
+  limsSpecificationCopySchema,
   validateLimitsRows,
   type LimsSpecificationFormValues
 } from "./LimsSpecification.schema";
 import type { LimsSpecification, LimsSpecificationPayload, LimsRef, LimsLimitRow } from "./LimsSpecification.types";
 
-export type LimsSpecificationFormMode = "create" | "edit" | "view";
+/**
+ * "copy" renders like "create" (fully editable) except the business ID
+ * starts blank instead of pre-filled with the source's — stays EDITABLE,
+ * not disabled: `applyBusinessId` mints a fresh one only when the field
+ * is empty, and otherwise honors whatever the user typed (subject to the
+ * usual uniqueness check). Attachments are hidden in this mode: the Copy
+ * flow's batch save is JSON-only and can't carry file uploads. Used by
+ * CopyStepper.
+ */
+export type LimsSpecificationFormMode = "create" | "edit" | "view" | "copy";
 
 interface LimsSpecificationFormProps {
   mode?: LimsSpecificationFormMode;
@@ -33,6 +43,15 @@ interface LimsSpecificationFormProps {
   onClose: () => void;
   onSubmit: (payload: LimsSpecificationPayload, files: File[]) => Promise<void> | void;
   submitting?: boolean;
+  /** Overrides the submit button's label — CopyStepper uses this to say
+   * "Next" on every step but the last, where the batch actually saves. */
+  submitLabel?: string;
+  /** Set on the `<form>` element so an outside button (CopyStepper's
+   * header Next/Save) can submit it via `<Button form={formId}>`. */
+  formId?: string;
+  /** " (2 of 5)" appended after the title when Copy is reviewing more
+   * than one record — undefined otherwise. */
+  stepLabel?: string;
 }
 
 /** Seeds a dropdown label from the record's nested ref — no extra fetch. */
@@ -44,7 +63,10 @@ const LimsSpecificationForm = ({
   initialData,
   onClose,
   onSubmit,
-  submitting = false
+  submitting = false,
+  submitLabel,
+  formId,
+  stepLabel
 }: LimsSpecificationFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
@@ -60,12 +82,12 @@ const LimsSpecificationForm = ({
   // against, so Save is a no-op when nothing actually differs from it.
   const initialValues = useMemo<LimsSpecificationFormValues>(
     () => ({
-      specId: initialData?.specId ?? "",
+      specId: mode === "copy" ? "" : (initialData?.specId ?? ""),
       name: initialData?.name ?? "",
       group: initialData?.group?.id ?? "",
       description: initialData?.description ?? "",
     }),
-    [initialData]
+    [initialData, mode]
   );
 
   const {
@@ -75,7 +97,7 @@ const LimsSpecificationForm = ({
     setValue,
     formState: { errors, isSubmitting }
   } = useForm<LimsSpecificationFormValues>({
-    resolver: zodResolver(limsSpecificationSchema),
+    resolver: zodResolver(mode === "copy" ? limsSpecificationCopySchema : limsSpecificationSchema),
     defaultValues: initialValues
   });
 
@@ -86,14 +108,15 @@ const LimsSpecificationForm = ({
     name: keyof LimsSpecificationFormValues,
     label: string,
     required = false,
-    type = "text"
+    type = "text",
+    forceDisabled = false
   ) => (
     <div className="min-w-0">
       <Label required={required}>{label}</Label>
       <Input
         {...register(name)}
         type={type}
-        disabled={isReadOnly}
+        disabled={isReadOnly || forceDisabled}
         error={!!errors[name]}
         hint={errors[name]?.message as string}
         className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
@@ -104,6 +127,7 @@ const LimsSpecificationForm = ({
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
+        id={formId}
         onSubmit={handleSubmit((values) => {
           // Bad Min/Max blocks Save the same way an invalid top-level field
           // would — the grid's own error banner (below) says why.
@@ -130,7 +154,9 @@ const LimsSpecificationForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsSpecification") })
-            : initialData
+                        : mode === "copy"
+              ? `${t("copyEntity", { entity: t("limsSpecification") })}${stepLabel ?? ""}`
+              : initialData
               ? t("update", { entity: t("limsSpecification") })
               : t("create", { entity: t("limsSpecification") })}
         </h2>
@@ -235,7 +261,9 @@ const LimsSpecificationForm = ({
               ]}
             />
           </div>
-          <LimsAttachmentsField attachments={attachments} disabled={isReadOnly} />
+          {mode !== "copy" && (
+            <LimsAttachmentsField attachments={attachments} disabled={isReadOnly} />
+          )}
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
@@ -244,7 +272,7 @@ const LimsSpecificationForm = ({
           </Button>
           {!isReadOnly ? (
             <Button type="submit" variant="primary" loading={busy}>
-              {t("save")}
+              {submitLabel ?? t("save")}
             </Button>
           ) : null}
         </div>

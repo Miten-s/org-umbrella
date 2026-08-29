@@ -34,7 +34,13 @@ import type {
   LimsTestWindowRow
 } from "./LimsSample.types";
 
-export type LimsSampleFormMode = "create" | "edit" | "view";
+/**
+ * "copy" renders like "create" (fully editable) — sampleId/idNumeric are
+ * locked/server-generated either way (see the read-only display below), so
+ * unlike a businessId-driven module there's no editable ID field to blank.
+ * Used by CopyStepper.
+ */
+export type LimsSampleFormMode = "create" | "edit" | "view" | "copy";
 
 interface LimsSampleFormProps {
   mode?: LimsSampleFormMode;
@@ -42,6 +48,15 @@ interface LimsSampleFormProps {
   onClose: () => void;
   onSubmit: (payload: LimsSamplePayload, files: File[]) => Promise<void> | void;
   submitting?: boolean;
+  /** Overrides the submit button's label — CopyStepper uses this to say
+   * "Next" on every step but the last, where the batch actually saves. */
+  submitLabel?: string;
+  /** Set on the `<form>` element so an outside button (CopyStepper's
+   * header Next/Save) can submit it via `<Button form={formId}>`. */
+  formId?: string;
+  /** " (2 of 5)" appended after the title when Copy is reviewing more
+   * than one record — undefined otherwise. */
+  stepLabel?: string;
 }
 
 /** Seeds a dropdown label from the record's nested ref — no extra fetch. */
@@ -53,7 +68,10 @@ const LimsSampleForm = ({
   initialData,
   onClose,
   onSubmit,
-  submitting = false
+  submitting = false,
+  submitLabel,
+  formId,
+  stepLabel
 }: LimsSampleFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
@@ -157,6 +175,7 @@ const LimsSampleForm = ({
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
+        id={formId}
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
@@ -179,24 +198,27 @@ const LimsSampleForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsSample") })
-            : initialData
-              ? t("update", { entity: t("limsSample") })
-              : t("create", { entity: t("limsSample") })}
+            : mode === "copy"
+              ? `${t("copyEntity", { entity: t("limsSample") })}${stepLabel ?? ""}`
+              : initialData
+                ? t("update", { entity: t("limsSample") })
+                : t("create", { entity: t("limsSample") })}
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
           <div className="min-w-0">
             {/* sampleId is server-locked (crud-factory drops any client value on
-                write) — shown read-only, same as idNumeric, never collected as input. */}
+                write) — shown read-only, same as idNumeric, never collected as
+                input. Blank on Copy: the source's id is not the new record's. */}
             <Label>{t("limsSampleId")}</Label>
             <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-              {initialData?.sampleId ?? "—"}
+              {mode === "copy" ? "—" : (initialData?.sampleId ?? "—")}
             </p>
           </div>
           <div className="min-w-0">
             <Label>{t("limsIdNumeric")}</Label>
             <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-              {String(initialData?.idNumeric ?? "—")}
+              {mode === "copy" ? "—" : String(initialData?.idNumeric ?? "—")}
             </p>
           </div>
           {text("idText", t("limsIdText"), false, "text")}
@@ -400,7 +422,7 @@ const LimsSampleForm = ({
           </Button>
           {!isReadOnly ? (
             <Button type="submit" variant="primary" loading={busy}>
-              {t("save")}
+              {submitLabel ?? t("save")}
             </Button>
           ) : null}
         </div>

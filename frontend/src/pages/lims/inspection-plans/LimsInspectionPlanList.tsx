@@ -5,6 +5,7 @@ import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
+import CopyStepper from "@/components/data/CopyStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -21,11 +22,12 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsInspectionPlanList } from "./LimsInspectionPlan.api";
+import { fetchLimsInspectionPlanById, fetchLimsInspectionPlanList } from "./LimsInspectionPlan.api";
 import { getLimsInspectionPlanColumns } from "./LimsInspectionPlan.columns";
 import {
   limsInspectionPlanKeys,
   useBulkCloneLimsInspectionPlan,
+  useBulkCopyLimsInspectionPlan,
   useBulkDeleteLimsInspectionPlan,
   useCreateLimsInspectionPlan,
   useLimsInspectionPlanAudit,
@@ -53,6 +55,8 @@ const LimsInspectionPlanList = () => {
   const [formMode, setFormMode] =
     useState<LimsInspectionPlanFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
+  // Set instead of activeId/formMode while the Copy review flow is open.
+  const [copyIds, setCopyIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<
     LimsInspectionPlan,
@@ -81,6 +85,7 @@ const LimsInspectionPlanList = () => {
   const create = useCreateLimsInspectionPlan();
   const update = useUpdateLimsInspectionPlan();
   const bulkClone = useBulkCloneLimsInspectionPlan();
+  const bulkCopy = useBulkCopyLimsInspectionPlan();
   const bulkDelete = useBulkDeleteLimsInspectionPlan();
   const restore = useRestoreLimsInspectionPlan();
 
@@ -88,6 +93,7 @@ const LimsInspectionPlanList = () => {
     create.isPending ||
     update.isPending ||
     bulkClone.isPending ||
+    bulkCopy.isPending ||
     bulkDelete.isPending ||
     restore.isPending;
 
@@ -102,10 +108,25 @@ const LimsInspectionPlanList = () => {
     [openModal]
   );
 
+  const openCopy = useCallback(
+    (ids: string[]) => {
+      setCopyIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
+    setCopyIds(null);
+  };
+
+  const handleSaveCopies = async (payloads: LimsInspectionPlanPayload[]) => {
+    await bulkCopy.mutateAsync(payloads);
+    handleCloseForm();
+    table.clearSelection();
   };
 
   const handleSave = async (payload: LimsInspectionPlanPayload) => {
@@ -142,6 +163,10 @@ const LimsInspectionPlanList = () => {
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_INSPECTION_PLAN,
         onClick: async (selection) => {
+          if (selection.mode === "ids") {
+            openCopy(selection.ids);
+            return;
+          }
           await bulkClone.mutateAsync(selection);
           table.clearSelection();
         }
@@ -164,7 +189,7 @@ const LimsInspectionPlanList = () => {
           )
       }
     ],
-    [bulkClone, compliance, t, table]
+    [bulkClone, compliance, openCopy, t, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsInspectionPlan>[]>(
@@ -199,7 +224,7 @@ const LimsInspectionPlanList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_INSPECTION_PLAN,
-        onClick: (row) => bulkClone.mutate({ mode: "ids", ids: [row.id] })
+        onClick: (row) => openCopy([row.id])
       },
       {
         key: "restore",
@@ -224,7 +249,7 @@ const LimsInspectionPlanList = () => {
           ])
       }
     ],
-    [bulkClone, compliance, openForm, t]
+    [compliance, openCopy, openForm, t]
   );
 
   return (
@@ -265,7 +290,17 @@ const LimsInspectionPlanList = () => {
         className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
         disableOuterScroll
       >
-        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        {copyIds ? (
+          <CopyStepper<LimsInspectionPlan, LimsInspectionPlanPayload>
+            ids={copyIds}
+            fetchById={fetchLimsInspectionPlanById}
+            FormComponent={LimsInspectionPlanForm}
+            onSaveAll={handleSaveCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending}
+            entityLabel={t("limsInspectionPlan")}
+          />
+        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>

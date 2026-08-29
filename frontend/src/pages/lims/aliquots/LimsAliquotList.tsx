@@ -5,6 +5,7 @@ import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
+import CopyStepper from "@/components/data/CopyStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -21,11 +22,12 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsAliquotList } from "./LimsAliquot.api";
+import { fetchLimsAliquotById, fetchLimsAliquotList } from "./LimsAliquot.api";
 import { getLimsAliquotColumns } from "./LimsAliquot.columns";
 import {
   limsAliquotKeys,
   useBulkCloneLimsAliquot,
+  useBulkCopyLimsAliquot,
   useBulkDeleteLimsAliquot,
   useCreateLimsAliquot,
   useLimsAliquotAudit,
@@ -47,6 +49,8 @@ const LimsAliquotList = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsAliquotFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
+  // Set instead of activeId/formMode while the Copy review flow is open.
+  const [copyIds, setCopyIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsAliquot, LimsAliquotPayload>();
   const auditQuery = useLimsAliquotAudit(compliance.auditRow?.id);
@@ -72,6 +76,7 @@ const LimsAliquotList = () => {
   const create = useCreateLimsAliquot();
   const update = useUpdateLimsAliquot();
   const bulkClone = useBulkCloneLimsAliquot();
+  const bulkCopy = useBulkCopyLimsAliquot();
   const bulkDelete = useBulkDeleteLimsAliquot();
   const restore = useRestoreLimsAliquot();
 
@@ -79,6 +84,7 @@ const LimsAliquotList = () => {
     create.isPending ||
     update.isPending ||
     bulkClone.isPending ||
+    bulkCopy.isPending ||
     bulkDelete.isPending ||
     restore.isPending;
 
@@ -93,10 +99,25 @@ const LimsAliquotList = () => {
     [openModal]
   );
 
+  const openCopy = useCallback(
+    (ids: string[]) => {
+      setCopyIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
+    setCopyIds(null);
+  };
+
+  const handleSaveCopies = async (payloads: LimsAliquotPayload[]) => {
+    await bulkCopy.mutateAsync(payloads);
+    handleCloseForm();
+    table.clearSelection();
   };
 
   const handleSave = async (payload: LimsAliquotPayload) => {
@@ -133,6 +154,10 @@ const LimsAliquotList = () => {
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_ALIQUOT,
         onClick: async (selection) => {
+          if (selection.mode === "ids") {
+            openCopy(selection.ids);
+            return;
+          }
           await bulkClone.mutateAsync(selection);
           table.clearSelection();
         }
@@ -155,7 +180,7 @@ const LimsAliquotList = () => {
           )
       }
     ],
-    [bulkClone, compliance, t, table]
+    [bulkClone, compliance, openCopy, t, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsAliquot>[]>(
@@ -190,7 +215,7 @@ const LimsAliquotList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_ALIQUOT,
-        onClick: (row) => bulkClone.mutate({ mode: "ids", ids: [row.id] })
+        onClick: (row) => openCopy([row.id])
       },
       {
         key: "restore",
@@ -215,7 +240,7 @@ const LimsAliquotList = () => {
           ])
       }
     ],
-    [bulkClone, compliance, openForm, t]
+    [compliance, openCopy, openForm, t]
   );
 
   return (
@@ -256,7 +281,17 @@ const LimsAliquotList = () => {
         className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
         disableOuterScroll
       >
-        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        {copyIds ? (
+          <CopyStepper<LimsAliquot, LimsAliquotPayload>
+            ids={copyIds}
+            fetchById={fetchLimsAliquotById}
+            FormComponent={LimsAliquotForm}
+            onSaveAll={handleSaveCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending}
+            entityLabel={t("limsAliquot")}
+          />
+        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>

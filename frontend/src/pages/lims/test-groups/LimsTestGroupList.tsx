@@ -5,6 +5,7 @@ import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
+import CopyStepper from "@/components/data/CopyStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -21,11 +22,12 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsTestGroupList } from "./LimsTestGroup.api";
+import { fetchLimsTestGroupById, fetchLimsTestGroupList } from "./LimsTestGroup.api";
 import { getLimsTestGroupColumns } from "./LimsTestGroup.columns";
 import {
   limsTestGroupKeys,
   useBulkCloneLimsTestGroup,
+  useBulkCopyLimsTestGroup,
   useBulkDeleteLimsTestGroup,
   useCreateLimsTestGroup,
   useLimsTestGroupAudit,
@@ -57,6 +59,8 @@ const LimsTestGroupList = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsTestGroupFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
+  // Set instead of activeId/formMode while the Copy review flow is open.
+  const [copyIds, setCopyIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsTestGroup, LimsTestGroupPayload>();
   const auditQuery = useLimsTestGroupAudit(compliance.auditRow?.id);
@@ -82,6 +86,7 @@ const LimsTestGroupList = () => {
   const createPhrase = useCreateLimsTestGroup();
   const updatePhrase = useUpdateLimsTestGroup();
   const bulkClone = useBulkCloneLimsTestGroup();
+  const bulkCopy = useBulkCopyLimsTestGroup();
   const bulkDelete = useBulkDeleteLimsTestGroup();
   const restorePhrase = useRestoreLimsTestGroup();
 
@@ -89,6 +94,7 @@ const LimsTestGroupList = () => {
     createPhrase.isPending ||
     updatePhrase.isPending ||
     bulkClone.isPending ||
+    bulkCopy.isPending ||
     bulkDelete.isPending ||
     restorePhrase.isPending;
 
@@ -103,10 +109,25 @@ const LimsTestGroupList = () => {
     [openModal]
   );
 
+  const openCopy = useCallback(
+    (ids: string[]) => {
+      setCopyIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
+    setCopyIds(null);
+  };
+
+  const handleSaveCopies = async (payloads: LimsTestGroupPayload[]) => {
+    await bulkCopy.mutateAsync(payloads);
+    handleCloseForm();
+    table.clearSelection();
   };
 
   const handleSave = async (payload: LimsTestGroupPayload) => {
@@ -134,6 +155,24 @@ const LimsTestGroupList = () => {
   const bulkActions = useMemo<DataTableBulkAction[]>(
     () => [
       {
+        key: "clone",
+        label: (count) => (count > 1 ? "Copy test groups" : "Copy test group"),
+        icon: CopyIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.CREATE_TEST_GROUP,
+        onClick: async (selection) => {
+          // See LimsAnalysisList: a specific checkbox selection opens the
+          // Copy review flow; "select all N matching filter" keeps the
+          // previous immediate server-side duplicate.
+          if (selection.mode === "ids") {
+            openCopy(selection.ids);
+            return;
+          }
+          await bulkClone.mutateAsync(selection);
+          table.clearSelection();
+        }
+      },
+      {
         key: "delete",
         label: (count) =>
           count > 1 ? "Remove test groups" : "Remove test group",
@@ -152,7 +191,7 @@ const LimsTestGroupList = () => {
           )
       }
     ],
-    [compliance, table]
+    [bulkClone, compliance, openCopy, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsTestGroup>[]>(
@@ -187,7 +226,7 @@ const LimsTestGroupList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_TEST_GROUP,
-        onClick: (phrase) => bulkClone.mutate({ mode: "ids", ids: [phrase.id] })
+        onClick: (phrase) => openCopy([phrase.id])
       },
       {
         key: "restore",
@@ -212,7 +251,7 @@ const LimsTestGroupList = () => {
           ])
       }
     ],
-    [bulkClone, compliance, openForm]
+    [compliance, openCopy, openForm]
   );
 
   return (
@@ -253,7 +292,17 @@ const LimsTestGroupList = () => {
         className="m-4 max-w-[1000px] overflow-x-hidden dark:bg-gray-900"
         disableOuterScroll
       >
-        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        {copyIds ? (
+          <CopyStepper<LimsTestGroup, LimsTestGroupPayload>
+            ids={copyIds}
+            fetchById={fetchLimsTestGroupById}
+            FormComponent={LimsTestGroupForm}
+            onSaveAll={handleSaveCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending}
+            entityLabel={t("limsTestGroup")}
+          />
+        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>

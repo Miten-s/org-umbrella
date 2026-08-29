@@ -11,6 +11,15 @@ export const limsSpecificationSchema = z.object({
 
 export type LimsSpecificationFormValues = z.infer<typeof limsSpecificationSchema>;
 
+/**
+ * Copy mode leaves the business ID blank + disabled (the server
+ * always mints a fresh one on save — see LimsSpecificationForm) — same shape,
+ * minus the required check, so the blank field doesn't block Save.
+ */
+export const limsSpecificationCopySchema = limsSpecificationSchema.extend({
+  specId: z.string().max(150)
+});
+
 /** Blank/non-numeric → undefined; otherwise the parsed number. */
 const asNumber = (value: unknown): number | undefined => {
   if (value === "" || value === undefined || value === null) return undefined;

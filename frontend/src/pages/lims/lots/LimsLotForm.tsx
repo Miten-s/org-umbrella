@@ -13,10 +13,19 @@ import { useAttachments } from "@/hooks/useAttachments";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsSampleOptions } from "@/pages/lims/samples/LimsSample.queries";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
-import { limsLotSchema, type LimsLotFormValues } from "./LimsLot.schema";
+import { limsLotSchema, limsLotCopySchema, type LimsLotFormValues } from "./LimsLot.schema";
 import type { LimsLot, LimsLotPayload, LimsRef } from "./LimsLot.types";
 
-export type LimsLotFormMode = "create" | "edit" | "view";
+/**
+ * "copy" renders like "create" (fully editable) except the business ID
+ * starts blank instead of pre-filled with the source's — stays EDITABLE,
+ * not disabled: `applyBusinessId` mints a fresh one only when the field
+ * is empty, and otherwise honors whatever the user typed (subject to the
+ * usual uniqueness check). Attachments are hidden in this mode: the Copy
+ * flow's batch save is JSON-only and can't carry file uploads. Used by
+ * CopyStepper.
+ */
+export type LimsLotFormMode = "create" | "edit" | "view" | "copy";
 
 interface LimsLotFormProps {
   mode?: LimsLotFormMode;
@@ -24,6 +33,15 @@ interface LimsLotFormProps {
   onClose: () => void;
   onSubmit: (payload: LimsLotPayload, files: File[]) => Promise<void> | void;
   submitting?: boolean;
+  /** Overrides the submit button's label — CopyStepper uses this to say
+   * "Next" on every step but the last, where the batch actually saves. */
+  submitLabel?: string;
+  /** Set on the `<form>` element so an outside button (CopyStepper's
+   * header Next/Save) can submit it via `<Button form={formId}>`. */
+  formId?: string;
+  /** " (2 of 5)" appended after the title when Copy is reviewing more
+   * than one record — undefined otherwise. */
+  stepLabel?: string;
 }
 
 /** Seeds a dropdown label from the record's nested ref — no extra fetch. */
@@ -40,7 +58,10 @@ const LimsLotForm = ({
   initialData,
   onClose,
   onSubmit,
-  submitting = false
+  submitting = false,
+  submitLabel,
+  formId,
+  stepLabel
 }: LimsLotFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
@@ -50,13 +71,13 @@ const LimsLotForm = ({
   // against, so Save is a no-op when nothing actually differs from it.
   const initialValues = useMemo<LimsLotFormValues>(
     () => ({
-      lotId: initialData?.lotId ?? "",
+      lotId: mode === "copy" ? "" : (initialData?.lotId ?? ""),
       lotName: initialData?.lotName ?? "",
       group: initialData?.group?.id ?? "",
       samples: (initialData?.samples ?? []).map((ref) => ref.id),
       description: initialData?.description ?? "",
     }),
-    [initialData]
+    [initialData, mode]
   );
 
   const {
@@ -66,7 +87,7 @@ const LimsLotForm = ({
     setValue,
     formState: { errors, isSubmitting }
   } = useForm<LimsLotFormValues>({
-    resolver: zodResolver(limsLotSchema),
+    resolver: zodResolver(mode === "copy" ? limsLotCopySchema : limsLotSchema),
     defaultValues: initialValues
   });
 
@@ -77,14 +98,15 @@ const LimsLotForm = ({
     name: keyof LimsLotFormValues,
     label: string,
     required = false,
-    type = "text"
+    type = "text",
+    forceDisabled = false
   ) => (
     <div className="min-w-0">
       <Label required={required}>{label}</Label>
       <Input
         {...register(name)}
         type={type}
-        disabled={isReadOnly}
+        disabled={isReadOnly || forceDisabled}
         error={!!errors[name]}
         hint={errors[name]?.message as string}
         className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
@@ -95,6 +117,7 @@ const LimsLotForm = ({
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
+        id={formId}
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
@@ -109,7 +132,9 @@ const LimsLotForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsLot") })
-            : initialData
+                        : mode === "copy"
+              ? `${t("copyEntity", { entity: t("limsLot") })}${stepLabel ?? ""}`
+              : initialData
               ? t("update", { entity: t("limsLot") })
               : t("create", { entity: t("limsLot") })}
         </h2>
@@ -160,7 +185,9 @@ const LimsLotForm = ({
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
-          <LimsAttachmentsField attachments={attachments} disabled={isReadOnly} />
+          {mode !== "copy" && (
+            <LimsAttachmentsField attachments={attachments} disabled={isReadOnly} />
+          )}
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
@@ -169,7 +196,7 @@ const LimsLotForm = ({
           </Button>
           {!isReadOnly ? (
             <Button type="submit" variant="primary" loading={busy}>
-              {t("save")}
+              {submitLabel ?? t("save")}
             </Button>
           ) : null}
         </div>

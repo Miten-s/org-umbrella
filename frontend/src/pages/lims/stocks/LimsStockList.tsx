@@ -5,6 +5,7 @@ import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
+import CopyStepper from "@/components/data/CopyStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -21,11 +22,12 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsStockList } from "./LimsStock.api";
+import { fetchLimsStockById, fetchLimsStockList } from "./LimsStock.api";
 import { getLimsStockColumns } from "./LimsStock.columns";
 import {
   limsStockKeys,
   useBulkCloneLimsStock,
+  useBulkCopyLimsStock,
   useBulkDeleteLimsStock,
   useCreateLimsStock,
   useLimsStockAudit,
@@ -47,6 +49,8 @@ const LimsStockList = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsStockFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
+  // Set instead of activeId/formMode while the Copy review flow is open.
+  const [copyIds, setCopyIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsStock, LimsStockPayload>();
   const auditQuery = useLimsStockAudit(compliance.auditRow?.id);
@@ -70,6 +74,7 @@ const LimsStockList = () => {
   const create = useCreateLimsStock();
   const update = useUpdateLimsStock();
   const bulkClone = useBulkCloneLimsStock();
+  const bulkCopy = useBulkCopyLimsStock();
   const bulkDelete = useBulkDeleteLimsStock();
   const restore = useRestoreLimsStock();
 
@@ -77,6 +82,7 @@ const LimsStockList = () => {
     create.isPending ||
     update.isPending ||
     bulkClone.isPending ||
+    bulkCopy.isPending ||
     bulkDelete.isPending ||
     restore.isPending;
 
@@ -91,10 +97,25 @@ const LimsStockList = () => {
     [openModal]
   );
 
+  const openCopy = useCallback(
+    (ids: string[]) => {
+      setCopyIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
+    setCopyIds(null);
+  };
+
+  const handleSaveCopies = async (payloads: LimsStockPayload[]) => {
+    await bulkCopy.mutateAsync(payloads);
+    handleCloseForm();
+    table.clearSelection();
   };
 
   const handleSave = async (payload: LimsStockPayload, files: File[]) => {
@@ -131,6 +152,10 @@ const LimsStockList = () => {
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_STOCK,
         onClick: async (selection) => {
+          if (selection.mode === "ids") {
+            openCopy(selection.ids);
+            return;
+          }
           await bulkClone.mutateAsync(selection);
           table.clearSelection();
         }
@@ -153,7 +178,7 @@ const LimsStockList = () => {
           )
       }
     ],
-    [bulkClone, compliance, t, table]
+    [bulkClone, compliance, openCopy, t, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsStock>[]>(
@@ -188,7 +213,7 @@ const LimsStockList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_STOCK,
-        onClick: (row) => bulkClone.mutate({ mode: "ids", ids: [row.id] })
+        onClick: (row) => openCopy([row.id])
       },
       {
         key: "restore",
@@ -213,7 +238,7 @@ const LimsStockList = () => {
           ])
       }
     ],
-    [bulkClone, compliance, openForm, t]
+    [compliance, openCopy, openForm, t]
   );
 
   return (
@@ -254,7 +279,17 @@ const LimsStockList = () => {
         className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
         disableOuterScroll
       >
-        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        {copyIds ? (
+          <CopyStepper<LimsStock, LimsStockPayload>
+            ids={copyIds}
+            fetchById={fetchLimsStockById}
+            FormComponent={LimsStockForm}
+            onSaveAll={handleSaveCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending}
+            entityLabel={t("limsStock")}
+          />
+        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>

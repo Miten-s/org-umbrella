@@ -5,6 +5,7 @@ import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
+import CopyStepper from "@/components/data/CopyStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -21,11 +22,12 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsParameterList } from "./LimsParameter.api";
+import { fetchLimsParameterById, fetchLimsParameterList } from "./LimsParameter.api";
 import { getLimsParameterColumns } from "./LimsParameter.columns";
 import {
   limsParameterKeys,
   useBulkCloneLimsParameter,
+  useBulkCopyLimsParameter,
   useBulkDeleteLimsParameter,
   useCreateLimsParameter,
   useLimsParameterAudit,
@@ -52,6 +54,8 @@ const LimsParameterList = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsParameterFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
+  // Set instead of activeId/formMode while the Copy review flow is open.
+  const [copyIds, setCopyIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsParameter, LimsParameterPayload>();
   const auditQuery = useLimsParameterAudit(compliance.auditRow?.id);
@@ -77,6 +81,7 @@ const LimsParameterList = () => {
   const createParameter = useCreateLimsParameter();
   const updateParameter = useUpdateLimsParameter();
   const bulkClone = useBulkCloneLimsParameter();
+  const bulkCopy = useBulkCopyLimsParameter();
   const bulkDelete = useBulkDeleteLimsParameter();
   const restoreParameter = useRestoreLimsParameter();
 
@@ -84,6 +89,7 @@ const LimsParameterList = () => {
     createParameter.isPending ||
     updateParameter.isPending ||
     bulkClone.isPending ||
+    bulkCopy.isPending ||
     bulkDelete.isPending ||
     restoreParameter.isPending;
 
@@ -98,10 +104,25 @@ const LimsParameterList = () => {
     [openModal]
   );
 
+  const openCopy = useCallback(
+    (ids: string[]) => {
+      setCopyIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
+    setCopyIds(null);
+  };
+
+  const handleSaveCopies = async (payloads: LimsParameterPayload[]) => {
+    await bulkCopy.mutateAsync(payloads);
+    handleCloseForm();
+    table.clearSelection();
   };
 
   const handleSave = async (payload: LimsParameterPayload) => {
@@ -135,6 +156,10 @@ const LimsParameterList = () => {
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_PARAMETER,
         onClick: async (selection) => {
+          if (selection.mode === "ids") {
+            openCopy(selection.ids);
+            return;
+          }
           await bulkClone.mutateAsync(selection);
           table.clearSelection();
         }
@@ -158,7 +183,7 @@ const LimsParameterList = () => {
           )
       }
     ],
-    [bulkClone, compliance, table]
+    [bulkClone, compliance, openCopy, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsParameter>[]>(
@@ -194,7 +219,7 @@ const LimsParameterList = () => {
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_PARAMETER,
         onClick: (parameter) =>
-          bulkClone.mutate({ mode: "ids", ids: [parameter.id] })
+          openCopy([parameter.id])
       },
       {
         key: "restore",
@@ -219,7 +244,7 @@ const LimsParameterList = () => {
           ])
       }
     ],
-    [bulkClone, compliance, openForm]
+    [compliance, openCopy, openForm]
   );
 
   return (
@@ -260,7 +285,17 @@ const LimsParameterList = () => {
         className="m-4 max-w-[900px] overflow-x-hidden dark:bg-gray-900"
         disableOuterScroll
       >
-        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        {copyIds ? (
+          <CopyStepper<LimsParameter, LimsParameterPayload>
+            ids={copyIds}
+            fetchById={fetchLimsParameterById}
+            FormComponent={LimsParameterForm}
+            onSaveAll={handleSaveCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending}
+            entityLabel={t("limsParameter")}
+          />
+        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>

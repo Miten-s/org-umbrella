@@ -5,6 +5,7 @@ import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
+import CopyStepper from "@/components/data/CopyStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -21,11 +22,12 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsCustomerList } from "./LimsCustomer.api";
+import { fetchLimsCustomerById, fetchLimsCustomerList } from "./LimsCustomer.api";
 import { getLimsCustomerColumns } from "./LimsCustomer.columns";
 import {
   limsCustomerKeys,
   useBulkCloneLimsCustomer,
+  useBulkCopyLimsCustomer,
   useBulkDeleteLimsCustomer,
   useCreateLimsCustomer,
   useLimsCustomerAudit,
@@ -49,6 +51,8 @@ const LimsCustomerList = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsCustomerFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
+  // Set instead of activeId/formMode while the Copy review flow is open.
+  const [copyIds, setCopyIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsCustomer, LimsCustomerPayload>();
   const auditQuery = useLimsCustomerAudit(compliance.auditRow?.id);
@@ -74,6 +78,7 @@ const LimsCustomerList = () => {
   const createCustomer = useCreateLimsCustomer();
   const updateCustomer = useUpdateLimsCustomer();
   const bulkClone = useBulkCloneLimsCustomer();
+  const bulkCopy = useBulkCopyLimsCustomer();
   const bulkDelete = useBulkDeleteLimsCustomer();
   const restoreCustomer = useRestoreLimsCustomer();
 
@@ -81,6 +86,7 @@ const LimsCustomerList = () => {
     createCustomer.isPending ||
     updateCustomer.isPending ||
     bulkClone.isPending ||
+    bulkCopy.isPending ||
     bulkDelete.isPending ||
     restoreCustomer.isPending;
 
@@ -95,10 +101,25 @@ const LimsCustomerList = () => {
     [openModal]
   );
 
+  const openCopy = useCallback(
+    (ids: string[]) => {
+      setCopyIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
+    setCopyIds(null);
+  };
+
+  const handleSaveCopies = async (payloads: LimsCustomerPayload[]) => {
+    await bulkCopy.mutateAsync(payloads);
+    handleCloseForm();
+    table.clearSelection();
   };
 
   const handleSave = async (payload: LimsCustomerPayload, files: File[]) => {
@@ -133,6 +154,10 @@ const LimsCustomerList = () => {
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_CUSTOMER,
         onClick: async (selection) => {
+          if (selection.mode === "ids") {
+            openCopy(selection.ids);
+            return;
+          }
           await bulkClone.mutateAsync(selection);
           table.clearSelection();
         }
@@ -155,7 +180,7 @@ const LimsCustomerList = () => {
           )
       }
     ],
-    [bulkClone, compliance, table]
+    [bulkClone, compliance, openCopy, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsCustomer>[]>(
@@ -191,7 +216,7 @@ const LimsCustomerList = () => {
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_CUSTOMER,
         onClick: (customer) =>
-          bulkClone.mutate({ mode: "ids", ids: [customer.id] })
+          openCopy([customer.id])
       },
       {
         key: "restore",
@@ -216,7 +241,7 @@ const LimsCustomerList = () => {
           ])
       }
     ],
-    [bulkClone, compliance, openForm]
+    [compliance, openCopy, openForm]
   );
 
   return (
@@ -257,7 +282,17 @@ const LimsCustomerList = () => {
         className="m-4 max-w-[1000px] overflow-x-hidden dark:bg-gray-900"
         disableOuterScroll
       >
-        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        {copyIds ? (
+          <CopyStepper<LimsCustomer, LimsCustomerPayload>
+            ids={copyIds}
+            fetchById={fetchLimsCustomerById}
+            FormComponent={LimsCustomerForm}
+            onSaveAll={handleSaveCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending}
+            entityLabel={t("limsCustomer")}
+          />
+        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>

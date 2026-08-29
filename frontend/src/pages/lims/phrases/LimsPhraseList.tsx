@@ -5,6 +5,7 @@ import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
+import CopyStepper from "@/components/data/CopyStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -21,11 +22,12 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsPhraseList } from "./LimsPhrase.api";
+import { fetchLimsPhraseById, fetchLimsPhraseList } from "./LimsPhrase.api";
 import { getLimsPhraseColumns } from "./LimsPhrase.columns";
 import {
   limsPhraseKeys,
   useBulkCloneLimsPhrase,
+  useBulkCopyLimsPhrase,
   useBulkDeleteLimsPhrase,
   useCreateLimsPhrase,
   useLimsPhraseAudit,
@@ -52,6 +54,8 @@ const LimsPhraseList = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsPhraseFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
+  // Set instead of activeId/formMode while the Copy review flow is open.
+  const [copyIds, setCopyIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsPhrase, LimsPhrasePayload>();
   const auditQuery = useLimsPhraseAudit(compliance.auditRow?.id);
@@ -75,6 +79,7 @@ const LimsPhraseList = () => {
   const createPhrase = useCreateLimsPhrase();
   const updatePhrase = useUpdateLimsPhrase();
   const bulkClone = useBulkCloneLimsPhrase();
+  const bulkCopy = useBulkCopyLimsPhrase();
   const bulkDelete = useBulkDeleteLimsPhrase();
   const restorePhrase = useRestoreLimsPhrase();
 
@@ -82,6 +87,7 @@ const LimsPhraseList = () => {
     createPhrase.isPending ||
     updatePhrase.isPending ||
     bulkClone.isPending ||
+    bulkCopy.isPending ||
     bulkDelete.isPending ||
     restorePhrase.isPending;
 
@@ -96,10 +102,25 @@ const LimsPhraseList = () => {
     [openModal]
   );
 
+  const openCopy = useCallback(
+    (ids: string[]) => {
+      setCopyIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
+    setCopyIds(null);
+  };
+
+  const handleSaveCopies = async (payloads: LimsPhrasePayload[]) => {
+    await bulkCopy.mutateAsync(payloads);
+    handleCloseForm();
+    table.clearSelection();
   };
 
   const handleSave = async (payload: LimsPhrasePayload) => {
@@ -133,6 +154,10 @@ const LimsPhraseList = () => {
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_PHRASE,
         onClick: async (selection) => {
+          if (selection.mode === "ids") {
+            openCopy(selection.ids);
+            return;
+          }
           await bulkClone.mutateAsync(selection);
           table.clearSelection();
         }
@@ -156,7 +181,7 @@ const LimsPhraseList = () => {
           )
       }
     ],
-    [bulkClone, compliance, table]
+    [bulkClone, compliance, openCopy, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsPhrase>[]>(
@@ -193,7 +218,7 @@ const LimsPhraseList = () => {
         permission: LIMS_PERMISSIONS.CREATE_PHRASE,
         // A cloned system list would collide on its seeded code.
         hidden: (phrase: LimsPhrase) => Boolean(phrase.isSystem),
-        onClick: (phrase) => bulkClone.mutate({ mode: "ids", ids: [phrase.id] })
+        onClick: (phrase) => openCopy([phrase.id])
       },
       {
         key: "restore",
@@ -220,7 +245,7 @@ const LimsPhraseList = () => {
           ])
       }
     ],
-    [bulkClone, compliance, openForm]
+    [compliance, openCopy, openForm]
   );
 
   return (
@@ -261,7 +286,17 @@ const LimsPhraseList = () => {
         className="m-4 max-w-[1000px] overflow-x-hidden dark:bg-gray-900"
         disableOuterScroll
       >
-        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        {copyIds ? (
+          <CopyStepper<LimsPhrase, LimsPhrasePayload>
+            ids={copyIds}
+            fetchById={fetchLimsPhraseById}
+            FormComponent={LimsPhraseForm}
+            onSaveAll={handleSaveCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending}
+            entityLabel={t("limsPhrase")}
+          />
+        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>

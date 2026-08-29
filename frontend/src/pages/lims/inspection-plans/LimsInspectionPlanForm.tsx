@@ -18,6 +18,7 @@ import { useLimsUserOptions } from "@/pages/lims/users/LimsUser.options";
 import { useLimsRoleOptions } from "@/pages/lims/roles/LimsRole.queries";
 import {
   limsInspectionPlanSchema,
+  limsInspectionPlanCopySchema,
   type LimsInspectionPlanFormValues
 } from "./LimsInspectionPlan.schema";
 import type {
@@ -27,7 +28,14 @@ import type {
   LimsPersonnelRow
 } from "./LimsInspectionPlan.types";
 
-export type LimsInspectionPlanFormMode = "create" | "edit" | "view";
+/**
+ * "copy" renders like "create" (fully editable) except the business ID
+ * starts blank instead of pre-filled with the source's — stays EDITABLE,
+ * not disabled: `applyBusinessId` mints a fresh one only when the field
+ * is empty, and otherwise honors whatever the user typed (subject to the
+ * usual uniqueness check). Used by CopyStepper.
+ */
+export type LimsInspectionPlanFormMode = "create" | "edit" | "view" | "copy";
 
 interface LimsInspectionPlanFormProps {
   mode?: LimsInspectionPlanFormMode;
@@ -35,6 +43,15 @@ interface LimsInspectionPlanFormProps {
   onClose: () => void;
   onSubmit: (payload: LimsInspectionPlanPayload) => Promise<void> | void;
   submitting?: boolean;
+  /** Overrides the submit button's label — CopyStepper uses this to say
+   * "Next" on every step but the last, where the batch actually saves. */
+  submitLabel?: string;
+  /** Set on the `<form>` element so an outside button (CopyStepper's
+   * header Next/Save) can submit it via `<Button form={formId}>`. */
+  formId?: string;
+  /** " (2 of 5)" appended after the title when Copy is reviewing more
+   * than one record — undefined otherwise. */
+  stepLabel?: string;
 }
 
 /** Seeds a dropdown label from the record's nested ref — no extra fetch. */
@@ -46,7 +63,10 @@ const LimsInspectionPlanForm = ({
   initialData,
   onClose,
   onSubmit,
-  submitting = false
+  submitting = false,
+  submitLabel,
+  formId,
+  stepLabel
 }: LimsInspectionPlanFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
@@ -79,14 +99,14 @@ const LimsInspectionPlanForm = ({
   // against, so Save is a no-op when nothing actually differs from it.
   const initialValues = useMemo<LimsInspectionPlanFormValues>(
     () => ({
-      inspectionId: initialData?.inspectionId ?? "",
+      inspectionId: mode === "copy" ? "" : (initialData?.inspectionId ?? ""),
       name: initialData?.name ?? "",
       inspectionType: initialData?.inspectionType ?? "",
       group: initialData?.group?.id ?? "",
       description: initialData?.description ?? "",
       details: initialData?.details ?? ""
     }),
-    [initialData]
+    [initialData, mode]
   );
 
   const {
@@ -96,7 +116,7 @@ const LimsInspectionPlanForm = ({
     setValue,
     formState: { errors, isSubmitting }
   } = useForm<LimsInspectionPlanFormValues>({
-    resolver: zodResolver(limsInspectionPlanSchema),
+    resolver: zodResolver(mode === "copy" ? limsInspectionPlanCopySchema : limsInspectionPlanSchema),
     defaultValues: initialValues
   });
 
@@ -108,14 +128,15 @@ const LimsInspectionPlanForm = ({
     name: keyof LimsInspectionPlanFormValues,
     label: string,
     required = false,
-    type = "text"
+    type = "text",
+    forceDisabled = false
   ) => (
     <div className="min-w-0">
       <Label required={required}>{label}</Label>
       <Input
         {...register(name)}
         type={type}
-        disabled={isReadOnly}
+        disabled={isReadOnly || forceDisabled}
         error={!!errors[name]}
         hint={errors[name]?.message as string}
         className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
@@ -126,6 +147,7 @@ const LimsInspectionPlanForm = ({
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
+        id={formId}
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
@@ -144,7 +166,9 @@ const LimsInspectionPlanForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsInspectionPlan") })
-            : initialData
+                        : mode === "copy"
+              ? `${t("copyEntity", { entity: t("limsInspectionPlan") })}${stepLabel ?? ""}`
+              : initialData
               ? t("update", { entity: t("limsInspectionPlan") })
               : t("create", { entity: t("limsInspectionPlan") })}
         </h2>
@@ -255,7 +279,7 @@ const LimsInspectionPlanForm = ({
           </Button>
           {!isReadOnly ? (
             <Button type="submit" variant="primary" loading={busy}>
-              {t("save")}
+              {submitLabel ?? t("save")}
             </Button>
           ) : null}
         </div>
