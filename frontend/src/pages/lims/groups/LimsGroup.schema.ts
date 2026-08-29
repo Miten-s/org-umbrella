@@ -14,3 +14,14 @@ export const limsGroupSchema = z.object({
 });
 
 export type LimsGroupFormValues = z.infer<typeof limsGroupSchema>;
+
+/**
+ * Copy mode leaves Group ID blank + disabled (see LimsGroupForm) — same
+ * shape, minus the required/prefix checks, so the blank field doesn't
+ * block Save. Kept as a plain (non-optional) string, matching
+ * `limsGroupSchema`'s inferred type, so both type-check against the same
+ * `useForm<LimsGroupFormValues>`.
+ */
+export const limsGroupCopySchema = limsGroupSchema.extend({
+  groupId: z.string().max(50, "Group ID must not exceed 50 characters")
+});

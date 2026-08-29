@@ -12,8 +12,17 @@ import SubFormGrid from "@/components/data/SubFormGrid";
 import LimsAttachmentsField from "@/components/lims/LimsAttachmentsField";
 import { useAttachments } from "@/hooks/useAttachments";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
+import {
+  useLimsAnalysisComponentOptions,
+  useLimsAnalysisOptions
+} from "@/pages/lims/analyses/LimsAnalysis.queries";
+import type { LimsComponentRow } from "@/pages/lims/analyses/LimsAnalysis.types";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
-import { limsSpecificationSchema, type LimsSpecificationFormValues } from "./LimsSpecification.schema";
+import {
+  limsSpecificationSchema,
+  validateLimitsRows,
+  type LimsSpecificationFormValues
+} from "./LimsSpecification.schema";
 import type { LimsSpecification, LimsSpecificationPayload, LimsRef, LimsLimitRow } from "./LimsSpecification.types";
 
 export type LimsSpecificationFormMode = "create" | "edit" | "view";
@@ -42,6 +51,10 @@ const LimsSpecificationForm = ({
   const attachments = useAttachments(initialData?.attachments);
   const initialLimitsRef = useRef(initialData?.limits ?? []);
   const [limits, setLimits] = useState<LimsLimitRow[]>(initialLimitsRef.current);
+  // Limits live outside RHF/zod (see LimsSpecification.schema's
+  // validateLimitsRows) — computed live so the grid's error banner updates
+  // as the user edits, and checked again at submit to actually block it.
+  const limitsError = useMemo(() => validateLimitsRows(limits), [limits]);
 
   // Captured once per record — also the no-change baseline `submit` diffs
   // against, so Save is a no-op when nothing actually differs from it.
@@ -92,6 +105,10 @@ const LimsSpecificationForm = ({
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
         onSubmit={handleSubmit((values) => {
+          // Bad Min/Max blocks Save the same way an invalid top-level field
+          // would — the grid's own error banner (below) says why.
+          if (limitsError) return;
+
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
           if (
@@ -153,11 +170,64 @@ const LimsSpecificationForm = ({
               rows={limits}
               onChange={setLimits}
               disabled={isReadOnly}
+              error={limitsError}
               columns={[
-                { key: "analysisName", header: t("limsAnalysisName") },
-                { key: "componentName", header: t("limsComponentName") },
-                { key: "min", header: t("limsMin") },
-                { key: "max", header: t("limsMax") },
+                {
+                  key: "analysisId",
+                  header: t("limsAnalysis"),
+                  type: "async-select",
+                  useOptions: useLimsAnalysisOptions,
+                  // Picking a new Analysis invalidates whichever Component
+                  // (and its Min/Max) had been picked for the old one.
+                  onSelectOption: (_row, option) => ({
+                    analysisName: option.label,
+                    componentId: undefined,
+                    componentName: undefined,
+                    min: undefined,
+                    max: undefined
+                  })
+                },
+                {
+                  key: "analysisName",
+                  header: t("limsAnalysisName"),
+                  readOnly: (row) => Boolean(row.analysisId)
+                },
+                {
+                  key: "componentId",
+                  header: t("limsComponent"),
+                  type: "async-select",
+                  // Scoped to whichever Analysis this row's `analysisId`
+                  // cell holds — see useLimsAnalysisComponentOptions.
+                  useOptions: useLimsAnalysisComponentOptions,
+                  onSelectOption: (_row, option) => {
+                    const component = option.data as LimsComponentRow | undefined;
+                    return {
+                      componentName: option.label,
+                      // Kept as whatever string the Component itself holds
+                      // (min/max are STRING columns backend-side, not real
+                      // numeric ones — see SubFormColumnType's doc comment).
+                      min: component?.min !== undefined ? String(component.min) : undefined,
+                      max: component?.max !== undefined ? String(component.max) : undefined
+                    };
+                  }
+                },
+                {
+                  key: "componentName",
+                  header: t("limsComponentName"),
+                  readOnly: (row) => Boolean(row.componentId)
+                },
+                {
+                  key: "min",
+                  header: t("limsMin"),
+                  type: "numeric-text",
+                  readOnly: (row) => Boolean(row.componentId)
+                },
+                {
+                  key: "max",
+                  header: t("limsMax"),
+                  type: "numeric-text",
+                  readOnly: (row) => Boolean(row.componentId)
+                },
                 { key: "text", header: t("limsText") },
                 { key: "phrase", header: t("limsPhrase") },
                 { key: "boolean", header: t("limsBoolean") },

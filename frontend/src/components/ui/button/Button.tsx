@@ -16,6 +16,10 @@ interface ButtonProps {
   disabled?: boolean;
   className?: string;
   type?: "button" | "submit" | "reset";
+  /** Submits/resets a `<form>` elsewhere in the DOM by id — lets a
+   * `type="submit"` button sit outside its form (e.g. CopyStepper's Next in
+   * the modal header, submitting the form rendered below it). */
+  form?: string;
   permission?: string | string[];
   permissionLogic?: "all" | "any";
   tooltipMessage?: string;
@@ -36,6 +40,7 @@ const Button: React.FC<ButtonProps> = ({
   className = "",
   disabled = false,
   type = "button",
+  form,
   // Permission-related props
   permission,
   permissionLogic = "all",
@@ -182,6 +187,7 @@ const Button: React.FC<ButtonProps> = ({
     <div className="relative inline-block" ref={buttonRef}>
       <button
         type={type}
+        form={form}
         title={title}
         disabled={isDisabled}
         className={`inline-flex items-center justify-center gap-2 rounded-lg transition ${className} ${

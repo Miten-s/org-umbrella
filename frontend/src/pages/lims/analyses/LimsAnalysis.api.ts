@@ -73,6 +73,21 @@ export const bulkCloneLimsAnalysis = async (selection: BulkSelection) => {
   return response.data;
 };
 
+/**
+ * The Copy flow's one and only network call: the user has already reviewed
+ * (and possibly edited) every record client-side via CopyStepper — this
+ * sends all of them together, once, to be created in one transaction. See
+ * `bulkCreate` in crud-factory.ts.
+ */
+export const bulkCopyLimsAnalysis = async (records: LimsAnalysisPayload[]) => {
+  const response = await limsApi.post(`${ROUTE}/bulk-copy`, { records });
+  return response.data as {
+    message: string;
+    count: number;
+    results: { id: string; warning?: string }[];
+  };
+};
+
 export const restoreLimsAnalysis = async (id: string, changeReason: string) => {
   const response = await limsApi.patch(`${ROUTE}/restore/${id}`, { changeReason });
   return response.data;

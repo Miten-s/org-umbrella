@@ -14,3 +14,14 @@ export const limsAnalysisSchema = z.object({
 });
 
 export type LimsAnalysisFormValues = z.infer<typeof limsAnalysisSchema>;
+
+/**
+ * Copy mode leaves Analysis ID blank + disabled (the server always mints a
+ * fresh one on save — see LimsAnalysisForm) — same shape, minus the
+ * required check, so the blank field doesn't block Save. Kept as a plain
+ * (non-optional) string, matching `limsAnalysisSchema`'s inferred type, so
+ * both schemas type-check against the same `useForm<LimsAnalysisFormValues>`.
+ */
+export const limsAnalysisCopySchema = limsAnalysisSchema.extend({
+  analysisId: z.string().max(150)
+});

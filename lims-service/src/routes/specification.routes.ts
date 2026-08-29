@@ -38,6 +38,8 @@ export const specificationConfig: CrudConfig<Specification> = {
       fields: [
         "analysisName",
         "componentName",
+        "analysisId",
+        "componentId",
         "min",
         "max",
         "text",

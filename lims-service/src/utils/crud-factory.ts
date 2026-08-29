@@ -20,7 +20,11 @@ import {
 import { sequelize } from "../configs/db.sequelize";
 import API_ROUTES from "../utils/routes";
 import { validateDto } from "../middlewares/validate-dto.middleware";
-import { BulkOperationDto, RestoreOperationDto } from "../dtos/common.dto";
+import {
+  BulkOperationDto,
+  BulkCreateDto,
+  RestoreOperationDto
+} from "../dtos/common.dto";
 import { authorize } from "../middlewares/authorize.middleware";
 import { LimsAction } from "./permissions";
 import { ChildConfig, readChildren, syncAllChildren } from "./nested-children";
@@ -578,6 +582,30 @@ const trimIdentifiers = <M extends Model>(
   return data;
 };
 
+/**
+ * Plain attribute-keyed where, not col()/fn() — every model here is
+ * `underscored: true` (JS `supplierId` -> DB `supplier_id`), and col()
+ * takes a raw SQL identifier, so col("supplierId") looks for a column that
+ * was never created and 500s. Object-key where clauses map correctly.
+ * Returns the colliding row, or null — callers decide reject vs. warn.
+ */
+const findUniqueCollision = async (
+  model: ModelStatic<any>,
+  field: string,
+  value: unknown,
+  transaction: Transaction,
+  excludeId?: string
+) => {
+  if (typeof value !== "string" || !value.trim()) return null;
+  return model.findOne({
+    where: {
+      [field]: { [Op.iLike]: value.replace(/[%_\\]/g, "\\$&") },
+      ...(excludeId ? { id: { [Op.ne]: excludeId } } : {})
+    },
+    transaction
+  });
+};
+
 const assertUniqueCaseInsensitive = async (
   model: ModelStatic<any>,
   field: string,
@@ -585,19 +613,13 @@ const assertUniqueCaseInsensitive = async (
   transaction: Transaction,
   excludeId?: string
 ) => {
-  if (typeof value !== "string" || !value.trim()) return;
-
-  // Plain attribute-keyed where, not col()/fn() — every model here is
-  // `underscored: true` (JS `supplierId` -> DB `supplier_id`), and col()
-  // takes a raw SQL identifier, so col("supplierId") looks for a column
-  // that was never created and 500s. Object-key where clauses map correctly.
-  const existing = await model.findOne({
-    where: {
-      [field]: { [Op.iLike]: value.replace(/[%_\\]/g, "\\$&") },
-      ...(excludeId ? { id: { [Op.ne]: excludeId } } : {})
-    },
-    transaction
-  });
+  const existing = await findUniqueCollision(
+    model,
+    field,
+    value,
+    transaction,
+    excludeId
+  );
 
   if (existing) {
     // Never a raw UUID or column name in a user-facing toast — e.g. Lab
@@ -683,83 +705,165 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
   const shape = (formatted: any) => applyPostFormat(formatted, postFormat);
   const hasGroupColumn = Object.keys(model.getAttributes()).includes("groupId");
 
-  const create = async (raw: Record<string, any>, ctx: CrudContext) => {
+  /**
+   * The guts of a single create, minus its own transaction — shared by
+   * `create` (one record, one transaction, reject-on-collision) and
+   * `bulkCreate` (N records, one shared transaction, warn-on-collision) so
+   * business-ID minting, `beforeCreate`, group stamping, identifier trimming
+   * and child sub-form sync can't drift between the two callers. Collision
+   * handling is the only thing that varies:
+   *  - "reject" (default): today's behavior, 400s on a case-insensitive hit.
+   *  - "warn": auto-suffixes with the same "-(N)" scheme `bulkDuplicate`
+   *    already uses (`nextCopyValue`), and reports it back instead of
+   *    failing the save — for the Copy flow, where re-submitting an
+   *    untouched name is expected, not an error.
+   */
+  const createOne = async (
+    raw: Record<string, any>,
+    ctx: CrudContext,
+    transaction: Transaction,
+    opts?: { collisionMode?: "reject" | "warn" }
+  ): Promise<{ result: any; warning?: string }> => {
     const payload = config.normalizePayload
       ? config.normalizePayload(raw)
       : raw;
-    return sequelize
-      .transaction(async (transaction) => {
-        const mapped = toColumns(config, payload);
+    const mapped = toColumns(config, payload);
 
-        // Business ID before `beforeCreate`, so an entity that derives something
-        // from it (Stock Batch's `stockId/batchNumber`) sees the settled value.
-        const withBusinessId = config.businessId
-          ? await applyBusinessId(
-              model,
-              config.permissionEntity,
-              config.businessId,
-              mapped,
-              transaction
-            )
-          : mapped;
+    // Business ID before `beforeCreate`, so an entity that derives something
+    // from it (Stock Batch's `stockId/batchNumber`) sees the settled value.
+    const withBusinessId = config.businessId
+      ? await applyBusinessId(
+          model,
+          config.permissionEntity,
+          config.businessId,
+          mapped,
+          transaction
+        )
+      : mapped;
 
-        const data = beforeCreate
-          ? await beforeCreate(withBusinessId, transaction)
-          : withBusinessId;
+    const data = beforeCreate
+      ? await beforeCreate(withBusinessId, transaction)
+      : withBusinessId;
 
-        // Stamp the creator's home group when the caller didn't pick one. This is
-        // what keeps data partitioned without the user choosing a group by hand
-        // on every single record.
-        if (
-          hasGroupColumn &&
-          !config.globalReference &&
-          !data.groupId &&
-          ctx.scope.homeGroupId
-        ) {
-          data.groupId = ctx.scope.homeGroupId;
-        }
+    // Stamp the creator's home group when the caller didn't pick one. This is
+    // what keeps data partitioned without the user choosing a group by hand
+    // on every single record.
+    if (
+      hasGroupColumn &&
+      !config.globalReference &&
+      !data.groupId &&
+      ctx.scope.homeGroupId
+    ) {
+      data.groupId = ctx.scope.homeGroupId;
+    }
 
-        trimIdentifiers(config, data);
+    trimIdentifiers(config, data);
 
-        if (uniqueField) {
-          await assertUniqueCaseInsensitive(
+    let warning: string | undefined;
+    if (uniqueField) {
+      if (opts?.collisionMode === "warn") {
+        const collision = await findUniqueCollision(
+          model,
+          uniqueField,
+          data[uniqueField],
+          transaction
+        );
+        if (collision) {
+          const original = String(data[uniqueField]);
+          const suffixed = await nextCopyValue(
             model,
             uniqueField,
-            data[uniqueField],
+            original,
             transaction
           );
+          const suffix = suffixed.match(/-\(\d+\)$/)?.[0];
+          const nameField = inferNameField(config, uniqueField);
+          if (
+            nameField &&
+            suffix &&
+            typeof data[nameField] === "string" &&
+            data[nameField] &&
+            !data[nameField].endsWith(suffix)
+          ) {
+            data[nameField] = `${data[nameField]}${suffix}`;
+          }
+          data[uniqueField] = suffixed;
+          warning = `"${original}" is already in use — saved as "${suffixed}".`;
         }
-
-        const created = await repo.create(data, transaction);
-        const parentId = created!.get("id") as string;
-
-        // Sub-forms go in the same transaction, so the parent and its rows are
-        // never half-saved.
-        const { newChildren, deltas } = await syncAllChildren(
-          config.children,
-          parentId,
-          payload,
-          transaction,
-          created!.toJSON()
-        );
-
-        await writeAudit({
-          entityName,
-          entityId: parentId,
-          action: "CREATE",
-          newValue: { ...created!.toJSON(), ...newChildren },
-          childChanges: Object.keys(deltas).length ? deltas : null,
-          changeReason: payload.changeReason,
-          actor: ctx.actor,
+      } else {
+        await assertUniqueCaseInsensitive(
+          model,
+          uniqueField,
+          data[uniqueField],
           transaction
-        });
+        );
+      }
+    }
 
-        const reloaded = await repo.findByIdUnscoped(parentId, transaction);
-        return shape(formatLimsEntity(reloaded ?? created));
-      })
-      .then(async (result) => {
+    const created = await repo.create(data, transaction);
+    const parentId = created!.get("id") as string;
+
+    // Sub-forms go in the same transaction, so the parent and its rows are
+    // never half-saved.
+    const { newChildren, deltas } = await syncAllChildren(
+      config.children,
+      parentId,
+      payload,
+      transaction,
+      created!.toJSON()
+    );
+
+    await writeAudit({
+      entityName,
+      entityId: parentId,
+      action: "CREATE",
+      newValue: { ...created!.toJSON(), ...newChildren },
+      childChanges: Object.keys(deltas).length ? deltas : null,
+      changeReason:
+        payload.changeReason ?? (warning ? "Copied from existing record" : undefined),
+      actor: ctx.actor,
+      transaction
+    });
+
+    const reloaded = await repo.findByIdUnscoped(parentId, transaction);
+    return { result: shape(formatLimsEntity(reloaded ?? created)), warning };
+  };
+
+  const create = async (raw: Record<string, any>, ctx: CrudContext) => {
+    return sequelize
+      .transaction((transaction) => createOne(raw, ctx, transaction))
+      .then(async ({ result }) => {
         await afterWrite();
         return result;
+      });
+  };
+
+  /**
+   * The Copy flow's save: the frontend already reviewed/edited N full
+   * record payloads client-side (see CopyStepper) and sends them together
+   * once — this is what turns that batch into N real creates in one
+   * transaction, each going through the exact same business-ID/child-sync
+   * path as a normal single create, just with collisions warned-and-suffixed
+   * instead of rejected.
+   */
+  const bulkCreate = async (
+    records: Record<string, any>[],
+    ctx: CrudContext
+  ) => {
+    return sequelize
+      .transaction(async (transaction) => {
+        const results: { id: string; warning?: string }[] = [];
+        for (const raw of records) {
+          const { result, warning } = await createOne(raw, ctx, transaction, {
+            collisionMode: "warn"
+          });
+          results.push({ id: result?.id ?? result?._id, warning });
+        }
+        return results;
+      })
+      .then(async (results) => {
+        await afterWrite();
+        return results;
       });
   };
 
@@ -981,6 +1085,15 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
           delete clone.isDeleted;
           delete clone.deletedAt;
           delete clone.deletedBy;
+          // A copy of a system record (Phrase's `isSystem`, currently the
+          // only entity with a flag like this) is never itself protected —
+          // it's a user-made row that happens to start identical to one.
+          // Carrying `isSystem: true` over made a clone permanently stuck:
+          // un-removable (blockSystemDelete) AND un-renameable (the code-
+          // frozen check) even though its own "-(N)" suffixed code already
+          // fails the very same code format the system list was seeded
+          // with. Harmless no-op delete on any entity without this field.
+          delete clone.isSystem;
           if (config.businessId) {
             delete clone[config.businessId.field];
             Object.assign(
@@ -1133,6 +1246,7 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
 
   return {
     create,
+    bulkCreate,
     getById,
     getAll,
     update,
@@ -1276,6 +1390,16 @@ export const buildCrudController = <M extends Model>(
     res.status(201).json({ message: `${count} record(s) copied`, count });
   }),
 
+  bulkCreate: asyncHandler(async (req: Request, res: Response) => {
+    const { records } = req.body as BulkCreateDto;
+    const results = await service.bulkCreate(records, contextFromRequest(req));
+    res.status(201).json({
+      message: `${results.length} record(s) copied`,
+      count: results.length,
+      results
+    });
+  }),
+
   restore: asyncHandler(async (req: Request, res: Response) => {
     const { changeReason } = req.body as RestoreOperationDto;
     const restored = await service.restore(
@@ -1398,6 +1522,12 @@ export const buildCrudRouter = <M extends Model>(params: {
     can("CREATE"),
     validateDto(BulkOperationDto),
     controller.bulkDuplicate
+  );
+  router.post(
+    API_ROUTES.BULK_COPY,
+    can("CREATE"),
+    validateDto(BulkCreateDto),
+    controller.bulkCreate
   );
 
   router.patch(

@@ -5,6 +5,7 @@ import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
+import CopyStepper from "@/components/data/CopyStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -21,11 +22,12 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsAnalysisList } from "./LimsAnalysis.api";
+import { fetchLimsAnalysisById, fetchLimsAnalysisList } from "./LimsAnalysis.api";
 import { getLimsAnalysisColumns } from "./LimsAnalysis.columns";
 import {
   limsAnalysisKeys,
   useBulkCloneLimsAnalysis,
+  useBulkCopyLimsAnalysis,
   useBulkDeleteLimsAnalysis,
   useCreateLimsAnalysis,
   useLimsAnalysisAudit,
@@ -49,6 +51,10 @@ const LimsAnalysisList = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsAnalysisFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
+  // Set instead of activeId/formMode while the Copy review flow is open —
+  // one or more source ids, reviewed via CopyStepper, not fetched/edited
+  // as a single record.
+  const [copyIds, setCopyIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsAnalysis, LimsAnalysisPayload>();
   const auditQuery = useLimsAnalysisAudit(compliance.auditRow?.id);
@@ -74,6 +80,7 @@ const LimsAnalysisList = () => {
   const create = useCreateLimsAnalysis();
   const update = useUpdateLimsAnalysis();
   const bulkClone = useBulkCloneLimsAnalysis();
+  const bulkCopy = useBulkCopyLimsAnalysis();
   const bulkDelete = useBulkDeleteLimsAnalysis();
   const restore = useRestoreLimsAnalysis();
 
@@ -81,6 +88,7 @@ const LimsAnalysisList = () => {
     create.isPending ||
     update.isPending ||
     bulkClone.isPending ||
+    bulkCopy.isPending ||
     bulkDelete.isPending ||
     restore.isPending;
 
@@ -95,10 +103,25 @@ const LimsAnalysisList = () => {
     [openModal]
   );
 
+  const openCopy = useCallback(
+    (ids: string[]) => {
+      setCopyIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
+    setCopyIds(null);
+  };
+
+  const handleSaveCopies = async (payloads: LimsAnalysisPayload[]) => {
+    await bulkCopy.mutateAsync(payloads);
+    handleCloseForm();
+    table.clearSelection();
   };
 
   const handleSave = async (payload: LimsAnalysisPayload) => {
@@ -134,6 +157,14 @@ const LimsAnalysisList = () => {
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_ANALYSIS,
         onClick: async (selection) => {
+          // A specific checkbox selection opens the Copy review flow. A
+          // "select all N matching filter" selection can be far larger than
+          // is reasonable to fetch/review record-by-record, so that one
+          // path keeps the previous immediate server-side duplicate.
+          if (selection.mode === "ids") {
+            openCopy(selection.ids);
+            return;
+          }
           await bulkClone.mutateAsync(selection);
           table.clearSelection();
         }
@@ -156,7 +187,7 @@ const LimsAnalysisList = () => {
           )
       }
     ],
-    [bulkClone, compliance, t, table]
+    [bulkClone, compliance, openCopy, t, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsAnalysis>[]>(
@@ -191,7 +222,7 @@ const LimsAnalysisList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_ANALYSIS,
-        onClick: (row) => bulkClone.mutate({ mode: "ids", ids: [row.id] })
+        onClick: (row) => openCopy([row.id])
       },
       {
         key: "restore",
@@ -216,7 +247,7 @@ const LimsAnalysisList = () => {
           ])
       }
     ],
-    [bulkClone, compliance, openForm, t]
+    [compliance, openCopy, openForm, t]
   );
 
   return (
@@ -255,8 +286,19 @@ const LimsAnalysisList = () => {
         isOpen={isOpen}
         onClose={handleCloseForm}
         className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
+        disableOuterScroll
       >
-        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        {copyIds ? (
+          <CopyStepper<LimsAnalysis, LimsAnalysisPayload>
+            ids={copyIds}
+            fetchById={fetchLimsAnalysisById}
+            FormComponent={LimsAnalysisForm}
+            onSaveAll={handleSaveCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending}
+            entityLabel={t("limsAnalysis")}
+          />
+        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>

@@ -11,10 +11,22 @@ import AsyncSelect from "@/components/data/AsyncSelect";
 import { useLimsUserOptions } from "@/pages/lims/users/LimsUser.options";
 
 import { isPayloadEqual } from "@/lib/formChangeDetection";
-import { limsGroupSchema, type LimsGroupFormValues } from "./LimsGroup.schema";
+import {
+  limsGroupSchema,
+  limsGroupCopySchema,
+  type LimsGroupFormValues
+} from "./LimsGroup.schema";
 import type { LimsGroup, LimsGroupPayload, LimsGroupRef } from "./LimsGroup.types";
 
-export type LimsGroupFormMode = "create" | "edit" | "view";
+/**
+ * "copy" renders like "create" (fully editable) except `groupId` is forced
+ * blank + disabled — Copy shows an exact copy of the source record per the
+ * Copy flow's design, but the id is exactly the field most likely to still
+ * collide with the source if left untouched, so it starts blank rather
+ * than pre-filled with a value that's certain to warn on save. Used by
+ * CopyStepper.
+ */
+export type LimsGroupFormMode = "create" | "edit" | "view" | "copy";
 
 interface LimsGroupFormProps {
   mode?: LimsGroupFormMode;
@@ -22,6 +34,12 @@ interface LimsGroupFormProps {
   onClose: () => void;
   onSubmit: (payload: LimsGroupPayload) => Promise<void> | void;
   submitting?: boolean;
+  /** Overrides the submit button's label — CopyStepper uses this to say
+   * "Next" on every step but the last, where the batch actually saves. */
+  submitLabel?: string;
+  /** Set on the `<form>` element so an outside button (CopyStepper's
+   * header Next/Save) can submit it via `<Button form={formId}>`. */
+  formId?: string;
 }
 
 /** Seeds the dropdown label from the record's nested ref — no extra fetch. */
@@ -33,7 +51,9 @@ const LimsGroupForm = ({
   initialData,
   onClose,
   onSubmit,
-  submitting = false
+  submitting = false,
+  submitLabel,
+  formId
 }: LimsGroupFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
@@ -42,15 +62,16 @@ const LimsGroupForm = ({
   // against, so Save is a no-op when nothing actually differs from it.
   const initialValues = useMemo<LimsGroupFormValues>(
     () => ({
-      // The spec prefixes LIMS group ids with `LIMS_`.
-      groupId: initialData?.groupId ?? "LIMS_",
+      // The spec prefixes LIMS group ids with `LIMS_`; Copy leaves it blank
+      // instead (see LimsGroupFormMode above).
+      groupId: mode === "copy" ? "" : (initialData?.groupId ?? "LIMS_"),
       name: initialData?.name ?? "",
       description: initialData?.description ?? "",
       ownedBy: initialData?.ownedBy?.id ?? ""
       // parentGroup intentionally not collected here — see the commented-out
       // field below.
     }),
-    [initialData]
+    [initialData, mode]
   );
 
   const {
@@ -60,7 +81,7 @@ const LimsGroupForm = ({
     setValue,
     formState: { errors, isSubmitting }
   } = useForm<LimsGroupFormValues>({
-    resolver: zodResolver(limsGroupSchema),
+    resolver: zodResolver(mode === "copy" ? limsGroupCopySchema : limsGroupSchema),
     defaultValues: initialValues
   });
 
@@ -75,6 +96,7 @@ const LimsGroupForm = ({
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
+        id={formId}
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
@@ -89,9 +111,11 @@ const LimsGroupForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsGroup") })
-            : initialData
-              ? t("update", { entity: t("limsGroup") })
-              : t("create", { entity: t("limsGroup") })}
+            : mode === "copy"
+              ? t("copyEntity", { entity: t("limsGroup") })
+              : initialData
+                ? t("update", { entity: t("limsGroup") })
+                : t("create", { entity: t("limsGroup") })}
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
@@ -99,7 +123,7 @@ const LimsGroupForm = ({
             <Label required>{t("limsGroupId")}</Label>
             <Input
               {...register("groupId")}
-              disabled={isReadOnly}
+              disabled={isReadOnly || mode === "copy"}
               error={!!errors.groupId}
               hint={errors.groupId?.message}
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
@@ -184,7 +208,7 @@ const LimsGroupForm = ({
           </Button>
           {!isReadOnly ? (
             <Button type="submit" variant="primary" loading={busy}>
-              {t("save")}
+              {submitLabel ?? t("save")}
             </Button>
           ) : null}
         </div>
