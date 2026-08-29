@@ -1,6 +1,13 @@
 import { Sequelize } from "sequelize";
 import ENV from "../utils/environment";
 
+// Managed providers (Neon, Supabase) require SSL; local dev doesn't.
+// NOTE: don't detect this via `?sslmode=require` in the URI — pg's own
+// connection-string parser then takes over SSL config and ignores the
+// `ssl` object below entirely, forcing full cert verification and failing
+// against Supabase's chain with SELF_SIGNED_CERT_IN_CHAIN.
+const isLocalPostgres = (uri?: string) => !uri || /localhost|127\.0\.0\.1/.test(uri);
+
 // Main LIMS database connection.
 export const sequelize = new Sequelize(
   ENV.LIMS_POSTGRES_URI ||
@@ -8,9 +15,9 @@ export const sequelize = new Sequelize(
   {
     dialect: "postgres",
     logging: ENV.NODE_ENV === "development" ? (msg) => console.log(msg) : false,
-    dialectOptions: ENV.LIMS_POSTGRES_URI?.includes("sslmode=require")
-      ? { ssl: { require: true, rejectUnauthorized: false } }
-      : undefined,
+    dialectOptions: isLocalPostgres(ENV.LIMS_POSTGRES_URI)
+      ? undefined
+      : { ssl: { require: true, rejectUnauthorized: false } },
     pool: {
       max: 10,
       min: 2,
@@ -33,9 +40,9 @@ export const authSequelize = new Sequelize(
   {
     dialect: "postgres",
     logging: ENV.NODE_ENV === "development" ? (msg) => console.log(msg) : false,
-    dialectOptions: ENV.AUTH_POSTGRES_URI?.includes("sslmode=require")
-      ? { ssl: { require: true, rejectUnauthorized: false } }
-      : undefined,
+    dialectOptions: isLocalPostgres(ENV.AUTH_POSTGRES_URI)
+      ? undefined
+      : { ssl: { require: true, rejectUnauthorized: false } },
     pool: {
       max: 5,
       min: 1,

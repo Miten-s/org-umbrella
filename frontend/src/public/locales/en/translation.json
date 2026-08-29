@@ -60,6 +60,7 @@
   "copyStep": "({{current}} of {{total}})",
   "copyGoToStep": "Go to record {{current}} of {{total}}",
   "copySaveAll": "Save all ({{count}})",
+  "copyAutoValidateFailed": "Record {{current}} needs a quick look before Save all can continue.",
   "noAdminsFound": "No admins found. Create a new admin to get started.",
   "createNewAdmin": "Create New Admin",
   "updateAdmin": "Update Admin",

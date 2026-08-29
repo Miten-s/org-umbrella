@@ -151,16 +151,23 @@ export const queryList = (entity: MockEntity, args: ListArgs) => {
   };
 };
 
-/** Clone naming: `Cold Room` → `Cold Room-(1)`, unique among active rows. */
-export const cloneName = (entity: MockEntity, value: string) => {
+/**
+ * Clone naming: `Cold Room` → `Cold Room-(1)`, unique among active rows'
+ * value of `field` (defaults to the label, e.g. Name — `bulkCreateRows`
+ * below reuses this against `uniqueField`, e.g. a Pick List's code).
+ */
+export const cloneNameFor = (entity: MockEntity, value: string, field: string) => {
   const base = value.replace(/-\(\d+\)$/, "");
   const taken = new Set(
-    entity.rows.filter((r) => !r.isRemoved).map((r) => String(r[entity.labelField] ?? ""))
+    entity.rows.filter((r) => !r.isRemoved).map((r) => String(r[field] ?? ""))
   );
   let index = 1;
   while (taken.has(`${base}-(${index})`)) index += 1;
   return `${base}-(${index})`;
 };
+
+export const cloneName = (entity: MockEntity, value: string) =>
+  cloneNameFor(entity, value, entity.labelField);
 
 export const createRow = (entity: MockEntity, payload: Record<string, unknown>) => {
   const row: MockRow = {
@@ -176,6 +183,43 @@ export const createRow = (entity: MockEntity, payload: Record<string, unknown>) 
   recordAudit(entity.route, row, "CREATE");
   return row;
 };
+
+/**
+ * The Copy flow's batched save — mirrors lims-service's `bulkCreate`
+ * (crud-factory.ts): every reviewed record is created in one call, and an
+ * untouched `uniqueField` (still matching some existing row) is
+ * auto-suffixed with the same "-(N)" scheme `cloneName` uses, rather than
+ * rejected — collisions are warned, not blocked, on Copy specifically.
+ */
+export const bulkCreateRows = (
+  entity: MockEntity,
+  records: Record<string, unknown>[]
+) =>
+  records.map((payload) => {
+    const value = String(payload[entity.uniqueField] ?? "");
+    const taken = new Set(
+      entity.rows.filter((r) => !r.isRemoved).map((r) => String(r[entity.uniqueField] ?? ""))
+    );
+
+    let warning: string | undefined;
+    let finalPayload = payload;
+    if (value && taken.has(value)) {
+      const suffixed = cloneNameFor(entity, value, entity.uniqueField);
+      const suffix = suffixed.match(/-\(\d+\)$/)?.[0];
+      const label = String(payload[entity.labelField] ?? "");
+      finalPayload = {
+        ...payload,
+        [entity.uniqueField]: suffixed,
+        ...(suffix && label && !label.endsWith(suffix)
+          ? { [entity.labelField]: `${label}${suffix}` }
+          : {})
+      };
+      warning = `"${value}" is already in use — saved as "${suffixed}".`;
+    }
+
+    const row = createRow(entity, finalPayload);
+    return { id: row.id, warning };
+  });
 
 export const updateRow = (
   entity: MockEntity,

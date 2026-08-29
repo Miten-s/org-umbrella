@@ -2,9 +2,19 @@ import { Sequelize } from "sequelize";
 
 const postgresUri = process.env.AUTH_POSTGRES_URI;
 
+// Managed providers (Neon, Supabase) require SSL; local dev doesn't.
+// NOTE: don't detect this via `?sslmode=require` in the URI — pg's own
+// connection-string parser then takes over SSL config and ignores the
+// `ssl` object below entirely, forcing full cert verification and failing
+// against Supabase's chain with SELF_SIGNED_CERT_IN_CHAIN.
+const isLocalPostgres = (uri?: string) => !uri || /localhost|127\.0\.0\.1/.test(uri);
+
 export const sequelize = new Sequelize(postgresUri || "postgres://postgres:postgres@localhost:5433/umbrella_auth_db", {
   dialect: "postgres",
   logging: (msg) => console.log(msg),
+  dialectOptions: isLocalPostgres(postgresUri)
+    ? undefined
+    : { ssl: { require: true, rejectUnauthorized: false } },
   pool: {
     max: 10,
     min: 2,
