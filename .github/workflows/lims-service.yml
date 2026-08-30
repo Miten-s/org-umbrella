@@ -40,7 +40,9 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/mp/handle-access-module')
+    if: >
+      (github.event_name == 'push' && github.ref == 'refs/heads/mp/handle-access-module') ||
+      (github.event_name == 'pull_request' && github.base_ref == 'mp/handle-access-module')
     
     steps:
     - name: Deploy to EC2
@@ -50,6 +52,12 @@ jobs:
         username: ${{ secrets.EC2_USERNAME }}
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          cd /path/to/your/LMIS/repo
-          docker compose pull lims-service
-          docker compose up -d lims-service
+          cd ~/org-umbrella
+          git config --global --add safe.directory $(pwd)
+          git fetch origin
+          git checkout mp/handle-access-module
+          git pull origin mp/handle-access-module
+          infisical run --env=prod --path=/lims-service --recursive -- docker compose -f docker-compose.yml pull lims-service
+          docker compose -f docker-compose.yml stop lims-service
+          docker compose -f docker-compose.yml rm -f lims-service
+          infisical run --env=prod --path=/lims-service --recursive -- docker compose -f docker-compose.yml up -d --no-deps lims-service

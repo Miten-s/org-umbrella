@@ -1,4 +1,4 @@
-# --- Stage 1: build the SPA ---------------------------------------------------
+﻿# --- Stage 1: build the SPA ---------------------------------------------------
 FROM node:20-alpine AS builder
 WORKDIR /app
 
@@ -7,22 +7,24 @@ RUN npm ci
 
 COPY . .
 
-# Vite inlines import.meta.env.* at BUILD time, so these must be build args, not
-# runtime env. They default to same-origin paths because nginx (stage 2) serves
-# the SPA and reverse-proxies the APIs from the same host — which also means the
-# browser never makes a cross-origin request, so CORS never comes into play.
 ARG VITE_API_BASE_URL=/auth/v1/api
 ARG VITE_API_GXP_BASE_URL=/gxp/v1/api
+ARG VITE_API_LIMS_BASE_URL=/lims/v1/api
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ENV VITE_API_GXP_BASE_URL=$VITE_API_GXP_BASE_URL
+ENV VITE_API_LIMS_BASE_URL=$VITE_API_LIMS_BASE_URL
 
 RUN npm run build
 
-# --- Stage 2: serve + reverse proxy ------------------------------------------
-FROM nginx:1.27-alpine AS runner
+# --- Stage 2: serve with vite preview ------------------------------
+FROM node:20-alpine AS runner
 
-RUN rm /etc/nginx/conf.d/default.conf
-COPY nginx/app.conf /etc/nginx/conf.d/app.conf
-COPY --from=builder /app/dist /usr/share/nginx/html
+WORKDIR /app
 
-EXPOSE 80
+COPY package.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+
+EXPOSE 4173
+
+CMD ["npx", "vite", "preview", "--host", "0.0.0.0", "--port", "4173"]

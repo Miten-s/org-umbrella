@@ -5,15 +5,16 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
     ports:
       - "127.0.0.1:5433:5432"
     volumes:
       - umbrella_local_pgdata:/var/lib/postgresql/data
       - ./deploy/postgres/init-local-databases.sh:/docker-entrypoint-initdb.d/init-local-databases.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -24,17 +25,18 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:6379:6379"
-    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    command: redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
     volumes:
       - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   backend:
+    image: ${DOCKERHUB_USERNAME:-unknown}/backend:${IMAGE_TAG:-latest}
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -42,9 +44,14 @@ services:
     ports:
       - "9000:9000"
     environment:
-      - NODE_ENV=production
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/backend_db
-      - REDIS_URL=redis://redis:6379
+      PORT: ${BACKEND_PORT:-9000}
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      AUTH_POSTGRES_URI: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/auth-service
+      AUTH_MONGO_URI: ${AUTH_MONGO_URI:-}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     volumes:
       - backend_uploads:/app/uploads
     depends_on:
@@ -54,6 +61,7 @@ services:
         condition: service_healthy
 
   gxp-service:
+    image: ${DOCKERHUB_USERNAME:-unknown}/gxp-service:${IMAGE_TAG:-latest}
     build:
       context: ./gxp-service
       dockerfile: Dockerfile
@@ -61,9 +69,16 @@ services:
     ports:
       - "9001:9001"
     environment:
-      - NODE_ENV=production
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/gxp_db
-      - REDIS_URL=redis://redis:6379
+      PORT: ${GXP_PORT:-9001}
+      GXP_MONGO_URI: ${GXP_MONGO_URI}
+      AUTH_MONGO_URI: ${AUTH_MONGO_URI}
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      GXP_POSTGRES_URI: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/gxp-service
+      AUTH_POSTGRES_URI: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/auth-service
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     volumes:
       - gxp_uploads:/app/uploads
     depends_on:
@@ -73,16 +88,25 @@ services:
         condition: service_healthy
 
   lims-service:
+    image: ${DOCKERHUB_USERNAME:-unknown}/lims-service:${IMAGE_TAG:-latest}
     build:
       context: ./lims-service
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-      - "9003:9003"
+      - "9002:9002"
     environment:
-      - NODE_ENV=production
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/lims_db
-      - REDIS_URL=redis://redis:6379
+      PORT: ${LIMS_PORT:-9002}
+      AUTH_POSTGRES_URI: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/auth-service
+      LIMS_POSTGRES_URI: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/lims-service
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      KAFKA_BROKER: ${KAFKA_BROKER:-}
+      KAFKA_CLIENT_ID: ${KAFKA_CLIENT_ID:-lims-service}
+      KAFKA_GROUP_ID: ${KAFKA_GROUP_ID:-lims-group}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     volumes:
       - lims_uploads:/app/uploads
     depends_on:
@@ -92,18 +116,17 @@ services:
         condition: service_healthy
 
   frontend:
+    image: ${DOCKERHUB_USERNAME:-unknown}/frontend:${IMAGE_TAG:-latest}
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        - VITE_API_BASE_URL=/auth/v1/api
-        - VITE_API_GXP_BASE_URL=/gxp/v1/api
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "4173:4173"
     depends_on:
       - backend
       - gxp-service
+      - lims-service
 
 volumes:
   umbrella_local_pgdata:

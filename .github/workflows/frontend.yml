@@ -37,13 +37,16 @@ jobs:
           ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest
           ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}
         build-args: |
-          VITE_API_BASE_URL=/auth/v1/api
-          VITE_API_GXP_BASE_URL=/gxp/v1/api
+          VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL || secrets.VITE_API_BASE || '/auth/v1/api' }}
+          VITE_API_GXP_BASE_URL=${{ secrets.VITE_API_GXP_BASE_URL || secrets.GXP || '/gxp/v1/api' }}
+          VITE_API_LIMS_BASE_URL=${{ secrets.VITE_API_LIMS_BASE_URL || secrets.LIMS || '/lims/v1/api' }}
 
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/mp/handle-access-module')
+    if: >
+      (github.event_name == 'push' && github.ref == 'refs/heads/mp/handle-access-module') ||
+      (github.event_name == 'pull_request' && github.base_ref == 'mp/handle-access-module')
     
     steps:
     - name: Deploy to EC2
@@ -53,6 +56,11 @@ jobs:
         username: ${{ secrets.EC2_USERNAME }}
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          cd /path/to/your/LMIS/repo
-          docker compose pull frontend
-          docker compose up -d frontend
+          cd ~/org-umbrella
+          git fetch origin
+          git checkout mp/handle-access-module
+          git pull origin mp/handle-access-module
+          infisical run --env=prod --path=/frontend --recursive -- docker compose -f docker-compose.yml pull frontend
+          docker compose -f docker-compose.yml stop frontend
+          docker compose -f docker-compose.yml rm -f frontend
+          infisical run --env=prod --path=/frontend --recursive -- docker compose -f docker-compose.yml up -d --no-deps frontend

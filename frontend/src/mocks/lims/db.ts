@@ -1,4 +1,4 @@
-/**
+2/**
  * In-memory stand-in for lims-service, implementing the contract in
  * LIMS_BACKEND_SPEC.md. Delete this folder once the real service is up.
  *
@@ -175,13 +175,6 @@ export const createRow = (entity: MockEntity, payload: Record<string, unknown>) 
   entity.rows.unshift(row);
   recordAudit(entity.route, row, "CREATE");
   return row;
-};
-
-export const bulkCreateRows = (
-  entity: MockEntity,
-  payloads: Record<string, unknown>[]
-) => {
-  return payloads.map((payload) => createRow(entity, payload));
 };
 
 export const updateRow = (
