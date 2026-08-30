@@ -66,3 +66,4 @@ jobs:
           docker compose -f docker-compose.yml stop lims-service
           docker compose -f docker-compose.yml rm -f lims-service
           infisical run --env=prod --path=/lims-service --recursive -- docker compose -f docker-compose.yml up -d --no-deps lims-service
+          docker image prune -f

@@ -66,3 +66,4 @@ jobs:
           docker compose -f docker-compose.yml stop backend
           docker compose -f docker-compose.yml rm -f backend
           infisical run --env=prod --path=/backend --recursive -- docker compose -f docker-compose.yml up -d --no-deps backend
+          docker image prune -f

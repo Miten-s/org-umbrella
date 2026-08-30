@@ -66,3 +66,4 @@ jobs:
           docker compose -f docker-compose.yml stop gxp-service
           docker compose -f docker-compose.yml rm -f gxp-service
           infisical run --env=prod --path=/gxp-service --recursive -- docker compose -f docker-compose.yml up -d --no-deps gxp-service
+          docker image prune -f

@@ -69,3 +69,4 @@ jobs:
           docker compose -f docker-compose.yml stop frontend
           docker compose -f docker-compose.yml rm -f frontend
           infisical run --env=prod --path=/frontend --recursive -- docker compose -f docker-compose.yml up -d --no-deps frontend
+          docker image prune -f
