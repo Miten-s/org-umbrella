@@ -65,8 +65,7 @@ jobs:
           git checkout sp/docker-based-deployment
           git pull origin sp/docker-based-deployment
           echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-          infisical run --env=prod --path=/frontend --recursive -- docker compose -f docker-compose.yml pull frontend
+          docker compose -f docker-compose.yml pull frontend
           docker compose -f docker-compose.yml stop frontend
           docker compose -f docker-compose.yml rm -f frontend
           infisical run --env=prod --path=/frontend --recursive -- docker compose -f docker-compose.yml up -d --no-deps frontend
-          docker image prune -f
