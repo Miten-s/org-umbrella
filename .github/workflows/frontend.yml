@@ -58,8 +58,8 @@ jobs:
         script: |
           cd ~/org-umbrella
           git fetch origin
-          git checkout mp/handle-access-module
-          git pull origin mp/handle-access-module
+          git checkout sp/docker-based-deployment
+          git pull origin sp/docker-based-deployment
           infisical run --env=prod --path=/frontend --recursive -- docker compose -f docker-compose.yml pull frontend
           docker compose -f docker-compose.yml stop frontend
           docker compose -f docker-compose.yml rm -f frontend

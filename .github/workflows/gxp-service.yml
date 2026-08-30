@@ -55,8 +55,8 @@ jobs:
           cd ~/org-umbrella
           git config --global --add safe.directory $(pwd)
           git fetch origin
-          git checkout mp/handle-access-module
-          git pull origin mp/handle-access-module
+          git checkout sp/docker-based-deployment
+          git pull origin sp/docker-based-deployment
           infisical run --env=prod --path=/gxp-service --recursive -- docker compose -f docker-compose.yml pull gxp-service
           docker compose -f docker-compose.yml stop gxp-service
           docker compose -f docker-compose.yml rm -f gxp-service
