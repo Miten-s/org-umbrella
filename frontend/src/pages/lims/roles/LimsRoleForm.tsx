@@ -27,17 +27,21 @@ import {
  * stays EDITABLE (not disabled): the user must type a new unique one
  * before Save will succeed. Used by CopyStepper.
  */
-export type LimsRoleFormMode = "create" | "edit" | "view" | "copy";
+export type LimsRoleFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsRoleFormProps {
   mode?: LimsRoleFormMode;
   initialData?: LimsRole | null;
   onClose: () => void;
+  onUnchanged?: () => void;
   onSubmit: (payload: LimsRolePayload) => Promise<void> | void;
   submitting?: boolean;
   /** Overrides the submit button's label — CopyStepper uses this to say
    * "Next" on every step but the last, where the batch actually saves. */
   submitLabel?: string;
+  /** Grays out the submit button without a spinner — EditStepper uses
+   * this on the last step now that its own Save button lives outside it. */
+  disabled?: boolean;
   /** Set on the `<form>` element so an outside button (CopyStepper's
    * header Next/Save) can submit it via `<Button form={formId}>`. */
   formId?: string;
@@ -53,9 +57,11 @@ const LimsRoleForm = ({
   mode = "create",
   initialData,
   onClose,
+  onUnchanged,
   onSubmit,
   submitting = false,
   submitLabel,
+  disabled = false,
   formId,
   stepLabel
 }: LimsRoleFormProps) => {
@@ -110,14 +116,14 @@ const LimsRoleForm = ({
     // a set, not a sequence, so compare sorted (toggling one off and back
     // on shouldn't count as a change just because it moved to the end).
     if (
-      mode === "edit" &&
+      (mode === "edit" || mode === "bulk-edit") &&
       isPayloadEqual(values, initialValues) &&
       isPayloadEqual(
         [...selectedPermissions].sort(),
         [...initialPermissionsRef.current].sort()
       )
     ) {
-      onClose();
+      (onUnchanged ?? onClose)();
       return;
     }
     onSubmit({ ...values, permissions: selectedPermissions });
@@ -132,7 +138,7 @@ const LimsRoleForm = ({
             : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsRole") })}${stepLabel ?? ""}`
               : initialData
-                ? t("update", { entity: t("limsRole") })
+                ? `${t("update", { entity: t("limsRole") })}${stepLabel ?? ""}`
                 : t("create", { entity: t("limsRole") })}
         </h2>
 
@@ -210,7 +216,7 @@ const LimsRoleForm = ({
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy}>
+            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

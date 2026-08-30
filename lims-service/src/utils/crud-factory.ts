@@ -6,7 +6,7 @@ import {
   Transaction,
   WhereOptions
 } from "sequelize";
-import { Request, Response, Router } from "express";
+import { NextFunction, Request, Response, Router } from "express";
 import asyncHandler from "../middlewares/error.middleware";
 import { getListQuery } from "../utils/pagination.util";
 import { getSafeFilters } from "../utils/query.util";
@@ -1616,6 +1616,23 @@ export const buildCrudRouter = <M extends Model>(params: {
     API_ROUTES.BULK_UPDATE,
     can("UPDATE"),
     validateDto(BulkUpdateDto),
+    // Fold the shared top-level `changeReason` into every entry's own
+    // `payload` before per-entry validation runs. `bulkUpdate()` below does
+    // this same fold, but only once validation has already passed — so an
+    // entity like Result, whose updateDto requires `payload.changeReason`,
+    // rejected every row of a bulk edit even though the shared reason was
+    // right there on the request body.
+    (req: Request, _res: Response, next: NextFunction) => {
+      const { updates, changeReason } = req.body as BulkUpdateDto;
+      if (changeReason && Array.isArray(updates)) {
+        for (const entry of updates) {
+          if (entry?.payload && entry.payload.changeReason === undefined) {
+            entry.payload.changeReason = changeReason;
+          }
+        }
+      }
+      next();
+    },
     // Same idea as BULK_COPY's per-record createDto check, against each
     // entry's `payload` instead of the entry itself (see `validateDtoArray`'s
     // optional nested-field param).

@@ -9,6 +9,7 @@ import {
   bulkCloneLimsStock,
   bulkCopyLimsStock,
   bulkDeleteLimsStock,
+  bulkUpdateLimsStock,
   createLimsStock,
   fetchLimsStockAudit,
   fetchLimsStockOptions,
@@ -150,6 +151,28 @@ export const useBulkCopyLimsStock = () => {
           { duration: 6000 }
         );
       }
+      invalidate();
+    }
+  });
+};
+
+export const useBulkUpdateLimsStock = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: ({
+      updates,
+      changeReason
+    }: {
+      updates: { id: string; payload: LimsStockPayload }[];
+      changeReason: string;
+    }) => bulkUpdateLimsStock(updates, changeReason),
+    onSuccess: (data) => {
+      toast(
+        data.count > 1
+          ? `${data.count} records updated successfully.`
+          : "Record updated successfully.",
+        "success"
+      );
       invalidate();
     }
   });

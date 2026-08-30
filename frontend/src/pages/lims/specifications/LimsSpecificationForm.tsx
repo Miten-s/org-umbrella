@@ -35,17 +35,21 @@ import type { LimsSpecification, LimsSpecificationPayload, LimsRef, LimsLimitRow
  * flow's batch save is JSON-only and can't carry file uploads. Used by
  * CopyStepper.
  */
-export type LimsSpecificationFormMode = "create" | "edit" | "view" | "copy";
+export type LimsSpecificationFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsSpecificationFormProps {
   mode?: LimsSpecificationFormMode;
   initialData?: LimsSpecification | null;
   onClose: () => void;
+  onUnchanged?: () => void;
   onSubmit: (payload: LimsSpecificationPayload, files: File[]) => Promise<void> | void;
   submitting?: boolean;
   /** Overrides the submit button's label — CopyStepper uses this to say
    * "Next" on every step but the last, where the batch actually saves. */
   submitLabel?: string;
+  /** Grays out the submit button without a spinner — EditStepper uses
+   * this on the last step now that its own Save button lives outside it. */
+  disabled?: boolean;
   /** Set on the `<form>` element so an outside button (CopyStepper's
    * header Next/Save) can submit it via `<Button form={formId}>`. */
   formId?: string;
@@ -62,9 +66,11 @@ const LimsSpecificationForm = ({
   mode = "create",
   initialData,
   onClose,
+  onUnchanged,
   onSubmit,
   submitting = false,
   submitLabel,
+  disabled = false,
   formId,
   stepLabel
 }: LimsSpecificationFormProps) => {
@@ -136,12 +142,12 @@ const LimsSpecificationForm = ({
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
           if (
-            mode === "edit" &&
+            (mode === "edit" || mode === "bulk-edit") &&
             !attachments.isDirty &&
             isPayloadEqual(values, initialValues) &&
             isPayloadEqual(limits, initialLimitsRef.current)
           ) {
-            onClose();
+            (onUnchanged ?? onClose)();
             return;
           }
           onSubmit(
@@ -157,7 +163,7 @@ const LimsSpecificationForm = ({
                         : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsSpecification") })}${stepLabel ?? ""}`
               : initialData
-              ? t("update", { entity: t("limsSpecification") })
+              ? `${t("update", { entity: t("limsSpecification") })}${stepLabel ?? ""}`
               : t("create", { entity: t("limsSpecification") })}
         </h2>
 
@@ -261,7 +267,7 @@ const LimsSpecificationForm = ({
               ]}
             />
           </div>
-          {mode !== "copy" && (
+          {mode !== "copy" && mode !== "bulk-edit" && (
             <LimsAttachmentsField attachments={attachments} disabled={isReadOnly} />
           )}
         </div>
@@ -271,7 +277,7 @@ const LimsSpecificationForm = ({
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy}>
+            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

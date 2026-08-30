@@ -1,6 +1,7 @@
 import { AvatarCell } from "@/components/data/cells/AvatarCell";
 import { StatusPill } from "@/components/data/cells/StatusPill";
 import { TruncateCell } from "@/components/data/cells/TruncateCell";
+import { DateCell } from "@/components/data/cells/DateCell";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import type { TFunction } from "i18next";
 import type { LimsSample, LimsRef } from "./LimsSample.types";
@@ -64,7 +65,7 @@ export const getLimsSampleColumns = ({ t }: { t: TFunction }): ColDef<LimsSample
     flex: 0.8,
     minWidth: 160,
     cellRenderer: (params: ICellRendererParams<LimsSample>) => (
-      <TruncateCell value={params.value} />
+      <DateCell value={params.value} />
     )
   },
   {

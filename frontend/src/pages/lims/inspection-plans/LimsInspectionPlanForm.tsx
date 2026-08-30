@@ -35,17 +35,21 @@ import type {
  * is empty, and otherwise honors whatever the user typed (subject to the
  * usual uniqueness check). Used by CopyStepper.
  */
-export type LimsInspectionPlanFormMode = "create" | "edit" | "view" | "copy";
+export type LimsInspectionPlanFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsInspectionPlanFormProps {
   mode?: LimsInspectionPlanFormMode;
   initialData?: LimsInspectionPlan | null;
   onClose: () => void;
+  onUnchanged?: () => void;
   onSubmit: (payload: LimsInspectionPlanPayload) => Promise<void> | void;
   submitting?: boolean;
   /** Overrides the submit button's label — CopyStepper uses this to say
    * "Next" on every step but the last, where the batch actually saves. */
   submitLabel?: string;
+  /** Grays out the submit button without a spinner — EditStepper uses
+   * this on the last step now that its own Save button lives outside it. */
+  disabled?: boolean;
   /** Set on the `<form>` element so an outside button (CopyStepper's
    * header Next/Save) can submit it via `<Button form={formId}>`. */
   formId?: string;
@@ -62,9 +66,11 @@ const LimsInspectionPlanForm = ({
   mode = "create",
   initialData,
   onClose,
+  onUnchanged,
   onSubmit,
   submitting = false,
   submitLabel,
+  disabled = false,
   formId,
   stepLabel
 }: LimsInspectionPlanFormProps) => {
@@ -152,11 +158,11 @@ const LimsInspectionPlanForm = ({
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
           if (
-            mode === "edit" &&
+            (mode === "edit" || mode === "bulk-edit") &&
             isPayloadEqual(values, initialValues) &&
             isPayloadEqual(personnel, initialPersonnelRef.current)
           ) {
-            onClose();
+            (onUnchanged ?? onClose)();
             return;
           }
           onSubmit({ ...values, personnel });
@@ -169,7 +175,7 @@ const LimsInspectionPlanForm = ({
                         : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsInspectionPlan") })}${stepLabel ?? ""}`
               : initialData
-              ? t("update", { entity: t("limsInspectionPlan") })
+              ? `${t("update", { entity: t("limsInspectionPlan") })}${stepLabel ?? ""}`
               : t("create", { entity: t("limsInspectionPlan") })}
         </h2>
 
@@ -278,7 +284,7 @@ const LimsInspectionPlanForm = ({
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy}>
+            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

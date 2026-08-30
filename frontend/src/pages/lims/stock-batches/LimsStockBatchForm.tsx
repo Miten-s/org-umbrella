@@ -28,17 +28,21 @@ import type { LimsStockBatch, LimsStockBatchPayload, LimsRef, LimsConsumptionRow
  * are hidden in this mode: the Copy flow's batch save is JSON-only and
  * can't carry file uploads. Used by CopyStepper.
  */
-export type LimsStockBatchFormMode = "create" | "edit" | "view" | "copy";
+export type LimsStockBatchFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsStockBatchFormProps {
   mode?: LimsStockBatchFormMode;
   initialData?: LimsStockBatch | null;
   onClose: () => void;
+  onUnchanged?: () => void;
   onSubmit: (payload: LimsStockBatchPayload, files: File[]) => Promise<void> | void;
   submitting?: boolean;
   /** Overrides the submit button's label — CopyStepper uses this to say
    * "Next" on every step but the last, where the batch actually saves. */
   submitLabel?: string;
+  /** Grays out the submit button without a spinner — EditStepper uses
+   * this on the last step now that its own Save button lives outside it. */
+  disabled?: boolean;
   /** Set on the `<form>` element so an outside button (CopyStepper's
    * header Next/Save) can submit it via `<Button form={formId}>`. */
   formId?: string;
@@ -55,9 +59,11 @@ const LimsStockBatchForm = ({
   mode = "create",
   initialData,
   onClose,
+  onUnchanged,
   onSubmit,
   submitting = false,
   submitLabel,
+  disabled = false,
   formId,
   stepLabel
 }: LimsStockBatchFormProps) => {
@@ -151,13 +157,13 @@ const LimsStockBatchForm = ({
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
           if (
-            mode === "edit" &&
+            (mode === "edit" || mode === "bulk-edit") &&
             !attachments.isDirty &&
             isPayloadEqual(values, initialValues) &&
             isPayloadEqual(consumptions, initialConsumptionsRef.current) &&
             isPayloadEqual(parameters, initialParametersRef.current)
           ) {
-            onClose();
+            (onUnchanged ?? onClose)();
             return;
           }
           onSubmit(
@@ -173,7 +179,7 @@ const LimsStockBatchForm = ({
             : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsStockBatch") })}${stepLabel ?? ""}`
               : initialData
-                ? t("update", { entity: t("limsStockBatch") })
+                ? `${t("update", { entity: t("limsStockBatch") })}${stepLabel ?? ""}`
                 : t("create", { entity: t("limsStockBatch") })}
         </h2>
 
@@ -314,7 +320,7 @@ const LimsStockBatchForm = ({
               ]}
             />
           </div>
-          {mode !== "copy" && (
+          {mode !== "copy" && mode !== "bulk-edit" && (
             <LimsAttachmentsField attachments={attachments} disabled={isReadOnly} />
           )}
         </div>
@@ -324,7 +330,7 @@ const LimsStockBatchForm = ({
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy}>
+            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

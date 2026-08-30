@@ -47,6 +47,9 @@ interface LimsAnalysisFormProps {
   /** Overrides the submit button's label — CopyStepper uses this to say
    * "Next" on every step but the last, where the batch actually saves. */
   submitLabel?: string;
+  /** Grays out the submit button without a spinner — EditStepper uses
+   * this on the last step now that its own Save button lives outside it. */
+  disabled?: boolean;
   /** Set on the `<form>` element so an outside button (CopyStepper's
    * header Next/Save) can submit it via `<Button form={formId}>`. */
   formId?: string;
@@ -67,6 +70,7 @@ const LimsAnalysisForm = ({
   onSubmit,
   submitting = false,
   submitLabel,
+  disabled = false,
   formId,
   stepLabel
 }: LimsAnalysisFormProps) => {
@@ -278,7 +282,7 @@ const LimsAnalysisForm = ({
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy}>
+            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

@@ -111,6 +111,18 @@ export const bulkCloneLimsRole = async (selection: BulkSelection) => {
   return response.data;
 };
 
+export const bulkUpdateLimsRole = async (
+  updates: { id: string; payload: LimsRolePayload }[],
+  changeReason: string
+) => {
+  const response = await limsApi.patch(`${ROUTE}/bulk-update`, { updates, changeReason });
+  return response.data as {
+    message: string;
+    count: number;
+    results: { id: string; skipped?: boolean }[];
+  };
+};
+
 export const restoreLimsRole = async (id: string, changeReason: string) => {
   const response = await limsApi.patch(`${ROUTE}/restore/${id}`, {
     changeReason

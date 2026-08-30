@@ -9,6 +9,7 @@ import {
   bulkCloneLimsParameter,
   bulkCopyLimsParameter,
   bulkDeleteLimsParameter,
+  bulkUpdateLimsParameter,
   createLimsParameter,
   fetchLimsParameterAudit,
   fetchLimsParameterOptions,
@@ -149,6 +150,28 @@ export const useBulkCopyLimsParameter = () => {
           { duration: 6000 }
         );
       }
+      invalidate();
+    }
+  });
+};
+
+export const useBulkUpdateLimsParameter = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: ({
+      updates,
+      changeReason
+    }: {
+      updates: { id: string; payload: LimsParameterPayload }[];
+      changeReason: string;
+    }) => bulkUpdateLimsParameter(updates, changeReason),
+    onSuccess: (data) => {
+      toast(
+        data.count > 1
+          ? `${data.count} records updated successfully.`
+          : "Record updated successfully.",
+        "success"
+      );
       invalidate();
     }
   });

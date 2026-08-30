@@ -9,6 +9,7 @@ import {
   bulkCloneLimsLocation,
   bulkCopyLimsLocation,
   bulkDeleteLimsLocation,
+  bulkUpdateLimsLocation,
   createLimsLocation,
   fetchLimsLocationAudit,
   fetchLimsLocationOptions,
@@ -161,6 +162,28 @@ export const useBulkCopyLimsLocation = () => {
           { duration: 6000 }
         );
       }
+      invalidate();
+    }
+  });
+};
+
+export const useBulkUpdateLimsLocation = () => {
+  const invalidate = useInvalidateLimsLocations();
+  return useMutation({
+    mutationFn: ({
+      updates,
+      changeReason
+    }: {
+      updates: { id: string; payload: LimsLocationPayload }[];
+      changeReason: string;
+    }) => bulkUpdateLimsLocation(updates, changeReason),
+    onSuccess: (data) => {
+      toast(
+        data.count > 1
+          ? `${data.count} records updated successfully.`
+          : "Record updated successfully.",
+        "success"
+      );
       invalidate();
     }
   });

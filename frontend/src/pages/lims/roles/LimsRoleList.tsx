@@ -6,6 +6,7 @@ import DataTable, {
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
 import CopyStepper from "@/components/data/CopyStepper";
+import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -14,6 +15,7 @@ import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
+import { toast } from "@/lib/toast";
 import { idsSelection } from "@/lib/query/listTypes";
 import {
   CopyIcon,
@@ -30,6 +32,7 @@ import {
   useBulkCloneLimsRole,
   useBulkCopyLimsRole,
   useBulkDeleteLimsRole,
+  useBulkUpdateLimsRole,
   useCreateLimsRole,
   useLimsRoleAudit,
   useRestoreLimsRole,
@@ -57,6 +60,7 @@ const LimsRoleList = () => {
   const [includeRemoved, setIncludeRemoved] = useState(false);
   // Set instead of activeId/formMode while the Copy review flow is open.
   const [copyIds, setCopyIds] = useState<string[] | null>(null);
+  const [editIds, setEditIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsRole, LimsRolePayload>();
   const auditQuery = useLimsRoleAudit(compliance.auditRow?.id);
@@ -82,6 +86,7 @@ const LimsRoleList = () => {
   const bulkClone = useBulkCloneLimsRole();
   const bulkCopy = useBulkCopyLimsRole();
   const bulkDelete = useBulkDeleteLimsRole();
+  const bulkUpdate = useBulkUpdateLimsRole();
   const restoreRole = useRestoreLimsRole();
 
   const busy =
@@ -90,6 +95,7 @@ const LimsRoleList = () => {
     bulkClone.isPending ||
     bulkCopy.isPending ||
     bulkDelete.isPending ||
+    bulkUpdate.isPending ||
     restoreRole.isPending;
 
   const columnDefs = useMemo(() => getLimsRoleColumns({ t }), [t]);
@@ -111,17 +117,31 @@ const LimsRoleList = () => {
     [openModal]
   );
 
+  const openEdit = useCallback(
+    (ids: string[]) => {
+      setEditIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
     setCopyIds(null);
+    setEditIds(null);
   };
 
   const handleSaveCopies = async (payloads: LimsRolePayload[]) => {
     await bulkCopy.mutateAsync(payloads);
     handleCloseForm();
     table.clearSelection();
+  };
+
+  const handleSaveEdits = (updates: { id: string; payload: LimsRolePayload }[]) => {
+    handleCloseForm();
+    compliance.requestBulkUpdate(updates);
   };
 
   const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
@@ -171,6 +191,20 @@ const LimsRoleList = () => {
         }
       },
       {
+        key: "edit",
+        label: () => t("edit"),
+        icon: PencilIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_ROLE,
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          openEdit(selection.ids);
+        }
+      },
+      {
         key: "delete",
         label: (count) => (count > 1 ? "Remove roles" : "Remove role"),
         icon: TrashBinIcon,
@@ -188,7 +222,7 @@ const LimsRoleList = () => {
           )
       }
     ],
-    [bulkClone, compliance, openCopy, table]
+    [bulkClone, compliance, openCopy, openEdit, t, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsRole>[]>(
@@ -300,6 +334,16 @@ const LimsRoleList = () => {
             saving={bulkCopy.isPending || bulkClone.isPending}
             entityLabel={t("limsRole")}
           />
+        ) : editIds ? (
+          <EditStepper<LimsRole, LimsRolePayload>
+            ids={editIds}
+            fetchById={fetchLimsRoleById}
+            FormComponent={LimsRoleForm}
+            onSaveAll={handleSaveEdits}
+            onClose={handleCloseForm}
+            saving={bulkUpdate.isPending}
+            entityLabel={t("limsRole")}
+          />
         ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
@@ -325,6 +369,7 @@ const LimsRoleList = () => {
         updating={updateRole.isPending}
         deleting={bulkDelete.isPending}
         restoring={restoreRole.isPending}
+        bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
         auditLoading={auditQuery.isLoading}
@@ -335,6 +380,14 @@ const LimsRoleList = () => {
 
         onAuditLoadMore={auditQuery.fetchNextPage}
         onUpdate={confirmUpdate}
+        onBulkUpdate={async (reason) => {
+          const pending = compliance.pendingBulkUpdate;
+          if (pending) {
+            await bulkUpdate.mutateAsync({ updates: pending.updates, changeReason: reason });
+            table.clearSelection();
+          }
+          compliance.clearBulkUpdate();
+        }}
         onDelete={async (reason) => {
           const pending = compliance.pendingDelete;
           if (pending) {

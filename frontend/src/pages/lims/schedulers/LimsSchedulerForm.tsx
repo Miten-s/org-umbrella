@@ -31,17 +31,21 @@ import type { LimsScheduler, LimsSchedulerPayload, LimsRef } from "./LimsSchedul
  * is empty, and otherwise honors whatever the user typed (subject to the
  * usual uniqueness check). Used by CopyStepper.
  */
-export type LimsSchedulerFormMode = "create" | "edit" | "view" | "copy";
+export type LimsSchedulerFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsSchedulerFormProps {
   mode?: LimsSchedulerFormMode;
   initialData?: LimsScheduler | null;
   onClose: () => void;
+  onUnchanged?: () => void;
   onSubmit: (payload: LimsSchedulerPayload) => Promise<void> | void;
   submitting?: boolean;
   /** Overrides the submit button's label — CopyStepper uses this to say
    * "Next" on every step but the last, where the batch actually saves. */
   submitLabel?: string;
+  /** Grays out the submit button without a spinner — EditStepper uses
+   * this on the last step now that its own Save button lives outside it. */
+  disabled?: boolean;
   /** Set on the `<form>` element so an outside button (CopyStepper's
    * header Next/Save) can submit it via `<Button form={formId}>`. */
   formId?: string;
@@ -58,9 +62,11 @@ const LimsSchedulerForm = ({
   mode = "create",
   initialData,
   onClose,
+  onUnchanged,
   onSubmit,
   submitting = false,
   submitLabel,
+  disabled = false,
   formId,
   stepLabel
 }: LimsSchedulerFormProps) => {
@@ -153,8 +159,8 @@ const LimsSchedulerForm = ({
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
-          if (mode === "edit" && isPayloadEqual(values, initialValues)) {
-            onClose();
+          if ((mode === "edit" || mode === "bulk-edit") && isPayloadEqual(values, initialValues)) {
+            (onUnchanged ?? onClose)();
             return;
           }
           onSubmit({ ...values });
@@ -167,7 +173,7 @@ const LimsSchedulerForm = ({
                         : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsScheduler") })}${stepLabel ?? ""}`
               : initialData
-              ? t("update", { entity: t("limsScheduler") })
+              ? `${t("update", { entity: t("limsScheduler") })}${stepLabel ?? ""}`
               : t("create", { entity: t("limsScheduler") })}
         </h2>
 
@@ -403,7 +409,7 @@ const LimsSchedulerForm = ({
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy}>
+            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

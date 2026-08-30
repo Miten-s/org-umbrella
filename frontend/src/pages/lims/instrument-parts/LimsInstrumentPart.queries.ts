@@ -9,6 +9,7 @@ import {
   bulkCloneLimsInstrumentPart,
   bulkCopyLimsInstrumentPart,
   bulkDeleteLimsInstrumentPart,
+  bulkUpdateLimsInstrumentPart,
   createLimsInstrumentPart,
   fetchLimsInstrumentPartAudit,
   fetchLimsInstrumentPartOptions,
@@ -150,6 +151,28 @@ export const useBulkCopyLimsInstrumentPart = () => {
           { duration: 6000 }
         );
       }
+      invalidate();
+    }
+  });
+};
+
+export const useBulkUpdateLimsInstrumentPart = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: ({
+      updates,
+      changeReason
+    }: {
+      updates: { id: string; payload: LimsInstrumentPartPayload }[];
+      changeReason: string;
+    }) => bulkUpdateLimsInstrumentPart(updates, changeReason),
+    onSuccess: (data) => {
+      toast(
+        data.count > 1
+          ? `${data.count} records updated successfully.`
+          : "Record updated successfully.",
+        "success"
+      );
       invalidate();
     }
   });

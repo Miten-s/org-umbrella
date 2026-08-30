@@ -6,6 +6,7 @@ import DataTable, {
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
 import CopyStepper from "@/components/data/CopyStepper";
+import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -14,6 +15,7 @@ import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
+import { toast } from "@/lib/toast";
 import { idsSelection } from "@/lib/query/listTypes";
 import {
   CopyIcon,
@@ -30,6 +32,7 @@ import {
   useBulkCloneLimsGroup,
   useBulkCopyLimsGroup,
   useBulkDeleteLimsGroup,
+  useBulkUpdateLimsGroup,
   useCreateLimsGroup,
   useLimsGroupAudit,
   useRestoreLimsGroup,
@@ -52,6 +55,7 @@ const LimsGroupList = () => {
   const [includeRemoved, setIncludeRemoved] = useState(false);
   // Set instead of activeId/formMode while the Copy review flow is open.
   const [copyIds, setCopyIds] = useState<string[] | null>(null);
+  const [editIds, setEditIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsGroup, LimsGroupPayload>();
   const auditQuery = useLimsGroupAudit(compliance.auditRow?.id);
@@ -77,6 +81,7 @@ const LimsGroupList = () => {
   const bulkClone = useBulkCloneLimsGroup();
   const bulkCopy = useBulkCopyLimsGroup();
   const bulkDelete = useBulkDeleteLimsGroup();
+  const bulkUpdate = useBulkUpdateLimsGroup();
   const restoreGroup = useRestoreLimsGroup();
 
   const busy =
@@ -85,6 +90,7 @@ const LimsGroupList = () => {
     bulkClone.isPending ||
     bulkCopy.isPending ||
     bulkDelete.isPending ||
+    bulkUpdate.isPending ||
     restoreGroup.isPending;
 
   const columnDefs = useMemo(() => getLimsGroupColumns({ t }), [t]);
@@ -106,17 +112,31 @@ const LimsGroupList = () => {
     [openModal]
   );
 
+  const openEdit = useCallback(
+    (ids: string[]) => {
+      setEditIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
     setCopyIds(null);
+    setEditIds(null);
   };
 
   const handleSaveCopies = async (payloads: LimsGroupPayload[]) => {
     await bulkCopy.mutateAsync(payloads);
     handleCloseForm();
     table.clearSelection();
+  };
+
+  const handleSaveEdits = (updates: { id: string; payload: LimsGroupPayload }[]) => {
+    handleCloseForm();
+    compliance.requestBulkUpdate(updates);
   };
 
   const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
@@ -166,6 +186,20 @@ const LimsGroupList = () => {
         }
       },
       {
+        key: "edit",
+        label: () => t("edit"),
+        icon: PencilIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_GROUP,
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          openEdit(selection.ids);
+        }
+      },
+      {
         key: "delete",
         label: (count) =>
           count > 1 ? "Remove lab groups" : "Remove lab group",
@@ -184,7 +218,7 @@ const LimsGroupList = () => {
           )
       }
     ],
-    [bulkClone, compliance, openCopy, table]
+    [bulkClone, compliance, openCopy, openEdit, t, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsGroup>[]>(
@@ -296,6 +330,16 @@ const LimsGroupList = () => {
             saving={bulkCopy.isPending || bulkClone.isPending}
             entityLabel={t("limsGroup")}
           />
+        ) : editIds ? (
+          <EditStepper<LimsGroup, LimsGroupPayload>
+            ids={editIds}
+            fetchById={fetchLimsGroupById}
+            FormComponent={LimsGroupForm}
+            onSaveAll={handleSaveEdits}
+            onClose={handleCloseForm}
+            saving={bulkUpdate.isPending}
+            entityLabel={t("limsGroup")}
+          />
         ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
@@ -321,6 +365,7 @@ const LimsGroupList = () => {
         updating={updateGroup.isPending}
         deleting={bulkDelete.isPending}
         restoring={restoreGroup.isPending}
+        bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
         auditLoading={auditQuery.isLoading}
@@ -331,6 +376,14 @@ const LimsGroupList = () => {
 
         onAuditLoadMore={auditQuery.fetchNextPage}
         onUpdate={confirmUpdate}
+        onBulkUpdate={async (reason) => {
+          const pending = compliance.pendingBulkUpdate;
+          if (pending) {
+            await bulkUpdate.mutateAsync({ updates: pending.updates, changeReason: reason });
+            table.clearSelection();
+          }
+          compliance.clearBulkUpdate();
+        }}
         onDelete={async (reason) => {
           const pending = compliance.pendingDelete;
           if (pending) {

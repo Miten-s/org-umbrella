@@ -6,6 +6,7 @@ import DataTable, {
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
 import CopyStepper from "@/components/data/CopyStepper";
+import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -14,6 +15,7 @@ import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
+import { toast } from "@/lib/toast";
 import { idsSelection } from "@/lib/query/listTypes";
 import {
   CopyIcon,
@@ -30,6 +32,7 @@ import {
   useBulkCloneLimsStudy,
   useBulkCopyLimsStudy,
   useBulkDeleteLimsStudy,
+  useBulkUpdateLimsStudy,
   useCreateLimsStudy,
   useLimsStudyAudit,
   useRestoreLimsStudy,
@@ -52,6 +55,7 @@ const LimsStudyList = () => {
   const [includeRemoved, setIncludeRemoved] = useState(false);
   // Set instead of activeId/formMode while the Copy review flow is open.
   const [copyIds, setCopyIds] = useState<string[] | null>(null);
+  const [editIds, setEditIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsStudy, LimsStudyPayload>();
   const auditQuery = useLimsStudyAudit(compliance.auditRow?.id);
@@ -77,6 +81,7 @@ const LimsStudyList = () => {
   const bulkClone = useBulkCloneLimsStudy();
   const bulkCopy = useBulkCopyLimsStudy();
   const bulkDelete = useBulkDeleteLimsStudy();
+  const bulkUpdate = useBulkUpdateLimsStudy();
   const restoreStudy = useRestoreLimsStudy();
 
   const busy =
@@ -85,6 +90,7 @@ const LimsStudyList = () => {
     bulkClone.isPending ||
     bulkCopy.isPending ||
     bulkDelete.isPending ||
+    bulkUpdate.isPending ||
     restoreStudy.isPending;
 
   const columnDefs = useMemo(() => getLimsStudyColumns({ t }), [t]);
@@ -106,17 +112,31 @@ const LimsStudyList = () => {
     [openModal]
   );
 
+  const openEdit = useCallback(
+    (ids: string[]) => {
+      setEditIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
     setCopyIds(null);
+    setEditIds(null);
   };
 
   const handleSaveCopies = async (payloads: LimsStudyPayload[]) => {
     await bulkCopy.mutateAsync(payloads);
     handleCloseForm();
     table.clearSelection();
+  };
+
+  const handleSaveEdits = (updates: { id: string; payload: LimsStudyPayload }[]) => {
+    handleCloseForm();
+    compliance.requestBulkUpdate(updates);
   };
 
   const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
@@ -164,6 +184,20 @@ const LimsStudyList = () => {
         }
       },
       {
+        key: "edit",
+        label: () => t("edit"),
+        icon: PencilIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_STUDY,
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          openEdit(selection.ids);
+        }
+      },
+      {
         key: "delete",
         label: (count) => (count > 1 ? "Remove studys" : "Remove study"),
         icon: TrashBinIcon,
@@ -181,7 +215,7 @@ const LimsStudyList = () => {
           )
       }
     ],
-    [bulkClone, compliance, openCopy, table]
+    [bulkClone, compliance, openCopy, openEdit, t, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsStudy>[]>(
@@ -293,6 +327,16 @@ const LimsStudyList = () => {
             saving={bulkCopy.isPending || bulkClone.isPending}
             entityLabel={t("limsStudy")}
           />
+        ) : editIds ? (
+          <EditStepper<LimsStudy, LimsStudyPayload>
+            ids={editIds}
+            fetchById={fetchLimsStudyById}
+            FormComponent={LimsStudyForm}
+            onSaveAll={handleSaveEdits}
+            onClose={handleCloseForm}
+            saving={bulkUpdate.isPending}
+            entityLabel={t("limsStudy")}
+          />
         ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
@@ -318,6 +362,7 @@ const LimsStudyList = () => {
         updating={updateStudy.isPending}
         deleting={bulkDelete.isPending}
         restoring={restoreStudy.isPending}
+        bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
         auditLoading={auditQuery.isLoading}
@@ -328,6 +373,14 @@ const LimsStudyList = () => {
 
         onAuditLoadMore={auditQuery.fetchNextPage}
         onUpdate={confirmUpdate}
+        onBulkUpdate={async (reason) => {
+          const pending = compliance.pendingBulkUpdate;
+          if (pending) {
+            await bulkUpdate.mutateAsync({ updates: pending.updates, changeReason: reason });
+            table.clearSelection();
+          }
+          compliance.clearBulkUpdate();
+        }}
         onDelete={async (reason) => {
           const pending = compliance.pendingDelete;
           if (pending) {

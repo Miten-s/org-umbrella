@@ -9,6 +9,7 @@ import {
   bulkCloneLimsRole,
   bulkCopyLimsRole,
   bulkDeleteLimsRole,
+  bulkUpdateLimsRole,
   createLimsRole,
   fetchLimsRoleOptions,
   fetchLimsRoleAudit,
@@ -160,6 +161,28 @@ export const useBulkCopyLimsRole = () => {
           { duration: 6000 }
         );
       }
+      invalidate();
+    }
+  });
+};
+
+export const useBulkUpdateLimsRole = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: ({
+      updates,
+      changeReason
+    }: {
+      updates: { id: string; payload: LimsRolePayload }[];
+      changeReason: string;
+    }) => bulkUpdateLimsRole(updates, changeReason),
+    onSuccess: (data) => {
+      toast(
+        data.count > 1
+          ? `${data.count} records updated successfully.`
+          : "Record updated successfully.",
+        "success"
+      );
       invalidate();
     }
   });

@@ -22,17 +22,21 @@ import type { LimsAliquot, LimsAliquotPayload, LimsAliquotRow } from "./LimsAliq
  * is empty, and otherwise honors whatever the user typed (subject to the
  * usual uniqueness check). Used by CopyStepper.
  */
-export type LimsAliquotFormMode = "create" | "edit" | "view" | "copy";
+export type LimsAliquotFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsAliquotFormProps {
   mode?: LimsAliquotFormMode;
   initialData?: LimsAliquot | null;
   onClose: () => void;
+  onUnchanged?: () => void;
   onSubmit: (payload: LimsAliquotPayload) => Promise<void> | void;
   submitting?: boolean;
   /** Overrides the submit button's label — CopyStepper uses this to say
    * "Next" on every step but the last, where the batch actually saves. */
   submitLabel?: string;
+  /** Grays out the submit button without a spinner — EditStepper uses
+   * this on the last step now that its own Save button lives outside it. */
+  disabled?: boolean;
   /** Set on the `<form>` element so an outside button (CopyStepper's
    * header Next/Save) can submit it via `<Button form={formId}>`. */
   formId?: string;
@@ -45,9 +49,11 @@ const LimsAliquotForm = ({
   mode = "create",
   initialData,
   onClose,
+  onUnchanged,
   onSubmit,
   submitting = false,
   submitLabel,
+  disabled = false,
   formId,
   stepLabel
 }: LimsAliquotFormProps) => {
@@ -107,11 +113,11 @@ const LimsAliquotForm = ({
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
           if (
-            mode === "edit" &&
+            (mode === "edit" || mode === "bulk-edit") &&
             isPayloadEqual(values, initialValues) &&
             isPayloadEqual(aliquots, initialAliquotsRef.current)
           ) {
-            onClose();
+            (onUnchanged ?? onClose)();
             return;
           }
           onSubmit({ ...values, aliquots });
@@ -124,7 +130,7 @@ const LimsAliquotForm = ({
                         : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsAliquot") })}${stepLabel ?? ""}`
               : initialData
-              ? t("update", { entity: t("limsAliquot") })
+              ? `${t("update", { entity: t("limsAliquot") })}${stepLabel ?? ""}`
               : t("create", { entity: t("limsAliquot") })}
         </h2>
 
@@ -169,7 +175,7 @@ const LimsAliquotForm = ({
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy}>
+            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

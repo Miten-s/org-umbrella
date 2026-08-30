@@ -25,17 +25,21 @@ import type { LimsBatch, LimsBatchPayload, LimsRef } from "./LimsBatch.types";
  * flow's batch save is JSON-only and can't carry file uploads. Used by
  * CopyStepper.
  */
-export type LimsBatchFormMode = "create" | "edit" | "view" | "copy";
+export type LimsBatchFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsBatchFormProps {
   mode?: LimsBatchFormMode;
   initialData?: LimsBatch | null;
   onClose: () => void;
+  onUnchanged?: () => void;
   onSubmit: (payload: LimsBatchPayload, files: File[]) => Promise<void> | void;
   submitting?: boolean;
   /** Overrides the submit button's label — CopyStepper uses this to say
    * "Next" on every step but the last, where the batch actually saves. */
   submitLabel?: string;
+  /** Grays out the submit button without a spinner — EditStepper uses
+   * this on the last step now that its own Save button lives outside it. */
+  disabled?: boolean;
   /** Set on the `<form>` element so an outside button (CopyStepper's
    * header Next/Save) can submit it via `<Button form={formId}>`. */
   formId?: string;
@@ -57,9 +61,11 @@ const LimsBatchForm = ({
   mode = "create",
   initialData,
   onClose,
+  onUnchanged,
   onSubmit,
   submitting = false,
   submitLabel,
+  disabled = false,
   formId,
   stepLabel
 }: LimsBatchFormProps) => {
@@ -121,8 +127,8 @@ const LimsBatchForm = ({
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
-          if (mode === "edit" && !attachments.isDirty && isPayloadEqual(values, initialValues)) {
-            onClose();
+          if ((mode === "edit" || mode === "bulk-edit") && !attachments.isDirty && isPayloadEqual(values, initialValues)) {
+            (onUnchanged ?? onClose)();
             return;
           }
           onSubmit({ ...values, keptAttachmentIds: attachments.keptIds }, attachments.newFiles);
@@ -135,7 +141,7 @@ const LimsBatchForm = ({
                         : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsBatch") })}${stepLabel ?? ""}`
               : initialData
-              ? t("update", { entity: t("limsBatch") })
+              ? `${t("update", { entity: t("limsBatch") })}${stepLabel ?? ""}`
               : t("create", { entity: t("limsBatch") })}
         </h2>
 
@@ -185,7 +191,7 @@ const LimsBatchForm = ({
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
-          {mode !== "copy" && (
+          {mode !== "copy" && mode !== "bulk-edit" && (
             <LimsAttachmentsField attachments={attachments} disabled={isReadOnly} />
           )}
         </div>
@@ -195,7 +201,7 @@ const LimsBatchForm = ({
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy}>
+            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

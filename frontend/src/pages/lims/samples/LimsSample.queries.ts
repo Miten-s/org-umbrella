@@ -9,6 +9,7 @@ import {
   bulkCloneLimsSample,
   bulkCopyLimsSample,
   bulkDeleteLimsSample,
+  bulkUpdateLimsSample,
   createLimsSample,
   fetchLimsSampleAudit,
   fetchLimsSampleOptions,
@@ -150,6 +151,28 @@ export const useBulkCopyLimsSample = () => {
           { duration: 6000 }
         );
       }
+      invalidate();
+    }
+  });
+};
+
+export const useBulkUpdateLimsSample = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: ({
+      updates,
+      changeReason
+    }: {
+      updates: { id: string; payload: LimsSamplePayload }[];
+      changeReason: string;
+    }) => bulkUpdateLimsSample(updates, changeReason),
+    onSuccess: (data) => {
+      toast(
+        data.count > 1
+          ? `${data.count} records updated successfully.`
+          : "Record updated successfully.",
+        "success"
+      );
       invalidate();
     }
   });

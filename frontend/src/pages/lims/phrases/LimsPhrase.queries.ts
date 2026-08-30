@@ -10,6 +10,7 @@ import {
   bulkCloneLimsPhrase,
   bulkCopyLimsPhrase,
   bulkDeleteLimsPhrase,
+  bulkUpdateLimsPhrase,
   createLimsPhrase,
   fetchLimsPhraseAudit,
   fetchPhraseEntryOptions,
@@ -173,6 +174,28 @@ export const useBulkCopyLimsPhrase = () => {
           { duration: 6000 }
         );
       }
+      invalidate();
+    }
+  });
+};
+
+export const useBulkUpdateLimsPhrase = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: ({
+      updates,
+      changeReason
+    }: {
+      updates: { id: string; payload: LimsPhrasePayload }[];
+      changeReason: string;
+    }) => bulkUpdateLimsPhrase(updates, changeReason),
+    onSuccess: (data) => {
+      toast(
+        data.count > 1
+          ? `${data.count} records updated successfully.`
+          : "Record updated successfully.",
+        "success"
+      );
       invalidate();
     }
   });

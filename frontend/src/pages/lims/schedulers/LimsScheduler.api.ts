@@ -86,6 +86,18 @@ export const bulkCopyLimsScheduler = async (records: LimsSchedulerPayload[]) => 
   };
 };
 
+export const bulkUpdateLimsScheduler = async (
+  updates: { id: string; payload: LimsSchedulerPayload }[],
+  changeReason: string
+) => {
+  const response = await limsApi.patch(`${ROUTE}/bulk-update`, { updates, changeReason });
+  return response.data as {
+    message: string;
+    count: number;
+    results: { id: string; skipped?: boolean }[];
+  };
+};
+
 export const restoreLimsScheduler = async (id: string, changeReason: string) => {
   const response = await limsApi.patch(`${ROUTE}/restore/${id}`, { changeReason });
   return response.data;

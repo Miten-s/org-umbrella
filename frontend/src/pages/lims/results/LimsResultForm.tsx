@@ -25,17 +25,21 @@ import type { LimsResult, LimsResultPayload, LimsRef } from "./LimsResult.types"
  * locked/server-generated either way (see the read-only displays below).
  * Used by CopyStepper.
  */
-export type LimsResultFormMode = "create" | "edit" | "view" | "copy";
+export type LimsResultFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsResultFormProps {
   mode?: LimsResultFormMode;
   initialData?: LimsResult | null;
   onClose: () => void;
+  onUnchanged?: () => void;
   onSubmit: (payload: LimsResultPayload) => Promise<void> | void;
   submitting?: boolean;
   /** Overrides the submit button's label — CopyStepper uses this to say
    * "Next" on every step but the last, where the batch actually saves. */
   submitLabel?: string;
+  /** Grays out the submit button without a spinner — EditStepper uses
+   * this on the last step now that its own Save button lives outside it. */
+  disabled?: boolean;
   /** Set on the `<form>` element so an outside button (CopyStepper's
    * header Next/Save) can submit it via `<Button form={formId}>`. */
   formId?: string;
@@ -52,9 +56,11 @@ const LimsResultForm = ({
   mode = "create",
   initialData,
   onClose,
+  onUnchanged,
   onSubmit,
   submitting = false,
   submitLabel,
+  disabled = false,
   formId,
   stepLabel
 }: LimsResultFormProps) => {
@@ -138,8 +144,8 @@ const LimsResultForm = ({
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
-          if (mode === "edit" && isPayloadEqual(values, initialValues)) {
-            onClose();
+          if ((mode === "edit" || mode === "bulk-edit") && isPayloadEqual(values, initialValues)) {
+            (onUnchanged ?? onClose)();
             return;
           }
           onSubmit({ ...values });
@@ -152,7 +158,7 @@ const LimsResultForm = ({
             : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsResult") })}${stepLabel ?? ""}`
               : initialData
-                ? t("update", { entity: t("limsResult") })
+                ? `${t("update", { entity: t("limsResult") })}${stepLabel ?? ""}`
                 : t("create", { entity: t("limsResult") })}
         </h2>
 
@@ -290,7 +296,7 @@ const LimsResultForm = ({
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy}>
+            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

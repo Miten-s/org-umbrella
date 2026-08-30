@@ -30,17 +30,21 @@ import type { LimsLocation, LimsLocationPayload, LimsRef } from "./LimsLocation.
  * is empty, and otherwise honors whatever the user typed (subject to the
  * usual uniqueness check). Used by CopyStepper.
  */
-export type LimsLocationFormMode = "create" | "edit" | "view" | "copy";
+export type LimsLocationFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsLocationFormProps {
   mode?: LimsLocationFormMode;
   initialData?: LimsLocation | null;
   onClose: () => void;
+  onUnchanged?: () => void;
   onSubmit: (payload: LimsLocationPayload, files: File[]) => Promise<void> | void;
   submitting?: boolean;
   /** Overrides the submit button's label — CopyStepper uses this to say
    * "Next" on every step but the last, where the batch actually saves. */
   submitLabel?: string;
+  /** Grays out the submit button without a spinner — EditStepper uses
+   * this on the last step now that its own Save button lives outside it. */
+  disabled?: boolean;
   /** Set on the `<form>` element so an outside button (CopyStepper's
    * header Next/Save) can submit it via `<Button form={formId}>`. */
   formId?: string;
@@ -69,9 +73,11 @@ const LimsLocationForm = ({
   mode = "create",
   initialData,
   onClose,
+  onUnchanged,
   onSubmit,
   submitting = false,
   submitLabel,
+  disabled = false,
   formId,
   stepLabel
 }: LimsLocationFormProps) => {
@@ -117,8 +123,8 @@ const LimsLocationForm = ({
   const submit = handleSubmit((values) => {
     // Edit + nothing actually changed: skip the reason modal, update call,
     // and audit entry entirely — a no-op Save just closes.
-    if (mode === "edit" && !attachments.isDirty && isPayloadEqual(values, initialValues)) {
-      onClose();
+    if ((mode === "edit" || mode === "bulk-edit") && !attachments.isDirty && isPayloadEqual(values, initialValues)) {
+      (onUnchanged ?? onClose)();
       return;
     }
     onSubmit(
@@ -136,7 +142,7 @@ const LimsLocationForm = ({
                         : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsLocation") })}${stepLabel ?? ""}`
               : initialData
-              ? t("update", { entity: t("limsLocation") })
+              ? `${t("update", { entity: t("limsLocation") })}${stepLabel ?? ""}`
               : t("create", { entity: t("limsLocation") })}
         </h2>
 
@@ -337,7 +343,7 @@ const LimsLocationForm = ({
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy}>
+            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

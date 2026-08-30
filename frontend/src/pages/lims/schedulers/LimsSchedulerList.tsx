@@ -6,6 +6,7 @@ import DataTable, {
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
 import CopyStepper from "@/components/data/CopyStepper";
+import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -14,6 +15,7 @@ import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
+import { toast } from "@/lib/toast";
 import { idsSelection } from "@/lib/query/listTypes";
 import {
   CopyIcon,
@@ -30,6 +32,7 @@ import {
   useBulkCloneLimsScheduler,
   useBulkCopyLimsScheduler,
   useBulkDeleteLimsScheduler,
+  useBulkUpdateLimsScheduler,
   useCreateLimsScheduler,
   useLimsSchedulerAudit,
   useRestoreLimsScheduler,
@@ -57,6 +60,7 @@ const LimsSchedulerList = () => {
   const [includeRemoved, setIncludeRemoved] = useState(false);
   // Set instead of activeId/formMode while the Copy review flow is open.
   const [copyIds, setCopyIds] = useState<string[] | null>(null);
+  const [editIds, setEditIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsScheduler, LimsSchedulerPayload>();
   const auditQuery = useLimsSchedulerAudit(compliance.auditRow?.id);
@@ -84,6 +88,7 @@ const LimsSchedulerList = () => {
   const bulkClone = useBulkCloneLimsScheduler();
   const bulkCopy = useBulkCopyLimsScheduler();
   const bulkDelete = useBulkDeleteLimsScheduler();
+  const bulkUpdate = useBulkUpdateLimsScheduler();
   const restore = useRestoreLimsScheduler();
 
   const busy =
@@ -92,6 +97,7 @@ const LimsSchedulerList = () => {
     bulkClone.isPending ||
     bulkCopy.isPending ||
     bulkDelete.isPending ||
+    bulkUpdate.isPending ||
     restore.isPending;
 
   const columnDefs = useMemo(() => getLimsSchedulerColumns({ t }), [t]);
@@ -113,17 +119,31 @@ const LimsSchedulerList = () => {
     [openModal]
   );
 
+  const openEdit = useCallback(
+    (ids: string[]) => {
+      setEditIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
     setCopyIds(null);
+    setEditIds(null);
   };
 
   const handleSaveCopies = async (payloads: LimsSchedulerPayload[]) => {
     await bulkCopy.mutateAsync(payloads);
     handleCloseForm();
     table.clearSelection();
+  };
+
+  const handleSaveEdits = (updates: { id: string; payload: LimsSchedulerPayload }[]) => {
+    handleCloseForm();
+    compliance.requestBulkUpdate(updates);
   };
 
   const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
@@ -173,6 +193,20 @@ const LimsSchedulerList = () => {
         }
       },
       {
+        key: "edit",
+        label: () => t("edit"),
+        icon: PencilIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_SCHEDULER,
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          openEdit(selection.ids);
+        }
+      },
+      {
         key: "delete",
         label: () => t("limsRemove"),
         icon: TrashBinIcon,
@@ -190,7 +224,7 @@ const LimsSchedulerList = () => {
           )
       }
     ],
-    [bulkClone, compliance, openCopy, t, table]
+    [bulkClone, compliance, openCopy, openEdit, t, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsScheduler>[]>(
@@ -302,6 +336,16 @@ const LimsSchedulerList = () => {
             saving={bulkCopy.isPending || bulkClone.isPending}
             entityLabel={t("limsScheduler")}
           />
+        ) : editIds ? (
+          <EditStepper<LimsScheduler, LimsSchedulerPayload>
+            ids={editIds}
+            fetchById={fetchLimsSchedulerById}
+            FormComponent={LimsSchedulerForm}
+            onSaveAll={handleSaveEdits}
+            onClose={handleCloseForm}
+            saving={bulkUpdate.isPending}
+            entityLabel={t("limsScheduler")}
+          />
         ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
@@ -327,6 +371,7 @@ const LimsSchedulerList = () => {
         updating={update.isPending}
         deleting={bulkDelete.isPending}
         restoring={restore.isPending}
+        bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
         auditLoading={auditQuery.isLoading}
@@ -337,6 +382,14 @@ const LimsSchedulerList = () => {
 
         onAuditLoadMore={auditQuery.fetchNextPage}
         onUpdate={confirmUpdate}
+        onBulkUpdate={async (reason) => {
+          const pending = compliance.pendingBulkUpdate;
+          if (pending) {
+            await bulkUpdate.mutateAsync({ updates: pending.updates, changeReason: reason });
+            table.clearSelection();
+          }
+          compliance.clearBulkUpdate();
+        }}
         onDelete={async (reason) => {
           const pending = compliance.pendingDelete;
           if (pending) {

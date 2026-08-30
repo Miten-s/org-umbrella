@@ -25,17 +25,21 @@ import type { LimsCalibration, LimsCalibrationPayload, LimsRef } from "./LimsCal
  * is empty, and otherwise honors whatever the user typed (subject to the
  * usual uniqueness check). Used by CopyStepper.
  */
-export type LimsCalibrationFormMode = "create" | "edit" | "view" | "copy";
+export type LimsCalibrationFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsCalibrationFormProps {
   mode?: LimsCalibrationFormMode;
   initialData?: LimsCalibration | null;
   onClose: () => void;
+  onUnchanged?: () => void;
   onSubmit: (payload: LimsCalibrationPayload) => Promise<void> | void;
   submitting?: boolean;
   /** Overrides the submit button's label — CopyStepper uses this to say
    * "Next" on every step but the last, where the batch actually saves. */
   submitLabel?: string;
+  /** Grays out the submit button without a spinner — EditStepper uses
+   * this on the last step now that its own Save button lives outside it. */
+  disabled?: boolean;
   /** Set on the `<form>` element so an outside button (CopyStepper's
    * header Next/Save) can submit it via `<Button form={formId}>`. */
   formId?: string;
@@ -52,9 +56,11 @@ const LimsCalibrationForm = ({
   mode = "create",
   initialData,
   onClose,
+  onUnchanged,
   onSubmit,
   submitting = false,
   submitLabel,
+  disabled = false,
   formId,
   stepLabel
 }: LimsCalibrationFormProps) => {
@@ -141,8 +147,8 @@ const LimsCalibrationForm = ({
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
-          if (mode === "edit" && isPayloadEqual(values, initialValues)) {
-            onClose();
+          if ((mode === "edit" || mode === "bulk-edit") && isPayloadEqual(values, initialValues)) {
+            (onUnchanged ?? onClose)();
             return;
           }
           onSubmit({ ...values });
@@ -155,7 +161,7 @@ const LimsCalibrationForm = ({
                         : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsCalibration") })}${stepLabel ?? ""}`
               : initialData
-              ? t("update", { entity: t("limsCalibration") })
+              ? `${t("update", { entity: t("limsCalibration") })}${stepLabel ?? ""}`
               : t("create", { entity: t("limsCalibration") })}
         </h2>
 
@@ -292,7 +298,7 @@ const LimsCalibrationForm = ({
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy}>
+            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

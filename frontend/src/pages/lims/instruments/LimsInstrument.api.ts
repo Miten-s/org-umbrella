@@ -137,6 +137,18 @@ export const bulkCloneLimsInstrument = async (selection: BulkSelection) => {
   return response.data;
 };
 
+export const bulkUpdateLimsInstrument = async (
+  updates: { id: string; payload: LimsInstrumentPayload }[],
+  changeReason: string
+) => {
+  const response = await limsApi.patch(`${ROUTE}/bulk-update`, { updates, changeReason });
+  return response.data as {
+    message: string;
+    count: number;
+    results: { id: string; skipped?: boolean }[];
+  };
+};
+
 export const restoreLimsInstrument = async (
   id: string,
   changeReason: string

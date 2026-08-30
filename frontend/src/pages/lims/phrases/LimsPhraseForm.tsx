@@ -30,17 +30,21 @@ import type {
  * which strips this same flag off a clone), so Copy must never inherit the
  * identity lock. Used by CopyStepper.
  */
-export type LimsPhraseFormMode = "create" | "edit" | "view" | "copy";
+export type LimsPhraseFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsPhraseFormProps {
   mode?: LimsPhraseFormMode;
   initialData?: LimsPhrase | null;
   onClose: () => void;
+  onUnchanged?: () => void;
   onSubmit: (payload: LimsPhrasePayload) => Promise<void> | void;
   submitting?: boolean;
   /** Overrides the submit button's label — CopyStepper uses this to say
    * "Next" on every step but the last, where the batch actually saves. */
   submitLabel?: string;
+  /** Grays out the submit button without a spinner — EditStepper uses
+   * this on the last step now that its own Save button lives outside it. */
+  disabled?: boolean;
   /** Set on the `<form>` element so an outside button (CopyStepper's
    * header Next/Save) can submit it via `<Button form={formId}>`. */
   formId?: string;
@@ -56,9 +60,11 @@ const LimsPhraseForm = ({
   mode = "create",
   initialData,
   onClose,
+  onUnchanged,
   onSubmit,
   submitting = false,
   submitLabel,
+  disabled = false,
   formId,
   stepLabel
 }: LimsPhraseFormProps) => {
@@ -110,11 +116,11 @@ const LimsPhraseForm = ({
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
           if (
-            mode === "edit" &&
+            (mode === "edit" || mode === "bulk-edit") &&
             isPayloadEqual(values, initialValues) &&
             isPayloadEqual(entries, initialEntriesRef.current)
           ) {
-            onClose();
+            (onUnchanged ?? onClose)();
             return;
           }
           onSubmit({ ...values, entries });
@@ -127,7 +133,7 @@ const LimsPhraseForm = ({
             : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsPhrase") })}${stepLabel ?? ""}`
               : initialData
-                ? t("update", { entity: t("limsPhrase") })
+                ? `${t("update", { entity: t("limsPhrase") })}${stepLabel ?? ""}`
                 : t("create", { entity: t("limsPhrase") })}
         </h2>
 
@@ -217,7 +223,7 @@ const LimsPhraseForm = ({
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy}>
+            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

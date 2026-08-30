@@ -32,17 +32,21 @@ import type {
  * is empty, and otherwise honors whatever the user typed (subject to the
  * usual uniqueness check). Used by CopyStepper.
  */
-export type LimsTestGroupFormMode = "create" | "edit" | "view" | "copy";
+export type LimsTestGroupFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsTestGroupFormProps {
   mode?: LimsTestGroupFormMode;
   initialData?: LimsTestGroup | null;
   onClose: () => void;
+  onUnchanged?: () => void;
   onSubmit: (payload: LimsTestGroupPayload) => Promise<void> | void;
   submitting?: boolean;
   /** Overrides the submit button's label — CopyStepper uses this to say
    * "Next" on every step but the last, where the batch actually saves. */
   submitLabel?: string;
+  /** Grays out the submit button without a spinner — EditStepper uses
+   * this on the last step now that its own Save button lives outside it. */
+  disabled?: boolean;
   /** Set on the `<form>` element so an outside button (CopyStepper's
    * header Next/Save) can submit it via `<Button form={formId}>`. */
   formId?: string;
@@ -58,9 +62,11 @@ const LimsTestGroupForm = ({
   mode = "create",
   initialData,
   onClose,
+  onUnchanged,
   onSubmit,
   submitting = false,
   submitLabel,
+  disabled = false,
   formId,
   stepLabel
 }: LimsTestGroupFormProps) => {
@@ -118,11 +124,11 @@ const LimsTestGroupForm = ({
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
           if (
-            mode === "edit" &&
+            (mode === "edit" || mode === "bulk-edit") &&
             isPayloadEqual(values, initialValues) &&
             isPayloadEqual(tests, initialTestsRef.current)
           ) {
-            onClose();
+            (onUnchanged ?? onClose)();
             return;
           }
           onSubmit({ ...values, tests });
@@ -135,7 +141,7 @@ const LimsTestGroupForm = ({
                         : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsTestGroup") })}${stepLabel ?? ""}`
               : initialData
-              ? t("update", { entity: t("limsTestGroup") })
+              ? `${t("update", { entity: t("limsTestGroup") })}${stepLabel ?? ""}`
               : t("create", { entity: t("limsTestGroup") })}
         </h2>
 
@@ -242,7 +248,7 @@ const LimsTestGroupForm = ({
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy}>
+            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

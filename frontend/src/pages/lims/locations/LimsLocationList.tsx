@@ -6,6 +6,7 @@ import DataTable, {
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
 import CopyStepper from "@/components/data/CopyStepper";
+import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -14,6 +15,7 @@ import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
+import { toast } from "@/lib/toast";
 import { idsSelection } from "@/lib/query/listTypes";
 import {
   CopyIcon,
@@ -30,6 +32,7 @@ import {
   useBulkCloneLimsLocation,
   useBulkCopyLimsLocation,
   useBulkDeleteLimsLocation,
+  useBulkUpdateLimsLocation,
   useCreateLimsLocation,
   useLimsLocationAudit,
   useRestoreLimsLocation,
@@ -61,6 +64,7 @@ const LimsLocationList = () => {
   const [includeRemoved, setIncludeRemoved] = useState(false);
   // Set instead of activeId/formMode while the Copy review flow is open.
   const [copyIds, setCopyIds] = useState<string[] | null>(null);
+  const [editIds, setEditIds] = useState<string[] | null>(null);
 
   // Change reason + restore + audit, shared across every LIMS module.
   const compliance = useLimsCompliance<LimsLocation, LimsLocationPayload>();
@@ -91,6 +95,7 @@ const LimsLocationList = () => {
   const bulkClone = useBulkCloneLimsLocation();
   const bulkCopy = useBulkCopyLimsLocation();
   const bulkDelete = useBulkDeleteLimsLocation();
+  const bulkUpdate = useBulkUpdateLimsLocation();
   const restoreLocation = useRestoreLimsLocation();
 
   const busy =
@@ -99,6 +104,7 @@ const LimsLocationList = () => {
     bulkClone.isPending ||
     bulkCopy.isPending ||
     bulkDelete.isPending ||
+    bulkUpdate.isPending ||
     restoreLocation.isPending;
 
   const columnDefs = useMemo(() => getLimsLocationColumns({ t }), [t]);
@@ -120,17 +126,31 @@ const LimsLocationList = () => {
     [openModal]
   );
 
+  const openEdit = useCallback(
+    (ids: string[]) => {
+      setEditIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
     setCopyIds(null);
+    setEditIds(null);
   };
 
   const handleSaveCopies = async (payloads: LimsLocationPayload[]) => {
     await bulkCopy.mutateAsync(payloads);
     handleCloseForm();
     table.clearSelection();
+  };
+
+  const handleSaveEdits = (updates: { id: string; payload: LimsLocationPayload }[]) => {
+    handleCloseForm();
+    compliance.requestBulkUpdate(updates);
   };
 
   const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
@@ -180,6 +200,20 @@ const LimsLocationList = () => {
         }
       },
       {
+        key: "edit",
+        label: () => t("edit"),
+        icon: PencilIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_LOCATION,
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          openEdit(selection.ids);
+        }
+      },
+      {
         key: "delete",
         label: (count) =>
           count > 1 ? "Remove storage locations" : "Remove storage location",
@@ -198,7 +232,7 @@ const LimsLocationList = () => {
           )
       }
     ],
-    [bulkClone, compliance, openCopy, table]
+    [bulkClone, compliance, openCopy, openEdit, t, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsLocation>[]>(
@@ -311,6 +345,16 @@ const LimsLocationList = () => {
             saving={bulkCopy.isPending || bulkClone.isPending}
             entityLabel={t("limsLocation")}
           />
+        ) : editIds ? (
+          <EditStepper<LimsLocation, LimsLocationPayload>
+            ids={editIds}
+            fetchById={fetchLimsLocationById}
+            FormComponent={LimsLocationForm}
+            onSaveAll={handleSaveEdits}
+            onClose={handleCloseForm}
+            saving={bulkUpdate.isPending}
+            entityLabel={t("limsLocation")}
+          />
         ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
@@ -336,6 +380,7 @@ const LimsLocationList = () => {
         updating={updateLocation.isPending}
         deleting={bulkDelete.isPending}
         restoring={restoreLocation.isPending}
+        bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
         auditLoading={auditQuery.isLoading}
@@ -346,6 +391,14 @@ const LimsLocationList = () => {
 
         onAuditLoadMore={auditQuery.fetchNextPage}
         onUpdate={confirmUpdate}
+        onBulkUpdate={async (reason) => {
+          const pending = compliance.pendingBulkUpdate;
+          if (pending) {
+            await bulkUpdate.mutateAsync({ updates: pending.updates, changeReason: reason });
+            table.clearSelection();
+          }
+          compliance.clearBulkUpdate();
+        }}
         onDelete={async (reason) => {
           const pending = compliance.pendingDelete;
           if (pending) {

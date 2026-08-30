@@ -22,6 +22,9 @@ export interface EditStepperFormProps<TRecord, TPayload> {
   onSubmit: (payload: TPayload, files?: File[]) => void | Promise<void>;
   submitting?: boolean;
   submitLabel?: string;
+  /** True on the last step — its own button has nowhere left to advance
+   * to; the real save lives in the bottom bar's Save-all instead. */
+  disabled?: boolean;
   formId?: string;
   stepLabel?: string;
 }
@@ -313,6 +316,7 @@ function EditStepper<TRecord, TPayload>({
                 onSubmit={(values, files) => handleStepSubmit(i, values, files)}
                 submitting={(saving && total === 1) || (autoSubmitting && i === index)}
                 submitLabel={isMulti ? t("next") : undefined}
+                disabled={isMulti && i === total - 1}
                 formId={`${formId}-${i}`}
                 stepLabel={
                   isMulti

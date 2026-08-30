@@ -9,6 +9,7 @@ import {
   bulkCloneLimsInspectionPlan,
   bulkCopyLimsInspectionPlan,
   bulkDeleteLimsInspectionPlan,
+  bulkUpdateLimsInspectionPlan,
   createLimsInspectionPlan,
   fetchLimsInspectionPlanAudit,
   fetchLimsInspectionPlanOptions,
@@ -149,6 +150,28 @@ export const useBulkCopyLimsInspectionPlan = () => {
           { duration: 6000 }
         );
       }
+      invalidate();
+    }
+  });
+};
+
+export const useBulkUpdateLimsInspectionPlan = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: ({
+      updates,
+      changeReason
+    }: {
+      updates: { id: string; payload: LimsInspectionPlanPayload }[];
+      changeReason: string;
+    }) => bulkUpdateLimsInspectionPlan(updates, changeReason),
+    onSuccess: (data) => {
+      toast(
+        data.count > 1
+          ? `${data.count} records updated successfully.`
+          : "Record updated successfully.",
+        "success"
+      );
       invalidate();
     }
   });

@@ -9,6 +9,7 @@ import {
   bulkCloneLimsCalibration,
   bulkCopyLimsCalibration,
   bulkDeleteLimsCalibration,
+  bulkUpdateLimsCalibration,
   createLimsCalibration,
   fetchLimsCalibrationAudit,
   fetchLimsCalibrationOptions,
@@ -149,6 +150,28 @@ export const useBulkCopyLimsCalibration = () => {
           { duration: 6000 }
         );
       }
+      invalidate();
+    }
+  });
+};
+
+export const useBulkUpdateLimsCalibration = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: ({
+      updates,
+      changeReason
+    }: {
+      updates: { id: string; payload: LimsCalibrationPayload }[];
+      changeReason: string;
+    }) => bulkUpdateLimsCalibration(updates, changeReason),
+    onSuccess: (data) => {
+      toast(
+        data.count > 1
+          ? `${data.count} records updated successfully.`
+          : "Record updated successfully.",
+        "success"
+      );
       invalidate();
     }
   });

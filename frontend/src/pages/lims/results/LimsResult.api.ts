@@ -86,6 +86,18 @@ export const bulkCopyLimsResult = async (records: LimsResultPayload[]) => {
   };
 };
 
+export const bulkUpdateLimsResult = async (
+  updates: { id: string; payload: LimsResultPayload }[],
+  changeReason: string
+) => {
+  const response = await limsApi.patch(`${ROUTE}/bulk-update`, { updates, changeReason });
+  return response.data as {
+    message: string;
+    count: number;
+    results: { id: string; skipped?: boolean }[];
+  };
+};
+
 export const restoreLimsResult = async (id: string, changeReason: string) => {
   const response = await limsApi.patch(`${ROUTE}/restore/${id}`, { changeReason });
   return response.data;
