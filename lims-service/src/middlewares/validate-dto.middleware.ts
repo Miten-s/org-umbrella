@@ -156,16 +156,26 @@ const validateOne = async (
  * prefixed with its 1-based position, so a batch of 10 with 2 bad rows
  * reports both by number rather than making the user resubmit repeatedly
  * to discover each one.
+ *
+ * `nestedField`, when given, validates `items[i][nestedField]` instead of
+ * `items[i]` itself — Bulk Edit's `PATCH <route>/bulk-update` body is
+ * `{ updates: [{ id, payload }] }`, so each entry's own `updateDto` checks
+ * belong on its `payload`, not on the `{ id, payload }` wrapper.
  */
-export const validateDtoArray = (dtoClass: any, arrayField: string): any => {
+export const validateDtoArray = (
+  dtoClass: any,
+  arrayField: string,
+  nestedField?: string
+): any => {
   return async (req: Request, res: Response, next: NextFunction) => {
     const items = (req.body as Record<string, unknown>)?.[arrayField];
     if (!Array.isArray(items)) return next();
 
     const allErrors: string[] = [];
-    const validated: any[] = [];
     for (let i = 0; i < items.length; i++) {
-      const { errors, value } = await validateOne(dtoClass, items[i]);
+      const item = items[i] as Record<string, unknown>;
+      const target = nestedField ? item?.[nestedField] : item;
+      const { errors, value } = await validateOne(dtoClass, target);
       if (errors.length) {
         // Suffixed, not prefixed: the frontend's error formatter
         // (error.utils.ts's `humanizeOne`) only title-cases/splits the
@@ -177,7 +187,8 @@ export const validateDtoArray = (dtoClass: any, arrayField: string): any => {
           items.length > 1 ? ` (record ${i + 1} of ${items.length})` : "";
         allErrors.push(...errors.map((msg) => `${msg}${suffix}`));
       }
-      validated.push(value);
+      if (nestedField) item[nestedField] = value;
+      else items[i] = value;
     }
 
     if (allErrors.length > 0) {
@@ -185,8 +196,6 @@ export const validateDtoArray = (dtoClass: any, arrayField: string): any => {
         .status(400)
         .json({ error: "Validation failed", errors: allErrors });
     }
-
-    (req.body as Record<string, unknown>)[arrayField] = validated;
     next();
   };
 };

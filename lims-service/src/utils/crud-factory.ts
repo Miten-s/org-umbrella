@@ -26,6 +26,7 @@ import {
 import {
   BulkOperationDto,
   BulkCreateDto,
+  BulkUpdateDto,
   RestoreOperationDto
 } from "../dtos/common.dto";
 import { authorize } from "../middlewares/authorize.middleware";
@@ -892,121 +893,171 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
   ) =>
     shape(formatLimsEntity(await repo.findAll({ ...query, scope: ctx.scope })));
 
+  /**
+   * The guts of a single update, minus its own transaction — shared by
+   * `update` (one record, one transaction) and `bulkUpdate` (N records, one
+   * shared transaction) the same way `createOne` is shared by `create` and
+   * `bulkCreate`. Returns `null` when the record isn't found or out of the
+   * caller's scope — `bulkUpdate` uses that to mark the entry skipped
+   * instead of failing the whole batch.
+   */
+  const updateOne = async (
+    id: string,
+    raw: Record<string, any>,
+    ctx: CrudContext,
+    transaction: Transaction,
+    files?: Express.Multer.File[]
+  ) => {
+    const payload = config.normalizePayload
+      ? config.normalizePayload(raw)
+      : raw;
+
+    // Scoped lookup: a record outside the caller's groups is not theirs to edit.
+    const existing = await repo.findById(id, ctx.scope, transaction, true);
+    if (!existing) return null;
+    const oldValue = existing.toJSON();
+    const mapped = toColumns(config, payload);
+
+    // A locked business ID is the record's identity in the lab's paperwork —
+    // Sample SMP-000042 must still be SMP-000042 tomorrow. Silently drop any
+    // attempt to change it rather than 400, so an edit that round-trips the
+    // whole record (which every form does) still succeeds.
+    if (config.businessId?.locked) delete mapped[config.businessId.field];
+
+    const data = beforeUpdate ? await beforeUpdate(mapped, existing) : mapped;
+
+    trimIdentifiers(config, data);
+
+    if (uniqueField && data[uniqueField] !== undefined) {
+      await assertUniqueCaseInsensitive(
+        model,
+        uniqueField,
+        data[uniqueField],
+        transaction,
+        id
+      );
+    }
+
+    const updated = await repo.update(
+      id,
+      { ...data, modifiedBy: ctx.actor.id },
+      transaction
+    );
+
+    const { oldChildren, newChildren, deltas } = await syncAllChildren(
+      config.children,
+      id,
+      payload,
+      transaction,
+      { ...oldValue, ...updated!.toJSON() }
+    );
+
+    // Attachments are a polymorphic side table, not a real child
+    // association — `keptAttachmentIds` only ever appears on a DTO whose
+    // entity actually carries `LimsAttachmentsField`, so this is a no-op
+    // for every other entity. Reconciled here (inside the same
+    // transaction, before the audit write) rather than in the
+    // controller, so an add/remove shows up in this same audit row
+    // instead of vanishing silently.
+    const keptAttachmentIds = Array.isArray(payload.keptAttachmentIds)
+      ? (payload.keptAttachmentIds as string[])
+      : undefined;
+    let attachmentsBefore:
+      Awaited<ReturnType<typeof attachmentsFor>> | undefined;
+    let attachmentsAfter:
+      Awaited<ReturnType<typeof attachmentsFor>> | undefined;
+    if (files?.length || keptAttachmentIds !== undefined) {
+      attachmentsBefore = await attachmentsFor(entityName, id, transaction);
+      const attachmentDelta = await reconcileAttachments(
+        entityName,
+        id,
+        files,
+        keptAttachmentIds,
+        ctx,
+        transaction
+      );
+      attachmentsAfter = await attachmentsFor(entityName, id, transaction);
+      if (attachmentDelta.added.length || attachmentDelta.removed.length) {
+        deltas.attachments = {
+          added: attachmentDelta.added.map((fileName) => ({ fileName })),
+          removed: attachmentDelta.removed.map((fileName) => ({ fileName })),
+          changed: []
+        };
+      }
+    }
+
+    await writeAudit({
+      entityName,
+      entityId: id,
+      action: "UPDATE",
+      oldValue: {
+        ...oldValue,
+        ...oldChildren,
+        ...(attachmentsBefore ? { attachments: attachmentsBefore } : {})
+      },
+      newValue: {
+        ...updated!.toJSON(),
+        ...newChildren,
+        ...(attachmentsAfter ? { attachments: attachmentsAfter } : {})
+      },
+      childChanges: Object.keys(deltas).length ? deltas : null,
+      changeReason: payload.changeReason,
+      actor: ctx.actor,
+      transaction
+    });
+
+    const reloaded = await repo.findByIdUnscoped(id, transaction, true);
+    return shape(formatLimsEntity(reloaded ?? updated));
+  };
+
   const update = async (
     id: string,
     raw: Record<string, any>,
     ctx: CrudContext,
     files?: Express.Multer.File[]
   ) => {
-    const payload = config.normalizePayload
-      ? config.normalizePayload(raw)
-      : raw;
     return sequelize
-      .transaction(async (transaction) => {
-        // Scoped lookup: a record outside the caller's groups is not theirs to edit.
-        const existing = await repo.findById(id, ctx.scope, transaction, true);
-        if (!existing) return null;
-        const oldValue = existing.toJSON();
-        const mapped = toColumns(config, payload);
-
-        // A locked business ID is the record's identity in the lab's paperwork —
-        // Sample SMP-000042 must still be SMP-000042 tomorrow. Silently drop any
-        // attempt to change it rather than 400, so an edit that round-trips the
-        // whole record (which every form does) still succeeds.
-        if (config.businessId?.locked) delete mapped[config.businessId.field];
-
-        const data = beforeUpdate
-          ? await beforeUpdate(mapped, existing)
-          : mapped;
-
-        trimIdentifiers(config, data);
-
-        if (uniqueField && data[uniqueField] !== undefined) {
-          await assertUniqueCaseInsensitive(
-            model,
-            uniqueField,
-            data[uniqueField],
-            transaction,
-            id
-          );
-        }
-
-        const updated = await repo.update(
-          id,
-          { ...data, modifiedBy: ctx.actor.id },
-          transaction
-        );
-
-        const { oldChildren, newChildren, deltas } = await syncAllChildren(
-          config.children,
-          id,
-          payload,
-          transaction,
-          { ...oldValue, ...updated!.toJSON() }
-        );
-
-        // Attachments are a polymorphic side table, not a real child
-        // association — `keptAttachmentIds` only ever appears on a DTO whose
-        // entity actually carries `LimsAttachmentsField`, so this is a no-op
-        // for every other entity. Reconciled here (inside the same
-        // transaction, before the audit write) rather than in the
-        // controller, so an add/remove shows up in this same audit row
-        // instead of vanishing silently.
-        const keptAttachmentIds = Array.isArray(payload.keptAttachmentIds)
-          ? (payload.keptAttachmentIds as string[])
-          : undefined;
-        let attachmentsBefore:
-          Awaited<ReturnType<typeof attachmentsFor>> | undefined;
-        let attachmentsAfter:
-          Awaited<ReturnType<typeof attachmentsFor>> | undefined;
-        if (files?.length || keptAttachmentIds !== undefined) {
-          attachmentsBefore = await attachmentsFor(entityName, id, transaction);
-          const attachmentDelta = await reconcileAttachments(
-            entityName,
-            id,
-            files,
-            keptAttachmentIds,
-            ctx,
-            transaction
-          );
-          attachmentsAfter = await attachmentsFor(entityName, id, transaction);
-          if (attachmentDelta.added.length || attachmentDelta.removed.length) {
-            deltas.attachments = {
-              added: attachmentDelta.added.map((fileName) => ({ fileName })),
-              removed: attachmentDelta.removed.map((fileName) => ({
-                fileName
-              })),
-              changed: []
-            };
-          }
-        }
-
-        await writeAudit({
-          entityName,
-          entityId: id,
-          action: "UPDATE",
-          oldValue: {
-            ...oldValue,
-            ...oldChildren,
-            ...(attachmentsBefore ? { attachments: attachmentsBefore } : {})
-          },
-          newValue: {
-            ...updated!.toJSON(),
-            ...newChildren,
-            ...(attachmentsAfter ? { attachments: attachmentsAfter } : {})
-          },
-          childChanges: Object.keys(deltas).length ? deltas : null,
-          changeReason: payload.changeReason,
-          actor: ctx.actor,
-          transaction
-        });
-
-        const reloaded = await repo.findByIdUnscoped(id, transaction, true);
-        return shape(formatLimsEntity(reloaded ?? updated));
-      })
+      .transaction((transaction) => updateOne(id, raw, ctx, transaction, files))
       .then(async (result) => {
         await afterWrite();
         return result;
+      });
+  };
+
+  /**
+   * Bulk Edit's save: the frontend already reviewed N real records
+   * client-side (see EditStepper) — only the ones actually changed, unlike
+   * Copy where every record needs a payload — and sends them together once.
+   * One shared transaction, one `updateOne` per entry, the same shared
+   * `changeReason` stamped on every entry's own audit row (folded into each
+   * entry's payload before calling `updateOne`, so its existing
+   * `payload.changeReason` → `writeAudit` path needs no changes). An id
+   * that's missing or out of scope by the time the batch runs is skipped,
+   * not fatal to the rest of the batch — mirrors `bulkDelete`'s permitted-ids
+   * filtering.
+   */
+  const bulkUpdate = async (
+    updates: { id: string; payload: Record<string, any> }[],
+    changeReason: string | undefined,
+    ctx: CrudContext
+  ) => {
+    return sequelize
+      .transaction(async (transaction) => {
+        const results: { id: string; skipped?: boolean }[] = [];
+        for (const { id, payload } of updates) {
+          const updated = await updateOne(
+            id,
+            { ...payload, changeReason },
+            ctx,
+            transaction
+          );
+          results.push(updated === null ? { id, skipped: true } : { id });
+        }
+        return results;
+      })
+      .then(async (results) => {
+        await afterWrite();
+        return results;
       });
   };
 
@@ -1254,6 +1305,7 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     getById,
     getAll,
     update,
+    bulkUpdate,
     remove,
     bulkDelete,
     bulkDuplicate,
@@ -1359,6 +1411,20 @@ export const buildCrudController = <M extends Model>(
     res.status(200).json({
       message: getMessage(CUSTOM_MESSAGES.ENTITY_UPDATED, entityName),
       data: updated
+    });
+  }),
+
+  bulkUpdate: asyncHandler(async (req: Request, res: Response) => {
+    const { updates, changeReason } = req.body as BulkUpdateDto;
+    const results = await service.bulkUpdate(
+      updates,
+      changeReason,
+      contextFromRequest(req)
+    );
+    res.status(200).json({
+      message: `${results.length} record(s) updated`,
+      count: results.length,
+      results
     });
   }),
 
@@ -1542,6 +1608,22 @@ export const buildCrudRouter = <M extends Model>(params: {
     controller.bulkCreate
   );
 
+  // Registered BEFORE the single-record PARAMS patch below: both are
+  // one-segment PATCH routes ("/bulk-update" vs "/:id"), so if PARAMS went
+  // first, "PATCH /bulk-update" would match it with id="bulk-update" and
+  // never reach this route at all.
+  router.patch(
+    API_ROUTES.BULK_UPDATE,
+    can("UPDATE"),
+    validateDto(BulkUpdateDto),
+    // Same idea as BULK_COPY's per-record createDto check, against each
+    // entry's `payload` instead of the entry itself (see `validateDtoArray`'s
+    // optional nested-field param).
+    updateDto
+      ? validateDtoArray(updateDto, "updates", "payload")
+      : (_req, _res, next) => next(),
+    controller.bulkUpdate
+  );
   router.patch(
     API_ROUTES.PARAMS,
     can("UPDATE"),

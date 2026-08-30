@@ -14,6 +14,7 @@ import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
+import { idsSelection } from "@/lib/query/listTypes";
 import {
   CopyIcon,
   EyeIcon,
@@ -123,6 +124,10 @@ const LimsStockBatchList = () => {
     await bulkCopy.mutateAsync(payloads);
     handleCloseForm();
     table.clearSelection();
+  };
+
+  const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
+    await bulkClone.mutateAsync(idsSelection(unreviewedIds));
   };
 
   const handleSave = async (payload: LimsStockBatchPayload, files: File[]) => {
@@ -293,8 +298,9 @@ const LimsStockBatchList = () => {
             fetchById={fetchLimsStockBatchById}
             FormComponent={LimsStockBatchForm}
             onSaveAll={handleSaveCopies}
+            onDuplicateUnreviewed={handleDuplicateUnreviewedCopies}
             onClose={handleCloseForm}
-            saving={bulkCopy.isPending}
+            saving={bulkCopy.isPending || bulkClone.isPending}
             entityLabel={t("limsStockBatch")}
           />
         ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (

@@ -81,6 +81,25 @@ const entityHandlers = listEntities().flatMap((entity) => {
       );
     }),
 
+    // Bulk Edit's batched save — one request, only the records the user
+    // actually reviewed and changed (see EditStepper / bulkUpdate in
+    // crud-factory.ts). One shared `changeReason` applied to every entry.
+    http.patch(url(`${route}/bulk-update`), async ({ request }) => {
+      const body = await readBody(request);
+      const updates =
+        (body.updates as { id: string; payload: Record<string, unknown> }[]) ?? [];
+      const changeReason = body.changeReason as string | undefined;
+      const results = updates.map(({ id, payload }) => {
+        const updated = updateRow(entity, id, { ...payload, changeReason });
+        return updated ? { id } : { id, skipped: true };
+      });
+      return HttpResponse.json({
+        message: "Updated",
+        count: results.length,
+        results
+      });
+    }),
+
     http.patch(url(`${route}/restore/:id`), async ({ params, request }) => {
       const body = await readBody(request);
       const row = restoreRow(entity, String(params.id), body.changeReason as string | undefined);

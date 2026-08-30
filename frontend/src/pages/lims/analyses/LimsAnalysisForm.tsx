@@ -28,13 +28,20 @@ import type { LimsAnalysis, LimsAnalysisPayload, LimsRef, LimsComponentRow } fro
  * mints a fresh one only when the field is empty, and otherwise honors
  * whatever the user typed (subject to the usual uniqueness check), so
  * there's no reason to lock it out. Used by CopyStepper.
+ *
+ * "bulk-edit" renders exactly like "edit" (real data, real ID, no schema
+ * change) — the only difference is what fires when nothing changed: "edit"
+ * closes the whole modal, "bulk-edit" calls `onUnchanged` instead so
+ * EditStepper can just skip this record and move on. Used by EditStepper.
  */
-export type LimsAnalysisFormMode = "create" | "edit" | "view" | "copy";
+export type LimsAnalysisFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsAnalysisFormProps {
   mode?: LimsAnalysisFormMode;
   initialData?: LimsAnalysis | null;
   onClose: () => void;
+  /** Fires instead of `onClose` when "edit"/"bulk-edit" finds nothing changed — EditStepper uses this to skip the record instead of closing the whole review. */
+  onUnchanged?: () => void;
   onSubmit: (payload: LimsAnalysisPayload) => Promise<void> | void;
   submitting?: boolean;
   /** Overrides the submit button's label — CopyStepper uses this to say
@@ -56,6 +63,7 @@ const LimsAnalysisForm = ({
   mode = "create",
   initialData,
   onClose,
+  onUnchanged,
   onSubmit,
   submitting = false,
   submitLabel,
@@ -129,11 +137,11 @@ const LimsAnalysisForm = ({
           // always submits, even when the user left every field untouched —
           // that untouched-name case is exactly what the batched Save is for.
           if (
-            mode === "edit" &&
+            (mode === "edit" || mode === "bulk-edit") &&
             isPayloadEqual(values, initialValues) &&
             isPayloadEqual(components, initialComponentsRef.current)
           ) {
-            onClose();
+            (onUnchanged ?? onClose)();
             return;
           }
           onSubmit({ ...values, components });
@@ -142,11 +150,11 @@ const LimsAnalysisForm = ({
       >
         <h2 className="text-xl font-semibold">
           {isReadOnly
-            ? t("view", { entity: t("limsAnalysis") })
+            ? `${t("view", { entity: t("limsAnalysis") })}${stepLabel ?? ""}`
             : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsAnalysis") })}${stepLabel ?? ""}`
               : initialData
-                ? t("update", { entity: t("limsAnalysis") })
+                ? `${t("update", { entity: t("limsAnalysis") })}${stepLabel ?? ""}`
                 : t("create", { entity: t("limsAnalysis") })}
         </h2>
 

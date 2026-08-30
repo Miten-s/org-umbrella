@@ -16,6 +16,7 @@ import { useModal } from "@/hooks/useModal";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { toast } from "@/lib/toast";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
+import { idsSelection } from "@/lib/query/listTypes";
 import {
   CopyIcon,
   EyeIcon,
@@ -129,6 +130,10 @@ const LimsUserList = () => {
     await bulkCopy.mutateAsync(payloads);
     handleCloseForm();
     table.clearSelection();
+  };
+
+  const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
+    await bulkClone.mutateAsync(idsSelection(unreviewedIds));
   };
 
   const handleSave = async (payload: LimsUserPayload) => {
@@ -325,8 +330,9 @@ const LimsUserList = () => {
             fetchById={fetchLimsUserById}
             FormComponent={LimsUserForm}
             onSaveAll={handleSaveCopies}
+            onDuplicateUnreviewed={handleDuplicateUnreviewedCopies}
             onClose={handleCloseForm}
-            saving={bulkCopy.isPending}
+            saving={bulkCopy.isPending || bulkClone.isPending}
             entityLabel={t("limsUser")}
           />
         ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (

@@ -14,6 +14,7 @@ import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
+import { idsSelection } from "@/lib/query/listTypes";
 import {
   CopyIcon,
   EyeIcon,
@@ -120,6 +121,10 @@ const LimsSupplierList = () => {
     await bulkCopy.mutateAsync(payloads);
     handleCloseForm();
     table.clearSelection();
+  };
+
+  const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
+    await bulkClone.mutateAsync(idsSelection(unreviewedIds));
   };
 
   const handleSave = async (payload: LimsSupplierPayload, files: File[]) => {
@@ -288,8 +293,9 @@ const LimsSupplierList = () => {
             fetchById={fetchLimsSupplierById}
             FormComponent={LimsSupplierForm}
             onSaveAll={handleSaveCopies}
+            onDuplicateUnreviewed={handleDuplicateUnreviewedCopies}
             onClose={handleCloseForm}
-            saving={bulkCopy.isPending}
+            saving={bulkCopy.isPending || bulkClone.isPending}
             entityLabel={t("limsSupplier")}
           />
         ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (

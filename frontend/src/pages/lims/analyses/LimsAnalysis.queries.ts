@@ -9,6 +9,7 @@ import {
   bulkCloneLimsAnalysis,
   bulkCopyLimsAnalysis,
   bulkDeleteLimsAnalysis,
+  bulkUpdateLimsAnalysis,
   createLimsAnalysis,
   fetchLimsAnalysisAudit,
   fetchLimsAnalysisOptions,
@@ -190,6 +191,35 @@ export const useBulkCopyLimsAnalysis = () => {
           { duration: 6000 }
         );
       }
+      invalidate();
+    }
+  });
+};
+
+/**
+ * Bulk Edit's batched save (see EditStepper) — one request updates every
+ * record the user actually reviewed and changed, all stamped with the one
+ * shared change reason. An id `skipped` (out of scope, or removed since
+ * the batch was reviewed) doesn't fail the rest — just doesn't show up
+ * updated after `invalidate()` refetches the list.
+ */
+export const useBulkUpdateLimsAnalysis = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: ({
+      updates,
+      changeReason
+    }: {
+      updates: { id: string; payload: LimsAnalysisPayload }[];
+      changeReason: string;
+    }) => bulkUpdateLimsAnalysis(updates, changeReason),
+    onSuccess: (data) => {
+      toast(
+        data.count > 1
+          ? `${data.count} records updated successfully.`
+          : "Record updated successfully.",
+        "success"
+      );
       invalidate();
     }
   });

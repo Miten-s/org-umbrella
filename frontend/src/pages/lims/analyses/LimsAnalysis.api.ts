@@ -88,6 +88,24 @@ export const bulkCopyLimsAnalysis = async (records: LimsAnalysisPayload[]) => {
   };
 };
 
+/**
+ * Bulk Edit's one and only network call: the user has already reviewed
+ * (and only kept) the records that actually changed via EditStepper — this
+ * sends just those, paired with their id, plus the one shared reason, to be
+ * updated in one transaction. See `bulkUpdate` in crud-factory.ts.
+ */
+export const bulkUpdateLimsAnalysis = async (
+  updates: { id: string; payload: LimsAnalysisPayload }[],
+  changeReason: string
+) => {
+  const response = await limsApi.patch(`${ROUTE}/bulk-update`, { updates, changeReason });
+  return response.data as {
+    message: string;
+    count: number;
+    results: { id: string; skipped?: boolean }[];
+  };
+};
+
 export const restoreLimsAnalysis = async (id: string, changeReason: string) => {
   const response = await limsApi.patch(`${ROUTE}/restore/${id}`, { changeReason });
   return response.data;
