@@ -44,7 +44,7 @@ services:
       PORT: ${BACKEND_PORT:-9000}
       JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
-      AUTH_POSTGRES_URI: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/auth-service
+      AUTH_POSTGRES_URI: ${AUTH_POSTGRES_URI:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/auth-service}
       AUTH_MONGO_URI: ${AUTH_MONGO_URI:-}
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -68,8 +68,8 @@ services:
       AUTH_MONGO_URI: ${AUTH_MONGO_URI}
       JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
-      GXP_POSTGRES_URI: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/gxp-service
-      AUTH_POSTGRES_URI: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/auth-service
+      GXP_POSTGRES_URI: ${GXP_POSTGRES_URI:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/gxp-service}
+      AUTH_POSTGRES_URI: ${AUTH_POSTGRES_URI:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/auth-service}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
@@ -88,8 +88,8 @@ services:
       - "9002:9002"
     environment:
       PORT: ${LIMS_PORT:-9002}
-      AUTH_POSTGRES_URI: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/auth-service
-      LIMS_POSTGRES_URI: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/lims-service
+      AUTH_POSTGRES_URI: ${AUTH_POSTGRES_URI:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/auth-service}
+      LIMS_POSTGRES_URI: ${LIMS_POSTGRES_URI:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/lims-service}
       JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       KAFKA_BROKER: ${KAFKA_BROKER:-}
