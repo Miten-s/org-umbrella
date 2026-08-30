@@ -8,9 +8,11 @@ export const sequelize = new Sequelize(
   {
     dialect: "postgres",
     logging: ENV.NODE_ENV === "development" ? (msg) => console.log(msg) : false,
-    dialectOptions: ENV.LIMS_POSTGRES_URI?.includes("sslmode=require")
-      ? { ssl: { require: true, rejectUnauthorized: false } }
-      : undefined,
+    dialectOptions:{
+      ssl: {
+        require: false,
+      }
+    },
     pool: {
       max: 10,
       min: 2,

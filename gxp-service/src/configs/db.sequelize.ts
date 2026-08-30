@@ -13,6 +13,11 @@ export const sequelize = new Sequelize(gxpPostgresUri || "postgres://postgres:po
     acquire: 30000,
     idle: 10000
   },
+  dialectOptions:{
+    ssl: {
+      require: false,
+    }
+  },
   define: {
     underscored: true,
     timestamps: true
