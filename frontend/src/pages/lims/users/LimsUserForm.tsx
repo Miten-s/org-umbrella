@@ -19,14 +19,34 @@ import { limsUserSchema, type LimsUserFormValues } from "./LimsUser.schema";
 import type { LimsRef, LimsUser, LimsUserPayload } from "./LimsUser.types";
 import type { AsyncOption } from "@/lib/query/listTypes";
 
-export type LimsUserFormMode = "create" | "edit" | "view";
+/**
+ * "copy" renders like "create" (fully editable) — the platform user picker
+ * (locked on Edit, since an existing assignment can't be repointed) is
+ * unlocked and blanked instead, since Copy's whole point here is assigning
+ * the same roles/groups to a DIFFERENT person, not re-selecting the same
+ * one (which would just collide on save). Used by CopyStepper.
+ */
+export type LimsUserFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsUserFormProps {
   mode?: LimsUserFormMode;
   initialData?: LimsUser | null;
   onClose: () => void;
+  onUnchanged?: () => void;
   onSubmit: (payload: LimsUserPayload) => Promise<void> | void;
   submitting?: boolean;
+  /** Overrides the submit button's label — CopyStepper uses this to say
+   * "Next" on every step but the last, where the batch actually saves. */
+  submitLabel?: string;
+  /** Grays out the submit button without a spinner — EditStepper uses
+   * this on the last step now that its own Save button lives outside it. */
+  disabled?: boolean;
+  /** Set on the `<form>` element so an outside button (CopyStepper's
+   * header Next/Save) can submit it via `<Button form={formId}>`. */
+  formId?: string;
+  /** " (2 of 5)" appended after the title when Copy is reviewing more
+   * than one record — undefined otherwise. */
+  stepLabel?: string;
 }
 
 const seedOne = (ref: LimsRef | null | undefined) =>
@@ -46,16 +66,24 @@ const LimsUserForm = ({
   mode = "create",
   initialData,
   onClose,
+  onUnchanged,
   onSubmit,
-  submitting = false
+  submitting = false,
+  submitLabel,
+  disabled = false,
+  formId,
+  stepLabel
 }: LimsUserFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
 
   // The chosen user's display name, captured from AsyncSelect so the payload can
   // carry `user: { id, name }`. Seeded on edit — the API returns the existing
-  // assignment as flat `userId`/`userName`, not a nested `user` relation.
-  const [selectedUserName, setSelectedUserName] = useState(initialData?.userName ?? "");
+  // assignment as flat `userId`/`userName`, not a nested `user` relation. Copy
+  // starts blank — see LimsUserFormMode's doc comment.
+  const [selectedUserName, setSelectedUserName] = useState(
+    mode === "copy" ? "" : (initialData?.userName ?? "")
+  );
   // Same draw-a-signature pattern as System IT Administration's Users form —
   // read imperatively at submit time, not through react-hook-form.
   const signatureRef = useRef<SignatureFieldHandle>(null);
@@ -64,7 +92,7 @@ const LimsUserForm = ({
   // against, so Save is a no-op when nothing actually differs from it.
   const initialValues = useMemo<LimsUserFormValues>(
     () => ({
-      userId: initialData?.userId ?? "",
+      userId: mode === "copy" ? "" : (initialData?.userId ?? ""),
       group: initialData?.group?.id ?? "",
       location: initialData?.location?.id ?? "",
       accessGroups: (initialData?.accessGroups ?? []).map((ref) => ref.id),
@@ -72,7 +100,7 @@ const LimsUserForm = ({
       description: initialData?.description ?? "",
       trainingCompleted: initialData?.trainingCompleted ?? false
     }),
-    [initialData]
+    [initialData, mode]
   );
 
   const {
@@ -88,9 +116,10 @@ const LimsUserForm = ({
   const description = useWatch({ control, name: "description" });
   const busy = submitting || isSubmitting;
 
-  const userSeed: AsyncOption[] | undefined = initialData?.userId
-    ? [{ value: initialData.userId, label: initialData.userName ?? "" }]
-    : undefined;
+  const userSeed: AsyncOption[] | undefined =
+    mode !== "copy" && initialData?.userId
+      ? [{ value: initialData.userId, label: initialData.userName ?? "" }]
+      : undefined;
 
   const err = (field: keyof LimsUserFormValues) =>
     errors[field] ? (
@@ -104,8 +133,8 @@ const LimsUserForm = ({
 
     // Edit + nothing actually changed: skip the reason modal, update call,
     // and audit entry entirely — a no-op Save just closes.
-    if (mode === "edit" && !signature && isPayloadEqual(values, initialValues)) {
-      onClose();
+    if ((mode === "edit" || mode === "bulk-edit") && !signature && isPayloadEqual(values, initialValues)) {
+      (onUnchanged ?? onClose)();
       return;
     }
 
@@ -123,13 +152,15 @@ const LimsUserForm = ({
 
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-      <form onSubmit={handleSubmit(submit)} className="min-w-0 space-y-4">
+      <form id={formId} onSubmit={handleSubmit(submit)} className="min-w-0 space-y-4">
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsUser") })
-            : initialData
-              ? t("update", { entity: t("limsUser") })
-              : t("create", { entity: t("limsUser") })}
+            : mode === "copy"
+              ? `${t("copyEntity", { entity: t("limsUser") })}${stepLabel ?? ""}`
+              : initialData
+                ? `${t("update", { entity: t("limsUser") })}${stepLabel ?? ""}`
+                : t("create", { entity: t("limsUser") })}
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
@@ -144,8 +175,9 @@ const LimsUserForm = ({
                   value={field.value}
                   onChange={field.onChange}
                   onChangeOption={(option) => setSelectedUserName(option?.label ?? "")}
-                  // Existing assignments can't be repointed at a different user.
-                  disabled={isReadOnly || Boolean(initialData)}
+                  // Existing assignments can't be repointed at a different
+                  // user — Copy is the one exception, see LimsUserFormMode.
+                  disabled={isReadOnly || (Boolean(initialData) && mode !== "copy")}
                   error={!!errors.userId}
                   placeholder={t("select", { entity: t("user") })}
                   initialSelectedOptions={userSeed}
@@ -273,8 +305,8 @@ const LimsUserForm = ({
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy}>
-              {t("save")}
+            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+              {submitLabel ?? t("save")}
             </Button>
           ) : null}
         </div>

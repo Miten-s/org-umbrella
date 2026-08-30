@@ -10,3 +10,12 @@ export const limsBatchSchema = z.object({
 });
 
 export type LimsBatchFormValues = z.infer<typeof limsBatchSchema>;
+
+/**
+ * Copy mode leaves the business ID blank + disabled (the server
+ * always mints a fresh one on save — see LimsBatchForm) — same shape,
+ * minus the required check, so the blank field doesn't block Save.
+ */
+export const limsBatchCopySchema = limsBatchSchema.extend({
+  batchId: z.string().max(150)
+});

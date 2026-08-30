@@ -7,7 +7,9 @@ import { useAsyncOptions } from "@/hooks/useAsyncOptions";
 import type { BulkSelection, ServerListParams } from "@/lib/query/listTypes";
 import {
   bulkCloneLimsAnalysis,
+  bulkCopyLimsAnalysis,
   bulkDeleteLimsAnalysis,
+  bulkUpdateLimsAnalysis,
   createLimsAnalysis,
   fetchLimsAnalysisAudit,
   fetchLimsAnalysisOptions,
@@ -15,7 +17,7 @@ import {
   updateLimsAnalysis,
   fetchLimsAnalysisById
 } from "./LimsAnalysis.api";
-import type { LimsAnalysisPayload } from "./LimsAnalysis.types";
+import type { LimsAnalysisPayload, LimsComponentRow } from "./LimsAnalysis.types";
 
 export const limsAnalysisKeys = {
   all: ["limsAnalysis"] as const,
@@ -52,6 +54,46 @@ export const useLimsAnalysisById = (id?: string, enabled = true) =>
     id,
     enabled
   });
+
+/**
+ * Components of ONE Analysis, as async-select options — for Specification
+ * Limits' `componentId` column (see LimsSpecificationForm), scoped per-row
+ * to whichever Analysis that row's `analysisId` cell holds. An Analysis's
+ * own component count is small (a handful to dozens), so this fetches the
+ * whole Analysis once (`fetchLimsAnalysisById`, already React-Query cached
+ * by id) and filters/pages its `components[]` in memory — real
+ * search-across-everything pagination lives one level up, in
+ * `useLimsAnalysisOptions`, for picking the Analysis itself.
+ */
+export const useLimsAnalysisComponentOptions = (
+  args: { search: string; enabled?: boolean; selectedValues?: string[] },
+  row?: { analysisId?: string }
+) => {
+  const analysisId = row?.analysisId;
+  return useAsyncOptions({
+    queryKey: [...limsAnalysisKeys.all, "components", analysisId ?? "none"],
+    enabled: Boolean(analysisId) && (args.enabled ?? true),
+    search: args.search,
+    selectedValues: args.selectedValues,
+    fetchPage: async ({ search }) => {
+      if (!analysisId) return { options: [], nextPage: null };
+      const analysis = await fetchLimsAnalysisById(analysisId);
+      const term = search.trim().toLowerCase();
+      const options = (analysis?.components ?? [])
+        .filter((component: LimsComponentRow) =>
+          term ? String(component.name ?? "").toLowerCase().includes(term) : true
+        )
+        .map((component: LimsComponentRow) => ({
+          value: String(component.id ?? ""),
+          label: String(component.name ?? component.componentId ?? ""),
+          sublabel: component.unit ? String(component.unit) : undefined,
+          data: component
+        }))
+        .filter((option) => option.value);
+      return { options, nextPage: null };
+    }
+  });
+};
 
 const useInvalidate = () => {
   const queryClient = useQueryClient();
@@ -115,6 +157,67 @@ export const useBulkCloneLimsAnalysis = () => {
         count && count > 1
           ? `${count} records copied successfully.`
           : "Record copied successfully.",
+        "success"
+      );
+      invalidate();
+    }
+  });
+};
+
+/**
+ * The Copy flow's batched save (see CopyStepper) — one request creates
+ * every reviewed record. Collisions on `analysisId`/name are warned, not
+ * rejected (server auto-suffixes) — surfaced here per record, since some
+ * rows in the batch may warn and others may not.
+ */
+export const useBulkCopyLimsAnalysis = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (records: LimsAnalysisPayload[]) => bulkCopyLimsAnalysis(records),
+    onSuccess: (data) => {
+      const warnings = data.results.filter((r) => r.warning);
+      toast(
+        data.count > 1
+          ? `${data.count} records copied successfully.`
+          : "Record copied successfully.",
+        "success"
+      );
+      if (warnings.length) {
+        toast(
+          warnings.length === 1
+            ? warnings[0].warning!
+            : `${warnings.length} of ${data.count} kept their original name — renamed to stay unique.`,
+          "info",
+          { duration: 6000 }
+        );
+      }
+      invalidate();
+    }
+  });
+};
+
+/**
+ * Bulk Edit's batched save (see EditStepper) — one request updates every
+ * record the user actually reviewed and changed, all stamped with the one
+ * shared change reason. An id `skipped` (out of scope, or removed since
+ * the batch was reviewed) doesn't fail the rest — just doesn't show up
+ * updated after `invalidate()` refetches the list.
+ */
+export const useBulkUpdateLimsAnalysis = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: ({
+      updates,
+      changeReason
+    }: {
+      updates: { id: string; payload: LimsAnalysisPayload }[];
+      changeReason: string;
+    }) => bulkUpdateLimsAnalysis(updates, changeReason),
+    onSuccess: (data) => {
+      toast(
+        data.count > 1
+          ? `${data.count} records updated successfully.`
+          : "Record updated successfully.",
         "success"
       );
       invalidate();

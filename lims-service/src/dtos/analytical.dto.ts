@@ -49,6 +49,11 @@ export class TestRowDto {
 export class LimitRowDto {
   @IsOptional() @IsString() @MaxLength(200) analysisName?: string;
   @IsOptional() @IsString() @MaxLength(200) componentName?: string;
+  // Set only when this row came from the Limits grid's Analysis/Component
+  // picker (see LimsSpecificationForm) — a manually-typed row leaves both
+  // null and stays freely editable.
+  @IsOptional() @IsUUID("4") analysisId?: string;
+  @IsOptional() @IsUUID("4") componentId?: string;
   @IsOptional() @IsString() @MaxLength(100) min?: string;
   @IsOptional() @IsString() @MaxLength(100) max?: string;
   @IsOptional() @IsString() @MaxLength(255) text?: string;

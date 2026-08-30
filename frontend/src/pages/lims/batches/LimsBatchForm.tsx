@@ -13,17 +13,39 @@ import { useAttachments } from "@/hooks/useAttachments";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsLotOptions } from "@/pages/lims/lots/LimsLot.queries";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
-import { limsBatchSchema, type LimsBatchFormValues } from "./LimsBatch.schema";
+import { limsBatchSchema, limsBatchCopySchema, type LimsBatchFormValues } from "./LimsBatch.schema";
 import type { LimsBatch, LimsBatchPayload, LimsRef } from "./LimsBatch.types";
 
-export type LimsBatchFormMode = "create" | "edit" | "view";
+/**
+ * "copy" renders like "create" (fully editable) except the business ID
+ * starts blank instead of pre-filled with the source's — stays EDITABLE,
+ * not disabled: `applyBusinessId` mints a fresh one only when the field
+ * is empty, and otherwise honors whatever the user typed (subject to the
+ * usual uniqueness check). Attachments are hidden in this mode: the Copy
+ * flow's batch save is JSON-only and can't carry file uploads. Used by
+ * CopyStepper.
+ */
+export type LimsBatchFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsBatchFormProps {
   mode?: LimsBatchFormMode;
   initialData?: LimsBatch | null;
   onClose: () => void;
+  onUnchanged?: () => void;
   onSubmit: (payload: LimsBatchPayload, files: File[]) => Promise<void> | void;
   submitting?: boolean;
+  /** Overrides the submit button's label — CopyStepper uses this to say
+   * "Next" on every step but the last, where the batch actually saves. */
+  submitLabel?: string;
+  /** Grays out the submit button without a spinner — EditStepper uses
+   * this on the last step now that its own Save button lives outside it. */
+  disabled?: boolean;
+  /** Set on the `<form>` element so an outside button (CopyStepper's
+   * header Next/Save) can submit it via `<Button form={formId}>`. */
+  formId?: string;
+  /** " (2 of 5)" appended after the title when Copy is reviewing more
+   * than one record — undefined otherwise. */
+  stepLabel?: string;
 }
 
 /** Seeds a dropdown label from the record's nested ref — no extra fetch. */
@@ -39,8 +61,13 @@ const LimsBatchForm = ({
   mode = "create",
   initialData,
   onClose,
+  onUnchanged,
   onSubmit,
-  submitting = false
+  submitting = false,
+  submitLabel,
+  disabled = false,
+  formId,
+  stepLabel
 }: LimsBatchFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
@@ -50,13 +77,13 @@ const LimsBatchForm = ({
   // against, so Save is a no-op when nothing actually differs from it.
   const initialValues = useMemo<LimsBatchFormValues>(
     () => ({
-      batchId: initialData?.batchId ?? "",
+      batchId: mode === "copy" ? "" : (initialData?.batchId ?? ""),
       batchName: initialData?.batchName ?? "",
       group: initialData?.group?.id ?? "",
       lots: (initialData?.lots ?? []).map((ref) => ref.id),
       description: initialData?.description ?? "",
     }),
-    [initialData]
+    [initialData, mode]
   );
 
   const {
@@ -66,7 +93,7 @@ const LimsBatchForm = ({
     setValue,
     formState: { errors, isSubmitting }
   } = useForm<LimsBatchFormValues>({
-    resolver: zodResolver(limsBatchSchema),
+    resolver: zodResolver(mode === "copy" ? limsBatchCopySchema : limsBatchSchema),
     defaultValues: initialValues
   });
 
@@ -77,14 +104,15 @@ const LimsBatchForm = ({
     name: keyof LimsBatchFormValues,
     label: string,
     required = false,
-    type = "text"
+    type = "text",
+    forceDisabled = false
   ) => (
     <div className="min-w-0">
       <Label required={required}>{label}</Label>
       <Input
         {...register(name)}
         type={type}
-        disabled={isReadOnly}
+        disabled={isReadOnly || forceDisabled}
         error={!!errors[name]}
         hint={errors[name]?.message as string}
         className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
@@ -95,11 +123,12 @@ const LimsBatchForm = ({
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
+        id={formId}
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
-          if (mode === "edit" && !attachments.isDirty && isPayloadEqual(values, initialValues)) {
-            onClose();
+          if ((mode === "edit" || mode === "bulk-edit") && !attachments.isDirty && isPayloadEqual(values, initialValues)) {
+            (onUnchanged ?? onClose)();
             return;
           }
           onSubmit({ ...values, keptAttachmentIds: attachments.keptIds }, attachments.newFiles);
@@ -109,8 +138,10 @@ const LimsBatchForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsBatch") })
-            : initialData
-              ? t("update", { entity: t("limsBatch") })
+                        : mode === "copy"
+              ? `${t("copyEntity", { entity: t("limsBatch") })}${stepLabel ?? ""}`
+              : initialData
+              ? `${t("update", { entity: t("limsBatch") })}${stepLabel ?? ""}`
               : t("create", { entity: t("limsBatch") })}
         </h2>
 
@@ -160,7 +191,9 @@ const LimsBatchForm = ({
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
-          <LimsAttachmentsField attachments={attachments} disabled={isReadOnly} />
+          {mode !== "copy" && mode !== "bulk-edit" && (
+            <LimsAttachmentsField attachments={attachments} disabled={isReadOnly} />
+          )}
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
@@ -168,8 +201,8 @@ const LimsBatchForm = ({
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy}>
-              {t("save")}
+            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+              {submitLabel ?? t("save")}
             </Button>
           ) : null}
         </div>

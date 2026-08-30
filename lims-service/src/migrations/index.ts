@@ -10,6 +10,7 @@ import * as m008 from "./008-create-analytical";
 import * as m009 from "./009-create-executions";
 import * as m010 from "./010-audit-action-cancel";
 import * as m011 from "./011-widen-lims-user-signature";
+import * as m012 from "./012-spec-limit-analysis-links";
 
 export const migrations: Migration[] = [
   { name: "001-create-audit-logs", up: m001.up },
@@ -22,7 +23,8 @@ export const migrations: Migration[] = [
   { name: "008-create-analytical", up: m008.up },
   { name: "009-create-executions", up: m009.up },
   { name: "010-audit-action-cancel", up: m010.up },
-  { name: "011-widen-lims-user-signature", up: m011.up }
+  { name: "011-widen-lims-user-signature", up: m011.up },
+  { name: "012-spec-limit-analysis-links", up: m012.up }
 ];
 
 export { runMigrations } from "./runner";

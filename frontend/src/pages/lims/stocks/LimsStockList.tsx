@@ -5,6 +5,8 @@ import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
+import CopyStepper from "@/components/data/CopyStepper";
+import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -13,6 +15,8 @@ import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
+import { toast } from "@/lib/toast";
+import { idsSelection } from "@/lib/query/listTypes";
 import {
   CopyIcon,
   EyeIcon,
@@ -21,12 +25,14 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsStockList } from "./LimsStock.api";
+import { fetchLimsStockById, fetchLimsStockList } from "./LimsStock.api";
 import { getLimsStockColumns } from "./LimsStock.columns";
 import {
   limsStockKeys,
   useBulkCloneLimsStock,
+  useBulkCopyLimsStock,
   useBulkDeleteLimsStock,
+  useBulkUpdateLimsStock,
   useCreateLimsStock,
   useLimsStockAudit,
   useRestoreLimsStock,
@@ -47,6 +53,9 @@ const LimsStockList = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsStockFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
+  // Set instead of activeId/formMode while the Copy review flow is open.
+  const [copyIds, setCopyIds] = useState<string[] | null>(null);
+  const [editIds, setEditIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsStock, LimsStockPayload>();
   const auditQuery = useLimsStockAudit(compliance.auditRow?.id);
@@ -70,14 +79,18 @@ const LimsStockList = () => {
   const create = useCreateLimsStock();
   const update = useUpdateLimsStock();
   const bulkClone = useBulkCloneLimsStock();
+  const bulkCopy = useBulkCopyLimsStock();
   const bulkDelete = useBulkDeleteLimsStock();
+  const bulkUpdate = useBulkUpdateLimsStock();
   const restore = useRestoreLimsStock();
 
   const busy =
     create.isPending ||
     update.isPending ||
     bulkClone.isPending ||
+    bulkCopy.isPending ||
     bulkDelete.isPending ||
+    bulkUpdate.isPending ||
     restore.isPending;
 
   const columnDefs = useMemo(() => getLimsStockColumns({ t }), [t]);
@@ -91,10 +104,43 @@ const LimsStockList = () => {
     [openModal]
   );
 
+  const openCopy = useCallback(
+    (ids: string[]) => {
+      setCopyIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
+  const openEdit = useCallback(
+    (ids: string[]) => {
+      setEditIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
+    setCopyIds(null);
+    setEditIds(null);
+  };
+
+  const handleSaveCopies = async (payloads: LimsStockPayload[]) => {
+    await bulkCopy.mutateAsync(payloads);
+    handleCloseForm();
+    table.clearSelection();
+  };
+
+  const handleSaveEdits = (updates: { id: string; payload: LimsStockPayload }[]) => {
+    handleCloseForm();
+    compliance.requestBulkUpdate(updates);
+  };
+
+  const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
+    await bulkClone.mutateAsync(idsSelection(unreviewedIds));
   };
 
   const handleSave = async (payload: LimsStockPayload, files: File[]) => {
@@ -131,8 +177,26 @@ const LimsStockList = () => {
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_STOCK,
         onClick: async (selection) => {
+          if (selection.mode === "ids") {
+            openCopy(selection.ids);
+            return;
+          }
           await bulkClone.mutateAsync(selection);
           table.clearSelection();
+        }
+      },
+      {
+        key: "edit",
+        label: () => t("edit"),
+        icon: PencilIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_STOCK,
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          openEdit(selection.ids);
         }
       },
       {
@@ -153,7 +217,7 @@ const LimsStockList = () => {
           )
       }
     ],
-    [bulkClone, compliance, t, table]
+    [bulkClone, compliance, openCopy, openEdit, t, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsStock>[]>(
@@ -188,7 +252,7 @@ const LimsStockList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_STOCK,
-        onClick: (row) => bulkClone.mutate({ mode: "ids", ids: [row.id] })
+        onClick: (row) => openCopy([row.id])
       },
       {
         key: "restore",
@@ -213,7 +277,7 @@ const LimsStockList = () => {
           ])
       }
     ],
-    [bulkClone, compliance, openForm, t]
+    [compliance, openCopy, openForm, t]
   );
 
   return (
@@ -252,8 +316,30 @@ const LimsStockList = () => {
         isOpen={isOpen}
         onClose={handleCloseForm}
         className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
+        disableOuterScroll
       >
-        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        {copyIds ? (
+          <CopyStepper<LimsStock, LimsStockPayload>
+            ids={copyIds}
+            fetchById={fetchLimsStockById}
+            FormComponent={LimsStockForm}
+            onSaveAll={handleSaveCopies}
+            onDuplicateUnreviewed={handleDuplicateUnreviewedCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending || bulkClone.isPending}
+            entityLabel={t("limsStock")}
+          />
+        ) : editIds ? (
+          <EditStepper<LimsStock, LimsStockPayload>
+            ids={editIds}
+            fetchById={fetchLimsStockById}
+            FormComponent={LimsStockForm}
+            onSaveAll={handleSaveEdits}
+            onClose={handleCloseForm}
+            saving={bulkUpdate.isPending}
+            entityLabel={t("limsStock")}
+          />
+        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>
@@ -278,6 +364,7 @@ const LimsStockList = () => {
         updating={update.isPending}
         deleting={bulkDelete.isPending}
         restoring={restore.isPending}
+        bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
         auditLoading={auditQuery.isLoading}
@@ -288,6 +375,14 @@ const LimsStockList = () => {
 
         onAuditLoadMore={auditQuery.fetchNextPage}
         onUpdate={confirmUpdate}
+        onBulkUpdate={async (reason) => {
+          const pending = compliance.pendingBulkUpdate;
+          if (pending) {
+            await bulkUpdate.mutateAsync({ updates: pending.updates, changeReason: reason });
+            table.clearSelection();
+          }
+          compliance.clearBulkUpdate();
+        }}
         onDelete={async (reason) => {
           const pending = compliance.pendingDelete;
           if (pending) {

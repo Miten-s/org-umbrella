@@ -9,17 +9,41 @@ import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import { useParameterTypeOptions } from "@/pages/lims/phrases/LimsPhrase.queries";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
-import { limsParameterSchema, type LimsParameterFormValues } from "./LimsParameter.schema";
+import {
+  limsParameterSchema,
+  limsParameterCopySchema,
+  type LimsParameterFormValues
+} from "./LimsParameter.schema";
 import type { LimsParameter, LimsParameterPayload, LimsRef } from "./LimsParameter.types";
 
-export type LimsParameterFormMode = "create" | "edit" | "view";
+/**
+ * "copy" renders like "create" (fully editable) except the business ID
+ * starts blank instead of pre-filled with the source's — stays EDITABLE,
+ * not disabled: `applyBusinessId` mints a fresh one only when the field
+ * is empty, and otherwise honors whatever the user typed (subject to the
+ * usual uniqueness check). Used by CopyStepper.
+ */
+export type LimsParameterFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsParameterFormProps {
   mode?: LimsParameterFormMode;
   initialData?: LimsParameter | null;
   onClose: () => void;
+  onUnchanged?: () => void;
   onSubmit: (payload: LimsParameterPayload) => Promise<void> | void;
   submitting?: boolean;
+  /** Overrides the submit button's label — CopyStepper uses this to say
+   * "Next" on every step but the last, where the batch actually saves. */
+  submitLabel?: string;
+  /** Grays out the submit button without a spinner — EditStepper uses
+   * this on the last step now that its own Save button lives outside it. */
+  disabled?: boolean;
+  /** Set on the `<form>` element so an outside button (CopyStepper's
+   * header Next/Save) can submit it via `<Button form={formId}>`. */
+  formId?: string;
+  /** " (2 of 5)" appended after the title when Copy is reviewing more
+   * than one record — undefined otherwise. */
+  stepLabel?: string;
 }
 
 const seedOne = (ref: LimsRef | null | undefined) =>
@@ -29,8 +53,13 @@ const LimsParameterForm = ({
   mode = "create",
   initialData,
   onClose,
+  onUnchanged,
   onSubmit,
-  submitting = false
+  submitting = false,
+  submitLabel,
+  disabled = false,
+  formId,
+  stepLabel
 }: LimsParameterFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
@@ -39,13 +68,13 @@ const LimsParameterForm = ({
   // against, so Save is a no-op when nothing actually differs from it.
   const initialValues = useMemo<LimsParameterFormValues>(
     () => ({
-      parameterId: initialData?.parameterId ?? "",
+      parameterId: mode === "copy" ? "" : (initialData?.parameterId ?? ""),
       parameterName: initialData?.parameterName ?? "",
       parameterType: initialData?.parameterType?.id ?? "",
       defaultValue: initialData?.defaultValue ?? "",
       unit: initialData?.unit ?? ""
     }),
-    [initialData]
+    [initialData, mode]
   );
 
   const {
@@ -54,7 +83,7 @@ const LimsParameterForm = ({
     handleSubmit,
     formState: { errors, isSubmitting }
   } = useForm<LimsParameterFormValues>({
-    resolver: zodResolver(limsParameterSchema),
+    resolver: zodResolver(mode === "copy" ? limsParameterCopySchema : limsParameterSchema),
     defaultValues: initialValues
   });
 
@@ -63,11 +92,12 @@ const LimsParameterForm = ({
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
+        id={formId}
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
-          if (mode === "edit" && isPayloadEqual(values, initialValues)) {
-            onClose();
+          if ((mode === "edit" || mode === "bulk-edit") && isPayloadEqual(values, initialValues)) {
+            (onUnchanged ?? onClose)();
             return;
           }
           onSubmit(values);
@@ -77,8 +107,10 @@ const LimsParameterForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsParameter") })
-            : initialData
-              ? t("update", { entity: t("limsParameter") })
+                        : mode === "copy"
+              ? `${t("copyEntity", { entity: t("limsParameter") })}${stepLabel ?? ""}`
+              : initialData
+              ? `${t("update", { entity: t("limsParameter") })}${stepLabel ?? ""}`
               : t("create", { entity: t("limsParameter") })}
         </h2>
 
@@ -155,8 +187,8 @@ const LimsParameterForm = ({
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy}>
-              {t("save")}
+            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+              {submitLabel ?? t("save")}
             </Button>
           ) : null}
         </div>

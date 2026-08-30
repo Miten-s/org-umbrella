@@ -5,6 +5,8 @@ import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
+import CopyStepper from "@/components/data/CopyStepper";
+import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -13,6 +15,8 @@ import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
+import { toast } from "@/lib/toast";
+import { idsSelection } from "@/lib/query/listTypes";
 import {
   CopyIcon,
   EyeIcon,
@@ -21,12 +25,14 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsPhraseList } from "./LimsPhrase.api";
+import { fetchLimsPhraseById, fetchLimsPhraseList } from "./LimsPhrase.api";
 import { getLimsPhraseColumns } from "./LimsPhrase.columns";
 import {
   limsPhraseKeys,
   useBulkCloneLimsPhrase,
+  useBulkCopyLimsPhrase,
   useBulkDeleteLimsPhrase,
+  useBulkUpdateLimsPhrase,
   useCreateLimsPhrase,
   useLimsPhraseAudit,
   useRestoreLimsPhrase,
@@ -52,6 +58,9 @@ const LimsPhraseList = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsPhraseFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
+  // Set instead of activeId/formMode while the Copy review flow is open.
+  const [copyIds, setCopyIds] = useState<string[] | null>(null);
+  const [editIds, setEditIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsPhrase, LimsPhrasePayload>();
   const auditQuery = useLimsPhraseAudit(compliance.auditRow?.id);
@@ -75,14 +84,18 @@ const LimsPhraseList = () => {
   const createPhrase = useCreateLimsPhrase();
   const updatePhrase = useUpdateLimsPhrase();
   const bulkClone = useBulkCloneLimsPhrase();
+  const bulkCopy = useBulkCopyLimsPhrase();
   const bulkDelete = useBulkDeleteLimsPhrase();
+  const bulkUpdate = useBulkUpdateLimsPhrase();
   const restorePhrase = useRestoreLimsPhrase();
 
   const busy =
     createPhrase.isPending ||
     updatePhrase.isPending ||
     bulkClone.isPending ||
+    bulkCopy.isPending ||
     bulkDelete.isPending ||
+    bulkUpdate.isPending ||
     restorePhrase.isPending;
 
   const columnDefs = useMemo(() => getLimsPhraseColumns({ t }), [t]);
@@ -96,10 +109,43 @@ const LimsPhraseList = () => {
     [openModal]
   );
 
+  const openCopy = useCallback(
+    (ids: string[]) => {
+      setCopyIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
+  const openEdit = useCallback(
+    (ids: string[]) => {
+      setEditIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
+    setCopyIds(null);
+    setEditIds(null);
+  };
+
+  const handleSaveCopies = async (payloads: LimsPhrasePayload[]) => {
+    await bulkCopy.mutateAsync(payloads);
+    handleCloseForm();
+    table.clearSelection();
+  };
+
+  const handleSaveEdits = (updates: { id: string; payload: LimsPhrasePayload }[]) => {
+    handleCloseForm();
+    compliance.requestBulkUpdate(updates);
+  };
+
+  const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
+    await bulkClone.mutateAsync(idsSelection(unreviewedIds));
   };
 
   const handleSave = async (payload: LimsPhrasePayload) => {
@@ -133,8 +179,26 @@ const LimsPhraseList = () => {
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_PHRASE,
         onClick: async (selection) => {
+          if (selection.mode === "ids") {
+            openCopy(selection.ids);
+            return;
+          }
           await bulkClone.mutateAsync(selection);
           table.clearSelection();
+        }
+      },
+      {
+        key: "edit",
+        label: () => t("edit"),
+        icon: PencilIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_PHRASE,
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          openEdit(selection.ids);
         }
       },
       {
@@ -156,7 +220,7 @@ const LimsPhraseList = () => {
           )
       }
     ],
-    [bulkClone, compliance, table]
+    [bulkClone, compliance, openCopy, openEdit, t, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsPhrase>[]>(
@@ -193,7 +257,7 @@ const LimsPhraseList = () => {
         permission: LIMS_PERMISSIONS.CREATE_PHRASE,
         // A cloned system list would collide on its seeded code.
         hidden: (phrase: LimsPhrase) => Boolean(phrase.isSystem),
-        onClick: (phrase) => bulkClone.mutate({ mode: "ids", ids: [phrase.id] })
+        onClick: (phrase) => openCopy([phrase.id])
       },
       {
         key: "restore",
@@ -220,7 +284,7 @@ const LimsPhraseList = () => {
           ])
       }
     ],
-    [bulkClone, compliance, openForm]
+    [compliance, openCopy, openForm]
   );
 
   return (
@@ -259,8 +323,30 @@ const LimsPhraseList = () => {
         isOpen={isOpen}
         onClose={handleCloseForm}
         className="m-4 max-w-[1000px] overflow-x-hidden dark:bg-gray-900"
+        disableOuterScroll
       >
-        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        {copyIds ? (
+          <CopyStepper<LimsPhrase, LimsPhrasePayload>
+            ids={copyIds}
+            fetchById={fetchLimsPhraseById}
+            FormComponent={LimsPhraseForm}
+            onSaveAll={handleSaveCopies}
+            onDuplicateUnreviewed={handleDuplicateUnreviewedCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending || bulkClone.isPending}
+            entityLabel={t("limsPhrase")}
+          />
+        ) : editIds ? (
+          <EditStepper<LimsPhrase, LimsPhrasePayload>
+            ids={editIds}
+            fetchById={fetchLimsPhraseById}
+            FormComponent={LimsPhraseForm}
+            onSaveAll={handleSaveEdits}
+            onClose={handleCloseForm}
+            saving={bulkUpdate.isPending}
+            entityLabel={t("limsPhrase")}
+          />
+        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>
@@ -285,6 +371,7 @@ const LimsPhraseList = () => {
         updating={updatePhrase.isPending}
         deleting={bulkDelete.isPending}
         restoring={restorePhrase.isPending}
+        bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
         auditLoading={auditQuery.isLoading}
@@ -295,6 +382,14 @@ const LimsPhraseList = () => {
 
         onAuditLoadMore={auditQuery.fetchNextPage}
         onUpdate={confirmUpdate}
+        onBulkUpdate={async (reason) => {
+          const pending = compliance.pendingBulkUpdate;
+          if (pending) {
+            await bulkUpdate.mutateAsync({ updates: pending.updates, changeReason: reason });
+            table.clearSelection();
+          }
+          compliance.clearBulkUpdate();
+        }}
         onDelete={async (reason) => {
           const pending = compliance.pendingDelete;
           if (pending) {

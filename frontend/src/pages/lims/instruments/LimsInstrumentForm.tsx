@@ -18,17 +18,39 @@ import { useInstrumentStatusOptions, useInstrumentTypeOptions, useMeasurementTyp
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsLocationOptions } from "@/pages/lims/locations/LimsLocation.queries";
 import { useLimsSupplierOptions } from "@/pages/lims/suppliers/LimsSupplier.queries";
-import { limsInstrumentSchema, type LimsInstrumentFormValues } from "./LimsInstrument.schema";
+import { limsInstrumentSchema, limsInstrumentCopySchema, type LimsInstrumentFormValues } from "./LimsInstrument.schema";
 import type { LimsInstrument, LimsInstrumentPayload, LimsRef, LimsMaintenanceRow, LimsParameterValue } from "./LimsInstrument.types";
 
-export type LimsInstrumentFormMode = "create" | "edit" | "view";
+/**
+ * "copy" renders like "create" (fully editable) except the business ID
+ * starts blank instead of pre-filled with the source's — stays EDITABLE,
+ * not disabled: `applyBusinessId` mints a fresh one only when the field
+ * is empty, and otherwise honors whatever the user typed (subject to the
+ * usual uniqueness check). Attachments are hidden in this mode: the Copy
+ * flow's batch save is JSON-only and can't carry file uploads. Used by
+ * CopyStepper.
+ */
+export type LimsInstrumentFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsInstrumentFormProps {
   mode?: LimsInstrumentFormMode;
   initialData?: LimsInstrument | null;
   onClose: () => void;
+  onUnchanged?: () => void;
   onSubmit: (payload: LimsInstrumentPayload, files: File[]) => Promise<void> | void;
   submitting?: boolean;
+  /** Overrides the submit button's label — CopyStepper uses this to say
+   * "Next" on every step but the last, where the batch actually saves. */
+  submitLabel?: string;
+  /** Grays out the submit button without a spinner — EditStepper uses
+   * this on the last step now that its own Save button lives outside it. */
+  disabled?: boolean;
+  /** Set on the `<form>` element so an outside button (CopyStepper's
+   * header Next/Save) can submit it via `<Button form={formId}>`. */
+  formId?: string;
+  /** " (2 of 5)" appended after the title when Copy is reviewing more
+   * than one record — undefined otherwise. */
+  stepLabel?: string;
 }
 
 /** Seeds a dropdown label from the record's nested ref — no extra fetch. */
@@ -39,8 +61,13 @@ const LimsInstrumentForm = ({
   mode = "create",
   initialData,
   onClose,
+  onUnchanged,
   onSubmit,
-  submitting = false
+  submitting = false,
+  submitLabel,
+  disabled = false,
+  formId,
+  stepLabel
 }: LimsInstrumentFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
@@ -54,7 +81,7 @@ const LimsInstrumentForm = ({
   // against, so Save is a no-op when nothing actually differs from it.
   const initialValues = useMemo<LimsInstrumentFormValues>(
     () => ({
-      instrumentId: initialData?.instrumentId ?? "",
+      instrumentId: mode === "copy" ? "" : (initialData?.instrumentId ?? ""),
       name: initialData?.name ?? "",
       type: initialData?.type?.id ?? "",
       measurementType: initialData?.measurementType?.id ?? "",
@@ -72,7 +99,7 @@ const LimsInstrumentForm = ({
       msaInformation: initialData?.msaInformation ?? "",
       details: initialData?.details ?? "",
     }),
-    [initialData]
+    [initialData, mode]
   );
 
   const {
@@ -82,7 +109,7 @@ const LimsInstrumentForm = ({
     setValue,
     formState: { errors, isSubmitting }
   } = useForm<LimsInstrumentFormValues>({
-    resolver: zodResolver(limsInstrumentSchema),
+    resolver: zodResolver(mode === "copy" ? limsInstrumentCopySchema : limsInstrumentSchema),
     defaultValues: initialValues
   });
 
@@ -95,7 +122,8 @@ const LimsInstrumentForm = ({
     name: keyof LimsInstrumentFormValues,
     label: string,
     required = false,
-    type = "text"
+    type = "text",
+    forceDisabled = false
   ) => (
     <div className="min-w-0">
       <Label required={required}>{label}</Label>
@@ -120,7 +148,7 @@ const LimsInstrumentForm = ({
         <Input
           {...register(name)}
           type={type}
-          disabled={isReadOnly}
+          disabled={isReadOnly || forceDisabled}
           error={!!errors[name]}
           hint={errors[name]?.message as string}
           className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
@@ -132,17 +160,18 @@ const LimsInstrumentForm = ({
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
+        id={formId}
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
           if (
-            mode === "edit" &&
+            (mode === "edit" || mode === "bulk-edit") &&
             !attachments.isDirty &&
             isPayloadEqual(values, initialValues) &&
             isPayloadEqual(parameters, initialParametersRef.current) &&
             isPayloadEqual(maintenance, initialMaintenanceRef.current)
           ) {
-            onClose();
+            (onUnchanged ?? onClose)();
             return;
           }
           onSubmit(
@@ -155,8 +184,10 @@ const LimsInstrumentForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsInstrument") })
-            : initialData
-              ? t("update", { entity: t("limsInstrument") })
+                        : mode === "copy"
+              ? `${t("copyEntity", { entity: t("limsInstrument") })}${stepLabel ?? ""}`
+              : initialData
+              ? `${t("update", { entity: t("limsInstrument") })}${stepLabel ?? ""}`
               : t("create", { entity: t("limsInstrument") })}
         </h2>
 
@@ -325,7 +356,9 @@ const LimsInstrumentForm = ({
               ]}
             />
           </div>
-          <LimsAttachmentsField attachments={attachments} disabled={isReadOnly} />
+          {mode !== "copy" && mode !== "bulk-edit" && (
+            <LimsAttachmentsField attachments={attachments} disabled={isReadOnly} />
+          )}
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
@@ -333,8 +366,8 @@ const LimsInstrumentForm = ({
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy}>
-              {t("save")}
+            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+              {submitLabel ?? t("save")}
             </Button>
           ) : null}
         </div>

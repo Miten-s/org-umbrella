@@ -217,6 +217,7 @@ export class UpdateResultDto {
   @IsOptional() @IsBoolean() outOfRange?: boolean;
   @IsOptional() @IsUUID("4") instrument?: string;
   @IsOptional() @IsUUID("4") stock?: string;
+  @IsOptional() @IsDateString() enteredOn?: string;
   @IsOptional() @IsString() @MaxLength(200) enteredBy?: string;
 
   @IsString()

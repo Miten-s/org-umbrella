@@ -9,6 +9,18 @@ interface ModalProps {
   isFullscreen?: boolean; // Default to false for backwards compatibility
   /** Fires on the scrollable content div — e.g. to trigger infinite-scroll loading. */
   onScroll?: React.UIEventHandler<HTMLDivElement>;
+  /**
+   * Set when the CONTENT already manages its own vertical scroll (a
+   * `max-h-[...] overflow-y-auto` wrapper of its own, e.g. every LIMS
+   * form's `modal-scrollbar` panel) — this outer wrapper's own scroll is
+   * then redundant, and having BOTH active at once is what showed as two
+   * scrollbars while typing (content growing pushed both containers past
+   * their threshold simultaneously). Defaults to false: many existing
+   * callers pass content with no vertical constraint of its own and rely
+   * on this wrapper to make it scrollable at all — flipping the default
+   * would clip their content instead of scrolling it.
+   */
+  disableOuterScroll?: boolean;
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -18,7 +30,8 @@ export const Modal: React.FC<ModalProps> = ({
   className,
   showCloseButton = true, // Default to true for backwards compatibility
   isFullscreen = false,
-  onScroll
+  onScroll,
+  disableOuterScroll = false
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -57,7 +70,11 @@ export const Modal: React.FC<ModalProps> = ({
     : "relative w-full rounded-3xl border border-gray-200 bg-white shadow-theme-xl dark:border-gray-700 dark:bg-gray-900";
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center overflow-auto modal z-99 no-scrollbar">
+    <div
+      className={`fixed inset-0 flex items-center justify-center modal z-99 no-scrollbar ${
+        disableOuterScroll ? "overflow-hidden" : "overflow-auto"
+      }`}
+    >
       {!isFullscreen && (
         <div
           className="fixed inset-0 h-full w-full bg-gray-900/40"

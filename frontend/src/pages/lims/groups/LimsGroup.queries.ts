@@ -7,7 +7,9 @@ import { useAsyncOptions } from "@/hooks/useAsyncOptions";
 import type { BulkSelection, ServerListParams } from "@/lib/query/listTypes";
 import {
   bulkCloneLimsGroup,
+  bulkCopyLimsGroup,
   bulkDeleteLimsGroup,
+  bulkUpdateLimsGroup,
   createLimsGroup,
   fetchLimsGroupAudit,
   fetchLimsGroupOptions,
@@ -116,6 +118,59 @@ export const useBulkCloneLimsGroup = () => {
         count && count > 1
           ? `${count} lab groups copied successfully.`
           : "Lab group copied successfully.",
+        "success"
+      );
+      invalidate();
+    }
+  });
+};
+
+/**
+ * The Copy flow's batched save (see CopyStepper) — one request creates
+ * every reviewed record. A collision on `groupId` is warned, not rejected
+ * (server auto-suffixes) — surfaced here per record.
+ */
+export const useBulkCopyLimsGroup = () => {
+  const invalidate = useInvalidateLimsGroups();
+  return useMutation({
+    mutationFn: (records: LimsGroupPayload[]) => bulkCopyLimsGroup(records),
+    onSuccess: (data) => {
+      const warnings = data.results.filter((r) => r.warning);
+      toast(
+        data.count > 1
+          ? `${data.count} lab groups copied successfully.`
+          : "Lab group copied successfully.",
+        "success"
+      );
+      if (warnings.length) {
+        toast(
+          warnings.length === 1
+            ? warnings[0].warning!
+            : `${warnings.length} of ${data.count} kept their original ID — renamed to stay unique.`,
+          "info",
+          { duration: 6000 }
+        );
+      }
+      invalidate();
+    }
+  });
+};
+
+export const useBulkUpdateLimsGroup = () => {
+  const invalidate = useInvalidateLimsGroups();
+  return useMutation({
+    mutationFn: ({
+      updates,
+      changeReason
+    }: {
+      updates: { id: string; payload: LimsGroupPayload }[];
+      changeReason: string;
+    }) => bulkUpdateLimsGroup(updates, changeReason),
+    onSuccess: (data) => {
+      toast(
+        data.count > 1
+          ? `${data.count} records updated successfully.`
+          : "Record updated successfully.",
         "success"
       );
       invalidate();

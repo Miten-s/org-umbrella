@@ -19,14 +19,38 @@ import type {
   LimsRef
 } from "./LimsPhrase.types";
 
-export type LimsPhraseFormMode = "create" | "edit" | "view";
+/**
+ * "copy" renders like "create" (fully editable) except the pick list code
+ * starts blank instead of pre-filled with the source's — Phrase has no
+ * server-minted business id, and the code is required server-side
+ * (`CreatePhraseDto`), so it stays EDITABLE (not disabled): the user must
+ * type a new unique one before Save will succeed. Also: `isSystem` is only
+ * ever read from `initialData` for edit/view — a copy of a system pick
+ * list is NOT itself a system pick list (see crud-factory's `bulkDuplicate`,
+ * which strips this same flag off a clone), so Copy must never inherit the
+ * identity lock. Used by CopyStepper.
+ */
+export type LimsPhraseFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsPhraseFormProps {
   mode?: LimsPhraseFormMode;
   initialData?: LimsPhrase | null;
   onClose: () => void;
+  onUnchanged?: () => void;
   onSubmit: (payload: LimsPhrasePayload) => Promise<void> | void;
   submitting?: boolean;
+  /** Overrides the submit button's label — CopyStepper uses this to say
+   * "Next" on every step but the last, where the batch actually saves. */
+  submitLabel?: string;
+  /** Grays out the submit button without a spinner — EditStepper uses
+   * this on the last step now that its own Save button lives outside it. */
+  disabled?: boolean;
+  /** Set on the `<form>` element so an outside button (CopyStepper's
+   * header Next/Save) can submit it via `<Button form={formId}>`. */
+  formId?: string;
+  /** " (2 of 5)" appended after the title when Copy is reviewing more
+   * than one record — undefined otherwise. */
+  stepLabel?: string;
 }
 
 const seedOne = (ref: LimsRef | null | undefined) =>
@@ -36,17 +60,23 @@ const LimsPhraseForm = ({
   mode = "create",
   initialData,
   onClose,
+  onUnchanged,
   onSubmit,
-  submitting = false
+  submitting = false,
+  submitLabel,
+  disabled = false,
+  formId,
+  stepLabel
 }: LimsPhraseFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
 
   /**
    * System pick lists ship with the product: the code and name are fixed, but
-   * values may still be added (LIMS_BACKEND_SPEC.md §5).
+   * values may still be added (LIMS_BACKEND_SPEC.md §5). A copy of one is
+   * never itself system — see LimsPhraseFormMode's doc comment.
    */
-  const isSystem = Boolean(initialData?.isSystem);
+  const isSystem = mode !== "copy" && Boolean(initialData?.isSystem);
   const identityLocked = isReadOnly || isSystem;
 
   const initialEntriesRef = useRef(initialData?.entries ?? []);
@@ -56,12 +86,12 @@ const LimsPhraseForm = ({
   // against, so Save is a no-op when nothing actually differs from it.
   const initialValues = useMemo<LimsPhraseFormValues>(
     () => ({
-      phrase: initialData?.phrase ?? "",
+      phrase: mode === "copy" ? "" : (initialData?.phrase ?? ""),
       name: initialData?.name ?? "",
       description: initialData?.description ?? "",
       group: initialData?.group?.id ?? ""
     }),
-    [initialData]
+    [initialData, mode]
   );
 
   const {
@@ -81,15 +111,16 @@ const LimsPhraseForm = ({
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
+        id={formId}
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
           if (
-            mode === "edit" &&
+            (mode === "edit" || mode === "bulk-edit") &&
             isPayloadEqual(values, initialValues) &&
             isPayloadEqual(entries, initialEntriesRef.current)
           ) {
-            onClose();
+            (onUnchanged ?? onClose)();
             return;
           }
           onSubmit({ ...values, entries });
@@ -99,9 +130,11 @@ const LimsPhraseForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsPhrase") })
-            : initialData
-              ? t("update", { entity: t("limsPhrase") })
-              : t("create", { entity: t("limsPhrase") })}
+            : mode === "copy"
+              ? `${t("copyEntity", { entity: t("limsPhrase") })}${stepLabel ?? ""}`
+              : initialData
+                ? `${t("update", { entity: t("limsPhrase") })}${stepLabel ?? ""}`
+                : t("create", { entity: t("limsPhrase") })}
         </h2>
 
         {isSystem ? (
@@ -190,8 +223,8 @@ const LimsPhraseForm = ({
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy}>
-              {t("save")}
+            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+              {submitLabel ?? t("save")}
             </Button>
           ) : null}
         </div>

@@ -116,12 +116,37 @@ export const bulkDeleteLimsInstrument = async (
   return response.data;
 };
 
+/**
+ * The Copy flow's one and only network call — every reviewed record is
+ * sent together, once. See `bulkCreate` in crud-factory.ts.
+ */
+export const bulkCopyLimsInstrument = async (records: LimsInstrumentPayload[]) => {
+  const response = await limsApi.post(`${ROUTE}/bulk-copy`, { records });
+  return response.data as {
+    message: string;
+    count: number;
+    results: { id: string; warning?: string }[];
+  };
+};
+
 export const bulkCloneLimsInstrument = async (selection: BulkSelection) => {
   const response = await limsApi.post(
     `${ROUTE}/bulk-duplicate`,
     bulkSelectionToBody(selection)
   );
   return response.data;
+};
+
+export const bulkUpdateLimsInstrument = async (
+  updates: { id: string; payload: LimsInstrumentPayload }[],
+  changeReason: string
+) => {
+  const response = await limsApi.patch(`${ROUTE}/bulk-update`, { updates, changeReason });
+  return response.data as {
+    message: string;
+    count: number;
+    results: { id: string; skipped?: boolean }[];
+  };
 };
 
 export const restoreLimsInstrument = async (

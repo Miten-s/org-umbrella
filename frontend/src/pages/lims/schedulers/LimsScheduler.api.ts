@@ -73,6 +73,31 @@ export const bulkCloneLimsScheduler = async (selection: BulkSelection) => {
   return response.data;
 };
 
+/**
+ * The Copy flow's one and only network call — every reviewed record is
+ * sent together, once. See `bulkCreate` in crud-factory.ts.
+ */
+export const bulkCopyLimsScheduler = async (records: LimsSchedulerPayload[]) => {
+  const response = await limsApi.post(`${ROUTE}/bulk-copy`, { records });
+  return response.data as {
+    message: string;
+    count: number;
+    results: { id: string; warning?: string }[];
+  };
+};
+
+export const bulkUpdateLimsScheduler = async (
+  updates: { id: string; payload: LimsSchedulerPayload }[],
+  changeReason: string
+) => {
+  const response = await limsApi.patch(`${ROUTE}/bulk-update`, { updates, changeReason });
+  return response.data as {
+    message: string;
+    count: number;
+    results: { id: string; skipped?: boolean }[];
+  };
+};
+
 export const restoreLimsScheduler = async (id: string, changeReason: string) => {
   const response = await limsApi.patch(`${ROUTE}/restore/${id}`, { changeReason });
   return response.data;

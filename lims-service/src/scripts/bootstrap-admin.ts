@@ -53,9 +53,16 @@ const run = async () => {
       groupId: ROOT_GROUP_ID,
       name: "All Labs",
       description: "Root group. Access here cascades to every child group.",
-      ownedBy: platformUserId
+      ownedBy: platformUserId,
+      ownedByName: fullName
     }
   });
+
+  // Self-heal: an earlier run of this script (before ownedByName was set
+  // here) may have left the group with an owner id but no owner name.
+  if (!rootGroup.ownedBy || !rootGroup.ownedByName) {
+    await rootGroup.update({ ownedBy: platformUserId, ownedByName: fullName });
+  }
 
   // Admin role. operateAll bypasses group filtering — every use of it lands on
   // the separate bypass audit stream.

@@ -26,3 +26,12 @@ export const limsLocationSchema = z.object({
 });
 
 export type LimsLocationFormValues = z.infer<typeof limsLocationSchema>;
+
+/**
+ * Copy mode leaves the business ID blank + disabled (the server always
+ * mints a fresh one on save — see LimsLocationForm) — same shape, minus
+ * the required check, so the blank field doesn't block Save.
+ */
+export const limsLocationCopySchema = limsLocationSchema.extend({
+  locationId: z.string().max(50)
+});

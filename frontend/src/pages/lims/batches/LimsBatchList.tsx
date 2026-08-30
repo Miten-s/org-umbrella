@@ -5,6 +5,8 @@ import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
+import CopyStepper from "@/components/data/CopyStepper";
+import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -13,6 +15,8 @@ import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
+import { toast } from "@/lib/toast";
+import { idsSelection } from "@/lib/query/listTypes";
 import {
   CopyIcon,
   EyeIcon,
@@ -21,12 +25,14 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsBatchList } from "./LimsBatch.api";
+import { fetchLimsBatchById, fetchLimsBatchList } from "./LimsBatch.api";
 import { getLimsBatchColumns } from "./LimsBatch.columns";
 import {
   limsBatchKeys,
   useBulkCloneLimsBatch,
+  useBulkCopyLimsBatch,
   useBulkDeleteLimsBatch,
+  useBulkUpdateLimsBatch,
   useCreateLimsBatch,
   useLimsBatchAudit,
   useRestoreLimsBatch,
@@ -47,6 +53,9 @@ const LimsBatchList = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsBatchFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
+  // Set instead of activeId/formMode while the Copy review flow is open.
+  const [copyIds, setCopyIds] = useState<string[] | null>(null);
+  const [editIds, setEditIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsBatch, LimsBatchPayload>();
   const auditQuery = useLimsBatchAudit(compliance.auditRow?.id);
@@ -70,14 +79,18 @@ const LimsBatchList = () => {
   const create = useCreateLimsBatch();
   const update = useUpdateLimsBatch();
   const bulkClone = useBulkCloneLimsBatch();
+  const bulkCopy = useBulkCopyLimsBatch();
   const bulkDelete = useBulkDeleteLimsBatch();
+  const bulkUpdate = useBulkUpdateLimsBatch();
   const restore = useRestoreLimsBatch();
 
   const busy =
     create.isPending ||
     update.isPending ||
     bulkClone.isPending ||
+    bulkCopy.isPending ||
     bulkDelete.isPending ||
+    bulkUpdate.isPending ||
     restore.isPending;
 
   const columnDefs = useMemo(() => getLimsBatchColumns({ t }), [t]);
@@ -91,10 +104,43 @@ const LimsBatchList = () => {
     [openModal]
   );
 
+  const openCopy = useCallback(
+    (ids: string[]) => {
+      setCopyIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
+  const openEdit = useCallback(
+    (ids: string[]) => {
+      setEditIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
+    setCopyIds(null);
+    setEditIds(null);
+  };
+
+  const handleSaveCopies = async (payloads: LimsBatchPayload[]) => {
+    await bulkCopy.mutateAsync(payloads);
+    handleCloseForm();
+    table.clearSelection();
+  };
+
+  const handleSaveEdits = (updates: { id: string; payload: LimsBatchPayload }[]) => {
+    handleCloseForm();
+    compliance.requestBulkUpdate(updates);
+  };
+
+  const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
+    await bulkClone.mutateAsync(idsSelection(unreviewedIds));
   };
 
   const handleSave = async (payload: LimsBatchPayload, files: File[]) => {
@@ -131,8 +177,26 @@ const LimsBatchList = () => {
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_BATCH,
         onClick: async (selection) => {
+          if (selection.mode === "ids") {
+            openCopy(selection.ids);
+            return;
+          }
           await bulkClone.mutateAsync(selection);
           table.clearSelection();
+        }
+      },
+      {
+        key: "edit",
+        label: () => t("edit"),
+        icon: PencilIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_BATCH,
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          openEdit(selection.ids);
         }
       },
       {
@@ -153,7 +217,7 @@ const LimsBatchList = () => {
           )
       }
     ],
-    [bulkClone, compliance, t, table]
+    [bulkClone, compliance, openCopy, openEdit, t, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsBatch>[]>(
@@ -188,7 +252,7 @@ const LimsBatchList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_BATCH,
-        onClick: (row) => bulkClone.mutate({ mode: "ids", ids: [row.id] })
+        onClick: (row) => openCopy([row.id])
       },
       {
         key: "restore",
@@ -213,7 +277,7 @@ const LimsBatchList = () => {
           ])
       }
     ],
-    [bulkClone, compliance, openForm, t]
+    [compliance, openCopy, openForm, t]
   );
 
   return (
@@ -252,8 +316,30 @@ const LimsBatchList = () => {
         isOpen={isOpen}
         onClose={handleCloseForm}
         className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
+        disableOuterScroll
       >
-        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        {copyIds ? (
+          <CopyStepper<LimsBatch, LimsBatchPayload>
+            ids={copyIds}
+            fetchById={fetchLimsBatchById}
+            FormComponent={LimsBatchForm}
+            onSaveAll={handleSaveCopies}
+            onDuplicateUnreviewed={handleDuplicateUnreviewedCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending || bulkClone.isPending}
+            entityLabel={t("limsBatch")}
+          />
+        ) : editIds ? (
+          <EditStepper<LimsBatch, LimsBatchPayload>
+            ids={editIds}
+            fetchById={fetchLimsBatchById}
+            FormComponent={LimsBatchForm}
+            onSaveAll={handleSaveEdits}
+            onClose={handleCloseForm}
+            saving={bulkUpdate.isPending}
+            entityLabel={t("limsBatch")}
+          />
+        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>
@@ -278,6 +364,7 @@ const LimsBatchList = () => {
         updating={update.isPending}
         deleting={bulkDelete.isPending}
         restoring={restore.isPending}
+        bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
         auditLoading={auditQuery.isLoading}
@@ -288,6 +375,14 @@ const LimsBatchList = () => {
 
         onAuditLoadMore={auditQuery.fetchNextPage}
         onUpdate={confirmUpdate}
+        onBulkUpdate={async (reason) => {
+          const pending = compliance.pendingBulkUpdate;
+          if (pending) {
+            await bulkUpdate.mutateAsync({ updates: pending.updates, changeReason: reason });
+            table.clearSelection();
+          }
+          compliance.clearBulkUpdate();
+        }}
         onDelete={async (reason) => {
           const pending = compliance.pendingDelete;
           if (pending) {

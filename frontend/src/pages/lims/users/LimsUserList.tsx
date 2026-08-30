@@ -5,6 +5,8 @@ import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
+import CopyStepper from "@/components/data/CopyStepper";
+import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -15,6 +17,7 @@ import { useModal } from "@/hooks/useModal";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { toast } from "@/lib/toast";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
+import { idsSelection } from "@/lib/query/listTypes";
 import {
   CopyIcon,
   EyeIcon,
@@ -23,12 +26,14 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsUserList } from "./LimsUser.api";
+import { fetchLimsUserById, fetchLimsUserList } from "./LimsUser.api";
 import { getLimsUserColumns } from "./LimsUser.columns";
 import {
   limsUserKeys,
   useBulkCloneLimsUser,
+  useBulkCopyLimsUser,
   useBulkDeleteLimsUser,
+  useBulkUpdateLimsUser,
   useCreateLimsUser,
   useLimsUserAudit,
   useRestoreLimsUser,
@@ -59,6 +64,9 @@ const LimsUserList = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsUserFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
+  // Set instead of activeId/formMode while the Copy review flow is open.
+  const [copyIds, setCopyIds] = useState<string[] | null>(null);
+  const [editIds, setEditIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsUser, LimsUserPayload>();
   const auditQuery = useLimsUserAudit(compliance.auditRow?.id);
@@ -83,14 +91,18 @@ const LimsUserList = () => {
   const create = useCreateLimsUser();
   const update = useUpdateLimsUser();
   const bulkClone = useBulkCloneLimsUser();
+  const bulkCopy = useBulkCopyLimsUser();
   const bulkDelete = useBulkDeleteLimsUser();
+  const bulkUpdate = useBulkUpdateLimsUser();
   const restore = useRestoreLimsUser();
 
   const busy =
     create.isPending ||
     update.isPending ||
     bulkClone.isPending ||
+    bulkCopy.isPending ||
     bulkDelete.isPending ||
+    bulkUpdate.isPending ||
     restore.isPending;
 
   const columnDefs = useMemo(() => getLimsUserColumns({ t }), [t]);
@@ -104,10 +116,43 @@ const LimsUserList = () => {
     [openModal]
   );
 
+  const openCopy = useCallback(
+    (ids: string[]) => {
+      setCopyIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
+  const openEdit = useCallback(
+    (ids: string[]) => {
+      setEditIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
+    setCopyIds(null);
+    setEditIds(null);
+  };
+
+  const handleSaveCopies = async (payloads: LimsUserPayload[]) => {
+    await bulkCopy.mutateAsync(payloads);
+    handleCloseForm();
+    table.clearSelection();
+  };
+
+  const handleSaveEdits = (updates: { id: string; payload: LimsUserPayload }[]) => {
+    handleCloseForm();
+    compliance.requestBulkUpdate(updates);
+  };
+
+  const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
+    await bulkClone.mutateAsync(idsSelection(unreviewedIds));
   };
 
   const handleSave = async (payload: LimsUserPayload) => {
@@ -143,8 +188,26 @@ const LimsUserList = () => {
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_USER,
         onClick: async (selection) => {
+          if (selection.mode === "ids") {
+            openCopy(selection.ids);
+            return;
+          }
           await bulkClone.mutateAsync(selection);
           table.clearSelection();
+        }
+      },
+      {
+        key: "edit",
+        label: () => t("edit"),
+        icon: PencilIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_USER,
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          openEdit(selection.ids);
         }
       },
       {
@@ -193,7 +256,7 @@ const LimsUserList = () => {
         }
       }
     ],
-    [bulkClone, compliance, isSelf, t, table]
+    [bulkClone, compliance, isSelf, openCopy, openEdit, t, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsUser>[]>(
@@ -228,7 +291,7 @@ const LimsUserList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_USER,
-        onClick: (row) => bulkClone.mutate({ mode: "ids", ids: [row.id] })
+        onClick: (row) => openCopy([row.id])
       },
       {
         key: "restore",
@@ -253,7 +316,7 @@ const LimsUserList = () => {
           ])
       }
     ],
-    [bulkClone, compliance, isSelf, openForm, t]
+    [compliance, isSelf, openCopy, openForm, t]
   );
 
   return (
@@ -292,8 +355,30 @@ const LimsUserList = () => {
         isOpen={isOpen}
         onClose={handleCloseForm}
         className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
+        disableOuterScroll
       >
-        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        {copyIds ? (
+          <CopyStepper<LimsUser, LimsUserPayload>
+            ids={copyIds}
+            fetchById={fetchLimsUserById}
+            FormComponent={LimsUserForm}
+            onSaveAll={handleSaveCopies}
+            onDuplicateUnreviewed={handleDuplicateUnreviewedCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending || bulkClone.isPending}
+            entityLabel={t("limsUser")}
+          />
+        ) : editIds ? (
+          <EditStepper<LimsUser, LimsUserPayload>
+            ids={editIds}
+            fetchById={fetchLimsUserById}
+            FormComponent={LimsUserForm}
+            onSaveAll={handleSaveEdits}
+            onClose={handleCloseForm}
+            saving={bulkUpdate.isPending}
+            entityLabel={t("limsUser")}
+          />
+        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>
@@ -318,6 +403,7 @@ const LimsUserList = () => {
         updating={update.isPending}
         deleting={bulkDelete.isPending}
         restoring={restore.isPending}
+        bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
         auditLoading={auditQuery.isLoading}
@@ -328,6 +414,14 @@ const LimsUserList = () => {
 
         onAuditLoadMore={auditQuery.fetchNextPage}
         onUpdate={confirmUpdate}
+        onBulkUpdate={async (reason) => {
+          const pending = compliance.pendingBulkUpdate;
+          if (pending) {
+            await bulkUpdate.mutateAsync({ updates: pending.updates, changeReason: reason });
+            table.clearSelection();
+          }
+          compliance.clearBulkUpdate();
+        }}
         onDelete={async (reason) => {
           const pending = compliance.pendingDelete;
           if (pending) {

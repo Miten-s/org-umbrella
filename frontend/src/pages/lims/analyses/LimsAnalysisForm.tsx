@@ -14,17 +14,48 @@ import { useAnalysisTypeOptions, useApprovalStatusOptions } from "@/pages/lims/p
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsInspectionPlanOptions } from "@/pages/lims/inspection-plans/LimsInspectionPlan.queries";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
-import { limsAnalysisSchema, type LimsAnalysisFormValues } from "./LimsAnalysis.schema";
+import {
+  limsAnalysisSchema,
+  limsAnalysisCopySchema,
+  type LimsAnalysisFormValues
+} from "./LimsAnalysis.schema";
 import type { LimsAnalysis, LimsAnalysisPayload, LimsRef, LimsComponentRow } from "./LimsAnalysis.types";
 
-export type LimsAnalysisFormMode = "create" | "edit" | "view";
+/**
+ * "copy" renders exactly like "create" (fully editable, no diff-against-
+ * baseline skip) except the business ID starts blank instead of pre-filled
+ * with the source's — stays EDITABLE, not disabled: `applyBusinessId`
+ * mints a fresh one only when the field is empty, and otherwise honors
+ * whatever the user typed (subject to the usual uniqueness check), so
+ * there's no reason to lock it out. Used by CopyStepper.
+ *
+ * "bulk-edit" renders exactly like "edit" (real data, real ID, no schema
+ * change) — the only difference is what fires when nothing changed: "edit"
+ * closes the whole modal, "bulk-edit" calls `onUnchanged` instead so
+ * EditStepper can just skip this record and move on. Used by EditStepper.
+ */
+export type LimsAnalysisFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsAnalysisFormProps {
   mode?: LimsAnalysisFormMode;
   initialData?: LimsAnalysis | null;
   onClose: () => void;
+  /** Fires instead of `onClose` when "edit"/"bulk-edit" finds nothing changed — EditStepper uses this to skip the record instead of closing the whole review. */
+  onUnchanged?: () => void;
   onSubmit: (payload: LimsAnalysisPayload) => Promise<void> | void;
   submitting?: boolean;
+  /** Overrides the submit button's label — CopyStepper uses this to say
+   * "Next" on every step but the last, where the batch actually saves. */
+  submitLabel?: string;
+  /** Grays out the submit button without a spinner — EditStepper uses
+   * this on the last step now that its own Save button lives outside it. */
+  disabled?: boolean;
+  /** Set on the `<form>` element so an outside button (CopyStepper's
+   * header Next/Save) can submit it via `<Button form={formId}>`. */
+  formId?: string;
+  /** " (2 of 5)" appended after the title when Copy is reviewing more
+   * than one record — undefined otherwise. */
+  stepLabel?: string;
 }
 
 /** Seeds a dropdown label from the record's nested ref — no extra fetch. */
@@ -35,8 +66,13 @@ const LimsAnalysisForm = ({
   mode = "create",
   initialData,
   onClose,
+  onUnchanged,
   onSubmit,
-  submitting = false
+  submitting = false,
+  submitLabel,
+  disabled = false,
+  formId,
+  stepLabel
 }: LimsAnalysisFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
@@ -47,7 +83,7 @@ const LimsAnalysisForm = ({
   // against, so Save is a no-op when nothing actually differs from it.
   const initialValues = useMemo<LimsAnalysisFormValues>(
     () => ({
-      analysisId: initialData?.analysisId ?? "",
+      analysisId: mode === "copy" ? "" : (initialData?.analysisId ?? ""),
       name: initialData?.name ?? "",
       analysisType: initialData?.analysisType?.id ?? "",
       approvalStatus: initialData?.approvalStatus?.id ?? "",
@@ -57,7 +93,7 @@ const LimsAnalysisForm = ({
       description: initialData?.description ?? "",
       details: initialData?.details ?? "",
     }),
-    [initialData]
+    [initialData, mode]
   );
 
   const {
@@ -67,7 +103,7 @@ const LimsAnalysisForm = ({
     setValue,
     formState: { errors, isSubmitting }
   } = useForm<LimsAnalysisFormValues>({
-    resolver: zodResolver(limsAnalysisSchema),
+    resolver: zodResolver(mode === "copy" ? limsAnalysisCopySchema : limsAnalysisSchema),
     defaultValues: initialValues
   });
 
@@ -79,14 +115,15 @@ const LimsAnalysisForm = ({
     name: keyof LimsAnalysisFormValues,
     label: string,
     required = false,
-    type = "text"
+    type = "text",
+    forceDisabled = false
   ) => (
     <div className="min-w-0">
       <Label required={required}>{label}</Label>
       <Input
         {...register(name)}
         type={type}
-        disabled={isReadOnly}
+        disabled={isReadOnly || forceDisabled}
         error={!!errors[name]}
         hint={errors[name]?.message as string}
         className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
@@ -97,15 +134,18 @@ const LimsAnalysisForm = ({
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
+        id={formId}
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the reason modal, update
-          // call, and audit entry entirely — a no-op Save just closes.
+          // call, and audit entry entirely — a no-op Save just closes. Copy
+          // always submits, even when the user left every field untouched —
+          // that untouched-name case is exactly what the batched Save is for.
           if (
-            mode === "edit" &&
+            (mode === "edit" || mode === "bulk-edit") &&
             isPayloadEqual(values, initialValues) &&
             isPayloadEqual(components, initialComponentsRef.current)
           ) {
-            onClose();
+            (onUnchanged ?? onClose)();
             return;
           }
           onSubmit({ ...values, components });
@@ -114,10 +154,12 @@ const LimsAnalysisForm = ({
       >
         <h2 className="text-xl font-semibold">
           {isReadOnly
-            ? t("view", { entity: t("limsAnalysis") })
-            : initialData
-              ? t("update", { entity: t("limsAnalysis") })
-              : t("create", { entity: t("limsAnalysis") })}
+            ? `${t("view", { entity: t("limsAnalysis") })}${stepLabel ?? ""}`
+            : mode === "copy"
+              ? `${t("copyEntity", { entity: t("limsAnalysis") })}${stepLabel ?? ""}`
+              : initialData
+                ? `${t("update", { entity: t("limsAnalysis") })}${stepLabel ?? ""}`
+                : t("create", { entity: t("limsAnalysis") })}
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
@@ -228,8 +270,8 @@ const LimsAnalysisForm = ({
                 { key: "list", header: t("limsList") },
                 { key: "entity", header: t("limsEntity") },
                 { key: "entityCriteria", header: t("limsEntityCriteria") },
-                { key: "min", header: t("limsMin") },
-                { key: "max", header: t("limsMax") }
+                { key: "min", header: t("limsMin"), type: "numeric-text" },
+                { key: "max", header: t("limsMax"), type: "numeric-text" }
               ]}
             />
           </div>
@@ -240,8 +282,8 @@ const LimsAnalysisForm = ({
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy}>
-              {t("save")}
+            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+              {submitLabel ?? t("save")}
             </Button>
           ) : null}
         </div>

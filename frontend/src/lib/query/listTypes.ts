@@ -53,6 +53,14 @@ export interface AsyncOption {
   /** Optional secondary text / disabled flag for richer menus. */
   sublabel?: string;
   disabled?: boolean;
+  /**
+   * Optional: the full source record behind this option, for a consumer
+   * that needs more than value/label/sublabel to react to a selection —
+   * e.g. SubFormGrid's `onSelectOption`, which populates several sibling
+   * cells (Min/Max/Unit) from ONE picked Analysis Component. Most options
+   * don't set this; it's additive and never required.
+   */
+  data?: unknown;
 }
 
 /** One page returned by an options fetcher (infinite-query friendly). */

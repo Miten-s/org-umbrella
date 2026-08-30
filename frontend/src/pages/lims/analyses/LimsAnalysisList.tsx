@@ -5,6 +5,9 @@ import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
+import CopyStepper from "@/components/data/CopyStepper";
+import ViewStepper from "@/components/data/ViewStepper";
+import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -13,6 +16,8 @@ import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
+import { toast } from "@/lib/toast";
+import { idsSelection } from "@/lib/query/listTypes";
 import {
   CopyIcon,
   EyeIcon,
@@ -21,12 +26,14 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsAnalysisList } from "./LimsAnalysis.api";
+import { fetchLimsAnalysisById, fetchLimsAnalysisList } from "./LimsAnalysis.api";
 import { getLimsAnalysisColumns } from "./LimsAnalysis.columns";
 import {
   limsAnalysisKeys,
   useBulkCloneLimsAnalysis,
+  useBulkCopyLimsAnalysis,
   useBulkDeleteLimsAnalysis,
+  useBulkUpdateLimsAnalysis,
   useCreateLimsAnalysis,
   useLimsAnalysisAudit,
   useRestoreLimsAnalysis,
@@ -49,6 +56,16 @@ const LimsAnalysisList = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsAnalysisFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
+  // Set instead of activeId/formMode while the Copy review flow is open —
+  // one or more source ids, reviewed via CopyStepper, not fetched/edited
+  // as a single record.
+  const [copyIds, setCopyIds] = useState<string[] | null>(null);
+  // Same idea as copyIds, but for a multi-select bulk View — stepped
+  // through read-only via ViewStepper instead of the single-record modal.
+  const [viewIds, setViewIds] = useState<string[] | null>(null);
+  // Same idea again, for a multi-select Bulk Edit — reviewed via
+  // EditStepper against real records instead of blank/source-copied ones.
+  const [editIds, setEditIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsAnalysis, LimsAnalysisPayload>();
   const auditQuery = useLimsAnalysisAudit(compliance.auditRow?.id);
@@ -74,14 +91,18 @@ const LimsAnalysisList = () => {
   const create = useCreateLimsAnalysis();
   const update = useUpdateLimsAnalysis();
   const bulkClone = useBulkCloneLimsAnalysis();
+  const bulkCopy = useBulkCopyLimsAnalysis();
   const bulkDelete = useBulkDeleteLimsAnalysis();
+  const bulkUpdate = useBulkUpdateLimsAnalysis();
   const restore = useRestoreLimsAnalysis();
 
   const busy =
     create.isPending ||
     update.isPending ||
     bulkClone.isPending ||
+    bulkCopy.isPending ||
     bulkDelete.isPending ||
+    bulkUpdate.isPending ||
     restore.isPending;
 
   const columnDefs = useMemo(() => getLimsAnalysisColumns({ t }), [t]);
@@ -95,10 +116,55 @@ const LimsAnalysisList = () => {
     [openModal]
   );
 
+  const openCopy = useCallback(
+    (ids: string[]) => {
+      setCopyIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
+  const openView = useCallback(
+    (ids: string[]) => {
+      setViewIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
+  const openEdit = useCallback(
+    (ids: string[]) => {
+      setEditIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
+    setCopyIds(null);
+    setViewIds(null);
+    setEditIds(null);
+  };
+
+  const handleSaveCopies = async (payloads: LimsAnalysisPayload[]) => {
+    await bulkCopy.mutateAsync(payloads);
+    handleCloseForm();
+    table.clearSelection();
+  };
+
+  // Closes the review modal first, same as a standalone single-record Edit
+  // — the shared reason then comes from `LimsComplianceDialogs`'s own
+  // dialog, not from EditStepper itself.
+  const handleSaveEdits = (updates: { id: string; payload: LimsAnalysisPayload }[]) => {
+    handleCloseForm();
+    compliance.requestBulkUpdate(updates);
+  };
+
+  const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
+    await bulkClone.mutateAsync(idsSelection(unreviewedIds));
   };
 
   const handleSave = async (payload: LimsAnalysisPayload) => {
@@ -128,14 +194,56 @@ const LimsAnalysisList = () => {
   const bulkActions = useMemo<DataTableBulkAction[]>(
     () => [
       {
+        key: "view",
+        label: () => t("view", { entity: t("limsAnalyses") }),
+        icon: EyeIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.VIEW_ANALYSIS,
+        onClick: (selection) => {
+          // Same split as Copy: an explicit checkbox selection opens the
+          // stepper. "Select all matching filter" has no bounded record
+          // count to fetch/step through, so it's not offered here.
+          if (selection.mode !== "ids") {
+            toast(t("viewBulkFilterUnsupported"), "error");
+            return;
+          }
+          openView(selection.ids);
+        }
+      },
+      {
         key: "clone",
         label: () => t("limsCopy"),
         icon: CopyIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_ANALYSIS,
         onClick: async (selection) => {
+          // A specific checkbox selection opens the Copy review flow. A
+          // "select all N matching filter" selection can be far larger than
+          // is reasonable to fetch/review record-by-record, so that one
+          // path keeps the previous immediate server-side duplicate.
+          if (selection.mode === "ids") {
+            openCopy(selection.ids);
+            return;
+          }
           await bulkClone.mutateAsync(selection);
           table.clearSelection();
+        }
+      },
+      {
+        key: "edit",
+        label: () => t("edit"),
+        icon: PencilIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_ANALYSIS,
+        onClick: (selection) => {
+          // Same split as Copy/View: an explicit checkbox selection opens
+          // the review stepper. "Select all matching filter" has no bounded
+          // record count to fetch/review, so it's not offered here.
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          openEdit(selection.ids);
         }
       },
       {
@@ -156,7 +264,7 @@ const LimsAnalysisList = () => {
           )
       }
     ],
-    [bulkClone, compliance, t, table]
+    [bulkClone, compliance, openCopy, openEdit, openView, t, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsAnalysis>[]>(
@@ -191,7 +299,7 @@ const LimsAnalysisList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_ANALYSIS,
-        onClick: (row) => bulkClone.mutate({ mode: "ids", ids: [row.id] })
+        onClick: (row) => openCopy([row.id])
       },
       {
         key: "restore",
@@ -216,7 +324,7 @@ const LimsAnalysisList = () => {
           ])
       }
     ],
-    [bulkClone, compliance, openForm, t]
+    [compliance, openCopy, openForm, t]
   );
 
   return (
@@ -255,8 +363,38 @@ const LimsAnalysisList = () => {
         isOpen={isOpen}
         onClose={handleCloseForm}
         className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
+        disableOuterScroll
       >
-        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        {copyIds ? (
+          <CopyStepper<LimsAnalysis, LimsAnalysisPayload>
+            ids={copyIds}
+            fetchById={fetchLimsAnalysisById}
+            FormComponent={LimsAnalysisForm}
+            onSaveAll={handleSaveCopies}
+            onDuplicateUnreviewed={handleDuplicateUnreviewedCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending || bulkClone.isPending}
+            entityLabel={t("limsAnalysis")}
+          />
+        ) : viewIds ? (
+          <ViewStepper<LimsAnalysis>
+            ids={viewIds}
+            fetchById={fetchLimsAnalysisById}
+            FormComponent={LimsAnalysisForm}
+            onClose={handleCloseForm}
+            entityLabel={t("limsAnalysis")}
+          />
+        ) : editIds ? (
+          <EditStepper<LimsAnalysis, LimsAnalysisPayload>
+            ids={editIds}
+            fetchById={fetchLimsAnalysisById}
+            FormComponent={LimsAnalysisForm}
+            onSaveAll={handleSaveEdits}
+            onClose={handleCloseForm}
+            saving={bulkUpdate.isPending}
+            entityLabel={t("limsAnalysis")}
+          />
+        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>
@@ -281,6 +419,7 @@ const LimsAnalysisList = () => {
         updating={update.isPending}
         deleting={bulkDelete.isPending}
         restoring={restore.isPending}
+        bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
         auditLoading={auditQuery.isLoading}
@@ -291,6 +430,14 @@ const LimsAnalysisList = () => {
 
         onAuditLoadMore={auditQuery.fetchNextPage}
         onUpdate={confirmUpdate}
+        onBulkUpdate={async (reason) => {
+          const pending = compliance.pendingBulkUpdate;
+          if (pending) {
+            await bulkUpdate.mutateAsync({ updates: pending.updates, changeReason: reason });
+            table.clearSelection();
+          }
+          compliance.clearBulkUpdate();
+        }}
         onDelete={async (reason) => {
           const pending = compliance.pendingDelete;
           if (pending) {

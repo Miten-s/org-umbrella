@@ -19,3 +19,12 @@ export const limsCalibrationSchema = z.object({
 });
 
 export type LimsCalibrationFormValues = z.infer<typeof limsCalibrationSchema>;
+
+/**
+ * Copy mode leaves the business ID blank + disabled (the server
+ * always mints a fresh one on save — see LimsCalibrationForm) — same shape,
+ * minus the required check, so the blank field doesn't block Save.
+ */
+export const limsCalibrationCopySchema = limsCalibrationSchema.extend({
+  calibrationId: z.string().max(150)
+});

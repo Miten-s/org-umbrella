@@ -4,11 +4,29 @@ import DateField from "@/components/common/form/input/DateField";
 import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import type { useAsyncOptions } from "@/hooks/useAsyncOptions";
+import type { AsyncOption } from "@/lib/query/listTypes";
 import { PlusIcon, TrashBinIcon } from "@/public/icons";
 import { useTranslation } from "react-i18next";
 
+/**
+ * "number" coerces the cell's value to a real JS number — only correct for
+ * a column backed by an actual numeric DB column (e.g. Test's INTEGER
+ * `replicateCount`). "numeric-text" renders the same numeric-only input
+ * (browser blocks non-digit keystrokes) but keeps the value a plain
+ * string — for a column backed by a loosely-typed STRING field that just
+ * happens to usually hold digits (e.g. Analysis Component / Spec Limit's
+ * `min`/`max`, which the DTO validates with `@IsString()`, not `@IsInt()`,
+ * because the same column doubles for other value kinds depending on
+ * `type`). Sending a real number there 400s ("Min must be a string").
+ */
 export type SubFormColumnType =
-  "text" | "number" | "date" | "checkbox" | "select" | "async-select";
+  | "text"
+  | "number"
+  | "numeric-text"
+  | "date"
+  | "checkbox"
+  | "select"
+  | "async-select";
 
 export interface SubFormColumn<R> {
   key: keyof R & string;
@@ -26,14 +44,39 @@ export interface SubFormColumn<R> {
    * the first page it was handed, which is wrong for anything that can grow
    * past a couple hundred rows (LIMS_AUDIT M5).
    */
-  useOptions?: (args: {
-    search: string;
-    enabled?: boolean;
-    selectedValues?: string[];
-  }) => ReturnType<typeof useAsyncOptions>;
+  useOptions?: (
+    args: {
+      search: string;
+      enabled?: boolean;
+      selectedValues?: string[];
+    },
+    /**
+     * The row this cell belongs to — lets a column scope its options to a
+     * sibling cell already picked on the SAME row (e.g. Specification
+     * Limits' `componentId` column only offering the Components that
+     * belong to whichever Analysis that row's `analysisId` cell holds).
+     * Ignored by hooks that don't declare this second parameter.
+     */
+    row?: R
+  ) => ReturnType<typeof useAsyncOptions>;
   placeholder?: string;
   /** Tailwind width class, e.g. "w-40". Defaults to an even share. */
   className?: string;
+  /**
+   * Only for `type: "async-select"`. Fires after a selection, alongside the
+   * normal `onChange` write of `column.key`, so the picked option can also
+   * populate OTHER cells on the same row (e.g. picking a Component fills in
+   * its Min/Max/Unit as read-only display values). Return just the fields
+   * to merge in — `column.key` itself is already handled.
+   */
+  onSelectOption?: (row: R, option: AsyncOption) => Partial<R>;
+  /**
+   * Locks this cell on a PER-ROW basis, on top of the grid-wide `disabled`
+   * prop — e.g. Specification Limits' Component-derived fields (Min/Max/
+   * Unit) are read-only only on rows populated via the Analysis/Component
+   * picker; a manually-typed row's same columns stay editable.
+   */
+  readOnly?: (row: R) => boolean;
 }
 
 export interface SubFormGridProps<R extends Record<string, unknown>> {
@@ -130,9 +173,24 @@ function SubFormGrid<R extends Record<string, unknown>>({
     if (column.type === "async-select") {
       return (
         <AsyncSelect
-          useOptions={column.useOptions!}
+          useOptions={(args) => column.useOptions!(args, row)}
           value={String(value ?? "")}
           onChange={(next) => updateCell(rowIndex, column.key, next)}
+          onChangeOption={
+            column.onSelectOption
+              ? (option) => {
+                  if (!option) return;
+                  const patch = column.onSelectOption!(row, option);
+                  onChange(
+                    rows.map((r, index) =>
+                      index === rowIndex
+                        ? { ...r, ...patch, [column.key]: option.value }
+                        : r
+                    )
+                  );
+                }
+              : undefined
+          }
           placeholder={
             column.placeholder ?? t("select", { entity: column.header })
           }
@@ -188,12 +246,12 @@ function SubFormGrid<R extends Record<string, unknown>>({
 
     return (
       <input
-        type={column.type ?? "text"}
+        type={column.type === "numeric-text" ? "number" : (column.type ?? "text")}
         aria-label={column.header}
         className={inputClasses}
         placeholder={column.placeholder}
         value={String(value ?? "")}
-        disabled={disabled}
+        disabled={disabled || Boolean(column.readOnly?.(row))}
         onChange={(event) =>
           updateCell(
             rowIndex,

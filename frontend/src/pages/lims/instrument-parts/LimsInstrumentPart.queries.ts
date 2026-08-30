@@ -7,7 +7,9 @@ import { useAsyncOptions } from "@/hooks/useAsyncOptions";
 import type { BulkSelection, ServerListParams } from "@/lib/query/listTypes";
 import {
   bulkCloneLimsInstrumentPart,
+  bulkCopyLimsInstrumentPart,
   bulkDeleteLimsInstrumentPart,
+  bulkUpdateLimsInstrumentPart,
   createLimsInstrumentPart,
   fetchLimsInstrumentPartAudit,
   fetchLimsInstrumentPartOptions,
@@ -116,6 +118,59 @@ export const useBulkCloneLimsInstrumentPart = () => {
         count && count > 1
           ? `${count} records copied successfully.`
           : "Record copied successfully.",
+        "success"
+      );
+      invalidate();
+    }
+  });
+};
+
+/**
+ * The Copy flow's batched save (see CopyStepper) — one request creates
+ * every reviewed record. A collision is warned, not rejected (server
+ * auto-suffixes) — surfaced here per record.
+ */
+export const useBulkCopyLimsInstrumentPart = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (records: LimsInstrumentPartPayload[]) => bulkCopyLimsInstrumentPart(records),
+    onSuccess: (data) => {
+      const warnings = data.results.filter((r) => r.warning);
+      toast(
+        data.count > 1
+          ? `${data.count} records copied successfully.`
+          : "Record copied successfully.",
+        "success"
+      );
+      if (warnings.length) {
+        toast(
+          warnings.length === 1
+            ? warnings[0].warning!
+            : `${warnings.length} of ${data.count} kept their original name — renamed to stay unique.`,
+          "info",
+          { duration: 6000 }
+        );
+      }
+      invalidate();
+    }
+  });
+};
+
+export const useBulkUpdateLimsInstrumentPart = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: ({
+      updates,
+      changeReason
+    }: {
+      updates: { id: string; payload: LimsInstrumentPartPayload }[];
+      changeReason: string;
+    }) => bulkUpdateLimsInstrumentPart(updates, changeReason),
+    onSuccess: (data) => {
+      toast(
+        data.count > 1
+          ? `${data.count} records updated successfully.`
+          : "Record updated successfully.",
         "success"
       );
       invalidate();

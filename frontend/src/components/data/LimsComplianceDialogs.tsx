@@ -15,10 +15,13 @@ interface LimsComplianceDialogsProps<TRow extends { id: string }, TPayload> {
   onUpdate: (reason: string) => Promise<void> | void;
   onDelete: (reason: string) => Promise<void> | void;
   onRestore: (reason: string) => Promise<void> | void;
+  /** Bulk Edit's one shared reason for the whole reviewed batch — optional, unmigrated callers are unaffected. */
+  onBulkUpdate?: (reason: string) => Promise<void> | void;
 
   updating?: boolean;
   deleting?: boolean;
   restoring?: boolean;
+  bulkUpdating?: boolean;
 
   auditEntries: LimsAuditEntry[];
   auditLoading?: boolean;
@@ -41,9 +44,11 @@ function LimsComplianceDialogs<TRow extends { id: string }, TPayload>({
   onUpdate,
   onDelete,
   onRestore,
+  onBulkUpdate,
   updating = false,
   deleting = false,
   restoring = false,
+  bulkUpdating = false,
   auditEntries,
   auditLoading = false,
   auditHasNextPage = false,
@@ -65,6 +70,20 @@ function LimsComplianceDialogs<TRow extends { id: string }, TPayload>({
         title={t("limsConfirmChangesTitle")}
         description={t("limsConfirmChangesBody")}
         onConfirm={(reason) => onUpdate(reason ?? "")}
+      />
+
+      {/* Bulk Edit: one reason, recorded once, applied to every reviewed record's own audit row. */}
+      <ConfirmDialog
+        isOpen={compliance.pendingBulkUpdate !== null}
+        onClose={compliance.clearBulkUpdate}
+        loading={bulkUpdating}
+        tone="default"
+        requireReason
+        title={t("limsConfirmBulkChangesTitle")}
+        description={t("limsConfirmBulkChangesBody", {
+          count: compliance.pendingBulkUpdate?.count ?? 0
+        })}
+        onConfirm={(reason) => onBulkUpdate?.(reason ?? "")}
       />
 
       <ConfirmDialog

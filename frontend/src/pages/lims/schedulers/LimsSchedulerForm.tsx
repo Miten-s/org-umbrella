@@ -21,17 +21,37 @@ import { useLimsSpecificationOptions } from "@/pages/lims/specifications/LimsSpe
 import { useSampleTypeOptions } from "@/pages/lims/phrases/LimsPhrase.queries";
 import { useLimsUserOptions } from "@/pages/lims/users/LimsUser.options";
 import { seedRefOption } from "@/utils/refLabel";
-import { limsSchedulerSchema, type LimsSchedulerFormValues } from "./LimsScheduler.schema";
+import { limsSchedulerSchema, limsSchedulerCopySchema, type LimsSchedulerFormValues } from "./LimsScheduler.schema";
 import type { LimsScheduler, LimsSchedulerPayload, LimsRef } from "./LimsScheduler.types";
 
-export type LimsSchedulerFormMode = "create" | "edit" | "view";
+/**
+ * "copy" renders like "create" (fully editable) except the business ID
+ * starts blank instead of pre-filled with the source's — stays EDITABLE,
+ * not disabled: `applyBusinessId` mints a fresh one only when the field
+ * is empty, and otherwise honors whatever the user typed (subject to the
+ * usual uniqueness check). Used by CopyStepper.
+ */
+export type LimsSchedulerFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsSchedulerFormProps {
   mode?: LimsSchedulerFormMode;
   initialData?: LimsScheduler | null;
   onClose: () => void;
+  onUnchanged?: () => void;
   onSubmit: (payload: LimsSchedulerPayload) => Promise<void> | void;
   submitting?: boolean;
+  /** Overrides the submit button's label — CopyStepper uses this to say
+   * "Next" on every step but the last, where the batch actually saves. */
+  submitLabel?: string;
+  /** Grays out the submit button without a spinner — EditStepper uses
+   * this on the last step now that its own Save button lives outside it. */
+  disabled?: boolean;
+  /** Set on the `<form>` element so an outside button (CopyStepper's
+   * header Next/Save) can submit it via `<Button form={formId}>`. */
+  formId?: string;
+  /** " (2 of 5)" appended after the title when Copy is reviewing more
+   * than one record — undefined otherwise. */
+  stepLabel?: string;
 }
 
 /** Seeds a dropdown label from the record's nested ref — no extra fetch. */
@@ -42,8 +62,13 @@ const LimsSchedulerForm = ({
   mode = "create",
   initialData,
   onClose,
+  onUnchanged,
   onSubmit,
-  submitting = false
+  submitting = false,
+  submitLabel,
+  disabled = false,
+  formId,
+  stepLabel
 }: LimsSchedulerFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
@@ -52,7 +77,7 @@ const LimsSchedulerForm = ({
   // against, so Save is a no-op when nothing actually differs from it.
   const initialValues = useMemo<LimsSchedulerFormValues>(
     () => ({
-      schedulerId: initialData?.schedulerId ?? "",
+      schedulerId: mode === "copy" ? "" : (initialData?.schedulerId ?? ""),
       name: initialData?.name ?? "",
       scope: initialData?.scope ?? "",
       group: initialData?.group?.id ?? "",
@@ -71,7 +96,7 @@ const LimsSchedulerForm = ({
       autoLogin: initialData?.autoLogin ?? false,
       isActive: initialData?.isActive ?? false,
     }),
-    [initialData]
+    [initialData, mode]
   );
 
   const {
@@ -81,7 +106,7 @@ const LimsSchedulerForm = ({
     setValue,
     formState: { errors, isSubmitting }
   } = useForm<LimsSchedulerFormValues>({
-    resolver: zodResolver(limsSchedulerSchema),
+    resolver: zodResolver(mode === "copy" ? limsSchedulerCopySchema : limsSchedulerSchema),
     defaultValues: initialValues
   });
 
@@ -92,7 +117,8 @@ const LimsSchedulerForm = ({
     name: keyof LimsSchedulerFormValues,
     label: string,
     required = false,
-    type = "text"
+    type = "text",
+    forceDisabled = false
   ) => (
     <div className="min-w-0">
       <Label required={required}>{label}</Label>
@@ -117,7 +143,7 @@ const LimsSchedulerForm = ({
         <Input
           {...register(name)}
           type={type}
-          disabled={isReadOnly}
+          disabled={isReadOnly || forceDisabled}
           error={!!errors[name]}
           hint={errors[name]?.message as string}
           className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
@@ -129,11 +155,12 @@ const LimsSchedulerForm = ({
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
+        id={formId}
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
-          if (mode === "edit" && isPayloadEqual(values, initialValues)) {
-            onClose();
+          if ((mode === "edit" || mode === "bulk-edit") && isPayloadEqual(values, initialValues)) {
+            (onUnchanged ?? onClose)();
             return;
           }
           onSubmit({ ...values });
@@ -143,8 +170,10 @@ const LimsSchedulerForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsScheduler") })
-            : initialData
-              ? t("update", { entity: t("limsScheduler") })
+                        : mode === "copy"
+              ? `${t("copyEntity", { entity: t("limsScheduler") })}${stepLabel ?? ""}`
+              : initialData
+              ? `${t("update", { entity: t("limsScheduler") })}${stepLabel ?? ""}`
               : t("create", { entity: t("limsScheduler") })}
         </h2>
 
@@ -380,8 +409,8 @@ const LimsSchedulerForm = ({
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy}>
-              {t("save")}
+            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+              {submitLabel ?? t("save")}
             </Button>
           ) : null}
         </div>

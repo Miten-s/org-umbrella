@@ -1,5 +1,6 @@
 import { http, HttpResponse } from "msw";
 import {
+  bulkCreateRows,
   createRow,
   duplicateRows,
   getAudit,
@@ -64,6 +65,39 @@ const entityHandlers = listEntities().flatMap((entity) => {
       const body = await readBody(request);
       const count = duplicateRows(entity, (body.ids as string[]) ?? []);
       return HttpResponse.json({ message: "Copied", count });
+    }),
+
+    // The Copy flow's batched save — one request, N already-reviewed
+    // records (see CopyStepper / bulkCreate in crud-factory.ts).
+    http.post(url(`${route}/bulk-copy`), async ({ request }) => {
+      const body = await readBody(request);
+      const results = bulkCreateRows(
+        entity,
+        (body.records as Record<string, unknown>[]) ?? []
+      );
+      return HttpResponse.json(
+        { message: "Copied", count: results.length, results },
+        { status: 201 }
+      );
+    }),
+
+    // Bulk Edit's batched save — one request, only the records the user
+    // actually reviewed and changed (see EditStepper / bulkUpdate in
+    // crud-factory.ts). One shared `changeReason` applied to every entry.
+    http.patch(url(`${route}/bulk-update`), async ({ request }) => {
+      const body = await readBody(request);
+      const updates =
+        (body.updates as { id: string; payload: Record<string, unknown> }[]) ?? [];
+      const changeReason = body.changeReason as string | undefined;
+      const results = updates.map(({ id, payload }) => {
+        const updated = updateRow(entity, id, { ...payload, changeReason });
+        return updated ? { id } : { id, skipped: true };
+      });
+      return HttpResponse.json({
+        message: "Updated",
+        count: results.length,
+        results
+      });
     }),
 
     http.patch(url(`${route}/restore/:id`), async ({ params, request }) => {

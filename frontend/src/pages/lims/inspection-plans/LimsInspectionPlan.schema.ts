@@ -11,3 +11,12 @@ export const limsInspectionPlanSchema = z.object({
 });
 
 export type LimsInspectionPlanFormValues = z.infer<typeof limsInspectionPlanSchema>;
+
+/**
+ * Copy mode leaves the business ID blank + disabled (the server
+ * always mints a fresh one on save — see LimsInspectionPlanForm) — same shape,
+ * minus the required check, so the blank field doesn't block Save.
+ */
+export const limsInspectionPlanCopySchema = limsInspectionPlanSchema.extend({
+  inspectionId: z.string().max(150)
+});

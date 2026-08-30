@@ -5,6 +5,8 @@ import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
+import CopyStepper from "@/components/data/CopyStepper";
+import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -13,6 +15,8 @@ import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
+import { toast } from "@/lib/toast";
+import { idsSelection } from "@/lib/query/listTypes";
 import {
   CopyIcon,
   EyeIcon,
@@ -21,12 +25,14 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsParameterList } from "./LimsParameter.api";
+import { fetchLimsParameterById, fetchLimsParameterList } from "./LimsParameter.api";
 import { getLimsParameterColumns } from "./LimsParameter.columns";
 import {
   limsParameterKeys,
   useBulkCloneLimsParameter,
+  useBulkCopyLimsParameter,
   useBulkDeleteLimsParameter,
+  useBulkUpdateLimsParameter,
   useCreateLimsParameter,
   useLimsParameterAudit,
   useRestoreLimsParameter,
@@ -52,6 +58,9 @@ const LimsParameterList = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsParameterFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
+  // Set instead of activeId/formMode while the Copy review flow is open.
+  const [copyIds, setCopyIds] = useState<string[] | null>(null);
+  const [editIds, setEditIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsParameter, LimsParameterPayload>();
   const auditQuery = useLimsParameterAudit(compliance.auditRow?.id);
@@ -77,14 +86,18 @@ const LimsParameterList = () => {
   const createParameter = useCreateLimsParameter();
   const updateParameter = useUpdateLimsParameter();
   const bulkClone = useBulkCloneLimsParameter();
+  const bulkCopy = useBulkCopyLimsParameter();
   const bulkDelete = useBulkDeleteLimsParameter();
+  const bulkUpdate = useBulkUpdateLimsParameter();
   const restoreParameter = useRestoreLimsParameter();
 
   const busy =
     createParameter.isPending ||
     updateParameter.isPending ||
     bulkClone.isPending ||
+    bulkCopy.isPending ||
     bulkDelete.isPending ||
+    bulkUpdate.isPending ||
     restoreParameter.isPending;
 
   const columnDefs = useMemo(() => getLimsParameterColumns({ t }), [t]);
@@ -98,10 +111,43 @@ const LimsParameterList = () => {
     [openModal]
   );
 
+  const openCopy = useCallback(
+    (ids: string[]) => {
+      setCopyIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
+  const openEdit = useCallback(
+    (ids: string[]) => {
+      setEditIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
+    setCopyIds(null);
+    setEditIds(null);
+  };
+
+  const handleSaveCopies = async (payloads: LimsParameterPayload[]) => {
+    await bulkCopy.mutateAsync(payloads);
+    handleCloseForm();
+    table.clearSelection();
+  };
+
+  const handleSaveEdits = (updates: { id: string; payload: LimsParameterPayload }[]) => {
+    handleCloseForm();
+    compliance.requestBulkUpdate(updates);
+  };
+
+  const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
+    await bulkClone.mutateAsync(idsSelection(unreviewedIds));
   };
 
   const handleSave = async (payload: LimsParameterPayload) => {
@@ -135,8 +181,26 @@ const LimsParameterList = () => {
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_PARAMETER,
         onClick: async (selection) => {
+          if (selection.mode === "ids") {
+            openCopy(selection.ids);
+            return;
+          }
           await bulkClone.mutateAsync(selection);
           table.clearSelection();
+        }
+      },
+      {
+        key: "edit",
+        label: () => t("edit"),
+        icon: PencilIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_PARAMETER,
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          openEdit(selection.ids);
         }
       },
       {
@@ -158,7 +222,7 @@ const LimsParameterList = () => {
           )
       }
     ],
-    [bulkClone, compliance, table]
+    [bulkClone, compliance, openCopy, openEdit, t, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsParameter>[]>(
@@ -194,7 +258,7 @@ const LimsParameterList = () => {
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_PARAMETER,
         onClick: (parameter) =>
-          bulkClone.mutate({ mode: "ids", ids: [parameter.id] })
+          openCopy([parameter.id])
       },
       {
         key: "restore",
@@ -219,7 +283,7 @@ const LimsParameterList = () => {
           ])
       }
     ],
-    [bulkClone, compliance, openForm]
+    [compliance, openCopy, openForm]
   );
 
   return (
@@ -258,8 +322,30 @@ const LimsParameterList = () => {
         isOpen={isOpen}
         onClose={handleCloseForm}
         className="m-4 max-w-[900px] overflow-x-hidden dark:bg-gray-900"
+        disableOuterScroll
       >
-        {formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        {copyIds ? (
+          <CopyStepper<LimsParameter, LimsParameterPayload>
+            ids={copyIds}
+            fetchById={fetchLimsParameterById}
+            FormComponent={LimsParameterForm}
+            onSaveAll={handleSaveCopies}
+            onDuplicateUnreviewed={handleDuplicateUnreviewedCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending || bulkClone.isPending}
+            entityLabel={t("limsParameter")}
+          />
+        ) : editIds ? (
+          <EditStepper<LimsParameter, LimsParameterPayload>
+            ids={editIds}
+            fetchById={fetchLimsParameterById}
+            FormComponent={LimsParameterForm}
+            onSaveAll={handleSaveEdits}
+            onClose={handleCloseForm}
+            saving={bulkUpdate.isPending}
+            entityLabel={t("limsParameter")}
+          />
+        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>
@@ -284,6 +370,7 @@ const LimsParameterList = () => {
         updating={updateParameter.isPending}
         deleting={bulkDelete.isPending}
         restoring={restoreParameter.isPending}
+        bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
         auditLoading={auditQuery.isLoading}
@@ -294,6 +381,14 @@ const LimsParameterList = () => {
 
         onAuditLoadMore={auditQuery.fetchNextPage}
         onUpdate={confirmUpdate}
+        onBulkUpdate={async (reason) => {
+          const pending = compliance.pendingBulkUpdate;
+          if (pending) {
+            await bulkUpdate.mutateAsync({ updates: pending.updates, changeReason: reason });
+            table.clearSelection();
+          }
+          compliance.clearBulkUpdate();
+        }}
         onDelete={async (reason) => {
           const pending = compliance.pendingDelete;
           if (pending) {
