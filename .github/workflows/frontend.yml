@@ -52,6 +52,7 @@ jobs:
     - name: Deploy to EC2
       env:
         DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.EC2_HOST }}
@@ -62,6 +63,7 @@ jobs:
           git fetch origin
           git checkout sp/docker-based-deployment
           git pull origin sp/docker-based-deployment
+          echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
           infisical run --env=prod --path=/frontend --recursive -- docker compose -f docker-compose.yml pull frontend
           docker compose -f docker-compose.yml stop frontend
           docker compose -f docker-compose.yml rm -f frontend
