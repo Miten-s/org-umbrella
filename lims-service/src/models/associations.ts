@@ -41,18 +41,8 @@ import Result from "./result.model";
 import Scheduler from "./scheduler.model";
 import TestWindow from "./test-window.model";
 
-/**
- * All model associations in one place, registered once at boot.
- *
- * They live here rather than inside each model file because associations are
- * inherently circular (Role needs Group, Group is referenced by User, …) and
- * declaring them at import time makes module load order significant. One
- * explicit call from connectDB() removes that class of bug entirely.
- *
- * The `as` aliases are the names the frontend sees in nested relations, so
- * they must match the `<Entity>.types.ts` field names — `group`, `parent`,
- * `entries`, `accessGroups`, `roles`.
- */
+/** All model associations, registered once at boot — circular references make declaring
+ * them at import time load-order-sensitive. `as` aliases must match `<Entity>.types.ts` field names. */
 let registered = false;
 
 export const registerAssociations = () => {

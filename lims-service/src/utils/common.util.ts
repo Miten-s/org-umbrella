@@ -28,14 +28,8 @@ const humanizeField = (raw: string): string => {
   return label ? label.replace(/\b\w/g, (c) => c.toUpperCase()) : "record";
 };
 
-/**
- * A friendly "already exists" message for a uniqueness conflict — never a raw
- * UUID or a raw snake_case column name, per the QA finding that both leaked
- * straight into user-facing toasts (Lab Users' `userId`, Results' composite
- * `test_id, component_id`).
- *
- * The value is only shown when it is something a lab analyst actually typed
- * (not a UUID foreign key) — a UUID tells them nothing useful.
+/** A friendly "already exists" message for a uniqueness conflict — never a raw UUID or
+ * snake_case column name. The value is shown only when it's something a lab analyst actually typed.
  */
 export const friendlyUniqueConflictMessage = (fields: string[], values: unknown[] = []): string => {
   const fieldLabel = fields.filter(Boolean).map(humanizeField).join(" + ") || "record";

@@ -1,14 +1,7 @@
 import { QueryInterface, DataTypes } from "sequelize";
 
-/**
- * Pick Lists (Phrases) and Storage Locations — the first master-data tables,
- * and the two everything else references.
- *
- * Column names deliberately match the frontend's `<Entity>.types.ts` payload
- * field names (`locationName`, not `name`). The previous service picked its own
- * names and the client had to carry a 261-line translation map; matching here
- * costs nothing and deletes that whole layer.
- */
+/** Pick Lists (Phrases) and Storage Locations — the first master-data tables. Column names
+ * deliberately match the frontend's payload field names, avoiding a translation layer. */
 
 const softDeleteFields = {
   is_deleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
@@ -27,17 +20,14 @@ export const up = async (queryInterface: QueryInterface) => {
     allowNull: true
   });
 
-  // `ownedBy` is a person from the auth database, returned to the client as
-  // {id, name}. The name is denormalised because it lives in another database
-  // and cannot be joined.
+  // `ownedBy` is a person from the auth database — the name is denormalised since it can't be joined.
   await queryInterface.addColumn("lims_groups", "owned_by_name", {
     type: DataTypes.STRING(200),
     allowNull: true
   });
 
   // ─── lims_phrases — pick lists ────────────────────────────────────────────
-  // group_id is nullable here: phrases are global reference data, visible to
-  // every group (the only category the access rules allow a NULL group on).
+  // group_id is nullable: phrases are global reference data, visible to every group.
   await queryInterface.createTable("lims_phrases", {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
     phrase: { type: DataTypes.STRING(100), allowNull: false, unique: true },

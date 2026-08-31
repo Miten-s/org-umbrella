@@ -9,11 +9,8 @@ export const limsAliquotSchema = z.object({
 
 export type LimsAliquotFormValues = z.infer<typeof limsAliquotSchema>;
 
-/**
- * Copy mode leaves the business ID blank + disabled (the server
- * always mints a fresh one on save — see LimsAliquotForm) — same shape,
- * minus the required check, so the blank field doesn't block Save.
- */
+/** Copy mode leaves the business ID blank + disabled (server always mints a fresh
+ * one — see LimsAliquotForm) — same shape, minus the required check. */
 export const limsAliquotCopySchema = limsAliquotSchema.extend({
   aliquotSetId: z.string().max(150)
 });

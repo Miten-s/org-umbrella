@@ -1,21 +1,8 @@
 import { Model, ModelStatic, QueryTypes, Transaction } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 
-/**
- * Human-readable business IDs (`LOC-000001`) — the code a lab actually says
- * out loud, as distinct from the UUID primary key.
- *
- * Two behaviours, per the agreed rule:
- *
- *  - **Master data** (`locked: false`) — the server generates a suggestion the
- *    form pre-fills, and the user may overwrite it with something meaningful
- *    (`PROJ-2026-STABILITY`). Whatever arrives is honoured; uniqueness is
- *    enforced by the column's unique index.
- *  - **Lab executions** (`locked: true`) — Sample/Test/Result are always
- *    server-generated and any client value is discarded. At 1M results a day
- *    nobody is typing these, and a duplicated sample number is a data-integrity
- *    incident rather than an inconvenience.
- */
+/** Human-readable business IDs (`LOC-000001`). Master data (`locked: false`): a pre-filled
+ * suggestion the user may overwrite. Lab executions (`locked: true`): always server-generated. */
 export interface BusinessIdConfig {
   /** Payload/column field holding the ID, e.g. "locationId". */
   field: string;
@@ -23,20 +10,8 @@ export interface BusinessIdConfig {
   prefix: string;
   /** true = always server-generated, client value discarded. */
   locked?: boolean;
-  /**
-   * Digits to pad to. Defaults to 6 (`LOC-000001`), which is right for master
-   * data — nobody creates a million storage locations.
-   *
-   * The execution entities need more, and the difference is not academic:
-   * at the stated volumes (10k samples, 100k tests, 1M results per day) a
-   * 6-digit counter is exhausted in 100 days, 10 days, and **one day**
-   * respectively.
-   *
-   * Overflowing is not a crash — `padStart` widens rather than truncates, the
-   * columns are STRING(100+) and the counter is BIGINT — but the ids stop
-   * being fixed-width, and sorting them as text puts `RES-1000000` before
-   * `RES-999999`. Sizing the pad for a decade of volume keeps them ordered.
-   */
+  /** Digits to pad to (default 6). Execution entities need more — at 1M results/day a
+   * 6-digit counter exhausts in a day, and overflow breaks text-sort ordering. */
   pad?: number;
 }
 
@@ -51,18 +26,8 @@ export const formatBusinessId = (
   pad: number = DEFAULT_PAD
 ): string => `${prefix}-${String(value).padStart(pad, "0")}`;
 
-/**
- * Claim the next number for an entity. Atomic: the `ON CONFLICT DO UPDATE` runs
- * as a single statement, so concurrent callers are serialised by row lock and
- * cannot receive the same value.
- *
- * Exported (beyond `nextBusinessId`'s own use) for callers that need a bare
- * atomic counter rather than a formatted `PREFIX-000001` business id — e.g.
- * Stock Batch's per-stock `batchNumber`, which needs its own counter per
- * stock rather than one shared across the whole entity. Any string works as
- * `entity` as long as it's unique to the thing being counted; `lims_id_sequences`
- * keys on it.
- */
+/** Claims the next number for an entity, atomically (`ON CONFLICT DO UPDATE`, serialised by
+ * row lock). Exported for callers needing a bare counter, e.g. Stock Batch's per-stock `batchNumber`. */
 export const claimNextValue = async (
   entity: string,
   prefix: string,
@@ -80,13 +45,8 @@ export const claimNextValue = async (
   return Number(row.last_value);
 };
 
-/**
- * The next free business ID for an entity.
- *
- * Skips over numbers already taken by hand-entered IDs — a user who types
- * `LOC-000007` before the counter reaches it must not cause a later create to
- * fail on the unique index.
- */
+/** The next free business ID for an entity — skips numbers already taken by hand-entered
+ * IDs, so a user who typed `LOC-000007` ahead of the counter can't collide with it later. */
 export const nextBusinessId = async <M extends Model>(
   model: ModelStatic<M>,
   entity: string,
@@ -118,15 +78,8 @@ export const nextBusinessId = async <M extends Model>(
   );
 };
 
-/**
- * The value the create form should pre-fill, without consuming it.
- *
- * Deliberately non-consuming: browsing a create form must not burn IDs. The
- * consequence is that two users opening the form at the same moment see the
- * same suggestion and the second save hits the unique index — a clear 409 they
- * resolve by saving again, which is a better trade than gaps every time
- * somebody opens a form and closes it.
- */
+/** The value the create form should pre-fill, without consuming it — two users opening the
+ * form at once may see the same suggestion; a resulting 409 beats gaps from unclaimed forms. */
 export const peekBusinessId = async <M extends Model>(
   model: ModelStatic<M>,
   entity: string,
@@ -152,12 +105,8 @@ export const peekBusinessId = async <M extends Model>(
   return formatBusinessId(config.prefix, candidate, config.pad);
 };
 
-/**
- * Settle the business ID on a create payload.
- *
- * Locked entities always get a fresh server value. Unlocked ones keep whatever
- * the client sent and are only generated for when the field is absent or blank.
- */
+/** Settles the business ID on a create payload — locked entities always get a fresh server
+ * value; unlocked ones keep what the client sent, generated only when absent or blank. */
 export const applyBusinessId = async <M extends Model>(
   model: ModelStatic<M>,
   entity: string,

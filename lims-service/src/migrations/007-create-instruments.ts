@@ -1,14 +1,7 @@
 import { QueryInterface, DataTypes } from "sequelize";
 
-/**
- * Instruments, their Parts, Calibration schedules and Inspection Plans.
- *
- * Instrument and Instrument Part are near-identical by design — the spec says
- * "Instrument Parts (Everything same as Instrument)" — but they stay separate
- * tables rather than one self-referencing table, because a part is always
- * subordinate to exactly one instrument and the two are listed, permissioned
- * and searched independently.
- */
+/** Instruments, Parts, Calibration schedules, Inspection Plans. Instrument/Part stay separate
+ * tables (not one self-referencing table) — listed, permissioned and searched independently. */
 
 const softDeleteFields = {
   is_deleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
@@ -124,11 +117,8 @@ export const up = async (queryInterface: QueryInterface) => {
   });
   await queryInterface.addIndex("lims_instrument_parameter_values", ["instrument_id"]);
 
-  /**
-   * Maintenance rows hang off either an instrument or a part — both carry the
-   * same grid. Two nullable FKs with a check constraint rather than a
-   * polymorphic pair, so the database still enforces referential integrity.
-   */
+  // Maintenance rows hang off an instrument or a part — two nullable FKs + a check
+  // constraint, not a polymorphic pair, so the database still enforces referential integrity.
   await queryInterface.createTable("lims_maintenance_records", {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
     instrument_id: {
@@ -161,9 +151,7 @@ export const up = async (queryInterface: QueryInterface) => {
   );
 
   // ─── lims_calibrations ────────────────────────────────────────────────────
-  // Calibration and its schedule are one record: the spec lists "Calibration
-  // and Calibration Schedules" as a single form, and a schedule with no
-  // calibration to run is meaningless.
+  // Calibration and its schedule are one record — the spec lists them as a single form.
   await queryInterface.createTable("lims_calibrations", {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
     calibration_id: { type: DataTypes.STRING(100), allowNull: false, unique: true },

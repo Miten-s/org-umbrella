@@ -1,14 +1,8 @@
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 
-/**
- * A Storage Location. Attribute names match the frontend payload exactly —
- * `locationName`, not `name` — so no field translation is needed on either side.
- *
- * Self-referencing: `parentLocationId` gives the storage tree (Building →
- * Room → Freezer → Shelf), exposed to the client as `parentLocation` /
- * `subLocations`.
- */
+/** A Storage Location. Attribute names match the frontend payload exactly (`locationName`).
+ * Self-referencing: `parentLocationId` gives the storage tree, exposed as `parentLocation`/`subLocations`. */
 export interface ILocation {
   id?: string;
   locationId: string;

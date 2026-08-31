@@ -1,15 +1,7 @@
 import { Model, ModelStatic, Transaction } from "sequelize";
 
-/**
- * Nested sub-forms. The frontend sends child rows inside the parent payload
- * (`entries[]`, `components[]`, `limits[]`…), so they are persisted in the same
- * transaction as the parent and produce ONE audit entry, not five.
- *
- * Semantics are replace-set: whatever the client sends becomes the complete
- * set of children. Rows missing from the payload are deleted, new rows are
- * inserted, matching rows are updated. That mirrors how the grid behaves —
- * the user edits a list and saves it whole.
- */
+/** Nested sub-forms, persisted in the same transaction as the parent for one audit entry.
+ * Replace-set semantics: missing rows deleted, new rows inserted, matching rows updated. */
 export interface ChildConfig {
   /** Key in the parent payload, e.g. "entries". Also the relation alias. */
   field: string;
@@ -18,49 +10,20 @@ export interface ChildConfig {
   foreignKey: string;
   /** Child attributes the client may set. Anything else is ignored. */
   fields: string[];
-  /**
-   * Attribute used to recognise "the same row" across a save, so an edit is
-   * reported as a change rather than a delete plus an insert. Falls back to
-   * `id` when the client echoes it back.
-   */
+  /** Recognises "the same row" across a save, so an edit reports as a change, not a
+   * delete+insert. Falls back to `id` when the client echoes it back. */
   matchKey?: string;
-  /**
-   * The children are independent records this parent merely claims, not rows
-   * it owns — Batch↔Lot and Lot↔Sample. Selecting is re-parenting: a row
-   * dropped from the list has its foreign key cleared instead of being
-   * deleted, and one added is an UPDATE of an existing record, never an
-   * INSERT. Without this, deselecting a lot from a batch would destroy the
-   * lot and every sample under it.
-   */
+  /** The children are independent records this parent merely claims, not rows it owns
+   * (Batch↔Lot). A dropped row is re-parented (FK cleared), never deleted. */
   detachOnly?: boolean;
-  /**
-   * Payload key → child column, e.g. `{ instrument: "instrumentId" }`.
-   *
-   * The same convention the parent level uses: the client names a relation
-   * after the thing and sends a bare id, while the column is `<name>Id`.
-   * Without this the key simply isn't in `fields`, so `pick()` drops it — the
-   * user selects an instrument, saves, and the cell comes back empty with no
-   * error anywhere.
-   */
+  /** Payload key → child column (e.g. `{ instrument: "instrumentId" }`) — without this the
+   * key isn't in `fields`, so `pick()` silently drops it. */
   relationFields?: Record<string, string>;
-  /**
-   * Extra fixed columns to stamp on every newly-created child row, derived
-   * from the parent record — for a child table with a NOT NULL column this
-   * config's own `foreignKey` doesn't cover. Test's `components` reuses
-   * Sample's `TestWindow` table (keyed here by `testId`, not `sampleId`),
-   * and `sampleId` is still required there.
-   */
+  /** Extra fixed columns stamped on every newly-created child row, for a NOT NULL column
+   * this config's own `foreignKey` doesn't cover (Test's `components` needs `sampleId` too). */
   extraFields?: (parent: Record<string, any>) => Record<string, any>;
-  /**
-   * Extra fixed WHERE, ANDed into the replace-set's own "before" lookup —
-   * for a child table two different parents can both stamp rows into (Test's
-   * `components` and Sample's `testWindows` are the same `lims_test_windows`
-   * table). Without this, Sample's replace-set would see a Test-owned row as
-   * an orphan (foreignKey `sampleId` matches, but it wasn't in Sample's
-   * submitted list) and delete it out from under the Test. Sample's config
-   * scopes to `{ testId: null }` so it only ever replaces its own,
-   * not-yet-claimed-by-a-Test rows.
-   */
+  /** Extra fixed WHERE on the replace-set's "before" lookup, for a child table two parents
+   * both stamp rows into — without it, one parent's save would delete the other's rows. */
   scopeWhere?: Record<string, any>;
 }
 
@@ -86,8 +49,7 @@ const pick = (
     if (!(key in mapped)) continue;
     const value = mapped[key];
     delete mapped[key];
-    // "" means the picker was cleared — store NULL, not an empty string in a
-    // UUID column.
+    // "" means the picker was cleared — store NULL, not an empty string in a UUID column.
     if (value !== undefined) mapped[column] = value === "" ? null : value;
   }
 
@@ -127,12 +89,8 @@ export const readChildren = async (
   return rows.map((row) => row.toJSON() as Record<string, any>);
 };
 
-/**
- * Applies the incoming child set and returns what changed.
- *
- * `undefined` means "the client did not mention this collection" — left alone.
- * An empty array means "delete them all", which is a real instruction.
- */
+/** Applies the incoming child set and returns what changed. `undefined` means "not
+ * mentioned" — left alone. An empty array means "delete them all", a real instruction. */
 export const syncChildren = async (
   config: ChildConfig,
   parentId: string,
@@ -214,15 +172,8 @@ export const syncChildren = async (
   };
 };
 
-/**
- * Runs every child collection for one save and folds the results into the
- * audit snapshots.
- *
- * Both the full before/after arrays AND an explicit per-collection delta are
- * recorded. The arrays are the regulatory requirement (the complete prior
- * state must stay retrievable); the delta is what makes an audit screen
- * readable without diffing two arrays by eye.
- */
+/** Runs every child collection for one save and folds results into the audit snapshots —
+ * full before/after arrays (the regulatory requirement) plus a readable per-collection delta. */
 export const syncAllChildren = async (
   children: ChildConfig[] | undefined,
   parentId: string,

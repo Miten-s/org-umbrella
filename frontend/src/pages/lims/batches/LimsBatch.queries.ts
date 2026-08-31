@@ -125,11 +125,8 @@ export const useBulkCloneLimsBatch = () => {
   });
 };
 
-/**
- * The Copy flow's batched save (see CopyStepper) — one request creates
- * every reviewed record. A collision is warned, not rejected (server
- * auto-suffixes) — surfaced here per record.
- */
+/** The Copy flow's batched save (CopyStepper): one request creates every reviewed
+ * record; a collision is warned, not rejected. */
 export const useBulkCopyLimsBatch = () => {
   const invalidate = useInvalidate();
   return useMutation({

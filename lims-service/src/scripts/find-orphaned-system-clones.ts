@@ -1,18 +1,5 @@
-/**
- * READ-ONLY. Finds Pick Lists (Phrases) that are marked `isSystem: true`
- * but whose code carries a "-(N)" clone suffix — no real seeded system
- * list is ever named that way, so every match here is an artifact of the
- * pre-fix Copy bug: `bulkDuplicate` used to copy `isSystem` onto the clone,
- * making it permanently stuck (un-removable AND un-renameable, since its
- * own suffixed code also fails the CAPS_NUMBERS_UNDERSCORES format the
- * system list was seeded with).
- *
- * Prints what it finds and does not modify anything. See the companion
- * `fix-orphaned-system-clones.ts` to actually correct these rows once
- * you've confirmed the list below is right.
- *
- *   npx ts-node src/scripts/find-orphaned-system-clones.ts
- */
+/** READ-ONLY. Finds Pick Lists marked `isSystem: true` with a "-(N)" clone suffix — an
+ * artifact of the pre-fix Copy bug. See `fix-orphaned-system-clones.ts` to correct them. */
 import "dotenv/config";
 import { sequelize } from "../configs/db.sequelize";
 import Phrase from "../models/phrase.model";

@@ -1,9 +1,5 @@
-/**
- * Route prefixes must match the frontend's `<Entity>.api.ts` files exactly —
- * grep `"/lims-` under frontend/src/pages/lims to re-verify. Sub-resources
- * (params, entries) live inside their parent entity's payload, not as their
- * own routes.
- */
+/** Route prefixes must match the frontend's `<Entity>.api.ts` files exactly. Sub-resources
+ * live inside their parent entity's payload, not as their own routes. */
 const API_ROUTES = {
   ROOT: "/",
   HEALTH: "/health",

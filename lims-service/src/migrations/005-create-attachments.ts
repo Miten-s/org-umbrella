@@ -1,18 +1,7 @@
 import { QueryInterface, DataTypes } from "sequelize";
 
-/**
- * One attachments table for every entity that takes files.
- *
- * The spec puts "Attachment (any kind of attachment with comments)" on ~12
- * entities with an identical shape each time. Twelve join tables and twelve
- * upload endpoints would all be the same code, so this is polymorphic:
- * `entity_name` + `entity_id` identify the owner.
- *
- * The trade-off is no real foreign key to the parent — Postgres cannot
- * reference a table chosen at runtime. Deleting a parent therefore has to
- * clean up here too; since every entity is soft-deleted, its attachments stay
- * reachable with it, which is what a GxP audit needs anyway.
- */
+/** One polymorphic attachments table for every entity that takes files (`entity_name` +
+ * `entity_id`), instead of ~12 identical join tables. No real FK — every entity is soft-deleted, so attachments stay reachable. */
 export const up = async (queryInterface: QueryInterface) => {
   await queryInterface.createTable("lims_attachments", {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },

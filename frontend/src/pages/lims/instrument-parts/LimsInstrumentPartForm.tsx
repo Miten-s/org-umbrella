@@ -22,15 +22,8 @@ import { useLimsSupplierOptions } from "@/pages/lims/suppliers/LimsSupplier.quer
 import { limsInstrumentPartSchema, limsInstrumentPartCopySchema, type LimsInstrumentPartFormValues } from "./LimsInstrumentPart.schema";
 import type { LimsInstrumentPart, LimsInstrumentPartPayload, LimsRef, LimsMaintenanceRow } from "./LimsInstrumentPart.types";
 
-/**
- * "copy" renders like "create" (fully editable) except the business ID
- * starts blank instead of pre-filled with the source's — stays EDITABLE,
- * not disabled: `applyBusinessId` mints a fresh one only when the field
- * is empty, and otherwise honors whatever the user typed (subject to the
- * usual uniqueness check). Attachments are hidden in this mode: the Copy
- * flow's batch save is JSON-only and can't carry file uploads. Used by
- * CopyStepper.
- */
+/** "copy" renders like "create" except the business ID starts blank (stays EDITABLE —
+ * `applyBusinessId` only mints when empty). Attachments hidden: the batch save is JSON-only. */
 export type LimsInstrumentPartFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsInstrumentPartFormProps {

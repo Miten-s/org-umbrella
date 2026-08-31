@@ -1,15 +1,7 @@
 import { QueryInterface } from "sequelize";
 
-/**
- * Adds CANCEL / REACTIVATE to the audit action vocabulary.
- *
- * The column was a Postgres ENUM, which cannot gain a value inside a
- * transaction — and every migration here runs in one. Rather than special-case
- * the runner, the column becomes VARCHAR with a CHECK constraint: same
- * guarantee, and the next action to be added is a one-line constraint swap
- * instead of a fight with the type system. That matters because the spec's
- * configurable-entity feature will keep adding verbs.
- */
+/** Adds CANCEL/REACTIVATE to the audit action vocabulary. The column was a Postgres ENUM,
+ * which can't gain a value inside a transaction — switched to VARCHAR + CHECK instead. */
 export const up = async (queryInterface: QueryInterface) => {
   const { sequelize } = queryInterface;
 

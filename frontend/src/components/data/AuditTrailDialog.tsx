@@ -3,11 +3,8 @@ import Button from "@/components/ui/button/Button";
 import { EmptyState, TableSkeleton } from "./TableStates";
 import { useTranslation } from "react-i18next";
 
-/**
- * One audit row. `oldValue`/`newValue` are the FULL entity snapshot from the
- * server (see audit-log.model.ts) — not a single field's value — so they're
- * diffed into per-field rows below rather than rendered directly.
- */
+/** One audit row. `oldValue`/`newValue` are the FULL entity snapshot from the server,
+ * diffed into per-field rows below rather than rendered directly. */
 export interface LimsAuditEntry {
   id: string;
   uniqueId: string;
@@ -15,11 +12,8 @@ export interface LimsAuditEntry {
   field?: string | null;
   oldValue?: unknown;
   newValue?: unknown;
-  /**
-   * Per-collection added/removed/changed rows for sub-forms (e.g. a role's
-   * permission entries), keyed by the same field name that carries the
-   * collection on `oldValue`/`newValue`. See `describeChildDelta` below.
-   */
+  /** Per-collection added/removed/changed rows for sub-forms, keyed by the same field name
+   * on `oldValue`/`newValue`. See `describeChildDelta` below. */
   childChanges?: Record<string, { added?: unknown[]; removed?: unknown[]; changed?: unknown[] }> | null;
   changeReason?: string | null;
   who?: string | null;
@@ -68,13 +62,8 @@ const humanizeUpdateLabel = (field: string): string => {
   return `${label.charAt(0).toUpperCase()}${label.slice(1)} updated`;
 };
 
-/**
- * A count alone ("2 item(s)" -> "3 item(s)") doesn't say WHAT changed in a
- * sub-form collection — for something compliance-sensitive like a role's
- * permission grid, a reviewer needs to see that it was an addition versus an
- * edit, not just a net total. `childChanges` already carries that detail
- * (nested-children.ts); this renders it.
- */
+/** A count alone ("2 item(s)" -> "3 item(s)") doesn't say WHAT changed in a sub-form
+ * collection — `childChanges` carries that detail; this renders it. */
 const describeChildDelta = (delta: { added?: unknown[]; removed?: unknown[]; changed?: unknown[] }): string => {
   const parts: string[] = [];
   if (delta.added?.length) parts.push(`+${delta.added.length} added`);
@@ -142,12 +131,8 @@ interface AuditTrailDialogProps {
   onLoadMore?: () => void;
 }
 
-/**
- * A pasted multi-paragraph "why" (or a huge old/new value) used to render at
- * full height, ballooning the whole dialog around one cell. Bounded and
- * scrollable in place instead — the rest of the trail stays readable, and the
- * full text is still there on scroll, not truncated away.
- */
+/** Bounded and scrollable in place, so a pasted multi-paragraph value doesn't balloon
+ * the whole dialog around one cell. */
 const ClampedText = ({ value }: { value: string }) =>
   value.length > 160 || value.includes("\n") ? (
     <div className="max-h-24 max-w-xs overflow-y-auto whitespace-pre-wrap break-words">{value}</div>
@@ -161,10 +146,7 @@ const formatWhen = (value?: string | null) => {
   return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleString();
 };
 
-/**
- * Read-only audit trail for a single record. Shared by every LIMS module so the
- * compliance view is identical everywhere.
- */
+/** Read-only audit trail for a single record, shared by every LIMS module. */
 const AuditTrailDialog = ({
   isOpen,
   onClose,
@@ -202,10 +184,7 @@ const AuditTrailDialog = ({
           <TableSkeleton rows={5} columns={headers.length} />
         ) : entries.length ? (
           <>
-          {/* Bounded so the table scrolls internally rather than growing the
-              modal past the viewport — purely a layout cap, not a load
-              trigger. Paging is explicit: the "Load older entries" button
-              below, not scroll position. */}
+          {/* Bounded so the table scrolls internally rather than growing the modal past the viewport. */}
           <div className="max-h-[380px] overflow-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800">

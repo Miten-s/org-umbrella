@@ -4,19 +4,11 @@ import { buildCrudRouter, buildCrudService, CrudConfig } from "../utils/crud-fac
 import { CreateGroupDto, UpdateGroupDto } from "../dtos/master-data.dto";
 import { invalidateAllUserContexts } from "../services/user-context.service";
 
-/**
- * Lab Groups — the access partition itself.
- *
- * Note the entity is NOT group-filtered by its own rule (a group row has no
- * `groupId` column), so the factory's filter is a no-op here. Visibility of
- * the group list is governed by VIEW:GROUP alone.
- */
-/**
- * Keep `ownedByName` in step with `ownedBy`.
- *
- * Absent means "not being changed" on a PATCH, so it is left alone; an empty
- * value clears both.
- */
+/** Lab Groups — the access partition itself. NOT group-filtered by its own rule (no
+ * `groupId` column); visibility is governed by VIEW:GROUP alone. */
+
+/** Keeps `ownedByName` in step with `ownedBy`. Absent means "not being changed" on a
+ * PATCH; an empty value clears both. */
 const resolveOwnerName = async (payload: Record<string, any>) => {
   if (!("ownedBy" in payload)) return payload;
   if (!payload.ownedBy) return { ...payload, ownedByName: null };
@@ -35,21 +27,13 @@ export const groupConfig: CrudConfig<Group> = {
   relations: [{ model: Group, as: "parentGroup", attributes: ["id", "name"], required: false }],
   relationFields: { parentGroup: "parentGroupId" },
 
-  /**
-   * The owner's name is denormalised alongside the id, because the person
-   * lives in another database and cannot be joined. Nothing was writing it, so
-   * `postFormat` below always produced `{ id, name: "" }` — leaving the picker
-   * with a value it had no label for, and showing the raw uuid until the list
-   * was opened.
-   */
+  // The owner's name is denormalised alongside the id (cross-database, can't join) — without
+  // this, `postFormat` below always produced `{ id, name: "" }`, showing the raw uuid.
   beforeCreate: (payload) => resolveOwnerName(payload),
   beforeUpdate: (payload) => resolveOwnerName(payload),
 
-  /**
-   * `ownedBy` is a person in the auth database, so it cannot be a join. The id
-   * and display name are stored side by side and re-nested here into the
-   * `{ id, name }` shape the client expects from every relation.
-   */
+  // `ownedBy` can't be a join (cross-database) — the id/name pair is re-nested here into
+  // the `{ id, name }` shape the client expects from every relation.
   postFormat: (row) => ({
     ...row,
     ownedBy: row.ownedBy ? { id: row.ownedBy, name: row.ownedByName ?? "" } : null

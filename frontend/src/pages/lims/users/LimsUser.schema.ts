@@ -1,10 +1,7 @@
 import { z } from "zod";
 
-/**
- * Rule 3: friendly, inline validation.
- * `userId` is the selected platform user's id — LIMS never creates users, so
- * there are no name/email/phone fields here; those live on the platform user.
- */
+/** Rule 3: friendly, inline validation. `userId` is the platform user's id — LIMS never
+ * creates users, so no name/email/phone fields here. */
 export const limsUserSchema = z.object({
   userId: z.string().min(1, "Select a user"),
   group: z.string().optional(),

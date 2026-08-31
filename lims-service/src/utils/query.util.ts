@@ -1,10 +1,7 @@
 import { ModelStatic, Model, Op } from "sequelize";
 
-/**
- * `filter[field]=value` (spec §3, NFR-7/8) only ever reaches a `WHERE` clause
- * for columns that actually exist on the model — never pass a raw client
- * object straight into `where`.
- */
+/** `filter[field]=value` only ever reaches `WHERE` for columns that actually exist on the
+ * model — never pass a raw client object straight into `where`. */
 export const getSafeFilters = (
   model: ModelStatic<Model>,
   filters: Record<string, string> = {}

@@ -1,28 +1,7 @@
 import { QueryInterface, DataTypes } from "sequelize";
 
-/**
- * Lab executions: Batch → Lot → Sample → Test → Result, plus Schedulers.
- *
- * Three decisions are baked into this schema rather than layered on later.
- *
- * 1. **Cancel is not Remove.** Master data has Remove/Restore; executions also
- *    have Cancel/Reactivate, and the spec uses the two words deliberately. They
- *    are different columns: `is_deleted` hides a record, `status` records that
- *    the work was cancelled — which must stay visible in reports and audit. A
- *    cancelled sample that vanished from a batch record would be a data
- *    integrity finding.
- *
- * 2. **Results are insert-only.** A result is never UPDATEd. A correction
- *    inserts a new row with `version + 1`, and the previous row keeps
- *    `is_latest = false` forever. That is the Part 11 requirement: the
- *    originally entered value must remain retrievable.
- *
- * 3. **Results are indexed for volume.** The NFR is 1M results/day. The list
- *    query filters `is_deleted = false AND is_latest = true` and orders by
- *    `created_at` — so that exact predicate gets a partial index, and the
- *    ordering column is in it. Without this the table sequential-scans within
- *    days of go-live.
- */
+/** Lab executions: Batch → Lot → Sample → Test → Result, plus Schedulers. Cancel≠Remove; Results
+ * are insert-only (`version`/`is_latest`, Part 11) and carry a partial index for 1M rows/day. */
 
 const softDeleteFields = {
   is_deleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
@@ -77,8 +56,7 @@ export const up = async (queryInterface: QueryInterface) => {
   await queryInterface.addIndex("lims_batches", ["status"]);
 
   // ─── lims_lots ────────────────────────────────────────────────────────────
-  // A lot belongs to at most one batch; the client picks lots when editing a
-  // batch, which is the same relationship read from the other end.
+  // A lot belongs to at most one batch; the client picks lots when editing a batch.
   await queryInterface.createTable("lims_lots", {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
     lot_id: { type: DataTypes.STRING(100), allowNull: false, unique: true },
@@ -360,9 +338,7 @@ export const up = async (queryInterface: QueryInterface) => {
   );
 
   // ─── lims_test_windows ────────────────────────────────────────────────────
-  // The result-entry grid shown on a sample. Kept as its own table (not nested
-  // in the sample payload) for the same reason as results: at 1M rows a day
-  // they cannot be rewritten wholesale on every parent save.
+  // The result-entry grid on a sample — its own table, not nested, for the same volume reason as Results.
   await queryInterface.createTable("lims_test_windows", {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
     sample_id: {

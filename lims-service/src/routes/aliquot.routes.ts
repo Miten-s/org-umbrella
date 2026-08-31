@@ -45,11 +45,8 @@ export const aliquotConfig: CrudConfig<AliquotSet> = {
   // itemized row grid is Edit/View-only, so no list row needs it.
   listExcludeRelations: ["aliquots"],
 
-  // "Number of aliquots" is a typed summary field, independent of the itemized
-  // "List of aliquots" rows — nothing cross-checked them, so a record could be
-  // saved claiming 5 aliquots with only 1 actual row. Reject the mismatch
-  // whenever the client sends both in the same save; a partial update that
-  // omits `aliquots` entirely is left alone.
+  // The typed summary count and the itemized rows were never cross-checked — reject a
+  // mismatch when both are sent together; a partial update omitting `aliquots` is left alone.
   normalizePayload: (payload) => {
     const rows = Array.isArray(payload.aliquots) ? payload.aliquots : undefined;
     const declared = payload.aliquotsNumber;

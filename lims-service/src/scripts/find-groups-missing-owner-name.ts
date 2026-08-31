@@ -1,13 +1,5 @@
-/**
- * READ-ONLY. Finds Lab Groups with `ownedBy` set but `ownedByName` blank —
- * `postFormat` (group.routes.ts) nests these into `{ id, name: "" }`, which
- * is exactly the "raw UUID instead of a name" symptom in the Owned By
- * picker. `resolveOwnerName` (the same file) backfills this correctly on
- * every write going forward; this just finds rows written before that
- * existed (or inserted directly by a seed script, bypassing the hook).
- *
- *   npx ts-node src/scripts/find-groups-missing-owner-name.ts
- */
+/** READ-ONLY. Finds Lab Groups with `ownedBy` set but `ownedByName` blank (pre-dating
+ * `resolveOwnerName`'s backfill). `npx ts-node src/scripts/find-groups-missing-owner-name.ts` */
 import "dotenv/config";
 import { sequelize } from "../configs/db.sequelize";
 import Group from "../models/group.model";

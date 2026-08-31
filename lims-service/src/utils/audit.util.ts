@@ -13,12 +13,8 @@ export const writeAudit = async (params: {
   action: AuditAction;
   oldValue?: Record<string, any> | null;
   newValue?: Record<string, any> | null;
-  /**
-   * Per-collection added/removed/changed for nested sub-forms. `oldValue` and
-   * `newValue` already carry the full child arrays — this is the readable
-   * summary, so an audit screen can say "component pH changed 6.8 → 7.1"
-   * without diffing two arrays by eye.
-   */
+  /** Per-collection added/removed/changed for nested sub-forms — the readable summary, so
+   * an audit screen can say "component pH changed 6.8 → 7.1" without diffing two arrays. */
   childChanges?: Record<string, any> | null;
   changeReason?: string | null;
   actor: AuditActor;

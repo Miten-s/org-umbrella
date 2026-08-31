@@ -1,13 +1,8 @@
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 
-/**
- * One selectable value inside a pick list. Sent and returned nested in the
- * Phrase payload as `entries[]` — never its own endpoint.
- *
- * `phraseEntryId` is the stable business key within the list; it is what other
- * records store, so renaming the display `name` never orphans anything.
- */
+/** One selectable value inside a pick list, nested in the Phrase payload as `entries[]` —
+ * never its own endpoint. `phraseEntryId` is the stable key other records store. */
 export interface IPhraseEntry {
   id?: string;
   phraseId: string;

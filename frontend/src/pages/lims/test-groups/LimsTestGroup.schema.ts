@@ -13,11 +13,8 @@ export const limsTestGroupSchema = z.object({
 
 export type LimsTestGroupFormValues = z.infer<typeof limsTestGroupSchema>;
 
-/**
- * Copy mode leaves the business ID blank + disabled (the server always
- * mints a fresh one on save — see LimsTestGroupForm) — same shape, minus
- * the required check, so the blank field doesn't block Save.
- */
+/** Copy mode leaves the business ID blank + disabled (server always mints a fresh
+ * one — see LimsTestGroupForm) — same shape, minus the required check. */
 export const limsTestGroupCopySchema = limsTestGroupSchema.extend({
   testGroupId: z.string().max(50)
 });

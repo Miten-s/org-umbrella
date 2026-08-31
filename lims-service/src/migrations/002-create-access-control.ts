@@ -1,22 +1,7 @@
 import { QueryInterface, DataTypes } from "sequelize";
 
-/**
- * The access-control layer: the permission catalogue, groups, roles and the
- * lims_users records that tie a platform user to both.
- *
- * These tables come before the 26 entities because every one of them is
- * filtered by `group_id` and guarded by `authorize()`, so nothing else can be
- * built until they exist.
- *
- * Design notes:
- *  - `entry` on role entries is STRING, not ENUM. An ENUM needs an ALTER TYPE
- *    migration for every new entity; a string validated against the catalogue
- *    lets the vocabulary grow (including the spec's future user-defined tables)
- *    with no schema change.
- *  - Roles are GLOBAL. `lims_roles.group_id` is an ownership tag recording who
- *    may edit the role — it is NOT an access scope. Access comes from the
- *    user's access groups.
- */
+/** The access-control layer (permissions, groups, roles, lims_users), built before the 26
+ * entities since all of them are filtered by `group_id`. `entry` is STRING not ENUM, for growth. */
 
 /** Soft-delete + provenance columns carried by every mutable LIMS table. */
 const softDeleteFields = {
@@ -30,8 +15,7 @@ const softDeleteFields = {
 
 export const up = async (queryInterface: QueryInterface) => {
   // ─── lims_permissions — the catalogue ──────────────────────────────────────
-  // Seeded from src/utils/permissions.ts on boot. Read-only to users; it exists
-  // so the Role form's Entry dropdown is served by the API rather than typed.
+  // Seeded from src/utils/permissions.ts on boot; serves the Role form's Entry dropdown.
   await queryInterface.createTable("lims_permissions", {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
     code: { type: DataTypes.STRING(100), allowNull: false, unique: true },
@@ -44,8 +28,7 @@ export const up = async (queryInterface: QueryInterface) => {
   await queryInterface.addIndex("lims_permissions", ["entity"]);
 
   // ─── lims_groups ───────────────────────────────────────────────────────────
-  // Self-referencing hierarchy: access to a parent group cascades to every
-  // descendant (see expandGroupIds()).
+  // Self-referencing: access to a parent group cascades to every descendant (see expandGroupIds()).
   await queryInterface.createTable("lims_groups", {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
     group_id: { type: DataTypes.STRING(100), allowNull: false, unique: true },
@@ -104,9 +87,7 @@ export const up = async (queryInterface: QueryInterface) => {
   await queryInterface.addIndex("lims_role_entries", ["role_id", "entry"], { unique: true });
 
   // ─── lims_users ────────────────────────────────────────────────────────────
-  // LIMS never creates users. This row grants an existing platform user access
-  // to LIMS and carries their home group, access groups and roles. No row means
-  // no LIMS access at all.
+  // LIMS never creates users — this row grants an existing platform user access. No row means no LIMS access.
   await queryInterface.createTable("lims_users", {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
     // The platform (auth-service) user id. Lives in a different database, so
@@ -177,10 +158,7 @@ export const up = async (queryInterface: QueryInterface) => {
   await queryInterface.addIndex("lims_user_roles", ["lims_user_id", "role_id"], { unique: true });
 
   // ─── lims_access_bypass_logs — the SEPARATE audit stream ──────────────────
-  // Every request served under OPERATE:ALL lands here, never in
-  // lims_audit_logs. Keeping it separate means "show me every time somebody
-  // used admin override" is one unfiltered table scan, not a needle hunt
-  // through millions of ordinary CRUD rows.
+  // Every OPERATE:ALL request lands here, never lims_audit_logs — one unfiltered scan, not a needle hunt.
   await queryInterface.createTable("lims_access_bypass_logs", {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
     performed_by: { type: DataTypes.STRING(100), allowNull: false },

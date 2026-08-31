@@ -1,11 +1,8 @@
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 
-/**
- * A physical batch of a Stock item. `stockBatchId` is derived as
- * "<stock.stockId>/<batchNumber>" on create and never typed; `batchNumber`
- * increments per stock rather than globally (spec §B.8.b).
- */
+/** A physical batch of a Stock item. `stockBatchId` is derived as "<stockId>/<batchNumber>"
+ * on create; `batchNumber` increments per stock, not globally (spec §B.8.b). */
 export interface IStockBatch {
   id?: string;
   stockBatchId: string;

@@ -42,16 +42,8 @@ import Attachment from "../models/attachment.model";
 import { uploadAttachments } from "../middlewares/multer.middleware";
 
 /**
- * The generic engine behind every one of the 26 LIMS entities (spec §2's
- * ten-endpoint contract). Each entity's `repo.ts`/`service.ts`/`controller.ts`/
- * `routes.ts` is a thin config wrapper around this — the endpoint shapes,
- * audit-log writes, soft-delete, group filtering and bulk operations live here
- * exactly once so 26 entities can't drift from each other the way the punchlist
- * found (e.g. one controller reading `sortBy`/`filter[]` and another not).
- *
- * A generated entity is not prevented from adding its own extra routes/hooks
- * (e.g. Stock Batch's auto-derived batch number) — see each entity's own
- * files for those.
+ * The generic engine behind every one of the 26 LIMS entities (spec §2's ten-endpoint
+ * contract) — endpoint shapes, audit writes, soft-delete, group filtering, bulk ops live here once.
  */
 
 /** The caller's access scope, resolved by `authorize` and carried on the request. */
@@ -75,85 +67,39 @@ export interface CrudConfig<M extends Model> {
   permissionEntity: string;
   /** Business-unique field used to suffix bulk-duplicate copies, e.g. "supplierId". */
   uniqueField?: string;
-  /**
-   * Human-readable business ID (`LOC-000001`). When set, the field is
-   * server-generated: as an overridable suggestion for master data, and
-   * unconditionally for Sample/Test/Result (`locked: true`).
-   */
+  /** Human-readable business ID (`LOC-000001`), server-generated — an overridable suggestion
+   * for master data, unconditionally for Sample/Test/Result (`locked: true`). */
   businessId?: BusinessIdConfig;
   /** Columns matched by the free-text `search` query param. */
   searchFields: string[];
   /** Sequelize `include` for nested relations — never return bare UUIDs (spec §3). */
   relations?: IncludeOptions[];
-  /**
-   * Payload relation key → FK column, e.g. `{ parentGroup: "parentGroupId" }`.
-   *
-   * The frontend names relations after the thing (`parentGroup`, `locationType`)
-   * and sends a bare id; the column is `<name>Id`. Declaring the mapping here
-   * is what lets both sides keep their natural naming without a translation
-   * shim in the client.
-   */
+  /** Payload relation key → FK column, e.g. `{ parentGroup: "parentGroupId" }` — the frontend
+   * sends a bare id under the relation's natural name; this maps it to the real column. */
   relationFields?: Record<string, string>;
   /** Sub-forms sent nested in the parent payload (spec §6). */
   children?: ChildConfig[];
-  /**
-   * Relation aliases (matching a `relations` entry's `as`) to leave out of
-   * the LIST query specifically — findById still includes everything. Only
-   * for a sub-form grid CONFIRMED not read by that entity's list columns
-   * (directly, or via `postFormat`); several entities' lists do render
-   * something derived from a child grid, so this is opt-in per relation,
-   * checked one at a time, not a blanket "children are list-only" rule.
-   */
+  /** Relation aliases to leave out of the LIST query only (findById still includes everything) —
+   * opt-in per relation, only once confirmed the list's own columns don't read it. */
   listExcludeRelations?: string[];
-  /**
-   * For a relation kept in the list query (not in `listExcludeRelations`)
-   * but whose full shape — every column, any nested include — is only
-   * needed by the Edit/View form: restricts it to just these columns for
-   * `findAll` specifically, and drops any nested `include` on it entirely
-   * (the list never needs a relation of a relation). `findById` always uses
-   * the relation exactly as declared in `relations`, unchanged.
-   *
-   * Standing rule for anyone adding a relation here later: size it to what
-   * the list actually renders. A `.length` count needs only `["id"]`; a tag
-   * list of names needs `["id", <the one label column it reads>]`. The full
-   * shape belongs in `relations`, for the form — this is the list's diet.
-   */
+  /** For a relation kept in the list query but whose full shape only the Edit/View form needs:
+   * restricts `findAll` to just these columns and drops any nested include. Size to what the list actually renders. */
   listRelationAttributes?: Record<string, string[]>;
-  /**
-   * Always-applied WHERE fragment, ANDed into every read.
-   *
-   * Results use it for `isLatest: true` so lists and lookups return the
-   * current version of each measurement, never the superseded history — which
-   * is also the predicate their partial index is built on.
-   */
+  /** Always-applied WHERE fragment, ANDed into every read — e.g. Result's `isLatest: true`
+   * so reads never return superseded history. */
   baseWhere?: WhereOptions;
-  /**
-   * Global reference data (Pick Lists): rows are visible to every group and
-   * are NOT stamped with the creator's home group. Only these tables may carry
-   * a NULL `group_id` — everything audited must belong to exactly one group.
-   */
+  /** Global reference data (Pick Lists): visible to every group, never stamped with a home
+   * group — the only tables allowed a NULL `group_id`. */
   globalReference?: boolean;
-  /**
-   * Runs first on every create/update, before relation mapping and before
-   * child collections are read off the payload. For accepting more than one
-   * client shape for the same data — see the Role entity, where the grid sends
-   * `entries[]` and the typed client sends a flat `permissions[]`.
-   */
+  /** Runs first on every create/update, before relation mapping — for accepting more than one
+   * client shape for the same data (Role: grid `entries[]` vs. typed `permissions[]`). */
   normalizePayload?: (payload: Record<string, any>) => Record<string, any>;
-  /**
-   * Runs after any successful mutation, outside the transaction. Used by the
-   * access-control entities to drop cached permission contexts — a role change
-   * has to take effect immediately, so nothing may be left to a TTL.
-   */
+  /** Runs after any successful mutation, outside the transaction — access-control entities use
+   * it to drop cached permission contexts immediately, not on a TTL. */
   afterWrite?: () => Promise<void> | void;
   defaultSortBy?: string;
-  /**
-   * Mutate/derive the payload before create (e.g. auto-generated IDs). The
-   * transaction is the same one the rest of the create runs in — pass it
-   * through to anything that needs its own atomic read-then-write (e.g. a
-   * per-parent counter) instead of reading outside the transaction, which is
-   * exactly the race Stock Batch's `batchNumber` used to have.
-   */
+  /** Mutate/derive the payload before create. Runs in the same transaction as the rest of
+   * the create — pass it through to any atomic read-then-write (e.g. a per-parent counter). */
   beforeCreate?: (
     payload: Record<string, any>,
     transaction?: Transaction
@@ -163,12 +109,8 @@ export interface CrudConfig<M extends Model> {
     payload: Record<string, any>,
     existing: M
   ) => Promise<Record<string, any>> | Record<string, any>;
-  /**
-   * Reshapes one formatted row after the generic id/isRemoved/modifiedOn
-   * mapping — e.g. nesting flat `owned_by_id`/`owned_by_name` columns into
-   * `ownedBy: {id, name}` for a person reference that lives in the separate
-   * auth database and can't be a real Sequelize association.
-   */
+  /** Reshapes one formatted row after the generic mapping — e.g. nesting flat
+   * `owned_by_id`/`owned_by_name` into `ownedBy: {id, name}` for a cross-database reference. */
   postFormat?: (row: Record<string, any>) => Record<string, any>;
 }
 
@@ -187,12 +129,8 @@ const applyPostFormat = (
   return postFormat(formatted);
 };
 
-/**
- * Every request that reaches a CRUD handler has been through `authorize`, so
- * `req.access` is set. The fallback here is a CLOSED one — no groups, no
- * bypass — so a route accidentally mounted without `authorize` returns nothing
- * rather than everything.
- */
+/** Fallback scope is CLOSED (no groups, no bypass) so a route accidentally mounted
+ * without `authorize` returns nothing rather than everything. */
 const contextFromRequest = (req: Request): CrudContext => ({
   actor: { id: req.user?.id ?? "system", fullName: req.user?.fullName },
   scope: req.access
@@ -204,15 +142,8 @@ const contextFromRequest = (req: Request): CrudContext => ({
     : { accessGroupIds: [], homeGroupId: null, operateAll: false }
 });
 
-/**
- * A save with new file attachments arrives as `multipart/form-data`: the real
- * payload is JSON-stringified under a `data` field (multer only gives you
- * form fields as strings) and files land on `req.files` separately.
- * `validateDto` already unwraps `data` into a validated DTO instance and
- * leaves it at `req.body.data`; a plain JSON request is untouched, so
- * `req.body` is still the payload directly there. `req.files` is the
- * reliable signal for which case this is — nothing else sets it.
- */
+/** A multipart save's real payload is JSON-stringified under `req.body.data` (multer only
+ * gives form fields as strings); `req.files` is the reliable signal for which case this is. */
 const payloadFromRequest = (req: Request): Record<string, any> => {
   const body = req.body as Record<string, any> | undefined;
   return req.files && body && typeof body === "object" && "data" in body
@@ -220,13 +151,8 @@ const payloadFromRequest = (req: Request): Record<string, any> => {
     : (body ?? {});
 };
 
-/**
- * Attachments for one record, shaped for `toExistingAttachments` on the
- * frontend (`attachment` is its first-checked path key). `entityName` here is
- * the same human label `writeAudit` already uses everywhere else in this
- * engine — Attachment has no real foreign key to its parent (see migration
- * 005), just this polymorphic `entityName` + `entityId` pair.
- */
+/** Shaped for the frontend's `toExistingAttachments`. Attachment has no real FK to its parent
+ * (migration 005) — just this polymorphic `entityName` + `entityId` pair. */
 const attachmentsFor = async (
   entityName: string,
   entityId: string,
@@ -246,19 +172,8 @@ const attachmentsFor = async (
   }));
 };
 
-/**
- * The write half: persists any newly-uploaded files as Attachment rows, and
- * on an update, soft-deletes whichever existing ones weren't in the kept
- * list — the same replace-set idea every other sub-form in this engine uses,
- * just against a polymorphic table instead of a real child association.
- * `keptAttachmentIds` undefined means "the client didn't touch attachments
- * at all" (a create, or an update that never opened that field) — leave
- * existing rows alone entirely, same convention as `syncChildren`.
- *
- * Returns the file names added/removed so the caller can fold them into the
- * same audit row as the rest of the update — see `childChanges.attachments`
- * in `update` below.
- */
+/** Persists new files, soft-deletes existing ones not in the kept list. `keptAttachmentIds`
+ * undefined means the client never touched attachments — existing rows are left alone. */
 const reconcileAttachments = async (
   entityName: string,
   entityId: string,
@@ -306,13 +221,8 @@ const reconcileAttachments = async (
   return { added, removed };
 };
 
-/**
- * Rewrites `{ parentGroup: "<uuid>" }` into `{ parentGroupId: "<uuid>" }` and
- * strips the child collections, which are persisted separately.
- *
- * `null` is preserved — it means "clear this relation" — while `undefined` is
- * left out so a PATCH that omits a field doesn't blank it.
- */
+/** Rewrites relation keys to FK columns and strips child collections (persisted separately).
+ * `null` clears a relation; `undefined` is left out so a PATCH omitting a field doesn't blank it. */
 const toColumns = <M extends Model>(
   config: CrudConfig<M>,
   payload: Record<string, any>
@@ -333,15 +243,8 @@ const toColumns = <M extends Model>(
   return data;
 };
 
-/**
- * The group filter, applied to every read of every entity.
- *
- * Rows whose `group_id` IS NULL are global reference data (Phrases) and are
- * visible to everyone — per the schema, only reference tables allow NULL, so
- * this cannot leak audited lab data.
- *
- * Returns `{}` for models with no `groupId` column, and for OPERATE:ALL.
- */
+/** The group filter, applied to every read. A NULL `group_id` is global reference data
+ * (Phrases), visible to everyone — only reference tables may be NULL. */
 const groupWhere = <M extends Model>(
   model: ModelStatic<M>,
   scope: AccessScope
@@ -373,15 +276,8 @@ const withGroupScope = <M extends Model>(
 // Repo layer
 // ---------------------------------------------------------------------------
 
-/**
- * Every soft-deletable relation include gets `isDeleted: false` unless the
- * config already set its own `where` — the include has no such filter by
- * default, so a still-referenced but removed row (a deleted Lab Group, a
- * deleted parent Location) kept showing up under its old name, everywhere
- * that relation is included, until someone spotted it. One place to fix it
- * for every entity rather than a `where` added by hand to each of the ~90
- * `{ model, as, ... }` includes across the route configs.
- */
+/** Every soft-deletable relation include gets `isDeleted: false` unless already set — otherwise
+ * a deleted parent row (Lab Group, Location) kept showing under its old name everywhere included. */
 const scopeSoftDeletableIncludes = (
   relations: IncludeOptions[]
 ): IncludeOptions[] =>
@@ -406,14 +302,8 @@ export const buildCrudRepo = <M extends Model>(config: CrudConfig<M>) => {
   const { model, searchFields, defaultSortBy = "createdAt" } = config;
   const relations = scopeSoftDeletableIncludes(config.relations ?? []);
 
-  // A sub-form grid's full child array (Sample's Test windows, Aliquot's
-  // list of aliquots, ...) is only ever needed by the Edit/View form — EXCEPT
-  // where the list table renders something derived from it too (Lab Roles'
-  // Permissions column reads `entries` via postFormat, Batches' list column
-  // reads `lots` directly, and several others — verified per entity, not
-  // assumed, since it's wrong more often than not). `relations` stays the
-  // shared source both findAll and findById read from; this only opts
-  // specific, checked relations out of the LIST query specifically.
+  // A sub-form grid's full child array is normally Edit/View-only, EXCEPT where the list
+  // renders something derived from it (Lab Roles' Permissions, Batches' `lots`, ...) — checked per entity.
   const listRelations = relations
     .filter(
       (r) => !(config.listExcludeRelations ?? []).includes(r.as as string)
@@ -421,10 +311,7 @@ export const buildCrudRepo = <M extends Model>(config: CrudConfig<M>) => {
     .map((r) => {
       const attrs = config.listRelationAttributes?.[r.as as string];
       if (!attrs) return r;
-      // A relation kept for the list but only needed at a fraction of its
-      // full shape (e.g. a `.length` count, or one label column of a tag
-      // list) — drop any nested include with it, since the list never needs
-      // a relation of a relation either.
+      // Kept for the list at only a fraction of its full shape — drop any nested include too.
       const trimmed = { ...r, attributes: attrs };
       delete trimmed.include;
       return trimmed;
@@ -555,26 +442,8 @@ export const buildCrudRepo = <M extends Model>(config: CrudConfig<M>) => {
 
 export type CrudRepo<M extends Model> = ReturnType<typeof buildCrudRepo<M>>;
 
-/**
- * Postgres's UNIQUE constraint on a business id is case-sensitive by default,
- * so "GOOGLE-COPY" and "google-copy" sail through as if they were different
- * records. A business id is a human-typed label, not a case-sensitive key —
- * every entity's `uniqueField` goes through this before the DB gets a chance
- * to let the collision through. Same message shape as the raw constraint
- * violation (error.middleware.ts), so callers can't tell which one fired.
- */
-/**
- * Trim the fields that identify a record.
- *
- * `"spec id "` and `"spec id"` are different strings, so the unique index
- * accepts both and the list then shows two rows that look identical — the user
- * has no way to tell them apart, and no way to see why the duplicate was
- * allowed. Whitespace is never meaningful in an identifier, so it is removed
- * before both the uniqueness check and the write.
- *
- * Applies to the business ID and to `uniqueField`; other strings (names,
- * descriptions) are left exactly as typed.
- */
+/** Whitespace is never meaningful in an identifier — `"spec id "` vs `"spec id"` would
+ * otherwise pass the unique index as two indistinguishable rows. Applies to the business ID and `uniqueField` only. */
 const trimIdentifiers = <M extends Model>(
   config: CrudConfig<M>,
   data: Record<string, any>
@@ -586,13 +455,8 @@ const trimIdentifiers = <M extends Model>(
   return data;
 };
 
-/**
- * Plain attribute-keyed where, not col()/fn() — every model here is
- * `underscored: true` (JS `supplierId` -> DB `supplier_id`), and col()
- * takes a raw SQL identifier, so col("supplierId") looks for a column that
- * was never created and 500s. Object-key where clauses map correctly.
- * Returns the colliding row, or null — callers decide reject vs. warn.
- */
+/** Catches a case-insensitive collision Postgres's UNIQUE constraint wouldn't reject on its own.
+ * Attribute-keyed where, not col()/fn() — every model is `underscored: true`. */
 const findUniqueCollision = async (
   model: ModelStatic<any>,
   field: string,
@@ -626,9 +490,7 @@ const assertUniqueCaseInsensitive = async (
   );
 
   if (existing) {
-    // Never a raw UUID or column name in a user-facing toast — e.g. Lab
-    // User's `userId` is a foreign key to the platform user, not something
-    // a lab analyst typed, so it must not be echoed back verbatim.
+    // Never a raw UUID/column name in a user-facing toast (e.g. Lab User's `userId` FK).
     throw Object.assign(
       new Error(friendlyUniqueConflictMessage([field], [value])),
       {
@@ -638,13 +500,8 @@ const assertUniqueCaseInsensitive = async (
   }
 };
 
-/**
- * Same "-(1)", "-(2)" numbering as gxp-service's bulkDuplicate — detect an
- * existing "-(N)" suffix, strip it back to the true base, find the highest N
- * already in use among records sharing that base, and pick the next one.
- * Replaces blindly appending "-COPY" every time, which stacked into
- * "-COPY-COPY" on a second copy and then collided outright.
- */
+/** "-(1)", "-(2)" numbering: strip an existing suffix, find the highest N sharing that base,
+ * pick the next one — avoids "-COPY-COPY" stacking and eventual collision. */
 const nextCopyValue = async (
   model: ModelStatic<any>,
   field: string,
@@ -674,12 +531,8 @@ const nextCopyValue = async (
   return `${baseName}-(${maxIndex + 1})`;
 };
 
-/**
- * The human-readable label field, e.g. "name"/"customerName" — whichever
- * `searchFields` entry looks like a display name and isn't the id field
- * already being suffixed. `undefined` when the entity has none (e.g. Stock
- * Batch, which is identified purely by its business id).
- */
+/** The display-name field (e.g. "customerName"), if any — `undefined` for an entity
+ * identified purely by its business id (Stock Batch). */
 const inferNameField = <M extends Model>(
   config: CrudConfig<M>,
   uniqueField?: string
@@ -709,19 +562,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
   const shape = (formatted: any) => applyPostFormat(formatted, postFormat);
   const hasGroupColumn = Object.keys(model.getAttributes()).includes("groupId");
 
-  /**
-   * The guts of a single create, minus its own transaction — shared by
-   * `create` (one record, one transaction, reject-on-collision) and
-   * `bulkCreate` (N records, one shared transaction, warn-on-collision) so
-   * business-ID minting, `beforeCreate`, group stamping, identifier trimming
-   * and child sub-form sync can't drift between the two callers. Collision
-   * handling is the only thing that varies:
-   *  - "reject" (default): today's behavior, 400s on a case-insensitive hit.
-   *  - "warn": auto-suffixes with the same "-(N)" scheme `bulkDuplicate`
-   *    already uses (`nextCopyValue`), and reports it back instead of
-   *    failing the save — for the Copy flow, where re-submitting an
-   *    untouched name is expected, not an error.
-   */
+  /** Single-create guts minus its own transaction, shared by `create` (reject-on-collision)
+   * and `bulkCreate` (warn + auto-suffix, for Copy re-submitting an untouched name). */
   const createOne = async (
     raw: Record<string, any>,
     ctx: CrudContext,
@@ -733,8 +575,7 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
       : raw;
     const mapped = toColumns(config, payload);
 
-    // Business ID before `beforeCreate`, so an entity that derives something
-    // from it (Stock Batch's `stockId/batchNumber`) sees the settled value.
+    // Before `beforeCreate`, so anything deriving from it (Stock Batch's `batchNumber`) sees the settled value.
     const withBusinessId = config.businessId
       ? await applyBusinessId(
           model,
@@ -749,9 +590,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
       ? await beforeCreate(withBusinessId, transaction)
       : withBusinessId;
 
-    // Stamp the creator's home group when the caller didn't pick one. This is
-    // what keeps data partitioned without the user choosing a group by hand
-    // on every single record.
+    // Stamp the creator's home group when the caller didn't pick one — keeps data
+    // partitioned without the user choosing a group by hand every time.
     if (
       hasGroupColumn &&
       !config.globalReference &&
@@ -807,8 +647,7 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     const created = await repo.create(data, transaction);
     const parentId = created!.get("id") as string;
 
-    // Sub-forms go in the same transaction, so the parent and its rows are
-    // never half-saved.
+    // Same transaction as the parent, so the two are never half-saved.
     const { newChildren, deltas } = await syncAllChildren(
       config.children,
       parentId,
@@ -843,14 +682,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
       });
   };
 
-  /**
-   * The Copy flow's save: the frontend already reviewed/edited N full
-   * record payloads client-side (see CopyStepper) and sends them together
-   * once — this is what turns that batch into N real creates in one
-   * transaction, each going through the exact same business-ID/child-sync
-   * path as a normal single create, just with collisions warned-and-suffixed
-   * instead of rejected.
-   */
+  /** The Copy flow's save: N reviewed payloads (see CopyStepper) become N real creates in one
+   * transaction, same path as a normal create, just warn-and-suffix instead of reject. */
   const bulkCreate = async (
     records: Record<string, any>[],
     ctx: CrudContext
@@ -893,14 +726,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
   ) =>
     shape(formatLimsEntity(await repo.findAll({ ...query, scope: ctx.scope })));
 
-  /**
-   * The guts of a single update, minus its own transaction — shared by
-   * `update` (one record, one transaction) and `bulkUpdate` (N records, one
-   * shared transaction) the same way `createOne` is shared by `create` and
-   * `bulkCreate`. Returns `null` when the record isn't found or out of the
-   * caller's scope — `bulkUpdate` uses that to mark the entry skipped
-   * instead of failing the whole batch.
-   */
+  /** Single-update guts minus its own transaction, shared by `update` and `bulkUpdate`.
+   * Returns `null` when not found/out of scope — `bulkUpdate` marks that entry skipped. */
   const updateOne = async (
     id: string,
     raw: Record<string, any>,
@@ -918,10 +745,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     const oldValue = existing.toJSON();
     const mapped = toColumns(config, payload);
 
-    // A locked business ID is the record's identity in the lab's paperwork —
-    // Sample SMP-000042 must still be SMP-000042 tomorrow. Silently drop any
-    // attempt to change it rather than 400, so an edit that round-trips the
-    // whole record (which every form does) still succeeds.
+    // A locked business ID is the record's identity — silently drop any change attempt
+    // rather than 400, so a round-tripping edit (every form does this) still succeeds.
     if (config.businessId?.locked) delete mapped[config.businessId.field];
 
     const data = beforeUpdate ? await beforeUpdate(mapped, existing) : mapped;
@@ -952,13 +777,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
       { ...oldValue, ...updated!.toJSON() }
     );
 
-    // Attachments are a polymorphic side table, not a real child
-    // association — `keptAttachmentIds` only ever appears on a DTO whose
-    // entity actually carries `LimsAttachmentsField`, so this is a no-op
-    // for every other entity. Reconciled here (inside the same
-    // transaction, before the audit write) rather than in the
-    // controller, so an add/remove shows up in this same audit row
-    // instead of vanishing silently.
+    // Reconciled here (same transaction, before the audit write) so an add/remove shows up
+    // in this same audit row instead of vanishing silently. No-op for entities without attachments.
     const keptAttachmentIds = Array.isArray(payload.keptAttachmentIds)
       ? (payload.keptAttachmentIds as string[])
       : undefined;
@@ -1024,18 +844,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
       });
   };
 
-  /**
-   * Bulk Edit's save: the frontend already reviewed N real records
-   * client-side (see EditStepper) — only the ones actually changed, unlike
-   * Copy where every record needs a payload — and sends them together once.
-   * One shared transaction, one `updateOne` per entry, the same shared
-   * `changeReason` stamped on every entry's own audit row (folded into each
-   * entry's payload before calling `updateOne`, so its existing
-   * `payload.changeReason` → `writeAudit` path needs no changes). An id
-   * that's missing or out of scope by the time the batch runs is skipped,
-   * not fatal to the rest of the batch — mirrors `bulkDelete`'s permitted-ids
-   * filtering.
-   */
+  /** Bulk Edit's save (see EditStepper): only actually-changed records, one shared transaction,
+   * shared `changeReason` folded into each entry. A missing/out-of-scope id is skipped, not fatal. */
   const bulkUpdate = async (
     updates: { id: string; payload: Record<string, any> }[],
     changeReason: string | undefined,
@@ -1140,14 +950,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
           delete clone.isDeleted;
           delete clone.deletedAt;
           delete clone.deletedBy;
-          // A copy of a system record (Phrase's `isSystem`, currently the
-          // only entity with a flag like this) is never itself protected —
-          // it's a user-made row that happens to start identical to one.
-          // Carrying `isSystem: true` over made a clone permanently stuck:
-          // un-removable (blockSystemDelete) AND un-renameable (the code-
-          // frozen check) even though its own "-(N)" suffixed code already
-          // fails the very same code format the system list was seeded
-          // with. Harmless no-op delete on any entity without this field.
+          // A copy of a system record (Phrase's `isSystem`) is never itself protected —
+          // carrying it over made a clone permanently un-removable/un-renameable.
           delete clone.isSystem;
           if (config.businessId) {
             delete clone[config.businessId.field];
@@ -1170,10 +974,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
             );
             clone[uniqueField] = copiedId;
 
-            // The id gets a "-(N)" suffix above; the display Name did not, so a
-            // cloned row was indistinguishable from its source in any list or
-            // picker showing only the (often-truncated) Name column. Carry the
-            // same suffix onto the name field, when this entity has one.
+            // The id gets a "-(N)" suffix above; carry the same suffix onto the name field
+            // (if any), or a cloned row is indistinguishable from its source in any picker.
             const nameField = inferNameField(config, uniqueField);
             const suffix = copiedId.match(/-\(\d+\)$/)?.[0];
             if (
@@ -1190,13 +992,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
           const row = await repo.create(prepared, transaction);
           const newParentId = row!.get("id") as string;
 
-          // Clone owned child sub-forms too. Not `detachOnly` ones — those are
-          // claimed, not owned, records (Batch's Lots, Lot's Samples); blindly
-          // "cloning" them would re-parent someone else's rows onto the copy
-          // rather than actually duplicate anything. Without this, "Copy"
-          // silently dropped every nested grid on the cloned record (Pick
-          // List Values, Aliquot rows, Role permission entries, ...) — this
-          // engine never touched `config.children` here at all.
+          // Clone owned child sub-forms too, but not `detachOnly` ones (claimed, not owned,
+          // records like Batch's Lots) — cloning those would re-parent someone else's rows.
           for (const child of config.children ?? []) {
             if (child.detachOnly) continue;
             const sourceRows = await readChildren(child, id, transaction);
@@ -1279,18 +1076,12 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
       offset: (page - 1) * limit,
       limit
     });
-    /*
-     * `who` / `when` / `uniqueId` alias the stored columns, because that is
-     * what the audit dialog reads. The originals are kept for API callers.
-     * Without them the trail rendered with empty Who and When columns.
-     */
+    // `who`/`when`/`uniqueId` alias the stored columns for the audit dialog; originals kept for API callers.
     const logs = (formatLimsEntity(rows) as Record<string, any>[]).map(
       (row) => ({
         ...row,
         uniqueId: row.id,
-        // Name only — never the raw id. A uuid in a "Who" column tells a reader
-        // nothing; blank at least reads as "not recorded". `performedBy` stays on
-        // the row for anyone who needs to resolve it.
+        // Name only, never the raw id — a uuid tells a reader nothing; blank at least reads as "not recorded".
         who: row.performedByName ?? null,
         when: row.performedAt ?? null
       })
@@ -1325,13 +1116,8 @@ export type CrudService<M extends Model> = ReturnType<
 export const buildCrudController = <M extends Model>(
   service: CrudService<M>,
   entityName: string,
-  /**
-   * Whether this entity's form actually carries `LimsAttachmentsField` —
-   * gates both the extra `attachmentsFor` read on every getById/create/update
-   * and the write-side reconcile, so the ~13 entities that never had an
-   * attachments section don't pay for a query that will always come back
-   * empty (Results/Tests alone are 1M+/100k rows a day).
-   */
+  /** Gates the extra `attachmentsFor` read and write-side reconcile, so entities without
+   * an attachments section (Results/Tests alone are 1M+/100k rows a day) don't pay for it. */
   hasAttachments = false
 ) => ({
   create: asyncHandler(async (req: Request, res: Response) => {
@@ -1386,9 +1172,7 @@ export const buildCrudController = <M extends Model>(
   update: asyncHandler(async (req: Request, res: Response) => {
     const payload = hasAttachments ? payloadFromRequest(req) : req.body;
     const ctx = contextFromRequest(req);
-    // `service.update` reconciles attachments itself now (inside the same
-    // transaction as the rest of the save) so the add/remove lands in the
-    // same audit row — see `childChanges.attachments` there.
+    // `service.update` reconciles attachments itself (same transaction) so the add/remove lands in the same audit row.
     const files = hasAttachments
       ? (req.files as Express.Multer.File[] | undefined)
       : undefined;
@@ -1508,11 +1292,8 @@ export const buildCrudController = <M extends Model>(
 // Router layer
 // ---------------------------------------------------------------------------
 
-/**
- * Every route carries an explicit `authorize(entity, action)`. The action is
- * passed rather than derived from the HTTP verb because the verb lies —
- * `POST /bulk-delete` deletes, and `PATCH /restore/:id` is not an update.
- */
+/** Every route carries an explicit `authorize(entity, action)` — the HTTP verb lies
+ * (`POST /bulk-delete` deletes, `PATCH /restore/:id` isn't an update). */
 export const buildCrudRouter = <M extends Model>(params: {
   service: CrudService<M>;
   entityName: string;
@@ -1538,16 +1319,12 @@ export const buildCrudRouter = <M extends Model>(params: {
   const controller = buildCrudController(service, entityName, hasAttachments);
   const router = Router();
   const can = (action: LimsAction) => authorize(permissionEntity, action);
-  // No-op for a plain JSON request — multer only engages for an actual
-  // multipart body, so this is safe on every route regardless of whether
-  // this particular save happens to include new files.
+  // No-op for a plain JSON request — multer only engages for an actual multipart body.
   const parseAttachments = hasAttachments
     ? uploadAttachments.array("attachments")
     : (_req: Request, _res: Response, next: () => void) => next();
 
-  // Suggestion for the create form. Non-consuming, so opening a form and
-  // abandoning it doesn't burn a number. Locked entities don't expose it —
-  // there is nothing for the user to pre-fill.
+  // Suggestion for the create form, non-consuming; locked entities don't expose it.
   if (model && businessId && !businessId.locked) {
     router.get(
       API_ROUTES.NEXT_ID,
@@ -1597,31 +1374,21 @@ export const buildCrudRouter = <M extends Model>(params: {
     API_ROUTES.BULK_COPY,
     can("CREATE"),
     validateDto(BulkCreateDto),
-    // Validates each record in `records[]` against this entity's own
-    // createDto — same field-level checks (and the same "" -> null/number
-    // repair) a plain create already gets, so a batched save can't reach
-    // the database with something that would 400 anywhere else. Skipped
-    // only for the rare entity that never declared a createDto.
+    // Same field-level checks a plain create gets, per record in `records[]`.
     createDto
       ? validateDtoArray(createDto, "records")
       : (_req, _res, next) => next(),
     controller.bulkCreate
   );
 
-  // Registered BEFORE the single-record PARAMS patch below: both are
-  // one-segment PATCH routes ("/bulk-update" vs "/:id"), so if PARAMS went
-  // first, "PATCH /bulk-update" would match it with id="bulk-update" and
-  // never reach this route at all.
+  // Registered BEFORE the single-record PARAMS patch: both are one-segment PATCH routes,
+  // so PARAMS going first would match "/bulk-update" as id="bulk-update".
   router.patch(
     API_ROUTES.BULK_UPDATE,
     can("UPDATE"),
     validateDto(BulkUpdateDto),
-    // Fold the shared top-level `changeReason` into every entry's own
-    // `payload` before per-entry validation runs. `bulkUpdate()` below does
-    // this same fold, but only once validation has already passed — so an
-    // entity like Result, whose updateDto requires `payload.changeReason`,
-    // rejected every row of a bulk edit even though the shared reason was
-    // right there on the request body.
+    // Fold the shared `changeReason` into each entry's payload before validation — otherwise
+    // Result's updateDto (requires `payload.changeReason`) rejected every row of a bulk edit.
     (req: Request, _res: Response, next: NextFunction) => {
       const { updates, changeReason } = req.body as BulkUpdateDto;
       if (changeReason && Array.isArray(updates)) {
@@ -1633,9 +1400,7 @@ export const buildCrudRouter = <M extends Model>(params: {
       }
       next();
     },
-    // Same idea as BULK_COPY's per-record createDto check, against each
-    // entry's `payload` instead of the entry itself (see `validateDtoArray`'s
-    // optional nested-field param).
+    // Same idea as BULK_COPY's check, against each entry's `payload` instead of the entry itself.
     updateDto
       ? validateDtoArray(updateDto, "updates", "payload")
       : (_req, _res, next) => next(),

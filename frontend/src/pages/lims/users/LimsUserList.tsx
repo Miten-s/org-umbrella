@@ -6,6 +6,7 @@ import DataTable, {
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
 import CopyStepper from "@/components/data/CopyStepper";
+import ViewStepper from "@/components/data/ViewStepper";
 import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
@@ -47,10 +48,7 @@ import type { LimsUser, LimsUserPayload } from "./LimsUser.types";
 const LimsUserList = () => {
   const { t } = useTranslation();
   const { isOpen, openModal, closeModal } = useModal();
-  // Removing your own Lab User row is a total, self-inflicted lockout — no
-  // LIMS access means no way to use this app's own Restore to undo it. The
-  // API rejects it either way (lims-user.routes.ts); this just keeps the
-  // option from being offered in the first place.
+  // Removing your own row is a total lockout; API rejects it anyway, this just hides the option.
   const currentUser = useCurrentUser();
   const isSelf = useCallback(
     (row: LimsUser | undefined) =>
@@ -58,14 +56,13 @@ const LimsUserList = () => {
     [currentUser?.id]
   );
 
-  // Only the id of the row being edited/viewed — the list row itself is
-  // never passed into the form; the full record (including attachments)
-  // is fetched fresh the moment the modal actually needs it.
+  // Full record (incl. attachments) is fetched fresh from this id, not the list row.
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsUserFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
   // Set instead of activeId/formMode while the Copy review flow is open.
   const [copyIds, setCopyIds] = useState<string[] | null>(null);
+  const [viewIds, setViewIds] = useState<string[] | null>(null);
   const [editIds, setEditIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsUser, LimsUserPayload>();
@@ -124,6 +121,14 @@ const LimsUserList = () => {
     [openModal]
   );
 
+  const openView = useCallback(
+    (ids: string[]) => {
+      setViewIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const openEdit = useCallback(
     (ids: string[]) => {
       setEditIds(ids);
@@ -137,6 +142,7 @@ const LimsUserList = () => {
     setActiveId(null);
     setFormMode("create");
     setCopyIds(null);
+    setViewIds(null);
     setEditIds(null);
   };
 
@@ -182,6 +188,20 @@ const LimsUserList = () => {
   const bulkActions = useMemo<DataTableBulkAction[]>(
     () => [
       {
+        key: "view",
+        label: () => t("view", { entity: t("limsUsers") }),
+        icon: EyeIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.VIEW_USER,
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("viewBulkFilterUnsupported"), "error");
+            return;
+          }
+          openView(selection.ids);
+        }
+      },
+      {
         key: "clone",
         label: () => t("limsCopy"),
         icon: CopyIcon,
@@ -217,10 +237,7 @@ const LimsUserList = () => {
         variant: "destructive",
         permission: LIMS_PERMISSIONS.DELETE_USER,
         onClick: (selection, count) => {
-          // "all" (select-across-pages) mode can't be filtered client-side —
-          // if it happens to include the caller's own row, the API's own
-          // guard (lims-user.routes.ts) rejects the whole batch rather than
-          // silently locking them out.
+          // "all" mode can't be filtered client-side; the API's own guard rejects the whole batch instead.
           let filtered = selection;
           let excludedSelf = false;
           if (selection.mode === "ids") {
@@ -230,9 +247,6 @@ const LimsUserList = () => {
             filtered = { ...selection, ids };
           }
           // Selection was ONLY your own row — nothing left to confirm.
-          // Without this, an empty-but-real confirmation dialog still
-          // opened, reachable even though it could never actually remove
-          // anything.
           if (
             filtered.mode === "ids" &&
             filtered.ids.length === 0 &&
@@ -256,7 +270,7 @@ const LimsUserList = () => {
         }
       }
     ],
-    [bulkClone, compliance, isSelf, openCopy, openEdit, t, table]
+    [bulkClone, compliance, isSelf, openCopy, openEdit, openView, t, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsUser>[]>(
@@ -366,6 +380,14 @@ const LimsUserList = () => {
             onDuplicateUnreviewed={handleDuplicateUnreviewedCopies}
             onClose={handleCloseForm}
             saving={bulkCopy.isPending || bulkClone.isPending}
+            entityLabel={t("limsUser")}
+          />
+        ) : viewIds ? (
+          <ViewStepper<LimsUser>
+            ids={viewIds}
+            fetchById={fetchLimsUserById}
+            FormComponent={LimsUserForm}
+            onClose={handleCloseForm}
             entityLabel={t("limsUser")}
           />
         ) : editIds ? (

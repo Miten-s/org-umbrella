@@ -10,11 +10,8 @@ declare global {
         email?: string;
         roles?: string[];
       };
-      /**
-       * Set by `authorize` — the resolved LIMS access context (groups the user
-       * may reach, permissions, OPERATE:ALL). Present on every entity route;
-       * absent means the route is unguarded, which is a bug.
-       */
+      /** Set by `authorize` — the resolved LIMS access context. Present on every entity
+       * route; absent means the route is unguarded, which is a bug. */
       access?: UserContext;
     }
   }

@@ -5,11 +5,8 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ADMIN_PERMISSIONS } from "@/utils/permissions";
 
-/**
- * Integration test for the Storage Locations module, driven by the mocked
- * lims-service (src/mocks). Exercises the real query/table/mutation stack:
- * paginated list → search → create → remove-with-reason.
- */
+/** Integration test for Storage Locations, driven by the mocked lims-service — exercises the
+ * real query/table/mutation stack: paginated list → search → create → remove-with-reason. */
 
 vi.mock("@/context/AuthContext", () => ({
   useAuth: () => ({

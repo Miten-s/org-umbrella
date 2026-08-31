@@ -1,15 +1,8 @@
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 
-/**
- * The SEPARATE audit stream for OPERATE:ALL. Every request that skipped group
- * filtering because the user holds the bypass permission is recorded here and
- * nowhere else.
- *
- * Kept out of lims_audit_logs on purpose: "show me every admin override" must
- * be a full read of one small table, not a filtered search through millions of
- * ordinary CRUD rows.
- */
+/** The SEPARATE audit stream for OPERATE:ALL — kept out of lims_audit_logs so "show me every
+ * admin override" is a full read of one small table, not a search through millions of rows. */
 export interface IAccessBypassLog {
   id?: string;
   performedBy: string;

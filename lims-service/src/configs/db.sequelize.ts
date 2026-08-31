@@ -1,11 +1,8 @@
 import { Sequelize } from "sequelize";
 import ENV from "../utils/environment";
 
-// Managed providers (Neon, Supabase) require SSL; local dev doesn't.
-// NOTE: don't detect this via `?sslmode=require` in the URI — pg's own
-// connection-string parser then takes over SSL config and ignores the
-// `ssl` object below entirely, forcing full cert verification and failing
-// against Supabase's chain with SELF_SIGNED_CERT_IN_CHAIN.
+// Managed providers require SSL, local dev doesn't. Don't detect via `?sslmode=require` in
+// the URI — pg's own parser then takes over SSL and ignores the `ssl` object below entirely.
 const isLocalPostgres = (uri?: string) => !uri || /localhost|127\.0\.0\.1/.test(uri);
 
 // Main LIMS database connection.
@@ -31,9 +28,8 @@ export const sequelize = new Sequelize(
   }
 );
 
-// Secondary auth database — read-only reference for resolving platform users
-// onto LIMS records (LIMS never creates users, only grants access — see
-// LIMS_BACKEND_SPEC.md §D2).
+// Secondary auth database — read-only reference for resolving platform users onto LIMS
+// records (LIMS never creates users, only grants access).
 export const authSequelize = new Sequelize(
   ENV.AUTH_POSTGRES_URI ||
     "postgres://postgres:postgres@localhost:5433/umbrella_auth_db",
@@ -61,8 +57,7 @@ export const connectDB = async (): Promise<void> => {
     await sequelize.authenticate();
     console.log("lims_service_db (PostgreSQL) connected successfully!");
 
-    // Associations are registered once, here, rather than at module load —
-    // they are circular by nature, so import order would otherwise matter.
+    // Registered once, here, not at module load — circular by nature, so import order would otherwise matter.
     const { registerAssociations } = await import("../models/associations");
     registerAssociations();
 
@@ -75,9 +70,7 @@ export const connectDB = async (): Promise<void> => {
     const { seedPermissions } = await import("../services/permission.service");
     await seedPermissions();
 
-    // Warn if a pick list the UI reads is missing or empty. Not seeded
-    // automatically: the values are a lab's own configuration, so overwriting
-    // them on every boot would undo their edits.
+    // Warn if a pick list is missing/empty; not auto-seeded, since values are a lab's own config.
     const { reportPhraseHealth } = await import("../services/phrase-health.service");
     await reportPhraseHealth();
 

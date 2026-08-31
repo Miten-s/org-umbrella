@@ -13,15 +13,9 @@ import {
 import { CreateLimsUserDto, UpdateLimsUserDto } from "../dtos/master-data.dto";
 import { invalidateAllUserContexts } from "../services/user-context.service";
 
-/**
- * Lab Users. LIMS never creates a person — this record grants an existing
- * platform user access and assigns their home group, access groups and roles.
- *
- * `accessGroups` and `roles` arrive as arrays of ids. They are join tables, so
- * they are handled by the same nested-children machinery as any other
- * sub-form: the id arrays are expanded into child rows first, which gives them
- * replace-set semantics and puts membership changes in the audit diff for free.
- */
+/** Lab Users — LIMS never creates a person, this grants an existing platform user access.
+ * `accessGroups`/`roles` arrive as id arrays, expanded into child rows for replace-set
+ * semantics and a free audit diff, same nested-children machinery as any other sub-form. */
 export const limsUserConfig: CrudConfig<LimsUser> = {
   model: LimsUser,
   entityName: "Lab User",
@@ -66,10 +60,8 @@ export const limsUserConfig: CrudConfig<LimsUser> = {
   normalizePayload: (payload) => {
     const next = { ...payload };
 
-    // The picker sends the chosen platform user as `user: { id, name }` —
-    // one object, because that is what an AsyncSelect yields. Split it into
-    // the two columns. `userName` is denormalised here because the platform
-    // user lives in the auth database and cannot be joined.
+    // AsyncSelect yields `user: { id, name }` — split into the two columns; `userName`
+    // is denormalised here since the platform user lives in a different database.
     if (next.user && typeof next.user === "object") {
       const { id, name } = next.user as { id?: string; name?: string };
       if (id) next.userId = id;
@@ -89,11 +81,8 @@ export const limsUserConfig: CrudConfig<LimsUser> = {
     return next;
   },
 
-  /**
-   * `user` and `userId` are both optional on the DTO so either shape is
-   * accepted, which means neither being present has to be caught here — the
-   * column is NOT NULL and would otherwise surface as a raw database error.
-   */
+  // `user`/`userId` are both optional on the DTO, so neither being present must be caught
+  // here — the column is NOT NULL and would otherwise surface as a raw database error.
   beforeCreate: (payload) => {
     if (!payload.userId) {
       throw Object.assign(
@@ -132,13 +121,8 @@ const SELF_REMOVAL_MESSAGE =
   "You cannot remove your own Lab User record — it would lock you out of LIMS " +
   "with no way to undo it yourself. Ask another administrator to do it.";
 
-/**
- * Removing your own Lab User record is a total, self-inflicted lockout: no
- * LIMS access means no way to use the app's own Restore action to undo it —
- * recovery needs someone with direct database access. Guard both the
- * single-row and bulk paths the same way `authorize` resolves identity:
- * `ctx.actor.id` is the platform user id, matching `LimsUser.userId`.
- */
+/** Removing your own Lab User record is a total, self-inflicted lockout — recovery needs
+ * direct database access. Guards both single-row and bulk paths via `ctx.actor.id`. */
 const assertNotSelf = async (ids: string[], ctx: CrudContext) => {
   const targets = await LimsUser.findAll({ where: { id: ids } as any });
   if (targets.some((target) => target.userId === ctx.actor.id)) {

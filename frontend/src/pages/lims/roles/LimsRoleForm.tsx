@@ -20,12 +20,8 @@ import {
   type LimsRef
 } from "./LimsRole.types";
 
-/**
- * "copy" renders like "create" (fully editable) except roleId starts blank
- * instead of pre-filled with the source's — Role has no server-minted
- * business id, and the id is required server-side (`CreateRoleDto`), so it
- * stays EDITABLE (not disabled): the user must type a new unique one
- * before Save will succeed. Used by CopyStepper.
+/** "copy" renders like "create" except `roleId` starts blank — Role has no server-minted
+ * id, so it stays EDITABLE; the user must type a new unique one before Save succeeds.
  */
 export type LimsRoleFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
@@ -70,9 +66,7 @@ const LimsRoleForm = ({
 
   const identityLocked = isReadOnly;
 
-  // Permissions are assigned from the seeded catalog below — never typed in
-  // free-form. Carried over on Copy just like every other field — only
-  // roleId/name (this record's identity) get blanked, not its permission set.
+  // Assigned from the seeded catalog, never free-form; carried over on Copy like any other field.
   const { data: rolePermissions = [] } = useLimsRolePermissions();
   const initialPermissionsRef = useRef(initialData ? getLimsRolePermissionNames(initialData) : []);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>(
@@ -105,16 +99,9 @@ const LimsRoleForm = ({
   const description = useWatch({ control, name: "description" });
   const busy = submitting || isSubmitting;
 
-  // selectedPermissions already holds catalogue codes ("LIMS:CREATE:SAMPLE") —
-  // that IS the wire format the backend's permissions[] expects (it parses the
-  // code into entity+action itself). No id lookup needed; there was one here
-  // sending catalog row ids instead, which the backend can't parse, so every
-  // save silently landed as an empty permission set.
+  // selectedPermissions already holds catalogue codes — the exact wire format permissions[] expects.
   const handleFormSubmit = (values: LimsRoleFormValues) => {
-    // Edit + nothing actually changed: skip the reason modal, update call,
-    // and audit entry entirely — a no-op Save just closes. Permissions are
-    // a set, not a sequence, so compare sorted (toggling one off and back
-    // on shouldn't count as a change just because it moved to the end).
+    // No-op Edit just closes; permissions compare sorted since it's a set, not a sequence.
     if (
       (mode === "edit" || mode === "bulk-edit") &&
       isPayloadEqual(values, initialValues) &&

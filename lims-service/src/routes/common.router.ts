@@ -32,8 +32,7 @@ import schedulerRoutes from "./scheduler.routes";
 
 const commonRouter: Router = Router();
 
-// All routes require authentication (spec NFR-1: single SSO/AD login for every
-// app). Authentication only proves identity — each entity router additionally
+// All routes require authentication (spec NFR-1); each entity router additionally
 // carries `authorize(entity, action)`, which is what actually grants access.
 commonRouter.use(authenticate);
 

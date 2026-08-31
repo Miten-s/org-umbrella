@@ -24,13 +24,8 @@ import { seedRefOption } from "@/utils/refLabel";
 import { limsSchedulerSchema, limsSchedulerCopySchema, type LimsSchedulerFormValues } from "./LimsScheduler.schema";
 import type { LimsScheduler, LimsSchedulerPayload, LimsRef } from "./LimsScheduler.types";
 
-/**
- * "copy" renders like "create" (fully editable) except the business ID
- * starts blank instead of pre-filled with the source's — stays EDITABLE,
- * not disabled: `applyBusinessId` mints a fresh one only when the field
- * is empty, and otherwise honors whatever the user typed (subject to the
- * usual uniqueness check). Used by CopyStepper.
- */
+/** "copy" renders like "create" except the business ID starts blank (stays EDITABLE —
+ * `applyBusinessId` only mints when empty, otherwise honors what the user typed). */
 export type LimsSchedulerFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsSchedulerFormProps {

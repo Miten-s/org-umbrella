@@ -7,11 +7,8 @@ import RoleEntry from "../models/role-entry.model";
 import Group from "../models/group.model";
 import { ACTION_COLUMN, LimsAction } from "../utils/permissions";
 
-/**
- * Resolves the JWT's platform user id into everything the access layer needs:
- * which groups they can reach and what they may do. Computed once per request
- * cycle and cached, because it is four joins plus a recursive walk.
- */
+/** Resolves the JWT's platform user id into everything the access layer needs — cached,
+ * since it's four joins plus a recursive walk. */
 export interface UserContext {
   /** lims_users.id — not the platform user id. */
   limsUserId: string;
@@ -35,13 +32,8 @@ interface CachedContext extends Omit<UserContext, "permissions"> {
   permissions: string[];
 }
 
-/**
- * Expands a set of group ids to include every descendant, so access to a
- * parent group cascades to its children.
- *
- * A recursive CTE rather than an application-side loop: the depth is unknown,
- * and one query beats N round trips per request.
- */
+/** Expands group ids to every descendant, so access cascades. A recursive CTE, not an
+ * application-side loop — depth is unknown, and one query beats N round trips. */
 export const expandGroupIds = async (groupIds: string[]): Promise<string[]> => {
   if (!groupIds.length) return [];
 
@@ -81,10 +73,8 @@ const permissionsFromRoles = (
   return { permissions, operateAll };
 };
 
-/**
- * Returns null when the platform user has no lims_users row — a valid platform
- * token is not by itself LIMS access.
- */
+/** Returns null when the platform user has no lims_users row — a valid platform token is
+ * not by itself LIMS access. */
 export const getUserContext = async (platformUserId: string): Promise<UserContext | null> => {
   const cached = await cache.get<CachedContext>(key(platformUserId));
   if (cached) return { ...cached, permissions: new Set(cached.permissions) };
@@ -145,11 +135,8 @@ export const invalidateUserContext = async (platformUserId: string) => {
   await cache.del(key(platformUserId));
 };
 
-/**
- * A role or group changed, so an unknown set of users is affected. Dropping
- * every cached context is deliberate: roles and groups change rarely, and
- * recomputing a few contexts costs far less than serving one stale permission.
- */
+/** A role/group changed, unknown users affected — drops every cached context; roles/groups
+ * change rarely, and recomputing a few costs far less than serving a stale permission. */
 export const invalidateAllUserContexts = async () => {
   await cache.delPrefix(CACHE_PREFIX);
 };

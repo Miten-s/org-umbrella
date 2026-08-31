@@ -7,12 +7,8 @@ import Button from "@/components/ui/button/Button";
 import { toast } from "@/lib/toast";
 
 /**
- * The module's own `Lims<Entity>Form`, rendered in `mode: "bulk-edit"` —
- * same editable render `mode: "edit"` already uses, against the record's
- * REAL current data (unlike CopyStepper, nothing is blanked). `onUnchanged`
- * fires instead of `onSubmit` when the step's own no-op-skip check
- * (`isPayloadEqual` against its initial values) finds nothing to save —
- * see the component doc comment for why that distinction matters here.
+ * The module's own `Lims<Entity>Form`, in `mode: "bulk-edit"` — real current data, nothing
+ * blanked. `onUnchanged` fires instead of `onSubmit` when the step's no-op-skip check finds nothing to save.
  */
 export interface EditStepperFormProps<TRecord, TPayload> {
   mode: "bulk-edit";
@@ -35,12 +31,8 @@ export interface EditStepperProps<TRecord, TPayload> {
   /** Fetches ONE full-detail record — the same fetch the Edit modal already uses. */
   fetchById: (id: string, signal?: AbortSignal) => Promise<TRecord>;
   FormComponent: React.ComponentType<EditStepperFormProps<TRecord, TPayload>>;
-  /**
-   * Fires once, on Save-all, with only the records that actually changed —
-   * paired with their id, since (unlike Copy) this isn't a flat array of
-   * full payloads. A record never opened, or opened and left untouched, is
-   * never in this array at all.
-   */
+  // Fires once, on Save-all, with only records that actually changed, each paired with its
+  // id — never opened, or opened-but-untouched records are excluded entirely.
   onSaveAll: (updates: { id: string; payload: TPayload }[]) => void | Promise<void>;
   onClose: () => void;
   saving?: boolean;
@@ -48,28 +40,8 @@ export interface EditStepperProps<TRecord, TPayload> {
 }
 
 /**
- * Bulk Edit review flow: select N existing records → step through each one's
- * own Edit form, in any order → Save-all sends only whatever actually
- * changed, together, in one request.
- *
- * The key difference from CopyStepper: Copy needs a payload for EVERY
- * record (even an untouched one still has to become a new row), so its
- * Save-all sweeps and force-submits everything. Bulk Edit only cares about
- * records the user actually opened AND changed — a never-opened record is
- * simply never fetched, and an opened-but-untouched one resolves via
- * `onUnchanged` (not `onSubmit`) and is excluded from the batch entirely,
- * no fallback substitution. If nothing in the whole selection ends up
- * changed, Save-all closes with no network call at all.
- *
- * Cancel (each step's own Cancel button) closes the whole review, same as
- * Copy/View — nothing has been saved to the server yet at that point (only
- * `onSaveAll` ever hits the network), so this is non-destructive, just a
- * "start over" if the user wants to resume.
- *
- * Source records are fetched lazily, one GET per record, only when a step
- * is first shown — selecting 10 and only opening 2 costs 2 GETs, not 10.
- * Every step a user has opened stays mounted (CSS-hidden, not unmounted)
- * for the rest of the session, same flicker/reuse fix CopyStepper documents.
+ * Bulk Edit: select N records → step through each one's own Edit form → Save-all sends only
+ * whatever actually changed. Unlike Copy, an all-unchanged selection saves nothing.
  */
 function EditStepper<TRecord, TPayload>({
   ids,
@@ -78,8 +50,6 @@ function EditStepper<TRecord, TPayload>({
   onSaveAll,
   onClose,
   saving = false
-  // entityLabel: kept in props (every call site passes it) but not read
-  // here — same convention CopyStepper follows.
 }: EditStepperProps<TRecord, TPayload>) {
   const { t } = useTranslation();
   const formId = useId();
@@ -89,9 +59,7 @@ function EditStepper<TRecord, TPayload>({
     new Array(total).fill(undefined)
   );
   const sourcesRef = useRef<Array<TRecord | undefined>>(sources);
-  // `undefined` = not yet resolved for this step. `null` = resolved,
-  // reviewed, and confirmed UNCHANGED (excluded from the batch). A
-  // `TPayload` = resolved and confirmed CHANGED (included in the batch).
+  // undefined = not yet resolved; null = confirmed unchanged; TPayload = confirmed changed.
   const [payloads, setPayloads] = useState<Array<TPayload | null | undefined>>(
     new Array(total).fill(undefined)
   );
@@ -115,9 +83,8 @@ function EditStepper<TRecord, TPayload>({
     setSweepProgress(null);
   };
 
-  // Same `flushSync` reasoning as CopyStepper's `loadSource` — the sweep's
-  // `requestSubmit()` needs `sources[i]` to have actually committed, not
-  // just be scheduled, or it finds no mounted `<form>` and hangs.
+  // Same `flushSync` reasoning as CopyStepper's `loadSource` — the sweep needs `sources[i]`
+  // actually committed, not just scheduled, or it finds no mounted `<form>` and hangs.
   const loadSource = async (i: number) => {
     if (sourcesRef.current[i] !== undefined) return sourcesRef.current[i] as TRecord;
     const generation = generationRef.current;
@@ -182,14 +149,11 @@ function EditStepper<TRecord, TPayload>({
     await onSaveAll(updates);
   };
 
-  // Same display-before-submit reasoning as CopyStepper's `runSweepStep` —
-  // `.requestSubmit()` on a `display:none` form is unreliable in some
-  // browsers. Every swept step here was already visited (already loaded),
-  // so unlike Copy there's no fetch to await first.
+  // Same display-before-submit reasoning as CopyStepper's `runSweepStep`; every swept step
+  // here was already visited, so unlike Copy there's no fetch to await first.
   const runSweepStep = (i: number) => {
-    // Both `index` and `displayIndex` — not just the latter — or a swept
-    // step other than the one the user started on renders dimmed
-    // (`index !== displayIndex`) while it's actually the one being saved.
+    // Set both `index` and `displayIndex`, or a swept step other than the one the
+    // user started on renders dimmed while it's actually the one being saved.
     flushSync(() => {
       setIndex(i);
       setDisplayIndex(i);
@@ -203,9 +167,7 @@ function EditStepper<TRecord, TPayload>({
     }, 4000);
   };
 
-  // Records step `i`'s outcome (a real payload, or `null` for confirmed-
-  // unchanged) and either advances the sweep to the next queued step, or —
-  // once every queued step has resolved — finalizes.
+  // Records step `i`'s outcome and advances the sweep, or finalizes once every step resolved.
   const commitStep = async (i: number, payload: TPayload | null) => {
     if (total === 1) {
       if (payload === null) {
@@ -251,10 +213,8 @@ function EditStepper<TRecord, TPayload>({
   const handleStepSubmit = (i: number, values: TPayload, _files?: File[]) => commitStep(i, values);
   const handleStepUnchanged = (i: number) => commitStep(i, null);
 
-  // The only save trigger. Every VISITED step is re-swept (the current one
-  // unconditionally, to catch a live unsaved edit on screen) so its real
-  // outcome is known; a never-visited step was never fetched and needs no
-  // sweep at all — it's already excluded.
+  // Every VISITED step is re-swept (current one unconditionally, to catch a live unsaved
+  // edit); a never-visited step was never fetched and needs no sweep at all.
   const handleSaveAllClick = () => {
     if (busy) return;
     const uncommitted = visited.filter(

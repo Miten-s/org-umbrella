@@ -1,11 +1,8 @@
 import Button from "@/components/ui/button/Button";
 import type { ReactNode } from "react";
 
-/**
- * Shared non-functional states — see STANDARDS.md §9.
- * One implementation each for loading (skeleton), empty, and error, reused by
- * DataTable and (compact variants) inside dropdowns.
- */
+/** Shared non-functional states (STANDARDS.md §9): loading/empty/error, reused by
+ * DataTable and (compact variants) inside dropdowns. */
 
 interface TableSkeletonProps {
   rows?: number;

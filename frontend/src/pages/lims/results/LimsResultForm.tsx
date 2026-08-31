@@ -20,11 +20,8 @@ import { useLimsStockOptions } from "@/pages/lims/stocks/LimsStock.queries";
 import { limsResultSchema, type LimsResultFormValues } from "./LimsResult.schema";
 import type { LimsResult, LimsResultPayload, LimsRef } from "./LimsResult.types";
 
-/**
- * "copy" renders like "create" (fully editable) — resultId/version are
- * locked/server-generated either way (see the read-only displays below).
- * Used by CopyStepper.
- */
+/** "copy" renders like "create" — resultId/version are locked/server-generated either way
+ * (see the read-only displays below). */
 export type LimsResultFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsResultFormProps {
@@ -164,9 +161,7 @@ const LimsResultForm = ({
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
           <div className="min-w-0">
-            {/* resultId is server-locked (crud-factory drops any client value on
-                write) — shown read-only, never collected as input. Blank on
-                Copy: the source's id is not the new record's. */}
+            {/* Server-locked (crud-factory drops any client value) — shown read-only, blank on Copy. */}
             <Label>{t("limsResultId")}</Label>
             <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
               {mode === "copy" ? "—" : (initialData?.resultId ?? "—")}

@@ -73,12 +73,8 @@ export const bulkCloneLimsAnalysis = async (selection: BulkSelection) => {
   return response.data;
 };
 
-/**
- * The Copy flow's one and only network call: the user has already reviewed
- * (and possibly edited) every record client-side via CopyStepper — this
- * sends all of them together, once, to be created in one transaction. See
- * `bulkCreate` in crud-factory.ts.
- */
+/** The Copy flow's one and only network call: every reviewed record (CopyStepper) sent
+ * together, once, to be created in one transaction (see `bulkCreate` in crud-factory.ts). */
 export const bulkCopyLimsAnalysis = async (records: LimsAnalysisPayload[]) => {
   const response = await limsApi.post(`${ROUTE}/bulk-copy`, { records });
   return response.data as {
@@ -88,12 +84,8 @@ export const bulkCopyLimsAnalysis = async (records: LimsAnalysisPayload[]) => {
   };
 };
 
-/**
- * Bulk Edit's one and only network call: the user has already reviewed
- * (and only kept) the records that actually changed via EditStepper — this
- * sends just those, paired with their id, plus the one shared reason, to be
- * updated in one transaction. See `bulkUpdate` in crud-factory.ts.
- */
+/** Bulk Edit's one and only network call: just the records EditStepper kept as actually
+ * changed, paired with their id, plus the shared reason, updated in one transaction. */
 export const bulkUpdateLimsAnalysis = async (
   updates: { id: string; payload: LimsAnalysisPayload }[],
   changeReason: string

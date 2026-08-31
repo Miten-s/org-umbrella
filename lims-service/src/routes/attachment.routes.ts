@@ -14,39 +14,18 @@ import { getListQuery } from "../utils/pagination.util";
 import API_ROUTES from "../utils/routes";
 import { auditNameFor, permissionEntityFor } from "../utils/entity-registry";
 
-/**
- * Files for every entity, through one endpoint.
- *
- * Permission is checked against the **parent**: attaching to a Sample needs
- * `LIMS:UPDATE:SAMPLE`. There is deliberately no `ATTACHMENT` permission — a
- * file is part of the record it hangs off, not a thing you can be granted
- * separately, and adding one to the catalogue would let a role be given file
- * access to records it cannot otherwise see.
- *
- * Uploads and removals are written to the parent's audit trail for the same
- * reason: from an auditor's point of view a document appearing on a batch
- * record is a change to that batch record.
- */
+/** Files for every entity, through one endpoint. Permission is checked against the
+ * **parent** — there is deliberately no separate `ATTACHMENT` permission. Uploads/removals
+ * are written to the parent's audit trail, since a document appearing is a change to it. */
 const router = Router();
 
 /** Entity name comes from the body on upload, the query string on list. */
 const entityFromRequest = (req: Request): string | undefined =>
   (req.body?.entityName as string) ?? (req.query?.entityName as string);
 
-/**
- * For `/:id` routes the parent isn't in the request — load the row first so
- * `authorize` can check against the real parent rather than a client-supplied
- * entity name, which would be trivially forgeable.
- *
- * `record.entityName` is the parent's human display name ("Instrument"),
- * because that's what `Attachment` was stamped with at upload time (the same
- * label `writeAudit` uses everywhere — see crud-factory.ts's
- * `attachmentsFor`). `authorize()` checks permission CODES ("INSTRUMENT"),
- * not display names, so this has to translate through the registry — without
- * it, every id-keyed route (download, comment edit, remove) 400'd with
- * "Unknown entity" for every attachment, since no display name is ever a
- * valid `LIMS_ENTITIES` code.
- */
+/** For `/:id` routes the parent isn't in the request — load the row first so `authorize`
+ * checks the real parent, not a forgeable client-supplied name. Translates through the
+ * registry since `record.entityName` is a display name ("Instrument"), not a permission code. */
 const loadAttachment = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const record = await Attachment.findOne({
@@ -74,9 +53,8 @@ const actorFrom = (req: Request): AuditActor => ({
 });
 
 // ─── Upload ─────────────────────────────────────────────────────────────────
-// multer runs before authorize because the entity name lives in the multipart
-// body and isn't parsed until then. A rejected upload therefore leaves a file
-// on disk, so the failure paths below clean it up.
+// multer runs before authorize (entity name lives in the multipart body); a rejected
+// upload leaves a file on disk, so the failure paths below clean it up.
 router.post(
   API_ROUTES.ROOT,
   uploadAttachment.single("file"),

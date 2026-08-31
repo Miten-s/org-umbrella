@@ -12,20 +12,8 @@ import {
 import { CreateTestDto, UpdateTestDto } from "../dtos/execution.dto";
 import { attachCancelRoutes } from "../utils/cancel-routes";
 
-/**
- * Tests — 100k a day. Not versioned: a test is an assignment plus a status and
- * carries no measured value, so the generic audit trail already captures every
- * change. Results, which do carry values, are versioned.
- *
- * `components` is the Test form's result-entry grid — the frontend has always
- * sent it, but nothing here declared or persisted it (silently stripped by
- * the DTO's whitelist), so it never saved. It reuses Sample's `TestWindow`
- * table rather than a new one: same row shape (`TestWindowRowDto`), and that
- * table already carries an (until now unused) `testId` column alongside its
- * required `sampleId` — this is clearly what it was for. Rows are matched to
- * *this* Test via `testId`; `sampleId` is stamped from the Test's own sample
- * on create, via `extraFields`, since the column is NOT NULL.
- */
+/** Tests — 100k a day. Not versioned, unlike Results. `components` reuses Sample's
+ * `TestWindow` table via its `testId` column; `sampleId` is stamped via `extraFields` on create. */
 export const testConfig: CrudConfig<Test> = {
   model: Test,
   entityName: "Test",

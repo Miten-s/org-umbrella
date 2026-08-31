@@ -2,14 +2,8 @@ import Permission from "../models/permission.model";
 import { ALL_PERMISSIONS, LIMS_ENTITIES, ENTITY_LABELS, LIMS_ACTIONS } from "../utils/permissions";
 import { logInfo } from "../configs/logger.config";
 
-/**
- * Mirrors the code-defined permission vocabulary into `lims_permissions`.
- *
- * Idempotent: runs on every boot, inserts what is missing, updates changed
- * labels, and removes rows whose code no longer exists in code. That last part
- * matters — a permission the code no longer enforces must not stay grantable
- * in the UI, or admins can tick a box that does nothing.
- */
+/** Mirrors the code-defined permission vocabulary into `lims_permissions` on every boot —
+ * inserts, updates, and removes stale rows so a retired permission can't stay grantable. */
 export const seedPermissions = async () => {
   const existing = await Permission.findAll();
   const existingByCode = new Map(existing.map((row) => [row.code, row]));
@@ -50,11 +44,8 @@ export const seedPermissions = async () => {
   });
 };
 
-/**
- * The catalogue, shaped for the Role form's Permissions grid: one row per
- * entity with the four actions available on it. The Entry field is a dropdown
- * over `entities[].code` — never free text.
- */
+/** The catalogue, shaped for the Role form's Permissions grid: one row per entity with its
+ * four actions. The Entry field is a dropdown over `entities[].code`, never free text. */
 export const getPermissionCatalogue = async () => {
   const rows = await Permission.findAll({ order: [["code", "ASC"]] });
 

@@ -1,17 +1,5 @@
-/**
- * Un-sticks the 6 rows found by `find-orphaned-system-clones.ts` — clones of
- * a system Pick List that wrongly inherited `isSystem: true` from the
- * pre-fix Copy bug, making them permanently un-removable AND un-renameable.
- *
- * Sets `isSystem: false` ONLY on these exact ids (hardcoded from the
- * confirmed read-only scan, not re-derived from the suffix pattern at write
- * time) — nothing else about the row changes. Once this runs, each behaves
- * like any ordinary user-created pick list: editable code/name, removable
- * via the normal UI action. Reversible (just flip the flag back) if this
- * turns out to be wrong for one of them.
- *
- *   npx ts-node src/scripts/fix-orphaned-system-clones.ts
- */
+/** Un-sticks the 6 rows found by `find-orphaned-system-clones.ts` — sets `isSystem: false`
+ * on these exact hardcoded ids only. Reversible (just flip the flag back). */
 import "dotenv/config";
 import { sequelize } from "../configs/db.sequelize";
 import Phrase from "../models/phrase.model";

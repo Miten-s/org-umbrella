@@ -34,12 +34,8 @@ import type {
   LimsTestWindowRow
 } from "./LimsSample.types";
 
-/**
- * "copy" renders like "create" (fully editable) — sampleId/idNumeric are
- * locked/server-generated either way (see the read-only display below), so
- * unlike a businessId-driven module there's no editable ID field to blank.
- * Used by CopyStepper.
- */
+/** "copy" renders like "create" — sampleId/idNumeric are locked/server-generated either way,
+ * so unlike a businessId-driven module there's no editable ID field to blank. */
 export type LimsSampleFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsSampleFormProps {
@@ -82,11 +78,8 @@ const LimsSampleForm = ({
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
   const attachments = useAttachments(initialData?.attachments);
-  /**
-   * `instrument` and `stock` are references: nested `{id, name}` on read, bare
-   * id on write. A select cell needs the id, or the saved value renders as the
-   * placeholder.
-   */
+  // `instrument`/`stock` are nested `{id, name}` on read, bare id on write — a select cell
+  // needs the id, or the saved value renders as the placeholder.
   const initialTestWindowsRef = useRef(
     (initialData?.testWindows ?? []).map((row) => ({
       ...row,
@@ -213,9 +206,7 @@ const LimsSampleForm = ({
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
           <div className="min-w-0">
-            {/* sampleId is server-locked (crud-factory drops any client value on
-                write) — shown read-only, same as idNumeric, never collected as
-                input. Blank on Copy: the source's id is not the new record's. */}
+            {/* Server-locked (crud-factory drops any client value), same as idNumeric — blank on Copy. */}
             <Label>{t("limsSampleId")}</Label>
             <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
               {mode === "copy" ? "—" : (initialData?.sampleId ?? "—")}

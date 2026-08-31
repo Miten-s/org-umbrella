@@ -1,11 +1,8 @@
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 
-/**
- * A Batch — the top of the execution hierarchy, holding Lots.
- * `status` (Open/Cancelled) is separate from `isDeleted`: a cancelled batch
- * stays visible, a removed one does not.
- */
+/** A Batch — top of the execution hierarchy, holding Lots. `status` (Open/Cancelled) is
+ * separate from `isDeleted`: a cancelled batch stays visible. */
 export interface IBatch {
   id?: string;
   batchId: string;

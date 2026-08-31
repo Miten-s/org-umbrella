@@ -14,14 +14,8 @@ import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { limsGroupSchema, type LimsGroupFormValues } from "./LimsGroup.schema";
 import type { LimsGroup, LimsGroupPayload, LimsGroupRef } from "./LimsGroup.types";
 
-/**
- * "copy" renders like "create" (fully editable) except `groupId` starts
- * blank instead of pre-filled with the source's id — Group has no
- * server-minted business id (unlike Analysis), and the field is required
- * server-side (`CreateGroupDto`), so it stays EDITABLE (not disabled) —
- * the user must type a new unique one before Save will succeed. Used by
- * CopyStepper.
- */
+/** "copy" renders like "create" except `groupId` starts blank — Group has no server-minted
+ * id, so it stays EDITABLE; the user must type a new unique one before Save succeeds. */
 export type LimsGroupFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsGroupFormProps {
@@ -87,10 +81,7 @@ const LimsGroupForm = ({
     setValue,
     formState: { errors, isSubmitting }
   } = useForm<LimsGroupFormValues>({
-    // "copy" reuses the plain create/edit schema unchanged — the blank
-    // groupId being required is exactly what we want here (see
-    // LimsGroupFormMode's doc comment above): there's no server-minted id
-    // to fall back on, so the user must type a real new one before Save.
+    // No copy-schema variant needed: no server-minted id, so blank groupId staying required is correct.
     resolver: zodResolver(limsGroupSchema),
     defaultValues: initialValues
   });
@@ -171,13 +162,8 @@ const LimsGroupForm = ({
             {err("ownedBy")}
           </div>
 
-          {/*
-            Parent Group — commented out: we don't have a clear, agreed
-            answer for what a lab admin is supposed to do with this field
-            when creating a group, so we're not asking them to fill in
-            something we can't explain yet. Not collected in defaultValues
-            above either, so saving an existing group leaves its current
-            parentGroup untouched rather than clearing it.
+          {/* Parent Group — commented out: no clear answer yet for what a lab admin does with
+              this field. Not in defaultValues either, so it's left untouched, not cleared, on save.
           <div className="min-w-0">
             <Label>{t("limsParentGroup")}</Label>
             <Controller

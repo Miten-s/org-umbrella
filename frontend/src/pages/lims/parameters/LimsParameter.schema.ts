@@ -17,11 +17,8 @@ export const limsParameterSchema = z.object({
 
 export type LimsParameterFormValues = z.infer<typeof limsParameterSchema>;
 
-/**
- * Copy mode leaves the business ID blank + disabled (the server always
- * mints a fresh one on save — see LimsParameterForm) — same shape, minus
- * the required check, so the blank field doesn't block Save.
- */
+/** Copy mode leaves the business ID blank + disabled (server always mints a fresh
+ * one — see LimsParameterForm) — same shape, minus the required check. */
 export const limsParameterCopySchema = limsParameterSchema.extend({
   parameterId: z.string().max(50)
 });

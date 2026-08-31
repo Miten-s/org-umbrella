@@ -36,10 +36,7 @@ export const testGroupConfig: CrudConfig<TestGroup> = {
   ],
   relationFields: { group: "groupId" },
 
-  // The list column only renders each test's name (LimsTestGroup.columns.tsx)
-  // — not its instrument, category, type, or replicate count, and the nested
-  // Instrument include isn't read at all. The Edit form still gets the full
-  // row + instrument via `relations` above; this only slims the list copy.
+  // The list column only renders each test's name; Edit still gets the full row via `relations` above.
   listRelationAttributes: { tests: ["id", "testName"] },
 
   children: [

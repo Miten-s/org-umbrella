@@ -16,14 +16,8 @@ import {
 import { CreateSampleDto, UpdateSampleDto } from "../dtos/execution.dto";
 import { attachCancelRoutes } from "../utils/cancel-routes";
 
-/**
- * Samples — 10k a day.
- *
- * `sampleId` is locked: always server-generated, never accepted from a client
- * and never changed by an edit. Test Windows are NOT nested; they are their own
- * endpoint, because rewriting the whole grid on each sample save does not hold
- * at this volume.
- */
+/** Samples — 10k a day. `sampleId` is locked, always server-generated. Test Windows are NOT
+ * nested — their own endpoint, since rewriting the whole grid on each save doesn't hold at volume. */
 export const sampleConfig: CrudConfig<Sample> = {
   model: Sample,
   entityName: "Sample",
@@ -91,17 +85,8 @@ export const sampleConfig: CrudConfig<Sample> = {
       model: TestWindow,
       as: "testWindows",
       required: false,
-      // Must mirror the children config's own `scopeWhere` below. A test
-      // window a Test has already claimed (`testId` set) is that Test's own
-      // component now, not the sample's unclaimed pool — without this, the
-      // Edit form loaded EVERY test window regardless of who owns it, then
-      // resubmitted the whole lot on save. The children sync below only ever
-      // treats `testId IS NULL` rows as "existing" (so it can tell a claimed
-      // row apart from an orphan), so anything already claimed was invisible
-      // to the sync's own "before" set — every save saw zero matches, so it
-      // inserted a fresh, unclaimed copy of the entire submitted grid, which
-      // was then claimable and duplicatable all over again next save. That's
-      // a doubling bug, not a one-off: 3 rows became 6, then 12, then 24.
+      // Must mirror the children config's own `scopeWhere` below — a claimed test window is
+      // that Test's own row, not the sample's unclaimed pool, or a save re-inserts and duplicates it.
       where: { testId: null }
     }
   ],
@@ -128,10 +113,8 @@ export const sampleConfig: CrudConfig<Sample> = {
       ],
       relationFields: { instrument: "instrumentId", stock: "stockId" },
       matchKey: "componentId",
-      // A Test's own `components` grid (test.routes.ts) stamps rows into
-      // this same table with a `testId` set. Without this scope, saving this
-      // grid would see those rows as orphans (right sampleId, just not in
-      // THIS submitted list) and delete them out from under the Test.
+      // A Test's own `components` grid stamps rows into this same table with `testId` set —
+      // without this scope, saving this grid would see those as orphans and delete them.
       scopeWhere: { testId: null }
     }
   ],

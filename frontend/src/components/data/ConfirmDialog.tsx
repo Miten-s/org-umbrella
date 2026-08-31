@@ -19,20 +19,14 @@ export interface ConfirmDialogProps {
   cancelLabel?: string;
   tone?: "danger" | "default";
   loading?: boolean;
-  /**
-   * Require a free-text "why" before confirming, and pass it to `onConfirm`.
-   *
-   * GxP-regulated modules (LIMS) must record a reason for every change,
-   * removal and restore. Off by default, so existing callers are unaffected.
-   */
+  /** Require a free-text "why" before confirming, and pass it to `onConfirm` — GxP-regulated
+   * modules must record a reason for every change/removal/restore. */
   requireReason?: boolean;
   reasonLabel?: string;
 }
 
-/**
- * One destructive-action dialog for delete / bulk delete — see STANDARDS.md §9.
- * Replaces the ~50-line inline delete Modal duplicated across every module.
- */
+/** One destructive-action dialog for delete/bulk delete, replacing the inline
+ * delete Modal duplicated across every module. */
 export const ConfirmDialog = ({
   isOpen,
   onClose,

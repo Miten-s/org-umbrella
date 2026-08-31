@@ -20,12 +20,8 @@ export class BulkOperationDto {
   changeReason?: string;
 }
 
-/**
- * POST {route}/bulk-copy body — the Copy flow's single batched save (see
- * `crud-factory`'s `bulkCreate`). Each entry is a full record payload, same
- * shape a plain `create` would take; capped so one request can't be used to
- * smuggle in an unbounded write.
- */
+/** POST {route}/bulk-copy body (crud-factory's `bulkCreate`) — each entry is a full record
+ * payload, capped so one request can't smuggle in an unbounded write. */
 export class BulkCreateDto {
   @IsArray()
   @ArrayNotEmpty()
@@ -34,12 +30,8 @@ export class BulkCreateDto {
   records!: Record<string, any>[];
 }
 
-/**
- * PATCH {route}/bulk-update body — Bulk Edit's single batched save (see
- * `crud-factory`'s `bulkUpdate`). Each entry pairs a record id with its own
- * partial payload (only the fields that record's step actually changed);
- * `changeReason` is one shared reason stamped on every entry's audit row.
- */
+/** PATCH {route}/bulk-update body (crud-factory's `bulkUpdate`) — each entry pairs a record
+ * id with its partial payload; `changeReason` is shared across every entry's audit row. */
 export class BulkUpdateDto {
   @IsArray()
   @ArrayNotEmpty()

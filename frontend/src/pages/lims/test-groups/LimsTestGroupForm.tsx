@@ -25,13 +25,8 @@ import type {
   LimsRef
 } from "./LimsTestGroup.types";
 
-/**
- * "copy" renders like "create" (fully editable) except the business ID
- * starts blank instead of pre-filled with the source's — stays EDITABLE,
- * not disabled: `applyBusinessId` mints a fresh one only when the field
- * is empty, and otherwise honors whatever the user typed (subject to the
- * usual uniqueness check). Used by CopyStepper.
- */
+/** "copy" renders like "create" except the business ID starts blank (stays EDITABLE —
+ * `applyBusinessId` only mints when empty, otherwise honors what the user typed). */
 export type LimsTestGroupFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsTestGroupFormProps {
@@ -75,11 +70,8 @@ const LimsTestGroupForm = ({
 
   const identityLocked = isReadOnly;
 
-  /**
-   * `instrument` is a reference. On read it arrives as a nested `{id, name}`
-   * (or just `instrumentId`); a select cell needs the bare id or it matches no
-   * option and renders blank.
-   */
+  // `instrument` arrives nested (`{id, name}` or just `instrumentId`); a select cell needs
+  // the bare id or it matches no option and renders blank.
   const initialTestsRef = useRef(
     (initialData?.tests ?? []).map((row) => ({
       ...row,

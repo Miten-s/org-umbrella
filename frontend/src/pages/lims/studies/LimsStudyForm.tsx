@@ -19,15 +19,8 @@ import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { limsStudySchema, limsStudyCopySchema, type LimsStudyFormValues } from "./LimsStudy.schema";
 import type { LimsStudy, LimsStudyPayload, LimsRef } from "./LimsStudy.types";
 
-/**
- * "copy" renders like "create" (fully editable) except the business ID
- * starts blank instead of pre-filled with the source's — stays EDITABLE,
- * not disabled: `applyBusinessId` mints a fresh one only when the field
- * is empty, and otherwise honors whatever the user typed (subject to the
- * usual uniqueness check). Attachments are hidden in this mode: the Copy
- * flow's batch save is JSON-only and can't carry file uploads. Used by
- * CopyStepper.
- */
+/** "copy" renders like "create" except the business ID starts blank (stays EDITABLE —
+ * `applyBusinessId` only mints when empty). Attachments hidden: the batch save is JSON-only. */
 export type LimsStudyFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsStudyFormProps {
@@ -103,13 +96,8 @@ const LimsStudyForm = ({
   const projectDetails = useWatch({ control, name: "projectDetails" });
   const busy = submitting || isSubmitting;
 
-  // "Project details" is a snapshot of the selected Project's own Details
-  // text (see study.routes.ts / study.model.ts) — the client's job to fill
-  // it, which never actually happened here: the field was permanently
-  // `disabled` with nothing populating it, so it stayed blank regardless of
-  // what Project was picked. Only refetch on an actual selection change —
-  // never on load, or a Study's own already-saved (possibly since-edited)
-  // snapshot would get silently overwritten by the Project's current text.
+  // A snapshot of the Project's Details text; only refetched on selection change, never
+  // on load, or a Study's already-saved snapshot would get silently overwritten.
   const fillProjectDetails = async (projectId: string) => {
     try {
       const project = await fetchLimsProjectById(projectId);

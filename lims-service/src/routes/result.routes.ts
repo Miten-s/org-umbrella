@@ -23,18 +23,8 @@ import { authorize } from "../middlewares/authorize.middleware";
 import asyncHandler from "../middlewares/error.middleware";
 import API_ROUTES from "../utils/routes";
 
-/**
- * Results — the 1M-rows-a-day table, and the one entity that is INSERT-ONLY.
- *
- * A recorded measurement is never overwritten. Amending one inserts a new row
- * with `version + 1` and flips the previous row's `isLatest` to false, keeping
- * it forever. That is the 21 CFR Part 11 requirement: the value as originally
- * entered must always remain retrievable, alongside who changed it, when, and
- * why.
- *
- * Lists therefore filter `isLatest = true` — the partial index in migration
- * 009 matches that predicate exactly.
- */
+/** Results — 1M rows/day, INSERT-ONLY. Amending inserts `version + 1` and flips the previous
+ * row's `isLatest` to false, forever (21 CFR Part 11). Lists filter `isLatest = true`. */
 export const resultConfig: CrudConfig<Result> = {
   model: Result,
   entityName: "Result",
@@ -96,12 +86,8 @@ export const resultConfig: CrudConfig<Result> = {
 
 const base = buildCrudService(resultConfig);
 
-/**
- * Replaces the generic in-place update.
- *
- * Returns `null` for "not found" so the controller's existing 404 handling
- * applies unchanged.
- */
+/** Replaces the generic in-place update. Returns `null` for "not found" so the controller's
+ * existing 404 handling applies unchanged. */
 const updateAsNewVersion = async (
   id: string,
   payload: Record<string, any>,
@@ -148,9 +134,7 @@ const updateAsNewVersion = async (
         // Everything not being amended is carried forward verbatim.
         resultId: current.resultId,
         testId: current.testId,
-        // Editable on amend, same as componentName — see UpdateResultDto's
-        // comment. Both were hardcoded to the OLD value here, so an edited
-        // Component ID/Name never actually saved.
+        // Editable on amend (see UpdateResultDto) — was hardcoded to the OLD value, so edits never saved.
         componentId: payload.componentId ?? current.componentId,
         componentName: payload.componentName ?? current.componentName,
         unit: payload.unit ?? current.unit,
@@ -159,10 +143,7 @@ const updateAsNewVersion = async (
         instrumentId: payload.instrumentId ?? current.instrumentId,
         stockId: payload.stockId ?? current.stockId,
         enteredBy: payload.enteredBy ?? ctx.actor.fullName ?? ctx.actor.id,
-        // Was hardcoded to "now" unconditionally, so amending any OTHER
-        // field (e.g. just Value) silently rewrote this to the save's
-        // server time — audit-trail noise that looked like an intentional
-        // change to a field the user never touched.
+        // Was hardcoded to "now", so amending any other field silently rewrote this too.
         enteredOn: payload.enteredOn ?? current.enteredOn,
         status: current.status,
         groupId: current.groupId,
@@ -188,18 +169,8 @@ const updateAsNewVersion = async (
   });
 };
 
-/**
- * Every amendment inserts a new physical row (`updateAsNewVersion` above), so
- * the generic `getAuditLogs(entityId)` — which filters strictly by that one
- * row's id — only ever finds the UPDATE entry written for the current
- * version. The original CREATE lives under the *previous* version's row id
- * and was invisible from the UI: a QA reviewer could see the latest edit but
- * never who created the Result or its original value.
- *
- * Walk the `supersedesId` chain back to the original row and pull every
- * version's audit entries together, so the trail reads as one continuous
- * history the way a single mutable record's would.
- */
+/** Every amendment inserts a new row, so the generic `getAuditLogs` only finds the current
+ * version's entry. Walks the `supersedesId` chain to pull every version's entries as one trail. */
 const getResultAuditLogs = async (
   entityId: string,
   page: number,

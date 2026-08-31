@@ -10,13 +10,8 @@ import {
 } from "class-validator";
 import { Type } from "class-transformer";
 
-/**
- * Analyses, Test Groups and Specifications.
- *
- * Component and limit rows are intentionally permissive: which fields matter
- * depends on the row's `type`, so validating them strictly here would reject
- * legitimate combinations. The column types match.
- */
+/** Analyses, Test Groups and Specifications. Component/limit rows are intentionally
+ * permissive — which fields matter depends on the row's `type`. */
 
 export class ComponentRowDto {
   @IsOptional() @IsString() @MaxLength(100) componentId?: string;
@@ -49,9 +44,7 @@ export class TestRowDto {
 export class LimitRowDto {
   @IsOptional() @IsString() @MaxLength(200) analysisName?: string;
   @IsOptional() @IsString() @MaxLength(200) componentName?: string;
-  // Set only when this row came from the Limits grid's Analysis/Component
-  // picker (see LimsSpecificationForm) — a manually-typed row leaves both
-  // null and stays freely editable.
+  // Set only when populated via the Limits grid's Analysis/Component picker.
   @IsOptional() @IsUUID("4") analysisId?: string;
   @IsOptional() @IsUUID("4") componentId?: string;
   @IsOptional() @IsString() @MaxLength(100) min?: string;
@@ -161,10 +154,7 @@ export class UpdateSpecificationDto {
   limits?: LimitRowDto[];
 
   @IsOptional() @IsString() changeReason?: string;
-  // New file attachments arrive on `req.files` (multer), separately from
-  // this JSON payload — this is only the "which existing ones survive"
-  // half of the reconcile. Declared here so `whitelist: true` doesn't
-  // strip it before the controller ever sees it.
+  // New files arrive on `req.files` separately; this is only the "which existing ones survive" half.
   @IsOptional()
   @IsArray()
   @IsString({ each: true })

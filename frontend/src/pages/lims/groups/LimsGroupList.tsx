@@ -6,6 +6,7 @@ import DataTable, {
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
 import CopyStepper from "@/components/data/CopyStepper";
+import ViewStepper from "@/components/data/ViewStepper";
 import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
@@ -47,14 +48,13 @@ const LimsGroupList = () => {
   const { t } = useTranslation();
   const { isOpen, openModal, closeModal } = useModal();
 
-  // Only the id of the row being edited/viewed — the list row itself is
-  // never passed into the form; the full record (including attachments)
-  // is fetched fresh the moment the modal actually needs it.
+  // Full record (incl. attachments) is fetched fresh from this id, not the list row.
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsGroupFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
   // Set instead of activeId/formMode while the Copy review flow is open.
   const [copyIds, setCopyIds] = useState<string[] | null>(null);
+  const [viewIds, setViewIds] = useState<string[] | null>(null);
   const [editIds, setEditIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsGroup, LimsGroupPayload>();
@@ -112,6 +112,14 @@ const LimsGroupList = () => {
     [openModal]
   );
 
+  const openView = useCallback(
+    (ids: string[]) => {
+      setViewIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const openEdit = useCallback(
     (ids: string[]) => {
       setEditIds(ids);
@@ -125,6 +133,7 @@ const LimsGroupList = () => {
     setActiveId(null);
     setFormMode("create");
     setCopyIds(null);
+    setViewIds(null);
     setEditIds(null);
   };
 
@@ -168,15 +177,26 @@ const LimsGroupList = () => {
   const bulkActions = useMemo<DataTableBulkAction[]>(
     () => [
       {
+        key: "view",
+        label: () => t("view", { entity: t("limsGroups") }),
+        icon: EyeIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.VIEW_GROUP,
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("viewBulkFilterUnsupported"), "error");
+            return;
+          }
+          openView(selection.ids);
+        }
+      },
+      {
         key: "clone",
         label: (count) => (count > 1 ? "Copy lab groups" : "Copy lab group"),
         icon: CopyIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_GROUP,
         onClick: async (selection) => {
-          // See LimsAnalysisList: a specific checkbox selection opens the
-          // Copy review flow; "select all N matching filter" keeps the
-          // previous immediate server-side duplicate.
           if (selection.mode === "ids") {
             openCopy(selection.ids);
             return;
@@ -218,7 +238,7 @@ const LimsGroupList = () => {
           )
       }
     ],
-    [bulkClone, compliance, openCopy, openEdit, t, table]
+    [bulkClone, compliance, openCopy, openEdit, openView, t, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsGroup>[]>(
@@ -328,6 +348,14 @@ const LimsGroupList = () => {
             onDuplicateUnreviewed={handleDuplicateUnreviewedCopies}
             onClose={handleCloseForm}
             saving={bulkCopy.isPending || bulkClone.isPending}
+            entityLabel={t("limsGroup")}
+          />
+        ) : viewIds ? (
+          <ViewStepper<LimsGroup>
+            ids={viewIds}
+            fetchById={fetchLimsGroupById}
+            FormComponent={LimsGroupForm}
+            onClose={handleCloseForm}
             entityLabel={t("limsGroup")}
           />
         ) : editIds ? (

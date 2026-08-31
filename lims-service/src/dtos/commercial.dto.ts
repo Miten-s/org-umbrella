@@ -13,19 +13,8 @@ import {
 } from "class-validator";
 import { Type } from "class-transformer";
 
-/**
- * Customers, Suppliers, Projects, Studies, Parameters, Stock, Stock Batches
- * and Aliquots.
- *
- * Same conventions as master-data.dto.ts: field names are the client's payload
- * names, relations arrive as a bare id under the relation's own name, and
- * Update DTOs do not extend Create — PATCH is partial, and inheriting
- * `@IsNotEmpty()` would force a client to resend every required field to change
- * one of them.
- *
- * Business-ID fields (`customerId`, `projectId`, …) are optional everywhere:
- * the server generates one when the client omits it.
- */
+/** Customers, Suppliers, Projects, Studies, Parameters, Stock, Stock Batches, Aliquots.
+ * Same conventions as master-data.dto.ts; business-ID fields are optional everywhere. */
 
 export class AddressDto {
   @IsOptional() @IsString() @MaxLength(200) line1?: string;
@@ -82,10 +71,7 @@ export class UpdateCustomerDto {
   address?: AddressDto;
   @IsOptional() @IsString() otherInformation?: string;
   @IsOptional() @IsString() changeReason?: string;
-  // New file attachments arrive on `req.files` (multer), separately from
-  // this JSON payload — this is only the "which existing ones survive"
-  // half of the reconcile. Declared here so `whitelist: true` doesn't
-  // strip it before the controller ever sees it.
+  // New files arrive on `req.files` separately; this is only the "which existing ones survive" half.
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
@@ -129,10 +115,7 @@ export class UpdateSupplierDto {
   @Type(() => AddressDto)
   address?: AddressDto;
   @IsOptional() @IsString() changeReason?: string;
-  // New file attachments arrive on `req.files` (multer), separately from
-  // this JSON payload — this is only the "which existing ones survive"
-  // half of the reconcile. Declared here so `whitelist: true` doesn't
-  // strip it before the controller ever sees it.
+  // New files arrive on `req.files` separately; this is only the "which existing ones survive" half.
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
@@ -164,10 +147,7 @@ export class UpdateProjectDto {
   @IsOptional() @IsString() @MaxLength(200) customerContact?: string;
   @IsOptional() @IsUUID("4") supervisor?: string;
   @IsOptional() @IsString() changeReason?: string;
-  // New file attachments arrive on `req.files` (multer), separately from
-  // this JSON payload — this is only the "which existing ones survive"
-  // half of the reconcile. Declared here so `whitelist: true` doesn't
-  // strip it before the controller ever sees it.
+  // New files arrive on `req.files` separately; this is only the "which existing ones survive" half.
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
@@ -199,10 +179,7 @@ export class UpdateStudyDto {
   @IsOptional() @IsString() projectDetails?: string;
   @IsOptional() @IsUUID("4") supervisor?: string;
   @IsOptional() @IsString() changeReason?: string;
-  // New file attachments arrive on `req.files` (multer), separately from
-  // this JSON payload — this is only the "which existing ones survive"
-  // half of the reconcile. Declared here so `whitelist: true` doesn't
-  // strip it before the controller ever sees it.
+  // New files arrive on `req.files` separately; this is only the "which existing ones survive" half.
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
@@ -282,10 +259,7 @@ export class UpdateStockDto {
   parameters?: ParameterValueDto[];
 
   @IsOptional() @IsString() changeReason?: string;
-  // New file attachments arrive on `req.files` (multer), separately from
-  // this JSON payload — this is only the "which existing ones survive"
-  // half of the reconcile. Declared here so `whitelist: true` doesn't
-  // strip it before the controller ever sees it.
+  // New files arrive on `req.files` separately; this is only the "which existing ones survive" half.
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
@@ -363,10 +337,7 @@ export class UpdateStockBatchDto {
   parameters?: ParameterValueDto[];
 
   @IsOptional() @IsString() changeReason?: string;
-  // New file attachments arrive on `req.files` (multer), separately from
-  // this JSON payload — this is only the "which existing ones survive"
-  // half of the reconcile. Declared here so `whitelist: true` doesn't
-  // strip it before the controller ever sees it.
+  // New files arrive on `req.files` separately; this is only the "which existing ones survive" half.
   @IsOptional()
   @IsArray()
   @IsString({ each: true })

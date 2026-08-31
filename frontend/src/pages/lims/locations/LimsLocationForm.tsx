@@ -23,13 +23,8 @@ import {
 } from "./LimsLocation.schema";
 import type { LimsLocation, LimsLocationPayload, LimsRef } from "./LimsLocation.types";
 
-/**
- * "copy" renders like "create" (fully editable) except the business ID
- * starts blank instead of pre-filled with the source's — stays EDITABLE,
- * not disabled: `applyBusinessId` mints a fresh one only when the field
- * is empty, and otherwise honors whatever the user typed (subject to the
- * usual uniqueness check). Used by CopyStepper.
- */
+/** "copy" renders like "create" except the business ID starts blank (stays EDITABLE —
+ * `applyBusinessId` only mints when empty, otherwise honors what the user typed). */
 export type LimsLocationFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsLocationFormProps {
@@ -53,11 +48,8 @@ interface LimsLocationFormProps {
   stepLabel?: string;
 }
 
-/**
- * Seeds an AsyncSelect's label from the record's nested relation, so editing
- * shows the real name instead of a UUID without any extra fetch
- * (MIGRATION.md §4, the preferred "already nested" path).
- */
+/** Seeds an AsyncSelect's label from the record's nested relation — the real name
+ * instead of a UUID, with no extra fetch (MIGRATION.md §4). */
 const seedOne = (ref: LimsRef | string | null | undefined, label: (r: LimsRef) => string) => {
   if (!ref || typeof ref === "string") return undefined;
   const text = label(ref);
@@ -239,9 +231,7 @@ const LimsLocationForm = ({
           </div>
 
           <div className="min-w-0">
-            {/* subLocations is derived from the child side (Location.parentLocation),
-                not a column here — nothing to write back to, so this is read-only,
-                not a picker. */}
+            {/* Derived from the child side (Location.parentLocation), not a column here — read-only, not a picker. */}
             <Label>{t("limsSubLocations")}</Label>
             <div className="flex min-h-11 flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 dark:border-gray-700 dark:bg-gray-800">
               {(initialData?.subLocations ?? []).length ? (

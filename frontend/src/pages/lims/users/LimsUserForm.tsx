@@ -19,12 +19,8 @@ import { limsUserSchema, type LimsUserFormValues } from "./LimsUser.schema";
 import type { LimsRef, LimsUser, LimsUserPayload } from "./LimsUser.types";
 import type { AsyncOption } from "@/lib/query/listTypes";
 
-/**
- * "copy" renders like "create" (fully editable) — the platform user picker
- * (locked on Edit, since an existing assignment can't be repointed) is
- * unlocked and blanked instead, since Copy's whole point here is assigning
- * the same roles/groups to a DIFFERENT person, not re-selecting the same
- * one (which would just collide on save). Used by CopyStepper.
+/** "copy" renders like "create" — the platform user picker (locked on Edit) is unlocked and
+ * blanked instead, since Copy's point is assigning the same roles to a DIFFERENT person.
  */
 export type LimsUserFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
@@ -57,11 +53,8 @@ const seedMany = (refs: LimsRef[] | undefined) =>
     .filter((ref) => ref?.id && ref.name)
     .map((ref) => ({ value: ref.id, label: String(ref.name) }));
 
-/**
- * Grants an existing platform user access to LIMS and assigns their lab roles.
- * Mirrors GXP Service Users — LIMS never creates users, so name/email/phone are
- * not editable here; they belong to the platform user record.
- */
+/** Grants an existing platform user access and assigns lab roles — mirrors GXP Service Users;
+ * name/email/phone aren't editable here, they belong to the platform user record. */
 const LimsUserForm = ({
   mode = "create",
   initialData,
@@ -77,10 +70,7 @@ const LimsUserForm = ({
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
 
-  // The chosen user's display name, captured from AsyncSelect so the payload can
-  // carry `user: { id, name }`. Seeded on edit — the API returns the existing
-  // assignment as flat `userId`/`userName`, not a nested `user` relation. Copy
-  // starts blank — see LimsUserFormMode's doc comment.
+  // Captured from AsyncSelect so the payload can carry `user: { id, name }`; blank on Copy.
   const [selectedUserName, setSelectedUserName] = useState(
     mode === "copy" ? "" : (initialData?.userName ?? "")
   );

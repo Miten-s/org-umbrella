@@ -1,20 +1,7 @@
 import { QueryInterface, DataTypes } from "sequelize";
 
-/**
- * The commercial and inventory master data: Customers, Suppliers, Projects,
- * Studies, Parameters, Stock, Stock Batches and Aliquots.
- *
- * Column names are the frontend payload names verbatim (`customerName`,
- * `supplierBatchNumber`) — see 003 for why.
- *
- * Two shapes worth noting:
- *  - `address` is JSONB rather than six flat columns. The client sends and
- *    edits it as one object, nothing queries inside it, and a supplier address
- *    gaining a field shouldn't need a migration.
- *  - Sub-form grids (stock parameters, batch consumptions, aliquot rows) are
- *    real child tables, not JSON. They are audited row-by-row, and a JSON blob
- *    can't produce the "component X changed 6.8 → 7.1" diff the audit needs.
- */
+/** Commercial/inventory master data. `address` is JSONB (edited as one object, no field-level
+ * queries); sub-form grids are real child tables, not JSON, so they can be audited row-by-row. */
 
 const softDeleteFields = {
   is_deleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
@@ -121,9 +108,7 @@ export const up = async (queryInterface: QueryInterface) => {
       onUpdate: "CASCADE",
       onDelete: "SET NULL"
     },
-    // Snapshot of the project's details at selection time (spec §B.2.i). Copied
-    // rather than joined: a study record must keep the text as it read when the
-    // study was set up, even if the project is edited afterwards.
+    // Snapshot at selection time (spec §B.2.i), copied not joined, so it survives a later project edit.
     project_details: { type: DataTypes.TEXT, allowNull: true },
     supervisor_id: userRef,
     group_id: groupRef,
@@ -317,8 +302,7 @@ export const up = async (queryInterface: QueryInterface) => {
   await queryInterface.addIndex("lims_stock_batch_parameter_values", ["stock_batch_id"]);
 
   // ─── lims_aliquot_sets ────────────────────────────────────────────────────
-  // The UI models an aliquot SET ("split this batch into 12"), with the
-  // individual aliquots as its rows — hence a set table plus a row table.
+  // The UI models an aliquot SET ("split into 12") — hence a set table plus a row table.
   await queryInterface.createTable("lims_aliquot_sets", {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
     aliquot_set_id: { type: DataTypes.STRING(100), allowNull: false, unique: true },

@@ -1,21 +1,5 @@
-/**
- * Bootstrap the first administrator.
- *
- * The access rules create a deliberate chicken-and-egg: no platform user can
- * touch LIMS without a `lims_users` row, and creating one needs CREATE:USER,
- * which nobody holds on an empty database. Rather than weaken the rule with a
- * "first user is free" special case in the request path — which would be a
- * permanent hole for the sake of one moment — the loop is cut here, offline,
- * by an operator with database credentials.
- *
- * Idempotent: safe to re-run, and re-running an existing admin just re-links
- * anything missing.
- *
- *   npx ts-node src/scripts/bootstrap-admin.ts <platformUserId> [full name]
- *
- * `platformUserId` must be the auth-service user id that appears as `id` in
- * the JWT, or the resulting row will never match a real login.
- */
+/** Bootstraps the first administrator offline (breaks the chicken-and-egg: no CREATE:USER
+ * exists yet on an empty database). Idempotent. `npx ts-node src/scripts/bootstrap-admin.ts <platformUserId> [full name]` */
 import "dotenv/config";
 import { sequelize } from "../configs/db.sequelize";
 import { registerAssociations } from "../models/associations";

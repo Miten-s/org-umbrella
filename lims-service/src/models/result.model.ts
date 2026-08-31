@@ -1,13 +1,8 @@
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 
-/**
- * A Result. INSERT-ONLY — never updated in place.
- *
- * A correction inserts a new row with `version + 1` and `supersedesId` pointing
- * at the row it replaces; the old row keeps `isLatest = false` forever so the
- * originally entered value stays retrievable (21 CFR Part 11).
- */
+/** A Result, INSERT-ONLY — a correction inserts `version + 1` with `supersedesId`; the old
+ * row keeps `isLatest = false` forever so the original stays retrievable (21 CFR Part 11). */
 export interface IResult {
   id?: string;
   resultId: string;

@@ -20,11 +20,8 @@ export const limsInstrumentPartSchema = z.object({
 
 export type LimsInstrumentPartFormValues = z.infer<typeof limsInstrumentPartSchema>;
 
-/**
- * Copy mode leaves the business ID blank + disabled (the server
- * always mints a fresh one on save — see LimsInstrumentPartForm) — same shape,
- * minus the required check, so the blank field doesn't block Save.
- */
+/** Copy mode leaves the business ID blank + disabled (server always mints a fresh
+ * one — see LimsInstrumentPartForm) — same shape, minus the required check. */
 export const limsInstrumentPartCopySchema = limsInstrumentPartSchema.extend({
   partId: z.string().max(150)
 });

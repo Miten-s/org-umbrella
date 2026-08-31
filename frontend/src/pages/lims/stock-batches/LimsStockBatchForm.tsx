@@ -22,12 +22,8 @@ import { useLimsLocationOptions } from "@/pages/lims/locations/LimsLocation.quer
 import { limsStockBatchSchema, type LimsStockBatchFormValues } from "./LimsStockBatch.schema";
 import type { LimsStockBatch, LimsStockBatchPayload, LimsRef, LimsConsumptionRow, LimsParameterValue } from "./LimsStockBatch.types";
 
-/**
- * "copy" renders like "create" (fully editable) — stockBatchId is
- * server-derived either way (see the read-only display below). Attachments
- * are hidden in this mode: the Copy flow's batch save is JSON-only and
- * can't carry file uploads. Used by CopyStepper.
- */
+/** "copy" renders like "create" — stockBatchId is server-derived either way. Attachments
+ * hidden: the batch save is JSON-only. */
 export type LimsStockBatchFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsStockBatchFormProps {

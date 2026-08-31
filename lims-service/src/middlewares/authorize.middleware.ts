@@ -5,29 +5,11 @@ import AccessBypassLog from "../models/access-bypass-log.model";
 import { LimsAction, LimsEntity, LIMS_ENTITIES } from "../utils/permissions";
 import { logError } from "../configs/logger.config";
 
-/**
- * The real access control. `authenticate` proves who you are; this proves what
- * you may do. Every entity route carries one of these — a route without it is
- * a route anyone with any valid platform token can call.
- *
- * Also the point where `req.access` is populated, which the CRUD factory then
- * uses to scope every query to the user's groups.
- *
- * Denials are 403. 404 would hide whether a record exists, but it also makes
- * every genuine misconfiguration look like a missing record, and the entity
- * list is not itself a secret here.
- */
+/** The real access control: `authenticate` proves who you are, this proves what you may
+ * do — every entity route needs one. Also where `req.access` gets populated for the CRUD factory. */
 
-/**
- * Records an OPERATE:ALL bypass on its own stream. Deliberately fire-and-forget:
- * an audit-stream failure must never take down the request, but it must be
- * loud in the logs.
- *
- * NOTE: this fires on EVERY request served under OPERATE:ALL, reads included,
- * which is the literal reading of "every bypass use". An admin browsing lists
- * will therefore generate a lot of rows. If that proves too noisy, restrict it
- * to mutations by gating on `req.method !== "GET"` — one line, right here.
- */
+/** Records an OPERATE:ALL bypass on its own stream, fire-and-forget — fires on every
+ * request under OPERATE:ALL, reads included; gate on `req.method !== "GET"` if too noisy. */
 const logBypass = (req: Request, entity: string, action: LimsAction) => {
   AccessBypassLog.create({
     performedBy: req.user?.id ?? "unknown",
@@ -40,15 +22,9 @@ const logBypass = (req: Request, entity: string, action: LimsAction) => {
   }).catch((error) => logError("bypass audit write failed", { error: String(error) }));
 };
 
-/**
- * @param entity Catalogue entity code, e.g. "SAMPLE". May be a function of the
- *   request for routes that serve many entities — attachments are checked
- *   against whichever parent they hang off, so attaching a file to a Sample
- *   needs Sample permission, not a separate "attachment" permission.
- * @param action The action this specific route performs. Passed explicitly
- *   rather than derived from the HTTP verb, because the verb lies:
- *   `POST /bulk-delete` deletes and `PATCH /restore/:id` is not an update.
- */
+/** @param entity Catalogue entity code, or a function of the request for routes serving
+ * many entities (attachments check against whichever parent they hang off).
+ * @param action Passed explicitly, not derived from the HTTP verb — the verb lies. */
 export const authorize = (entity: string | ((req: Request) => string | undefined), action: LimsAction) =>
   asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const resolved = typeof entity === "function" ? entity(req) : entity;
@@ -84,9 +60,7 @@ export const authorize = (entity: string | ((req: Request) => string | undefined
 
     if (context.operateAll) logBypass(req, resolved, action);
 
-    // The platform token carries only `{ id, email }`, so without this every
-    // audit row is written with a null "who". The name is already loaded here
-    // for the permission check.
+    // Platform token carries only `{ id, email }` — without this every audit row's "who" is null.
     if (req.user && !req.user.fullName && context.userName) {
       req.user.fullName = context.userName;
     }
