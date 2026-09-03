@@ -4,7 +4,9 @@ import { useAsyncOptions } from "@/hooks/useAsyncOptions";
 import type { BulkSelection, ServerListParams } from "@/lib/query/listTypes";
 import {
   bulkCloneDepartment,
+  bulkCopyDepartment,
   bulkDeleteDepartment,
+  bulkUpdateDepartment,
   createDepartment,
   deleteDepartment,
   fetchDepartmentOptions,
@@ -92,6 +94,43 @@ export const useBulkCloneDepartment = () => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
       toast(
         count && count > 1 ? `${count} departments copied successfully.` : "Department copied successfully.",
+        "success"
+      );
+      invalidate();
+    }
+  });
+};
+
+export const useBulkCopyDepartment = () => {
+  const invalidate = useInvalidateDepartments();
+  return useMutation({
+    mutationFn: (records: DepartmentPayload[]) => bulkCopyDepartment(records),
+    onSuccess: (data) => {
+      toast(
+        data.count > 1 ? `${data.count} departments copied successfully.` : "Department copied successfully.",
+        "success"
+      );
+      const warnings = data.results.filter((r) => r.warning);
+      if (warnings.length) {
+        toast(
+          warnings.length === 1
+            ? warnings[0].warning!
+            : `${warnings.length} of ${data.count} kept their original name — renamed to stay unique.`,
+          "info"
+        );
+      }
+      invalidate();
+    }
+  });
+};
+
+export const useBulkUpdateDepartment = () => {
+  const invalidate = useInvalidateDepartments();
+  return useMutation({
+    mutationFn: (updates: { id: string; payload: DepartmentPayload }[]) => bulkUpdateDepartment(updates),
+    onSuccess: (data) => {
+      toast(
+        data.count > 1 ? `${data.count} departments updated successfully.` : "Department updated successfully.",
         "success"
       );
       invalidate();

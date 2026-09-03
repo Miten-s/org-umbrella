@@ -6,12 +6,21 @@ import {
   updateLocation,
   deleteLocation,
   bulkDeleteLocations,
-  bulkDuplicateLocations
+  bulkDuplicateLocations,
+  bulkCopyLocations,
+  bulkUpdateLocations
 } from "../controllers/location.controller";
 import API_ROUTES from "../utils/routes";
-import { validateDto } from "../middlewares/validate-dto.middleware";
-import { IsValidParamsIdDto } from "../dtos/common.dto";
-import { UpdateLocationDto } from "../dtos/location.dto";
+import {
+  validateDto,
+  validateDtoArray
+} from "../middlewares/validate-dto.middleware";
+import {
+  BulkCreateDto,
+  BulkUpdateDto,
+  IsValidParamsIdDto
+} from "../dtos/common.dto";
+import { CreateLocationDto, UpdateLocationDto } from "../dtos/location.dto";
 import { checkPermissions } from "../middlewares/permission.middleware";
 
 const router = Router();
@@ -50,7 +59,25 @@ router.post(
   bulkDuplicateLocations
 );
 
+router.post(
+  API_ROUTES.LOCATIONS + API_ROUTES.BULK_COPY,
+  checkPermissions(["CREATE:LOCATION"]),
+  validateDto(BulkCreateDto),
+  validateDtoArray(CreateLocationDto, "records"),
+  bulkCopyLocations
+);
+
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
+
+// Registered BEFORE the single-record PARAMS patch below: both are one-segment PATCH
+// routes ("/bulk-update" vs "/:id"), so PARAMS going first would match "/bulk-update" as id="bulk-update".
+router.patch(
+  API_ROUTES.LOCATIONS + API_ROUTES.BULK_UPDATE,
+  checkPermissions(["UPDATE:LOCATION"]),
+  validateDto(BulkUpdateDto),
+  validateDtoArray(UpdateLocationDto, "updates", "payload"),
+  bulkUpdateLocations
+);
 
 router.patch(
   API_ROUTES.LOCATIONS + API_ROUTES.PARAMS,

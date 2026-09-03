@@ -92,3 +92,33 @@ export const bulkDuplicateDesignations = asyncHandler(
     res.status(201).json({ message: "Designations duplicated", result });
   }
 );
+
+export const bulkCopyDesignations = asyncHandler(
+  async (req: Request, res: Response): Promise<any> => {
+    const { records } = req.body;
+    const results = await designationService.bulkCopyDesignations(
+      records,
+      req.user
+    );
+    res.status(201).json({
+      message: `${results.length} record(s) copied`,
+      count: results.length,
+      results
+    });
+  }
+);
+
+export const bulkUpdateDesignations = asyncHandler(
+  async (req: Request, res: Response): Promise<any> => {
+    const { updates } = req.body;
+    const results = await designationService.bulkUpdateDesignations(
+      updates,
+      req.user
+    );
+    res.status(200).json({
+      message: `${results.length} record(s) updated`,
+      count: results.length,
+      results
+    });
+  }
+);

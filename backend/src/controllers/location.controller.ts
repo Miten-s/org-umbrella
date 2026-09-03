@@ -87,3 +87,30 @@ export const bulkDuplicateLocations = asyncHandler(
     res.status(201).json({ message: "Locations duplicated", result });
   }
 );
+
+export const bulkCopyLocations = asyncHandler(
+  async (req: Request, res: Response): Promise<any> => {
+    const { records } = req.body;
+    const results = await locationService.bulkCopyLocations(records, req.user);
+    res.status(201).json({
+      message: `${results.length} record(s) copied`,
+      count: results.length,
+      results
+    });
+  }
+);
+
+export const bulkUpdateLocations = asyncHandler(
+  async (req: Request, res: Response): Promise<any> => {
+    const { updates } = req.body;
+    const results = await locationService.bulkUpdateLocations(
+      updates,
+      req.user
+    );
+    res.status(200).json({
+      message: `${results.length} record(s) updated`,
+      count: results.length,
+      results
+    });
+  }
+);

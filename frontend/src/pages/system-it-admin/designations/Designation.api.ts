@@ -1,5 +1,6 @@
 import api from "@/utils/axios.interceptor";
 import { buildServerParams, toListResult, toOptionsPage } from "@/lib/query/listAdapter";
+import { normalizeId } from "@/lib/query/normalizeId";
 import { bulkSelectionToBody, type BulkSelection } from "@/lib/query/listTypes";
 import type { ServerListParams } from "@/lib/query/listTypes";
 import type { Designation, DesignationPayload } from "./Designation.types";
@@ -23,9 +24,10 @@ export const fetchDesignationList = async (
   return toListResult<Designation>(response.data, params, DATA_KEYS);
 };
 
+/** Full-detail fetch for the Copy/Edit/View review steppers. */
 export const fetchDesignationById = async (id: string, signal?: AbortSignal) => {
   const response = await api.get(`${ROUTE}/${id}`, { signal });
-  return response.data;
+  return normalizeId(response.data?.designation ?? response.data) as Designation;
 };
 
 export const fetchDesignationOptions = async (
@@ -65,4 +67,24 @@ export const bulkDeleteDesignation = async (selection: BulkSelection) => {
 export const bulkCloneDesignation = async (selection: BulkSelection) => {
   const response = await api.post(`${ROUTE}/bulk-duplicate`, bulkSelectionToBody(selection));
   return response.data;
+};
+
+/** The Copy flow's batched save — one request creates every reviewed record. */
+export const bulkCopyDesignation = async (records: DesignationPayload[]) => {
+  const response = await api.post(`${ROUTE}/bulk-copy`, { records });
+  return response.data as {
+    message: string;
+    count: number;
+    results: { id: string; warning?: string }[];
+  };
+};
+
+/** Bulk Edit's batched save — only the records actually reviewed and changed. */
+export const bulkUpdateDesignation = async (updates: { id: string; payload: DesignationPayload }[]) => {
+  const response = await api.patch(`${ROUTE}/bulk-update`, { updates });
+  return response.data as {
+    message: string;
+    count: number;
+    results: { id: string; skipped?: boolean }[];
+  };
 };

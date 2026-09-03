@@ -5,7 +5,9 @@ import type { BulkSelection } from "@/lib/query/listTypes";
 import type { ServerListParams } from "@/lib/query/listTypes";
 import {
   bulkCloneDesignation,
+  bulkCopyDesignation,
   bulkDeleteDesignation,
+  bulkUpdateDesignation,
   createDesignation,
   deleteDesignation,
   fetchDesignationOptions,
@@ -93,6 +95,43 @@ export const useBulkCloneDesignation = () => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
       toast(
         count && count > 1 ? `${count} designations copied successfully.` : "Designation copied successfully.",
+        "success"
+      );
+      invalidate();
+    }
+  });
+};
+
+export const useBulkCopyDesignation = () => {
+  const invalidate = useInvalidateDesignations();
+  return useMutation({
+    mutationFn: (records: DesignationPayload[]) => bulkCopyDesignation(records),
+    onSuccess: (data) => {
+      toast(
+        data.count > 1 ? `${data.count} designations copied successfully.` : "Designation copied successfully.",
+        "success"
+      );
+      const warnings = data.results.filter((r) => r.warning);
+      if (warnings.length) {
+        toast(
+          warnings.length === 1
+            ? warnings[0].warning!
+            : `${warnings.length} of ${data.count} kept their original name — renamed to stay unique.`,
+          "info"
+        );
+      }
+      invalidate();
+    }
+  });
+};
+
+export const useBulkUpdateDesignation = () => {
+  const invalidate = useInvalidateDesignations();
+  return useMutation({
+    mutationFn: (updates: { id: string; payload: DesignationPayload }[]) => bulkUpdateDesignation(updates),
+    onSuccess: (data) => {
+      toast(
+        data.count > 1 ? `${data.count} designations updated successfully.` : "Designation updated successfully.",
         "success"
       );
       invalidate();

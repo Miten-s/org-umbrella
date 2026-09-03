@@ -31,10 +31,14 @@ const formatDepartment = (dept: any) => {
 };
 
 const createDepartment = async (data: IDepartment, user: any) => {
-  const departmentManagerId = (data as any).departmentManagerId || (data as any).departmentManager;
-  const departmentGroupLocationId = (data as any).departmentGroupLocationId || (data as any).departmentGroupLocation;
-  
-  const creator = typeof user === "string" ? user : user?.name || user?.id || user?._id;
+  const departmentManagerId =
+    (data as any).departmentManagerId || (data as any).departmentManager;
+  const departmentGroupLocationId =
+    (data as any).departmentGroupLocationId ||
+    (data as any).departmentGroupLocation;
+
+  const creator =
+    typeof user === "string" ? user : user?.name || user?.id || user?._id;
 
   const newDept = await Department.create({
     ...data,
@@ -108,9 +112,13 @@ const updateDepartment = async (
   const dept = await Department.findByPk(_id);
   if (!dept) return null;
 
-  const departmentManagerId = (data as any).departmentManagerId || (data as any).departmentManager;
-  const departmentGroupLocationId = (data as any).departmentGroupLocationId || (data as any).departmentGroupLocation;
-  const modifier = typeof user === "string" ? user : user?.name || user?.id || user?._id;
+  const departmentManagerId =
+    (data as any).departmentManagerId || (data as any).departmentManager;
+  const departmentGroupLocationId =
+    (data as any).departmentGroupLocationId ||
+    (data as any).departmentGroupLocation;
+  const modifier =
+    typeof user === "string" ? user : user?.name || user?.id || user?._id;
 
   await dept.update({
     ...data,
@@ -175,7 +183,7 @@ const bulkDuplicateDepartments = async (ids: string[], user?: any) => {
 
       let maxIndex = 0;
       similarDepartmentsResult.forEach((dept: any) => {
-        const match = dept.departmentName.match(new RegExp(regexStr, 'i'));
+        const match = dept.departmentName.match(new RegExp(regexStr, "i"));
         if (match && match[1]) {
           const index = parseInt(match[1], 10);
           if (index > maxIndex) maxIndex = index;
@@ -184,25 +192,28 @@ const bulkDuplicateDepartments = async (ids: string[], user?: any) => {
 
       const newName = `${baseName}-(${maxIndex + 1})`;
 
-      const savedDepartment = await Department.create({
-        departmentName: newName,
-        departmentManagerId: sourceDepartment.departmentManagerId,
-        departmentGroupLocationId: sourceDepartment.departmentGroupLocationId,
-        description: sourceDepartment.description,
-        status: sourceDepartment.status,
-        deletedAt: null,
-        createdBy: user?.id || user?._id || 'system',
-        modifiedBy: user?.id || user?._id || 'system',
-        modifiedOn: new Date()
-      } as any, { transaction: t });
+      const savedDepartment = await Department.create(
+        {
+          departmentName: newName,
+          departmentManagerId: sourceDepartment.departmentManagerId,
+          departmentGroupLocationId: sourceDepartment.departmentGroupLocationId,
+          description: sourceDepartment.description,
+          status: sourceDepartment.status,
+          deletedAt: null,
+          createdBy: user?.id || user?._id || "system",
+          modifiedBy: user?.id || user?._id || "system",
+          modifiedOn: new Date()
+        } as any,
+        { transaction: t }
+      );
 
       duplicatedDepartments.push(savedDepartment);
     }
 
     await t.commit();
-    
+
     // Fetch associations for the duplicated departments
-    const dupIds = duplicatedDepartments.map(d => d.id);
+    const dupIds = duplicatedDepartments.map((d) => d.id);
     const populated = await Department.findAll({
       where: { id: dupIds },
       include: [
@@ -218,6 +229,127 @@ const bulkDuplicateDepartments = async (ids: string[], user?: any) => {
   }
 };
 
+// The Copy flow's batched save — one request creates every reviewed record. A name
+// collision is warned, not rejected (same "-(N)" suffix logic as bulkDuplicateDepartments).
+const bulkCopyDepartments = async (
+  records: Record<string, any>[],
+  user?: any
+) => {
+  const t = await sequelize.transaction();
+  try {
+    const creator =
+      typeof user === "string" ? user : user?.name || user?.id || user?._id;
+    const results: { id: string; warning?: string }[] = [];
+
+    for (const raw of records) {
+      const departmentManagerId =
+        raw.departmentManagerId || raw.departmentManager;
+      const departmentGroupLocationId =
+        raw.departmentGroupLocationId || raw.departmentGroupLocation;
+      let name = String(raw.departmentName || "").trim();
+      let warning: string | undefined;
+
+      const collision = await Department.findOne({
+        where: {
+          departmentName: { [Op.iLike]: name.replace(/[%_\\]/g, "\\$&") }
+        },
+        transaction: t
+      });
+
+      if (collision) {
+        let baseName = name;
+        const nameMatch = baseName.match(/^(.*)-\((\d+)\)$/);
+        if (nameMatch) baseName = nameMatch[1];
+
+        const escapedBaseName = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const regexStr = `^${escapedBaseName}(?:-\\(([0-9]+)\\))?$`;
+
+        const similar = await Department.findAll({
+          where: { departmentName: { [Op.iRegexp]: regexStr } },
+          transaction: t
+        });
+
+        let maxIndex = 0;
+        similar.forEach((dept: any) => {
+          const match = dept.departmentName.match(new RegExp(regexStr, "i"));
+          if (match && match[1])
+            maxIndex = Math.max(maxIndex, parseInt(match[1], 10));
+        });
+
+        const suffixed = `${baseName}-(${maxIndex + 1})`;
+        warning = `"${name}" is already in use — saved as "${suffixed}".`;
+        name = suffixed;
+      }
+
+      const created = await Department.create(
+        {
+          ...raw,
+          departmentName: name,
+          departmentManagerId,
+          departmentGroupLocationId,
+          createdBy: creator,
+          modifiedBy: creator,
+          modifiedOn: new Date()
+        } as any,
+        { transaction: t }
+      );
+
+      results.push({ id: created.id, warning });
+    }
+
+    await t.commit();
+    return results;
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
+};
+
+// Bulk Edit's batched save — only the records the reviewer actually reviewed and changed.
+// A missing id (deleted by someone else meanwhile) is skipped, not fatal to the rest.
+const bulkUpdateDepartments = async (
+  updates: { id: string; payload: Record<string, any> }[],
+  user?: any
+) => {
+  const t = await sequelize.transaction();
+  try {
+    const modifier =
+      typeof user === "string" ? user : user?.name || user?.id || user?._id;
+    const results: { id: string; skipped?: boolean }[] = [];
+
+    for (const { id, payload } of updates) {
+      const existing = await Department.findByPk(id, { transaction: t });
+      if (!existing) {
+        results.push({ id, skipped: true });
+        continue;
+      }
+
+      const departmentManagerId =
+        payload.departmentManagerId ?? payload.departmentManager;
+      const departmentGroupLocationId =
+        payload.departmentGroupLocationId ?? payload.departmentGroupLocation;
+
+      await existing.update(
+        {
+          ...payload,
+          departmentManagerId,
+          departmentGroupLocationId,
+          modifiedBy: modifier,
+          modifiedOn: new Date()
+        } as any,
+        { transaction: t }
+      );
+      results.push({ id });
+    }
+
+    await t.commit();
+    return results;
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
+};
+
 export {
   createDepartment,
   getAllDepartments,
@@ -225,5 +357,7 @@ export {
   updateDepartment,
   deleteDepartment,
   bulkDeleteDepartments,
-  bulkDuplicateDepartments
+  bulkDuplicateDepartments,
+  bulkCopyDepartments,
+  bulkUpdateDepartments
 };

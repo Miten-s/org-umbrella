@@ -1,5 +1,6 @@
 import api from "@/utils/axios.interceptor";
 import { buildServerParams, toListResult, toOptionsPage } from "@/lib/query/listAdapter";
+import { normalizeIdWithRelations } from "@/lib/query/normalizeId";
 import { bulkSelectionToBody, type BulkSelection } from "@/lib/query/listTypes";
 import type { ServerListParams } from "@/lib/query/listTypes";
 import type { User } from "./User.types";
@@ -75,4 +76,20 @@ export const deleteUser = async (id: string) => {
 export const bulkDeleteUser = async (selection: BulkSelection) => {
   const response = await api.post(`${ROUTE}/bulk-delete`, bulkSelectionToBody(selection));
   return response.data;
+};
+
+/** Full-detail fetch for the Bulk Edit/View review steppers. */
+export const fetchUserById = async (id: string, signal?: AbortSignal) => {
+  const response = await api.get(`${ROUTE}/${id}`, { signal });
+  return normalizeIdWithRelations(response.data?.user ?? response.data, RELATION_KEYS) as User;
+};
+
+/** Bulk Edit's batched save — only the records actually reviewed and changed. */
+export const bulkUpdateUser = async (updates: { id: string; payload: Record<string, unknown> }[]) => {
+  const response = await api.patch(`${ROUTE}/bulk-update`, { updates });
+  return response.data as {
+    message: string;
+    count: number;
+    results: { id: string; skipped?: boolean }[];
+  };
 };
