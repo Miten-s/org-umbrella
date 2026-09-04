@@ -1,7 +1,6 @@
 # --- Stage 1: production dependencies only -----------------------------------
 FROM node:20-alpine AS deps
 WORKDIR /app
-RUN apk add --no-cache python3 make g++
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
@@ -27,6 +26,6 @@ RUN mkdir -p /app/uploads && chown -R node:node /app
 RUN npm install -g pm2
 
 USER node
-EXPOSE 9003
+EXPOSE 9002
 
 CMD ["pm2-runtime", "dist/server.js"]
