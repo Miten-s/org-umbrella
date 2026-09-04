@@ -8,15 +8,23 @@ import ENV from "../utils/environment";
 // against Supabase's chain with SELF_SIGNED_CERT_IN_CHAIN.
 const isLocalPostgres = (uri?: string) => {
   if (!uri) return true;
-  if (uri.includes("sslmode=require") || uri.includes("supabase") || uri.includes("neon.tech") || uri.includes("rds.amazonaws.com")) {
-    return false;
+  if (/localhost|127\.0\.0\.1|postgres/.test(uri)) {
+    return true;
   }
-  return /localhost|127\.0\.0\.1|postgres/.test(uri) || !uri.includes("ssl");
+  return !(uri.includes("sslmode=require") || uri.includes("supabase") || uri.includes("neon.tech") || uri.includes("rds.amazonaws.com"));
+};
+
+const sanitizePgUri = (uri?: string) => {
+  if (!uri) return uri;
+  if (isLocalPostgres(uri)) {
+    return uri.replace(/[\?&]sslmode=[^&]+/gi, "").replace(/[\?&]ssl=[^&]+/gi, "");
+  }
+  return uri;
 };
 
 // Main LIMS database connection.
 export const sequelize = new Sequelize(
-  ENV.LIMS_POSTGRES_URI ||
+  sanitizePgUri(ENV.LIMS_POSTGRES_URI) ||
     "postgres://postgres:postgres@localhost:5433/lims_service_db",
   {
     dialect: "postgres",
@@ -40,7 +48,7 @@ export const sequelize = new Sequelize(
 // Secondary auth database — read-only reference for resolving platform users onto LIMS
 // records (LIMS never creates users, only grants access).
 export const authSequelize = new Sequelize(
-  ENV.AUTH_POSTGRES_URI ||
+  sanitizePgUri(ENV.AUTH_POSTGRES_URI) ||
     "postgres://postgres:postgres@localhost:5433/umbrella_auth_db",
   {
     dialect: "postgres",

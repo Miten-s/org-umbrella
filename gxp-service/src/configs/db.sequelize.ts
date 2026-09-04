@@ -10,14 +10,22 @@ const authPostgresUri = process.env.AUTH_POSTGRES_URI;
 // against Supabase's chain with SELF_SIGNED_CERT_IN_CHAIN.
 const isLocalPostgres = (uri?: string) => {
   if (!uri) return true;
-  if (uri.includes("sslmode=require") || uri.includes("supabase") || uri.includes("neon.tech") || uri.includes("rds.amazonaws.com")) {
-    return false;
+  if (/localhost|127\.0\.0\.1|postgres/.test(uri)) {
+    return true;
   }
-  return /localhost|127\.0\.0\.1|postgres/.test(uri) || !uri.includes("ssl");
+  return !(uri.includes("sslmode=require") || uri.includes("supabase") || uri.includes("neon.tech") || uri.includes("rds.amazonaws.com"));
+};
+
+const sanitizePgUri = (uri?: string) => {
+  if (!uri) return uri;
+  if (isLocalPostgres(uri)) {
+    return uri.replace(/[\?&]sslmode=[^&]+/gi, "").replace(/[\?&]ssl=[^&]+/gi, "");
+  }
+  return uri;
 };
 
 // Main GxP Database Connection
-export const sequelize = new Sequelize(gxpPostgresUri || "postgres://postgres:postgres@localhost:5433/gxp_workflow_db", {
+export const sequelize = new Sequelize(sanitizePgUri(gxpPostgresUri) || "postgres://postgres:postgres@localhost:5433/gxp_workflow_db", {
   dialect: "postgres",
   logging: (msg) => console.log(msg),
   pool: {
@@ -36,7 +44,7 @@ export const sequelize = new Sequelize(gxpPostgresUri || "postgres://postgres:po
 });
 
 // Secondary Auth Database Connection (Read-only reference)
-export const authSequelize = new Sequelize(authPostgresUri || "postgres://postgres:postgres@localhost:5433/umbrella_auth_db", {
+export const authSequelize = new Sequelize(sanitizePgUri(authPostgresUri) || "postgres://postgres:postgres@localhost:5433/umbrella_auth_db", {
   dialect: "postgres",
   logging: (msg) => console.log(msg),
   dialectOptions: isLocalPostgres(authPostgresUri)
