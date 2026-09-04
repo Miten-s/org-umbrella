@@ -6,7 +6,13 @@ import ENV from "../utils/environment";
 // connection-string parser then takes over SSL config and ignores the
 // `ssl` object below entirely, forcing full cert verification and failing
 // against Supabase's chain with SELF_SIGNED_CERT_IN_CHAIN.
-const isLocalPostgres = (uri?: string) => !uri || /localhost|127\.0\.0\.1/.test(uri);
+const isLocalPostgres = (uri?: string) => {
+  if (!uri) return true;
+  if (uri.includes("sslmode=require") || uri.includes("supabase") || uri.includes("neon.tech") || uri.includes("rds.amazonaws.com")) {
+    return false;
+  }
+  return /localhost|127\.0\.0\.1|postgres/.test(uri) || !uri.includes("ssl");
+};
 
 // Main LIMS database connection.
 export const sequelize = new Sequelize(
@@ -15,11 +21,9 @@ export const sequelize = new Sequelize(
   {
     dialect: "postgres",
     logging: ENV.NODE_ENV === "development" ? (msg) => console.log(msg) : false,
-    dialectOptions:{
-      ssl: {
-        require: false,
-      }
-    },
+    dialectOptions: isLocalPostgres(ENV.LIMS_POSTGRES_URI)
+      ? undefined
+      : { ssl: { require: true, rejectUnauthorized: false } },
     pool: {
       max: 10,
       min: 2,

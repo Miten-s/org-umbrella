@@ -8,7 +8,13 @@ const authPostgresUri = process.env.AUTH_POSTGRES_URI;
 // connection-string parser then takes over SSL config and ignores the
 // `ssl` object below entirely, forcing full cert verification and failing
 // against Supabase's chain with SELF_SIGNED_CERT_IN_CHAIN.
-const isLocalPostgres = (uri?: string) => !uri || /localhost|127\.0\.0\.1/.test(uri);
+const isLocalPostgres = (uri?: string) => {
+  if (!uri) return true;
+  if (uri.includes("sslmode=require") || uri.includes("supabase") || uri.includes("neon.tech") || uri.includes("rds.amazonaws.com")) {
+    return false;
+  }
+  return /localhost|127\.0\.0\.1|postgres/.test(uri) || !uri.includes("ssl");
+};
 
 // Main GxP Database Connection
 export const sequelize = new Sequelize(gxpPostgresUri || "postgres://postgres:postgres@localhost:5433/gxp_workflow_db", {
@@ -20,11 +26,9 @@ export const sequelize = new Sequelize(gxpPostgresUri || "postgres://postgres:po
     acquire: 30000,
     idle: 10000
   },
-  dialectOptions:{
-    ssl: {
-      require: false,
-    }
-  },
+  dialectOptions: isLocalPostgres(gxpPostgresUri)
+    ? undefined
+    : { ssl: { require: true, rejectUnauthorized: false } },
   define: {
     underscored: true,
     timestamps: true
