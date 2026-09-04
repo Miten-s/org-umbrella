@@ -1,12 +1,5 @@
-/**
- * Shapes a Sequelize instance (or plain object / array / findAndCountAll
- * result) into what the frontend's `listAdapter` expects (STANDARDS.md §3):
- *  - `id` is canonical; `_id` is kept as a compatibility shim.
- *  - `isDeleted` -> `isRemoved` (frontend never reads the DB column name).
- *  - `updatedAt` -> `modifiedOn`, `createdAt` stays as-is.
- * Applied recursively so eager-loaded relations come back nested and shaped
- * the same way, never as bare UUIDs.
- */
+/** Shapes a Sequelize instance into what the frontend's `listAdapter` expects (STANDARDS.md
+ * §3): `id` canonical, `isDeleted` -> `isRemoved`, `updatedAt` -> `modifiedOn`. Applied recursively. */
 export const formatLimsEntity = (entity: any): any => {
   if (entity === null || entity === undefined) return entity;
 

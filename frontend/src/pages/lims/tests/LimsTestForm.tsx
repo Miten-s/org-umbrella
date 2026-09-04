@@ -21,12 +21,8 @@ import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { limsTestSchema, type LimsTestFormValues } from "./LimsTest.schema";
 import type { LimsTest, LimsTestPayload, LimsRef, LimsResultRow } from "./LimsTest.types";
 
-/**
- * "copy" renders like "create" (fully editable) — testId is locked/
- * server-generated either way (see the read-only display below). Attachments
- * are hidden in this mode: the Copy flow's batch save is JSON-only and can't
- * carry file uploads. Used by CopyStepper.
- */
+/** "copy" renders like "create" — testId is locked/server-generated either way.
+ * Attachments hidden: the batch save is JSON-only. */
 export type LimsTestFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsTestFormProps {
@@ -176,9 +172,7 @@ const LimsTestForm = ({
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
           <div className="min-w-0">
-            {/* testId is server-locked (crud-factory drops any client value on
-                write) — shown read-only, never collected as input. Blank on
-                Copy: the source's id is not the new record's. */}
+            {/* Server-locked (crud-factory drops any client value) — shown read-only, blank on Copy. */}
             <Label>{t("limsTestId")}</Label>
             <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
               {mode === "copy" ? "—" : (initialData?.testId ?? "—")}

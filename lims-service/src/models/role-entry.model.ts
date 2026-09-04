@@ -1,15 +1,8 @@
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 
-/**
- * One row per (role, entity) — the permission grants behind the Role form's
- * Permissions grid. `entry` is an entity code from the catalogue (SAMPLE,
- * RESULT, …); the four booleans map to VIEW/CREATE/UPDATE/DELETE via
- * ACTION_COLUMN in utils/permissions.ts.
- *
- * Sent and returned nested inside the Role payload as `entries[]` — never its
- * own endpoint.
- */
+/** One row per (role, entity) behind the Role form's Permissions grid — the four booleans
+ * map to VIEW/CREATE/UPDATE/DELETE via ACTION_COLUMN. Nested in the Role payload, never its own endpoint. */
 export interface IRoleEntry {
   id?: string;
   roleId: string;

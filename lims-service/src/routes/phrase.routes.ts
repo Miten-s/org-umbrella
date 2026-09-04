@@ -9,14 +9,8 @@ import { authorize } from "../middlewares/authorize.middleware";
 import { getPaginationOptions } from "../utils/pagination.util";
 import asyncHandler from "../middlewares/error.middleware";
 
-/**
- * Pick Lists. The first entity built on the factory, and the reference for the
- * rest: a config object, no bespoke controller/service/repo.
- *
- * `entries[]` is a nested sub-form — sent inside the Phrase payload, saved in
- * the same transaction, and reported as one audit entry whose `childChanges`
- * names exactly which value was added, changed or removed.
- */
+/** Pick Lists — the reference entity for the factory (config only, no bespoke code).
+ * `entries[]` is a nested sub-form, saved in the same transaction as one audit entry. */
 export const phraseConfig: CrudConfig<Phrase> = {
   model: Phrase,
   entityName: "Pick List",
@@ -60,15 +54,8 @@ const crudRouter = buildCrudRouter({
   updateDto: UpdatePhraseDto
 });
 
-/**
- * Values of one pick list, e.g. `GET /entries?phrase=RATING` — feeds every
- * phrase-driven dropdown across LIMS (Rating, Location Type, Stock Type,
- * Calibration Type/Status, Analysis Type, Approval Status, Sample Type, ...).
- *
- * Registered on its own router mounted BEFORE the generic CRUD router below:
- * without this, `/entries` falls through to that router's `GET /:id` and
- * "entries" gets read as a record id, failing as an invalid UUID.
- */
+/** Values of one pick list, e.g. `GET /entries?phrase=RATING` — feeds every phrase-driven
+ * dropdown. Mounted BEFORE the generic CRUD router, or `/entries` reads as an invalid-UUID id. */
 const router = Router();
 
 router.get(
@@ -103,17 +90,8 @@ router.get(
   })
 );
 
-/**
- * "Above mentioned Phrases pre created and can't be deleted" (spec §B.17).
- *
- * The `isSystem` flag existed but nothing enforced it, so a system pick list
- * could be removed like any other record — and deleting RATING silently
- * empties the Rating dropdown on both Suppliers and Customers, with no error
- * anywhere to explain why. The lists themselves are protected here; the VALUES
- * inside them stay fully editable, which is the point of the split.
- *
- * Registered before the CRUD router so it intercepts the same paths.
- */
+/** "Above mentioned Phrases pre created and can't be deleted" (spec §B.17) — `isSystem`
+ * existed but nothing enforced it. The LIST is protected; its VALUES stay fully editable. */
 const SYSTEM_LIST_MESSAGE =
   "This is a system pick list and cannot be removed — the forms that read it " +
   "would stop working. You can still add, rename or remove the values inside it.";
@@ -126,13 +104,8 @@ const blockSystemDelete = asyncHandler(async (req: Request, res: Response, next)
 
 router.delete("/:id", authorize("PHRASE", "DELETE"), blockSystemDelete);
 
-/**
- * Renaming the code breaks a system list exactly as deleting it does — the
- * dropdown queries `?phrase=LOCATION_TYPE` and simply stops matching. The form
- * disables the field, but a disabled input is a courtesy, not a control.
- *
- * Only the code is frozen: name, description and the values stay editable.
- */
+/** Renaming a system list's code breaks it exactly like deleting it — the dropdown query
+ * simply stops matching. Only the code is frozen; name/description/values stay editable. */
 router.patch(
   "/:id",
   authorize("PHRASE", "UPDATE"),

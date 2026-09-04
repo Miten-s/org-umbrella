@@ -4,13 +4,8 @@ import PhraseEntry from "../models/phrase-entry.model";
 import { buildCrudRouter, buildCrudService, CrudConfig } from "../utils/crud-factory";
 import { CreateLocationDto, UpdateLocationDto } from "../dtos/master-data.dto";
 
-/**
- * Storage Locations. Group-filtered like all lab data, and self-referencing:
- * `parentLocation` / `subLocations` give the Building → Room → Freezer tree.
- *
- * Column names are the client's payload names (`locationName`), so nothing has
- * to be translated in between.
- */
+/** Storage Locations. Self-referencing: `parentLocation`/`subLocations` give the Building →
+ * Room → Freezer tree. Column names are the client's payload names, no translation needed. */
 export const locationConfig: CrudConfig<Location> = {
   model: Location,
   entityName: "Storage Location",
@@ -29,9 +24,7 @@ export const locationConfig: CrudConfig<Location> = {
       required: false
     },
     {
-      // Without this filter a soft-deleted child kept showing on the parent's
-      // "Sub locations" chip list — the include has no soft-delete predicate
-      // of its own, unlike the top-level row.
+      // Without this filter a soft-deleted child kept showing on the parent's chip list.
       model: Location,
       as: "subLocations",
       attributes: ["id", "locationId", "locationName", ["location_name", "name"]],

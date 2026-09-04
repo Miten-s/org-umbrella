@@ -21,19 +21,8 @@ import {
 } from "./LimsAnalysis.schema";
 import type { LimsAnalysis, LimsAnalysisPayload, LimsRef, LimsComponentRow } from "./LimsAnalysis.types";
 
-/**
- * "copy" renders exactly like "create" (fully editable, no diff-against-
- * baseline skip) except the business ID starts blank instead of pre-filled
- * with the source's — stays EDITABLE, not disabled: `applyBusinessId`
- * mints a fresh one only when the field is empty, and otherwise honors
- * whatever the user typed (subject to the usual uniqueness check), so
- * there's no reason to lock it out. Used by CopyStepper.
- *
- * "bulk-edit" renders exactly like "edit" (real data, real ID, no schema
- * change) — the only difference is what fires when nothing changed: "edit"
- * closes the whole modal, "bulk-edit" calls `onUnchanged` instead so
- * EditStepper can just skip this record and move on. Used by EditStepper.
- */
+/** "copy" renders like "create" except the business ID starts blank (stays EDITABLE — mints
+ * fresh only when empty). "bulk-edit" is like "edit" but calls `onUnchanged` instead of closing. */
 export type LimsAnalysisFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsAnalysisFormProps {
@@ -136,10 +125,7 @@ const LimsAnalysisForm = ({
       <form
         id={formId}
         onSubmit={handleSubmit((values) => {
-          // Edit + nothing actually changed: skip the reason modal, update
-          // call, and audit entry entirely — a no-op Save just closes. Copy
-          // always submits, even when the user left every field untouched —
-          // that untouched-name case is exactly what the batched Save is for.
+          // No-op Edit just closes; Copy always submits (even untouched — that's the point of batched Save).
           if (
             (mode === "edit" || mode === "bulk-edit") &&
             isPayloadEqual(values, initialValues) &&

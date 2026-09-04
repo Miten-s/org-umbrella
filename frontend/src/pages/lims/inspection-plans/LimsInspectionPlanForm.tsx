@@ -28,13 +28,8 @@ import type {
   LimsPersonnelRow
 } from "./LimsInspectionPlan.types";
 
-/**
- * "copy" renders like "create" (fully editable) except the business ID
- * starts blank instead of pre-filled with the source's — stays EDITABLE,
- * not disabled: `applyBusinessId` mints a fresh one only when the field
- * is empty, and otherwise honors whatever the user typed (subject to the
- * usual uniqueness check). Used by CopyStepper.
- */
+/** "copy" renders like "create" except the business ID starts blank (stays EDITABLE —
+ * `applyBusinessId` only mints when empty, otherwise honors what the user typed). */
 export type LimsInspectionPlanFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsInspectionPlanFormProps {
@@ -76,12 +71,8 @@ const LimsInspectionPlanForm = ({
 }: LimsInspectionPlanFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
-  /**
-   * The server returns each personnel row's person and role as nested
-   * `{ id, name }` refs, but a select cell needs the bare id to match one of
-   * its options. Without this the saved values silently render as the
-   * "Select Person" placeholder — the record looks empty even though it isn't.
-   */
+  // The server returns person/role as nested `{ id, name }` refs, but a select cell needs
+  // the bare id — without this saved values silently render as "Select Person".
   const initialPersonnelRef = useRef(
     (initialData?.personnel ?? []).map((row) => ({
       ...row,
@@ -93,14 +84,8 @@ const LimsInspectionPlanForm = ({
     initialPersonnelRef.current
   );
 
-  /**
-   * Person and Role are references, not free text — the server stores them as
-   * foreign keys to Lab Users and Lab Roles. The grid previously rendered them
-   * as text inputs, so anything typed failed validation with "person must be a
-   * UUID". These feed `type: "async-select"` columns instead — Lab Users and
-   * Lab Roles are both open-ended lists, so the grid searches/paginates them
-   * the same way a normal `AsyncSelect` field would (see SubFormGrid).
-   */
+  // Person/Role are FK references, not free text — fed to `type: "async-select"` columns
+  // (see SubFormGrid) instead of plain text inputs, which failed validation with "must be a UUID".
   // Captured once per record — also the no-change baseline `submit` diffs
   // against, so Save is a no-op when nothing actually differs from it.
   const initialValues = useMemo<LimsInspectionPlanFormValues>(

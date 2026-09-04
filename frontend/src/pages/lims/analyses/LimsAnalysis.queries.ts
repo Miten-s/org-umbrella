@@ -55,16 +55,8 @@ export const useLimsAnalysisById = (id?: string, enabled = true) =>
     enabled
   });
 
-/**
- * Components of ONE Analysis, as async-select options — for Specification
- * Limits' `componentId` column (see LimsSpecificationForm), scoped per-row
- * to whichever Analysis that row's `analysisId` cell holds. An Analysis's
- * own component count is small (a handful to dozens), so this fetches the
- * whole Analysis once (`fetchLimsAnalysisById`, already React-Query cached
- * by id) and filters/pages its `components[]` in memory — real
- * search-across-everything pagination lives one level up, in
- * `useLimsAnalysisOptions`, for picking the Analysis itself.
- */
+/** Components of ONE Analysis, scoped per-row to whichever Analysis that row's `analysisId`
+ * holds — fetches the whole (small) Analysis once and filters/pages `components[]` in memory. */
 export const useLimsAnalysisComponentOptions = (
   args: { search: string; enabled?: boolean; selectedValues?: string[] },
   row?: { analysisId?: string }
@@ -164,12 +156,8 @@ export const useBulkCloneLimsAnalysis = () => {
   });
 };
 
-/**
- * The Copy flow's batched save (see CopyStepper) — one request creates
- * every reviewed record. Collisions on `analysisId`/name are warned, not
- * rejected (server auto-suffixes) — surfaced here per record, since some
- * rows in the batch may warn and others may not.
- */
+/** The Copy flow's batched save (CopyStepper): one request creates every reviewed record;
+ * collisions are warned, not rejected, per row since some may warn and others may not. */
 export const useBulkCopyLimsAnalysis = () => {
   const invalidate = useInvalidate();
   return useMutation({
@@ -196,13 +184,8 @@ export const useBulkCopyLimsAnalysis = () => {
   });
 };
 
-/**
- * Bulk Edit's batched save (see EditStepper) — one request updates every
- * record the user actually reviewed and changed, all stamped with the one
- * shared change reason. An id `skipped` (out of scope, or removed since
- * the batch was reviewed) doesn't fail the rest — just doesn't show up
- * updated after `invalidate()` refetches the list.
- */
+/** Bulk Edit's batched save (EditStepper): one request updates every actually-changed record
+ * with the shared reason; a `skipped` id doesn't fail the rest. */
 export const useBulkUpdateLimsAnalysis = () => {
   const invalidate = useInvalidate();
   return useMutation({

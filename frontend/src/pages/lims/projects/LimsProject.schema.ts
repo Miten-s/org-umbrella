@@ -17,11 +17,8 @@ export const limsProjectSchema = z.object({
 
 export type LimsProjectFormValues = z.infer<typeof limsProjectSchema>;
 
-/**
- * Copy mode leaves the business ID blank + disabled (the server
- * always mints a fresh one on save — see LimsProjectForm) — same shape,
- * minus the required check, so the blank field doesn't block Save.
- */
+/** Copy mode leaves the business ID blank + disabled (server always mints a fresh
+ * one — see LimsProjectForm) — same shape, minus the required check. */
 export const limsProjectCopySchema = limsProjectSchema.extend({
   projectId: z.string().max(50)
 });

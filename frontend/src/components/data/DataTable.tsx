@@ -79,12 +79,8 @@ interface DataTableProps<T> {
   busy?: boolean;
 }
 
-/**
- * Standard server-driven table — see STANDARDS.md §7.
- * Consumes useServerTable; wires server sort/filter/selection behind capability
- * flags (unsupported affordances hidden, never faked). Row virtualization via
- * ag-grid. Replaces the leaky `searchAccessor` with an explicit `searchable`.
- */
+/** Standard server-driven table (STANDARDS.md §7): wires server sort/filter/selection
+ * behind capability flags — unsupported affordances hidden, never faked. */
 export function DataTable<T extends { id: string }>({
   table,
   columnDefs,
@@ -122,9 +118,7 @@ export function DataTable<T extends { id: string }>({
   // (S2 / Rules 3-4) — automatic, no per-module wiring.
   const [runningBulkKey, setRunningBulkKey] = useState<string | null>(null);
 
-  // --- floating selection pill presence (mount → animate-in / animate-out → unmount) ---
-  // We keep the pill mounted through its exit animation so clearing a selection
-  // fades/slides out instead of vanishing. Enter is bottom→top, exit is up+fade.
+  // Kept mounted through its exit animation so clearing a selection fades/slides out instead of vanishing.
   const pillVisible = enableSelection && table.hasSelection;
   const [pillMounted, setPillMounted] = useState(false);
   const [pillLeaving, setPillLeaving] = useState(false);
@@ -159,8 +153,7 @@ export function DataTable<T extends { id: string }>({
       if (node.isSelected() !== shouldSelect) node.setSelected(shouldSelect);
     });
     syncingRef.current = false;
-    // Granular table.* deps on purpose — depending on the whole `table` object
-    // (new identity each render) would re-sync every render.
+    // Granular table.* deps on purpose — the whole `table` object gets a new identity every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gridApi, table.rows, table.selectedIds, table.allMatchingSelected, table.getRowId]);
 
@@ -268,9 +261,7 @@ export function DataTable<T extends { id: string }>({
               </span>
               {titleExtra}
 
-              {/* Server tabs — inline (compact) so every table keeps a single
-                    header row (consistent height, one more data row). Only when
-                    the server can actually filter (hide-don't-fake §10). */}
+              {/* Server tabs — inline so every table keeps one header row; only when the server can actually filter. */}
               {tabs.length && caps.canFilter ? (
                 <div className="flex flex-wrap items-center gap-1.5">
                   {tabs.map((tab) => {
@@ -400,9 +391,7 @@ export function DataTable<T extends { id: string }>({
         ) : null}
       </div>
 
-      {/* Floating selection pill — overlays the grid (bottom-center) instead of
-          pushing/replacing the toolbar. Reuses <Button> so permission gating on
-          bulk actions is preserved. */}
+      {/* Floating selection pill — overlays the grid instead of pushing/replacing the toolbar. */}
       {pillMounted ? (
         <div className="pointer-events-none absolute inset-x-0 bottom-6 z-30 flex justify-center px-4">
           <div

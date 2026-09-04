@@ -1,9 +1,5 @@
-/**
- * LIMS Storage Location types (STANDARDS.md §1).
- * Served by lims-service via `limsApi` — see LIMS_BACKEND_SPEC.md §5.
- *
- * Named `LimsLocation` to avoid colliding with the System IT Admin `Location`.
- */
+/** LIMS Storage Location types (STANDARDS.md §1); named `LimsLocation` to avoid colliding
+ * with the System IT Admin `Location`. */
 
 /** A relation the list/detail endpoints return nested as `{ id, label }`. */
 export interface LimsRef {

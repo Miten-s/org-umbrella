@@ -19,17 +19,8 @@ import type {
   LimsRef
 } from "./LimsPhrase.types";
 
-/**
- * "copy" renders like "create" (fully editable) except the pick list code
- * starts blank instead of pre-filled with the source's — Phrase has no
- * server-minted business id, and the code is required server-side
- * (`CreatePhraseDto`), so it stays EDITABLE (not disabled): the user must
- * type a new unique one before Save will succeed. Also: `isSystem` is only
- * ever read from `initialData` for edit/view — a copy of a system pick
- * list is NOT itself a system pick list (see crud-factory's `bulkDuplicate`,
- * which strips this same flag off a clone), so Copy must never inherit the
- * identity lock. Used by CopyStepper.
- */
+/** "copy" renders like "create" except the code starts blank (Phrase has no server-minted
+ * id, stays EDITABLE). `isSystem` is only read on edit/view — a copy is never itself system. */
 export type LimsPhraseFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsPhraseFormProps {
@@ -71,11 +62,7 @@ const LimsPhraseForm = ({
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
 
-  /**
-   * System pick lists ship with the product: the code and name are fixed, but
-   * values may still be added (LIMS_BACKEND_SPEC.md §5). A copy of one is
-   * never itself system — see LimsPhraseFormMode's doc comment.
-   */
+  // System pick lists ship fixed (code/name), but values may still be added — a copy is never itself system.
   const isSystem = mode !== "copy" && Boolean(initialData?.isSystem);
   const identityLocked = isReadOnly || isSystem;
 

@@ -21,14 +21,8 @@ import {
 /** Same retry budget as business-id.ts's own collision loop. */
 const MAX_BATCH_NUMBER_RETRIES = 50;
 
-/**
- * Stock Batches — actual physical material.
- *
- * The identifier is the one place the spec is explicit that nothing is typed:
- * `batchNumber` increments **per stock** (§B.8.b) and `stockBatchId` is
- * "<stock's business id>/<batch number>" (§B.8.c). Both are derived in
- * `beforeCreate`, so there is no business-ID config on this entity.
- */
+/** Stock Batches — physical material. `batchNumber` increments per stock (§B.8.b),
+ * `stockBatchId` is "<stock id>/<batch number>" (§B.8.c) — both derived in `beforeCreate`. */
 export const stockBatchConfig: CrudConfig<StockBatch> = {
   model: StockBatch,
   entityName: "Stock Batch",
@@ -99,27 +93,8 @@ export const stockBatchConfig: CrudConfig<StockBatch> = {
   // Parameters grids — Edit/View-only.
   listExcludeRelations: ["consumptions", "parameters"],
 
-  /**
-   * Derive the batch number and composite id.
-   *
-   * `batchNumber` is claimed through the same atomic `lims_id_sequences`
-   * counter every business id uses (business-id.ts's `claimNextValue`), keyed
-   * per stock (`STOCK_BATCH:<stockId>`) rather than the entity-wide key a
-   * formatted business id would use. The previous version read
-   * `StockBatch.max("batchNumber", ...)` outside any lock, so two concurrent
-   * creates on the same stock could compute the same next number; the atomic
-   * `INSERT ... ON CONFLICT DO UPDATE ... RETURNING` this now goes through is
-   * serialised by Postgres row-locking the same way every other entity's
-   * business id already is.
-   *
-   * The retry-past-collisions loop exists for the same reason
-   * `nextBusinessId` has one: this counter starts fresh at 1 per stock, so
-   * any stock that already had batches before this counter existed would
-   * otherwise collide with its own real batch 1 on the very next create.
-   * Retrying past an already-taken number self-heals that with no manual
-   * data migration, the same way a hand-typed business id ahead of its
-   * counter is handled everywhere else.
-   */
+  /** Derives the batch number/composite id via the same atomic counter every business id uses,
+   * keyed per stock — the retry loop self-heals a stock with pre-existing batches, same as `nextBusinessId`. */
   beforeCreate: async (payload, transaction) => {
     const parent = await Stock.findByPk(payload.stockId as string, {
       transaction

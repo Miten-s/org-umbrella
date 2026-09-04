@@ -98,10 +98,7 @@ export class UpdateInstrumentDto {
   maintenance?: MaintenanceRowDto[];
 
   @IsOptional() @IsString() changeReason?: string;
-  // New file attachments arrive on `req.files` (multer), separately from
-  // this JSON payload — this is only the "which existing ones survive"
-  // half of the reconcile. Declared here so `whitelist: true` doesn't
-  // strip it before the controller ever sees it.
+  // New files arrive on `req.files` separately; this is only the "which existing ones survive" half.
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
@@ -162,10 +159,7 @@ export class UpdateInstrumentPartDto {
   maintenance?: MaintenanceRowDto[];
 
   @IsOptional() @IsString() changeReason?: string;
-  // New file attachments arrive on `req.files` (multer), separately from
-  // this JSON payload — this is only the "which existing ones survive"
-  // half of the reconcile. Declared here so `whitelist: true` doesn't
-  // strip it before the controller ever sees it.
+  // New files arrive on `req.files` separately; this is only the "which existing ones survive" half.
   @IsOptional()
   @IsArray()
   @IsString({ each: true })

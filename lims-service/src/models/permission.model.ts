@@ -1,11 +1,8 @@
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 
-/**
- * The permission catalogue. Read-only to users — rows are mirrored from
- * src/utils/permissions.ts by seedPermissions() on boot, so the vocabulary is
- * always exactly what the code enforces.
- */
+/** The permission catalogue, read-only to users — mirrored from permissions.ts by
+ * seedPermissions() on boot, so the vocabulary always matches what the code enforces. */
 export interface IPermission {
   id?: string;
   code: string;

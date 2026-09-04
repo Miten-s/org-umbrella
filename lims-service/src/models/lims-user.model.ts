@@ -1,13 +1,8 @@
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 
-/**
- * Grants an existing platform user access to LIMS. LIMS never creates users —
- * `userId` points at a row in the separate auth database, which is why it is a
- * plain string and not a foreign key.
- *
- * No lims_users row means no LIMS access at all, however valid the JWT is.
- */
+/** Grants an existing platform user access to LIMS. `userId` is a plain string, not a FK —
+ * it points at the separate auth database. No row means no LIMS access, however valid the JWT. */
 export interface ILimsUser {
   id?: string;
   /** Platform (auth-service) user id from the JWT `sub`/`id` claim. */
@@ -60,10 +55,7 @@ LimsUser.init(
     },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
     locationId: { type: DataTypes.UUID, allowNull: true, field: "location_id" },
-    // TEXT, not a short filename column: the signature pad sends a full
-    // `data:image/png;base64,...` string (migration 011). System IT
-    // Administration's Users instead upload a real file and store just the
-    // filename here — the better long-term shape for this too.
+    // TEXT, not a short filename column — the signature pad sends a full base64 data URI (migration 011).
     signature: { type: DataTypes.TEXT, allowNull: true },
     description: { type: DataTypes.TEXT, allowNull: true },
     trainingCompleted: {

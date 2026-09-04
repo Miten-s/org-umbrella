@@ -90,11 +90,8 @@ export const bulkCloneLimsTest = async (selection: BulkSelection) => {
   return response.data;
 };
 
-/**
- * The Copy flow's one and only network call — every reviewed record is
- * sent together, once. See `bulkCreate` in crud-factory.ts. No file
- * upload support (JSON body only) — see CopyStepperFormProps.onSubmit.
- */
+/** The Copy flow's one and only network call: every reviewed record sent together, once.
+ * No file upload support (JSON body only). */
 export const bulkCopyLimsTest = async (records: LimsTestPayload[]) => {
   const response = await limsApi.post(`${ROUTE}/bulk-copy`, { records });
   return response.data as {

@@ -1,14 +1,8 @@
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 
-/**
- * A Pick List. `phrase` is the business key the rest of the system references
- * (LOCATION_TYPE, SAMPLE_TYPE…). System lists are seeded and cannot be renamed
- * or removed; their values can still be extended.
- *
- * groupId is nullable — pick lists are global reference data, visible to every
- * group.
- */
+/** A Pick List. `phrase` is the business key the system references; system lists are seeded
+ * and can't be renamed/removed. `groupId` is nullable — global reference data. */
 export interface IPhrase {
   id?: string;
   phrase: string;

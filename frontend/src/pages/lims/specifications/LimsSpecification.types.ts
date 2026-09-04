@@ -14,12 +14,8 @@ export interface LimsAttachment {
 export interface LimsLimitRow extends Record<string, unknown> {
   analysisName?: string | number;
   componentName?: string | number;
-  /**
-   * Set only when this row was populated via the Limits grid's Analysis/
-   * Component picker — that's what drives Min/Max/etc. rendering read-only
-   * for the row. A manually-typed row leaves both null/undefined and stays
-   * freely editable. `analysisName`/`componentName` stay the durable,
-   * rename-safe display values either way (see spec-limit.model.ts).
+  /** Set only when populated via the Analysis/Component picker — drives Min/Max rendering
+   * read-only for the row; a manually-typed row leaves both unset and stays editable.
    */
   analysisId?: string;
   componentId?: string;

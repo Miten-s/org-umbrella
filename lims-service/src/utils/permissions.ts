@@ -1,19 +1,5 @@
-/**
- * The permission vocabulary — the single source of truth for what CAN be
- * granted. Deliberately code, not data: a permission only means something if
- * a route checks it, so admins compose roles from this fixed list rather than
- * inventing permission names that nothing enforces.
- *
- * These strings are byte-identical to frontend/src/utils/permissions.ts. The
- * frontend uses them to hide affordances (UX only); this service uses them to
- * actually allow or deny (the real control). Both sides must read the same
- * list or they drift — re-verify with:
- *   grep -oE '"LIMS:[A-Z_]+:[A-Z_]+"' frontend/src/utils/permissions.ts
- *
- * `seedPermissions()` mirrors this list into `lims_permissions` on boot so the
- * Role form's Entry dropdown can be populated from the API instead of being a
- * free-text box the database will reject.
- */
+/** The permission vocabulary — deliberately code, not data. Byte-identical to
+ * frontend/src/utils/permissions.ts (frontend hides affordances, this actually allows/denies). */
 
 /** The 26 LIMS entities, matching the frontend list exactly. */
 export const LIMS_ENTITIES = [
@@ -47,20 +33,13 @@ export const LIMS_ENTITIES = [
 
 export type LimsEntity = (typeof LIMS_ENTITIES)[number];
 
-/**
- * The four actions. Note the wire names are UPDATE/DELETE even though the Role
- * form labels the columns EDIT/REMOVE — the label is UI wording, these are the
- * contract.
- */
+/** The four actions — wire names are UPDATE/DELETE though the Role form labels them EDIT/REMOVE. */
 export const LIMS_ACTIONS = ["VIEW", "CREATE", "UPDATE", "DELETE"] as const;
 
 export type LimsAction = (typeof LIMS_ACTIONS)[number];
 
-/**
- * The one permission that is not entity-scoped: it bypasses group filtering
- * entirely so an administrator can set the system up before any groups exist.
- * Every use is recorded on a separate audit stream — see `logBypass()`.
- */
+/** The one permission not entity-scoped — bypasses group filtering entirely; every use is
+ * recorded on a separate audit stream (`logBypass()`). */
 export const OPERATE_ALL = "OPERATE:ALL";
 
 /** `LIMS:CREATE:SAMPLE` — the canonical wire format. */

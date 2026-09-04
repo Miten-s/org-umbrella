@@ -13,15 +13,8 @@ import {
 } from "../utils/crud-factory";
 import { CreateStockDto, UpdateStockDto } from "../dtos/commercial.dto";
 
-/**
- * Stock items — the definition of a consumable. Physical material lives in the
- * Stock Batches underneath.
- *
- * Two sub-forms: the Parameters grid, and the many-supplier list. The client
- * sends `suppliers` as bare ids (`["uuid", …]`) because that is what a
- * multi-select produces, so `normalizePayload` widens them into child rows
- * before the generic child sync sees them.
- */
+/** Stock items — the definition of a consumable; physical material lives in Stock Batches.
+ * `suppliers` arrives as bare ids from the multi-select; `normalizePayload` widens them to child rows. */
 export const stockConfig: CrudConfig<Stock> = {
   model: Stock,
   entityName: "Stock Item",
@@ -88,9 +81,7 @@ export const stockConfig: CrudConfig<Stock> = {
     preferredSupplier: "preferredSupplierId"
   },
 
-  // The list table doesn't render anything from the (multi-)Suppliers or
-  // Parameters grids — Edit/View-only. `preferredSupplier` above is the
-  // single relation the list does show, and is untouched by this.
+  // The list renders nothing from Suppliers/Parameters (Edit/View-only); `preferredSupplier` is untouched.
   listExcludeRelations: ["suppliers", "parameters"],
 
   normalizePayload: (payload) => {

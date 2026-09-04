@@ -1,13 +1,8 @@
 import Checkbox from "@/components/common/form/input/Checkbox";
 import Label from "@/components/common/form/Label";
 
-/**
- * Shared "pick from the seeded catalog" permission checklist — grouped by entity,
- * with a select-all per group and one global select-all. Permissions themselves are
- * never created here; this only assigns a subset of an existing, backend-seeded
- * catalog to a role. Extracted from the original access-management CreateRoleModal
- * so GxP and LIMS roles (and any future app under the umbrella) share one picker.
- */
+/** Shared "pick from the seeded catalog" permission checklist, grouped by entity — assigns a
+ * subset of the backend-seeded catalog to a role, never creates permissions itself. */
 
 type GroupedPermission = { action: string; key: string };
 

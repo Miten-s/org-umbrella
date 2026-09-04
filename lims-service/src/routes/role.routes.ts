@@ -15,17 +15,8 @@ import {
   OPERATE_ALL
 } from "../utils/permissions";
 
-/**
- * Lab Roles.
- *
- * The client has two shapes for the same data and both are accepted:
- *  - `entries[]` — the Permissions grid: one row per entity, four checkboxes.
- *  - `permissions[]` — a flat list of catalogue codes ("LIMS:CREATE:SAMPLE").
- *
- * They are stored one way (a row per entity with four booleans, which is a
- * quarter of the rows) and returned both ways, so neither client has to change
- * and the two can't disagree about what a role grants.
- */
+/** Lab Roles — the client has two shapes for the same data: `entries[]` (grid) and
+ * `permissions[]` (flat codes). Stored one way (entries), returned both, so they can't disagree. */
 
 /** "LIMS:CREATE:SAMPLE" → { entity: "SAMPLE", action: "CREATE" } */
 const parseCode = (
@@ -92,18 +83,9 @@ export const roleConfig: CrudConfig<Role> = {
   ],
   relationFields: { group: "groupId" },
 
-  // Accept the flat shape by folding it into the grid shape before anything
-  // else looks at the payload. `entries` wins if a client somehow sends both.
-  //
-  // `OPERATE:ALL` is pulled out first: it's not an entity permission at all
-  // (`parseCode` requires the "LIMS:<ACTION>:<ENTITY>" shape and silently
-  // drops anything else, this code included) — it's Role's own top-level
-  // `operateAll` column, the one that bypasses group filtering entirely.
-  // The Role form's "ALL / Operate" checkbox sends it through the same flat
-  // `permissions[]` array as everything else, so without this split it was
-  // parsed as garbage and discarded: checking it showed a success toast but
-  // never actually persisted anything, on either the entries grid or
-  // `operateAll` — a real gap given what that flag grants.
+  // Folds the flat shape into the grid shape (`entries` wins if both are sent). `OPERATE:ALL`
+  // is pulled out first — it's Role's own top-level column, not an entity permission code,
+  // and without this split it silently parsed as garbage and never persisted.
   normalizePayload: (payload) => {
     const next = { ...payload };
     if (next.entries === undefined && next.permissions !== undefined) {
@@ -127,9 +109,7 @@ export const roleConfig: CrudConfig<Role> = {
     }
   ],
 
-  // Return both shapes so either client works unchanged. `OPERATE:ALL` is
-  // stitched back into the flat list from the real `operateAll` column, the
-  // same place `normalizePayload` pulled it out of.
+  // Returns both shapes; `OPERATE:ALL` is stitched back in from the real `operateAll` column.
   postFormat: (row) => ({
     ...row,
     permissions: [

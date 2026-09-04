@@ -47,12 +47,8 @@ export const errorHandler = (
       "This record is referenced by another record and cannot be removed.";
   } else {
     statusCode = err?.statusCode ?? 500;
-    // A `statusCode` set on the error means it was thrown deliberately, with
-    // a message written for the user (business-id.ts, crud-factory.ts, …) —
-    // safe to show as-is. Anything without one is an unexpected error (a
-    // driver/library exception, a bug), whose raw `message` can carry
-    // internal detail (a column name, a path, a SQL fragment) that must not
-    // reach the client outside development.
+    // A `statusCode` on the error means it was thrown deliberately, safe to show as-is —
+    // anything without one may carry internal detail that must not reach the client outside dev.
     const isDeliberateAppError = err?.statusCode !== undefined;
     message =
       isDeliberateAppError || ENV.NODE_ENV === "development"

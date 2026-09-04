@@ -11,11 +11,8 @@ export const limsSpecificationSchema = z.object({
 
 export type LimsSpecificationFormValues = z.infer<typeof limsSpecificationSchema>;
 
-/**
- * Copy mode leaves the business ID blank + disabled (the server
- * always mints a fresh one on save — see LimsSpecificationForm) — same shape,
- * minus the required check, so the blank field doesn't block Save.
- */
+/** Copy mode leaves the business ID blank + disabled (server always mints a fresh
+ * one — see LimsSpecificationForm) — same shape, minus the required check. */
 export const limsSpecificationCopySchema = limsSpecificationSchema.extend({
   specId: z.string().max(150)
 });
@@ -27,19 +24,8 @@ const asNumber = (value: unknown): number | undefined => {
   return Number.isNaN(n) ? undefined : n;
 };
 
-/**
- * The Limits grid lives in its own `useState`, outside this form's zod/RHF
- * pipeline (see LimsSpecificationForm) — so unlike every other field here,
- * its validation is a plain function run by hand before submit rather than
- * part of `limsSpecificationSchema`. Checks each row's Min/Max are real
- * numbers when present, and Min <= Max — an empty Min or Max is left alone
- * (not every row is a numeric limit; Text/Boolean/Phrase rows leave both
- * blank).
- *
- * Min/Max are `numeric-text` grid cells — kept as strings on the row (the
- * backend column is STRING, not a real numeric type; see SubFormColumnType's
- * doc comment) — so this parses rather than checking `typeof ... === "number"`.
- */
+/** The Limits grid lives outside RHF/zod: checks Min/Max are real numbers when present and
+ * Min <= Max (parsed — the backend column is STRING, not numeric). */
 export const validateLimitsRows = (rows: LimsLimitRow[]): string | undefined => {
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];

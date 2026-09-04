@@ -3,13 +3,8 @@ import { useTranslation } from "react-i18next";
 import { ChevronLeftIcon } from "@/public/icons";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 
-/**
- * The module's own `Lims<Entity>Form`, rendered in `mode: "view"` — the
- * same read-only render the single-record View modal already uses.
- * `onSubmit` is required only for prop-type compat with that shared Form
- * component; it's never actually reachable since view mode renders no
- * submit button.
- */
+/** The module's own `Lims<Entity>Form`, in `mode: "view"`. `onSubmit` is required only for
+ * prop-type compat — never reachable, since view mode renders no submit button. */
 export interface ViewStepperFormProps<TRecord> {
   mode: "view";
   initialData: TRecord;
@@ -27,12 +22,8 @@ export interface ViewStepperProps<TRecord> {
   entityLabel: string;
 }
 
-/**
- * Multi-record View: select N rows → step through them read-only in one
- * modal. Unlike CopyStepper there's nothing to save or lose, so each
- * record is fetched lazily (only when its step is first visited) and
- * cached — no upfront `Promise.all`, no per-step form-instance pinning.
- */
+/** Multi-record View: step through N rows read-only. Nothing to save, so each record is
+ * fetched lazily on first visit and cached — no upfront `Promise.all`. */
 function ViewStepper<TRecord>({
   ids,
   fetchById,
@@ -44,11 +35,8 @@ function ViewStepper<TRecord>({
     new Array(ids.length).fill(undefined)
   );
   const [index, setIndex] = useState(0);
-  // Last record actually rendered — kept on screen (dimmed) while the next
-  // step's record is still in flight, instead of collapsing the modal down
-  // to a bare spinner box mid-navigation, which read as the modal
-  // flickering closed and open again (form height vs. spinner height are
-  // wildly different, and the modal re-centers on every height change).
+  // Last record rendered — kept on screen (dimmed) while the next step loads, instead of
+  // collapsing to a bare spinner box mid-navigation, which read as the modal flickering.
   const lastShownRef = useRef<TRecord | undefined>(undefined);
 
   // Re-fetch only when the actual set of selected ids changes.
@@ -81,9 +69,7 @@ function ViewStepper<TRecord>({
   const isLast = index === total - 1;
   const current = records[index];
   if (current !== undefined) lastShownRef.current = current;
-  // Falls back to the last-shown record while the current step is still
-  // loading, so the form stays mounted at its own height instead of being
-  // replaced by a small spinner box.
+  // Falls back to the last-shown record while loading, so the form stays at its own height.
   const displayRecord = current ?? lastShownRef.current;
   const isLoadingCurrent = current === undefined;
 

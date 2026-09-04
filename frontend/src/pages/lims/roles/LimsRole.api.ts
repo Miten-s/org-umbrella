@@ -153,9 +153,7 @@ export const fetchLimsRolePermissions = async (
     params: { limit: 200 },
     signal
   });
-  // The catalog row has no `name` — `code` (e.g. "LIMS:CREATE:ALIQUOT") is both
-  // the human-facing picker value and what PermissionPicker.groupPermissions
-  // parses via split(":"). `label` is display-only text, not usable here.
+  // `code` (e.g. "LIMS:CREATE:ALIQUOT"), not `label`, is what groupPermissions parses via split(":").
   return normalizeList<{ id?: string; _id?: string; code: string }>(
     extractList(response.data, ["permissions"])
   ).map((p) => ({ id: p.id, name: p.code }));

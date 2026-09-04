@@ -6,17 +6,8 @@ import { writeAudit } from "../utils/audit.util";
 import { formatLimsEntity } from "../utils/format.util";
 import { auditNameFor } from "./entity-registry";
 
-/**
- * Cancel / Reactivate for the Lab Execution entities.
- *
- * Distinct from Remove / Restore, which every entity has. Cancelling records a
- * real business outcome — the work was called off — and the record stays
- * visible in lists and reports. Removing hides it. Conflating the two would
- * make a cancelled sample disappear from the batch record it belongs to, which
- * is exactly what an auditor needs to still see.
- *
- * Both actions require a change reason, like every other mutation.
- */
+/** Cancel/Reactivate for Lab Execution entities, distinct from Remove/Restore — cancelling
+ * records a real business outcome and stays visible; removing hides it. Requires a change reason. */
 export const CANCELLABLE_STATUSES = ["Open", "Cancelled", "Complete"] as const;
 
 export const attachCancelRoutes = <M extends Model>(

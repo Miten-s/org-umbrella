@@ -11,16 +11,8 @@ import {
 } from "class-validator";
 import { Type } from "class-transformer";
 
-/**
- * Field names here are the frontend's payload field names, verbatim. Where the
- * client sends a relation it sends a bare id under the relation's own name
- * (`group`, `parentLocation`); `relationFields` in each entity's config maps
- * that to the FK column.
- *
- * Update DTOs deliberately do NOT extend their Create counterpart: PATCH is a
- * partial update, and inheriting `@IsNotEmpty()` would force the client to
- * resend every required field to change one.
- */
+/** Field names are the frontend's payload names verbatim; a relation arrives as a bare id
+ * under its own name (`relationFields` maps it to the FK column). Update DTOs don't extend Create. */
 
 // ─── Phrases (Pick Lists) ───────────────────────────────────────────────────
 
@@ -201,11 +193,7 @@ export class CreateRoleDto {
   @Type(() => RoleEntryDto)
   entries?: RoleEntryDto[];
 
-  /**
-   * Alternative flat shape: catalogue codes like "LIMS:CREATE:SAMPLE".
-   * Declared so `whitelist: true` doesn't strip it before the entity's
-   * normalizePayload can fold it into `entries`.
-   */
+  // Alternative flat shape: catalogue codes like "LIMS:CREATE:SAMPLE", folded into `entries` by normalizePayload.
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
@@ -237,11 +225,7 @@ export class UpdateRoleDto {
   @Type(() => RoleEntryDto)
   entries?: RoleEntryDto[];
 
-  /**
-   * Alternative flat shape: catalogue codes like "LIMS:CREATE:SAMPLE".
-   * Declared so `whitelist: true` doesn't strip it before the entity's
-   * normalizePayload can fold it into `entries`.
-   */
+  // Alternative flat shape: catalogue codes like "LIMS:CREATE:SAMPLE", folded into `entries` by normalizePayload.
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
@@ -267,15 +251,8 @@ export class PlatformUserRefDto {
 }
 
 export class CreateLimsUserDto {
-  /**
-   * The selected platform user, as the picker sends it. LIMS grants access to
-   * an existing user and never creates one.
-   *
-   * `userId`/`userName` are the columns behind this and are accepted directly
-   * too, for callers that already hold the id. The entity's `normalizePayload`
-   * splits `user` into the two — and one of the two forms must be present, or
-   * the row would reference nobody.
-   */
+  /** The selected platform user, as the picker sends it — `userId`/`userName` are also
+   * accepted directly; `normalizePayload` splits `user` into the two. */
   @IsOptional()
   @ValidateNested()
   @Type(() => PlatformUserRefDto)
@@ -307,9 +284,7 @@ export class CreateLimsUserDto {
   @IsUUID("4", { each: true })
   roles!: string[];
 
-  // No @MaxLength: this carries the signature pad's full base64 data URI
-  // (easily several KB), not a filename — the 200-char cap rejected every
-  // real signature outright. See migration 011 / lims-user.model.ts.
+  // No @MaxLength: carries the signature pad's full base64 data URI (see migration 011).
   @IsOptional()
   @IsString()
   signature?: string;
@@ -347,9 +322,7 @@ export class UpdateLimsUserDto {
   @IsUUID("4", { each: true })
   roles?: string[];
 
-  // No @MaxLength: this carries the signature pad's full base64 data URI
-  // (easily several KB), not a filename — the 200-char cap rejected every
-  // real signature outright. See migration 011 / lims-user.model.ts.
+  // No @MaxLength: carries the signature pad's full base64 data URI (see migration 011).
   @IsOptional()
   @IsString()
   signature?: string;

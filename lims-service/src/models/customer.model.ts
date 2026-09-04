@@ -1,13 +1,8 @@
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 
-/**
- * A Customer. `address` is one JSONB object because the client edits it as a
- * unit and nothing queries inside it.
- *
- * `linkedProjects` is not stored — it is the Projects pointing back at this
- * customer, exposed through the association.
- */
+/** A Customer. `address` is one JSONB object (edited as a unit, never queried inside).
+ * `linkedProjects` is not stored — Projects pointing back, exposed via the association. */
 export interface ICustomer {
   id?: string;
   customerId: string;

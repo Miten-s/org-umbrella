@@ -11,11 +11,8 @@ export const limsLotSchema = z.object({
 
 export type LimsLotFormValues = z.infer<typeof limsLotSchema>;
 
-/**
- * Copy mode leaves the business ID blank + disabled (the server
- * always mints a fresh one on save — see LimsLotForm) — same shape,
- * minus the required check, so the blank field doesn't block Save.
- */
+/** Copy mode leaves the business ID blank + disabled (server always mints a fresh
+ * one — see LimsLotForm) — same shape, minus the required check. */
 export const limsLotCopySchema = limsLotSchema.extend({
   lotId: z.string().max(150)
 });

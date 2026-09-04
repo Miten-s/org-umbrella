@@ -1,16 +1,8 @@
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 
-/**
- * One shared audit table for every entity (spec §11: Who/When/New/Old/Why/
- * Unique ID on every create/update/remove/restore). `entityName` + `entityId`
- * is the discriminator instead of one audit table per entity — same data,
- * one migration, one index to maintain.
- */
-/**
- * CANCEL/REACTIVATE are execution-only: cancelling a sample is a business
- * outcome, distinct from DELETE/RESTORE which hide and unhide a record.
- */
+/** One shared audit table for every entity (spec §11), discriminated by `entityName` +
+ * `entityId` instead of one table per entity. CANCEL/REACTIVATE are execution-only. */
 export type AuditAction =
   | "CREATE"
   | "UPDATE"

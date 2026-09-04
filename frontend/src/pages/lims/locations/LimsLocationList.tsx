@@ -6,6 +6,7 @@ import DataTable, {
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
 import CopyStepper from "@/components/data/CopyStepper";
+import ViewStepper from "@/components/data/ViewStepper";
 import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
@@ -44,26 +45,19 @@ import LimsLocationForm, {
 } from "./LimsLocationForm";
 import type { LimsLocation, LimsLocationPayload } from "./LimsLocation.types";
 
-/**
- * LIMS Storage Locations — reference module for the LIMS area, built to
- * STANDARDS.md and the MIGRATION.md §5 definition of done.
- *
- * Beyond the GxP baseline it adds the GxP-compliance behaviour the LIMS spec
- * requires: a mandatory change reason on every edit/remove/restore, soft delete
- * with restore, and a per-record audit trail.
- */
+/** LIMS Storage Locations — reference module, built to STANDARDS.md/MIGRATION.md §5, plus
+ * the GxP compliance the LIMS spec requires: mandatory change reason, soft delete, audit trail. */
 const LimsLocationList = () => {
   const { t } = useTranslation();
   const { isOpen, openModal, closeModal } = useModal();
 
-  // Only the id of the row being edited/viewed — the list row itself is
-  // never passed into the form; the full record (including attachments)
-  // is fetched fresh the moment the modal actually needs it.
+  // Full record (incl. attachments) is fetched fresh from this id, not the list row.
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsLocationFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
   // Set instead of activeId/formMode while the Copy review flow is open.
   const [copyIds, setCopyIds] = useState<string[] | null>(null);
+  const [viewIds, setViewIds] = useState<string[] | null>(null);
   const [editIds, setEditIds] = useState<string[] | null>(null);
 
   // Change reason + restore + audit, shared across every LIMS module.
@@ -126,6 +120,14 @@ const LimsLocationList = () => {
     [openModal]
   );
 
+  const openView = useCallback(
+    (ids: string[]) => {
+      setViewIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const openEdit = useCallback(
     (ids: string[]) => {
       setEditIds(ids);
@@ -139,6 +141,7 @@ const LimsLocationList = () => {
     setActiveId(null);
     setFormMode("create");
     setCopyIds(null);
+    setViewIds(null);
     setEditIds(null);
   };
 
@@ -183,6 +186,20 @@ const LimsLocationList = () => {
 
   const bulkActions = useMemo<DataTableBulkAction[]>(
     () => [
+      {
+        key: "view",
+        label: () => t("view", { entity: t("limsLocations") }),
+        icon: EyeIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.VIEW_LOCATION,
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("viewBulkFilterUnsupported"), "error");
+            return;
+          }
+          openView(selection.ids);
+        }
+      },
       {
         key: "clone",
         label: (count) =>
@@ -232,7 +249,7 @@ const LimsLocationList = () => {
           )
       }
     ],
-    [bulkClone, compliance, openCopy, openEdit, t, table]
+    [bulkClone, compliance, openCopy, openEdit, openView, t, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsLocation>[]>(
@@ -343,6 +360,14 @@ const LimsLocationList = () => {
             onDuplicateUnreviewed={handleDuplicateUnreviewedCopies}
             onClose={handleCloseForm}
             saving={bulkCopy.isPending || bulkClone.isPending}
+            entityLabel={t("limsLocation")}
+          />
+        ) : viewIds ? (
+          <ViewStepper<LimsLocation>
+            ids={viewIds}
+            fetchById={fetchLimsLocationById}
+            FormComponent={LimsLocationForm}
+            onClose={handleCloseForm}
             entityLabel={t("limsLocation")}
           />
         ) : editIds ? (

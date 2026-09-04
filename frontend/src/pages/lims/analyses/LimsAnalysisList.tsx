@@ -50,21 +50,13 @@ const LimsAnalysisList = () => {
   const { t } = useTranslation();
   const { isOpen, openModal, closeModal } = useModal();
 
-  // Only the id of the row being edited/viewed — the list row itself is
-  // never passed into the form; the full record (including attachments)
-  // is fetched fresh the moment the modal actually needs it.
+  // Full record (incl. attachments) is fetched fresh from this id, not the list row.
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsAnalysisFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
-  // Set instead of activeId/formMode while the Copy review flow is open —
-  // one or more source ids, reviewed via CopyStepper, not fetched/edited
-  // as a single record.
+  // Set instead of activeId/formMode while the multi-record Copy/View/Edit steppers are open.
   const [copyIds, setCopyIds] = useState<string[] | null>(null);
-  // Same idea as copyIds, but for a multi-select bulk View — stepped
-  // through read-only via ViewStepper instead of the single-record modal.
   const [viewIds, setViewIds] = useState<string[] | null>(null);
-  // Same idea again, for a multi-select Bulk Edit — reviewed via
-  // EditStepper against real records instead of blank/source-copied ones.
   const [editIds, setEditIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsAnalysis, LimsAnalysisPayload>();
@@ -155,9 +147,7 @@ const LimsAnalysisList = () => {
     table.clearSelection();
   };
 
-  // Closes the review modal first, same as a standalone single-record Edit
-  // — the shared reason then comes from `LimsComplianceDialogs`'s own
-  // dialog, not from EditStepper itself.
+  // Shared change-reason comes from LimsComplianceDialogs, not EditStepper itself.
   const handleSaveEdits = (updates: { id: string; payload: LimsAnalysisPayload }[]) => {
     handleCloseForm();
     compliance.requestBulkUpdate(updates);
@@ -200,9 +190,7 @@ const LimsAnalysisList = () => {
         variant: "outline",
         permission: LIMS_PERMISSIONS.VIEW_ANALYSIS,
         onClick: (selection) => {
-          // Same split as Copy: an explicit checkbox selection opens the
-          // stepper. "Select all matching filter" has no bounded record
-          // count to fetch/step through, so it's not offered here.
+          // Checkbox selection opens the stepper; "select all matching filter" isn't bounded enough to review.
           if (selection.mode !== "ids") {
             toast(t("viewBulkFilterUnsupported"), "error");
             return;
@@ -217,10 +205,7 @@ const LimsAnalysisList = () => {
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_ANALYSIS,
         onClick: async (selection) => {
-          // A specific checkbox selection opens the Copy review flow. A
-          // "select all N matching filter" selection can be far larger than
-          // is reasonable to fetch/review record-by-record, so that one
-          // path keeps the previous immediate server-side duplicate.
+          // Same split as View/Edit; "select all matching filter" keeps the old immediate server-side clone.
           if (selection.mode === "ids") {
             openCopy(selection.ids);
             return;
@@ -236,9 +221,6 @@ const LimsAnalysisList = () => {
         variant: "outline",
         permission: LIMS_PERMISSIONS.UPDATE_ANALYSIS,
         onClick: (selection) => {
-          // Same split as Copy/View: an explicit checkbox selection opens
-          // the review stepper. "Select all matching filter" has no bounded
-          // record count to fetch/review, so it's not offered here.
           if (selection.mode !== "ids") {
             toast(t("editBulkFilterUnsupported"), "error");
             return;

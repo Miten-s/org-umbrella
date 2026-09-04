@@ -1,18 +1,7 @@
 import { QueryInterface, DataTypes } from "sequelize";
 
-/**
- * Analyses, Test Groups and Specifications — the definitions a lab tests
- * against, as opposed to the executions in 009.
- *
- * An Analysis owns Components (what is measured); a Specification owns Limits
- * (what those measurements must fall within); a Test Group owns a list of
- * tests to run together. All three are sub-form grids, nested in their parent's
- * payload.
- *
- * Component/limit rows keep the client's loose shape — `min`/`max`/`text`/
- * `phrase` as strings — because a component's type decides which of them is
- * meaningful, and coercing at the column level would reject valid rows.
- */
+/** Analyses, Test Groups, Specifications — the definitions a lab tests against (vs. the
+ * executions in 009). Component/limit rows keep `min`/`max`/etc. as loose strings, since type decides which matter. */
 
 const softDeleteFields = {
   is_deleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
@@ -149,9 +138,7 @@ export const up = async (queryInterface: QueryInterface) => {
       onUpdate: "CASCADE",
       onDelete: "CASCADE"
     },
-    // Held as names rather than FKs: a specification is authored against
-    // analysis/component names and must stay readable if either is later
-    // renamed or retired.
+    // Held as names, not FKs — a spec must stay readable if the analysis/component is later renamed.
     analysis_name: { type: DataTypes.STRING(200), allowNull: true },
     component_name: { type: DataTypes.STRING(200), allowNull: true },
     min: { type: DataTypes.STRING(100), allowNull: true },

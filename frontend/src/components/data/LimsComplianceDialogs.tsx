@@ -31,11 +31,8 @@ interface LimsComplianceDialogsProps<TRow extends { id: string }, TPayload> {
   onAuditLoadMore?: () => void;
 }
 
-/**
- * The three reason-gated confirmations plus the audit viewer that every LIMS
- * module needs. Extracted so the compliance behaviour is identical across all
- * 20 modules rather than re-implemented per list.
- */
+/** The three reason-gated confirmations plus the audit viewer every LIMS module needs,
+ * extracted so the behavior is identical everywhere. */
 function LimsComplianceDialogs<TRow extends { id: string }, TPayload>({
   compliance,
   entityLabel,

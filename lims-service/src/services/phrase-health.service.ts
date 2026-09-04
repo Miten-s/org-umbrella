@@ -2,25 +2,11 @@ import Phrase from "../models/phrase.model";
 import PhraseEntry from "../models/phrase-entry.model";
 import { logInfo, logError } from "../configs/logger.config";
 
-/**
- * Boot-time check that every pick list the UI reads actually exists and has
- * values in it.
- *
- * A missing pick list produces no error anywhere: the endpoint correctly
- * returns an empty list, the dropdown renders empty, and the user simply
- * cannot pick anything. Nothing in the logs, nothing in the network tab that
- * looks wrong. This turns that silence into one line at startup.
- *
- * It only warns — a missing pick list is a data problem fixed by running
- * `npx ts-node src/scripts/seed-phrases.ts`, not a reason to refuse to boot.
- */
+/** Boot-time check that every pick list the UI reads exists and has values — a missing one
+ * fails silently everywhere else, so this turns it into one log line. Only warns, never blocks boot. */
 
-/**
- * Must match `PHRASE_CODES` in
- * frontend/src/pages/lims/phrases/LimsPhrase.api.ts. Both sides duplicate this
- * list because they are separate deployables; this check is what stops the two
- * copies drifting apart silently.
- */
+/** Must match `PHRASE_CODES` in LimsPhrase.api.ts — separate deployables, so this check
+ * is what stops the two copies drifting apart silently. */
 export const REQUIRED_PHRASE_CODES = [
   "RATING",
   "LOCATION_TYPE",

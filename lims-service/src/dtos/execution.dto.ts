@@ -34,10 +34,7 @@ export class UpdateBatchDto {
   @IsOptional() @IsUUID("4") group?: string;
   @IsOptional() @IsArray() @IsUUID("4", { each: true }) lots?: string[];
   @IsOptional() @IsString() changeReason?: string;
-  // New file attachments arrive on `req.files` (multer), separately from
-  // this JSON payload — this is only the "which existing ones survive"
-  // half of the reconcile. Declared here so `whitelist: true` doesn't
-  // strip it before the controller ever sees it.
+  // New files arrive on `req.files` separately; this is only the "which existing ones survive" half.
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
@@ -61,23 +58,15 @@ export class UpdateLotDto {
   @IsOptional() @IsUUID("4") batch?: string;
   @IsOptional() @IsArray() @IsUUID("4", { each: true }) samples?: string[];
   @IsOptional() @IsString() changeReason?: string;
-  // New file attachments arrive on `req.files` (multer), separately from
-  // this JSON payload — this is only the "which existing ones survive"
-  // half of the reconcile. Declared here so `whitelist: true` doesn't
-  // strip it before the controller ever sees it.
+  // New files arrive on `req.files` separately; this is only the "which existing ones survive" half.
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   keptAttachmentIds?: string[];
 }
 
-/**
- * One row of the result-entry grid on a Sample.
- *
- * Every field a client may send has to be declared: `validateDto` runs with
- * `whitelist: true` and replaces the body with the validated instance, so an
- * undeclared property is dropped silently rather than rejected.
- */
+/** One row of the result-entry grid on a Sample. Every field a client may send must be
+ * declared — `whitelist: true` drops undeclared properties silently. */
 export class TestWindowRowDto {
   @IsOptional() @IsUUID("4") testId?: string;
   @IsOptional() @IsString() @MaxLength(200) analysisName?: string;
@@ -97,8 +86,7 @@ export class TestWindowRowDto {
 }
 
 // ─── Samples ────────────────────────────────────────────────────────────────
-// `sampleId` is absent by design: it is always server-generated and cannot be
-// set or changed by a client.
+// `sampleId` is absent by design — always server-generated, never client-set.
 export class CreateSampleDto {
   @IsOptional() @IsString() @MaxLength(255) idText?: string;
   @IsOptional() @IsString() @MaxLength(200) sampleName?: string;
@@ -127,10 +115,7 @@ export class CreateSampleDto {
 }
 export class UpdateSampleDto extends CreateSampleDto {
   @IsOptional() @IsString() changeReason?: string;
-  // New file attachments arrive on `req.files` (multer), separately from
-  // this JSON payload — this is only the "which existing ones survive"
-  // half of the reconcile. Declared here so `whitelist: true` doesn't
-  // strip it before the controller ever sees it.
+  // New files arrive on `req.files` separately; this is only the "which existing ones survive" half.
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
@@ -149,9 +134,7 @@ export class CreateTestDto {
   @IsOptional() @IsString() @MaxLength(200) loginBy?: string;
   @IsOptional() @IsString() description?: string;
 
-  // The Test form's result-entry grid — was silently dropped here (whitelist
-  // validation strips undeclared properties), so it never persisted despite
-  // the frontend always sending it. See test.routes.ts.
+  // The Test form's result-entry grid — was silently dropped by whitelist validation, so it never persisted.
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
@@ -174,10 +157,7 @@ export class UpdateTestDto {
   @ValidateNested({ each: true })
   @Type(() => TestWindowRowDto)
   components?: TestWindowRowDto[];
-  // New file attachments arrive on `req.files` (multer), separately from
-  // this JSON payload — this is only the "which existing ones survive"
-  // half of the reconcile. Declared here so `whitelist: true` doesn't
-  // strip it before the controller ever sees it.
+  // New files arrive on `req.files` separately; this is only the "which existing ones survive" half.
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
@@ -199,17 +179,11 @@ export class CreateResultDto {
   @IsOptional() @IsUUID("4") group?: string;
 }
 
-/**
- * A "update" to a result inserts a new version. `changeReason` is required —
- * amending a recorded measurement without saying why is the single thing a
- * GxP audit will not accept.
- */
+/** An "update" to a result inserts a new version. `changeReason` is required — amending a
+ * recorded measurement without saying why is the one thing a GxP audit will not accept. */
 export class UpdateResultDto {
-  // The Result form's Component ID field is editable on Update too (not
-  // locked, unlike the server-generated resultId), so a mistyped value can
-  // be corrected on an amend. If it collides with another current Result on
-  // the same Test, the partial unique index on (test_id, component_id)
-  // rejects the insert — surfaced as a friendly message, not a raw error.
+  // componentId is editable on Update (unlike the locked resultId), so a mistyped value
+  // can be corrected — a collision hits the (test_id, component_id) partial unique index.
   @IsOptional() @IsString() @MaxLength(100) componentId?: string;
   @IsOptional() @IsString() @MaxLength(200) componentName?: string;
   @IsOptional() @IsString() value?: string;

@@ -9,11 +9,8 @@ import {
 } from "../utils/crud-factory";
 import { CreateStudyDto, UpdateStudyDto } from "../dtos/commercial.dto";
 
-/**
- * Studies. `projectDetails` is a snapshot the client fills from the selected
- * project; it is stored as sent rather than re-derived, so the study keeps the
- * text as it read at setup even after the project is edited.
- */
+/** Studies. `projectDetails` is a snapshot stored as sent, not re-derived, so the study
+ * keeps the text as it read at setup even after the project is edited. */
 export const studyConfig: CrudConfig<Study> = {
   model: Study,
   entityName: "Study",

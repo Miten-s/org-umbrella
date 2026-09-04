@@ -6,13 +6,8 @@ export interface LimsRef {
 }
 
 export interface LimsComponentRow extends Record<string, unknown> {
-  /**
-   * The row's real UUID (backend `formatLimsEntity` keeps it on every
-   * nested child row, unlike a plain relation lookup). Not shown/editable
-   * in Analysis's own Components grid, but it's what Specification's Limits
-   * picker links `componentId` to — `componentId` below is the separate,
-   * free-text business identifier a lab analyst types.
-   */
+  /** The row's real UUID — not shown/editable here, but what Specification's Limits picker
+   * links `componentId` to. `componentId` below is the separate, free-text business id. */
   id?: string;
   componentId?: string | number;
   name?: string | number;

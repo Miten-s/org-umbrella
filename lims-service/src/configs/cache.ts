@@ -1,24 +1,6 @@
-/**
- * Cache used for the resolved per-user access context (groups + permissions),
- * which would otherwise be four joins on every single request.
- *
- * Invalidation is ON WRITE, not TTL expiry: when a role, group or lims_user
- * row changes, the affected keys are dropped immediately. That is a hard
- * requirement rather than an optimisation — in a regulated system, revoking
- * someone's access must take effect now, not whenever a timer lapses.
- *
- * ─────────────────────────────────────────────────────────────────────────
- * NOTE: the default store is IN-MEMORY, which is only correct for a single
- * process. With more than one instance behind a load balancer, an invalidation
- * on instance A leaves instance B serving stale permissions — which in this
- * system means serving revoked access.
- *
- * `redis` is not currently a dependency of lims-service and no REDIS_URL is
- * set, so this ships as memory-only. Before running more than one instance,
- * add a Redis store here — everything else already talks to the interface, so
- * it is a single-file change.
- * ─────────────────────────────────────────────────────────────────────────
- */
+/** Cache for the resolved per-user access context (four joins otherwise). Invalidation is
+ * ON WRITE, not TTL — revoking access must take effect now. NOTE: default store is
+ * IN-MEMORY, correct only for a single process — add a Redis store here before scaling out. */
 export interface CacheStore {
   get<T>(key: string): Promise<T | null>;
   set<T>(key: string, value: T): Promise<void>;

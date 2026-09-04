@@ -2,11 +2,8 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import ENV from "../utils/environment";
 
-/**
- * Verifies the platform SSO/AD JWT (spec NFR-1: single login for all apps).
- * The token is issued by the auth service; LIMS only ever verifies it here —
- * it never issues or refreshes tokens itself.
- */
+/** Verifies the platform SSO/AD JWT (spec NFR-1) — LIMS only ever verifies it, never
+ * issues or refreshes tokens itself. */
 export const authenticate = async (
   req: Request,
   res: Response,

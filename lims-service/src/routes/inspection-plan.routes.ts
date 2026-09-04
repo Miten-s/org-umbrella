@@ -13,11 +13,8 @@ import {
   UpdateInspectionPlanDto
 } from "../dtos/instrument.dto";
 
-/**
- * Inspection Plans. Each personnel row names either a person or a role — the
- * client sends them as `person`/`role`, so they are widened to the child
- * table's FK columns here (the generic child sync does not map relations).
- */
+/** Inspection Plans. Each personnel row names a person or role as `person`/`role`, widened
+ * to the child table's FK columns here (the generic child sync doesn't map relations). */
 export const inspectionPlanConfig: CrudConfig<InspectionPlan> = {
   model: InspectionPlan,
   entityName: "Inspection Plan",
@@ -50,9 +47,7 @@ export const inspectionPlanConfig: CrudConfig<InspectionPlan> = {
   ],
   relationFields: { group: "groupId" },
 
-  // The list column only shows a count (LimsInspectionPlan.columns.tsx:
-  // `personnel?.length`) — neither the person/role sub-relations nor any
-  // other column is read for the list.
+  // The list column only shows a count (`personnel?.length`) — no sub-relation is read.
   listRelationAttributes: { personnel: ["id"] },
 
   children: [

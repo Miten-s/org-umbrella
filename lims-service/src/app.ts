@@ -32,11 +32,8 @@ app.set("query parser", "extended");
 app.use(securityHeaders);
 app.use(requestContext);
 
-// Fail closed, not open: `cors({ origin: undefined, credentials: true })` is
-// read by the `cors` package as "allow any origin" — the one thing this
-// service must never default to. `CORS_ORIGINS` is required in every real
-// environment already (see .env); refusing to boot without it is cheaper
-// than silently running wide open because someone forgot to set it.
+// Fail closed, not open: `cors({ origin: undefined })` reads as "allow any origin" —
+// refusing to boot without `CORS_ORIGINS` set beats silently running wide open.
 if (!ENV.CORS_ORIGINS) {
   throw new Error(
     "CORS_ORIGINS is not set. Refusing to start lims-service with an unrestricted CORS policy."
@@ -84,11 +81,8 @@ const userRateLimiter = rateLimit({
 
 app.use(userRateLimiter);
 
-// Attachments are NOT served from here — there used to be a static mount at
-// "/uploads" with no authentication, no permission check and no group
-// scoping (LIMS_AUDIT finding C1). Every attachment now goes exclusively
-// through the authenticated, permission- and group-checked
-// `GET /lims-attachments/:id/download` route in attachment.routes.ts.
+// Attachments are NOT served from here — the old unauthenticated "/uploads" static mount
+// (LIMS_AUDIT C1) is gone; every attachment goes through the checked download route instead.
 
 app.use(API_ROUTES.VERSIONS.v1, commonRouter);
 

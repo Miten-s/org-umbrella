@@ -1,11 +1,8 @@
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 
-/**
- * A Lab Role — a named set of permission grants. Roles are GLOBAL: one
- * "Analyst" row assignable to anyone. `groupId` records which group owns the
- * role definition (who may edit it) and is NOT an access scope.
- */
+/** A Lab Role — GLOBAL, one "Analyst" row assignable to anyone. `groupId` records who may
+ * edit the definition, and is NOT an access scope. */
 export interface IRole {
   id?: string;
   roleId: string;

@@ -26,15 +26,8 @@ import {
 } from "./LimsSpecification.schema";
 import type { LimsSpecification, LimsSpecificationPayload, LimsRef, LimsLimitRow } from "./LimsSpecification.types";
 
-/**
- * "copy" renders like "create" (fully editable) except the business ID
- * starts blank instead of pre-filled with the source's — stays EDITABLE,
- * not disabled: `applyBusinessId` mints a fresh one only when the field
- * is empty, and otherwise honors whatever the user typed (subject to the
- * usual uniqueness check). Attachments are hidden in this mode: the Copy
- * flow's batch save is JSON-only and can't carry file uploads. Used by
- * CopyStepper.
- */
+/** "copy" renders like "create" except the business ID starts blank (stays EDITABLE —
+ * `applyBusinessId` only mints when empty). Attachments hidden: the batch save is JSON-only. */
 export type LimsSpecificationFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsSpecificationFormProps {
@@ -79,9 +72,7 @@ const LimsSpecificationForm = ({
   const attachments = useAttachments(initialData?.attachments);
   const initialLimitsRef = useRef(initialData?.limits ?? []);
   const [limits, setLimits] = useState<LimsLimitRow[]>(initialLimitsRef.current);
-  // Limits live outside RHF/zod (see LimsSpecification.schema's
-  // validateLimitsRows) — computed live so the grid's error banner updates
-  // as the user edits, and checked again at submit to actually block it.
+  // Limits live outside RHF/zod; computed live so the grid's error banner tracks edits.
   const limitsError = useMemo(() => validateLimitsRows(limits), [limits]);
 
   // Captured once per record — also the no-change baseline `submit` diffs
@@ -235,9 +226,7 @@ const LimsSpecificationForm = ({
                     const component = option.data as LimsComponentRow | undefined;
                     return {
                       componentName: option.label,
-                      // Kept as whatever string the Component itself holds
-                      // (min/max are STRING columns backend-side, not real
-                      // numeric ones — see SubFormColumnType's doc comment).
+                      // min/max are STRING columns backend-side, not real numeric ones.
                       min: component?.min !== undefined ? String(component.min) : undefined,
                       max: component?.max !== undefined ? String(component.max) : undefined
                     };

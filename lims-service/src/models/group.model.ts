@@ -1,11 +1,8 @@
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 
-/**
- * A Lab Group — the tag carried by every LIMS record, and the unit of access.
- * Self-referencing: access to a parent group cascades to all descendants
- * (expandGroupIds() in user-context.service.ts walks this tree).
- */
+/** A Lab Group — the tag every LIMS record carries, the unit of access. Self-referencing:
+ * access to a parent cascades to descendants (see `expandGroupIds()`). */
 export interface IGroup {
   id?: string;
   groupId: string;

@@ -1,22 +1,5 @@
-/**
- * Seed the system pick lists.
- *
- * The spec is explicit that these are "pre created and can't be deleted,
- * additional value can be added" — so they ship with the application rather
- * than being typed in by an administrator. Every relational dropdown in the UI
- * (Location Type, Stock Type, Rating, …) reads from here; without them the
- * forms render empty selects and nothing can be created.
- *
- * The codes are the same 13 in frontend/src/pages/lims/phrases/LimsPhrase.api.ts
- * (`PHRASE_CODES`). Both sides must agree or a dropdown queries a pick list
- * that does not exist — re-verify with:
- *   sed -n '/PHRASE_CODES/,/} as const/p' frontend/src/pages/lims/phrases/LimsPhrase.api.ts
- *
- * Idempotent: re-running adds anything missing and leaves existing rows — and
- * any values a lab has added of its own — untouched.
- *
- *   npx ts-node src/scripts/seed-phrases.ts
- */
+/** Seeds the system pick lists every relational dropdown reads from (spec: "pre created,
+ * can't be deleted"). Codes must match `PHRASE_CODES` in LimsPhrase.api.ts. Idempotent. */
 import "dotenv/config";
 import { sequelize } from "../configs/db.sequelize";
 import { registerAssociations } from "../models/associations";
@@ -30,10 +13,7 @@ interface SeedPhrase {
   entries: string[];
 }
 
-/**
- * Starting values only. They are ordinary entries, not system-locked: a lab is
- * expected to add its own, and to stop using ones that don't apply.
- */
+/** Starting values only — ordinary entries, not system-locked; a lab adds its own. */
 const SYSTEM_PHRASES: SeedPhrase[] = [
   {
     phrase: "RATING",

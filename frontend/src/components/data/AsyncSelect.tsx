@@ -31,13 +31,8 @@ interface AsyncSelectBaseProps {
   placeholder?: string;
   disabled?: boolean;
   error?: boolean;
-  /**
-   * Known labels for the currently-selected value(s), typically taken from the
-   * record being edited (e.g. a user's nested `designation: { id, name }`).
-   * Seeds the label cache so the trigger shows the right label immediately even
-   * when the value sits deep in the dataset and isn't on the first loaded page —
-   * without needing a resolve-by-id endpoint. See STANDARDS.md §5.
-   */
+  /** Known labels for the current value(s) (e.g. a nested `designation: { id, name }`) —
+   * seeds the label cache so the trigger shows the right label before any fetch. */
   initialSelectedOptions?: AsyncOption[];
   /** px height of each option row (virtualization estimate). */
   optionHeight?: number;
@@ -52,12 +47,8 @@ interface SingleProps extends AsyncSelectBaseProps {
   multi?: false;
   value?: string;
   onChange: (value: string) => void;
-  /**
-   * Optional, additive: fires alongside `onChange` with the full selected
-   * `{ value, label }` (or null when cleared). Lets consumers persist the label
-   * (e.g. `{ userId, name }`) without a separate lookup. Existing consumers that
-   * only use `onChange` are unaffected.
-   */
+  /** Optional, additive: fires alongside `onChange` with the full `{ value, label }`, so
+   * consumers can persist the label without a separate lookup. */
   onChangeOption?: (option: AsyncOption | null) => void;
 }
 
@@ -67,12 +58,8 @@ interface MultiProps extends AsyncSelectBaseProps {
   onChange: (value: string[]) => void;
   /** Optional, additive: fires alongside `onChange` with the full selected options. */
   onChangeOptions?: (options: AsyncOption[]) => void;
-  /**
-   * Allow creating a new option by typing: when the search text matches no
-   * existing option, an "Add …" row appears; picking it adds the typed string
-   * as a value. The backend resolves such non-id strings by name (create-on-
-   * demand). Multi-select only.
-   */
+  /** An unmatched search shows an "Add …" row; picking it adds the typed string as a value,
+   * resolved by name server-side. Multi-select only. */
   allowCreate?: boolean;
   /** Custom label for the create row (default: `Add "<text>"`). */
   createLabel?: (text: string) => string;
@@ -113,9 +100,7 @@ export const AsyncSelect = (props: AsyncSelectProps) => {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [menuStyle, setMenuStyle] = useState<CSSProperties>();
 
-  // Focus the search box WITHOUT scrolling. `autoFocus` (and a plain .focus())
-  // scroll-into-view the input, which jerks the page/modal behind the portaled
-  // menu — the "background flicker/movement" when a dropdown opens.
+  // `{ preventScroll: true }`: a plain .focus() scroll-into-view jerks the page/modal behind the portaled menu.
   useEffect(() => {
     if (open) searchInputRef.current?.focus({ preventScroll: true });
   }, [open]);
@@ -140,9 +125,8 @@ export const AsyncSelect = (props: AsyncSelectProps) => {
     ].forEach((o) => labelCache.current.set(o.value, o.label));
   }, [initialSelectedOptions, options, resolvedSelected]);
 
-  // Resolve a value's label SYNCHRONOUSLY during render so the seeded label
-  // (from the edited record) shows immediately, before any fetch — falling back
-  // to loaded pages, resolve-by-id, the persisted cache, then the raw value.
+  // Resolved SYNCHRONOUSLY so the seeded label shows before any fetch; falls back through
+  // loaded pages, resolve-by-id, the persisted cache, then the raw value.
   const labelFor = useCallback(
     (value: string) =>
       initialSelectedOptions?.find((o) => o.value === value)?.label ??
@@ -227,10 +211,8 @@ export const AsyncSelect = (props: AsyncSelectProps) => {
       }
     };
     const onKey = (e: KeyboardEvent) => {
-      // Both this and the parent Modal listen on `document`; without this the
-      // Modal's own Escape handler fires right after and closes the whole
-      // form, discarding everything typed — Escape should dismiss only the
-      // open dropdown.
+      // Both this and the parent Modal listen on `document`; without this the Modal's own
+      // Escape handler fires right after and discards the whole form.
       if (e.key === "Escape") {
         e.stopImmediatePropagation();
         close();
@@ -270,14 +252,8 @@ export const AsyncSelect = (props: AsyncSelectProps) => {
     };
   }, [open, listMaxHeight]);
 
-  // --- virtualization ---
-  // `getItemKey` defaults to raw array index, which tracks a *slot*, not an
-  // *option* — when a search re-sorts/replaces the array, a row's cached
-  // position can be silently reused for a different option at the same
-  // index while a stale-vs-current render is still settling, which is
-  // exactly how a click can commit a different record than the one visibly
-  // labeled at that position. Keying by the option's own value ties each
-  // rendered slot to a stable identity instead of a position.
+  // Keyed by option value, not raw index — a search re-sorting the array would otherwise let
+  // a stale slot commit a different record than the one visibly labeled there.
   const virtualizer = useVirtualizer({
     count: options.length,
     getScrollElement: () => scrollRef.current,

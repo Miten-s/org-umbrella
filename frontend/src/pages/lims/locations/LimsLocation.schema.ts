@@ -1,11 +1,7 @@
 import { z } from "zod";
 
-/**
- * Storage Location form schema.
- *
- * MIGRATION.md Rule 3: encode the server's rules here so the user gets a
- * friendly inline message before submit, never a raw machine string.
- */
+/** Storage Location form schema — encodes the server's rules for a friendly inline
+ * message before submit, never a raw machine string (MIGRATION.md Rule 3). */
 export const limsLocationSchema = z.object({
   locationId: z
     .string()
@@ -27,11 +23,8 @@ export const limsLocationSchema = z.object({
 
 export type LimsLocationFormValues = z.infer<typeof limsLocationSchema>;
 
-/**
- * Copy mode leaves the business ID blank + disabled (the server always
- * mints a fresh one on save — see LimsLocationForm) — same shape, minus
- * the required check, so the blank field doesn't block Save.
- */
+/** Copy mode leaves the business ID blank + disabled (server always mints a fresh
+ * one — see LimsLocationForm) — same shape, minus the required check. */
 export const limsLocationCopySchema = limsLocationSchema.extend({
   locationId: z.string().max(50)
 });

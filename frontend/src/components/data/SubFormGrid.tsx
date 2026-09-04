@@ -8,17 +8,8 @@ import type { AsyncOption } from "@/lib/query/listTypes";
 import { PlusIcon, TrashBinIcon } from "@/public/icons";
 import { useTranslation } from "react-i18next";
 
-/**
- * "number" coerces the cell's value to a real JS number — only correct for
- * a column backed by an actual numeric DB column (e.g. Test's INTEGER
- * `replicateCount`). "numeric-text" renders the same numeric-only input
- * (browser blocks non-digit keystrokes) but keeps the value a plain
- * string — for a column backed by a loosely-typed STRING field that just
- * happens to usually hold digits (e.g. Analysis Component / Spec Limit's
- * `min`/`max`, which the DTO validates with `@IsString()`, not `@IsInt()`,
- * because the same column doubles for other value kinds depending on
- * `type`). Sending a real number there 400s ("Min must be a string").
- */
+/** "number" coerces to a real JS number, for an actual numeric DB column. "numeric-text" keeps
+ * a plain string, for a loosely-typed STRING column (e.g. Spec Limit's `min`/`max`) — a real number there 400s. */
 export type SubFormColumnType =
   | "text"
   | "number"
@@ -34,48 +25,26 @@ export interface SubFormColumn<R> {
   type?: SubFormColumnType;
   /** Required when `type` is "select" — a small, fixed set of choices. */
   options?: { label: string; value: string }[];
-  /**
-   * Required when `type` is "async-select" — a reference to another LIMS
-   * entity (Instrument, Stock, Lab User, …), searched and paginated from the
-   * server rather than loaded once as a flat list. This is the SAME bound
-   * `useXOptions` hook `AsyncSelect` takes on a normal (non-grid) field —
-   * pass the hook itself, e.g. `useOptions: useLimsInstrumentOptions`, not
-   * its already-called result. "select"'s static `options` only ever shows
-   * the first page it was handed, which is wrong for anything that can grow
-   * past a couple hundred rows (LIMS_AUDIT M5).
-   */
+  /** Required for "async-select" — a server-searched/paginated reference to another LIMS
+   * entity. Pass the bound `useXOptions` hook itself, not its already-called result. */
   useOptions?: (
     args: {
       search: string;
       enabled?: boolean;
       selectedValues?: string[];
     },
-    /**
-     * The row this cell belongs to — lets a column scope its options to a
-     * sibling cell already picked on the SAME row (e.g. Specification
-     * Limits' `componentId` column only offering the Components that
-     * belong to whichever Analysis that row's `analysisId` cell holds).
-     * Ignored by hooks that don't declare this second parameter.
-     */
+    /** The row this cell belongs to, so a column can scope its options to a sibling cell
+     * already picked on the same row. Ignored by hooks without this second param. */
     row?: R
   ) => ReturnType<typeof useAsyncOptions>;
   placeholder?: string;
   /** Tailwind width class, e.g. "w-40". Defaults to an even share. */
   className?: string;
-  /**
-   * Only for `type: "async-select"`. Fires after a selection, alongside the
-   * normal `onChange` write of `column.key`, so the picked option can also
-   * populate OTHER cells on the same row (e.g. picking a Component fills in
-   * its Min/Max/Unit as read-only display values). Return just the fields
-   * to merge in — `column.key` itself is already handled.
-   */
+  /** Only for "async-select": fires after a selection, alongside the normal write of
+   * `column.key`, to populate other cells on the same row (e.g. a Component's Min/Max/Unit). */
   onSelectOption?: (row: R, option: AsyncOption) => Partial<R>;
-  /**
-   * Locks this cell on a PER-ROW basis, on top of the grid-wide `disabled`
-   * prop — e.g. Specification Limits' Component-derived fields (Min/Max/
-   * Unit) are read-only only on rows populated via the Analysis/Component
-   * picker; a manually-typed row's same columns stay editable.
-   */
+  /** Locks this cell per-row, on top of the grid-wide `disabled` — e.g. only rows populated
+   * via a picker are read-only; a manually-typed row's same columns stay editable. */
   readOnly?: (row: R) => boolean;
 }
 
@@ -93,18 +62,8 @@ export interface SubFormGridProps<R extends Record<string, unknown>> {
   addLabel?: string;
   emptyLabel?: string;
   error?: string;
-  /**
-   * How rows are laid out.
-   *
-   * "table" is one row per record, which stops working past a handful of
-   * columns: Analysis Components has thirteen, so every input collapses to a
-   * few characters wide behind a horizontal scrollbar. "stacked" gives each
-   * record a card whose fields wrap onto as many lines as they need, so the
-   * inputs keep a usable width and nothing scrolls sideways.
-   *
-   * "auto" (the default) picks stacked past `STACK_THRESHOLD` columns, so
-   * narrow grids are unaffected.
-   */
+  /** "table" is one row per record (breaks down past a handful of columns); "stacked" gives
+   * each record a card instead. "auto" (default) picks stacked past `STACK_THRESHOLD`. */
   layout?: "table" | "stacked" | "auto";
 }
 
@@ -114,16 +73,8 @@ const STACK_THRESHOLD = 6;
 const inputClasses =
   "w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 disabled:bg-gray-100 disabled:text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90 dark:disabled:bg-gray-900";
 
-/**
- * Repeatable rows inside a form — the LIMS spec's "sub form" grids: analysis
- * components, specification limits, stock parameters, consumption records,
- * maintenance history, role entries, test lists, aliquots.
- *
- * This is FORM STATE, not a data table: no server paging, sorting or selection.
- * Rows live in the parent form's state and are handed to the payload on submit;
- * use `DataTable` for anything server-driven. Wide grids scroll horizontally
- * inside their own container so the modal never grows a horizontal scrollbar.
- */
+/** Repeatable rows inside a form (the LIMS spec's "sub form" grids). This is FORM STATE, not
+ * a data table — no server paging/sorting/selection; use `DataTable` for anything server-driven. */
 function SubFormGrid<R extends Record<string, unknown>>({
   label,
   columns,
@@ -139,15 +90,8 @@ function SubFormGrid<R extends Record<string, unknown>>({
 }: SubFormGridProps<R>) {
   const { t } = useTranslation();
   const editable = !disabled;
-  // An `async-select` cell needs real room — a search box, a truncatable
-  // label chip, a chevron — that a plain text/number/date cell doesn't.
-  // Packed into an even one-of-N table column alongside four other fields,
-  // it reads as cramped even well under `STACK_THRESHOLD`'s raw column
-  // count (Test Group's Test list is 5 columns, one of them `instrument`).
-  // "auto" treats any grid with at least one async-select column as needing
-  // the roomier stacked layout regardless of column count — grids with no
-  // async-select column (the majority: Analysis Components, Spec Limits,
-  // Stock Parameters, …) are unaffected.
+  // An async-select cell needs real room (search box, label chip, chevron), so "auto" forces
+  // the stacked layout whenever any column is async-select, regardless of column count.
   const hasAsyncSelect = columns.some(
     (column) => column.type === "async-select"
   );
@@ -210,9 +154,7 @@ function SubFormGrid<R extends Record<string, unknown>>({
           }
           disabled={disabled}
           ariaLabel={column.header}
-          // Rendered through a portal: a grid cell sits inside the table's
-          // overflow container and the modal's, either of which would clip the
-          // menu open downwards.
+          // Portal: a grid cell sits inside both the table's and modal's overflow containers, either would clip the menu.
           portal
         />
       );
@@ -267,11 +209,8 @@ function SubFormGrid<R extends Record<string, unknown>>({
     );
   };
 
-  /**
-   * One card per record, fields wrapping onto as many lines as they need. The
-   * column header becomes each field's own label, since there is no header row
-   * to carry it.
-   */
+  /** One card per record; the column header becomes each field's own label, since there's
+   * no header row to carry it. */
   const renderStacked = () => (
     <div className="space-y-3">
       {rows.map((row, rowIndex) => (

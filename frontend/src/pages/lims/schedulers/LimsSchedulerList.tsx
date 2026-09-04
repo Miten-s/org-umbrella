@@ -6,6 +6,7 @@ import DataTable, {
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
 import CopyStepper from "@/components/data/CopyStepper";
+import ViewStepper from "@/components/data/ViewStepper";
 import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
@@ -52,14 +53,13 @@ const LimsSchedulerList = () => {
   const { t } = useTranslation();
   const { isOpen, openModal, closeModal } = useModal();
 
-  // Only the id of the row being edited/viewed — the list row itself is
-  // never passed into the form; the full record (including attachments)
-  // is fetched fresh the moment the modal actually needs it.
+  // Full record (incl. attachments) is fetched fresh from this id, not the list row.
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsSchedulerFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
   // Set instead of activeId/formMode while the Copy review flow is open.
   const [copyIds, setCopyIds] = useState<string[] | null>(null);
+  const [viewIds, setViewIds] = useState<string[] | null>(null);
   const [editIds, setEditIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsScheduler, LimsSchedulerPayload>();
@@ -119,6 +119,14 @@ const LimsSchedulerList = () => {
     [openModal]
   );
 
+  const openView = useCallback(
+    (ids: string[]) => {
+      setViewIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const openEdit = useCallback(
     (ids: string[]) => {
       setEditIds(ids);
@@ -132,6 +140,7 @@ const LimsSchedulerList = () => {
     setActiveId(null);
     setFormMode("create");
     setCopyIds(null);
+    setViewIds(null);
     setEditIds(null);
   };
 
@@ -177,6 +186,20 @@ const LimsSchedulerList = () => {
 
   const bulkActions = useMemo<DataTableBulkAction[]>(
     () => [
+      {
+        key: "view",
+        label: () => t("view", { entity: t("limsSchedulers") }),
+        icon: EyeIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.VIEW_SCHEDULER,
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("viewBulkFilterUnsupported"), "error");
+            return;
+          }
+          openView(selection.ids);
+        }
+      },
       {
         key: "clone",
         label: () => t("limsCopy"),
@@ -224,7 +247,7 @@ const LimsSchedulerList = () => {
           )
       }
     ],
-    [bulkClone, compliance, openCopy, openEdit, t, table]
+    [bulkClone, compliance, openCopy, openEdit, openView, t, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsScheduler>[]>(
@@ -334,6 +357,14 @@ const LimsSchedulerList = () => {
             onDuplicateUnreviewed={handleDuplicateUnreviewedCopies}
             onClose={handleCloseForm}
             saving={bulkCopy.isPending || bulkClone.isPending}
+            entityLabel={t("limsScheduler")}
+          />
+        ) : viewIds ? (
+          <ViewStepper<LimsScheduler>
+            ids={viewIds}
+            fetchById={fetchLimsSchedulerById}
+            FormComponent={LimsSchedulerForm}
+            onClose={handleCloseForm}
             entityLabel={t("limsScheduler")}
           />
         ) : editIds ? (

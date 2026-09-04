@@ -1,15 +1,8 @@
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 
-/**
- * One limit row. Analysis and component are stored by NAME as the source of
- * truth for display — a spec is authored against names and must stay
- * readable if either is renamed. `analysisId`/`componentId` are an optional
- * link alongside those names: set only when the row was populated through
- * the Limits grid's Analysis/Component picker, so that row can be rendered
- * read-only and re-resolved against the live Analysis. A manually-typed row
- * (no picker selection) simply leaves both null.
- */
+/** One limit row. Analysis/component are stored by NAME as the source of truth for display.
+ * `analysisId`/`componentId` are an optional link, set only when populated via the picker. */
 export interface ISpecLimit {
   id?: string;
   specificationId: string;

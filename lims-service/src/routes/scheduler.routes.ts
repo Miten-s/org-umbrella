@@ -9,11 +9,8 @@ import LimsUser from "../models/lims-user.model";
 import { buildCrudRouter, buildCrudService, CrudConfig } from "../utils/crud-factory";
 import { CreateSchedulerDto, UpdateSchedulerDto } from "../dtos/execution.dto";
 
-/**
- * Schedulers. The runner that sweeps `nextRunDate` is not built yet (deferred
- * with Kafka); the definitions and their index are, so turning it on later is
- * a worker, not a schema change.
- */
+/** Schedulers. The runner that sweeps `nextRunDate` isn't built yet (deferred with Kafka);
+ * the definitions and their index are, so turning it on later is a worker, not a schema change. */
 export const schedulerConfig: CrudConfig<Scheduler> = {
   model: Scheduler,
   entityName: "Scheduler",

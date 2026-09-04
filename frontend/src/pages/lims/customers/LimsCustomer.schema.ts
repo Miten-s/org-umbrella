@@ -35,11 +35,8 @@ export const limsCustomerSchema = z.object({
 
 export type LimsCustomerFormValues = z.infer<typeof limsCustomerSchema>;
 
-/**
- * Copy mode leaves the business ID blank + disabled (the server
- * always mints a fresh one on save — see LimsCustomerForm) — same shape,
- * minus the required check, so the blank field doesn't block Save.
- */
+/** Copy mode leaves the business ID blank + disabled (server always mints a fresh
+ * one — see LimsCustomerForm) — same shape, minus the required check. */
 export const limsCustomerCopySchema = limsCustomerSchema.extend({
   customerId: z.string().max(50)
 });

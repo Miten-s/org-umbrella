@@ -1,14 +1,5 @@
-/**
- * Backfills `ownedByName` for the Lab Group row(s) found by
- * `find-groups-missing-owner-name.ts` — same lookup `resolveOwnerName`
- * (group.routes.ts) already does on every write, applied once here for
- * whatever was already in the table before that existed.
- *
- * Targets ONLY the exact id confirmed by the read-only scan — not a live
- * re-query at write time — so there's no chance of drift.
- *
- *   npx ts-node src/scripts/fix-groups-missing-owner-name.ts
- */
+/** Backfills `ownedByName` for the row(s) found by `find-groups-missing-owner-name.ts` —
+ * targets ONLY the exact ids confirmed by that scan, not a live re-query. */
 import "dotenv/config";
 import { sequelize } from "../configs/db.sequelize";
 import Group from "../models/group.model";

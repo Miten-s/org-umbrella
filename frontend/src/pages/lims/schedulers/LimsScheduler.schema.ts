@@ -24,11 +24,8 @@ export const limsSchedulerSchema = z.object({
 
 export type LimsSchedulerFormValues = z.infer<typeof limsSchedulerSchema>;
 
-/**
- * Copy mode leaves the business ID blank + disabled (the server
- * always mints a fresh one on save — see LimsSchedulerForm) — same shape,
- * minus the required check, so the blank field doesn't block Save.
- */
+/** Copy mode leaves the business ID blank + disabled (server always mints a fresh
+ * one — see LimsSchedulerForm) — same shape, minus the required check. */
 export const limsSchedulerCopySchema = limsSchedulerSchema.extend({
   schedulerId: z.string().max(150)
 });
