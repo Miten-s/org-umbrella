@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import limsApi from "@/utils/lims.axios.interceptor";
 import { buildServerParams, toOptionsPage } from "@/lib/query/listAdapter";
-import { extractList } from "@/utils/listResponse";
+import { extractList, extractPaginationMetadata } from "@/utils/listResponse";
 import type { ServerListParams } from "@/lib/query/listTypes";
 import { useAsyncOptions } from "@/hooks/useAsyncOptions";
 import { useUserOptions } from "@/pages/system-it-admin/users/User.queries";
@@ -60,17 +60,23 @@ export const useLimsUserOptions = (args: {
 const fetchLinkedPlatformUserIds = async (
   signal?: AbortSignal
 ): Promise<Set<string>> => {
-  const response = await limsApi.get(ROUTE, {
-    params: {
-      ...buildServerParams({ page: 1, limit: 500 }),
-      includeRemoved: true
-    },
-    signal
-  });
-  const rows = extractList<{ userId?: string }>(response.data, DATA_KEYS);
-  return new Set(
-    rows.map((row) => row.userId).filter((id): id is string => Boolean(id))
-  );
+  const limit = 500;
+  const ids = new Set<string>();
+  let page = 1;
+  let totalPages = 1;
+  do {
+    const response = await limsApi.get(ROUTE, {
+      params: { ...buildServerParams({ page, limit }), includeRemoved: true },
+      signal
+    });
+    const rows = extractList<{ userId?: string }>(response.data, DATA_KEYS);
+    rows.forEach((row) => {
+      if (row.userId) ids.add(row.userId);
+    });
+    totalPages = extractPaginationMetadata(response.data, { currentPage: page, limit }).totalPages;
+    page += 1;
+  } while (page <= totalPages);
+  return ids;
 };
 
 /** The platform-user picker on Lab Users' Create form, filtered to hide anyone already

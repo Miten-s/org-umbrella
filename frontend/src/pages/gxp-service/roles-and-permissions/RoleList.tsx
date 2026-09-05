@@ -81,7 +81,7 @@ const RoleList = () => {
           setPendingDelete(selection);
           setDeleteCount(count);
           setDeleteNames(
-            selection.mode === "ids" ? table.rows.filter((r) => selection.ids.includes(r.id)).map((r) => r.name) : []
+            selection.mode === "ids" ? table.getCachedRows(selection.ids).map((r) => r.name) : []
           );
         }
       }

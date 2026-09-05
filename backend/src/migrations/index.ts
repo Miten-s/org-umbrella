@@ -12,6 +12,7 @@ import * as m010 from "./010-create-user-roles";
 import * as m011 from "./011-create-password-history";
 import * as m012 from "./012-seed-initial-data";
 import * as m013 from "./013-partial-unique-active-names";
+import * as m014 from "./014-add-users-list-indexes";
 
 export const migrations: Migration[] = [
   { name: "001-create-companies", up: m001.up },
@@ -26,7 +27,8 @@ export const migrations: Migration[] = [
   { name: "010-create-user-roles", up: m010.up },
   { name: "011-create-password-history", up: m011.up },
   { name: "012-seed-initial-data", up: m012.up },
-  { name: "013-partial-unique-active-names", up: m013.up }
+  { name: "013-partial-unique-active-names", up: m013.up },
+  { name: "014-add-users-list-indexes", up: m014.up }
 ];
 export { runMigrations } from "./runner";
 

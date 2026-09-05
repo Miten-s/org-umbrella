@@ -175,6 +175,7 @@ const bulkDuplicateDepartments = async (ids: string[], user?: any) => {
       const regexStr = `^${escapedBaseName}(?:-\\(([0-9]+)\\))?$`;
 
       const similarDepartmentsResult = await Department.findAll({
+        attributes: ["departmentName"],
         where: {
           departmentName: { [Op.iRegexp]: regexStr }
         },
@@ -265,6 +266,7 @@ const bulkCopyDepartments = async (
         const regexStr = `^${escapedBaseName}(?:-\\(([0-9]+)\\))?$`;
 
         const similar = await Department.findAll({
+          attributes: ["departmentName"],
           where: { departmentName: { [Op.iRegexp]: regexStr } },
           transaction: t
         });

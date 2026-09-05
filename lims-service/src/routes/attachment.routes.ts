@@ -12,7 +12,11 @@ import { writeAudit, AuditActor } from "../utils/audit.util";
 import { formatLimsEntity } from "../utils/format.util";
 import { getListQuery } from "../utils/pagination.util";
 import API_ROUTES from "../utils/routes";
-import { auditNameFor, permissionEntityFor } from "../utils/entity-registry";
+import {
+  auditNameFor,
+  permissionEntityFor,
+  modelFor
+} from "../utils/entity-registry";
 
 /** Files for every entity, through one endpoint. Permission is checked against the
  * **parent** — there is deliberately no separate `ATTACHMENT` permission. Uploads/removals
@@ -23,9 +27,19 @@ const router = Router();
 const entityFromRequest = (req: Request): string | undefined =>
   (req.body?.entityName as string) ?? (req.query?.entityName as string);
 
+/** Same rule `withGroupScope` applies on every LIMS read: a record stamped with a group
+ * outside the caller's own is not theirs to touch, unless they hold OPERATE:ALL. */
+const inGroupScope = (
+  groupId: string | null | undefined,
+  scope?: { accessGroupIds: string[]; operateAll: boolean }
+) => !scope || scope.operateAll || !groupId || scope.accessGroupIds.includes(groupId);
+
 /** For `/:id` routes the parent isn't in the request — load the row first so `authorize`
  * checks the real parent, not a forgeable client-supplied name. Translates through the
- * registry since `record.entityName` is a display name ("Instrument"), not a permission code. */
+ * registry since `record.entityName` is a display name ("Instrument"), not a permission code.
+ * `authorize` only checks the general entity-type permission, so the group check below is
+ * what actually keeps download/edit/delete inside the caller's own groups — the same
+ * segregation every other LIMS read enforces. */
 const loadAttachment = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const record = await Attachment.findOne({
@@ -34,6 +48,12 @@ const loadAttachment = asyncHandler(
 
     if (!record)
       return res.status(404).json({ message: "Attachment not found." });
+
+    if (!inGroupScope(record.groupId, req.access)) {
+      return res
+        .status(403)
+        .json({ message: "That attachment is outside your groups." });
+    }
 
     (req as Request & { attachment?: Attachment }).attachment = record;
     req.body = {
@@ -71,6 +91,21 @@ router.post(
     if (!entityId) {
       removeStoredFile(req.file.filename);
       return res.status(400).json({ message: "entityId is required." });
+    }
+
+    // Without this, a caller with ordinary UPDATE permission on an entity type could
+    // attach a file to (and write an audit entry against) any record of that type,
+    // including ones in a group they can't otherwise reach.
+    const ParentModel = modelFor(entityName);
+    if (ParentModel) {
+      const parent = await ParentModel.findOne({ where: { id: entityId } as any });
+      const parentGroupId = parent?.get?.("groupId") as string | null | undefined;
+      if (!parent || !inGroupScope(parentGroupId, req.access)) {
+        removeStoredFile(req.file.filename);
+        return res
+          .status(404)
+          .json({ message: "That record was not found in your groups." });
+      }
     }
 
     const created = await Attachment.create({

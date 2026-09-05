@@ -240,7 +240,7 @@ const ModuleList = () => {
             return;
           }
           setPendingRestore(selection);
-          setRestoreNames(table.rows.filter((r) => selection.ids.includes(r.id)).map((r) => r.moduleName));
+          setRestoreNames(table.getCachedRows(selection.ids).map((r) => r.moduleName));
         }
       },
       {
@@ -254,7 +254,7 @@ const ModuleList = () => {
           setDeleteCount(count);
           setDeleteNames(
             selection.mode === "ids"
-              ? table.rows.filter((r) => selection.ids.includes(r.id)).map((r) => r.moduleName)
+              ? table.getCachedRows(selection.ids).map((r) => r.moduleName)
               : []
           );
         }

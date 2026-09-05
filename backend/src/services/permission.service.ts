@@ -143,6 +143,7 @@ const bulkDuplicatePermissions = async (ids: string[], user?: any) => {
       const regexStr = `^${escapedBaseName}(?:-\\(([0-9]+)\\))?$`;
 
       const similarPermissionsResult = await Permission.findAll({
+        attributes: ["name"],
         where: {
           name: { [Op.iRegexp]: regexStr }
         },

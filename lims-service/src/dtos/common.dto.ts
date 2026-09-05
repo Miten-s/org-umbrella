@@ -12,6 +12,7 @@ import {
 export class BulkOperationDto {
   @IsArray()
   @ArrayNotEmpty()
+  @ArrayMaxSize(200)
   @IsUUID("4", { each: true })
   ids!: string[];
 

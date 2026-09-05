@@ -94,6 +94,7 @@ const bulkDuplicateLocations = async (ids: string[], user?: any) => {
       const regexStr = `^${escapedBaseName}(?:-\\(([0-9]+)\\))?$`;
 
       const similarLocationsResult = await Location.findAll({
+        attributes: ["locationName"],
         where: {
           locationName: { [Op.iRegexp]: regexStr }
         },
@@ -166,6 +167,7 @@ const bulkCopyLocations = async (
         const regexStr = `^${escapedBaseName}(?:-\\(([0-9]+)\\))?$`;
 
         const similar = await Location.findAll({
+          attributes: ["locationName"],
           where: { locationName: { [Op.iRegexp]: regexStr } },
           transaction: t
         });

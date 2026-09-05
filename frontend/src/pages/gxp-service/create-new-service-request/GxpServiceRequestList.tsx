@@ -109,7 +109,7 @@ const GxpServiceRequestList = () => {
         onClick: (selection, count) => {
           setPendingDelete(selection);
           setDeleteCount(count);
-          setDeleteNames(selection.mode === "ids" ? table.rows.filter((r) => selection.ids.includes(r.id)).map((r) => r.serviceRequestId || "-") : []);
+          setDeleteNames(selection.mode === "ids" ? table.getCachedRows(selection.ids).map((r) => r.serviceRequestId || "-") : []);
         }
       }
     ],

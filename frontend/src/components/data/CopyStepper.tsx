@@ -297,15 +297,19 @@ function CopyStepper<TRecord, TPayload>({
       (i) => i !== index && payloadsRef.current[i] === undefined && !neverOpened.includes(i)
     );
     const toSubmit = [index, ...uncommitted];
-    if (dropNeverOpened) {
+    if (onDuplicateUnreviewed) {
+      duplicatedIndicesRef.current = new Set(neverOpened);
+      duplicatePromiseRef.current = neverOpened.length
+        ? onDuplicateUnreviewed(neverOpened.map((i) => ids[i]))
+        : null;
+      droppedIndicesRef.current = new Set();
+    } else if (dropNeverOpened) {
       droppedIndicesRef.current = new Set(neverOpened);
       duplicatedIndicesRef.current = new Set();
       duplicatePromiseRef.current = null;
     } else {
-      duplicatedIndicesRef.current = new Set(neverOpened);
-      duplicatePromiseRef.current = neverOpened.length
-        ? onDuplicateUnreviewed!(neverOpened.map((i) => ids[i]))
-        : null;
+      duplicatedIndicesRef.current = new Set();
+      duplicatePromiseRef.current = null;
       droppedIndicesRef.current = new Set();
     }
     setAutoSubmitting(true);

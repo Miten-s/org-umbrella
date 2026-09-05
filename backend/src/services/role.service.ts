@@ -197,6 +197,7 @@ const bulkDuplicateRoles = async (ids: string[]) => {
       const regexStr = `^${escapedBaseName}(?:-\\(([0-9]+)\\))?$`;
 
       const similarRolesResult = await Role.findAll({
+        attributes: ["name"],
         where: {
           name: { [Op.iRegexp]: regexStr }
         },

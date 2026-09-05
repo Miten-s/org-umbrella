@@ -30,7 +30,11 @@ const router = express.Router();
 
 // ---------------------------------------------------------------------------------------- GET Requests ----------------------------------------------------------------------------------------
 
-router.get(API_ROUTES.DEPARTMENTS, getAllDepartments);
+router.get(
+  API_ROUTES.DEPARTMENTS,
+  checkPermissions(["VIEW:DEPARTMENT"]),
+  getAllDepartments
+);
 
 router.get(
   API_ROUTES.DEPARTMENTS + API_ROUTES.PARAMS,
