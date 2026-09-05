@@ -62,8 +62,8 @@ export const connectDB = async (): Promise<void> => {
     registerAssociations();
 
     // Automatically run migrations on connection.
-    // const { migrations, runMigrations } = await import("../migrations/index");
-    // await runMigrations(sequelize, migrations);
+    const { migrations, runMigrations } = await import("../migrations/index");
+    await runMigrations(sequelize, migrations);
 
     // Mirror the code-defined permission vocabulary into lims_permissions so
     // the catalogue can never describe permissions the code doesn't enforce.

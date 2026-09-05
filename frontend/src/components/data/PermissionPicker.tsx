@@ -29,6 +29,14 @@ const groupPermissions = (permissions: string[]): Record<string, GroupedPermissi
   return grouped;
 };
 
+/** "ASSIGNMENT_GROUP" -> "Assignment Group" — never a raw enum constant in a user-facing label. */
+const humanizeEntity = (entity: string): string =>
+  entity
+    .toLowerCase()
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+
 interface PermissionPickerProps {
   /** Full seeded catalog (permission strings), e.g. from LIMS_PERMISSIONS / GXP_PERMISSIONS. */
   allPermissions: string[];
@@ -101,7 +109,7 @@ const PermissionPicker = ({
               className="min-w-0 rounded-lg border border-gray-200 bg-gray-50 p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900"
             >
               <Checkbox
-                label={`All ${entity}`}
+                label={`All ${humanizeEntity(entity)}`}
                 checked={allSelected}
                 disabled={disabled}
                 onChange={() => toggleAllForGroup(entity)}

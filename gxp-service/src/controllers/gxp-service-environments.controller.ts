@@ -99,6 +99,7 @@ export const bulkDuplicateEnvironments = asyncHandler(
 const bulkCrud = buildBulkCrudRoutes({
   model: Environment,
   nameField: "environmentName",
+  maxNameLength: 20,
   createDtoClass: CreateEnvironmentDto,
   createOne: service.addNewEnvironment,
   updateOne: service.updateEnvironment,

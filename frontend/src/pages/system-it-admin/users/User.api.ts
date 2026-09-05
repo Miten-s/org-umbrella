@@ -18,12 +18,18 @@ export const fetchUserList = async (params: ServerListParams, signal?: AbortSign
   return toListResult<User>(response.data, params, DATA_KEYS, RELATION_KEYS);
 };
 
-/** Options for AsyncSelect consumers that select a user (e.g. department manager). */
+/** Options for AsyncSelect consumers that select a user (e.g. department manager).
+ * Active users only — an inactive user shouldn't be assignable as a manager/owner. */
 export const fetchUserOptions = async (
   args: { search: string; page: number },
   signal?: AbortSignal
 ) => {
-  const params: ServerListParams = { page: args.page, limit: 20, search: args.search || undefined };
+  const params: ServerListParams = {
+    page: args.page,
+    limit: 20,
+    search: args.search || undefined,
+    filters: { status: "active" }
+  };
   const response = await api.get(ROUTE, { params: buildServerParams(params), signal });
   return toOptionsPage<User>(
     response.data,

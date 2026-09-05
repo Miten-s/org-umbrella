@@ -67,6 +67,7 @@ const LimsAnalysisForm = ({
   const isReadOnly = mode === "view";
   const initialComponentsRef = useRef(initialData?.components ?? []);
   const [components, setComponents] = useState<LimsComponentRow[]>(initialComponentsRef.current);
+  const [componentsError, setComponentsError] = useState<string | undefined>();
 
   // Captured once per record — also the no-change baseline `submit` diffs
   // against, so Save is a no-op when nothing actually differs from it.
@@ -134,6 +135,16 @@ const LimsAnalysisForm = ({
             (onUnchanged ?? onClose)();
             return;
           }
+          // A component saved with a blank Min/Max can never be fixed once picked
+          // elsewhere (Specifications copies it in read-only) — block it at the source.
+          const missingLimits = components.some(
+            (row) => !String(row.min ?? "").trim() || !String(row.max ?? "").trim()
+          );
+          if (missingLimits) {
+            setComponentsError("Every component needs both a Min and a Max value.");
+            return;
+          }
+          setComponentsError(undefined);
           onSubmit({ ...values, components });
         })}
         className="min-w-0 space-y-4"
@@ -242,8 +253,12 @@ const LimsAnalysisForm = ({
             <SubFormGrid<LimsComponentRow>
               label={t("limsComponents")}
               rows={components}
-              onChange={setComponents}
+              onChange={(next) => {
+                setComponents(next);
+                setComponentsError(undefined);
+              }}
               disabled={isReadOnly}
+              error={componentsError}
               columns={[
                 { key: "componentId", header: t("limsComponentId") },
                 { key: "name", header: t("name") },
@@ -256,8 +271,8 @@ const LimsAnalysisForm = ({
                 { key: "list", header: t("limsList") },
                 { key: "entity", header: t("limsEntity") },
                 { key: "entityCriteria", header: t("limsEntityCriteria") },
-                { key: "min", header: t("limsMin"), type: "numeric-text" },
-                { key: "max", header: t("limsMax"), type: "numeric-text" }
+                { key: "min", header: `${t("limsMin")} *`, type: "numeric-text" },
+                { key: "max", header: `${t("limsMax")} *`, type: "numeric-text" }
               ]}
             />
           </div>

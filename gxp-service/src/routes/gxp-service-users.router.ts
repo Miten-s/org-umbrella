@@ -7,6 +7,7 @@ import {
   disableUser,
   enableUser,
   getAllUsers,
+  getUserById,
   updateUser,
   bulkCopyUsers,
   bulkUpdateUsers,
@@ -18,6 +19,7 @@ const router: Router = Router();
 // ---------------------------------------------------------------------------------------- GET Requests ----------------------------------------------------------------------------------------
 
 router.get(API_ROUTES.USER.ROOT, getAllUsers);
+router.get(API_ROUTES.USER.BY_ID, getUserById);
 
 // ---------------------------------------------------------------------------------------- POST Requests ----------------------------------------------------------------------------------------
 

@@ -24,7 +24,11 @@ export const limsSupplierSchema = z.object({
   rating: z.string().optional(),
   website: z.string().max(200).optional(),
   contactName: z.string().max(100).optional(),
-  contactPhone: z.string().max(20, "Phone must not exceed 20 characters").optional(),
+  contactPhone: z
+    .string()
+    .max(20, "Phone must not exceed 20 characters")
+    .regex(/^[0-9+()\-\s]*$/, "Enter a valid phone number")
+    .optional(),
   email: z.string().email("Enter a valid email address").optional().or(z.literal("")),
   address: addressSchema.optional()
 });

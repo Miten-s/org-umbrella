@@ -118,7 +118,7 @@ const AssignmentGroupForm = ({
               {...register("groupName")}
               disabled={isReadOnly}
               error={!!errors.groupName}
-              hint={errors.groupName?.message}
+              hint={errors.groupName?.message ?? "Format: RD-APP-GXP-BUS-ADMIN"}
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>

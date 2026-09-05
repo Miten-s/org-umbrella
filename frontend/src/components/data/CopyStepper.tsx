@@ -105,6 +105,9 @@ function CopyStepper<TRecord, TPayload>({
   // covered by the two batch calls that follow (no per-record progress inside one POST).
   const [sweepProgress, setSweepProgress] = useState<{ current: number; total: number } | null>(null);
   const [finalizingCount, setFinalizingCount] = useState<number | null>(null);
+  // Indices whose `loadSource` rejected — rendered as an error state instead of
+  // leaving the step spinning forever (see the plain per-step load effect below).
+  const [sourceErrors, setSourceErrors] = useState<number[]>([]);
 
   const clearSweep = () => {
     sweepRef.current = null;
@@ -141,6 +144,7 @@ function CopyStepper<TRecord, TPayload>({
     setIndex(0);
     setDisplayIndex(0);
     setVisited([0]);
+    setSourceErrors([]);
     clearSweep();
     duplicatedIndicesRef.current = new Set();
     duplicatePromiseRef.current = null;
@@ -152,7 +156,10 @@ function CopyStepper<TRecord, TPayload>({
   // Loads whichever step is currently on screen, if it hasn't been
   // fetched yet. Save-all's sweep loads every OTHER step itself.
   useEffect(() => {
-    loadSource(index);
+    loadSource(index).catch(() => {
+      setSourceErrors((prev) => (prev.includes(index) ? prev : [...prev, index]));
+      toast(t("copySourceLoadFailed", { current: index + 1 }), "error");
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, ids.join(",")]);
 
@@ -346,9 +353,20 @@ function CopyStepper<TRecord, TPayload>({
             }
           >
             {sources[i] === undefined ? (
-              <div className="flex min-h-[300px] items-center justify-center p-10">
-                <LoadingSpinner fullScreen={false} />
-              </div>
+              sourceErrors.includes(i) ? (
+                <div className="flex min-h-[300px] flex-col items-center justify-center gap-4 p-10 text-center">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {t("copySourceLoadFailed", { current: i + 1 })}
+                  </p>
+                  <Button variant="outline" onClick={onClose}>
+                    {t("cancel")}
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex min-h-[300px] items-center justify-center p-10">
+                  <LoadingSpinner fullScreen={false} />
+                </div>
+              )
             ) : (
               <FormComponent
                 // A fresh, STABLE instance per record, never re-keyed — so its own edits and

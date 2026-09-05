@@ -15,7 +15,7 @@ export class CreateAssignmentGroupDto {
   @IsString()
   @IsNotEmpty()
   @Matches(/^[A-Z]{2}-[A-Z]{3,}-[A-Z]{2,}-[A-Z]{2,}$/, {
-    message: "Group Name must follow format like RD-APP-LIMS-BUS-ADMIN"
+    message: "Group Name must follow format like RD-APP-GXP-BUS-ADMIN"
   })
   groupName!: string;
 
@@ -40,6 +40,13 @@ export class CreateAssignmentGroupDto {
 }
 
 export class UpdateAssignmentGroupDto {
+  @IsString()
+  @IsOptional()
+  @Matches(/^[A-Z]{2}-[A-Z]{3,}-[A-Z]{2,}-[A-Z]{2,}$/, {
+    message: "Group Name must follow format like RD-APP-GXP-BUS-ADMIN"
+  })
+  groupName?: string;
+
   @IsString()
   @IsOptional()
   description?: string;

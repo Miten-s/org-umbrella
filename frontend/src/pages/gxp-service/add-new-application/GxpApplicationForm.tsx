@@ -142,12 +142,12 @@ const GxpApplicationForm = ({
       <form id={formId} onSubmit={handleSubmit(submit)} className="min-w-0 space-y-4">
         <h2 className="text-xl font-semibold">
           {isReadOnly
-            ? t("view", { entity: t("gxpApplications") })
+            ? t("view", { entity: t("application") })
             : mode === "copy"
-              ? `${t("copyEntity", { entity: t("gxpApplications") })}${stepLabel ?? ""}`
+              ? `${t("copyEntity", { entity: t("application") })}${stepLabel ?? ""}`
               : initialData
-                ? `${t("update", { entity: t("gxpApplications") })}${stepLabel ?? ""}`
-                : t("create", { entity: t("gxpApplications") })}
+                ? `${t("update", { entity: t("application") })}${stepLabel ?? ""}`
+                : t("create", { entity: t("application") })}
         </h2>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

@@ -203,6 +203,7 @@ const UserForm = ({
               // Force lowercase: `lowercase` shows it lowercased as they type
               // (no cursor jump); setValueAs stores the lowercased value.
               className="lowercase"
+              autoComplete="off"
               {...register("email", {
                 setValueAs: (v) =>
                   typeof v === "string" ? v.toLowerCase() : v
@@ -215,9 +216,10 @@ const UserForm = ({
           </div>
 
           <div>
-            <Label required>{t("password")}</Label>
+            <Label required={!initialData}>{t("password")}</Label>
             <Input
               type="password"
+              autoComplete="new-password"
               disabled={isReadOnly || !!initialData}
               {...register("password")}
               error={!!errors.password}
@@ -241,9 +243,10 @@ const UserForm = ({
           </div>
 
           <div>
-            <Label required>{t("confirmPassword")}</Label>
+            <Label required={!initialData}>{t("confirmPassword")}</Label>
             <Input
               type="password"
+              autoComplete="new-password"
               disabled={isReadOnly || !!initialData}
               {...register("confirmPassword")}
               error={!!errors.confirmPassword}

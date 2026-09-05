@@ -20,8 +20,9 @@ import {
   type LimsRef
 } from "./LimsRole.types";
 
-/** "copy" renders like "create" except `roleId` starts blank — Role has no server-minted
- * id, so it stays EDITABLE; the user must type a new unique one before Save succeeds.
+/** "copy" renders like "create" except `roleId` starts at the `LIMS_` prefix hint (not the
+ * source's own id) — Role has no server-minted id, so it stays EDITABLE; the user must type
+ * a new unique one before Save succeeds. Same `LIMS_` convention as Lab Group.
  */
 export type LimsRoleFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
@@ -77,7 +78,7 @@ const LimsRoleForm = ({
   // against, so Save is a no-op when nothing actually differs from it.
   const initialValues = useMemo<LimsRoleFormValues>(
     () => ({
-      roleId: mode === "copy" ? "" : (initialData?.roleId ?? ""),
+      roleId: mode === "copy" ? "LIMS_" : (initialData?.roleId ?? "LIMS_"),
       name: initialData?.name ?? "",
       description: initialData?.description ?? "",
       group: initialData?.group?.id ?? ""

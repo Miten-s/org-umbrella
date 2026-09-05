@@ -125,6 +125,10 @@ export function DataTable<T extends { id: string }>({
   const caps = table.capabilities;
   const [gridApi, setGridApi] = useState<GridApi<T> | null>(null);
   const syncingRef = useRef(false);
+  // Shared across every row's RowActionsCell in this grid — see AppDataTable's
+  // own comment on it (BLK-09: opening a second row's ⋮ menu otherwise leaves
+  // the first one open too, the two visually overlapping as one "merged" menu).
+  const activeRowMenuRef = useRef<{ id: symbol; close: () => void } | null>(null);
 
   const [activeTab, setActiveTab] = useState(defaultTabKey ?? tabs[0]?.key ?? "");
 
@@ -228,6 +232,7 @@ export function DataTable<T extends { id: string }>({
             row={params.data}
             rowActions={rowActions}
             user={user}
+            activeMenuRef={activeRowMenuRef}
           />
         ) : null
     };
@@ -365,7 +370,16 @@ export function DataTable<T extends { id: string }>({
         ) : (
           <div
             className={["dt-grid", fillAvailableHeight ? "min-h-0 flex-1" : ""].join(" ")}
-            style={fillAvailableHeight ? undefined : { height: gridHeight }}
+            // `flex-1` alone stretches to fill whatever space the page has, which rarely lands
+            // on an exact multiple of rowHeight — the current page slices its last row instead of
+            // showing it whole. Capping at the current page's own exact height (header + N full
+            // rows) fixes that on any screen with room to spare; a shorter viewport still shrinks
+            // it further (min-h-0), falling back to ag-grid's own clean internal scrollbar.
+            style={
+              fillAvailableHeight
+                ? { maxHeight: headerHeight + table.pageSize * rowHeight + 4 }
+                : { height: gridHeight }
+            }
           >
             <AgGridReact<T>
               animateRows

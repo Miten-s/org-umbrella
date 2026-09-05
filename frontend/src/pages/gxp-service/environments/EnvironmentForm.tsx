@@ -3,6 +3,7 @@ import Input from "@/components/common/form/input/InputField";
 import Label from "@/components/common/form/Label";
 import Button from "@/components/ui/button/Button";
 import TextArea from "@/components/common/form/input/TextArea";
+import Switch from "@/components/common/form/switch/Switch";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
@@ -52,7 +53,8 @@ const EnvironmentForm = ({
   const initialValues = useMemo<EnvironmentFormValues>(
     () => ({
       environmentName: mode === "copy" ? "" : initialData?.environmentName || "",
-      description: initialData?.description || ""
+      description: initialData?.description || "",
+      status: initialData?.status || "enabled"
     }),
     [initialData, mode]
   );
@@ -69,6 +71,7 @@ const EnvironmentForm = ({
   });
 
   const description = useWatch({ control, name: "description" });
+  const status = useWatch({ control, name: "status" });
   const busy = submitting || isSubmitting;
 
   return (
@@ -113,6 +116,16 @@ const EnvironmentForm = ({
               value={description || ""}
               onChange={(val) => setValue("description", val, { shouldValidate: true })}
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+
+          <div className="min-w-0">
+            <Label>{t("status")}</Label>
+            <Switch
+              label={status === "enabled" ? t("enabled") : t("disabled")}
+              checked={status === "enabled"}
+              disabled={isReadOnly}
+              onChange={(checked) => setValue("status", checked ? "enabled" : "disabled")}
             />
           </div>
         </div>

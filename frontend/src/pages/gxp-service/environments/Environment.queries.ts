@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
 import { useAsyncOptions } from "@/hooks/useAsyncOptions";
 import { useLimsRecordById } from "@/hooks/useLimsRecordById";
-import type { BulkSelection, ServerListParams } from "@/lib/query/listTypes";
+import type { BulkSelection, ListResult, ServerListParams } from "@/lib/query/listTypes";
 import {
   bulkCloneEnvironment,
   bulkCopyEnvironment,
@@ -10,11 +10,13 @@ import {
   bulkRestoreEnvironment,
   bulkUpdateEnvironment,
   createEnvironment,
+  disableEnvironment,
+  enableEnvironment,
   fetchEnvironmentById,
   fetchEnvironmentOptions,
   updateEnvironment
 } from "./Environment.api";
-import type { EnvironmentPayload } from "./Environment.types";
+import type { Environment, EnvironmentPayload } from "./Environment.types";
 
 export const environmentKeys = {
   all: ["environment"] as const,
@@ -111,6 +113,37 @@ export const useBulkRestoreEnvironment = () => {
       toast(data.count > 1 ? `${data.count} environments restored successfully.` : "Environment restored successfully.", "success");
       invalidate();
     }
+  });
+};
+
+export const useToggleEnvironmentStatus = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (environment: Environment) =>
+      environment.status === "enabled" ? disableEnvironment(environment.id) : enableEnvironment(environment.id),
+    onMutate: async (environment) => {
+      await queryClient.cancelQueries({ queryKey: environmentKeys.all });
+      const nextStatus = environment.status === "enabled" ? "disabled" : "enabled";
+      const snapshots = queryClient.getQueriesData<ListResult<Environment>>({ queryKey: environmentKeys.all });
+      snapshots.forEach(([key, data]) => {
+        if (!data?.rows) return;
+        queryClient.setQueryData<ListResult<Environment>>(key, {
+          ...data,
+          rows: data.rows.map((row) => (row.id === environment.id ? { ...row, status: nextStatus } : row))
+        });
+      });
+      return { snapshots };
+    },
+    onSuccess: (_data, environment) =>
+      toast(
+        environment.status === "enabled" ? "Environment disabled successfully." : "Environment enabled successfully.",
+        "success"
+      ),
+    // No onError toast — interceptor owns error toasts. Roll back optimistic state only.
+    onError: (_error, _environment, context) => {
+      context?.snapshots.forEach(([key, data]) => queryClient.setQueryData(key, data));
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: environmentKeys.all })
   });
 };
 

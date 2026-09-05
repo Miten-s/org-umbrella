@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import {
   convertMongooseError,
   CUSTOM_MESSAGES,
+  friendlyUniqueConflictMessage,
   getMessage
 } from "../utils/common.util";
 import ENV from "../utils/environment";
@@ -40,14 +41,9 @@ export const errorHandler = (
     const errors = (err as any).errors || [];
     // Report the offending value(s), not just the first (composite) column name —
     // e.g. a duplicate group/module name reads far clearer than "application_id".
-    const conflict = errors
-      .map((e: any) => e?.value)
-      .filter((v: unknown) => v !== undefined && v !== null && v !== "")
-      .join(", ");
-    const fields = errors.map((e: any) => e?.path).filter(Boolean).join(", ") || "field";
-    message = conflict
-      ? `A record with this value already exists: "${conflict}" (${fields}).`
-      : `Duplicate value for field "${fields}".`;
+    const values = errors.map((e: any) => e?.value);
+    const fields = errors.map((e: any) => e?.path).filter(Boolean);
+    message = friendlyUniqueConflictMessage(fields, values);
   }
 
   // Handle Sequelize Validation Error

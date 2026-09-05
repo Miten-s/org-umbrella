@@ -41,6 +41,7 @@ const DesignationList = () => {
   const [formMode, setFormMode] = useState<DesignationFormMode>("create");
   const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(null);
   const [deleteCount, setDeleteCount] = useState(0);
+  const [deleteNames, setDeleteNames] = useState<string[]>([]);
   // Set instead of active/formMode while the multi-record Copy/View/Edit steppers are open.
   const [copyIds, setCopyIds] = useState<string[] | null>(null);
   const [viewIds, setViewIds] = useState<string[] | null>(null);
@@ -177,6 +178,11 @@ const DesignationList = () => {
         onClick: (selection, count) => {
           setPendingDelete(selection);
           setDeleteCount(count);
+          setDeleteNames(
+            selection.mode === "ids"
+              ? table.rows.filter((r) => selection.ids.includes(r.id)).map((r) => r.designationName)
+              : []
+          );
         }
       }
     ],
@@ -219,6 +225,7 @@ const DesignationList = () => {
         onClick: (designation) => {
           setPendingDelete({ mode: "ids", ids: [designation.id] });
           setDeleteCount(1);
+          setDeleteNames([designation.designationName]);
         }
       }
     ],
@@ -301,6 +308,7 @@ const DesignationList = () => {
         isOpen={pendingDelete !== null}
         onClose={() => setPendingDelete(null)}
         loading={bulkDelete.isPending}
+        items={deleteNames}
         description={
           deleteCount > 1
             ? `Are you sure you want to delete these ${deleteCount} designations?`

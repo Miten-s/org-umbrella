@@ -21,6 +21,7 @@ import {
   useBulkRestoreEnvironment,
   useBulkUpdateEnvironment,
   useCreateEnvironment,
+  useToggleEnvironmentStatus,
   useUpdateEnvironment
 } from "./Environment.queries";
 import { fetchEnvironmentById, fetchEnvironmentList } from "./Environment.api";
@@ -66,6 +67,7 @@ const EnvironmentList = () => {
   const bulkDelete = useBulkDeleteEnvironment();
   const bulkUpdate = useBulkUpdateEnvironment();
   const bulkRestore = useBulkRestoreEnvironment();
+  const toggleStatus = useToggleEnvironmentStatus();
   const busy =
     createEnvironment.isPending ||
     updateEnvironment.isPending ||
@@ -73,9 +75,26 @@ const EnvironmentList = () => {
     bulkCopy.isPending ||
     bulkDelete.isPending ||
     bulkUpdate.isPending ||
-    bulkRestore.isPending;
+    bulkRestore.isPending ||
+    toggleStatus.isPending;
 
+  // Stable across renders — the toggle's live pending state goes through
+  // gridContext instead, so a status click doesn't give ag-grid a new
+  // cellRenderer identity (which would force a destroy/recreate of the cell
+  // and kill the Switch's transition — see Environment.columns.tsx).
   const columnDefs = useMemo(() => getEnvironmentColumns({ t }), [t]);
+
+  const gridContext = useMemo(
+    () => ({
+      toggleDisabled: toggleStatus.isPending,
+      togglingId: toggleStatus.isPending ? toggleStatus.variables?.id : undefined,
+      onToggleStatus: (environment: Environment) => {
+        if (toggleStatus.isPending) return;
+        toggleStatus.mutate(environment);
+      }
+    }),
+    [toggleStatus]
+  );
 
   const openForm = (mode: EnvironmentFormMode, environment: Environment | null) => {
     setFormMode(mode);
@@ -278,6 +297,7 @@ const EnvironmentList = () => {
       <DataTable<Environment>
         table={table}
         columnDefs={columnDefs}
+        gridContext={gridContext}
         tableName={t("gxpEnvironments")}
         searchPlaceholder="Search environments…"
         enableSelection

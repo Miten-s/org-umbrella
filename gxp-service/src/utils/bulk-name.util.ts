@@ -26,6 +26,10 @@ export const resolveUniqueName = async (
     where: { [nameField]: { [Op.iRegexp]: regexStr } }
   });
 
+  // No collision at all — the reviewed name is already unique, so save it
+  // as typed instead of suffixing a name nobody is fighting over.
+  if (similar.length === 0) return baseName;
+
   let maxIndex = 0;
   for (const row of similar) {
     const value = String((row as any).get(nameField) ?? "");

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
@@ -76,13 +76,41 @@ const LimsParameterForm = ({
     register,
     control,
     handleSubmit,
+    setError,
+    clearErrors,
     formState: { errors, isSubmitting }
   } = useForm<LimsParameterFormValues>({
     resolver: zodResolver(mode === "copy" ? limsParameterCopySchema : limsParameterSchema),
     defaultValues: initialValues
   });
 
+  // Only for the client-side type/value consistency check below — never submitted itself,
+  // since the payload only ever carries the type's id (see LimsParameter.schema).
+  const [typeLabel, setTypeLabel] = useState(initialData?.parameterType?.name ?? "");
+
   const busy = submitting || isSubmitting;
+
+  /** Mirrors the server's own check (parameter.routes.ts) so the mismatch surfaces
+   * before a round-trip — Text/Option carry no constraint. */
+  const validateDefaultValueAgainstType = (defaultValue: string) => {
+    const value = defaultValue.trim();
+    if (!value) return true;
+    const type = typeLabel.trim().toLowerCase();
+    if (type === "numeric" && Number.isNaN(Number(value))) {
+      setError("defaultValue", { type: "manual", message: `"${value}" is not a valid number for a Numeric parameter.` });
+      return false;
+    }
+    if (type === "date" && Number.isNaN(Date.parse(value))) {
+      setError("defaultValue", { type: "manual", message: `"${value}" is not a valid date for a Date parameter.` });
+      return false;
+    }
+    if (type === "boolean" && !["true", "false"].includes(value.toLowerCase())) {
+      setError("defaultValue", { type: "manual", message: `"${value}" must be true or false for a Boolean parameter.` });
+      return false;
+    }
+    clearErrors("defaultValue");
+    return true;
+  };
 
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
@@ -95,6 +123,7 @@ const LimsParameterForm = ({
             (onUnchanged ?? onClose)();
             return;
           }
+          if (!validateDefaultValueAgainstType(values.defaultValue ?? "")) return;
           onSubmit(values);
         })}
         className="min-w-0 space-y-4"
@@ -142,6 +171,7 @@ const LimsParameterForm = ({
                   useOptions={useParameterTypeOptions}
                   value={field.value}
                   onChange={field.onChange}
+                  onChangeOption={(option) => setTypeLabel(option?.label ?? "")}
                   disabled={isReadOnly}
                   error={!!errors.parameterType}
                   placeholder={t("select", { entity: t("limsParameterType") })}

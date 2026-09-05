@@ -16,6 +16,11 @@ import {
   bulkRestoreGroups
 } from "../controllers/gxp-service-assignment-groups.controller";
 import API_ROUTES from "../utils/routes";
+import { validateDto } from "../middlewares/validate-dto.middleware";
+import {
+  CreateAssignmentGroupDto,
+  UpdateAssignmentGroupDto
+} from "../dtos/assignment-group.dto";
 
 const router = Router();
 
@@ -29,7 +34,11 @@ router.get(API_ROUTES.ASSIGNMENT_GROUPS.BY_ID, getGroupById);
 
 // ---------------------------------------------------------------------------------------- POST Requests ----------------------------------------------------------------------------------------
 
-router.post(API_ROUTES.ASSIGNMENT_GROUPS.ROOT, createGroup);
+router.post(
+  API_ROUTES.ASSIGNMENT_GROUPS.ROOT,
+  validateDto(CreateAssignmentGroupDto),
+  createGroup
+);
 router.post("/restore", restoreGroup); // optional legacy route, or add `API_ROUTES.ASSIGNMENT_GROUPS.RESTORE` if you want consistent naming
 
 router.post(
@@ -49,7 +58,11 @@ router.post(API_ROUTES.ASSIGNMENT_GROUPS.BULK_COPY, bulkCopyGroups);
 router.patch(API_ROUTES.ASSIGNMENT_GROUPS.BULK_UPDATE, bulkUpdateGroups);
 router.patch(API_ROUTES.ASSIGNMENT_GROUPS.BULK_RESTORE, bulkRestoreGroups);
 
-router.patch(API_ROUTES.ASSIGNMENT_GROUPS.BY_ID, updateGroup);
+router.patch(
+  API_ROUTES.ASSIGNMENT_GROUPS.BY_ID,
+  validateDto(UpdateAssignmentGroupDto),
+  updateGroup
+);
 router.patch(API_ROUTES.ASSIGNMENT_GROUPS.ENABLE_BY_ID, enableGroup);
 router.patch(API_ROUTES.ASSIGNMENT_GROUPS.DISABLE_BY_ID, disableGroup);
 

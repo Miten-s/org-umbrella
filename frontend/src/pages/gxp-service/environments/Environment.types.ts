@@ -11,4 +11,5 @@ export interface Environment {
 export interface EnvironmentPayload {
   environmentName: string;
   description?: string;
+  status?: "enabled" | "disabled";
 }

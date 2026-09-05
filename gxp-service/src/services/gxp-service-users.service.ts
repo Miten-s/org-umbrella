@@ -35,6 +35,17 @@ export const getAllUsersService = async (
   return { ...result, data: usersWithRoles };
 };
 
+export const getUserService = async (id: string) => {
+  const user = await findUserByIdRepo(id);
+  if (!user) return null;
+  return {
+    ...user,
+    roles: await fetchRolesFromAuthService(
+      Array.isArray((user as any).roles) ? (user as any).roles : [(user as any).roles]
+    )
+  };
+};
+
 export const updateUserService = async (id: string, data: any) => {
   const existing = await findUserByIdRepo(id);
   if (!existing) throw new Error("User not found");

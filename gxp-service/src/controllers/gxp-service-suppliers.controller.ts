@@ -129,6 +129,7 @@ export const bulkDuplicateSuppliers = asyncHandler(
 const bulkCrud = buildBulkCrudRoutes({
   model: Supplier,
   nameField: "supplierName",
+  maxNameLength: 20,
   createDtoClass: CreateSupplierDto,
   createOne: service.createSupplier,
   updateOne: service.updateSupplier,

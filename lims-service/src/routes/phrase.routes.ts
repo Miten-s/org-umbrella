@@ -27,7 +27,14 @@ export const phraseConfig: CrudConfig<Phrase> = {
       model: PhraseEntry,
       as: "entries",
       attributes: ["id", "phraseEntryId", "name", "description"],
-      required: false
+      required: false,
+      // Without an explicit order, a hasMany join returns its rows in whatever order the
+      // DB feels like on that particular scan — the value chips shown in the Pick Lists
+      // table were re-shuffling on every render. `separate` runs entries as their own
+      // query so this `order` actually applies (a plain include-level order is ignored
+      // on a joined hasMany).
+      separate: true,
+      order: [["name", "ASC"]]
     }
   ],
   relationFields: { group: "groupId" },

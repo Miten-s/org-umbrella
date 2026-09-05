@@ -16,6 +16,12 @@ export const limsStockBatchSchema = z.object({
   currentAmount: z.union([z.number(), z.string()]).optional(),
   unit: z.string().max(500).optional(),
   description: z.string().max(500).optional()
-});
+}).refine(
+  (data) => !data.manufacturingDate || !data.expiryDate || data.expiryDate >= data.manufacturingDate,
+  {
+    message: "Expiry date must be on or after the manufacturing date",
+    path: ["expiryDate"]
+  }
+);
 
 export type LimsStockBatchFormValues = z.infer<typeof limsStockBatchSchema>;

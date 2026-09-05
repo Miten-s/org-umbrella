@@ -44,6 +44,16 @@ export const updateEnvironment = async (id: string, payload: EnvironmentPayload)
   return response.data;
 };
 
+export const enableEnvironment = async (id: string) => {
+  const response = await gxpApi.patch(`${ROUTE}/enable/${id}`);
+  return response.data;
+};
+
+export const disableEnvironment = async (id: string) => {
+  const response = await gxpApi.patch(`${ROUTE}/disable/${id}`);
+  return response.data;
+};
+
 export const deleteEnvironment = async (id: string) => {
   const response = await gxpApi.delete(`${ROUTE}/${id}`);
   return response.data;

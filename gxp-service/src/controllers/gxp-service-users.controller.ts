@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import {
   createUserService,
   getAllUsersService,
+  getUserService,
   updateUserService,
   disableUserService,
   enableUserService,
@@ -22,6 +23,13 @@ export const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
   const includeDisabled = req.query.includeDisabled === "true";
   const paginationOptions = getPaginationOptions(req.query);
   const result = await getAllUsersService(paginationOptions, includeDisabled);
+  res.status(200).send(result);
+});
+
+export const getUserById = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const result = await getUserService(id as string);
+  if (!result) return res.status(404).json({ message: "User not found" });
   res.status(200).send(result);
 });
 

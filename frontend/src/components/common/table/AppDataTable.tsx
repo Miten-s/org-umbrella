@@ -184,17 +184,28 @@ interface RowActionsCellProps<T> {
   rowActions: AppDataTableRowAction<T>[];
   maxInlineRowActions: number;
   user: AuthenticatedUser;
+  /** Shared by every row's cell in this grid so opening one ⋮ menu closes
+   * whichever other row's was left open — see AppDataTable's own comment on it. */
+  activeMenuRef: React.MutableRefObject<{ id: symbol; close: () => void } | null>;
 }
 
 export const RowActionsCell = <T extends object>({
   row,
   rowActions,
   maxInlineRowActions,
-  user
+  user,
+  activeMenuRef
 }: RowActionsCellProps<T>) => {
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const selfIdRef = useRef<symbol>(Symbol("row-menu"));
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ left: 0, top: 0 });
+
+  const releaseIfSelf = () => {
+    if (activeMenuRef.current?.id === selfIdRef.current) {
+      activeMenuRef.current = null;
+    }
+  };
 
   const visibleActions = rowActions.filter(
     (action) => !resolveBoolean(action.hidden, row)
@@ -218,6 +229,7 @@ export const RowActionsCell = <T extends object>({
 
     const handleViewportChange = () => {
       setIsMenuOpen(false);
+      releaseIfSelf();
     };
 
     window.addEventListener("resize", handleViewportChange);
@@ -227,7 +239,12 @@ export const RowActionsCell = <T extends object>({
       window.removeEventListener("resize", handleViewportChange);
       window.removeEventListener("scroll", handleViewportChange, true);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMenuOpen]);
+
+  // A row can disappear (filtered out, page changed) while its menu is still
+  // open — don't leave a dangling reference claiming a menu is open forever.
+  useEffect(() => releaseIfSelf, []);
 
   if (!visibleActions.length) {
     return <span className="text-sm text-gray-400 dark:text-gray-500">-</span>;
@@ -237,17 +254,28 @@ export const RowActionsCell = <T extends object>({
     event.preventDefault();
     event.stopPropagation();
 
-    if (!triggerRef.current) {
-      setIsMenuOpen((current) => !current);
-      return;
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setMenuPosition({
+        left: Math.max(16, rect.right - 196),
+        top: rect.bottom + 8
+      });
     }
 
-    const rect = triggerRef.current.getBoundingClientRect();
-    setMenuPosition({
-      left: Math.max(16, rect.right - 196),
-      top: rect.bottom + 8
+    setIsMenuOpen((current) => {
+      const next = !current;
+      if (next) {
+        // A stopPropagation'd click here never reaches another row's own
+        // outside-click listener, so it never learns to close itself — ask it to.
+        if (activeMenuRef.current && activeMenuRef.current.id !== selfIdRef.current) {
+          activeMenuRef.current.close();
+        }
+        activeMenuRef.current = { id: selfIdRef.current, close: () => setIsMenuOpen(false) };
+      } else {
+        releaseIfSelf();
+      }
+      return next;
     });
-    setIsMenuOpen((current) => !current);
   };
 
   return (
@@ -318,7 +346,10 @@ export const RowActionsCell = <T extends object>({
 
           <Dropdown
             isOpen={isMenuOpen}
-            onClose={() => setIsMenuOpen(false)}
+            onClose={() => {
+              setIsMenuOpen(false);
+              releaseIfSelf();
+            }}
             portal
             position="fixed"
             style={{
@@ -362,6 +393,7 @@ export const RowActionsCell = <T extends object>({
                       return;
                     }
                     setIsMenuOpen(false);
+                    releaseIfSelf();
                     void action.onClick(row);
                   }}
                 >
@@ -414,6 +446,12 @@ const AppDataTable = <T extends object>({
 }: AppDataTableProps<T>) => {
   const { user } = useAuth();
   const { theme } = useTheme();
+  // Shared across every row's RowActionsCell in this grid: each ⋮ menu is otherwise
+  // independent local state, and its own click-to-open stopPropagation stops the
+  // previously-open row's outside-click listener from ever seeing the click — so
+  // without this, opening a second row's menu leaves the first one open too, the
+  // two visually overlapping as one "merged" menu (see BLK-09).
+  const activeRowMenuRef = useRef<{ id: symbol; close: () => void } | null>(null);
   const [gridApi, setGridApi] = useState<GridApi<T> | null>(null);
   const [selectedRows, setSelectedRows] = useState<T[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -609,13 +647,22 @@ const AppDataTable = <T extends object>({
                   row={params.data}
                   rowActions={rowActions}
                   user={user}
+                  activeMenuRef={activeRowMenuRef}
                 />
               ) : null
           }
         ]
       : [];
 
-    return [...columnDefs, ...actionsColumn];
+    // A truncated header (long label, narrow/resized column) has no other way to
+    // discover its full text — fall back to the header string itself as a tooltip.
+    const withHeaderTooltips = columnDefs.map((colDef) =>
+      colDef.headerTooltip === undefined && typeof colDef.headerName === "string"
+        ? { ...colDef, headerTooltip: colDef.headerName }
+        : colDef
+    );
+
+    return [...withHeaderTooltips, ...actionsColumn];
   }, [actionsColumnHeader, columnDefs, maxInlineRowActions, rowActions, user]);
 
   return (
