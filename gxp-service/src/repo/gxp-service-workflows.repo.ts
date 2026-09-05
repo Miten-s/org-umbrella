@@ -14,9 +14,12 @@ export const createWorkflow = async (data: any) => {
   return formatWorkflow(doc);
 };
 
-export const getAllWorkflows = async (options: PaginationOptions) => {
+export const getAllWorkflows = async (
+  filter: any = {},
+  options: PaginationOptions
+) => {
   const { page, limit, skip, search } = options;
-  const where: any = {};
+  const where: any = { ...filter };
   if (search) {
     const sanitizedSearch = `%${search}%`;
     where[Op.or] = [
@@ -56,14 +59,22 @@ export const updateWorkflow = async (workflowId: string, data: any) => {
 export const disableWorkflow = async (workflowId: string, user: string) => {
   const wf = await Workflow.findByPk(workflowId);
   if (!wf) return null;
-  await wf.update({ status: "disabled", modifiedOn: new Date(), modifiedBy: user });
+  await wf.update({
+    status: "disabled",
+    modifiedOn: new Date(),
+    modifiedBy: user
+  });
   return formatWorkflow(wf);
 };
 
 export const enableWorkflow = async (workflowId: string, user: string) => {
   const wf = await Workflow.findByPk(workflowId);
   if (!wf) return null;
-  await wf.update({ status: "enabled", modifiedOn: new Date(), modifiedBy: user });
+  await wf.update({
+    status: "enabled",
+    modifiedOn: new Date(),
+    modifiedBy: user
+  });
   return formatWorkflow(wf);
 };
 
@@ -74,7 +85,10 @@ export const deleteWorkflow = async (workflowId: string) => {
   return formatWorkflow(wf);
 };
 
-export const bulkDeleteWorkflows = async (workflowIds: string[], session?: any) => {
+export const bulkDeleteWorkflows = async (
+  workflowIds: string[],
+  session?: any
+) => {
   return await Workflow.destroy({
     where: { id: workflowIds }
   });

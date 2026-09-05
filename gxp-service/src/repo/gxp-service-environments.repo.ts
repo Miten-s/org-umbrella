@@ -1,4 +1,6 @@
-import Environment, { IEnvironment } from "../models/gxp-service-environments.model";
+import Environment, {
+  IEnvironment
+} from "../models/gxp-service-environments.model";
 import { PaginationOptions } from "../utils/pagination.util";
 import { Op } from "sequelize";
 
@@ -18,9 +20,12 @@ export const createEnvironment = async (data: any) => {
   return formatEnv(doc);
 };
 
-export const findAllEnvironments = async (options: PaginationOptions) => {
+export const findAllEnvironments = async (
+  filter: any = {},
+  options: PaginationOptions
+) => {
   const { page, limit, skip, search } = options;
-  const where: any = {};
+  const where: any = { ...filter };
   if (search) {
     const sanitizedSearch = `%${search}%`;
     where[Op.or] = [
@@ -94,9 +99,16 @@ export const findEnvironmentsByFilter = async (filter: any) => {
     where.id = where._id;
     delete where._id;
   }
-  if (where.environmentName && typeof where.environmentName === "object" && where.environmentName.$regex) {
+  if (
+    where.environmentName &&
+    typeof where.environmentName === "object" &&
+    where.environmentName.$regex
+  ) {
     // Convert Mongo regex to Op.iRegexp
-    where.environmentName = { [Op.iRegexp]: where.environmentName.$regex.source || where.environmentName.$regex };
+    where.environmentName = {
+      [Op.iRegexp]:
+        where.environmentName.$regex.source || where.environmentName.$regex
+    };
   }
   const data = await Environment.findAll({ where });
   return data.map(formatEnv);

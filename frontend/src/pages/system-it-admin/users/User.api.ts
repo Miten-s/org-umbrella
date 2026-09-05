@@ -1,5 +1,6 @@
 import api from "@/utils/axios.interceptor";
 import { buildServerParams, toListResult, toOptionsPage } from "@/lib/query/listAdapter";
+import { normalizeIdWithRelations } from "@/lib/query/normalizeId";
 import { bulkSelectionToBody, type BulkSelection } from "@/lib/query/listTypes";
 import type { ServerListParams } from "@/lib/query/listTypes";
 import type { User } from "./User.types";
@@ -17,12 +18,18 @@ export const fetchUserList = async (params: ServerListParams, signal?: AbortSign
   return toListResult<User>(response.data, params, DATA_KEYS, RELATION_KEYS);
 };
 
-/** Options for AsyncSelect consumers that select a user (e.g. department manager). */
+/** Options for AsyncSelect consumers that select a user (e.g. department manager).
+ * Active users only — an inactive user shouldn't be assignable as a manager/owner. */
 export const fetchUserOptions = async (
   args: { search: string; page: number },
   signal?: AbortSignal
 ) => {
-  const params: ServerListParams = { page: args.page, limit: 20, search: args.search || undefined };
+  const params: ServerListParams = {
+    page: args.page,
+    limit: 20,
+    search: args.search || undefined,
+    filters: { status: "active" }
+  };
   const response = await api.get(ROUTE, { params: buildServerParams(params), signal });
   return toOptionsPage<User>(
     response.data,
@@ -75,4 +82,20 @@ export const deleteUser = async (id: string) => {
 export const bulkDeleteUser = async (selection: BulkSelection) => {
   const response = await api.post(`${ROUTE}/bulk-delete`, bulkSelectionToBody(selection));
   return response.data;
+};
+
+/** Full-detail fetch for the Bulk Edit/View review steppers. */
+export const fetchUserById = async (id: string, signal?: AbortSignal) => {
+  const response = await api.get(`${ROUTE}/${id}`, { signal });
+  return normalizeIdWithRelations(response.data?.user ?? response.data, RELATION_KEYS) as User;
+};
+
+/** Bulk Edit's batched save — only the records actually reviewed and changed. */
+export const bulkUpdateUser = async (updates: { id: string; payload: Record<string, unknown> }[]) => {
+  const response = await api.patch(`${ROUTE}/bulk-update`, { updates });
+  return response.data as {
+    message: string;
+    count: number;
+    results: { id: string; skipped?: boolean }[];
+  };
 };

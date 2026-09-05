@@ -1,5 +1,8 @@
 import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
 import ConfirmDialog from "@/components/data/ConfirmDialog";
+import CopyStepper from "@/components/data/CopyStepper";
+import ViewStepper from "@/components/data/ViewStepper";
+import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -13,12 +16,15 @@ import { useTranslation } from "react-i18next";
 import {
   moduleKeys,
   useBulkCloneModule,
+  useBulkCopyModule,
   useBulkDeleteModule,
+  useBulkRestoreModule,
+  useBulkUpdateModule,
   useCreateModule,
   useToggleModuleStatus,
   useUpdateModule
 } from "./Module.queries";
-import { fetchModuleList } from "./Module.api";
+import { fetchModuleById, fetchModuleList } from "./Module.api";
 import { getModuleColumns } from "./Module.columns";
 import ModuleForm, { type ModuleFormMode } from "./ModuleForm";
 import type { ModuleFormValues } from "./Module.schema";
@@ -40,6 +46,12 @@ const ModuleList = () => {
   const [deleteCount, setDeleteCount] = useState(0);
   const [deleteNames, setDeleteNames] = useState<string[]>([]);
   const [includeDisabled, setIncludeDisabled] = useState(false);
+  // Set instead of active/formMode while the Copy/View/Edit review flow is open.
+  const [copyIds, setCopyIds] = useState<string[] | null>(null);
+  const [viewIds, setViewIds] = useState<string[] | null>(null);
+  const [editIds, setEditIds] = useState<string[] | null>(null);
+  const [pendingRestore, setPendingRestore] = useState<BulkSelection | null>(null);
+  const [restoreNames, setRestoreNames] = useState<string[]>([]);
 
   const table = useServerTable<ApplicationSoftwareModule>({
     entity: "module",
@@ -53,27 +65,37 @@ const ModuleList = () => {
   const createModule = useCreateModule();
   const updateModule = useUpdateModule();
   const bulkClone = useBulkCloneModule();
+  const bulkCopy = useBulkCopyModule();
   const bulkDelete = useBulkDeleteModule();
+  const bulkUpdate = useBulkUpdateModule();
+  const bulkRestore = useBulkRestoreModule();
   const toggleStatus = useToggleModuleStatus();
   const busy =
     createModule.isPending ||
     updateModule.isPending ||
     bulkClone.isPending ||
+    bulkCopy.isPending ||
     bulkDelete.isPending ||
+    bulkUpdate.isPending ||
+    bulkRestore.isPending ||
     toggleStatus.isPending;
 
-  const columnDefs = useMemo(
-    () =>
-      getModuleColumns({
-        t,
-        toggleDisabled: toggleStatus.isPending,
-        togglingId: toggleStatus.isPending ? toggleStatus.variables?.id : undefined,
-        onToggleStatus: (module) => {
-          if (toggleStatus.isPending) return;
-          toggleStatus.mutate(module);
-        }
-      }),
-    [t, toggleStatus]
+  // Stable across renders — the toggle's live pending state goes through
+  // gridContext instead, so a status click doesn't give ag-grid a new
+  // cellRenderer identity (which would force a destroy/recreate of the cell
+  // and kill the Switch's transition — see Module.columns.tsx).
+  const columnDefs = useMemo(() => getModuleColumns({ t }), [t]);
+
+  const gridContext = useMemo(
+    () => ({
+      toggleDisabled: toggleStatus.isPending,
+      togglingId: toggleStatus.isPending ? toggleStatus.variables?.id : undefined,
+      onToggleStatus: (module: ApplicationSoftwareModule) => {
+        if (toggleStatus.isPending) return;
+        toggleStatus.mutate(module);
+      }
+    }),
+    [toggleStatus]
   );
 
   const openForm = (mode: ModuleFormMode, module: ApplicationSoftwareModule | null) => {
@@ -82,10 +104,56 @@ const ModuleList = () => {
     openModal();
   };
 
+  const openCopy = useCallback(
+    (ids: string[]) => {
+      setCopyIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
+  const openView = useCallback(
+    (ids: string[]) => {
+      setViewIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
+  const openEdit = useCallback(
+    (ids: string[]) => {
+      setEditIds(ids);
+      openModal();
+    },
+    [openModal]
+  );
+
   const handleCloseForm = () => {
     closeModal();
     setActive(null);
     setFormMode("create");
+    setCopyIds(null);
+    setViewIds(null);
+    setEditIds(null);
+  };
+
+  const handleSaveCopies = async (payloads: ModuleFormValues[]) => {
+    await bulkCopy.mutateAsync(
+      payloads.map((values) => ({ ...values, application: (values.application ?? "").trim() || undefined }))
+    );
+    handleCloseForm();
+    table.clearSelection();
+  };
+
+  const handleSaveEdits = async (updates: { id: string; payload: ModuleFormValues }[]) => {
+    await bulkUpdate.mutateAsync(
+      updates.map(({ id, payload }) => ({
+        id,
+        payload: { ...payload, application: (payload.application ?? "").trim() || undefined }
+      }))
+    );
+    handleCloseForm();
+    table.clearSelection();
   };
 
   const handleSave = async (values: ModuleFormValues) => {
@@ -117,14 +185,62 @@ const ModuleList = () => {
   const bulkActions = useMemo<DataTableBulkAction[]>(
     () => [
       {
+        key: "view",
+        label: (count) => (count > 1 ? "View modules" : "View module"),
+        icon: EyeIcon,
+        variant: "outline",
+        permission: GXP_PERMISSIONS.VIEW_SOFTWARE_MODULES,
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast("Select individual rows to view.", "error");
+            return;
+          }
+          openView(selection.ids);
+        }
+      },
+      {
         key: "clone",
         label: (count) => (count > 1 ? "Copy modules" : "Copy module"),
         icon: CopyIcon,
         variant: "outline",
         permission: GXP_PERMISSIONS.CREATE_SOFTWARE_MODULES,
         onClick: async (selection) => {
+          if (selection.mode === "ids") {
+            openCopy(selection.ids);
+            return;
+          }
           await bulkClone.mutateAsync(selection);
           table.clearSelection();
+        }
+      },
+      {
+        key: "edit",
+        label: (count) => (count > 1 ? "Edit modules" : "Edit module"),
+        icon: PencilIcon,
+        variant: "outline",
+        permission: GXP_PERMISSIONS.UPDATE_SOFTWARE_MODULES,
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast("Select individual rows to edit.", "error");
+            return;
+          }
+          openEdit(selection.ids);
+        }
+      },
+      {
+        key: "restore",
+        label: (count) => (count > 1 ? "Restore modules" : "Restore module"),
+        icon: CopyIcon,
+        variant: "outline",
+        permission: GXP_PERMISSIONS.UPDATE_SOFTWARE_MODULES,
+        hidden: (rows) => !(rows as ApplicationSoftwareModule[]).some((row) => row.status === "disabled"),
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast("Select individual rows to restore.", "error");
+            return;
+          }
+          setPendingRestore(selection);
+          setRestoreNames(table.rows.filter((r) => selection.ids.includes(r.id)).map((r) => r.moduleName));
         }
       },
       {
@@ -144,7 +260,7 @@ const ModuleList = () => {
         }
       }
     ],
-    [bulkClone, table]
+    [bulkClone, openCopy, openEdit, openView, table]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<ApplicationSoftwareModule>[]>(
@@ -171,7 +287,19 @@ const ModuleList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: GXP_PERMISSIONS.CREATE_SOFTWARE_MODULES,
-        onClick: (module) => bulkClone.mutate({ mode: "ids", ids: [module.id] })
+        onClick: (module) => openCopy([module.id])
+      },
+      {
+        key: "restore",
+        label: "Restore module",
+        icon: CopyIcon,
+        placement: "menu",
+        permission: GXP_PERMISSIONS.UPDATE_SOFTWARE_MODULES,
+        hidden: (module) => module.status !== "disabled",
+        onClick: (module) => {
+          setPendingRestore({ mode: "ids", ids: [module.id] });
+          setRestoreNames([module.moduleName]);
+        }
       },
       {
         key: "delete",
@@ -187,7 +315,7 @@ const ModuleList = () => {
         }
       }
     ],
-    [bulkClone, openForm]
+    [openCopy, openForm]
   );
 
   return (
@@ -195,6 +323,7 @@ const ModuleList = () => {
       <DataTable<ApplicationSoftwareModule>
         table={table}
         columnDefs={columnDefs}
+        gridContext={gridContext}
         tableName={t("gxpApplicationSoftwareModule")}
         searchPlaceholder="Search modules…"
         enableSelection
@@ -222,14 +351,45 @@ const ModuleList = () => {
         isOpen={isOpen}
         onClose={handleCloseForm}
         className="m-4 max-w-[900px] overflow-x-hidden dark:bg-gray-900"
+        disableOuterScroll
       >
-        <ModuleForm
-          mode={formMode}
-          initialData={active}
-          onClose={handleCloseForm}
-          onSubmit={handleSave}
-          submitting={createModule.isPending || updateModule.isPending}
-        />
+        {copyIds ? (
+          <CopyStepper<ApplicationSoftwareModule, ModuleFormValues>
+            ids={copyIds}
+            fetchById={fetchModuleById}
+            FormComponent={ModuleForm}
+            onSaveAll={handleSaveCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending}
+            entityLabel={t("module")}
+          />
+        ) : viewIds ? (
+          <ViewStepper<ApplicationSoftwareModule>
+            ids={viewIds}
+            fetchById={fetchModuleById}
+            FormComponent={ModuleForm}
+            onClose={handleCloseForm}
+            entityLabel={t("module")}
+          />
+        ) : editIds ? (
+          <EditStepper<ApplicationSoftwareModule, ModuleFormValues>
+            ids={editIds}
+            fetchById={fetchModuleById}
+            FormComponent={ModuleForm}
+            onSaveAll={handleSaveEdits}
+            onClose={handleCloseForm}
+            saving={bulkUpdate.isPending}
+            entityLabel={t("module")}
+          />
+        ) : (
+          <ModuleForm
+            mode={formMode}
+            initialData={active}
+            onClose={handleCloseForm}
+            onSubmit={handleSave}
+            submitting={createModule.isPending || updateModule.isPending}
+          />
+        )}
       </Modal>
 
       <ConfirmDialog
@@ -248,6 +408,25 @@ const ModuleList = () => {
             table.clearSelection();
           }
           setPendingDelete(null);
+        }}
+      />
+
+      <ConfirmDialog
+        isOpen={pendingRestore !== null}
+        onClose={() => setPendingRestore(null)}
+        loading={bulkRestore.isPending}
+        items={restoreNames}
+        description={
+          restoreNames.length > 1
+            ? `Are you sure you want to restore these ${restoreNames.length} modules?`
+            : "Are you sure you want to restore this module?"
+        }
+        onConfirm={async () => {
+          if (pendingRestore) {
+            await bulkRestore.mutateAsync(pendingRestore);
+            table.clearSelection();
+          }
+          setPendingRestore(null);
         }}
       />
     </div>

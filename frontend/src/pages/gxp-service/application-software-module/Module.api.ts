@@ -19,6 +19,13 @@ export const fetchModuleList = async (
   return toListResult<ApplicationSoftwareModule>(response.data, params, DATA_KEYS, RELATION_KEYS);
 };
 
+/** Full record for the Edit/Copy/View modal — fetched on demand when it opens,
+ * not reused from the list row (see useLimsRecordById, reused generically). */
+export const fetchModuleById = async (id: string, signal?: AbortSignal) => {
+  const response = await gxpApi.get(`${ROUTE}/${id}`, { signal });
+  return response.data as ApplicationSoftwareModule;
+};
+
 export const fetchModuleOptions = async (
   args: { search: string; page: number },
   signal?: AbortSignal
@@ -60,4 +67,23 @@ export const bulkCloneModule = async (selection: BulkSelection) => {
 export const setModuleStatus = async (id: string, status: "enabled" | "disabled") => {
   const response = await gxpApi.patch(`${ROUTE}/${id}`, { status });
   return response.data;
+};
+
+/** The Copy flow's one and only network call — every reviewed record is
+ * sent together, once (mirrors bulkCreate in lims-service's crud-factory). */
+export const bulkCopyModule = async (records: ModulePayload[]) => {
+  const response = await gxpApi.post(`${ROUTE}/bulk-copy`, { records });
+  return response.data as ApplicationSoftwareModule[];
+};
+
+export const bulkUpdateModule = async (updates: { id: string; payload: ModulePayload }[]) => {
+  const response = await gxpApi.patch(`${ROUTE}/bulk-update`, { updates });
+  return response.data as { results: { id: string; status: "updated" | "skipped" }[] };
+};
+
+/** Bulk-restore reuses the generic status-update path (see setModuleStatus —
+ * this module has no dedicated /enable route either). */
+export const bulkRestoreModule = async (selection: BulkSelection) => {
+  const response = await gxpApi.patch(`${ROUTE}/bulk-restore`, bulkSelectionToBody(selection));
+  return response.data as { message: string; count: number };
 };

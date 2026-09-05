@@ -25,6 +25,13 @@ export const fetchSupplierList = async (
   return toListResult<Supplier>(response.data, params, DATA_KEYS);
 };
 
+/** Full record for the Edit/Copy/View modal — fetched on demand when it opens,
+ * not reused from the list row (see useLimsRecordById, reused generically). */
+export const fetchSupplierById = async (id: string, signal?: AbortSignal) => {
+  const response = await gxpApi.get(`${ROUTE}/${id}`, { signal });
+  return response.data as Supplier;
+};
+
 export const fetchSupplierOptions = async (
   args: { search: string; page: number },
   signal?: AbortSignal
@@ -57,6 +64,23 @@ export const bulkDeleteSupplier = async (selection: BulkSelection) => {
 export const bulkCloneSupplier = async (selection: BulkSelection) => {
   const response = await gxpApi.post(`${ROUTE}/bulk-duplicate`, bulkSelectionToBody(selection));
   return response.data;
+};
+
+/** The Copy flow's one and only network call — every reviewed record is
+ * sent together, once (mirrors bulkCreate in lims-service's crud-factory). */
+export const bulkCopySupplier = async (records: SupplierPayload[]) => {
+  const response = await gxpApi.post(`${ROUTE}/bulk-copy`, { records });
+  return response.data as Supplier[];
+};
+
+export const bulkUpdateSupplier = async (updates: { id: string; payload: SupplierPayload }[]) => {
+  const response = await gxpApi.patch(`${ROUTE}/bulk-update`, { updates });
+  return response.data as { results: { id: string; status: "updated" | "skipped" }[] };
+};
+
+export const bulkRestoreSupplier = async (selection: BulkSelection) => {
+  const response = await gxpApi.patch(`${ROUTE}/bulk-restore`, bulkSelectionToBody(selection));
+  return response.data as { message: string; count: number };
 };
 
 export const enableSupplier = async (id: string) => {

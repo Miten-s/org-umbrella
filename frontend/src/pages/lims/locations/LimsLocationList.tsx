@@ -37,6 +37,7 @@ import {
   useCreateLimsLocation,
   useLimsLocationAudit,
   useRestoreLimsLocation,
+  useBulkRestoreLimsLocation,
   useUpdateLimsLocation,
   useLimsLocationById
 } from "./LimsLocation.queries";
@@ -91,6 +92,7 @@ const LimsLocationList = () => {
   const bulkDelete = useBulkDeleteLimsLocation();
   const bulkUpdate = useBulkUpdateLimsLocation();
   const restoreLocation = useRestoreLimsLocation();
+  const bulkRestoreLocation = useBulkRestoreLimsLocation();
 
   const busy =
     createLocation.isPending ||
@@ -99,7 +101,8 @@ const LimsLocationList = () => {
     bulkCopy.isPending ||
     bulkDelete.isPending ||
     bulkUpdate.isPending ||
-    restoreLocation.isPending;
+    restoreLocation.isPending ||
+    bulkRestoreLocation.isPending;
 
   const columnDefs = useMemo(() => getLimsLocationColumns({ t }), [t]);
 
@@ -188,7 +191,7 @@ const LimsLocationList = () => {
     () => [
       {
         key: "view",
-        label: () => t("view", { entity: t("limsLocations") }),
+        label: () => t("limsView"),
         icon: EyeIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.VIEW_LOCATION,
@@ -202,8 +205,7 @@ const LimsLocationList = () => {
       },
       {
         key: "clone",
-        label: (count) =>
-          count > 1 ? "Copy storage locations" : "Copy storage location",
+        label: () => t("limsCopy"),
         icon: CopyIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_LOCATION,
@@ -231,9 +233,30 @@ const LimsLocationList = () => {
         }
       },
       {
+        key: "restore",
+        label: () => t("limsRestore"),
+        icon: CopyIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_LOCATION,
+        // Only offered when the current selection actually has something removed —
+        // an all-active selection would otherwise fire a no-op restore request.
+        hidden: (rows) => !rows.some((row) => row.isRemoved),
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          compliance.requestBulkRestore(
+            selection.ids,
+            table.rows
+              .filter((row) => selection.ids.includes(row.id))
+              .map((row) => row.locationName)
+          );
+        }
+      },
+      {
         key: "delete",
-        label: (count) =>
-          count > 1 ? "Remove storage locations" : "Remove storage location",
+        label: () => t("limsRemove"),
         icon: TrashBinIcon,
         variant: "destructive",
         permission: LIMS_PERMISSIONS.DELETE_LOCATION,
@@ -256,7 +279,7 @@ const LimsLocationList = () => {
     () => [
       {
         key: "view",
-        label: "View storage location",
+        label: t("limsView"),
         icon: EyeIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_LOCATION,
@@ -264,7 +287,7 @@ const LimsLocationList = () => {
       },
       {
         key: "edit",
-        label: "Edit storage location",
+        label: t("edit"),
         icon: PencilIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.UPDATE_LOCATION,
@@ -272,7 +295,7 @@ const LimsLocationList = () => {
       },
       {
         key: "audit",
-        label: "Audit trail",
+        label: t("limsAudit"),
         icon: TimeIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.VIEW_LOCATION,
@@ -280,7 +303,7 @@ const LimsLocationList = () => {
       },
       {
         key: "clone",
-        label: "Copy storage location",
+        label: t("limsCopy"),
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_LOCATION,
@@ -289,7 +312,7 @@ const LimsLocationList = () => {
       },
       {
         key: "restore",
-        label: "Restore storage location",
+        label: t("limsRestore"),
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.UPDATE_LOCATION,
@@ -298,7 +321,7 @@ const LimsLocationList = () => {
       },
       {
         key: "delete",
-        label: "Remove storage location",
+        label: t("limsRemove"),
         icon: TrashBinIcon,
         placement: "menu",
         tone: "danger",
@@ -310,7 +333,7 @@ const LimsLocationList = () => {
           ])
       }
     ],
-    [compliance, openCopy, openForm]
+    [compliance, openCopy, openForm, t]
   );
 
   return (
@@ -405,6 +428,7 @@ const LimsLocationList = () => {
         updating={updateLocation.isPending}
         deleting={bulkDelete.isPending}
         restoring={restoreLocation.isPending}
+        bulkRestoring={bulkRestoreLocation.isPending}
         bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
@@ -444,6 +468,17 @@ const LimsLocationList = () => {
             });
           }
           compliance.clearRestore();
+        }}
+        onBulkRestore={async (reason) => {
+          const pending = compliance.pendingBulkRestore;
+          if (pending) {
+            await bulkRestoreLocation.mutateAsync({
+              selection: { mode: "ids", ids: pending.ids },
+              changeReason: reason
+            });
+            table.clearSelection();
+          }
+          compliance.clearBulkRestore();
         }}
       />
     </div>

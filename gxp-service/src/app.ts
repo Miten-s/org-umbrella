@@ -1,3 +1,9 @@
+// Must load before anything that imports a class-validator/class-transformer
+// DTO — class-transformer's @Type() calls Reflect.getMetadata directly (no
+// guard), unlike tsc's own emitDecoratorMetadata helper which no-ops without
+// this polyfill. Without it, the first DTO using @Type()/@ValidateNested()
+// crashes the whole process at import time, not just at request time.
+import "reflect-metadata";
 import express, { Application } from "express";
 import dotenv from "dotenv";
 import rateLimit from "express-rate-limit";

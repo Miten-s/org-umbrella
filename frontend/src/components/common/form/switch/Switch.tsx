@@ -35,17 +35,25 @@ const Switch: React.FC<SwitchProps> = ({
 
   return (
     <label
-      className={`flex cursor-pointer select-none items-center gap-3 text-sm font-medium ${
+      role="switch"
+      aria-checked={checked}
+      aria-disabled={disabled || undefined}
+      tabIndex={disabled ? -1 : 0}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          handleToggle();
+        }
+      }}
+      className={`flex cursor-pointer select-none items-center gap-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 ${
         disabled ? "text-gray-400" : "text-gray-700 dark:text-gray-400"
       }`}
       onClick={handleToggle}
     >
       <div className="relative">
         <div
-          className={`block transition duration-150 ease-linear h-6 w-11 rounded-full ${
-            disabled
-              ? "bg-gray-100 pointer-events-none dark:bg-gray-800"
-              : switchColors.background
+          className={`block transition duration-150 ease-linear h-6 w-11 rounded-full ${switchColors.background} ${
+            disabled ? "pointer-events-none opacity-60" : ""
           }`}
         ></div>
         <div

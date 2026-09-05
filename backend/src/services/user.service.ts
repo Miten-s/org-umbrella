@@ -13,18 +13,20 @@ const formatUser = (user: any) => {
   if (!user) return null;
   const json = user.toJSON ? user.toJSON() : { ...user };
   json._id = json.id;
-  
+
   if (json.roles) {
     json.roles = json.roles.map((r: any) => ({
       _id: r.id,
       id: r.id,
       name: r.name,
       type: r.type,
-      permissions: r.permissions ? r.permissions.map((p: any) => ({
-        _id: p.id,
-        id: p.id,
-        name: p.name
-      })) : []
+      permissions: r.permissions
+        ? r.permissions.map((p: any) => ({
+            _id: p.id,
+            id: p.id,
+            name: p.name
+          }))
+        : []
     }));
   }
   if (json.department) {
@@ -96,7 +98,9 @@ const getUsers = async (
   );
   if (allowedStatus.length) {
     where.status =
-      allowedStatus.length === 1 ? allowedStatus[0] : { [Op.in]: allowedStatus };
+      allowedStatus.length === 1
+        ? allowedStatus[0]
+        : { [Op.in]: allowedStatus };
   }
 
   if (search) {
@@ -118,10 +122,25 @@ const getUsers = async (
     offset: skip,
     limit,
     include: [
-      { model: Role, as: "roles", attributes: ["id", "name", "type"], include: [{ model: Permission, as: "permissions", attributes: ["id", "name"] }] },
-      { model: Department, as: "department", attributes: ["id", "departmentName"] },
+      {
+        model: Role,
+        as: "roles",
+        attributes: ["id", "name", "type"],
+        include: [
+          { model: Permission, as: "permissions", attributes: ["id", "name"] }
+        ]
+      },
+      {
+        model: Department,
+        as: "department",
+        attributes: ["id", "departmentName"]
+      },
       { model: Location, as: "location", attributes: ["id", "locationName"] },
-      { model: Designation, as: "designation", attributes: ["id", "designationName"] }
+      {
+        model: Designation,
+        as: "designation",
+        attributes: ["id", "designationName"]
+      }
     ],
     order: [["created_at", "DESC"]]
   });
@@ -138,7 +157,8 @@ const getUsers = async (
 };
 
 const createUser = async (req: Request) => {
-  const payload = typeof req.body?.data === "string" ? JSON.parse(req.body.data) : req.body;
+  const payload =
+    typeof req.body?.data === "string" ? JSON.parse(req.body.data) : req.body;
   const signature = req.file?.filename;
   payload["createdBy"] = (req?.user as any)?.id || (req?.user as any)?._id;
 
@@ -155,7 +175,9 @@ const createUser = async (req: Request) => {
     delete payload.department;
   }
   if (payload.location) {
-    payload.locationId = Array.isArray(payload.location) ? payload.location[0] : payload.location;
+    payload.locationId = Array.isArray(payload.location)
+      ? payload.location[0]
+      : payload.location;
     delete payload.location;
   }
   if (payload.designation) {
@@ -174,13 +196,28 @@ const createUser = async (req: Request) => {
       await (user as any).setRoles(roles, { transaction: t });
     }
     await t.commit();
-    
+
     const fetched = await User.findByPk(user.id, {
       include: [
-        { model: Role, as: "roles", attributes: ["id", "name", "type"], include: [{ model: Permission, as: "permissions", attributes: ["id", "name"] }] },
-        { model: Department, as: "department", attributes: ["id", "departmentName"] },
+        {
+          model: Role,
+          as: "roles",
+          attributes: ["id", "name", "type"],
+          include: [
+            { model: Permission, as: "permissions", attributes: ["id", "name"] }
+          ]
+        },
+        {
+          model: Department,
+          as: "department",
+          attributes: ["id", "departmentName"]
+        },
         { model: Location, as: "location", attributes: ["id", "locationName"] },
-        { model: Designation, as: "designation", attributes: ["id", "designationName"] }
+        {
+          model: Designation,
+          as: "designation",
+          attributes: ["id", "designationName"]
+        }
       ]
     });
     return formatUser(fetched);
@@ -191,7 +228,8 @@ const createUser = async (req: Request) => {
 };
 
 const updateUser = async (req: Request) => {
-  const payload = typeof req.body?.data === "string" ? JSON.parse(req.body.data) : req.body;
+  const payload =
+    typeof req.body?.data === "string" ? JSON.parse(req.body.data) : req.body;
   const signature = req.file?.filename;
   if (signature) {
     payload["signature"] = signature;
@@ -208,7 +246,9 @@ const updateUser = async (req: Request) => {
     delete payload.department;
   }
   if (payload.location !== undefined) {
-    payload.locationId = Array.isArray(payload.location) ? payload.location[0] : payload.location;
+    payload.locationId = Array.isArray(payload.location)
+      ? payload.location[0]
+      : payload.location;
     delete payload.location;
   }
   if (payload.designation !== undefined) {
@@ -247,10 +287,25 @@ const getUserDetail = async (id: string) => {
   const user = await User.findByPk(id, {
     attributes: { exclude: ["password"] },
     include: [
-      { model: Role, as: "roles", attributes: ["id", "name", "type"], include: [{ model: Permission, as: "permissions", attributes: ["id", "name"] }] },
-      { model: Department, as: "department", attributes: ["id", "departmentName"] },
+      {
+        model: Role,
+        as: "roles",
+        attributes: ["id", "name", "type"],
+        include: [
+          { model: Permission, as: "permissions", attributes: ["id", "name"] }
+        ]
+      },
+      {
+        model: Department,
+        as: "department",
+        attributes: ["id", "departmentName"]
+      },
       { model: Location, as: "location", attributes: ["id", "locationName"] },
-      { model: Designation, as: "designation", attributes: ["id", "designationName"] }
+      {
+        model: Designation,
+        as: "designation",
+        attributes: ["id", "designationName"]
+      }
     ]
   });
   return formatUser(user);
@@ -267,11 +322,71 @@ const bulkDeleteUsers = async (ids: string[], requestingUserId?: string) => {
   return await User.destroy({ where });
 };
 
+// Bulk Edit's batched save — only the records the reviewer actually reviewed and changed.
+// A missing id (deleted by someone else meanwhile) is skipped, not fatal to the rest.
+const bulkUpdateUsers = async (
+  updates: { id: string; payload: Record<string, any> }[],
+  requestingUser?: any
+) => {
+  const t = await sequelize.transaction();
+  try {
+    const results: { id: string; skipped?: boolean }[] = [];
+
+    for (const { id, payload } of updates) {
+      const user = await User.findByPk(id, { transaction: t });
+      if (!user) {
+        results.push({ id, skipped: true });
+        continue;
+      }
+
+      const data = { ...payload };
+      const roles = data.roles;
+      delete data.roles;
+
+      if (data.department !== undefined) {
+        data.departmentId = data.department;
+        delete data.department;
+      }
+      if (data.location !== undefined) {
+        data.locationId = Array.isArray(data.location)
+          ? data.location[0]
+          : data.location;
+        delete data.location;
+      }
+      if (data.designation !== undefined) {
+        data.designationId = data.designation;
+        delete data.designation;
+      }
+      if (data.manager !== undefined) {
+        data.managerId = data.manager;
+        delete data.manager;
+      }
+
+      data.modifiedBy =
+        (requestingUser as any)?.id || (requestingUser as any)?._id;
+      data.modifiedOn = new Date();
+
+      await user.update(data, { transaction: t });
+      if (roles !== undefined) {
+        await (user as any).setRoles(roles, { transaction: t });
+      }
+      results.push({ id });
+    }
+
+    await t.commit();
+    return results;
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
+};
+
 export default {
   getUsers,
   createUser,
   updateUser,
   deleteUser,
   getUserDetail,
-  bulkDeleteUsers
+  bulkDeleteUsers,
+  bulkUpdateUsers
 };

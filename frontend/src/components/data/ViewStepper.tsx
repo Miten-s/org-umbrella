@@ -109,6 +109,15 @@ function ViewStepper<TRecord>({
             className={`transition-opacity duration-150 ${isLoadingCurrent ? "pointer-events-none opacity-50" : "opacity-100"}`}
           >
             <FormComponent
+              // Remount per record — unlike Copy/Edit, View has no per-step
+              // edits to preserve, and the Form only seeds itself from
+              // `initialData` once at mount, so reusing one instance across
+              // steps left it frozen on whichever record it first rendered.
+              // The "-loading" suffix forces a second remount once the real
+              // record actually arrives — otherwise the fallback record it
+              // mounted with (shown dimmed while fetching) never gets
+              // replaced by the freshly-fetched one under the same key.
+              key={isLoadingCurrent ? `${ids[index]}-loading` : ids[index]}
               mode="view"
               initialData={displayRecord}
               onClose={onClose}

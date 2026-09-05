@@ -63,6 +63,17 @@ export const bulkDeleteLimsGroup = async (
   return response.data;
 };
 
+export const bulkRestoreLimsGroup = async (
+  selection: BulkSelection,
+  changeReason: string
+) => {
+  const response = await limsApi.post(`${ROUTE}/bulk-restore`, {
+    ...bulkSelectionToBody(selection),
+    changeReason
+  });
+  return response.data;
+};
+
 export const bulkCloneLimsGroup = async (selection: BulkSelection) => {
   const response = await limsApi.post(`${ROUTE}/bulk-duplicate`, bulkSelectionToBody(selection));
   return response.data;

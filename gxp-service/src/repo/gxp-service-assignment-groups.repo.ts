@@ -1,4 +1,6 @@
-import GxpServiceAssignmentGroupModel, { AssignmentGroupMember } from "../models/gxp-service-assignment-groups.model";
+import GxpServiceAssignmentGroupModel, {
+  AssignmentGroupMember
+} from "../models/gxp-service-assignment-groups.model";
 import { PaginationOptions } from "../utils/pagination.util";
 import { Op } from "sequelize";
 import crypto from "crypto";
@@ -58,8 +60,10 @@ export const createGroup = async (data: any) => {
       modifiedBy: data.modifiedBy
     };
 
-    const doc = await GxpServiceAssignmentGroupModel.create(payload, { transaction });
-    
+    const doc = await GxpServiceAssignmentGroupModel.create(payload, {
+      transaction
+    });
+
     // Create members
     if (data.members && Array.isArray(data.members)) {
       const memberRecords = data.members.map((member: any) => ({
@@ -79,9 +83,12 @@ export const createGroup = async (data: any) => {
   }
 };
 
-export const getAllGroups = async (options: PaginationOptions) => {
+export const getAllGroups = async (
+  filter: any = {},
+  options: PaginationOptions
+) => {
   const { page, limit, skip, search } = options;
-  const where: any = {};
+  const where: any = { ...filter };
   if (search) {
     const sanitizedSearch = `%${search}%`;
     where[Op.or] = [
@@ -89,18 +96,19 @@ export const getAllGroups = async (options: PaginationOptions) => {
       { description: { [Op.iLike]: sanitizedSearch } }
     ];
   }
-  const { count: totalCount, rows: data } = await GxpServiceAssignmentGroupModel.findAndCountAll({
-    where,
-    distinct: true,
-    include: [
-      {
-        association: "memberLinks"
-      }
-    ],
-    offset: skip,
-    limit,
-    order: [["created_at", "DESC"]]
-  });
+  const { count: totalCount, rows: data } =
+    await GxpServiceAssignmentGroupModel.findAndCountAll({
+      where,
+      distinct: true,
+      include: [
+        {
+          association: "memberLinks"
+        }
+      ],
+      offset: skip,
+      limit,
+      order: [["created_at", "DESC"]]
+    });
   return {
     data: data.map(formatGroup),
     metadata: {
@@ -113,7 +121,9 @@ export const getAllGroups = async (options: PaginationOptions) => {
 };
 
 export const updateGroup = async (groupName: string, updateData: any) => {
-  const group = await GxpServiceAssignmentGroupModel.findOne({ where: { groupName } });
+  const group = await GxpServiceAssignmentGroupModel.findOne({
+    where: { groupName }
+  });
   if (!group) return null;
   await group.update(updateData);
   return await findGroupById(group.id);
@@ -142,7 +152,10 @@ export const updateGroupById = async (id: string, updateData: any) => {
 
     if (updateData.members && Array.isArray(updateData.members)) {
       // Delete old members
-      await AssignmentGroupMember.destroy({ where: { groupId: id }, transaction });
+      await AssignmentGroupMember.destroy({
+        where: { groupId: id },
+        transaction
+      });
       // Bulk create new members
       const memberRecords = updateData.members.map((member: any) => ({
         groupId: id,

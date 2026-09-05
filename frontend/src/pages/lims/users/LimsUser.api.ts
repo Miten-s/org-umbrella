@@ -68,6 +68,17 @@ export const bulkDeleteLimsUser = async (
   return response.data;
 };
 
+export const bulkRestoreLimsUser = async (
+  selection: BulkSelection,
+  changeReason: string
+) => {
+  const response = await limsApi.post(`${ROUTE}/bulk-restore`, {
+    ...bulkSelectionToBody(selection),
+    changeReason
+  });
+  return response.data;
+};
+
 export const bulkCloneLimsUser = async (selection: BulkSelection) => {
   const response = await limsApi.post(`${ROUTE}/bulk-duplicate`, bulkSelectionToBody(selection));
   return response.data;
@@ -82,7 +93,9 @@ export const bulkCopyLimsUser = async (records: LimsUserPayload[]) => {
   return response.data as {
     message: string;
     count: number;
-    results: { id: string; warning?: string }[];
+    // `userId` is a person reference, not a name — a collision is rejected, not
+    // auto-suffixed, so a record can come back with `error` instead of `id`.
+    results: { id?: string; warning?: string; error?: string }[];
   };
 };
 

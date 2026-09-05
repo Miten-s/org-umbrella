@@ -2,6 +2,9 @@ import { Request, Response } from "express";
 import * as service from "../services/gxp-service-applications-modules.service";
 import asyncHandler from "../middlewares/error.middleware";
 import { getPaginationOptions } from "../utils/pagination.util";
+import { buildBulkCrudRoutes } from "../utils/bulk-crud-factory";
+import AppModule from "../models/gxp-service-application-modules.model";
+import { CreateAppModuleDto } from "../dtos/master-data.dto";
 
 export const createApplicationModule = asyncHandler(
   async (req: Request, res: Response) => {
@@ -15,12 +18,14 @@ export const createApplicationModule = asyncHandler(
   }
 );
 
-
 export const getApplicationModules = asyncHandler(
   async (req: Request, res: Response) => {
     const includeDisabled = req.query.includeDisabled === "true";
     const paginationOptions = getPaginationOptions(req.query);
-    const items = await service.getApplicationModules(paginationOptions, includeDisabled);
+    const items = await service.getApplicationModules(
+      paginationOptions,
+      includeDisabled
+    );
     return res.status(200).send(items);
   }
 );
@@ -93,7 +98,26 @@ export const bulkDuplicateApplicationModules = asyncHandler(
     if (!Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ message: "An array of ids is required" });
     }
-    const result = await service.bulkDuplicateApplicationModules(ids, currentUser);
+    const result = await service.bulkDuplicateApplicationModules(
+      ids,
+      currentUser
+    );
     res.status(201).send(result);
   }
 );
+
+// No enable/disable functions exist for this module — only the generic status
+// PATCH updateApplicationModule already uses; restore reuses that.
+const bulkCrud = buildBulkCrudRoutes({
+  model: AppModule,
+  nameField: "moduleName",
+  createDtoClass: CreateAppModuleDto,
+  createOne: (payload, currentUser) =>
+    service.createApplicationModule(payload, currentUser ?? ""),
+  updateOne: (id, payload) => service.updateApplicationModule(id, payload),
+  restore: (id) => service.updateApplicationModule(id, { status: "enabled" })
+});
+
+export const bulkCopyApplicationModules = bulkCrud.bulkCopy;
+export const bulkUpdateApplicationModules = bulkCrud.bulkUpdate;
+export const bulkRestoreApplicationModules = bulkCrud.bulkRestore!;

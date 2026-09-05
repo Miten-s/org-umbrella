@@ -37,6 +37,7 @@ import {
   useCreateLimsGroup,
   useLimsGroupAudit,
   useRestoreLimsGroup,
+  useBulkRestoreLimsGroup,
   useUpdateLimsGroup,
   useLimsGroupById
 } from "./LimsGroup.queries";
@@ -83,6 +84,7 @@ const LimsGroupList = () => {
   const bulkDelete = useBulkDeleteLimsGroup();
   const bulkUpdate = useBulkUpdateLimsGroup();
   const restoreGroup = useRestoreLimsGroup();
+  const bulkRestoreGroup = useBulkRestoreLimsGroup();
 
   const busy =
     createGroup.isPending ||
@@ -91,7 +93,8 @@ const LimsGroupList = () => {
     bulkCopy.isPending ||
     bulkDelete.isPending ||
     bulkUpdate.isPending ||
-    restoreGroup.isPending;
+    restoreGroup.isPending ||
+    bulkRestoreGroup.isPending;
 
   const columnDefs = useMemo(() => getLimsGroupColumns({ t }), [t]);
 
@@ -178,7 +181,7 @@ const LimsGroupList = () => {
     () => [
       {
         key: "view",
-        label: () => t("view", { entity: t("limsGroups") }),
+        label: () => t("limsView"),
         icon: EyeIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.VIEW_GROUP,
@@ -192,7 +195,7 @@ const LimsGroupList = () => {
       },
       {
         key: "clone",
-        label: (count) => (count > 1 ? "Copy lab groups" : "Copy lab group"),
+        label: () => t("limsCopy"),
         icon: CopyIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_GROUP,
@@ -220,9 +223,30 @@ const LimsGroupList = () => {
         }
       },
       {
+        key: "restore",
+        label: () => t("limsRestore"),
+        icon: CopyIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_GROUP,
+        // Only offered when the current selection actually has something removed —
+        // an all-active selection would otherwise fire a no-op restore request.
+        hidden: (rows) => !rows.some((row) => row.isRemoved),
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          compliance.requestBulkRestore(
+            selection.ids,
+            table.rows
+              .filter((row) => selection.ids.includes(row.id))
+              .map((row) => row.name)
+          );
+        }
+      },
+      {
         key: "delete",
-        label: (count) =>
-          count > 1 ? "Remove lab groups" : "Remove lab group",
+        label: () => t("limsRemove"),
         icon: TrashBinIcon,
         variant: "destructive",
         permission: LIMS_PERMISSIONS.DELETE_GROUP,
@@ -245,7 +269,7 @@ const LimsGroupList = () => {
     () => [
       {
         key: "view",
-        label: "View lab group",
+        label: t("limsView"),
         icon: EyeIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_GROUP,
@@ -253,7 +277,7 @@ const LimsGroupList = () => {
       },
       {
         key: "edit",
-        label: "Edit lab group",
+        label: t("edit"),
         icon: PencilIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.UPDATE_GROUP,
@@ -261,7 +285,7 @@ const LimsGroupList = () => {
       },
       {
         key: "audit",
-        label: "Audit trail",
+        label: t("limsAudit"),
         icon: TimeIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.VIEW_GROUP,
@@ -269,7 +293,7 @@ const LimsGroupList = () => {
       },
       {
         key: "clone",
-        label: "Copy lab group",
+        label: t("limsCopy"),
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_GROUP,
@@ -277,7 +301,7 @@ const LimsGroupList = () => {
       },
       {
         key: "restore",
-        label: "Restore lab group",
+        label: t("limsRestore"),
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.UPDATE_GROUP,
@@ -286,7 +310,7 @@ const LimsGroupList = () => {
       },
       {
         key: "delete",
-        label: "Remove lab group",
+        label: t("limsRemove"),
         icon: TrashBinIcon,
         placement: "menu",
         tone: "danger",
@@ -298,7 +322,7 @@ const LimsGroupList = () => {
           ])
       }
     ],
-    [compliance, openCopy, openForm]
+    [compliance, openCopy, openForm, t]
   );
 
   return (
@@ -393,6 +417,7 @@ const LimsGroupList = () => {
         updating={updateGroup.isPending}
         deleting={bulkDelete.isPending}
         restoring={restoreGroup.isPending}
+        bulkRestoring={bulkRestoreGroup.isPending}
         bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
@@ -432,6 +457,17 @@ const LimsGroupList = () => {
             });
           }
           compliance.clearRestore();
+        }}
+        onBulkRestore={async (reason) => {
+          const pending = compliance.pendingBulkRestore;
+          if (pending) {
+            await bulkRestoreGroup.mutateAsync({
+              selection: { mode: "ids", ids: pending.ids },
+              changeReason: reason
+            });
+            table.clearSelection();
+          }
+          compliance.clearBulkRestore();
         }}
       />
     </div>

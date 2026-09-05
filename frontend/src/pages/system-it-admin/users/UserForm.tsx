@@ -14,6 +14,7 @@ import AsyncSelect from "@/components/data/AsyncSelect";
 import { CheckCircleIcon, CloseIcon } from "@/public/icons";
 import { UserTypes } from "@/utils/common.constants";
 import { getImageUrl } from "@/services/utils.service";
+import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { getUserSchema, type UserFormValues } from "./User.schema";
 import type { User } from "./User.types";
 import { useLocationOptions } from "@/pages/system-it-admin/locations/Location.queries";
@@ -21,14 +22,27 @@ import { useDepartmentOptions } from "@/pages/system-it-admin/departments/Depart
 import { useDesignationOptions } from "@/pages/system-it-admin/designations/Designation.queries";
 import type { AsyncOption } from "@/lib/query/listTypes";
 
-export type UserFormMode = "create" | "edit" | "view";
+export type UserFormMode = "create" | "edit" | "view" | "bulk-edit";
 
 interface UserFormProps {
   mode?: UserFormMode;
-  activeUser: User | null;
+  initialData: User | null;
   onClose: () => void;
-  onSubmit: (payload: Record<string, unknown>) => Promise<void>;
+  onUnchanged?: () => void;
+  onSubmit: (payload: Record<string, unknown>) => void | Promise<void>;
   submitting?: boolean;
+  /** Overrides the submit button's label — EditStepper uses this to say
+   * "Next" on every step but the last, where the batch actually saves. */
+  submitLabel?: string;
+  /** Grays out the submit button without a spinner — EditStepper uses
+   * this on the last step now that its own Save button lives outside it. */
+  disabled?: boolean;
+  /** Set on the `<form>` element so an outside button (EditStepper's
+   * header Next/Save) can submit it via `<Button form={formId}>`. */
+  formId?: string;
+  /** " (2 of 5)" appended after the title when Bulk Edit is reviewing
+   * more than one record — undefined otherwise. */
+  stepLabel?: string;
 }
 
 /** Seed AsyncSelect with the label already present on the edited record. */
@@ -42,11 +56,39 @@ const seedOption = (ref?: { id: string } & Record<string, unknown>, labelKey?: s
  * AsyncSelect (never load-all); selected values are seeded from the user record
  * so labels show correctly when editing values deep in the dataset.
  */
-const UserForm = ({ mode = "create", activeUser, onClose, onSubmit, submitting = false }: UserFormProps) => {
+const UserForm = ({
+  mode = "create",
+  initialData,
+  onClose,
+  onUnchanged,
+  onSubmit,
+  submitting = false,
+  submitLabel,
+  disabled = false,
+  formId,
+  stepLabel
+}: UserFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
   const [showSignature, setShowSignature] = useState(false);
   const signatureRef = useRef<SignatureCanvas | null>(null);
+
+  const initialValues: UserFormValues = {
+    fullName: initialData?.fullName || initialData?.name || "",
+    email: initialData?.email || "",
+    mobileNumber: initialData?.phone || "",
+    locationGroup: initialData?.location?.id || "",
+    designation: initialData?.designation?.id || "",
+    department: initialData?.department?.id || "",
+    description: initialData?.description || "",
+    status: initialData?.status === "active",
+    password: "",
+    confirmPassword: "",
+    modifiable: initialData?.modifiable ?? false,
+    trainingCompleted: initialData?.trainingCompleted ?? false,
+    signature: initialData?.signature || "",
+    userType: initialData?.userType || UserTypes.ADMIN
+  };
 
   const {
     register,
@@ -54,28 +96,14 @@ const UserForm = ({ mode = "create", activeUser, onClose, onSubmit, submitting =
     control,
     setValue,
     watch,
-    formState: { errors }
+    formState: { errors, isSubmitting }
   } = useForm<UserFormValues>({
-    resolver: zodResolver(getUserSchema(!!activeUser)),
-    defaultValues: {
-      fullName: activeUser?.fullName || activeUser?.name || "",
-      email: activeUser?.email || "",
-      mobileNumber: activeUser?.phone || "",
-      locationGroup: activeUser?.location?.id || "",
-      designation: activeUser?.designation?.id || "",
-      department: activeUser?.department?.id || "",
-      description: activeUser?.description || "",
-      status: activeUser?.status === "active",
-      password: "",
-      confirmPassword: "",
-      modifiable: activeUser?.modifiable ?? false,
-      trainingCompleted: activeUser?.trainingCompleted ?? false,
-      signature: activeUser?.signature || "",
-      userType: activeUser?.userType || UserTypes.ADMIN
-    }
+    resolver: zodResolver(getUserSchema(!!initialData)),
+    defaultValues: initialValues
   });
 
   const isAdmin = watch("userType") === UserTypes.ADMIN;
+  const busy = submitting || isSubmitting;
   const passwordValue = watch("password") ?? "";
   const passwordChecks = [
     { label: "Uppercase letters (A-Z)", ok: /[A-Z]/.test(passwordValue) },
@@ -84,7 +112,7 @@ const UserForm = ({ mode = "create", activeUser, onClose, onSubmit, submitting =
     { label: "Symbols (!@#$%^&*)", ok: /[!@#$%^&*]/.test(passwordValue) },
     { label: "Minimum 8 characters", ok: passwordValue.length >= 8 }
   ];
-  const signatureUrl = getImageUrl(activeUser?.signature);
+  const signatureUrl = getImageUrl(initialData?.signature);
 
   const handleClearSignature = () => {
     signatureRef.current?.clear();
@@ -92,6 +120,12 @@ const UserForm = ({ mode = "create", activeUser, onClose, onSubmit, submitting =
   };
 
   const handleFormSubmit = async (data: UserFormValues) => {
+    // Edit + nothing actually changed: skip the update call entirely — a no-op Save just closes.
+    if ((mode === "edit" || mode === "bulk-edit") && isPayloadEqual(data, initialValues)) {
+      (onUnchanged ?? onClose)();
+      return;
+    }
+
     let signature = "";
     if (signatureRef.current && !signatureRef.current.isEmpty()) {
       signature = signatureRef.current.toDataURL("image/png");
@@ -105,7 +139,7 @@ const UserForm = ({ mode = "create", activeUser, onClose, onSubmit, submitting =
       status: data.status ? "active" : "disabled"
     };
 
-    if (!activeUser && data.password) payload.password = data.password;
+    if (!initialData && data.password) payload.password = data.password;
 
     if (data.userType !== UserTypes.ADMIN) {
       payload.phone = data.mobileNumber;
@@ -123,12 +157,12 @@ const UserForm = ({ mode = "create", activeUser, onClose, onSubmit, submitting =
 
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+      <form id={formId} onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("user") })
-            : activeUser
-              ? t("update", { entity: t("user") })
+            : initialData
+              ? `${t("update", { entity: t("user") })}${stepLabel ?? ""}`
               : t("create", { entity: t("user") })}
         </h2>
 
@@ -169,11 +203,12 @@ const UserForm = ({ mode = "create", activeUser, onClose, onSubmit, submitting =
               // Force lowercase: `lowercase` shows it lowercased as they type
               // (no cursor jump); setValueAs stores the lowercased value.
               className="lowercase"
+              autoComplete="off"
               {...register("email", {
                 setValueAs: (v) =>
                   typeof v === "string" ? v.toLowerCase() : v
               })}
-              disabled={isReadOnly || !!activeUser}
+              disabled={isReadOnly || !!initialData}
               error={!!errors.email}
               hint={errors.email?.message as string}
               maxLength={30}
@@ -181,16 +216,17 @@ const UserForm = ({ mode = "create", activeUser, onClose, onSubmit, submitting =
           </div>
 
           <div>
-            <Label required>{t("password")}</Label>
+            <Label required={!initialData}>{t("password")}</Label>
             <Input
               type="password"
-              disabled={isReadOnly || !!activeUser}
+              autoComplete="new-password"
+              disabled={isReadOnly || !!initialData}
               {...register("password")}
               error={!!errors.password}
               hint={errors.password?.message as string}
               maxLength={20}
             />
-            {!activeUser && !isReadOnly && (
+            {!initialData && !isReadOnly && (
               <div className="mt-2 space-y-1 text-xs text-gray-600 dark:text-gray-300">
                 {passwordChecks.map((item) => (
                   <div key={item.label} className="flex items-center gap-2">
@@ -207,10 +243,11 @@ const UserForm = ({ mode = "create", activeUser, onClose, onSubmit, submitting =
           </div>
 
           <div>
-            <Label required>{t("confirmPassword")}</Label>
+            <Label required={!initialData}>{t("confirmPassword")}</Label>
             <Input
               type="password"
-              disabled={isReadOnly || !!activeUser}
+              autoComplete="new-password"
+              disabled={isReadOnly || !!initialData}
               {...register("confirmPassword")}
               error={!!errors.confirmPassword}
               hint={errors.confirmPassword?.message as string}
@@ -278,7 +315,7 @@ const UserForm = ({ mode = "create", activeUser, onClose, onSubmit, submitting =
                       disabled={isReadOnly}
                       error={!!errors.locationGroup}
                       placeholder={t("select", { entity: t("location") })}
-                      initialSelectedOptions={seedOption(activeUser?.location, "locationName")}
+                      initialSelectedOptions={seedOption(initialData?.location, "locationName")}
                     />
                   )}
                 />
@@ -300,7 +337,7 @@ const UserForm = ({ mode = "create", activeUser, onClose, onSubmit, submitting =
                       disabled={isReadOnly}
                       error={!!errors.designation}
                       placeholder={t("select", { entity: t("designation") })}
-                      initialSelectedOptions={seedOption(activeUser?.designation, "designationName")}
+                      initialSelectedOptions={seedOption(initialData?.designation, "designationName")}
                     />
                   )}
                 />
@@ -322,7 +359,7 @@ const UserForm = ({ mode = "create", activeUser, onClose, onSubmit, submitting =
                       disabled={isReadOnly}
                       error={!!errors.department}
                       placeholder={t("select", { entity: t("department") })}
-                      initialSelectedOptions={seedOption(activeUser?.department, "departmentName")}
+                      initialSelectedOptions={seedOption(initialData?.department, "departmentName")}
                     />
                   )}
                 />
@@ -395,12 +432,12 @@ const UserForm = ({ mode = "create", activeUser, onClose, onSubmit, submitting =
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={submitting}>
+          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={submitting}>
-              {t("save")}
+            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+              {submitLabel ?? t("save")}
             </Button>
           ) : null}
         </div>

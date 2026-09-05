@@ -33,9 +33,15 @@ export interface IServiceRequest {
   requestTypesId?: string | null;
   serviceRequestId: string;
   notes: string[];
+  /** enabled/disabled toggle — distinct from `status`, which is the request's
+   * own workflow state (New/In Progress/Closed…), not an active/inactive flag. */
+  recordStatus: "enabled" | "disabled";
 }
 
-export class ServiceRequest extends Model<IServiceRequest> implements IServiceRequest {
+export class ServiceRequest
+  extends Model<IServiceRequest>
+  implements IServiceRequest
+{
   public id!: string; // Custom string id: "SR_..."
   public priority!: "Very High" | "High" | "Medium" | "Low";
   public applicationId!: string;
@@ -60,9 +66,10 @@ export class ServiceRequest extends Model<IServiceRequest> implements IServiceRe
   public requestTypesId!: string | null;
   public serviceRequestId!: string;
   public notes!: string[];
+  public recordStatus!: "enabled" | "disabled";
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
-  
+
   public comments?: any[];
   public attachments?: any[];
 }
@@ -163,6 +170,12 @@ ServiceRequest.init(
       type: DataTypes.ARRAY(DataTypes.TEXT),
       allowNull: false,
       defaultValue: []
+    },
+    recordStatus: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      defaultValue: "enabled",
+      field: "record_status"
     }
   },
   {
@@ -174,45 +187,66 @@ ServiceRequest.init(
 );
 
 // Parent Associations
-ServiceRequest.belongsTo(Application, { foreignKey: "application_id", as: "applicationDetails" });
-ServiceRequest.belongsTo(AssignmentGroup, { foreignKey: "assignment_group_id", as: "assignmentGroupDetails" });
-ServiceRequest.belongsTo(Environment, { foreignKey: "environment_id", as: "environmentDetails" });
-ServiceRequest.belongsTo(Workflow, { foreignKey: "workflow_id", as: "workflowDetails" });
-ServiceRequest.belongsTo(AppService, { foreignKey: "request_types_id", as: "requestTypesDetails" });
+ServiceRequest.belongsTo(Application, {
+  foreignKey: "application_id",
+  as: "applicationDetails"
+});
+ServiceRequest.belongsTo(AssignmentGroup, {
+  foreignKey: "assignment_group_id",
+  as: "assignmentGroupDetails"
+});
+ServiceRequest.belongsTo(Environment, {
+  foreignKey: "environment_id",
+  as: "environmentDetails"
+});
+ServiceRequest.belongsTo(Workflow, {
+  foreignKey: "workflow_id",
+  as: "workflowDetails"
+});
+ServiceRequest.belongsTo(AppService, {
+  foreignKey: "request_types_id",
+  as: "requestTypesDetails"
+});
 
 export class ServiceRequestModule extends Model {}
-ServiceRequestModule.init({
-  service_request_id: {
-    type: DataTypes.STRING,
-    primaryKey: true
+ServiceRequestModule.init(
+  {
+    service_request_id: {
+      type: DataTypes.STRING,
+      primaryKey: true
+    },
+    module_id: {
+      type: DataTypes.UUID,
+      primaryKey: true
+    }
   },
-  module_id: {
-    type: DataTypes.UUID,
-    primaryKey: true
+  {
+    sequelize,
+    tableName: "service_request_modules",
+    timestamps: false,
+    underscored: true
   }
-}, {
-  sequelize,
-  tableName: "service_request_modules",
-  timestamps: false,
-  underscored: true
-});
+);
 
 export class ServiceRequestRole extends Model {}
-ServiceRequestRole.init({
-  service_request_id: {
-    type: DataTypes.STRING,
-    primaryKey: true
+ServiceRequestRole.init(
+  {
+    service_request_id: {
+      type: DataTypes.STRING,
+      primaryKey: true
+    },
+    role_id: {
+      type: DataTypes.UUID,
+      primaryKey: true
+    }
   },
-  role_id: {
-    type: DataTypes.UUID,
-    primaryKey: true
+  {
+    sequelize,
+    tableName: "service_request_roles",
+    timestamps: false,
+    underscored: true
   }
-}, {
-  sequelize,
-  tableName: "service_request_roles",
-  timestamps: false,
-  underscored: true
-});
+);
 
 // Many-to-Many requested modules and roles
 ServiceRequest.belongsToMany(AppModule, {
@@ -238,6 +272,5 @@ AppRole.belongsToMany(ServiceRequest, {
   foreignKey: "role_id",
   otherKey: "service_request_id"
 });
-
 
 export default ServiceRequest;

@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
 import { useAsyncOptions } from "@/hooks/useAsyncOptions";
 import type { BulkSelection, ServerListParams } from "@/lib/query/listTypes";
-import { bulkDeleteUser, createUser, fetchUserOptions, updateUser } from "./User.api";
+import { bulkDeleteUser, bulkUpdateUser, createUser, fetchUserOptions, updateUser } from "./User.api";
 
 /** React Query keys (STANDARDS.md §2). */
 export const userKeys = {
@@ -62,6 +62,20 @@ export const useBulkDeleteUser = () => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
       toast(
         count && count > 1 ? `${count} users deleted successfully.` : "User deleted successfully.",
+        "success"
+      );
+      invalidate();
+    }
+  });
+};
+
+export const useBulkUpdateUser = () => {
+  const invalidate = useInvalidateUsers();
+  return useMutation({
+    mutationFn: (updates: { id: string; payload: Record<string, unknown> }[]) => bulkUpdateUser(updates),
+    onSuccess: (data) => {
+      toast(
+        data.count > 1 ? `${data.count} users updated successfully.` : "User updated successfully.",
         "success"
       );
       invalidate();

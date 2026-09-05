@@ -10,6 +10,7 @@ import {
   bulkCloneLimsPhrase,
   bulkCopyLimsPhrase,
   bulkDeleteLimsPhrase,
+  bulkRestoreLimsPhrase,
   bulkUpdateLimsPhrase,
   createLimsPhrase,
   fetchLimsPhraseAudit,
@@ -124,6 +125,29 @@ export const useBulkDeleteLimsPhrase = () => {
         count && count > 1
           ? `${count} pick lists removed successfully.`
           : "Pick list removed successfully.",
+        "success"
+      );
+      invalidate();
+    }
+  });
+};
+
+export const useBulkRestoreLimsPhrase = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: ({
+      selection,
+      changeReason
+    }: {
+      selection: BulkSelection;
+      changeReason: string;
+    }) => bulkRestoreLimsPhrase(selection, changeReason),
+    onSuccess: (_data, { selection }) => {
+      const count = selection.mode === "ids" ? selection.ids.length : undefined;
+      toast(
+        count && count > 1
+          ? `${count} pick lists restored successfully.`
+          : "Pick list restored successfully.",
         "success"
       );
       invalidate();

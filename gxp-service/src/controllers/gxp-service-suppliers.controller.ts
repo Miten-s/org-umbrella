@@ -2,6 +2,9 @@ import { Request, Response } from "express";
 import * as service from "../services/gxp-service-suppliers.service";
 import asyncHandler from "../middlewares/error.middleware";
 import { getPaginationOptions } from "../utils/pagination.util";
+import { buildBulkCrudRoutes } from "../utils/bulk-crud-factory";
+import Supplier from "../models/gxp-service-suppliers.model";
+import { CreateSupplierDto } from "../dtos/supplier.dto";
 
 export const createSupplier = asyncHandler(
   async (req: Request, res: Response) => {
@@ -20,7 +23,10 @@ export const getSuppliers = asyncHandler(
   async (req: Request, res: Response) => {
     const includeDisabled = req.query.includeDisabled === "true";
     const paginationOptions = getPaginationOptions(req.query);
-    const items = await service.listSuppliers(paginationOptions, includeDisabled);
+    const items = await service.listSuppliers(
+      paginationOptions,
+      includeDisabled
+    );
     return res.json(items);
   }
 );
@@ -119,3 +125,17 @@ export const bulkDuplicateSuppliers = asyncHandler(
     res.status(201).send(result);
   }
 );
+
+const bulkCrud = buildBulkCrudRoutes({
+  model: Supplier,
+  nameField: "supplierName",
+  maxNameLength: 20,
+  createDtoClass: CreateSupplierDto,
+  createOne: service.createSupplier,
+  updateOne: service.updateSupplier,
+  restore: service.enableSupplier
+});
+
+export const bulkCopySuppliers = bulkCrud.bulkCopy;
+export const bulkUpdateSuppliers = bulkCrud.bulkUpdate;
+export const bulkRestoreSuppliers = bulkCrud.bulkRestore!;

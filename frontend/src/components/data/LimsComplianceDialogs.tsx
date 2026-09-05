@@ -17,11 +17,14 @@ interface LimsComplianceDialogsProps<TRow extends { id: string }, TPayload> {
   onRestore: (reason: string) => Promise<void> | void;
   /** Bulk Edit's one shared reason for the whole reviewed batch — optional, unmigrated callers are unaffected. */
   onBulkUpdate?: (reason: string) => Promise<void> | void;
+  /** Bulk Restore's one shared reason for the whole selected batch — optional, unmigrated callers are unaffected. */
+  onBulkRestore?: (reason: string) => Promise<void> | void;
 
   updating?: boolean;
   deleting?: boolean;
   restoring?: boolean;
   bulkUpdating?: boolean;
+  bulkRestoring?: boolean;
 
   auditEntries: LimsAuditEntry[];
   auditLoading?: boolean;
@@ -42,10 +45,12 @@ function LimsComplianceDialogs<TRow extends { id: string }, TPayload>({
   onDelete,
   onRestore,
   onBulkUpdate,
+  onBulkRestore,
   updating = false,
   deleting = false,
   restoring = false,
   bulkUpdating = false,
+  bulkRestoring = false,
   auditEntries,
   auditLoading = false,
   auditHasNextPage = false,
@@ -108,6 +113,25 @@ function LimsComplianceDialogs<TRow extends { id: string }, TPayload>({
         }
         description={t("limsRestorePrompt", { entity: entityLabel })}
         onConfirm={(reason) => onRestore(reason ?? "")}
+      />
+
+      {/* Bulk Restore: one reason, applied to every selected record via its own restore call. */}
+      <ConfirmDialog
+        isOpen={compliance.pendingBulkRestore !== null}
+        onClose={compliance.clearBulkRestore}
+        loading={bulkRestoring}
+        tone="default"
+        requireReason
+        items={compliance.pendingBulkRestore?.names ?? []}
+        description={
+          (compliance.pendingBulkRestore?.count ?? 0) > 1
+            ? t("limsRestoreManyPrompt", {
+                count: compliance.pendingBulkRestore?.count ?? 0,
+                entity: entityLabelPlural
+              })
+            : t("limsRestorePrompt", { entity: entityLabel })
+        }
+        onConfirm={(reason) => onBulkRestore?.(reason ?? "")}
       />
 
       <AuditTrailDialog

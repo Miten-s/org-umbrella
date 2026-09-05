@@ -14,8 +14,9 @@ import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { limsGroupSchema, type LimsGroupFormValues } from "./LimsGroup.schema";
 import type { LimsGroup, LimsGroupPayload, LimsGroupRef } from "./LimsGroup.types";
 
-/** "copy" renders like "create" except `groupId` starts blank — Group has no server-minted
- * id, so it stays EDITABLE; the user must type a new unique one before Save succeeds. */
+/** "copy" renders like "create" except `groupId` starts at the `LIMS_` prefix hint (not the
+ * source's own id) — Group has no server-minted id, so it stays EDITABLE; the user must type
+ * a new unique one before Save succeeds. */
 export type LimsGroupFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsGroupFormProps {
@@ -62,9 +63,9 @@ const LimsGroupForm = ({
   // against, so Save is a no-op when nothing actually differs from it.
   const initialValues = useMemo<LimsGroupFormValues>(
     () => ({
-      // The spec prefixes LIMS group ids with `LIMS_`; Copy leaves it blank
-      // instead (see LimsGroupFormMode above).
-      groupId: mode === "copy" ? "" : (initialData?.groupId ?? "LIMS_"),
+      // The spec prefixes LIMS group ids with `LIMS_` — Copy still needs a brand
+      // new id (no server-minted one here), but should keep the hint, not blank it.
+      groupId: mode === "copy" ? "LIMS_" : (initialData?.groupId ?? "LIMS_"),
       name: initialData?.name ?? "",
       description: initialData?.description ?? "",
       ownedBy: initialData?.ownedBy?.id ?? ""

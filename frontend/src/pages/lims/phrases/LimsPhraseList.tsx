@@ -37,6 +37,7 @@ import {
   useCreateLimsPhrase,
   useLimsPhraseAudit,
   useRestoreLimsPhrase,
+  useBulkRestoreLimsPhrase,
   useUpdateLimsPhrase,
   useLimsPhraseById
 } from "./LimsPhrase.queries";
@@ -84,6 +85,7 @@ const LimsPhraseList = () => {
   const bulkDelete = useBulkDeleteLimsPhrase();
   const bulkUpdate = useBulkUpdateLimsPhrase();
   const restorePhrase = useRestoreLimsPhrase();
+  const bulkRestorePhrase = useBulkRestoreLimsPhrase();
 
   const busy =
     createPhrase.isPending ||
@@ -92,7 +94,8 @@ const LimsPhraseList = () => {
     bulkCopy.isPending ||
     bulkDelete.isPending ||
     bulkUpdate.isPending ||
-    restorePhrase.isPending;
+    restorePhrase.isPending ||
+    bulkRestorePhrase.isPending;
 
   const columnDefs = useMemo(() => getLimsPhraseColumns({ t }), [t]);
 
@@ -179,7 +182,7 @@ const LimsPhraseList = () => {
     () => [
       {
         key: "view",
-        label: () => t("view", { entity: t("limsPhrases") }),
+        label: () => t("limsView"),
         icon: EyeIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.VIEW_PHRASE,
@@ -193,7 +196,7 @@ const LimsPhraseList = () => {
       },
       {
         key: "clone",
-        label: (count) => (count > 1 ? "Copy pick lists" : "Copy pick list"),
+        label: () => t("limsCopy"),
         icon: CopyIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_PHRASE,
@@ -221,9 +224,30 @@ const LimsPhraseList = () => {
         }
       },
       {
+        key: "restore",
+        label: () => t("limsRestore"),
+        icon: CopyIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_PHRASE,
+        // Only offered when the current selection actually has something removed —
+        // an all-active selection would otherwise fire a no-op restore request.
+        hidden: (rows) => !rows.some((row) => row.isRemoved),
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          compliance.requestBulkRestore(
+            selection.ids,
+            table.rows
+              .filter((row) => selection.ids.includes(row.id))
+              .map((row) => row.name)
+          );
+        }
+      },
+      {
         key: "delete",
-        label: (count) =>
-          count > 1 ? "Remove pick lists" : "Remove pick list",
+        label: () => t("limsRemove"),
         icon: TrashBinIcon,
         variant: "destructive",
         permission: LIMS_PERMISSIONS.DELETE_PHRASE,
@@ -246,7 +270,7 @@ const LimsPhraseList = () => {
     () => [
       {
         key: "view",
-        label: "View pick list",
+        label: t("limsView"),
         icon: EyeIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_PHRASE,
@@ -254,7 +278,7 @@ const LimsPhraseList = () => {
       },
       {
         key: "edit",
-        label: "Edit pick list",
+        label: t("edit"),
         icon: PencilIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.UPDATE_PHRASE,
@@ -262,7 +286,7 @@ const LimsPhraseList = () => {
       },
       {
         key: "audit",
-        label: "Audit trail",
+        label: t("limsAudit"),
         icon: TimeIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.VIEW_PHRASE,
@@ -270,7 +294,7 @@ const LimsPhraseList = () => {
       },
       {
         key: "clone",
-        label: "Copy pick list",
+        label: t("limsCopy"),
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_PHRASE,
@@ -280,7 +304,7 @@ const LimsPhraseList = () => {
       },
       {
         key: "restore",
-        label: "Restore pick list",
+        label: t("limsRestore"),
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.UPDATE_PHRASE,
@@ -289,7 +313,7 @@ const LimsPhraseList = () => {
       },
       {
         key: "delete",
-        label: "Remove pick list",
+        label: t("limsRemove"),
         icon: TrashBinIcon,
         placement: "menu",
         tone: "danger",
@@ -303,7 +327,7 @@ const LimsPhraseList = () => {
           ])
       }
     ],
-    [compliance, openCopy, openForm]
+    [compliance, openCopy, openForm, t]
   );
 
   return (
@@ -398,6 +422,7 @@ const LimsPhraseList = () => {
         updating={updatePhrase.isPending}
         deleting={bulkDelete.isPending}
         restoring={restorePhrase.isPending}
+        bulkRestoring={bulkRestorePhrase.isPending}
         bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
@@ -437,6 +462,17 @@ const LimsPhraseList = () => {
             });
           }
           compliance.clearRestore();
+        }}
+        onBulkRestore={async (reason) => {
+          const pending = compliance.pendingBulkRestore;
+          if (pending) {
+            await bulkRestorePhrase.mutateAsync({
+              selection: { mode: "ids", ids: pending.ids },
+              changeReason: reason
+            });
+            table.clearSelection();
+          }
+          compliance.clearBulkRestore();
         }}
       />
     </div>

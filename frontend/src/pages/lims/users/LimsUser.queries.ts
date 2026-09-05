@@ -9,6 +9,7 @@ import {
   bulkCloneLimsUser,
   bulkCopyLimsUser,
   bulkDeleteLimsUser,
+  bulkRestoreLimsUser,
   bulkUpdateLimsUser,
   createLimsUser,
   fetchLimsUserAudit,
@@ -107,6 +108,29 @@ export const useBulkDeleteLimsUser = () => {
   });
 };
 
+export const useBulkRestoreLimsUser = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: ({
+      selection,
+      changeReason
+    }: {
+      selection: BulkSelection;
+      changeReason: string;
+    }) => bulkRestoreLimsUser(selection, changeReason),
+    onSuccess: (_data, { selection }) => {
+      const count = selection.mode === "ids" ? selection.ids.length : undefined;
+      toast(
+        count && count > 1
+          ? `${count} records restored successfully.`
+          : "Record restored successfully.",
+        "success"
+      );
+      invalidate();
+    }
+  });
+};
+
 export const useBulkCloneLimsUser = () => {
   const invalidate = useInvalidate();
   return useMutation({
@@ -124,20 +148,32 @@ export const useBulkCloneLimsUser = () => {
   });
 };
 
-/** The Copy flow's batched save (CopyStepper): one request creates every reviewed
- * record; a collision is warned, not rejected. */
+/** The Copy flow's batched save (CopyStepper): `userId` is a person reference, not a
+ * name — a collision is rejected per record, not auto-suffixed for the whole batch. */
 export const useBulkCopyLimsUser = () => {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: (records: LimsUserPayload[]) => bulkCopyLimsUser(records),
     onSuccess: (data) => {
       const warnings = data.results.filter((r) => r.warning);
-      toast(
-        data.count > 1
-          ? `${data.count} records copied successfully.`
-          : "Record copied successfully.",
-        "success"
-      );
+      const errors = data.results.filter((r) => r.error);
+      if (data.count) {
+        toast(
+          data.count > 1
+            ? `${data.count} records copied successfully.`
+            : "Record copied successfully.",
+          "success"
+        );
+      }
+      if (errors.length) {
+        toast(
+          errors.length === 1
+            ? errors[0].error!
+            : `${errors.length} record(s) could not be copied — see below.`,
+          "error",
+          { duration: 8000 }
+        );
+      }
       if (warnings.length) {
         toast(
           warnings.length === 1

@@ -842,9 +842,9 @@ const GxpServiceRequestForm = ({
       <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
         <h2 className="text-xl font-semibold">
           {isReadOnly
-            ? t("view", { entity: t("serviceRequests") })
+            ? t("view", { entity: t("serviceRequest") })
             : resolvedInitial
-              ? t("edit")
+              ? t("update", { entity: t("serviceRequest") })
               : t("gxpCreateNewServiceRequest")}
         </h2>
 

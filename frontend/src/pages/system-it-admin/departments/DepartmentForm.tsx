@@ -8,18 +8,32 @@ import TextArea from "@/components/common/form/input/TextArea";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import { useUserOptions } from "@/pages/system-it-admin/users/User.queries";
 import { useLocationOptions } from "@/pages/system-it-admin/locations/Location.queries";
+import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { departmentSchema, type DepartmentFormValues } from "./Department.schema";
 import type { Department } from "./Department.types";
 import type { AsyncOption } from "@/lib/query/listTypes";
 
-export type DepartmentFormMode = "create" | "edit" | "view";
+export type DepartmentFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface DepartmentFormProps {
   mode?: DepartmentFormMode;
   initialData?: Department | null;
   onClose: () => void;
+  onUnchanged?: () => void;
   onSubmit: (values: DepartmentFormValues) => Promise<void> | void;
   submitting?: boolean;
+  /** Overrides the submit button's label — CopyStepper uses this to say
+   * "Next" on every step but the last, where the batch actually saves. */
+  submitLabel?: string;
+  /** Grays out the submit button without a spinner — EditStepper uses
+   * this on the last step now that its own Save button lives outside it. */
+  disabled?: boolean;
+  /** Set on the `<form>` element so an outside button (CopyStepper's
+   * header Next/Save) can submit it via `<Button form={formId}>`. */
+  formId?: string;
+  /** " (2 of 5)" appended after the title when Copy/Edit is reviewing
+   * more than one record — undefined otherwise. */
+  stepLabel?: string;
 }
 
 const seed = (
@@ -29,13 +43,31 @@ const seed = (
   ref?.id && ref[labelKey] ? [{ value: ref.id, label: ref[labelKey] as string }] : undefined;
 
 /**
- * Department create/edit/view form. Manager (User) and Location dropdowns use
+ * Department create/edit/view/copy/bulk-edit form. Manager (User) and Location dropdowns use
  * AsyncSelect (never load-all); labels are seeded from the record's nested refs
  * so they show correctly on edit (STANDARDS.md §5, MIGRATION §4).
  */
-const DepartmentForm = ({ mode = "create", initialData, onClose, onSubmit, submitting = false }: DepartmentFormProps) => {
+const DepartmentForm = ({
+  mode = "create",
+  initialData,
+  onClose,
+  onUnchanged,
+  onSubmit,
+  submitting = false,
+  submitLabel,
+  disabled = false,
+  formId,
+  stepLabel
+}: DepartmentFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
+
+  const initialValues: DepartmentFormValues = {
+    departmentName: initialData?.departmentName || "",
+    description: initialData?.description || "",
+    departmentManager: initialData?.departmentManager?.id || "",
+    departmentGroupLocation: initialData?.departmentGroupLocation?.id || ""
+  };
 
   const {
     register,
@@ -45,12 +77,7 @@ const DepartmentForm = ({ mode = "create", initialData, onClose, onSubmit, submi
     formState: { errors, isSubmitting }
   } = useForm<DepartmentFormValues>({
     resolver: zodResolver(departmentSchema),
-    defaultValues: {
-      departmentName: initialData?.departmentName || "",
-      description: initialData?.description || "",
-      departmentManager: initialData?.departmentManager?.id || "",
-      departmentGroupLocation: initialData?.departmentGroupLocation?.id || ""
-    }
+    defaultValues: initialValues
   });
 
   const description = useWatch({ control, name: "description" });
@@ -58,13 +85,26 @@ const DepartmentForm = ({ mode = "create", initialData, onClose, onSubmit, submi
 
   return (
     <div className="max-h-[120vh] overflow-y-auto bg-white p-6 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-      <form onSubmit={handleSubmit((values) => onSubmit(values))} className="space-y-4">
+      <form
+        id={formId}
+        onSubmit={handleSubmit((values) => {
+          // Edit + nothing actually changed: skip the update call entirely — a no-op Save just closes.
+          if ((mode === "edit" || mode === "bulk-edit") && isPayloadEqual(values, initialValues)) {
+            (onUnchanged ?? onClose)();
+            return;
+          }
+          onSubmit(values);
+        })}
+        className="space-y-4"
+      >
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("department") })
-            : initialData
-              ? t("update", { entity: t("department") })
-              : t("create", { entity: t("department") })}
+            : mode === "copy"
+              ? `${t("copyEntity", { entity: t("department") })}${stepLabel ?? ""}`
+              : initialData
+                ? `${t("update", { entity: t("department") })}${stepLabel ?? ""}`
+                : t("create", { entity: t("department") })}
         </h2>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -141,8 +181,8 @@ const DepartmentForm = ({ mode = "create", initialData, onClose, onSubmit, submi
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy}>
-              {t("save")}
+            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+              {submitLabel ?? t("save")}
             </Button>
           ) : null}
         </div>

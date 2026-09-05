@@ -1,5 +1,6 @@
 import api from "@/utils/axios.interceptor";
 import { buildServerParams, toListResult, toOptionsPage } from "@/lib/query/listAdapter";
+import { normalizeIdWithRelations } from "@/lib/query/normalizeId";
 import { bulkSelectionToBody, type BulkSelection } from "@/lib/query/listTypes";
 import type { ServerListParams } from "@/lib/query/listTypes";
 import type { Department, DepartmentPayload } from "./Department.types";
@@ -50,4 +51,30 @@ export const bulkDeleteDepartment = async (selection: BulkSelection) => {
 export const bulkCloneDepartment = async (selection: BulkSelection) => {
   const response = await api.post(`${ROUTE}/bulk-duplicate`, bulkSelectionToBody(selection));
   return response.data;
+};
+
+/** Full-detail fetch for the Copy/Edit/View review steppers. */
+export const fetchDepartmentById = async (id: string, signal?: AbortSignal) => {
+  const response = await api.get(`${ROUTE}/${id}`, { signal });
+  return normalizeIdWithRelations(response.data?.department ?? response.data, RELATION_KEYS) as Department;
+};
+
+/** The Copy flow's batched save — one request creates every reviewed record. */
+export const bulkCopyDepartment = async (records: DepartmentPayload[]) => {
+  const response = await api.post(`${ROUTE}/bulk-copy`, { records });
+  return response.data as {
+    message: string;
+    count: number;
+    results: { id: string; warning?: string }[];
+  };
+};
+
+/** Bulk Edit's batched save — only the records actually reviewed and changed. */
+export const bulkUpdateDepartment = async (updates: { id: string; payload: DepartmentPayload }[]) => {
+  const response = await api.patch(`${ROUTE}/bulk-update`, { updates });
+  return response.data as {
+    message: string;
+    count: number;
+    results: { id: string; skipped?: boolean }[];
+  };
 };

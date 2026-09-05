@@ -37,6 +37,7 @@ import {
   useCreateLimsRole,
   useLimsRoleAudit,
   useRestoreLimsRole,
+  useBulkRestoreLimsRole,
   useUpdateLimsRole,
   useLimsRoleById
 } from "./LimsRole.queries";
@@ -84,6 +85,7 @@ const LimsRoleList = () => {
   const bulkDelete = useBulkDeleteLimsRole();
   const bulkUpdate = useBulkUpdateLimsRole();
   const restoreRole = useRestoreLimsRole();
+  const bulkRestoreRole = useBulkRestoreLimsRole();
 
   const busy =
     createRole.isPending ||
@@ -92,7 +94,8 @@ const LimsRoleList = () => {
     bulkCopy.isPending ||
     bulkDelete.isPending ||
     bulkUpdate.isPending ||
-    restoreRole.isPending;
+    restoreRole.isPending ||
+    bulkRestoreRole.isPending;
 
   const columnDefs = useMemo(() => getLimsRoleColumns({ t }), [t]);
 
@@ -179,7 +182,7 @@ const LimsRoleList = () => {
     () => [
       {
         key: "view",
-        label: () => t("view", { entity: t("limsRoles") }),
+        label: () => t("limsView"),
         icon: EyeIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.VIEW_ROLE,
@@ -193,7 +196,7 @@ const LimsRoleList = () => {
       },
       {
         key: "clone",
-        label: (count) => (count > 1 ? "Copy roles" : "Copy role"),
+        label: () => t("limsCopy"),
         icon: CopyIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_ROLE,
@@ -221,8 +224,30 @@ const LimsRoleList = () => {
         }
       },
       {
+        key: "restore",
+        label: () => t("limsRestore"),
+        icon: CopyIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_ROLE,
+        // Only offered when the current selection actually has something removed —
+        // an all-active selection would otherwise fire a no-op restore request.
+        hidden: (rows) => !rows.some((row) => row.isRemoved),
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          compliance.requestBulkRestore(
+            selection.ids,
+            table.rows
+              .filter((row) => selection.ids.includes(row.id))
+              .map((row) => row.name)
+          );
+        }
+      },
+      {
         key: "delete",
-        label: (count) => (count > 1 ? "Remove roles" : "Remove role"),
+        label: () => t("limsRemove"),
         icon: TrashBinIcon,
         variant: "destructive",
         permission: LIMS_PERMISSIONS.DELETE_ROLE,
@@ -245,7 +270,7 @@ const LimsRoleList = () => {
     () => [
       {
         key: "view",
-        label: "View role",
+        label: t("limsView"),
         icon: EyeIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_ROLE,
@@ -253,7 +278,7 @@ const LimsRoleList = () => {
       },
       {
         key: "edit",
-        label: "Edit role",
+        label: t("edit"),
         icon: PencilIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.UPDATE_ROLE,
@@ -261,7 +286,7 @@ const LimsRoleList = () => {
       },
       {
         key: "audit",
-        label: "Audit trail",
+        label: t("limsAudit"),
         icon: TimeIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.VIEW_ROLE,
@@ -269,7 +294,7 @@ const LimsRoleList = () => {
       },
       {
         key: "clone",
-        label: "Copy role",
+        label: t("limsCopy"),
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_ROLE,
@@ -277,7 +302,7 @@ const LimsRoleList = () => {
       },
       {
         key: "restore",
-        label: "Restore role",
+        label: t("limsRestore"),
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.UPDATE_ROLE,
@@ -286,7 +311,7 @@ const LimsRoleList = () => {
       },
       {
         key: "delete",
-        label: "Remove role",
+        label: t("limsRemove"),
         icon: TrashBinIcon,
         placement: "menu",
         tone: "danger",
@@ -298,7 +323,7 @@ const LimsRoleList = () => {
           ])
       }
     ],
-    [compliance, openCopy, openForm]
+    [compliance, openCopy, openForm, t]
   );
 
   return (
@@ -393,6 +418,7 @@ const LimsRoleList = () => {
         updating={updateRole.isPending}
         deleting={bulkDelete.isPending}
         restoring={restoreRole.isPending}
+        bulkRestoring={bulkRestoreRole.isPending}
         bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
@@ -432,6 +458,17 @@ const LimsRoleList = () => {
             });
           }
           compliance.clearRestore();
+        }}
+        onBulkRestore={async (reason) => {
+          const pending = compliance.pendingBulkRestore;
+          if (pending) {
+            await bulkRestoreRole.mutateAsync({
+              selection: { mode: "ids", ids: pending.ids },
+              changeReason: reason
+            });
+            table.clearSelection();
+          }
+          compliance.clearBulkRestore();
         }}
       />
     </div>

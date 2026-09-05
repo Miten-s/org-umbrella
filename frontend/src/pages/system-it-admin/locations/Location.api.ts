@@ -64,3 +64,30 @@ export const bulkCloneLocation = async (selection: BulkSelection) => {
   const response = await api.post(`${ROUTE}/bulk-duplicate`, bulkSelectionToBody(selection));
   return response.data;
 };
+
+/** Full-detail fetch for the Copy/Edit/View review steppers — distinct from
+ *  `resolveLocationByIds`, which seeds AsyncSelect labels in a different shape. */
+export const fetchLocationById = async (id: string, signal?: AbortSignal) => {
+  const response = await api.get(`${ROUTE}/${id}`, { signal });
+  return normalizeId(response.data?.location ?? response.data?.data ?? response.data) as Location;
+};
+
+/** The Copy flow's batched save — one request creates every reviewed record. */
+export const bulkCopyLocation = async (records: LocationPayload[]) => {
+  const response = await api.post(`${ROUTE}/bulk-copy`, { records });
+  return response.data as {
+    message: string;
+    count: number;
+    results: { id: string; warning?: string }[];
+  };
+};
+
+/** Bulk Edit's batched save — only the records actually reviewed and changed. */
+export const bulkUpdateLocation = async (updates: { id: string; payload: LocationPayload }[]) => {
+  const response = await api.patch(`${ROUTE}/bulk-update`, { updates });
+  return response.data as {
+    message: string;
+    count: number;
+    results: { id: string; skipped?: boolean }[];
+  };
+};

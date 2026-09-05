@@ -51,6 +51,7 @@ const CreateRoleModal = ({
   });
 
   const selectedPermissions = watch("permissions");
+  const nameValue = watch("name");
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -67,7 +68,18 @@ const CreateRoleModal = ({
     }
   }, [clearErrors, selectedPermissions.length]);
 
+  useEffect(() => {
+    if (nameValue?.trim()) clearErrors("name");
+  }, [clearErrors, nameValue]);
+
   const onFormSubmit = (data: { name: string; permissions: string[] }) => {
+    if (!data.name?.trim()) {
+      setError("name", {
+        type: "manual",
+        message: t("roleNameRequired", { defaultValue: "Role name is required." })
+      });
+      return;
+    }
     if (!data.permissions?.length) {
       setError("permissions", {
         type: "manual",
@@ -91,7 +103,7 @@ const CreateRoleModal = ({
         <div className="space-y-6">
           {/* Role Name */}
           <div>
-            <Label htmlFor="name">{t("roleName")}</Label>
+            <Label htmlFor="name" required>{t("roleName")}</Label>
             <Input
               id="name"
               type="text"
@@ -100,6 +112,7 @@ const CreateRoleModal = ({
               {...register("name", { required: true })}
               className="mt-1 w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm"
             />
+            {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>}
           </div>
           {!isFixedType && (
             <div className="flex items-center gap-2">

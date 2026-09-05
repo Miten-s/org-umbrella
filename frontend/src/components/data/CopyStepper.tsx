@@ -32,7 +32,7 @@ export interface CopyStepperProps<TRecord, TPayload> {
   fetchById: (id: string, signal?: AbortSignal) => Promise<TRecord>;
   FormComponent: React.ComponentType<CopyStepperFormProps<TRecord, TPayload>>;
   // Fires once, on Save-all, with every REVIEWED record; never-opened records go through
-  // `onDuplicateUnreviewed` instead and are excluded here.
+  // `onDuplicateUnreviewed` (or are dropped, see `dropNeverOpened`) and are excluded here.
   onSaveAll: (payloads: TPayload[]) => void | Promise<void>;
   onClose: () => void;
   saving?: boolean;
@@ -40,6 +40,12 @@ export interface CopyStepperProps<TRecord, TPayload> {
   // Fast path for never-opened records: skip fetch+form+flatten and send their ids straight
   // to the module's existing server-side bulkDuplicate instead. Omit to always fetch+review.
   onDuplicateUnreviewed?: (ids: string[]) => Promise<void>;
+  // For a unique field that's actually a reference to something else (e.g. Lab User's
+  // `userId`, a specific platform user) rather than a name — auto-suffixing it on Copy
+  // produces a value that matches nothing real, so there is no safe unreviewed fast path.
+  // A never-opened record is silently left out of the batch instead: not saved, not cloned,
+  // not an error. Ignored (and `onDuplicateUnreviewed` takes over) if both are passed.
+  dropNeverOpened?: boolean;
 }
 
 /**
@@ -53,7 +59,8 @@ function CopyStepper<TRecord, TPayload>({
   onSaveAll,
   onClose,
   saving = false,
-  onDuplicateUnreviewed
+  onDuplicateUnreviewed,
+  dropNeverOpened = false
 }: CopyStepperProps<TRecord, TPayload>) {
   const { t } = useTranslation();
   // Per-step id (`${formId}-${i}`): more than one step can be mounted at once, so a shared id would be invalid HTML.
@@ -88,6 +95,9 @@ function CopyStepper<TRecord, TPayload>({
   // `onSaveAll`'s payload; the in-flight call itself, awaited alongside the reviewed batch.
   const duplicatedIndicesRef = useRef<Set<number>>(new Set());
   const duplicatePromiseRef = useRef<Promise<void> | null>(null);
+  // Never-opened indices under `dropNeverOpened` — excluded from `onSaveAll` too, but with
+  // no call of any kind made for them (contrast `duplicatedIndicesRef` above).
+  const droppedIndicesRef = useRef<Set<number>>(new Set());
   // True from Save-all click until the sweep finishes — distinct from `saving`, which only
   // reflects the network request that follows.
   const [autoSubmitting, setAutoSubmitting] = useState(false);
@@ -95,6 +105,9 @@ function CopyStepper<TRecord, TPayload>({
   // covered by the two batch calls that follow (no per-record progress inside one POST).
   const [sweepProgress, setSweepProgress] = useState<{ current: number; total: number } | null>(null);
   const [finalizingCount, setFinalizingCount] = useState<number | null>(null);
+  // Indices whose `loadSource` rejected — rendered as an error state instead of
+  // leaving the step spinning forever (see the plain per-step load effect below).
+  const [sourceErrors, setSourceErrors] = useState<number[]>([]);
 
   const clearSweep = () => {
     sweepRef.current = null;
@@ -131,9 +144,11 @@ function CopyStepper<TRecord, TPayload>({
     setIndex(0);
     setDisplayIndex(0);
     setVisited([0]);
+    setSourceErrors([]);
     clearSweep();
     duplicatedIndicesRef.current = new Set();
     duplicatePromiseRef.current = null;
+    droppedIndicesRef.current = new Set();
     // Re-fetch only when the actual set of selected ids changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ids.join(",")]);
@@ -141,7 +156,10 @@ function CopyStepper<TRecord, TPayload>({
   // Loads whichever step is currently on screen, if it hasn't been
   // fetched yet. Save-all's sweep loads every OTHER step itself.
   useEffect(() => {
-    loadSource(index);
+    loadSource(index).catch(() => {
+      setSourceErrors((prev) => (prev.includes(index) ? prev : [...prev, index]));
+      toast(t("copySourceLoadFailed", { current: index + 1 }), "error");
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, ids.join(",")]);
 
@@ -218,21 +236,35 @@ function CopyStepper<TRecord, TPayload>({
         }
         // Records routed to `onDuplicateUnreviewed` never went through their own form, so
         // `next[pi]` is still `undefined` for them — exclude, don't fall back to raw source.
+        // Dropped (never-opened, under `dropNeverOpened`) records are excluded the same way.
         const duplicated = duplicatedIndicesRef.current;
+        const dropped = droppedIndicesRef.current;
         const reviewed: TPayload[] = [];
         next.forEach((p, pi) => {
-          if (duplicated.has(pi)) return;
+          if (duplicated.has(pi) || dropped.has(pi)) return;
           reviewed.push(p ?? (sourcesRef.current[pi] as unknown as TPayload));
         });
         const duplicatePromise = duplicatePromiseRef.current;
         const duplicateCount = duplicated.size;
+        const droppedCount = dropped.size;
         duplicatedIndicesRef.current = new Set();
         duplicatePromiseRef.current = null;
+        droppedIndicesRef.current = new Set();
         setSweepProgress(null);
+
+        // Everything selected was dropped (never opened) — nothing to send at all; an empty
+        // `records[]` would itself fail the batch endpoint's own non-empty validation.
+        if (!reviewed.length && !duplicatePromise) {
+          setAutoSubmitting(false);
+          toast(t("copyNothingReviewed"), "info");
+          return;
+        }
+
         setFinalizingCount(reviewed.length + duplicateCount);
         try {
           // Run concurrently — two independent network calls, nothing to hand off between them.
-          await Promise.all([duplicatePromise, onSaveAll(reviewed)]);
+          await Promise.all([duplicatePromise, reviewed.length ? onSaveAll(reviewed) : null]);
+          if (droppedCount) toast(t("copySkippedUnreviewed", { count: droppedCount }), "info");
         } finally {
           setAutoSubmitting(false);
           setFinalizingCount(null);
@@ -251,10 +283,12 @@ function CopyStepper<TRecord, TPayload>({
   };
 
   // The only save trigger: current step always re-swept; every other never-committed step is
-  // swept too, or routed to `onDuplicateUnreviewed` if never opened.
+  // swept too, or excluded if never opened (routed to `onDuplicateUnreviewed`, or under
+  // `dropNeverOpened`, just left out of the batch entirely).
   const handleSaveAllClick = () => {
     if (busy) return;
-    const neverOpened = onDuplicateUnreviewed
+    const skipsNeverOpened = Boolean(onDuplicateUnreviewed) || dropNeverOpened;
+    const neverOpened = skipsNeverOpened
       ? Array.from({ length: total }, (_, i) => i).filter(
           (i) => i !== index && !visited.includes(i) && payloadsRef.current[i] === undefined
         )
@@ -263,10 +297,17 @@ function CopyStepper<TRecord, TPayload>({
       (i) => i !== index && payloadsRef.current[i] === undefined && !neverOpened.includes(i)
     );
     const toSubmit = [index, ...uncommitted];
-    duplicatedIndicesRef.current = new Set(neverOpened);
-    duplicatePromiseRef.current = neverOpened.length
-      ? onDuplicateUnreviewed!(neverOpened.map((i) => ids[i]))
-      : null;
+    if (dropNeverOpened) {
+      droppedIndicesRef.current = new Set(neverOpened);
+      duplicatedIndicesRef.current = new Set();
+      duplicatePromiseRef.current = null;
+    } else {
+      duplicatedIndicesRef.current = new Set(neverOpened);
+      duplicatePromiseRef.current = neverOpened.length
+        ? onDuplicateUnreviewed!(neverOpened.map((i) => ids[i]))
+        : null;
+      droppedIndicesRef.current = new Set();
+    }
     setAutoSubmitting(true);
     setSweepProgress(toSubmit.length ? { current: 1, total: toSubmit.length } : null);
     sweepRef.current = toSubmit;
@@ -312,9 +353,20 @@ function CopyStepper<TRecord, TPayload>({
             }
           >
             {sources[i] === undefined ? (
-              <div className="flex min-h-[300px] items-center justify-center p-10">
-                <LoadingSpinner fullScreen={false} />
-              </div>
+              sourceErrors.includes(i) ? (
+                <div className="flex min-h-[300px] flex-col items-center justify-center gap-4 p-10 text-center">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {t("copySourceLoadFailed", { current: i + 1 })}
+                  </p>
+                  <Button variant="outline" onClick={onClose}>
+                    {t("cancel")}
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex min-h-[300px] items-center justify-center p-10">
+                  <LoadingSpinner fullScreen={false} />
+                </div>
+              )
             ) : (
               <FormComponent
                 // A fresh, STABLE instance per record, never re-keyed — so its own edits and

@@ -102,7 +102,7 @@ const bulkDuplicateDesignations = async (ids: string[], user?: any) => {
 
       let maxIndex = 0;
       similarDesignationsResult.forEach((desig: any) => {
-        const match = desig.designationName.match(new RegExp(regexStr, 'i'));
+        const match = desig.designationName.match(new RegExp(regexStr, "i"));
         if (match && match[1]) {
           const index = parseInt(match[1], 10);
           if (index > maxIndex) maxIndex = index;
@@ -111,20 +111,123 @@ const bulkDuplicateDesignations = async (ids: string[], user?: any) => {
 
       const newName = `${baseName}-(${maxIndex + 1})`;
 
-      const savedDesignation = await Designation.create({
-        designationName: newName,
-        description: sourceDesignation.description,
-        status: sourceDesignation.status,
-        deletedAt: null,
-        modifiedOn: new Date(),
-        modifiedBy: user?.id || user?._id
-      } as any, { transaction: t });
+      const savedDesignation = await Designation.create(
+        {
+          designationName: newName,
+          description: sourceDesignation.description,
+          status: sourceDesignation.status,
+          deletedAt: null,
+          modifiedOn: new Date(),
+          modifiedBy: user?.id || user?._id
+        } as any,
+        { transaction: t }
+      );
 
       duplicatedDesignations.push(savedDesignation);
     }
 
     await t.commit();
     return duplicatedDesignations.map(formatDesignation);
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
+};
+
+// The Copy flow's batched save — one request creates every reviewed record. A name
+// collision is warned, not rejected (same "-(N)" suffix logic as bulkDuplicateDesignations).
+const bulkCopyDesignations = async (
+  records: Record<string, any>[],
+  user?: any
+) => {
+  const t = await sequelize.transaction();
+  try {
+    const modifier = user?.id || user?._id;
+    const results: { id: string; warning?: string }[] = [];
+
+    for (const raw of records) {
+      let name = String(raw.designationName || "").trim();
+      let warning: string | undefined;
+
+      const collision = await Designation.findOne({
+        where: {
+          designationName: { [Op.iLike]: name.replace(/[%_\\]/g, "\\$&") }
+        },
+        transaction: t
+      });
+
+      if (collision) {
+        let baseName = name;
+        const nameMatch = baseName.match(/^(.*)-\((\d+)\)$/);
+        if (nameMatch) baseName = nameMatch[1];
+
+        const escapedBaseName = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const regexStr = `^${escapedBaseName}(?:-\\(([0-9]+)\\))?$`;
+
+        const similar = await Designation.findAll({
+          where: { designationName: { [Op.iRegexp]: regexStr } },
+          transaction: t
+        });
+
+        let maxIndex = 0;
+        similar.forEach((desig: any) => {
+          const match = desig.designationName.match(new RegExp(regexStr, "i"));
+          if (match && match[1])
+            maxIndex = Math.max(maxIndex, parseInt(match[1], 10));
+        });
+
+        const suffixed = `${baseName}-(${maxIndex + 1})`;
+        warning = `"${name}" is already in use — saved as "${suffixed}".`;
+        name = suffixed;
+      }
+
+      const created = await Designation.create(
+        {
+          ...raw,
+          designationName: name,
+          modifiedBy: modifier,
+          modifiedOn: new Date()
+        } as any,
+        { transaction: t }
+      );
+
+      results.push({ id: created.id, warning });
+    }
+
+    await t.commit();
+    return results;
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
+};
+
+// Bulk Edit's batched save — only the records the reviewer actually reviewed and changed.
+// A missing id (deleted by someone else meanwhile) is skipped, not fatal to the rest.
+const bulkUpdateDesignations = async (
+  updates: { id: string; payload: Record<string, any> }[],
+  user?: any
+) => {
+  const t = await sequelize.transaction();
+  try {
+    const modifier = user?.id || user?._id;
+    const results: { id: string; skipped?: boolean }[] = [];
+
+    for (const { id, payload } of updates) {
+      const existing = await Designation.findByPk(id, { transaction: t });
+      if (!existing) {
+        results.push({ id, skipped: true });
+        continue;
+      }
+      await existing.update(
+        { ...payload, modifiedBy: modifier, modifiedOn: new Date() } as any,
+        { transaction: t }
+      );
+      results.push({ id });
+    }
+
+    await t.commit();
+    return results;
   } catch (error) {
     await t.rollback();
     throw error;
@@ -138,5 +241,7 @@ export {
   updateDesignation,
   deleteDesignation,
   bulkDeleteDesignations,
-  bulkDuplicateDesignations
+  bulkDuplicateDesignations,
+  bulkCopyDesignations,
+  bulkUpdateDesignations
 };

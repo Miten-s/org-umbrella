@@ -15,8 +15,13 @@ export const createUserService = async (data: any) => {
   return await createUserRepo(data);
 };
 
-export const getAllUsersService = async (options: PaginationOptions) => {
-  const result = await findAllUsersRepo(options);
+export const getAllUsersService = async (
+  options: PaginationOptions,
+  includeDisabled = false
+) => {
+  const filter: any = {};
+  if (!includeDisabled) filter.status = "enabled";
+  const result = await findAllUsersRepo(filter, options);
   const usersWithRoles = await Promise.all(
     result.data.map(async (user: any) => {
       return {
@@ -28,6 +33,17 @@ export const getAllUsersService = async (options: PaginationOptions) => {
     })
   );
   return { ...result, data: usersWithRoles };
+};
+
+export const getUserService = async (id: string) => {
+  const user = await findUserByIdRepo(id);
+  if (!user) return null;
+  return {
+    ...user,
+    roles: await fetchRolesFromAuthService(
+      Array.isArray((user as any).roles) ? (user as any).roles : [(user as any).roles]
+    )
+  };
 };
 
 export const updateUserService = async (id: string, data: any) => {

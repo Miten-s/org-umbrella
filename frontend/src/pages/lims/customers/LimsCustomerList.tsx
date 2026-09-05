@@ -37,6 +37,7 @@ import {
   useCreateLimsCustomer,
   useLimsCustomerAudit,
   useRestoreLimsCustomer,
+  useBulkRestoreLimsCustomer,
   useUpdateLimsCustomer,
   useLimsCustomerById
 } from "./LimsCustomer.queries";
@@ -87,6 +88,7 @@ const LimsCustomerList = () => {
   const bulkDelete = useBulkDeleteLimsCustomer();
   const bulkUpdate = useBulkUpdateLimsCustomer();
   const restoreCustomer = useRestoreLimsCustomer();
+  const bulkRestoreCustomer = useBulkRestoreLimsCustomer();
 
   const busy =
     createCustomer.isPending ||
@@ -95,7 +97,8 @@ const LimsCustomerList = () => {
     bulkCopy.isPending ||
     bulkDelete.isPending ||
     bulkUpdate.isPending ||
-    restoreCustomer.isPending;
+    restoreCustomer.isPending ||
+    bulkRestoreCustomer.isPending;
 
   const columnDefs = useMemo(() => getLimsCustomerColumns({ t }), [t]);
 
@@ -183,7 +186,7 @@ const LimsCustomerList = () => {
     () => [
       {
         key: "view",
-        label: () => t("view", { entity: t("limsCustomers") }),
+        label: () => t("limsView"),
         icon: EyeIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.VIEW_CUSTOMER,
@@ -197,7 +200,7 @@ const LimsCustomerList = () => {
       },
       {
         key: "clone",
-        label: (count) => (count > 1 ? "Copy customers" : "Copy customer"),
+        label: () => t("limsCopy"),
         icon: CopyIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_CUSTOMER,
@@ -225,8 +228,30 @@ const LimsCustomerList = () => {
         }
       },
       {
+        key: "restore",
+        label: () => t("limsRestore"),
+        icon: CopyIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_CUSTOMER,
+        // Only offered when the current selection actually has something removed —
+        // an all-active selection would otherwise fire a no-op restore request.
+        hidden: (rows) => !rows.some((row) => row.isRemoved),
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          compliance.requestBulkRestore(
+            selection.ids,
+            table.rows
+              .filter((row) => selection.ids.includes(row.id))
+              .map((row) => row.customerName)
+          );
+        }
+      },
+      {
         key: "delete",
-        label: (count) => (count > 1 ? "Remove customers" : "Remove customer"),
+        label: () => t("limsRemove"),
         icon: TrashBinIcon,
         variant: "destructive",
         permission: LIMS_PERMISSIONS.DELETE_CUSTOMER,
@@ -249,7 +274,7 @@ const LimsCustomerList = () => {
     () => [
       {
         key: "view",
-        label: "View customer",
+        label: t("limsView"),
         icon: EyeIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_CUSTOMER,
@@ -257,7 +282,7 @@ const LimsCustomerList = () => {
       },
       {
         key: "edit",
-        label: "Edit customer",
+        label: t("edit"),
         icon: PencilIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.UPDATE_CUSTOMER,
@@ -265,7 +290,7 @@ const LimsCustomerList = () => {
       },
       {
         key: "audit",
-        label: "Audit trail",
+        label: t("limsAudit"),
         icon: TimeIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.VIEW_CUSTOMER,
@@ -273,7 +298,7 @@ const LimsCustomerList = () => {
       },
       {
         key: "clone",
-        label: "Copy customer",
+        label: t("limsCopy"),
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_CUSTOMER,
@@ -282,7 +307,7 @@ const LimsCustomerList = () => {
       },
       {
         key: "restore",
-        label: "Restore customer",
+        label: t("limsRestore"),
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.UPDATE_CUSTOMER,
@@ -291,7 +316,7 @@ const LimsCustomerList = () => {
       },
       {
         key: "delete",
-        label: "Remove customer",
+        label: t("limsRemove"),
         icon: TrashBinIcon,
         placement: "menu",
         tone: "danger",
@@ -303,7 +328,7 @@ const LimsCustomerList = () => {
           ])
       }
     ],
-    [compliance, openCopy, openForm]
+    [compliance, openCopy, openForm, t]
   );
 
   return (
@@ -398,6 +423,7 @@ const LimsCustomerList = () => {
         updating={updateCustomer.isPending}
         deleting={bulkDelete.isPending}
         restoring={restoreCustomer.isPending}
+        bulkRestoring={bulkRestoreCustomer.isPending}
         bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
@@ -437,6 +463,17 @@ const LimsCustomerList = () => {
             });
           }
           compliance.clearRestore();
+        }}
+        onBulkRestore={async (reason) => {
+          const pending = compliance.pendingBulkRestore;
+          if (pending) {
+            await bulkRestoreCustomer.mutateAsync({
+              selection: { mode: "ids", ids: pending.ids },
+              changeReason: reason
+            });
+            table.clearSelection();
+          }
+          compliance.clearBulkRestore();
         }}
       />
     </div>

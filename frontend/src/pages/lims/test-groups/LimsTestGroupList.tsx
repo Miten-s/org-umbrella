@@ -37,6 +37,7 @@ import {
   useCreateLimsTestGroup,
   useLimsTestGroupAudit,
   useRestoreLimsTestGroup,
+  useBulkRestoreLimsTestGroup,
   useUpdateLimsTestGroup,
   useLimsTestGroupById
 } from "./LimsTestGroup.queries";
@@ -91,6 +92,7 @@ const LimsTestGroupList = () => {
   const bulkDelete = useBulkDeleteLimsTestGroup();
   const bulkUpdate = useBulkUpdateLimsTestGroup();
   const restorePhrase = useRestoreLimsTestGroup();
+  const bulkRestoreTestGroup = useBulkRestoreLimsTestGroup();
 
   const busy =
     createPhrase.isPending ||
@@ -99,7 +101,8 @@ const LimsTestGroupList = () => {
     bulkCopy.isPending ||
     bulkDelete.isPending ||
     bulkUpdate.isPending ||
-    restorePhrase.isPending;
+    restorePhrase.isPending ||
+    bulkRestoreTestGroup.isPending;
 
   const columnDefs = useMemo(() => getLimsTestGroupColumns({ t }), [t]);
 
@@ -186,7 +189,7 @@ const LimsTestGroupList = () => {
     () => [
       {
         key: "view",
-        label: () => t("view", { entity: t("limsTestGroups") }),
+        label: () => t("limsView"),
         icon: EyeIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.VIEW_TEST_GROUP,
@@ -200,7 +203,7 @@ const LimsTestGroupList = () => {
       },
       {
         key: "clone",
-        label: (count) => (count > 1 ? "Copy test groups" : "Copy test group"),
+        label: () => t("limsCopy"),
         icon: CopyIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_TEST_GROUP,
@@ -228,9 +231,30 @@ const LimsTestGroupList = () => {
         }
       },
       {
+        key: "restore",
+        label: () => t("limsRestore"),
+        icon: CopyIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_TEST_GROUP,
+        // Only offered when the current selection actually has something removed —
+        // an all-active selection would otherwise fire a no-op restore request.
+        hidden: (rows) => !rows.some((row) => row.isRemoved),
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          compliance.requestBulkRestore(
+            selection.ids,
+            table.rows
+              .filter((row) => selection.ids.includes(row.id))
+              .map((row) => row.name)
+          );
+        }
+      },
+      {
         key: "delete",
-        label: (count) =>
-          count > 1 ? "Remove test groups" : "Remove test group",
+        label: () => t("limsRemove"),
         icon: TrashBinIcon,
         variant: "destructive",
         permission: LIMS_PERMISSIONS.DELETE_TEST_GROUP,
@@ -253,7 +277,7 @@ const LimsTestGroupList = () => {
     () => [
       {
         key: "view",
-        label: "View test group",
+        label: t("limsView"),
         icon: EyeIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_TEST_GROUP,
@@ -261,7 +285,7 @@ const LimsTestGroupList = () => {
       },
       {
         key: "edit",
-        label: "Edit test group",
+        label: t("edit"),
         icon: PencilIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.UPDATE_TEST_GROUP,
@@ -269,7 +293,7 @@ const LimsTestGroupList = () => {
       },
       {
         key: "audit",
-        label: "Audit trail",
+        label: t("limsAudit"),
         icon: TimeIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.VIEW_TEST_GROUP,
@@ -277,7 +301,7 @@ const LimsTestGroupList = () => {
       },
       {
         key: "clone",
-        label: "Copy test group",
+        label: t("limsCopy"),
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_TEST_GROUP,
@@ -285,7 +309,7 @@ const LimsTestGroupList = () => {
       },
       {
         key: "restore",
-        label: "Restore test group",
+        label: t("limsRestore"),
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.UPDATE_TEST_GROUP,
@@ -294,7 +318,7 @@ const LimsTestGroupList = () => {
       },
       {
         key: "delete",
-        label: "Remove test group",
+        label: t("limsRemove"),
         icon: TrashBinIcon,
         placement: "menu",
         tone: "danger",
@@ -306,7 +330,7 @@ const LimsTestGroupList = () => {
           ])
       }
     ],
-    [compliance, openCopy, openForm]
+    [compliance, openCopy, openForm, t]
   );
 
   return (
@@ -401,6 +425,7 @@ const LimsTestGroupList = () => {
         updating={updatePhrase.isPending}
         deleting={bulkDelete.isPending}
         restoring={restorePhrase.isPending}
+        bulkRestoring={bulkRestoreTestGroup.isPending}
         bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
@@ -440,6 +465,17 @@ const LimsTestGroupList = () => {
             });
           }
           compliance.clearRestore();
+        }}
+        onBulkRestore={async (reason) => {
+          const pending = compliance.pendingBulkRestore;
+          if (pending) {
+            await bulkRestoreTestGroup.mutateAsync({
+              selection: { mode: "ids", ids: pending.ids },
+              changeReason: reason
+            });
+            table.clearSelection();
+          }
+          compliance.clearBulkRestore();
         }}
       />
     </div>

@@ -1,13 +1,18 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
 import { useAsyncOptions } from "@/hooks/useAsyncOptions";
+import { useLimsRecordById } from "@/hooks/useLimsRecordById";
 import type { BulkSelection, ListResult, ServerListParams } from "@/lib/query/listTypes";
 import {
   bulkCloneAssignmentGroup,
+  bulkCopyAssignmentGroup,
   bulkDeleteAssignmentGroup,
+  bulkRestoreAssignmentGroup,
+  bulkUpdateAssignmentGroup,
   createAssignmentGroup,
   disableAssignmentGroup,
   enableAssignmentGroup,
+  fetchAssignmentGroupById,
   fetchAssignmentGroupOptions,
   updateAssignmentGroup
 } from "./AssignmentGroup.api";
@@ -18,6 +23,14 @@ export const assignmentGroupKeys = {
   list: (params: ServerListParams) => ["assignmentGroup", "list", params] as const,
   options: ["assignmentGroup", "options"] as const
 };
+
+export const useAssignmentGroupById = (id?: string, enabled = true) =>
+  useLimsRecordById({
+    queryKey: assignmentGroupKeys.all,
+    fetchById: fetchAssignmentGroupById,
+    id,
+    enabled
+  });
 
 export const useAssignmentGroupOptions = (args: { search: string; enabled?: boolean; selectedValues?: string[] }) =>
   useAsyncOptions({
@@ -75,6 +88,50 @@ export const useBulkCloneAssignmentGroup = () => {
     onSuccess: (_data, selection) => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
       toast(count && count > 1 ? `${count} assignment groups copied successfully.` : "Assignment group copied successfully.", "success");
+      invalidate();
+    }
+  });
+};
+
+export const useBulkCopyAssignmentGroup = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (records: AssignmentGroupPayload[]) => bulkCopyAssignmentGroup(records),
+    onSuccess: (data) => {
+      toast(
+        data.length > 1 ? `${data.length} assignment groups copied successfully.` : "Assignment group copied successfully.",
+        "success"
+      );
+      invalidate();
+    }
+  });
+};
+
+export const useBulkUpdateAssignmentGroup = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (updates: { id: string; payload: AssignmentGroupPayload }[]) => bulkUpdateAssignmentGroup(updates),
+    onSuccess: (data) => {
+      toast(
+        data.results.length > 1
+          ? `${data.results.length} assignment groups updated successfully.`
+          : "Assignment group updated successfully.",
+        "success"
+      );
+      invalidate();
+    }
+  });
+};
+
+export const useBulkRestoreAssignmentGroup = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (selection: BulkSelection) => bulkRestoreAssignmentGroup(selection),
+    onSuccess: (data) => {
+      toast(
+        data.count > 1 ? `${data.count} assignment groups restored successfully.` : "Assignment group restored successfully.",
+        "success"
+      );
       invalidate();
     }
   });

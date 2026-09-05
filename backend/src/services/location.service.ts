@@ -102,7 +102,7 @@ const bulkDuplicateLocations = async (ids: string[], user?: any) => {
 
       let maxIndex = 0;
       similarLocationsResult.forEach((loc: any) => {
-        const match = loc.locationName.match(new RegExp(regexStr, 'i'));
+        const match = loc.locationName.match(new RegExp(regexStr, "i"));
         if (match && match[1]) {
           const index = parseInt(match[1], 10);
           if (index > maxIndex) maxIndex = index;
@@ -111,21 +111,124 @@ const bulkDuplicateLocations = async (ids: string[], user?: any) => {
 
       const newName = `${baseName}-(${maxIndex + 1})`;
 
-      const savedLocation = await Location.create({
-        locationName: newName,
-        description: sourceLocation.description,
-        comments: sourceLocation.comments,
-        status: sourceLocation.status,
-        deletedAt: null,
-        modifiedOn: new Date(),
-        modifiedBy: user?.id || user?._id
-      } as any, { transaction: t });
+      const savedLocation = await Location.create(
+        {
+          locationName: newName,
+          description: sourceLocation.description,
+          comments: sourceLocation.comments,
+          status: sourceLocation.status,
+          deletedAt: null,
+          modifiedOn: new Date(),
+          modifiedBy: user?.id || user?._id
+        } as any,
+        { transaction: t }
+      );
 
       duplicatedLocations.push(savedLocation);
     }
 
     await t.commit();
     return duplicatedLocations.map(formatLocation);
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
+};
+
+// The Copy flow's batched save — one request creates every reviewed record. A name
+// collision is warned, not rejected (same "-(N)" suffix logic as bulkDuplicateLocations).
+const bulkCopyLocations = async (
+  records: Record<string, any>[],
+  user?: any
+) => {
+  const t = await sequelize.transaction();
+  try {
+    const modifier = user?.id || user?._id;
+    const results: { id: string; warning?: string }[] = [];
+
+    for (const raw of records) {
+      let name = String(raw.locationName || "").trim();
+      let warning: string | undefined;
+
+      const collision = await Location.findOne({
+        where: {
+          locationName: { [Op.iLike]: name.replace(/[%_\\]/g, "\\$&") }
+        },
+        transaction: t
+      });
+
+      if (collision) {
+        let baseName = name;
+        const nameMatch = baseName.match(/^(.*)-\((\d+)\)$/);
+        if (nameMatch) baseName = nameMatch[1];
+
+        const escapedBaseName = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const regexStr = `^${escapedBaseName}(?:-\\(([0-9]+)\\))?$`;
+
+        const similar = await Location.findAll({
+          where: { locationName: { [Op.iRegexp]: regexStr } },
+          transaction: t
+        });
+
+        let maxIndex = 0;
+        similar.forEach((loc: any) => {
+          const match = loc.locationName.match(new RegExp(regexStr, "i"));
+          if (match && match[1])
+            maxIndex = Math.max(maxIndex, parseInt(match[1], 10));
+        });
+
+        const suffixed = `${baseName}-(${maxIndex + 1})`;
+        warning = `"${name}" is already in use — saved as "${suffixed}".`;
+        name = suffixed;
+      }
+
+      const created = await Location.create(
+        {
+          ...raw,
+          locationName: name,
+          modifiedBy: modifier,
+          modifiedOn: new Date()
+        } as any,
+        { transaction: t }
+      );
+
+      results.push({ id: created.id, warning });
+    }
+
+    await t.commit();
+    return results;
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
+};
+
+// Bulk Edit's batched save — only the records the reviewer actually reviewed and changed.
+// A missing id (deleted by someone else meanwhile) is skipped, not fatal to the rest.
+const bulkUpdateLocations = async (
+  updates: { id: string; payload: Record<string, any> }[],
+  user?: any
+) => {
+  const t = await sequelize.transaction();
+  try {
+    const modifier = user?.id || user?._id;
+    const results: { id: string; skipped?: boolean }[] = [];
+
+    for (const { id, payload } of updates) {
+      const existing = await Location.findByPk(id, { transaction: t });
+      if (!existing) {
+        results.push({ id, skipped: true });
+        continue;
+      }
+      await existing.update(
+        { ...payload, modifiedBy: modifier, modifiedOn: new Date() } as any,
+        { transaction: t }
+      );
+      results.push({ id });
+    }
+
+    await t.commit();
+    return results;
   } catch (error) {
     await t.rollback();
     throw error;
@@ -139,5 +242,7 @@ export {
   updateLocation,
   deleteLocation,
   bulkDeleteLocations,
-  bulkDuplicateLocations
+  bulkDuplicateLocations,
+  bulkCopyLocations,
+  bulkUpdateLocations
 };

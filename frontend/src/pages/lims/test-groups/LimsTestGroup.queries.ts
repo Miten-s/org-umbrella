@@ -9,6 +9,7 @@ import {
   bulkCloneLimsTestGroup,
   bulkCopyLimsTestGroup,
   bulkDeleteLimsTestGroup,
+  bulkRestoreLimsTestGroup,
   bulkUpdateLimsTestGroup,
   createLimsTestGroup,
   fetchLimsTestGroupOptions,
@@ -102,6 +103,29 @@ export const useBulkDeleteLimsTestGroup = () => {
         count && count > 1
           ? `${count} test groups removed successfully.`
           : "Test group removed successfully.",
+        "success"
+      );
+      invalidate();
+    }
+  });
+};
+
+export const useBulkRestoreLimsTestGroup = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: ({
+      selection,
+      changeReason
+    }: {
+      selection: BulkSelection;
+      changeReason: string;
+    }) => bulkRestoreLimsTestGroup(selection, changeReason),
+    onSuccess: (_data, { selection }) => {
+      const count = selection.mode === "ids" ? selection.ids.length : undefined;
+      toast(
+        count && count > 1
+          ? `${count} test groups restored successfully.`
+          : "Test group restored successfully.",
         "success"
       );
       invalidate();

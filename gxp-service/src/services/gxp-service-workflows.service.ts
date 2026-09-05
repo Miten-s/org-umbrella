@@ -17,8 +17,17 @@ export const addWorkflow = async (workflowData: any, user: string) => {
   return await repo.createWorkflow(newWorkflow);
 };
 
-export const getWorkflows = async (options: PaginationOptions) => {
-  return await repo.getAllWorkflows(options);
+export const getWorkflows = async (
+  options: PaginationOptions,
+  includeDisabled = false
+) => {
+  const filter: any = {};
+  if (!includeDisabled) filter.status = "enabled";
+  return await repo.getAllWorkflows(filter, options);
+};
+
+export const getWorkflowById = async (workflowId: string) => {
+  return await repo.getWorkflowById(workflowId);
 };
 
 export const updateWorkflow = async (

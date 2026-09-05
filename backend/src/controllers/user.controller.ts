@@ -28,6 +28,19 @@ export const getUserDetail = asyncHandler(
   }
 );
 
+// Fetches any user by id (not just the caller's own) — used by the bulk Edit/View
+// review steppers. Distinct from getUserDetail above, which only ever reads req.user.
+export const getUserById = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const user = await userService.getUserDetail(req.params.id as string);
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+    res.status(200).json({ user });
+  }
+);
+
 export const createUser = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     await userService.createUser(req);
@@ -67,5 +80,17 @@ export const bulkDeleteUsers = asyncHandler(
       (req.user as IUser)?.id?.toString()
     );
     res.status(200).json({ message: "Users deleted", result });
+  }
+);
+
+export const bulkUpdateUsers = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { updates } = req.body;
+    const results = await userService.bulkUpdateUsers(updates, req.user);
+    res.status(200).json({
+      message: `${results.length} record(s) updated`,
+      count: results.length,
+      results
+    });
   }
 );

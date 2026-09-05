@@ -8,9 +8,21 @@ import type { Workflow, WorkflowPayload } from "./Workflow.types";
 const ROUTE = "/gxp-workflows";
 const DATA_KEYS = ["workflows", "data"];
 
-export const fetchWorkflowList = async (params: ServerListParams, signal?: AbortSignal) => {
-  const response = await gxpApi.get(ROUTE, { params: buildServerParams(params), signal });
+export const fetchWorkflowList = async (
+  includeDisabled: boolean,
+  params: ServerListParams,
+  signal?: AbortSignal
+) => {
+  const query = { ...buildServerParams(params), ...(includeDisabled ? { includeDisabled: true } : {}) };
+  const response = await gxpApi.get(ROUTE, { params: query, signal });
   return toListResult<Workflow>(response.data, params, DATA_KEYS);
+};
+
+/** Full record for the Edit/Copy/View modal — fetched on demand when it opens,
+ * not reused from the list row (see useLimsRecordById, reused generically). */
+export const fetchWorkflowById = async (id: string, signal?: AbortSignal) => {
+  const response = await gxpApi.get(`${ROUTE}/${id}`, { signal });
+  return response.data as Workflow;
 };
 
 export const fetchWorkflowOptions = async (
@@ -45,6 +57,23 @@ export const bulkDeleteWorkflow = async (selection: BulkSelection) => {
 export const bulkCloneWorkflow = async (selection: BulkSelection) => {
   const response = await gxpApi.post(`${ROUTE}/bulk-duplicate`, bulkSelectionToBody(selection));
   return response.data;
+};
+
+/** The Copy flow's one and only network call — every reviewed record is
+ * sent together, once (mirrors bulkCreate in lims-service's crud-factory). */
+export const bulkCopyWorkflow = async (records: WorkflowPayload[]) => {
+  const response = await gxpApi.post(`${ROUTE}/bulk-copy`, { records });
+  return response.data as Workflow[];
+};
+
+export const bulkUpdateWorkflow = async (updates: { id: string; payload: WorkflowPayload }[]) => {
+  const response = await gxpApi.patch(`${ROUTE}/bulk-update`, { updates });
+  return response.data as { results: { id: string; status: "updated" | "skipped" }[] };
+};
+
+export const bulkRestoreWorkflow = async (selection: BulkSelection) => {
+  const response = await gxpApi.patch(`${ROUTE}/bulk-restore`, bulkSelectionToBody(selection));
+  return response.data as { message: string; count: number };
 };
 
 export const enableWorkflow = async (id: string) => {

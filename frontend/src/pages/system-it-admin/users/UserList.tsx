@@ -1,5 +1,7 @@
 import DataTable, { type DataTableBulkAction, type DataTableTab } from "@/components/data/DataTable";
 import ConfirmDialog from "@/components/data/ConfirmDialog";
+import ViewStepper from "@/components/data/ViewStepper";
+import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import { useServerTable } from "@/hooks/useServerTable";
@@ -8,8 +10,8 @@ import { toast } from "@/lib/toast";
 import { EyeIcon, LockIcon, PencilIcon, PlusIcon, TrashBinIcon } from "@/public/icons";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { userKeys, useBulkDeleteUser, useCreateUser, useUpdateUser } from "./User.queries";
-import { fetchUserList } from "./User.api";
+import { userKeys, useBulkDeleteUser, useBulkUpdateUser, useCreateUser, useUpdateUser } from "./User.queries";
+import { fetchUserById, fetchUserList } from "./User.api";
 import { getUserColumns, getUserDisplayName } from "./User.columns";
 import UserForm, { type UserFormMode } from "./UserForm";
 import type { User } from "./User.types";
@@ -24,6 +26,9 @@ import type { BulkSelection } from "@/lib/query/listTypes";
  * canFilter=false, canBulkByFilter=false, canFetchById=false, canFacetCounts=false.
  * Backend `/auth/users` supports only page/limit/search today, so sort headers,
  * the tabs, and "select all matching" are HIDDEN (not faked). See BACKEND_ASKS.
+ *
+ * Bulk Edit/View only — Copy is deliberately not wired up yet for Users (email +
+ * password can't auto-suffix like a plain name field can); see the plan doc.
  */
 const UserList = () => {
   const { t } = useTranslation();
@@ -34,6 +39,9 @@ const UserList = () => {
   const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(null);
   const [deleteCount, setDeleteCount] = useState(0);
   const [deleteNames, setDeleteNames] = useState<string[]>([]);
+  // Set instead of active/formMode while the multi-record View/Edit steppers are open.
+  const [viewIds, setViewIds] = useState<string[] | null>(null);
+  const [editIds, setEditIds] = useState<string[] | null>(null);
 
   const table = useServerTable<User>({
     entity: "user",
@@ -44,7 +52,8 @@ const UserList = () => {
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
   const bulkDelete = useBulkDeleteUser();
-  const busy = createUser.isPending || updateUser.isPending || bulkDelete.isPending;
+  const bulkUpdate = useBulkUpdateUser();
+  const busy = createUser.isPending || updateUser.isPending || bulkDelete.isPending || bulkUpdate.isPending;
 
   const columnDefs = useMemo(() => getUserColumns({ t }), [t]);
 
@@ -54,10 +63,22 @@ const UserList = () => {
     openModal();
   };
 
+  const openView = (ids: string[]) => {
+    setViewIds(ids);
+    openModal();
+  };
+
+  const openEdit = (ids: string[]) => {
+    setEditIds(ids);
+    openModal();
+  };
+
   const handleCloseForm = () => {
     closeModal();
     setActive(null);
     setFormMode("create");
+    setViewIds(null);
+    setEditIds(null);
   };
 
   const handleSave = async (payload: Record<string, unknown>) => {
@@ -67,6 +88,12 @@ const UserList = () => {
       await createUser.mutateAsync(payload);
     }
     handleCloseForm();
+  };
+
+  const handleSaveEdits = async (updates: { id: string; payload: Record<string, unknown> }[]) => {
+    await bulkUpdate.mutateAsync(updates);
+    handleCloseForm();
+    table.clearSelection();
   };
 
   // Tabs map to a server-side status filter. Rendered only when canFilter (§10);
@@ -82,6 +109,34 @@ const UserList = () => {
 
   const bulkActions = useMemo<DataTableBulkAction[]>(
     () => [
+      {
+        key: "view",
+        label: (count) => (count > 1 ? "View users" : "View user"),
+        icon: EyeIcon,
+        variant: "outline",
+        permission: "VIEW:USER",
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast("Select checkboxes to view multiple records.", "error");
+            return;
+          }
+          openView(selection.ids);
+        }
+      },
+      {
+        key: "edit",
+        label: (count) => (count > 1 ? "Edit users" : "Edit user"),
+        icon: PencilIcon,
+        variant: "outline",
+        permission: "UPDATE:USER",
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast("Select checkboxes to edit multiple records.", "error");
+            return;
+          }
+          openEdit(selection.ids);
+        }
+      },
       {
         key: "delete",
         label: (count) => (count > 1 ? "Delete users" : "Delete user"),
@@ -182,13 +237,33 @@ const UserList = () => {
         onClose={handleCloseForm}
         className="m-4 max-h-[calc(100dvh-2rem)] max-w-[1000px] overflow-hidden bg-white text-gray-900 dark:bg-gray-900 dark:text-white"
       >
-        <UserForm
-          mode={formMode}
-          activeUser={active}
-          onClose={handleCloseForm}
-          onSubmit={handleSave}
-          submitting={createUser.isPending || updateUser.isPending}
-        />
+        {viewIds ? (
+          <ViewStepper<User>
+            ids={viewIds}
+            fetchById={fetchUserById}
+            FormComponent={UserForm}
+            onClose={handleCloseForm}
+            entityLabel={t("user")}
+          />
+        ) : editIds ? (
+          <EditStepper<User, Record<string, unknown>>
+            ids={editIds}
+            fetchById={fetchUserById}
+            FormComponent={UserForm}
+            onSaveAll={handleSaveEdits}
+            onClose={handleCloseForm}
+            saving={bulkUpdate.isPending}
+            entityLabel={t("user")}
+          />
+        ) : (
+          <UserForm
+            mode={formMode}
+            initialData={active}
+            onClose={handleCloseForm}
+            onSubmit={handleSave}
+            submitting={createUser.isPending || updateUser.isPending}
+          />
+        )}
       </Modal>
 
       <ConfirmDialog

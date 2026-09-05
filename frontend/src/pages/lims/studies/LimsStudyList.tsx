@@ -37,6 +37,7 @@ import {
   useCreateLimsStudy,
   useLimsStudyAudit,
   useRestoreLimsStudy,
+  useBulkRestoreLimsStudy,
   useUpdateLimsStudy,
   useLimsStudyById
 } from "./LimsStudy.queries";
@@ -83,6 +84,7 @@ const LimsStudyList = () => {
   const bulkDelete = useBulkDeleteLimsStudy();
   const bulkUpdate = useBulkUpdateLimsStudy();
   const restoreStudy = useRestoreLimsStudy();
+  const bulkRestoreStudy = useBulkRestoreLimsStudy();
 
   const busy =
     createStudy.isPending ||
@@ -91,7 +93,8 @@ const LimsStudyList = () => {
     bulkCopy.isPending ||
     bulkDelete.isPending ||
     bulkUpdate.isPending ||
-    restoreStudy.isPending;
+    restoreStudy.isPending ||
+    bulkRestoreStudy.isPending;
 
   const columnDefs = useMemo(() => getLimsStudyColumns({ t }), [t]);
 
@@ -179,7 +182,7 @@ const LimsStudyList = () => {
     () => [
       {
         key: "view",
-        label: () => t("view", { entity: t("limsStudies") }),
+        label: () => t("limsView"),
         icon: EyeIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.VIEW_STUDY,
@@ -193,7 +196,7 @@ const LimsStudyList = () => {
       },
       {
         key: "clone",
-        label: (count) => (count > 1 ? "Copy studys" : "Copy study"),
+        label: () => t("limsCopy"),
         icon: CopyIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_STUDY,
@@ -221,8 +224,30 @@ const LimsStudyList = () => {
         }
       },
       {
+        key: "restore",
+        label: () => t("limsRestore"),
+        icon: CopyIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_STUDY,
+        // Only offered when the current selection actually has something removed —
+        // an all-active selection would otherwise fire a no-op restore request.
+        hidden: (rows) => !rows.some((row) => row.isRemoved),
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          compliance.requestBulkRestore(
+            selection.ids,
+            table.rows
+              .filter((row) => selection.ids.includes(row.id))
+              .map((row) => row.name)
+          );
+        }
+      },
+      {
         key: "delete",
-        label: (count) => (count > 1 ? "Remove studys" : "Remove study"),
+        label: () => t("limsRemove"),
         icon: TrashBinIcon,
         variant: "destructive",
         permission: LIMS_PERMISSIONS.DELETE_STUDY,
@@ -245,7 +270,7 @@ const LimsStudyList = () => {
     () => [
       {
         key: "view",
-        label: "View study",
+        label: t("limsView"),
         icon: EyeIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_STUDY,
@@ -253,7 +278,7 @@ const LimsStudyList = () => {
       },
       {
         key: "edit",
-        label: "Edit study",
+        label: t("edit"),
         icon: PencilIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.UPDATE_STUDY,
@@ -261,7 +286,7 @@ const LimsStudyList = () => {
       },
       {
         key: "audit",
-        label: "Audit trail",
+        label: t("limsAudit"),
         icon: TimeIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.VIEW_STUDY,
@@ -269,7 +294,7 @@ const LimsStudyList = () => {
       },
       {
         key: "clone",
-        label: "Copy study",
+        label: t("limsCopy"),
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_STUDY,
@@ -277,7 +302,7 @@ const LimsStudyList = () => {
       },
       {
         key: "restore",
-        label: "Restore study",
+        label: t("limsRestore"),
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.UPDATE_STUDY,
@@ -286,7 +311,7 @@ const LimsStudyList = () => {
       },
       {
         key: "delete",
-        label: "Remove study",
+        label: t("limsRemove"),
         icon: TrashBinIcon,
         placement: "menu",
         tone: "danger",
@@ -298,7 +323,7 @@ const LimsStudyList = () => {
           ])
       }
     ],
-    [compliance, openCopy, openForm]
+    [compliance, openCopy, openForm, t]
   );
 
   return (
@@ -393,6 +418,7 @@ const LimsStudyList = () => {
         updating={updateStudy.isPending}
         deleting={bulkDelete.isPending}
         restoring={restoreStudy.isPending}
+        bulkRestoring={bulkRestoreStudy.isPending}
         bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
@@ -432,6 +458,17 @@ const LimsStudyList = () => {
             });
           }
           compliance.clearRestore();
+        }}
+        onBulkRestore={async (reason) => {
+          const pending = compliance.pendingBulkRestore;
+          if (pending) {
+            await bulkRestoreStudy.mutateAsync({
+              selection: { mode: "ids", ids: pending.ids },
+              changeReason: reason
+            });
+            table.clearSelection();
+          }
+          compliance.clearBulkRestore();
         }}
       />
     </div>

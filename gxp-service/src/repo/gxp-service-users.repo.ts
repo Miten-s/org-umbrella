@@ -25,7 +25,8 @@ export const createUserRepo = async (data: any) => {
     roles: data.roles || [],
     description: data.description,
     status: data.status || "enabled",
-    trainingCompleted: data.trainingCompleted !== undefined ? data.trainingCompleted : false,
+    trainingCompleted:
+      data.trainingCompleted !== undefined ? data.trainingCompleted : false,
     createdBy: data.createdBy,
     modifiedBy: data.modifiedBy
   };
@@ -33,9 +34,12 @@ export const createUserRepo = async (data: any) => {
   return formatUser(doc);
 };
 
-export const findAllUsersRepo = async (options: PaginationOptions) => {
+export const findAllUsersRepo = async (
+  filter: any = {},
+  options: PaginationOptions
+) => {
   const { page, limit, skip, search } = options;
-  const where: any = {};
+  const where: any = { ...filter };
   if (search) {
     const sanitizedSearch = `%${search}%`;
     where[Op.or] = [
@@ -43,12 +47,13 @@ export const findAllUsersRepo = async (options: PaginationOptions) => {
       { description: { [Op.iLike]: sanitizedSearch } }
     ];
   }
-  const { count: totalCount, rows: data } = await GxpServiceUser.findAndCountAll({
-    where,
-    offset: skip,
-    limit,
-    order: [["created_at", "DESC"]]
-  });
+  const { count: totalCount, rows: data } =
+    await GxpServiceUser.findAndCountAll({
+      where,
+      offset: skip,
+      limit,
+      order: [["created_at", "DESC"]]
+    });
   return {
     data: data.map(formatUser),
     metadata: {

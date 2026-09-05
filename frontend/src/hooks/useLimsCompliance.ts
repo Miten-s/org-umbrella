@@ -20,6 +20,13 @@ export interface PendingBulkUpdate<TPayload> {
   count: number;
 }
 
+/** Bulk Restore's selected removed rows, waiting for their one shared change reason. */
+export interface PendingBulkRestore {
+  ids: string[];
+  names: string[];
+  count: number;
+}
+
 /**
  * State for the GxP-compliance actions every LIMS module shares: a mandatory
  * change reason on edit / remove / restore, plus the per-record audit trail.
@@ -33,6 +40,7 @@ export const useLimsCompliance = <TRow extends { id: string }, TPayload>() => {
   const [pendingRestore, setPendingRestore] = useState<TRow | null>(null);
   const [pendingBulkUpdate, setPendingBulkUpdate] =
     useState<PendingBulkUpdate<TPayload> | null>(null);
+  const [pendingBulkRestore, setPendingBulkRestore] = useState<PendingBulkRestore | null>(null);
   const [auditRow, setAuditRow] = useState<TRow | null>(null);
 
   /** Called from the form's submit when editing an existing record. */
@@ -48,6 +56,11 @@ export const useLimsCompliance = <TRow extends { id: string }, TPayload>() => {
   );
 
   const requestRestore = useCallback((row: TRow) => setPendingRestore(row), []);
+  /** Called from the bulk-selection popover's Restore action — same one-reason-for-the-batch
+   * shape as `requestBulkUpdate`, applied per-id via the module's existing single `restore` mutation. */
+  const requestBulkRestore = useCallback((ids: string[], names: string[] = []) => {
+    setPendingBulkRestore({ ids, names, count: ids.length });
+  }, []);
   /** Called from EditStepper's Save-all with the reviewed, already-changed batch. */
   const requestBulkUpdate = useCallback(
     (updates: { id: string; payload: TPayload }[]) => {
@@ -60,6 +73,7 @@ export const useLimsCompliance = <TRow extends { id: string }, TPayload>() => {
   const clearUpdate = useCallback(() => setPendingUpdate(null), []);
   const clearDelete = useCallback(() => setPendingDelete(null), []);
   const clearRestore = useCallback(() => setPendingRestore(null), []);
+  const clearBulkRestore = useCallback(() => setPendingBulkRestore(null), []);
   const clearBulkUpdate = useCallback(() => setPendingBulkUpdate(null), []);
   const closeAudit = useCallback(() => setAuditRow(null), []);
 
@@ -67,16 +81,19 @@ export const useLimsCompliance = <TRow extends { id: string }, TPayload>() => {
     pendingUpdate,
     pendingDelete,
     pendingRestore,
+    pendingBulkRestore,
     pendingBulkUpdate,
     auditRow,
     requestUpdate,
     requestDelete,
     requestRestore,
+    requestBulkRestore,
     requestBulkUpdate,
     openAudit,
     clearUpdate,
     clearDelete,
     clearRestore,
+    clearBulkRestore,
     clearBulkUpdate,
     closeAudit
   };

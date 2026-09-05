@@ -2,6 +2,10 @@ import { Request, Response } from "express";
 import * as service from "../services/gxp-service-applications.service";
 import asyncHandler from "../middlewares/error.middleware";
 import { getPaginationOptions } from "../utils/pagination.util";
+import { buildBulkCrudRoutes } from "../utils/bulk-crud-factory";
+import Application from "../models/gxp-service-applications.model";
+import AppModule from "../models/gxp-service-application-modules.model";
+import { CreateApplicationDto } from "../dtos/application.dto";
 
 export const createApplication = asyncHandler(
   async (req: Request, res: Response) => {
@@ -19,12 +23,14 @@ export const createApplication = asyncHandler(
   }
 );
 
-
 export const getApplications = asyncHandler(
   async (req: Request, res: Response) => {
     const includeDisabled = req.query.includeDisabled === "true";
     const paginationOptions = getPaginationOptions(req.query);
-    const items = await service.getApplications(paginationOptions, includeDisabled);
+    const items = await service.getApplications(
+      paginationOptions,
+      includeDisabled
+    );
     return res.status(200).send(items);
   }
 );
@@ -174,3 +180,38 @@ export const bulkDuplicateApplications = asyncHandler(
     return res.status(201).json(duplicated);
   }
 );
+
+// createApplication already resolves applicationGroups/departments/roles/services
+// from the reviewed payload itself, same as a normal create — but Module<->Application
+// is one-to-one, so reusing the SOURCE's module ids as-is would reassign (steal) them
+// onto the copy via resolveModuleIdsForApplication's id branch. Resolve them to plain
+// NAMEs first so it takes the name branch instead, which clones fresh module rows under
+// the new application and leaves the source's modules untouched.
+const cloneApplicationModulesByName = async (payload: any) => {
+  if (!Array.isArray(payload.applicationModules) || !payload.applicationModules.length) {
+    return payload;
+  }
+  const ids = payload.applicationModules.filter((m: unknown) => typeof m === "string");
+  const modules = ids.length ? await AppModule.findAll({ where: { id: ids } }) : [];
+  const namesById = new Map(modules.map((m) => [m.id, m.moduleName]));
+  return {
+    ...payload,
+    applicationModules: payload.applicationModules.map((m: unknown) =>
+      typeof m === "string" ? (namesById.get(m) ?? m) : m
+    )
+  };
+};
+
+const bulkCrud = buildBulkCrudRoutes({
+  model: Application,
+  nameField: "applicationName",
+  createDtoClass: CreateApplicationDto,
+  createOne: async (payload, currentUser) =>
+    service.createApplication(await cloneApplicationModulesByName(payload), currentUser),
+  updateOne: service.updateApplication,
+  restore: service.enableApplication
+});
+
+export const bulkCopyApplications = bulkCrud.bulkCopy;
+export const bulkUpdateApplications = bulkCrud.bulkUpdate;
+export const bulkRestoreApplications = bulkCrud.bulkRestore!;

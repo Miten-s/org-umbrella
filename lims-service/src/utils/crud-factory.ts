@@ -112,6 +112,12 @@ export interface CrudConfig<M extends Model> {
   /** Reshapes one formatted row after the generic mapping — e.g. nesting flat
    * `owned_by_id`/`owned_by_name` into `ownedBy: {id, name}` for a cross-database reference. */
   postFormat?: (row: Record<string, any>) => Record<string, any>;
+  /** For a `uniqueField` that's a reference to something else (e.g. Lab User's `userId`,
+   * a specific platform user) rather than a name — auto-suffixing it on collision would
+   * point at nobody. `bulkCreate` rejects a collision instead, trying the whole reviewed
+   * batch in one transaction first, then retrying record-by-record only if that throws, so
+   * one bad record doesn't sink ones that would have succeeded on their own. */
+  strictCopyCollision?: boolean;
 }
 
 const applyPostFormat = (
@@ -429,6 +435,15 @@ export const buildCrudRepo = <M extends Model>(config: CrudConfig<M>) => {
     return findByIdUnscoped(id, transaction, true);
   };
 
+  // One UPDATE for the whole batch — same shape as `softDelete` above, so Bulk Restore
+  // doesn't cost N round-trips (and N audit-adjacent toasts) the way looping `restore` did.
+  const restoreMany = async (ids: string[], transaction?: Transaction) => {
+    return model.update(
+      { isDeleted: false, deletedAt: null, deletedBy: null } as any,
+      { where: { id: ids } as any, transaction }
+    );
+  };
+
   return {
     create,
     findById,
@@ -436,7 +451,8 @@ export const buildCrudRepo = <M extends Model>(config: CrudConfig<M>) => {
     findAll,
     update,
     softDelete,
-    restore
+    restore,
+    restoreMany
   };
 };
 
@@ -683,34 +699,67 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
   };
 
   /** The Copy flow's save: N reviewed payloads (see CopyStepper) become N real creates in one
-   * transaction, same path as a normal create, just warn-and-suffix instead of reject. */
+   * transaction, same path as a normal create, just warn-and-suffix instead of reject —
+   * except under `strictCopyCollision`, where a collision is rejected instead (see below). */
   const bulkCreate = async (
     records: Record<string, any>[],
     ctx: CrudContext
   ) => {
-    return sequelize
-      .transaction(async (transaction) => {
+    const collisionMode = config.strictCopyCollision ? "reject" : "warn";
+
+    const attemptAll = () =>
+      sequelize.transaction(async (transaction) => {
         const results: { id: string; warning?: string }[] = [];
         for (const raw of records) {
           const { result, warning } = await createOne(raw, ctx, transaction, {
-            collisionMode: "warn"
+            collisionMode
           });
           results.push({ id: result?.id ?? result?._id, warning });
         }
         return results;
-      })
-      .then(async (results) => {
-        await afterWrite();
-        return results;
       });
+
+    if (!config.strictCopyCollision) {
+      const results = await attemptAll();
+      await afterWrite();
+      return results;
+    }
+
+    // Strict mode: two reviewed records can independently look valid and still collide with
+    // each other (e.g. the same available platform user picked on two different steps) —
+    // the shared-transaction attempt above rolls all of them back together on that. Retry
+    // record-by-record, each in its own transaction, only when that happens, so one genuine
+    // conflict doesn't erase records that would have succeeded on their own.
+    try {
+      const results = await attemptAll();
+      await afterWrite();
+      return results;
+    } catch {
+      const results: { id?: string; warning?: string; error?: string }[] = [];
+      for (const raw of records) {
+        try {
+          const { result, warning } = await sequelize.transaction((transaction) =>
+            createOne(raw, ctx, transaction, { collisionMode: "reject" })
+          );
+          results.push({ id: result?.id ?? result?._id, warning });
+        } catch (error: any) {
+          results.push({ error: error?.message ?? "Failed to create record" });
+        }
+      }
+      await afterWrite();
+      return results;
+    }
   };
 
   const afterWrite = async () => {
     if (config.afterWrite) await config.afterWrite();
   };
 
+  // A single-record lookup by known id (Edit/View/Copy) always includes removed rows —
+  // only the LIST is scoped by the "show removed" toggle. Without this, opening Edit on a
+  // soft-deleted row 404'd internally and the form silently loaded blank.
   const getById = async (id: string, ctx: CrudContext) =>
-    shape(formatLimsEntity(await repo.findById(id, ctx.scope)));
+    shape(formatLimsEntity(await repo.findById(id, ctx.scope, undefined, true)));
 
   const getAll = async (
     query: {
@@ -935,6 +984,44 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
       });
   };
 
+  const bulkRestore = async (
+    ids: string[],
+    changeReason: string | undefined,
+    ctx: CrudContext
+  ) => {
+    return sequelize
+      .transaction(async (transaction) => {
+        // Same permitted-ids filter as bulkDelete, PLUS: only rows actually removed right
+        // now — restoring an already-active row would write a bogus "RESTORE" audit entry
+        // for something that never happened.
+        const permitted: string[] = [];
+        for (const id of ids) {
+          const row = await repo.findById(id, ctx.scope, transaction, true);
+          if (row && (row as any).isDeleted) permitted.push(id);
+        }
+        if (!permitted.length) return 0;
+
+        await repo.restoreMany(permitted, transaction);
+        await Promise.all(
+          permitted.map((id) =>
+            writeAudit({
+              entityName,
+              entityId: id,
+              action: "RESTORE",
+              changeReason,
+              actor: ctx.actor,
+              transaction
+            })
+          )
+        );
+        return permitted.length;
+      })
+      .then(async (result) => {
+        await afterWrite();
+        return result;
+      });
+  };
+
   const bulkDuplicate = async (ids: string[], ctx: CrudContext) => {
     return sequelize
       .transaction(async (transaction) => {
@@ -1099,6 +1186,7 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     bulkUpdate,
     remove,
     bulkDelete,
+    bulkRestore,
     bulkDuplicate,
     restore,
     getAuditLogs
@@ -1238,6 +1326,16 @@ export const buildCrudController = <M extends Model>(
     res.status(200).json({ message: `${count} record(s) removed`, count });
   }),
 
+  bulkRestore: asyncHandler(async (req: Request, res: Response) => {
+    const { ids, changeReason } = req.body as BulkOperationDto;
+    const count = await service.bulkRestore(
+      ids,
+      changeReason,
+      contextFromRequest(req)
+    );
+    res.status(200).json({ message: `${count} record(s) restored`, count });
+  }),
+
   bulkDuplicate: asyncHandler(async (req: Request, res: Response) => {
     const { ids } = req.body as BulkOperationDto;
     const count = await service.bulkDuplicate(ids, contextFromRequest(req));
@@ -1247,9 +1345,12 @@ export const buildCrudController = <M extends Model>(
   bulkCreate: asyncHandler(async (req: Request, res: Response) => {
     const { records } = req.body as BulkCreateDto;
     const results = await service.bulkCreate(records, contextFromRequest(req));
+    // Under `strictCopyCollision`'s per-record retry, some entries may carry `error` instead
+    // of `id` — count only the ones that actually saved.
+    const count = results.filter((r: any) => r.id).length;
     res.status(201).json({
-      message: `${results.length} record(s) copied`,
-      count: results.length,
+      message: `${count} record(s) copied`,
+      count,
       results
     });
   }),
@@ -1363,6 +1464,12 @@ export const buildCrudRouter = <M extends Model>(params: {
     can("DELETE"),
     validateDto(BulkOperationDto),
     controller.bulkDelete
+  );
+  router.post(
+    API_ROUTES.BULK_RESTORE,
+    can("UPDATE"),
+    validateDto(BulkOperationDto),
+    controller.bulkRestore
   );
   router.post(
     API_ROUTES.BULK_DUPLICATE,

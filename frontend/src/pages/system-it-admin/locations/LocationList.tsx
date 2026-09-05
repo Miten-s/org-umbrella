@@ -1,25 +1,32 @@
 import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
 import ConfirmDialog from "@/components/data/ConfirmDialog";
+import CopyStepper from "@/components/data/CopyStepper";
+import ViewStepper from "@/components/data/ViewStepper";
+import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useModal } from "@/hooks/useModal";
+import { toast } from "@/lib/toast";
 import { CopyIcon, EyeIcon, PencilIcon, PlusIcon, TrashBinIcon } from "@/public/icons";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   locationKeys,
   useBulkCloneLocation,
+  useBulkCopyLocation,
   useBulkDeleteLocation,
+  useBulkUpdateLocation,
   useCreateLocation,
   useUpdateLocation
 } from "./Location.queries";
-import { fetchLocationList } from "./Location.api";
+import { fetchLocationById, fetchLocationList } from "./Location.api";
 import { getLocationColumns } from "./Location.columns";
 import LocationForm, { type LocationFormMode } from "./LocationForm";
 import type { LocationFormValues } from "./Location.schema";
 import type { Location } from "./Location.types";
 import type { BulkSelection } from "@/lib/query/listTypes";
+import { idsSelection } from "@/lib/query/listTypes";
 
 /** Location module — migrated via MIGRATION.md checklist (Track A batch). */
 const LocationList = () => {
@@ -31,6 +38,10 @@ const LocationList = () => {
   const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(null);
   const [deleteCount, setDeleteCount] = useState(0);
   const [deleteNames, setDeleteNames] = useState<string[]>([]);
+  // Set instead of active/formMode while the multi-record Copy/View/Edit steppers are open.
+  const [copyIds, setCopyIds] = useState<string[] | null>(null);
+  const [viewIds, setViewIds] = useState<string[] | null>(null);
+  const [editIds, setEditIds] = useState<string[] | null>(null);
 
   const table = useServerTable<Location>({
     entity: "location",
@@ -41,12 +52,16 @@ const LocationList = () => {
   const createLocation = useCreateLocation();
   const updateLocation = useUpdateLocation();
   const bulkClone = useBulkCloneLocation();
+  const bulkCopy = useBulkCopyLocation();
   const bulkDelete = useBulkDeleteLocation();
+  const bulkUpdate = useBulkUpdateLocation();
   const busy =
     createLocation.isPending ||
     updateLocation.isPending ||
     bulkClone.isPending ||
-    bulkDelete.isPending;
+    bulkCopy.isPending ||
+    bulkDelete.isPending ||
+    bulkUpdate.isPending;
 
   const columnDefs = useMemo(() => getLocationColumns({ t }), [t]);
 
@@ -56,10 +71,28 @@ const LocationList = () => {
     openModal();
   };
 
+  const openCopy = (ids: string[]) => {
+    setCopyIds(ids);
+    openModal();
+  };
+
+  const openView = (ids: string[]) => {
+    setViewIds(ids);
+    openModal();
+  };
+
+  const openEdit = (ids: string[]) => {
+    setEditIds(ids);
+    openModal();
+  };
+
   const handleCloseForm = () => {
     closeModal();
     setActive(null);
     setFormMode("create");
+    setCopyIds(null);
+    setViewIds(null);
+    setEditIds(null);
   };
 
   const handleSave = async (values: LocationFormValues) => {
@@ -71,8 +104,38 @@ const LocationList = () => {
     handleCloseForm();
   };
 
+  const handleSaveCopies = async (payloads: LocationFormValues[]) => {
+    await bulkCopy.mutateAsync(payloads);
+    handleCloseForm();
+    table.clearSelection();
+  };
+
+  const handleSaveEdits = async (updates: { id: string; payload: LocationFormValues }[]) => {
+    await bulkUpdate.mutateAsync(updates);
+    handleCloseForm();
+    table.clearSelection();
+  };
+
+  const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
+    await bulkClone.mutateAsync(idsSelection(unreviewedIds));
+  };
+
   const bulkActions = useMemo<DataTableBulkAction[]>(
     () => [
+      {
+        key: "view",
+        label: (count) => (count > 1 ? "View locations" : "View location"),
+        icon: EyeIcon,
+        variant: "outline",
+        permission: "VIEW:LOCATION",
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast("Select checkboxes to view multiple records.", "error");
+            return;
+          }
+          openView(selection.ids);
+        }
+      },
       {
         key: "clone",
         label: (count) => (count > 1 ? "Copy locations" : "Copy location"),
@@ -80,8 +143,26 @@ const LocationList = () => {
         variant: "outline",
         permission: "CREATE:LOCATION",
         onClick: async (selection) => {
+          if (selection.mode === "ids") {
+            openCopy(selection.ids);
+            return;
+          }
           await bulkClone.mutateAsync(selection);
           table.clearSelection();
+        }
+      },
+      {
+        key: "edit",
+        label: (count) => (count > 1 ? "Edit locations" : "Edit location"),
+        icon: PencilIcon,
+        variant: "outline",
+        permission: "UPDATE:LOCATION",
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast("Select checkboxes to edit multiple records.", "error");
+            return;
+          }
+          openEdit(selection.ids);
         }
       },
       {
@@ -128,7 +209,7 @@ const LocationList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: "CREATE:LOCATION",
-        onClick: (location) => bulkClone.mutate({ mode: "ids", ids: [location.id] })
+        onClick: (location) => openCopy([location.id])
       },
       {
         key: "delete",
@@ -144,7 +225,7 @@ const LocationList = () => {
         }
       }
     ],
-    [bulkClone, openForm]
+    []
   );
 
   return (
@@ -177,13 +258,44 @@ const LocationList = () => {
         onClose={handleCloseForm}
         className="m-4 max-w-[900px] overflow-x-hidden dark:bg-gray-900"
       >
-        <LocationForm
-          mode={formMode}
-          initialData={active}
-          onClose={handleCloseForm}
-          onSubmit={handleSave}
-          submitting={createLocation.isPending || updateLocation.isPending}
-        />
+        {copyIds ? (
+          <CopyStepper<Location, LocationFormValues>
+            ids={copyIds}
+            fetchById={fetchLocationById}
+            FormComponent={LocationForm}
+            onSaveAll={handleSaveCopies}
+            onDuplicateUnreviewed={handleDuplicateUnreviewedCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending || bulkClone.isPending}
+            entityLabel={t("location")}
+          />
+        ) : viewIds ? (
+          <ViewStepper<Location>
+            ids={viewIds}
+            fetchById={fetchLocationById}
+            FormComponent={LocationForm}
+            onClose={handleCloseForm}
+            entityLabel={t("location")}
+          />
+        ) : editIds ? (
+          <EditStepper<Location, LocationFormValues>
+            ids={editIds}
+            fetchById={fetchLocationById}
+            FormComponent={LocationForm}
+            onSaveAll={handleSaveEdits}
+            onClose={handleCloseForm}
+            saving={bulkUpdate.isPending}
+            entityLabel={t("location")}
+          />
+        ) : (
+          <LocationForm
+            mode={formMode}
+            initialData={active}
+            onClose={handleCloseForm}
+            onSubmit={handleSave}
+            submitting={createLocation.isPending || updateLocation.isPending}
+          />
+        )}
       </Modal>
 
       <ConfirmDialog
