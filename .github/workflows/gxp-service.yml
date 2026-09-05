@@ -1,4 +1,4 @@
-name: GxP Service CI
+﻿name: GxP Service CI
 
 on:
   push:
@@ -13,6 +13,21 @@ on:
       - '.github/workflows/gxp-service.yml'
 
 jobs:
+  cleanup-ec2:
+    runs-on: ubuntu-latest
+    if: >
+      (github.event_name == 'push' && github.ref == 'refs/heads/mp/handle-access-module') ||
+      (github.event_name == 'pull_request' && github.base_ref == 'mp/handle-access-module')
+    steps:
+    - name: Cleanup Docker System Resources on EC2
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          docker system prune -af --volumes || true
+
   build-and-push:
     runs-on: ubuntu-latest
     
@@ -38,7 +53,7 @@ jobs:
           ${{ secrets.DOCKERHUB_USERNAME }}/gxp-service:${{ github.sha }}
 
   deploy:
-    needs: build-and-push
+    needs: [build-and-push, cleanup-ec2]
     runs-on: ubuntu-latest
     if: >
       (github.event_name == 'push' && github.ref == 'refs/heads/mp/handle-access-module') ||

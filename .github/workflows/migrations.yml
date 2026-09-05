@@ -1,0 +1,69 @@
+﻿name: Database Migrations Management
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Select service to run migrations for'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - backend
+          - gxp-service
+          - lims-service
+      environment:
+        description: 'Infisical Environment'
+        required: true
+        default: 'prod'
+        type: choice
+        options:
+          - prod
+          - dev
+
+jobs:
+  run-migrations:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute Migrations on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/org-umbrella
+            git config --global --add safe.directory $(pwd)
+            git fetch origin
+            git checkout sp/docker-based-deployment
+            git reset --hard origin/sp/docker-based-deployment
+            
+            SERVICE="${{ github.event.inputs.service }}"
+            ENV_NAME="${{ github.event.inputs.environment }}"
+            
+            run_service_migration() {
+              SVC=$1
+              echo "===> Running migrations for $SVC in $ENV_NAME environment..."
+              CONTAINER_ID=$(docker compose -f docker-compose.yml ps -q $SVC)
+              if [ -z "$CONTAINER_ID" ]; then
+                echo "Error: Container for $SVC is not running. Starting it now..."
+                infisical run --env=$ENV_NAME --path=/$SVC --recursive -- docker compose -f docker-compose.yml up -d --no-deps $SVC
+                CONTAINER_ID=$(docker compose -f docker-compose.yml ps -q $SVC)
+              fi
+              
+              infisical run --env=$ENV_NAME --path=/$SVC --recursive -- docker exec -i $CONTAINER_ID npm run db:migrate
+              echo "===> Migrations for $SVC completed successfully!"
+            }
+
+            if [ "$SERVICE" = "all" ] || [ "$SERVICE" = "backend" ]; then
+              run_service_migration "backend"
+            fi
+
+            if [ "$SERVICE" = "all" ] || [ "$SERVICE" = "gxp-service" ]; then
+              run_service_migration "gxp-service"
+            fi
+
+            if [ "$SERVICE" = "all" ] || [ "$SERVICE" = "lims-service" ]; then
+              run_service_migration "lims-service"
+            fi

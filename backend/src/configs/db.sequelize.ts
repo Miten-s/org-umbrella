@@ -45,12 +45,8 @@ export const connectDB = async (): Promise<void> => {
   try {
     await sequelize.authenticate();
     console.log("umbrella_auth_db (PostgreSQL) connected successfully!");
-    
-    // Automatically run migrations on connection
-    const { migrations, runMigrations } = await import("../migrations/index");
-    await runMigrations(sequelize, migrations);
   } catch (error) {
-    console.error("PostgreSQL connection/migration error:", error);
+    console.error("PostgreSQL connection error:", error);
     process.exit(1);
   }
 };

@@ -10,7 +10,8 @@
     "serve": "nodemon dist/server.js",
     "watch": "tsc --watch",
     "lint": "eslint 'src/**/*.{js,ts}'",
-    "format": "prettier --write 'src/**/*.{js,ts,json,md}'"
+    "format": "prettier --write 'src/**/*.{js,ts,json,md}'",
+    "db:migrate": "node -e \"import('./dist/migrations/index.js').then(({ migrations, runMigrations }) => import('./dist/configs/db.sequelize.js').then(({ sequelize }) => runMigrations(sequelize, migrations))).then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\""
   },
   "author": "umbrella",
   "license": "ISC",

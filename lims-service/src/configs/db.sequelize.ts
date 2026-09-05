@@ -78,17 +78,14 @@ export const connectDB = async (): Promise<void> => {
     const { registerAssociations } = await import("../models/associations");
     registerAssociations();
 
-    // Automatically run migrations on connection.
-    const { migrations, runMigrations } = await import("../migrations/index");
-    await runMigrations(sequelize, migrations);
-
-    // Safety sync to ensure tables exist even if migration tracking table was out-of-sync
-    await sequelize.sync();
-
     // Mirror the code-defined permission vocabulary into lims_permissions so
     // the catalogue can never describe permissions the code doesn't enforce.
-    const { seedPermissions } = await import("../services/permission.service");
-    await seedPermissions();
+    try {
+      const { seedPermissions } = await import("../services/permission.service");
+      await seedPermissions();
+    } catch (err) {
+      console.warn("Skipping seedPermissions (run migrations first if table is missing):", err);
+    }
 
     // Warn if a pick list is missing/empty; not auto-seeded, since values are a lab's own config.
     const { reportPhraseHealth } = await import("../services/phrase-health.service");

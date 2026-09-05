@@ -66,15 +66,11 @@ export const connectDB = async (): Promise<void> => {
   try {
     await sequelize.authenticate();
     console.log("gxp_workflow_db (PostgreSQL) connected successfully!");
-    
-    // Automatically run migrations on connection
-    const { migrations, runMigrations } = await import("../migrations/index");
-    await runMigrations(sequelize, migrations);
 
     await authSequelize.authenticate();
     console.log("umbrella_auth_db secondary connection connected successfully!");
   } catch (error) {
-    console.error("PostgreSQL connection/migration error in gxp-service:", error);
+    console.error("PostgreSQL connection error in gxp-service:", error);
     process.exit(1);
   }
 };
