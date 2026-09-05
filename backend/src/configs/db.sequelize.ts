@@ -11,11 +11,23 @@ const isLocalPostgres = (uri?: string) => {
   if (!uri) return true;
   if (/localhost|127\.0\.0\.1|postgres/.test(uri)) {
     return true;
+  }
+  return !(uri.includes("sslmode=require") || uri.includes("supabase") || uri.includes("neon.tech") || uri.includes("rds.amazonaws.com"));
 };
 
+const sanitizePgUri = (uri?: string) => {
   if (!uri) return uri;
   if (isLocalPostgres(uri)) {
     return uri.replace(/[\?&]sslmode=[^&]+/gi, "").replace(/[\?&]ssl=[^&]+/gi, "");
+  }
+  return uri;
+};
+
+export const sequelize = new Sequelize(sanitizePgUri(postgresUri) || "postgres://postgres:postgres@localhost:5433/umbrella_auth_db", {
+  dialect: "postgres",
+  logging: (msg) => console.log(msg),
+  pool: {
+    max: 10,
     min: 2,
     acquire: 30000,
     idle: 10000
