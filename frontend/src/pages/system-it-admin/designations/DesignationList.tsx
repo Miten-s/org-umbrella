@@ -180,7 +180,7 @@ const DesignationList = () => {
           setDeleteCount(count);
           setDeleteNames(
             selection.mode === "ids"
-              ? table.rows.filter((r) => selection.ids.includes(r.id)).map((r) => r.designationName)
+              ? table.getCachedRows(selection.ids).map((r) => r.designationName)
               : []
           );
         }

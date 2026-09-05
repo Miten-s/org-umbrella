@@ -1,17 +1,18 @@
 import { plainToInstance } from "class-transformer";
-import { validate } from "class-validator";
+import { validate, ValidatorOptions } from "class-validator";
 import { Request, Response, NextFunction } from "express";
 
 export const validateDto = (
   dtoClass: any,
-  type?: "body" | "query" | "params"
+  type?: "body" | "query" | "params",
+  validatorOptions?: ValidatorOptions
 ): any => {
   return async (req: Request, res: Response, next: NextFunction) => {
     const source = req[type ?? "body"];
     const payload =
       typeof source?.data === "string" ? JSON.parse(source.data) : source;
     const dtoObject = plainToInstance(dtoClass, payload);
-    const errors = await validate(dtoObject);
+    const errors = await validate(dtoObject, validatorOptions);
 
     if (errors.length > 0) {
       const errorMessages = errors.map((err) =>
@@ -35,7 +36,8 @@ export const validateDto = (
 export const validateDtoArray = (
   dtoClass: any,
   arrayField: string,
-  nestedField?: string
+  nestedField?: string,
+  validatorOptions?: ValidatorOptions
 ): any => {
   return async (req: Request, res: Response, next: NextFunction) => {
     const items = (req.body as Record<string, unknown>)?.[arrayField];
@@ -46,7 +48,7 @@ export const validateDtoArray = (
       const item = items[i] as Record<string, unknown>;
       const target = nestedField ? item?.[nestedField] : item;
       const dtoObject: any = plainToInstance(dtoClass, target as object);
-      const errors = await validate(dtoObject);
+      const errors = await validate(dtoObject, validatorOptions);
       if (errors.length) {
         const suffix =
           items.length > 1 ? ` (record ${i + 1} of ${items.length})` : "";

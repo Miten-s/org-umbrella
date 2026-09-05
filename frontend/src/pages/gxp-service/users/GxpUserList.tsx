@@ -207,7 +207,7 @@ const GxpUserList = () => {
             return;
           }
           setPendingRestore(selection);
-          setRestoreNames(table.rows.filter((r) => selection.ids.includes(r.id)).map((r) => r.user.name || "-"));
+          setRestoreNames(table.getCachedRows(selection.ids).map((r) => r.user.name || "-"));
         }
       },
       {
@@ -221,7 +221,7 @@ const GxpUserList = () => {
           setDeleteCount(count);
           setDeleteNames(
             selection.mode === "ids"
-              ? table.rows.filter((r) => selection.ids.includes(r.id)).map((r) => r.user.name || "-")
+              ? table.getCachedRows(selection.ids).map((r) => r.user.name || "-")
               : []
           );
         }

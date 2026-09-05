@@ -56,14 +56,24 @@ export const fetchGxpUserById = async (id: string, signal?: AbortSignal): Promis
 /** Every platform userId already mapped to a GXP user, active OR disabled — included on
  * purpose, since the backend has no uniqueness check scoped to active rows either. */
 export const fetchLinkedPlatformUserIds = async (signal?: AbortSignal): Promise<Set<string>> => {
-  const response = await gxpApi.get(ROUTE, {
-    params: { ...buildServerParams({ page: 1, limit: 500 }), includeDisabled: true },
-    signal
-  });
-  const result = toListResult<GxpUser>(response.data, { page: 1, limit: 500 }, DATA_KEYS);
-  return new Set(
-    result.rows.map((row: any) => row.user?.id).filter((id: unknown): id is string => Boolean(id))
-  );
+  const limit = 500;
+  const ids = new Set<string>();
+  let page = 1;
+  let totalPages = 1;
+  do {
+    const params: ServerListParams = { page, limit };
+    const response = await gxpApi.get(ROUTE, {
+      params: { ...buildServerParams(params), includeDisabled: true },
+      signal
+    });
+    const result = toListResult<GxpUser>(response.data, params, DATA_KEYS);
+    result.rows.forEach((row: any) => {
+      if (row.user?.id) ids.add(row.user.id);
+    });
+    totalPages = result.totalPages;
+    page += 1;
+  } while (page <= totalPages);
+  return ids;
 };
 
 export const createGxpUser = async (payload: GxpUserPayload) => {

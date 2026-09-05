@@ -94,6 +94,7 @@ const bulkDuplicateDesignations = async (ids: string[], user?: any) => {
       const regexStr = `^${escapedBaseName}(?:-\\(([0-9]+)\\))?$`;
 
       const similarDesignationsResult = await Designation.findAll({
+        attributes: ["designationName"],
         where: {
           designationName: { [Op.iRegexp]: regexStr }
         },
@@ -165,6 +166,7 @@ const bulkCopyDesignations = async (
         const regexStr = `^${escapedBaseName}(?:-\\(([0-9]+)\\))?$`;
 
         const similar = await Designation.findAll({
+          attributes: ["designationName"],
           where: { designationName: { [Op.iRegexp]: regexStr } },
           transaction: t
         });

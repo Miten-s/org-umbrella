@@ -1,7 +1,7 @@
 import api from "@/utils/axios.interceptor";
 import { buildServerParams, toListResult, toOptionsPage } from "@/lib/query/listAdapter";
 import { normalizeList } from "@/lib/query/normalizeId";
-import { extractList } from "@/utils/listResponse";
+import { extractList, extractPaginationMetadata } from "@/utils/listResponse";
 import { bulkSelectionToBody, type BulkSelection } from "@/lib/query/listTypes";
 import type { ServerListParams } from "@/lib/query/listTypes";
 import { RoleType, PermissionType } from "@/utils/common.constants";
@@ -24,13 +24,24 @@ export const fetchRoleList = async (params: ServerListParams, signal?: AbortSign
 
 /** All GXP permissions (id + name) for the role form's permission picker. */
 export const fetchRolePermissions = async (signal?: AbortSignal): Promise<GxpPermissionOption[]> => {
-  const response = await api.get(PERMISSIONS, {
-    params: { type: PermissionType.GXP_SERVICE, limit: 100 },
-    signal
-  });
-  return normalizeList<{ id?: string; _id?: string; name: string }>(
-    extractList(response.data, ["permissions"])
-  ).map((p) => ({ id: p.id, _id: p._id, name: p.name }));
+  const limit = 100;
+  const permissions: { id: string; _id: string; name: string }[] = [];
+  let page = 1;
+  let totalPages = 1;
+  do {
+    const response = await api.get(PERMISSIONS, {
+      params: { type: PermissionType.GXP_SERVICE, limit, page },
+      signal
+    });
+    permissions.push(
+      ...normalizeList<{ id?: string; _id?: string; name: string }>(
+        extractList(response.data, ["permissions"])
+      )
+    );
+    totalPages = extractPaginationMetadata(response.data, { currentPage: page, limit }).totalPages;
+    page += 1;
+  } while (page <= totalPages);
+  return permissions.map((p) => ({ id: p.id, _id: p._id, name: p.name }));
 };
 
 /** GXP role options for AsyncSelect consumers (e.g. GXP Users' role picker). */

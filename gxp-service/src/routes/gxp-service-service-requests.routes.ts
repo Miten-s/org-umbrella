@@ -15,11 +15,12 @@ import {
 } from "../controllers/gxp-service-service-requests.controller.js";
 import upload from "../middlewares/multer.middleware.js";
 import API_ROUTES from "../utils/routes.js";
-import { validateDto } from "../middlewares/validate-dto.middleware.js";
+import { validateDto, validateDtoArray } from "../middlewares/validate-dto.middleware.js";
 import {
   CreateServiceRequestDto,
   UpdateServiceRequestDto
 } from "../dtos/service-request.dto.js";
+import { BulkCreateDto, BulkUpdateDto, BulkOperationDto } from "../dtos/common.dto.js";
 
 const router = Router();
 
@@ -40,7 +41,12 @@ router.post(
 
 router.post(API_ROUTES.SERVICE_REQUESTS.BULK_DELETE, bulkDeleteServiceRequests);
 
-router.post(API_ROUTES.SERVICE_REQUESTS.BULK_COPY, bulkCopyServiceRequests);
+router.post(
+  API_ROUTES.SERVICE_REQUESTS.BULK_COPY,
+  validateDto(BulkCreateDto),
+  validateDtoArray(CreateServiceRequestDto, "records"),
+  bulkCopyServiceRequests
+);
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
 
@@ -48,11 +54,14 @@ router.post(API_ROUTES.SERVICE_REQUESTS.BULK_COPY, bulkCopyServiceRequests);
 // path shape, and Express matches whichever is registered first.
 router.patch(
   API_ROUTES.SERVICE_REQUESTS.BULK_UPDATE,
+  validateDto(BulkUpdateDto),
+  validateDtoArray(UpdateServiceRequestDto, "updates", "payload"),
   bulkUpdateServiceRequests
 );
 
 router.patch(
   API_ROUTES.SERVICE_REQUESTS.BULK_RESTORE,
+  validateDto(BulkOperationDto),
   bulkRestoreServiceRequests
 );
 

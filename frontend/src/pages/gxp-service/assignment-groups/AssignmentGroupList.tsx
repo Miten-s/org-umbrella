@@ -215,7 +215,7 @@ const AssignmentGroupList = () => {
             return;
           }
           setPendingRestore(selection);
-          setRestoreNames(table.rows.filter((r) => selection.ids.includes(r.id)).map((r) => r.groupName));
+          setRestoreNames(table.getCachedRows(selection.ids).map((r) => r.groupName));
         }
       },
       {
@@ -229,7 +229,7 @@ const AssignmentGroupList = () => {
           setDeleteCount(count);
           setDeleteNames(
             selection.mode === "ids"
-              ? table.rows.filter((r) => selection.ids.includes(r.id)).map((r) => r.groupName)
+              ? table.getCachedRows(selection.ids).map((r) => r.groupName)
               : []
           );
         }

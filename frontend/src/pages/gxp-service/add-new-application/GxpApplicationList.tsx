@@ -211,7 +211,7 @@ const GxpApplicationList = () => {
             return;
           }
           setPendingRestore(selection);
-          setRestoreNames(table.rows.filter((r) => selection.ids.includes(r.id)).map((r) => r.applicationName));
+          setRestoreNames(table.getCachedRows(selection.ids).map((r) => r.applicationName));
         }
       },
       {
@@ -223,7 +223,7 @@ const GxpApplicationList = () => {
         onClick: (selection, count) => {
           setPendingDelete(selection);
           setDeleteCount(count);
-          setDeleteNames(selection.mode === "ids" ? table.rows.filter((r) => selection.ids.includes(r.id)).map((r) => r.applicationName) : []);
+          setDeleteNames(selection.mode === "ids" ? table.getCachedRows(selection.ids).map((r) => r.applicationName) : []);
         }
       }
     ],

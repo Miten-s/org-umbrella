@@ -118,6 +118,7 @@ const getUsers = async (
 
   const { count: totalCount, rows: data } = await User.findAndCountAll({
     where,
+    attributes: { exclude: ["password"] },
     distinct: true,
     offset: skip,
     limit,
@@ -334,7 +335,9 @@ const bulkUpdateUsers = async (
 
     for (const { id, payload } of updates) {
       const user = await User.findByPk(id, { transaction: t });
-      if (!user) {
+      // Same protection bulkDeleteUsers already gives superadmin — a bulk edit shouldn't
+      // be able to touch it either.
+      if (!user || user.fullName === "superadmin") {
         results.push({ id, skipped: true });
         continue;
       }

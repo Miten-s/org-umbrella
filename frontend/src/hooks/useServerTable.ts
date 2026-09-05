@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDebouncedValue } from "./useDebouncedValue";
 import { getCapabilities, type TableCapabilities } from "@/lib/query/capabilities";
 import {
@@ -103,6 +103,30 @@ export const useServerTable = <T>({
   const rows = query.data?.rows ?? [];
   const total = query.data?.total ?? 0;
   const totalPages = query.data?.totalPages ?? 1;
+
+  // Deleting the rest of the current (e.g. last) page shrinks totalPages below `page` —
+  // without this, the table keeps requesting a page that no longer exists and renders
+  // empty even though earlier pages still have rows.
+  useEffect(() => {
+    if (!query.isFetching && totalPages > 0 && page > totalPages) {
+      setPageState(totalPages);
+    }
+  }, [query.isFetching, totalPages, page]);
+
+  // Every row ever fetched, keyed by id — outlives the current page so a selection made
+  // on a page the user has since navigated away from still resolves to a full row.
+  const rowCacheRef = useRef<Map<string, T>>(new Map());
+  rows.forEach((row) => rowCacheRef.current.set(getRowId(row), row));
+
+  /** Looks up selected rows across every page seen so far, not just the current one —
+   * use this instead of filtering `rows` when building names for a bulk confirmation. */
+  const getCachedRows = useCallback(
+    (ids: string[]): T[] =>
+      ids
+        .map((id) => rowCacheRef.current.get(id))
+        .filter((row): row is T => row !== undefined),
+    []
+  );
 
   // --- setters (reset page where it affects the result window) ---
   const setPage = useCallback((next: number) => setPageState(Math.max(1, next)), []);
@@ -234,7 +258,8 @@ export const useServerTable = <T>({
     selectAllMatching,
     clearSelection,
     resolveBulkSelection,
-    getRowId
+    getRowId,
+    getCachedRows
   };
 };
 

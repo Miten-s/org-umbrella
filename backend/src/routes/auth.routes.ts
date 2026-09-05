@@ -13,8 +13,11 @@ import {
 } from "../controllers/user.controller";
 import { checkPermissions } from "../middlewares/permission.middleware";
 import { authenticate } from "../middlewares/auth.middleware";
-import { validateDto } from "../middlewares/validate-dto.middleware";
-import { CreateUserDTO } from "../dtos/user.dto";
+import {
+  validateDto,
+  validateDtoArray
+} from "../middlewares/validate-dto.middleware";
+import { CreateUserDTO, UpdateUserDto } from "../dtos/user.dto";
 import { BulkUpdateDto, IsValidParamsIdDto } from "../dtos/common.dto";
 import { upload } from "../middlewares/multer.middleware";
 
@@ -77,6 +80,9 @@ router.patch(
   authenticate,
   checkPermissions(["UPDATE:USER"]),
   validateDto(BulkUpdateDto),
+  // whitelist:true strips anything not declared on UpdateUserDto (password, userType, …)
+  // before it ever reaches the service — bulk-update must not become a credential-reset path.
+  validateDtoArray(UpdateUserDto, "updates", "payload", { whitelist: true }),
   bulkUpdateUsers
 );
 

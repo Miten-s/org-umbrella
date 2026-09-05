@@ -263,6 +263,19 @@ const groupWhere = <M extends Model>(
   } as WhereOptions;
 };
 
+/** A client-supplied `groupId` must be one the caller can actually operate in — otherwise
+ * plain CREATE/UPDATE permission (no `operateAll`) would let a user plant or move records
+ * into a group they have no access to, bypassing the same segregation `groupWhere` enforces
+ * on every read. */
+const assertGroupInScope = (groupId: unknown, scope: AccessScope) => {
+  if (!groupId || scope.operateAll) return;
+  if (!scope.accessGroupIds.includes(groupId as string)) {
+    throw Object.assign(new Error("That group is outside your access."), {
+      statusCode: 403
+    });
+  }
+};
+
 /** Merges the group filter into a where clause without clobbering an existing Op.or. */
 const withGroupScope = <M extends Model>(
   model: ModelStatic<M>,
@@ -563,8 +576,9 @@ const inferNameField = <M extends Model>(
 
 export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
   // So anything holding only the permission code (attachments) can write audit
-  // rows under the same entityName this service uses.
-  registerEntity(config.permissionEntity, config.entityName);
+  // rows under the same entityName this service uses, and can load/group-scope
+  // the parent record it only knows by permission code.
+  registerEntity(config.permissionEntity, config.entityName, config.model);
 
   const repo = buildCrudRepo(config);
   const {
@@ -615,6 +629,10 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
       ctx.scope.homeGroupId
     ) {
       data.groupId = ctx.scope.homeGroupId;
+    }
+
+    if (hasGroupColumn && !config.globalReference) {
+      assertGroupInScope(data.groupId, ctx.scope);
     }
 
     trimIdentifiers(config, data);
@@ -669,7 +687,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
       parentId,
       payload,
       transaction,
-      created!.toJSON()
+      created!.toJSON(),
+      ctx.scope
     );
 
     await writeAudit({
@@ -800,6 +819,14 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
 
     const data = beforeUpdate ? await beforeUpdate(mapped, existing) : mapped;
 
+    if (
+      hasGroupColumn &&
+      !config.globalReference &&
+      data.groupId !== undefined
+    ) {
+      assertGroupInScope(data.groupId, ctx.scope);
+    }
+
     trimIdentifiers(config, data);
 
     if (uniqueField && data[uniqueField] !== undefined) {
@@ -823,7 +850,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
       id,
       payload,
       transaction,
-      { ...oldValue, ...updated!.toJSON() }
+      { ...oldValue, ...updated!.toJSON() },
+      ctx.scope
     );
 
     // Reconciled here (same transaction, before the audit write) so an add/remove shows up
@@ -955,12 +983,16 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     return sequelize
       .transaction(async (transaction) => {
         // Filter to the ids actually in scope, so a bulk call can't be used to
-        // delete records the caller could not have seen one at a time.
-        const permitted: string[] = [];
-        for (const id of ids) {
-          const row = await repo.findById(id, ctx.scope, transaction);
-          if (row) permitted.push(id);
-        }
+        // delete records the caller could not have seen one at a time. One batched
+        // lookup instead of N sequential round trips.
+        const rows = await model.findAll({
+          where: withGroupScope(model, ctx.scope, {
+            id: { [Op.in]: ids },
+            isDeleted: false
+          }),
+          transaction
+        });
+        const permitted = rows.map((row) => row.get("id") as string);
         if (!permitted.length) return 0;
 
         await repo.softDelete(permitted, ctx.actor.id, transaction);
@@ -993,12 +1025,15 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
       .transaction(async (transaction) => {
         // Same permitted-ids filter as bulkDelete, PLUS: only rows actually removed right
         // now — restoring an already-active row would write a bogus "RESTORE" audit entry
-        // for something that never happened.
-        const permitted: string[] = [];
-        for (const id of ids) {
-          const row = await repo.findById(id, ctx.scope, transaction, true);
-          if (row && (row as any).isDeleted) permitted.push(id);
-        }
+        // for something that never happened. One batched lookup instead of N round trips.
+        const rows = await model.findAll({
+          where: withGroupScope(model, ctx.scope, {
+            id: { [Op.in]: ids },
+            isDeleted: true
+          }),
+          transaction
+        });
+        const permitted = rows.map((row) => row.get("id") as string);
         if (!permitted.length) return 0;
 
         await repo.restoreMany(permitted, transaction);
@@ -1026,8 +1061,16 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     return sequelize
       .transaction(async (transaction) => {
         const created: any[] = [];
+        // One batched lookup for every permitted source row, instead of a findById per id.
+        const permittedSources = await model.findAll({
+          where: withGroupScope(model, ctx.scope, { id: { [Op.in]: ids } }),
+          transaction
+        });
+        const sourceById = new Map(
+          permittedSources.map((row) => [row.get("id") as string, row])
+        );
         for (const id of ids) {
-          const source = await repo.findById(id, ctx.scope, transaction, true);
+          const source = sourceById.get(id);
           if (!source) continue;
           const clone = source.toJSON() as Record<string, any>;
           delete clone.id;
@@ -1373,8 +1416,14 @@ export const buildCrudController = <M extends Model>(
   }),
 
   getAuditLogs: asyncHandler(async (req: Request, res: Response) => {
-    const page = Number(req.query.page || 1);
-    const limit = Number(req.query.limit || 20);
+    // Same clamp as the list endpoint's `getPaginationOptions` — no unbounded/negative/NaN page or limit.
+    let page = parseInt(req.query.page as string, 10);
+    if (isNaN(page) || page < 1) page = 1;
+
+    let limit = parseInt(req.query.limit as string, 10);
+    if (isNaN(limit) || limit <= 0) limit = 20;
+    if (limit > 200) limit = 200;
+
     const result = await service.getAuditLogs(
       req.params.id as string,
       page,

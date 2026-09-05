@@ -94,6 +94,23 @@ export const GXP_PERMISSIONS = {
   DELETE_SERVICE_REQUEST: "GXP:DELETE:SERVICE_REQUEST"
 };
 
+/** Any GXP Access permission (users/roles/permissions/assignment groups) — gates the GXP Access sidebar group. */
+export const GXP_ACCESS_PERMISSIONS = Object.entries(GXP_PERMISSIONS)
+  .filter(([key]) => /_(PERMISSION|ROLE|USER|ASSIGNMENT_GROUP)$/.test(key))
+  .map(([, value]) => value);
+
+/** GXP Service Request permissions — gates the GXP Execution sidebar group. */
+export const GXP_EXECUTION_PERMISSIONS = Object.entries(GXP_PERMISSIONS)
+  .filter(([key]) => /_SERVICE_REQUEST$/.test(key))
+  .map(([, value]) => value);
+
+/** Any GXP master-data permission — gates the GXP Setup sidebar group. */
+export const GXP_SETUP_PERMISSIONS = Object.values(GXP_PERMISSIONS).filter(
+  (permission) =>
+    !GXP_ACCESS_PERMISSIONS.includes(permission) &&
+    !GXP_EXECUTION_PERMISSIONS.includes(permission)
+);
+
 /**
  * LIMS permissions. Same `AREA:ACTION:ENTITY` shape as GXP so `hasPermission`
  * and the OPERATE:ALL wildcard work unchanged.

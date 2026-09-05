@@ -1,4 +1,4 @@
-import { Model, ModelStatic, Op } from "sequelize";
+import { Model, ModelStatic, Op, Transaction } from "sequelize";
 
 const stripCopySuffix = (name: string) => {
   const match = name.match(/^(.*?)(?:-\(\d+\))?$/);
@@ -16,14 +16,18 @@ export const resolveUniqueName = async (
   model: ModelStatic<Model>,
   nameField: string,
   rawBaseName: string,
-  maxLength?: number
+  maxLength?: number,
+  transaction?: Transaction
 ): Promise<string> => {
   const baseName = stripCopySuffix(rawBaseName) || "Untitled";
   const escaped = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const regexStr = `^${escaped}(?:-\\((\\d+)\\))?$`;
 
+  // Project just the name column — a bulk-copy loop doesn't need whole rows to compute the suffix.
   const similar = await model.findAll({
-    where: { [nameField]: { [Op.iRegexp]: regexStr } }
+    attributes: [nameField],
+    where: { [nameField]: { [Op.iRegexp]: regexStr } },
+    transaction
   });
 
   // No collision at all — the reviewed name is already unique, so save it

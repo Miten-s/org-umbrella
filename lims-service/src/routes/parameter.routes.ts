@@ -5,8 +5,9 @@ import { buildCrudRouter, buildCrudService, CrudConfig } from "../utils/crud-fac
 import { CreateParameterDto, UpdateParameterDto } from "../dtos/commercial.dto";
 
 /** Checks the default value against the parameter's own Type (Numeric/Date/Boolean) so
- * "Numeric" + "not-a-number" can never be saved — resolves the type id to its Phrase entry
- * name (Text/Option carry no constraint, so anything else passes through untouched). */
+ * "Numeric" + "not-a-number" can never be saved. Matches `phraseEntryId`, not `name` — per
+ * phrase.routes.ts only the parent Phrase's `phrase` code is system-locked, so this is the
+ * least casually-renamed field available, not a truly frozen one. */
 const validateDefaultValueAgainstType = async (
   typeId: string | null | undefined,
   defaultValue: string | null | undefined
@@ -15,21 +16,21 @@ const validateDefaultValueAgainstType = async (
   if (!typeId || !value) return;
 
   const typeEntry = await PhraseEntry.findByPk(typeId);
-  const typeName = String((typeEntry as any)?.name ?? "").trim().toLowerCase();
+  const typeCode = String((typeEntry as any)?.phraseEntryId ?? "").trim().toLowerCase();
 
-  if (typeName === "numeric" && Number.isNaN(Number(value))) {
+  if (/(^|_)numeric$/.test(typeCode) && Number.isNaN(Number(value))) {
     throw Object.assign(
       new Error(`Default value "${value}" is not a valid number for a Numeric parameter.`),
       { statusCode: 400 }
     );
   }
-  if (typeName === "date" && Number.isNaN(Date.parse(value))) {
+  if (/(^|_)date$/.test(typeCode) && Number.isNaN(Date.parse(value))) {
     throw Object.assign(
       new Error(`Default value "${value}" is not a valid date for a Date parameter.`),
       { statusCode: 400 }
     );
   }
-  if (typeName === "boolean" && !["true", "false"].includes(value.toLowerCase())) {
+  if (/(^|_)boolean$/.test(typeCode) && !["true", "false"].includes(value.toLowerCase())) {
     throw Object.assign(
       new Error(`Default value "${value}" must be true or false for a Boolean parameter.`),
       { statusCode: 400 }

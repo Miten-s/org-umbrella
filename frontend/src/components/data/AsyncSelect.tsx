@@ -410,8 +410,17 @@ export const AsyncSelect = (props: AsyncSelectProps) => {
               )}
             </>
           ) : (
-            <span className="inline-flex min-w-0 max-w-full items-center rounded-full bg-gray-100 px-2 py-0.5 text-sm text-gray-900 dark:bg-gray-700 dark:text-gray-100">
+            <span className="inline-flex min-w-0 max-w-full items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-sm text-gray-900 dark:bg-gray-700 dark:text-gray-100">
               <span className="truncate">{labelFor(selectedValues[0])}</span>
+              {!disabled && (
+                <CloseLineIcon
+                  className="h-3.5 w-3.5 shrink-0 cursor-pointer opacity-70 hover:opacity-100"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeValue(selectedValues[0]);
+                  }}
+                />
+              )}
             </span>
           )}
         </span>

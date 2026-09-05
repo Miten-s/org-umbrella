@@ -12,6 +12,7 @@ import {
 import asyncHandler from "../middlewares/error.middleware";
 import { getPaginationOptions } from "../utils/pagination.util";
 import { buildBulkCrudRoutes } from "../utils/bulk-crud-factory";
+import { CreateUserDTO } from "../dtos/user.dto";
 
 export const createUser = asyncHandler(async (req: Request, res: Response) => {
   const data = req.body;
@@ -74,6 +75,7 @@ export const bulkDeleteUsers = asyncHandler(
 // No nameField: a cloned Lab User's whole point is assigning the same roles
 // to a DIFFERENT platform user, so there's no name to collision-suffix.
 const bulkCrud = buildBulkCrudRoutes({
+  createDtoClass: CreateUserDTO,
   createOne: (payload, currentUser) =>
     createUserService({ ...payload, createdBy: currentUser }),
   updateOne: (id, payload, currentUser) =>

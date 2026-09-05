@@ -89,6 +89,38 @@ export const readChildren = async (
   return rows.map((row) => row.toJSON() as Record<string, any>);
 };
 
+/** The caller's group access, structurally — avoids importing `AccessScope` from
+ * crud-factory.ts, which itself imports this module. */
+export interface ScopeCheck {
+  accessGroupIds: string[];
+  operateAll: boolean;
+}
+
+/** A `detachOnly` claim must target a row the caller can actually reach — otherwise a
+ * plain UPDATE permission on the parent would let a user re-parent (and thereby move
+ * out of its group) a child row belonging to a group they have no access to. */
+const assertClaimInScope = async (
+  config: ChildConfig,
+  claimId: string,
+  scope: ScopeCheck | undefined,
+  transaction?: Transaction
+) => {
+  if (!scope || scope.operateAll) return;
+  const candidate = await config.model.findOne({
+    where: { id: claimId } as any,
+    transaction
+  });
+  const candidateGroupId = candidate?.get?.("groupId") as
+    | string
+    | null
+    | undefined;
+  if (candidate && candidateGroupId && !scope.accessGroupIds.includes(candidateGroupId)) {
+    throw Object.assign(new Error("That record is outside your groups."), {
+      statusCode: 403
+    });
+  }
+};
+
 /** Applies the incoming child set and returns what changed. `undefined` means "not
  * mentioned" — left alone. An empty array means "delete them all", a real instruction. */
 export const syncChildren = async (
@@ -96,7 +128,8 @@ export const syncChildren = async (
   parentId: string,
   incoming: Record<string, any>[] | undefined,
   transaction?: Transaction,
-  parent: Record<string, any> = {}
+  parent: Record<string, any> = {},
+  scope?: ScopeCheck
 ): Promise<{
   before: Record<string, any>[];
   after: Record<string, any>[];
@@ -132,6 +165,7 @@ export const syncChildren = async (
       // Claim an existing record rather than creating one.
       const claimId = raw.id ?? key;
       if (claimId) {
+        await assertClaimInScope(config, claimId, scope, transaction);
         await config.model.update({ [config.foreignKey]: parentId } as any, {
           where: { id: claimId } as any,
           transaction
@@ -179,7 +213,8 @@ export const syncAllChildren = async (
   parentId: string,
   payload: Record<string, any>,
   transaction?: Transaction,
-  parent: Record<string, any> = {}
+  parent: Record<string, any> = {},
+  scope?: ScopeCheck
 ): Promise<{
   oldChildren: Record<string, any>;
   newChildren: Record<string, any>;
@@ -195,7 +230,8 @@ export const syncAllChildren = async (
       parentId,
       payload[config.field],
       transaction,
-      parent
+      parent,
+      scope
     );
     if (!result) continue;
 

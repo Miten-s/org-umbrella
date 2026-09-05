@@ -214,7 +214,7 @@ const SupplierList = () => {
             return;
           }
           setPendingRestore(selection);
-          setRestoreNames(table.rows.filter((r) => selection.ids.includes(r.id)).map((r) => r.supplierName));
+          setRestoreNames(table.getCachedRows(selection.ids).map((r) => r.supplierName));
         }
       },
       {
@@ -228,7 +228,7 @@ const SupplierList = () => {
           setDeleteCount(count);
           setDeleteNames(
             selection.mode === "ids"
-              ? table.rows.filter((r) => selection.ids.includes(r.id)).map((r) => r.supplierName)
+              ? table.getCachedRows(selection.ids).map((r) => r.supplierName)
               : []
           );
         }
