@@ -6,6 +6,7 @@ import { buildBulkCrudRoutes } from "../utils/bulk-crud-factory";
 import Application from "../models/gxp-service-applications.model";
 import AppModule from "../models/gxp-service-application-modules.model";
 import { CreateApplicationDto } from "../dtos/application.dto";
+import { toObjectIdString } from "../services/mixed-id-resolution.service";
 
 export const createApplication = asyncHandler(
   async (req: Request, res: Response) => {
@@ -183,21 +184,28 @@ export const bulkDuplicateApplications = asyncHandler(
 
 // createApplication already resolves applicationGroups/departments/roles/services
 // from the reviewed payload itself, same as a normal create — but Module<->Application
-// is one-to-one, so reusing the SOURCE's module ids as-is would reassign (steal) them
-// onto the copy via resolveModuleIdsForApplication's id branch. Resolve them to plain
-// NAMEs first so it takes the name branch instead, which clones fresh module rows under
-// the new application and leaves the source's modules untouched.
+// is one-to-one, so reusing an ALREADY-OWNED module's id as-is would reassign (steal) it
+// onto the copy via resolveModuleIdsForApplication's id branch. Resolve only those to
+// plain NAMEs so they take the name branch instead, which clones a fresh module row
+// under the new application and leaves the owner's modules untouched. A module with no
+// owner yet isn't at risk of being stolen from anywhere — leave its id alone so it's
+// linked to the new application instead of spawning a duplicate.
 const cloneApplicationModulesByName = async (payload: any) => {
   if (!Array.isArray(payload.applicationModules) || !payload.applicationModules.length) {
     return payload;
   }
-  const ids = payload.applicationModules.filter((m: unknown) => typeof m === "string");
+  // A freshly-typed "Add on-demand" name (not a UUID yet, since it hasn't been created)
+  // must not reach this id lookup — Postgres rejects a non-UUID literal outright.
+  const ids = payload.applicationModules.filter(
+    (m: unknown): m is string => typeof m === "string" && toObjectIdString(m) !== undefined
+  );
   const modules = ids.length ? await AppModule.findAll({ where: { id: ids } }) : [];
   const namesById = new Map(modules.map((m) => [m.id, m.moduleName]));
+  const ownedIds = new Set(modules.filter((m) => m.applicationId).map((m) => m.id));
   return {
     ...payload,
     applicationModules: payload.applicationModules.map((m: unknown) =>
-      typeof m === "string" ? (namesById.get(m) ?? m) : m
+      typeof m === "string" && ownedIds.has(m) ? (namesById.get(m) ?? m) : m
     )
   };
 };

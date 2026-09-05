@@ -16,11 +16,12 @@ import {
   bulkRestoreGroups
 } from "../controllers/gxp-service-assignment-groups.controller";
 import API_ROUTES from "../utils/routes";
-import { validateDto } from "../middlewares/validate-dto.middleware";
+import { validateDto, validateDtoArray } from "../middlewares/validate-dto.middleware";
 import {
   CreateAssignmentGroupDto,
   UpdateAssignmentGroupDto
 } from "../dtos/assignment-group.dto";
+import { BulkCreateDto, BulkUpdateDto, BulkOperationDto } from "../dtos/common.dto";
 
 const router = Router();
 
@@ -49,14 +50,28 @@ router.post(
   API_ROUTES.ASSIGNMENT_GROUPS.BULK_DUPLICATE,
   bulkDuplicateGroupsController
 );
-router.post(API_ROUTES.ASSIGNMENT_GROUPS.BULK_COPY, bulkCopyGroups);
+router.post(
+  API_ROUTES.ASSIGNMENT_GROUPS.BULK_COPY,
+  validateDto(BulkCreateDto),
+  validateDtoArray(CreateAssignmentGroupDto, "records"),
+  bulkCopyGroups
+);
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
 
 // bulk-update/bulk-restore MUST register before BY_ID ("/:id") — same one-segment
 // path shape, and Express matches whichever is registered first.
-router.patch(API_ROUTES.ASSIGNMENT_GROUPS.BULK_UPDATE, bulkUpdateGroups);
-router.patch(API_ROUTES.ASSIGNMENT_GROUPS.BULK_RESTORE, bulkRestoreGroups);
+router.patch(
+  API_ROUTES.ASSIGNMENT_GROUPS.BULK_UPDATE,
+  validateDto(BulkUpdateDto),
+  validateDtoArray(UpdateAssignmentGroupDto, "updates", "payload"),
+  bulkUpdateGroups
+);
+router.patch(
+  API_ROUTES.ASSIGNMENT_GROUPS.BULK_RESTORE,
+  validateDto(BulkOperationDto),
+  bulkRestoreGroups
+);
 
 router.patch(
   API_ROUTES.ASSIGNMENT_GROUPS.BY_ID,

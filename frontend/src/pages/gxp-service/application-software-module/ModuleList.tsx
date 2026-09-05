@@ -21,6 +21,7 @@ import {
   useBulkRestoreModule,
   useBulkUpdateModule,
   useCreateModule,
+  useModuleById,
   useToggleModuleStatus,
   useUpdateModule
 } from "./Module.queries";
@@ -85,6 +86,11 @@ const ModuleList = () => {
   // cellRenderer identity (which would force a destroy/recreate of the cell
   // and kill the Switch's transition — see Module.columns.tsx).
   const columnDefs = useMemo(() => getModuleColumns({ t }), [t]);
+
+  // Row actions seed `active` from the list's own (potentially stale) row — refetch it
+  // fresh here so an application linked to this module from the Application side shows up,
+  // same fix as GxpApplicationList's `useApplicationDetail`.
+  const activeDetail = useModuleById(active?.id, isOpen && formMode !== "create");
 
   const gridContext = useMemo(
     () => ({
@@ -384,7 +390,7 @@ const ModuleList = () => {
         ) : (
           <ModuleForm
             mode={formMode}
-            initialData={active}
+            initialData={formMode === "create" ? null : (activeDetail.data ?? null)}
             onClose={handleCloseForm}
             onSubmit={handleSave}
             submitting={createModule.isPending || updateModule.isPending}

@@ -14,8 +14,9 @@ import {
   bulkUpdateWorkflows,
   bulkRestoreWorkflows
 } from "../controllers/gxp-service-workflows.controller";
-import { validateDto } from "../middlewares/validate-dto.middleware";
+import { validateDto, validateDtoArray } from "../middlewares/validate-dto.middleware";
 import { CreateWorkflowDto, UpdateWorkflowDto } from "../dtos/workflow.dto";
+import { BulkCreateDto, BulkUpdateDto, BulkOperationDto } from "../dtos/common.dto";
 
 const router: Router = Router();
 
@@ -35,15 +36,29 @@ router.post(
 
 router.post(API_ROUTES.WORKFLOWS.BULK_DELETE, bulkDeleteWorkflows);
 router.post(API_ROUTES.WORKFLOWS.BULK_DUPLICATE, bulkDuplicateWorkflows);
-router.post(API_ROUTES.WORKFLOWS.BULK_COPY, bulkCopyWorkflows);
+router.post(
+  API_ROUTES.WORKFLOWS.BULK_COPY,
+  validateDto(BulkCreateDto),
+  validateDtoArray(CreateWorkflowDto, "records"),
+  bulkCopyWorkflows
+);
 
 // ---------------------------------------------------------------------------------------- PUT Requests ----------------------------------------------------------------------------------------
 
 // bulk-update/bulk-restore MUST register before BY_ID ("/:workflowId") — same
 // one-segment path shape, and Express matches whichever is registered first.
-router.patch(API_ROUTES.WORKFLOWS.BULK_UPDATE, bulkUpdateWorkflows);
+router.patch(
+  API_ROUTES.WORKFLOWS.BULK_UPDATE,
+  validateDto(BulkUpdateDto),
+  validateDtoArray(UpdateWorkflowDto, "updates", "payload"),
+  bulkUpdateWorkflows
+);
 
-router.patch(API_ROUTES.WORKFLOWS.BULK_RESTORE, bulkRestoreWorkflows);
+router.patch(
+  API_ROUTES.WORKFLOWS.BULK_RESTORE,
+  validateDto(BulkOperationDto),
+  bulkRestoreWorkflows
+);
 
 router.patch(API_ROUTES.WORKFLOWS.ENABLE_BY_ID, enableWorkflow);
 

@@ -3,6 +3,7 @@ import * as service from "../services/gxp-service-service-requests.service";
 import asyncHandler from "../middlewares/error.middleware";
 import { getPaginationOptions } from "../utils/pagination.util";
 import { buildBulkCrudRoutes } from "../utils/bulk-crud-factory";
+import { CreateServiceRequestDto } from "../dtos/service-request.dto";
 
 export const createServiceRequest = asyncHandler(
   async (req: Request, res: Response) => {
@@ -129,6 +130,7 @@ export const disableServiceRequest = asyncHandler(
 // createServiceRequest call (per-application sequence counter), so there's
 // nothing client-supplied to collision-suffix.
 const bulkCrud = buildBulkCrudRoutes({
+  createDtoClass: CreateServiceRequestDto,
   createOne: (payload, currentUser) =>
     service.createServiceRequest(
       { ...payload, createdBy: currentUser ?? null },

@@ -1,8 +1,7 @@
 import { Request, Response } from "express";
-import { plainToInstance } from "class-transformer";
-import { validate } from "class-validator";
-import { Model, ModelStatic } from "sequelize";
+import { Model, ModelStatic, Transaction } from "sequelize";
 import asyncHandler from "../middlewares/error.middleware";
+import { sequelize } from "../configs/db.sequelize";
 import { resolveUniqueName } from "./bulk-name.util";
 
 export interface BulkCrudConfig {
@@ -12,9 +11,14 @@ export interface BulkCrudConfig {
   model?: ModelStatic<Model>;
   nameField?: string;
   maxNameLength?: number;
-  /** Validated per-record on bulk-copy when provided; the module's existing CreateXDto. */
+  /** The module's existing CreateXDto — documents the shape the route's own
+   * `validateDtoArray(createDtoClass, "records")` enforces before this runs. */
   createDtoClass?: new () => any;
-  createOne: (payload: any, currentUser?: string) => Promise<any>;
+  createOne: (
+    payload: any,
+    currentUser?: string,
+    transaction?: Transaction
+  ) => Promise<any>;
   updateOne: (
     id: string,
     payload: any,
@@ -26,23 +30,15 @@ export interface BulkCrudConfig {
   afterCopyCreate?: (
     source: any,
     created: any,
-    currentUser?: string
+    currentUser?: string,
+    transaction?: Transaction
   ) => Promise<void>;
 }
 
+/** The authenticated identity only — never a client-supplied header, which
+ * would let a caller forge audit attribution. */
 export const getCurrentUser = (req: Request): string | undefined =>
-  (req as any).user?.username ??
-  (req as any).user?.id ??
-  (req.headers["x-user"] as string | undefined);
-
-const validateRecord = async (
-  dtoClass: (new () => any) | undefined,
-  payload: any
-) => {
-  if (!dtoClass) return [];
-  const errors = await validate(plainToInstance(dtoClass, payload));
-  return errors.map((e) => Object.values(e.constraints || {}).join(", "));
-};
+  (req as any).user?.username ?? (req as any).user?.id;
 
 /**
  * Bolt-on bulk endpoints (copy-with-review, update, restore) layered on a
@@ -61,34 +57,46 @@ export const buildBulkCrudRoutes = (config: BulkCrudConfig) => {
     }
 
     const currentUser = getCurrentUser(req);
-    const created: any[] = [];
-    for (const record of records) {
-      const errors = await validateRecord(config.createDtoClass, record);
-      if (errors.length > 0) {
-        return res.status(400).json({ message: "Validation failed", errors });
-      }
+    // One transaction for the whole batch — a failure partway through rolls back
+    // every record created so far instead of leaving earlier ones committed.
+    const created = await sequelize.transaction(async (transaction) => {
+      const results: any[] = [];
+      for (const record of records) {
+        const payload = { ...record };
+        const rawName = config.nameField
+          ? payload[config.nameField]
+          : undefined;
+        if (
+          config.model &&
+          config.nameField &&
+          typeof rawName === "string" &&
+          rawName.trim()
+        ) {
+          payload[config.nameField] = await resolveUniqueName(
+            config.model,
+            config.nameField,
+            rawName,
+            config.maxNameLength,
+            transaction
+          );
+        }
 
-      const payload = { ...record };
-      const rawName = config.nameField ? payload[config.nameField] : undefined;
-      if (
-        config.model &&
-        config.nameField &&
-        typeof rawName === "string" &&
-        rawName.trim()
-      ) {
-        payload[config.nameField] = await resolveUniqueName(
-          config.model,
-          config.nameField,
-          rawName,
-          config.maxNameLength
+        const newRecord = await config.createOne(
+          payload,
+          currentUser,
+          transaction
         );
+        if (config.afterCopyCreate)
+          await config.afterCopyCreate(
+            record,
+            newRecord,
+            currentUser,
+            transaction
+          );
+        results.push(newRecord);
       }
-
-      const newRecord = await config.createOne(payload, currentUser);
-      if (config.afterCopyCreate)
-        await config.afterCopyCreate(record, newRecord, currentUser);
-      created.push(newRecord);
-    }
+      return results;
+    });
 
     return res.status(201).json(created);
   });
