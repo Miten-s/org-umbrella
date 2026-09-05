@@ -133,6 +133,14 @@ interface AppDataTableProps<T> {
   fillAvailableHeight?: boolean;
   actionsColumnHeader?: string;
   maxInlineRowActions?: number;
+  /** Frequently-changing external state (e.g. a per-row mutation's pending
+   * id) that cellRenderers need read access to — passed to ag-grid's own
+   * `context` and read via `params.context`, NOT baked into `columnDefs`.
+   * Rebuilding columnDefs on every such change gives every cellRenderer a new
+   * function identity, which forces ag-grid to destroy and recreate the cell
+   * (not just re-render it) — killing any CSS transition mid-flight and
+   * reads as a flicker instead of a smooth update. */
+  gridContext?: Record<string, unknown>;
 }
 
 const resolveBoolean = <T,>(
@@ -401,7 +409,8 @@ const AppDataTable = <T extends object>({
   fitContentHeightMaxRows = Number.POSITIVE_INFINITY,
   fillAvailableHeight = false,
   actionsColumnHeader = "Actions",
-  maxInlineRowActions = 3
+  maxInlineRowActions = 3,
+  gridContext
 }: AppDataTableProps<T>) => {
   const { user } = useAuth();
   const { theme } = useTheme();
@@ -589,6 +598,10 @@ const AppDataTable = <T extends object>({
             sortable: false,
             suppressHeaderMenuButton: true,
             width: Math.max(196, visibleActionSlots * 44 + 28),
+            // `RowActionsCell`'s own stopPropagation only blocks native DOM bubbling — ag-grid's
+            // click-to-select check runs off its own internal flag, not bubbling, so a raw
+            // stopPropagation never actually reaches it. This is the real, documented escape hatch.
+            cellRendererParams: { suppressMouseEventHandling: () => true },
             cellRenderer: (params: ICellRendererParams<T>) =>
               params.data ? (
                 <RowActionsCell
@@ -798,6 +811,7 @@ const AppDataTable = <T extends object>({
           <AgGridReact<T>
             animateRows
             columnDefs={computedColumnDefs}
+            context={gridContext}
             defaultColDef={mergedDefaultColDef}
             domLayout={shouldFitContentHeight ? "autoHeight" : "normal"}
             enableBrowserTooltips
@@ -818,7 +832,9 @@ const AppDataTable = <T extends object>({
                     checkboxes: true,
                     headerCheckbox: true,
                     mode: "multiRow",
-                    enableClickSelection: false
+                    // Clicking anywhere in a row toggles its selection, not just the checkbox
+                    // — the actions cell stops its own clicks from bubbling here (see RowActionsCell).
+                    enableClickSelection: true
                   }
                 : undefined
             }

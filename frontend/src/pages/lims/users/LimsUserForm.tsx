@@ -111,6 +111,15 @@ const LimsUserForm = ({
       ? [{ value: initialData.userId, label: initialData.userName ?? "" }]
       : undefined;
 
+  // Copy's picker only offers platform users with no Lab User record yet — when that
+  // list is genuinely empty, say so instead of leaving a silent, unexplained blank dropdown.
+  const availableUsers = useAvailablePlatformUserOptions({
+    search: "",
+    enabled: mode === "copy"
+  });
+  const noUsersAvailable =
+    mode === "copy" && !availableUsers.isLoading && availableUsers.options.length === 0;
+
   const err = (field: keyof LimsUserFormValues) =>
     errors[field] ? (
       <p className="mt-1 text-xs text-red-500">{errors[field]?.message as string}</p>
@@ -175,6 +184,11 @@ const LimsUserForm = ({
               )}
             />
             {err("userId")}
+            {noUsersAvailable && (
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {t("limsNoAvailablePlatformUsers")}
+              </p>
+            )}
           </div>
 
           <div className="min-w-0">

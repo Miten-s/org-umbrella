@@ -1,11 +1,14 @@
-# Local-dev Postgres for backend / gxp-service / lims-service, replacing the
-# shared Neon instance. Runs on 5433 (not 5432) so it never collides with a
-# system-installed Postgres. Fresh volume — no data is copied from Neon,
-# each service builds its own schema via its built-in migration runner on
-# first connect.
+# Local-dev Postgres + Redis for backend / gxp-service / lims-service,
+# replacing the shared Neon/Redis instances. Postgres runs on 5433 (not
+# 5432) so it never collides with a system-installed Postgres. Fresh volume
+# — no data is copied from Neon, each service builds its own schema via its
+# built-in migration runner on first connect.
+#
+# Redis needs redis/redis.conf to exist first (gitignored, see readme.md
+# for the one-line `requirepass ...` content).
 #
 # Usage:
-#   docker compose -f docker-compose.local.yml up -d
+#   docker compose -f docker-compose.local.yml up -d --wait
 #   docker compose -f docker-compose.local.yml down        # stop, keep data
 #   docker compose -f docker-compose.local.yml down -v     # stop, wipe data
 name: umbrella-local
@@ -30,6 +33,21 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server /usr/local/etc/redis/redis.conf
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -qE 'PONG|NOAUTH'"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
 
 volumes:
   umbrella_local_pgdata:

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
@@ -8,18 +9,32 @@ import TextArea from "@/components/common/form/input/TextArea";
 import Switch from "@/components/common/form/switch/Switch";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import { useUserOptions } from "@/pages/system-it-admin/users/User.queries";
+import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { assignmentGroupSchema, type AssignmentGroupFormValues } from "./AssignmentGroup.schema";
 import type { AssignmentGroup, GroupMember } from "./AssignmentGroup.types";
 import type { AsyncOption } from "@/lib/query/listTypes";
 
-export type AssignmentGroupFormMode = "create" | "edit" | "view";
+export type AssignmentGroupFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface AssignmentGroupFormProps {
   mode?: AssignmentGroupFormMode;
   initialData?: AssignmentGroup | null;
   onClose: () => void;
+  onUnchanged?: () => void;
   onSubmit: (values: AssignmentGroupFormValues) => Promise<void> | void;
   submitting?: boolean;
+  /** Overrides the submit button's label — CopyStepper uses this to say
+   * "Next" on every step but the last, where the batch actually saves. */
+  submitLabel?: string;
+  /** Grays out the submit button without a spinner — EditStepper uses
+   * this on the last step now that its own Save button lives outside it. */
+  disabled?: boolean;
+  /** Set on the `<form>` element so an outside button (CopyStepper's
+   * header Next/Save) can submit it via `<Button form={formId}>`. */
+  formId?: string;
+  /** " (2 of 5)" appended after the title when Copy/Edit are reviewing
+   * more than one record — undefined otherwise. */
+  stepLabel?: string;
 }
 
 const memberSeed = (members?: GroupMember[]): AsyncOption[] | undefined =>
@@ -33,9 +48,31 @@ const managerSeed = (manager?: GroupMember): AsyncOption[] | undefined =>
  * { userId, name } objects — built from AsyncSelect's additive onChangeOption /
  * onChangeOptions (full { value, label }). Labels seed from the record on edit.
  */
-const AssignmentGroupForm = ({ mode = "create", initialData, onClose, onSubmit, submitting = false }: AssignmentGroupFormProps) => {
+const AssignmentGroupForm = ({
+  mode = "create",
+  initialData,
+  onClose,
+  onUnchanged,
+  onSubmit,
+  submitting = false,
+  submitLabel,
+  disabled = false,
+  formId,
+  stepLabel
+}: AssignmentGroupFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
+
+  const initialValues = useMemo<AssignmentGroupFormValues>(
+    () => ({
+      groupName: mode === "copy" ? "" : initialData?.groupName || "",
+      manager: initialData?.manager ?? { userId: "", name: "" },
+      members: initialData?.members ?? [],
+      description: initialData?.description || "",
+      isActive: initialData?.isActive ?? true
+    }),
+    [initialData, mode]
+  );
 
   const {
     register,
@@ -45,13 +82,7 @@ const AssignmentGroupForm = ({ mode = "create", initialData, onClose, onSubmit, 
     formState: { errors, isSubmitting }
   } = useForm<AssignmentGroupFormValues>({
     resolver: zodResolver(assignmentGroupSchema),
-    defaultValues: {
-      groupName: initialData?.groupName || "",
-      manager: initialData?.manager ?? { userId: "", name: "" },
-      members: initialData?.members ?? [],
-      description: initialData?.description || "",
-      isActive: initialData?.isActive ?? true
-    }
+    defaultValues: initialValues
   });
 
   const description = useWatch({ control, name: "description" });
@@ -59,13 +90,25 @@ const AssignmentGroupForm = ({ mode = "create", initialData, onClose, onSubmit, 
 
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-      <form onSubmit={handleSubmit((values) => onSubmit(values))} className="min-w-0 space-y-4">
+      <form
+        id={formId}
+        onSubmit={handleSubmit((values) => {
+          if ((mode === "edit" || mode === "bulk-edit") && isPayloadEqual(values, initialValues)) {
+            (onUnchanged ?? onClose)();
+            return;
+          }
+          onSubmit(values);
+        })}
+        className="min-w-0 space-y-4"
+      >
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("assignmentGroup") })
-            : initialData
-              ? t("update", { entity: t("assignmentGroup") })
-              : t("create", { entity: t("assignmentGroup") })}
+            : mode === "copy"
+              ? `${t("copyEntity", { entity: t("assignmentGroup") })}${stepLabel ?? ""}`
+              : initialData
+                ? `${t("update", { entity: t("assignmentGroup") })}${stepLabel ?? ""}`
+                : t("create", { entity: t("assignmentGroup") })}
         </h2>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -159,8 +202,8 @@ const AssignmentGroupForm = ({ mode = "create", initialData, onClose, onSubmit, 
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy}>
-              {t("save")}
+            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+              {submitLabel ?? t("save")}
             </Button>
           ) : null}
         </div>

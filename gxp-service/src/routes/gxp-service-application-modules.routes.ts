@@ -7,7 +7,10 @@ import {
   updateApplicationModuleStatus,
   deleteApplicationModule,
   bulkDeleteApplicationModules,
-  bulkDuplicateApplicationModules
+  bulkDuplicateApplicationModules,
+  bulkCopyApplicationModules,
+  bulkUpdateApplicationModules,
+  bulkRestoreApplicationModules
 } from "../controllers/gxp-service-application-modules.controller";
 import API_ROUTES from "../utils/routes";
 
@@ -23,10 +26,31 @@ router.get(API_ROUTES.APPLICATION_MODULES.BY_ID, getApplicationModuleById);
 
 router.post(API_ROUTES.APPLICATION_MODULES.ROOT, createApplicationModule);
 
-router.post(API_ROUTES.APPLICATION_MODULES.BULK_DELETE, bulkDeleteApplicationModules);
-router.post(API_ROUTES.APPLICATION_MODULES.BULK_DUPLICATE, bulkDuplicateApplicationModules);
+router.post(
+  API_ROUTES.APPLICATION_MODULES.BULK_DELETE,
+  bulkDeleteApplicationModules
+);
+router.post(
+  API_ROUTES.APPLICATION_MODULES.BULK_DUPLICATE,
+  bulkDuplicateApplicationModules
+);
+router.post(
+  API_ROUTES.APPLICATION_MODULES.BULK_COPY,
+  bulkCopyApplicationModules
+);
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
+
+// bulk-update/bulk-restore MUST register before BY_ID ("/:id") — same one-segment
+// path shape, and Express matches whichever is registered first.
+router.patch(
+  API_ROUTES.APPLICATION_MODULES.BULK_UPDATE,
+  bulkUpdateApplicationModules
+);
+router.patch(
+  API_ROUTES.APPLICATION_MODULES.BULK_RESTORE,
+  bulkRestoreApplicationModules
+);
 
 router.patch(API_ROUTES.APPLICATION_MODULES.BY_ID, updateAppplicationModule);
 

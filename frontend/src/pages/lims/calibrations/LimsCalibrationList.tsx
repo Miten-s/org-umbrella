@@ -37,6 +37,7 @@ import {
   useCreateLimsCalibration,
   useLimsCalibrationAudit,
   useRestoreLimsCalibration,
+  useBulkRestoreLimsCalibration,
   useUpdateLimsCalibration,
   useLimsCalibrationById
 } from "./LimsCalibration.queries";
@@ -93,6 +94,7 @@ const LimsCalibrationList = () => {
   const bulkDelete = useBulkDeleteLimsCalibration();
   const bulkUpdate = useBulkUpdateLimsCalibration();
   const restore = useRestoreLimsCalibration();
+  const bulkRestoreCalibration = useBulkRestoreLimsCalibration();
 
   const busy =
     create.isPending ||
@@ -101,7 +103,8 @@ const LimsCalibrationList = () => {
     bulkCopy.isPending ||
     bulkDelete.isPending ||
     bulkUpdate.isPending ||
-    restore.isPending;
+    restore.isPending ||
+    bulkRestoreCalibration.isPending;
 
   const columnDefs = useMemo(() => getLimsCalibrationColumns({ t }), [t]);
 
@@ -191,7 +194,7 @@ const LimsCalibrationList = () => {
     () => [
       {
         key: "view",
-        label: () => t("view", { entity: t("limsCalibrations") }),
+        label: () => t("limsView"),
         icon: EyeIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.VIEW_CALIBRATION,
@@ -233,6 +236,28 @@ const LimsCalibrationList = () => {
         }
       },
       {
+        key: "restore",
+        label: () => t("limsRestore"),
+        icon: CopyIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_CALIBRATION,
+        // Only offered when the current selection actually has something removed —
+        // an all-active selection would otherwise fire a no-op restore request.
+        hidden: (rows) => !rows.some((row) => row.isRemoved),
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          compliance.requestBulkRestore(
+            selection.ids,
+            table.rows
+              .filter((row) => selection.ids.includes(row.id))
+              .map(label)
+          );
+        }
+      },
+      {
         key: "delete",
         label: () => t("limsRemove"),
         icon: TrashBinIcon,
@@ -257,7 +282,7 @@ const LimsCalibrationList = () => {
     () => [
       {
         key: "view",
-        label: t("view", { entity: t("limsCalibration") }),
+        label: t("limsView"),
         icon: EyeIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_CALIBRATION,
@@ -405,6 +430,7 @@ const LimsCalibrationList = () => {
         updating={update.isPending}
         deleting={bulkDelete.isPending}
         restoring={restore.isPending}
+        bulkRestoring={bulkRestoreCalibration.isPending}
         bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
@@ -441,6 +467,17 @@ const LimsCalibrationList = () => {
             await restore.mutateAsync({ id: pending.id, changeReason: reason });
           }
           compliance.clearRestore();
+        }}
+        onBulkRestore={async (reason) => {
+          const pending = compliance.pendingBulkRestore;
+          if (pending) {
+            await bulkRestoreCalibration.mutateAsync({
+              selection: { mode: "ids", ids: pending.ids },
+              changeReason: reason
+            });
+            table.clearSelection();
+          }
+          compliance.clearBulkRestore();
         }}
       />
     </div>

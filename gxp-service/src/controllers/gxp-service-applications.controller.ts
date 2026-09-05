@@ -2,6 +2,9 @@ import { Request, Response } from "express";
 import * as service from "../services/gxp-service-applications.service";
 import asyncHandler from "../middlewares/error.middleware";
 import { getPaginationOptions } from "../utils/pagination.util";
+import { buildBulkCrudRoutes } from "../utils/bulk-crud-factory";
+import Application from "../models/gxp-service-applications.model";
+import { CreateApplicationDto } from "../dtos/application.dto";
 
 export const createApplication = asyncHandler(
   async (req: Request, res: Response) => {
@@ -19,12 +22,14 @@ export const createApplication = asyncHandler(
   }
 );
 
-
 export const getApplications = asyncHandler(
   async (req: Request, res: Response) => {
     const includeDisabled = req.query.includeDisabled === "true";
     const paginationOptions = getPaginationOptions(req.query);
-    const items = await service.getApplications(paginationOptions, includeDisabled);
+    const items = await service.getApplications(
+      paginationOptions,
+      includeDisabled
+    );
     return res.status(200).send(items);
   }
 );
@@ -174,3 +179,20 @@ export const bulkDuplicateApplications = asyncHandler(
     return res.status(201).json(duplicated);
   }
 );
+
+// createApplication already resolves applicationGroups/departments/roles/services
+// and re-mints applicationId from the (unique, already-suffixed) payload name, so
+// bulk-copy needs no child-row-cloning hook — every relation comes from the
+// reviewed payload itself, same as a normal create.
+const bulkCrud = buildBulkCrudRoutes({
+  model: Application,
+  nameField: "applicationName",
+  createDtoClass: CreateApplicationDto,
+  createOne: service.createApplication,
+  updateOne: service.updateApplication,
+  restore: service.enableApplication
+});
+
+export const bulkCopyApplications = bulkCrud.bulkCopy;
+export const bulkUpdateApplications = bulkCrud.bulkUpdate;
+export const bulkRestoreApplications = bulkCrud.bulkRestore!;

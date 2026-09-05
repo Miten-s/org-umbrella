@@ -622,6 +622,14 @@ export const duplicateApplication = async (
     });
 
     const newName = `${baseName}-(${maxIndex + 1})`;
+    // applicationId is derived from the name — spreading sourceApp below would
+    // otherwise leave the duplicate carrying the source's stale business ID.
+    const locationName = await resolveLocationNameFromGroup(sourceApp.group);
+    const newApplicationId = buildApplicationId(
+      newName,
+      sourceApp.applicationType,
+      locationName
+    );
 
     const now = new Date();
     const newAppId = crypto.randomUUID();
@@ -629,6 +637,7 @@ export const duplicateApplication = async (
       ...sourceApp,
       id: newAppId,
       applicationName: newName,
+      applicationId: newApplicationId,
       createdOn: now,
       createdBy: currentUser ?? null,
       modifiedOn: now,

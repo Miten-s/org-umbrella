@@ -105,6 +105,17 @@ export const bulkDeleteLimsLocation = async (
   return response.data;
 };
 
+export const bulkRestoreLimsLocation = async (
+  selection: BulkSelection,
+  changeReason: string
+) => {
+  const response = await limsApi.post(`${ROUTE}/bulk-restore`, {
+    ...bulkSelectionToBody(selection),
+    changeReason
+  });
+  return response.data;
+};
+
 /**
  * The Copy flow's one and only network call — every reviewed record is
  * sent together, once. See `bulkCreate` in crud-factory.ts.

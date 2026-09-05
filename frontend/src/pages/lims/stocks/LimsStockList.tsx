@@ -37,6 +37,7 @@ import {
   useCreateLimsStock,
   useLimsStockAudit,
   useRestoreLimsStock,
+  useBulkRestoreLimsStock,
   useUpdateLimsStock,
   useLimsStockById
 } from "./LimsStock.queries";
@@ -83,6 +84,7 @@ const LimsStockList = () => {
   const bulkDelete = useBulkDeleteLimsStock();
   const bulkUpdate = useBulkUpdateLimsStock();
   const restore = useRestoreLimsStock();
+  const bulkRestoreStock = useBulkRestoreLimsStock();
 
   const busy =
     create.isPending ||
@@ -91,7 +93,8 @@ const LimsStockList = () => {
     bulkCopy.isPending ||
     bulkDelete.isPending ||
     bulkUpdate.isPending ||
-    restore.isPending;
+    restore.isPending ||
+    bulkRestoreStock.isPending;
 
   const columnDefs = useMemo(() => getLimsStockColumns({ t }), [t]);
 
@@ -181,7 +184,7 @@ const LimsStockList = () => {
     () => [
       {
         key: "view",
-        label: () => t("view", { entity: t("limsStocks") }),
+        label: () => t("limsView"),
         icon: EyeIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.VIEW_STOCK,
@@ -223,6 +226,28 @@ const LimsStockList = () => {
         }
       },
       {
+        key: "restore",
+        label: () => t("limsRestore"),
+        icon: CopyIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_STOCK,
+        // Only offered when the current selection actually has something removed —
+        // an all-active selection would otherwise fire a no-op restore request.
+        hidden: (rows) => !rows.some((row) => row.isRemoved),
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          compliance.requestBulkRestore(
+            selection.ids,
+            table.rows
+              .filter((row) => selection.ids.includes(row.id))
+              .map(label)
+          );
+        }
+      },
+      {
         key: "delete",
         label: () => t("limsRemove"),
         icon: TrashBinIcon,
@@ -247,7 +272,7 @@ const LimsStockList = () => {
     () => [
       {
         key: "view",
-        label: t("view", { entity: t("limsStock") }),
+        label: t("limsView"),
         icon: EyeIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_STOCK,
@@ -395,6 +420,7 @@ const LimsStockList = () => {
         updating={update.isPending}
         deleting={bulkDelete.isPending}
         restoring={restore.isPending}
+        bulkRestoring={bulkRestoreStock.isPending}
         bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
@@ -431,6 +457,17 @@ const LimsStockList = () => {
             await restore.mutateAsync({ id: pending.id, changeReason: reason });
           }
           compliance.clearRestore();
+        }}
+        onBulkRestore={async (reason) => {
+          const pending = compliance.pendingBulkRestore;
+          if (pending) {
+            await bulkRestoreStock.mutateAsync({
+              selection: { mode: "ids", ids: pending.ids },
+              changeReason: reason
+            });
+            table.clearSelection();
+          }
+          compliance.clearBulkRestore();
         }}
       />
     </div>

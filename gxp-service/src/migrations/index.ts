@@ -20,6 +20,7 @@ import * as m018 from "./018-create-junction-tables";
 import * as m019 from "./019-seed-initial-data";
 import * as m020 from "./020-add-timestamps-to-applications";
 import * as m021 from "./021-make-app-module-application-id-nullable";
+import * as m022 from "./022-add-service-request-record-status";
 
 export const migrations: Migration[] = [
   { name: "001-create-environments", up: m001.up },
@@ -42,7 +43,7 @@ export const migrations: Migration[] = [
   { name: "018-create-junction-tables", up: m018.up },
   { name: "019-seed-initial-data", up: m019.up },
   { name: "020-add-timestamps-to-applications", up: m020.up },
-  { name: "021-make-app-module-application-id-nullable", up: m021.up }
+  { name: "021-make-app-module-application-id-nullable", up: m021.up },
+  { name: "022-add-service-request-record-status", up: m022.up }
 ];
 export { runMigrations } from "./runner";
-

@@ -37,6 +37,7 @@ import {
   useCreateLimsProject,
   useLimsProjectAudit,
   useRestoreLimsProject,
+  useBulkRestoreLimsProject,
   useUpdateLimsProject,
   useLimsProjectById
 } from "./LimsProject.queries";
@@ -85,6 +86,7 @@ const LimsProjectList = () => {
   const bulkDelete = useBulkDeleteLimsProject();
   const bulkUpdate = useBulkUpdateLimsProject();
   const restoreProject = useRestoreLimsProject();
+  const bulkRestoreProject = useBulkRestoreLimsProject();
 
   const busy =
     createProject.isPending ||
@@ -93,7 +95,8 @@ const LimsProjectList = () => {
     bulkCopy.isPending ||
     bulkDelete.isPending ||
     bulkUpdate.isPending ||
-    restoreProject.isPending;
+    restoreProject.isPending ||
+    bulkRestoreProject.isPending;
 
   const columnDefs = useMemo(() => getLimsProjectColumns({ t }), [t]);
 
@@ -181,7 +184,7 @@ const LimsProjectList = () => {
     () => [
       {
         key: "view",
-        label: () => t("view", { entity: t("limsProjects") }),
+        label: () => t("limsView"),
         icon: EyeIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.VIEW_PROJECT,
@@ -195,7 +198,7 @@ const LimsProjectList = () => {
       },
       {
         key: "clone",
-        label: (count) => (count > 1 ? "Copy projects" : "Copy project"),
+        label: () => t("limsCopy"),
         icon: CopyIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_PROJECT,
@@ -223,8 +226,30 @@ const LimsProjectList = () => {
         }
       },
       {
+        key: "restore",
+        label: () => t("limsRestore"),
+        icon: CopyIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_PROJECT,
+        // Only offered when the current selection actually has something removed —
+        // an all-active selection would otherwise fire a no-op restore request.
+        hidden: (rows) => !rows.some((row) => row.isRemoved),
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          compliance.requestBulkRestore(
+            selection.ids,
+            table.rows
+              .filter((row) => selection.ids.includes(row.id))
+              .map((row) => row.name)
+          );
+        }
+      },
+      {
         key: "delete",
-        label: (count) => (count > 1 ? "Remove projects" : "Remove project"),
+        label: () => t("limsRemove"),
         icon: TrashBinIcon,
         variant: "destructive",
         permission: LIMS_PERMISSIONS.DELETE_PROJECT,
@@ -247,7 +272,7 @@ const LimsProjectList = () => {
     () => [
       {
         key: "view",
-        label: "View project",
+        label: t("limsView"),
         icon: EyeIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_PROJECT,
@@ -255,7 +280,7 @@ const LimsProjectList = () => {
       },
       {
         key: "edit",
-        label: "Edit project",
+        label: t("edit"),
         icon: PencilIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.UPDATE_PROJECT,
@@ -263,7 +288,7 @@ const LimsProjectList = () => {
       },
       {
         key: "audit",
-        label: "Audit trail",
+        label: t("limsAudit"),
         icon: TimeIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.VIEW_PROJECT,
@@ -271,7 +296,7 @@ const LimsProjectList = () => {
       },
       {
         key: "clone",
-        label: "Copy project",
+        label: t("limsCopy"),
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_PROJECT,
@@ -280,7 +305,7 @@ const LimsProjectList = () => {
       },
       {
         key: "restore",
-        label: "Restore project",
+        label: t("limsRestore"),
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.UPDATE_PROJECT,
@@ -289,7 +314,7 @@ const LimsProjectList = () => {
       },
       {
         key: "delete",
-        label: "Remove project",
+        label: t("limsRemove"),
         icon: TrashBinIcon,
         placement: "menu",
         tone: "danger",
@@ -301,7 +326,7 @@ const LimsProjectList = () => {
           ])
       }
     ],
-    [compliance, openCopy, openForm]
+    [compliance, openCopy, openForm, t]
   );
 
   return (
@@ -396,6 +421,7 @@ const LimsProjectList = () => {
         updating={updateProject.isPending}
         deleting={bulkDelete.isPending}
         restoring={restoreProject.isPending}
+        bulkRestoring={bulkRestoreProject.isPending}
         bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
@@ -435,6 +461,17 @@ const LimsProjectList = () => {
             });
           }
           compliance.clearRestore();
+        }}
+        onBulkRestore={async (reason) => {
+          const pending = compliance.pendingBulkRestore;
+          if (pending) {
+            await bulkRestoreProject.mutateAsync({
+              selection: { mode: "ids", ids: pending.ids },
+              changeReason: reason
+            });
+            table.clearSelection();
+          }
+          compliance.clearBulkRestore();
         }}
       />
     </div>

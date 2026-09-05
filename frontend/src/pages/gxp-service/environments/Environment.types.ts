@@ -5,6 +5,7 @@ export interface Environment {
   _id: string;
   environmentName: string;
   description?: string;
+  status?: "enabled" | "disabled";
 }
 
 export interface EnvironmentPayload {

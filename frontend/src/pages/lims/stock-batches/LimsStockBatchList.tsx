@@ -37,6 +37,7 @@ import {
   useCreateLimsStockBatch,
   useLimsStockBatchAudit,
   useRestoreLimsStockBatch,
+  useBulkRestoreLimsStockBatch,
   useUpdateLimsStockBatch,
   useLimsStockBatchById
 } from "./LimsStockBatch.queries";
@@ -90,6 +91,7 @@ const LimsStockBatchList = () => {
   const bulkDelete = useBulkDeleteLimsStockBatch();
   const bulkUpdate = useBulkUpdateLimsStockBatch();
   const restore = useRestoreLimsStockBatch();
+  const bulkRestoreStockBatch = useBulkRestoreLimsStockBatch();
 
   const busy =
     create.isPending ||
@@ -98,7 +100,8 @@ const LimsStockBatchList = () => {
     bulkCopy.isPending ||
     bulkDelete.isPending ||
     bulkUpdate.isPending ||
-    restore.isPending;
+    restore.isPending ||
+    bulkRestoreStockBatch.isPending;
 
   const columnDefs = useMemo(() => getLimsStockBatchColumns({ t }), [t]);
 
@@ -189,7 +192,7 @@ const LimsStockBatchList = () => {
     () => [
       {
         key: "view",
-        label: () => t("view", { entity: t("limsStockBatches") }),
+        label: () => t("limsView"),
         icon: EyeIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.VIEW_STOCK_BATCH,
@@ -231,6 +234,28 @@ const LimsStockBatchList = () => {
         }
       },
       {
+        key: "restore",
+        label: () => t("limsRestore"),
+        icon: CopyIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_STOCK_BATCH,
+        // Only offered when the current selection actually has something removed —
+        // an all-active selection would otherwise fire a no-op restore request.
+        hidden: (rows) => !rows.some((row) => row.isRemoved),
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          compliance.requestBulkRestore(
+            selection.ids,
+            table.rows
+              .filter((row) => selection.ids.includes(row.id))
+              .map(label)
+          );
+        }
+      },
+      {
         key: "delete",
         label: () => t("limsRemove"),
         icon: TrashBinIcon,
@@ -255,7 +280,7 @@ const LimsStockBatchList = () => {
     () => [
       {
         key: "view",
-        label: t("view", { entity: t("limsStockBatch") }),
+        label: t("limsView"),
         icon: EyeIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_STOCK_BATCH,
@@ -403,6 +428,7 @@ const LimsStockBatchList = () => {
         updating={update.isPending}
         deleting={bulkDelete.isPending}
         restoring={restore.isPending}
+        bulkRestoring={bulkRestoreStockBatch.isPending}
         bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
@@ -439,6 +465,17 @@ const LimsStockBatchList = () => {
             await restore.mutateAsync({ id: pending.id, changeReason: reason });
           }
           compliance.clearRestore();
+        }}
+        onBulkRestore={async (reason) => {
+          const pending = compliance.pendingBulkRestore;
+          if (pending) {
+            await bulkRestoreStockBatch.mutateAsync({
+              selection: { mode: "ids", ids: pending.ids },
+              changeReason: reason
+            });
+            table.clearSelection();
+          }
+          compliance.clearBulkRestore();
         }}
       />
     </div>

@@ -48,6 +48,7 @@ const API_ROUTES = {
   BULK_DELETE: "/bulk-delete",
   BULK_DUPLICATE: "/bulk-duplicate",
   BULK_COPY: "/bulk-copy",
+  BULK_RESTORE: "/bulk-restore",
   // Must also be registered before PARAMS — same one-segment collision.
   BULK_UPDATE: "/bulk-update",
   RESTORE: "/restore/:id",

@@ -37,6 +37,7 @@ import {
   useCreateLimsParameter,
   useLimsParameterAudit,
   useRestoreLimsParameter,
+  useBulkRestoreLimsParameter,
   useUpdateLimsParameter,
   useLimsParameterById
 } from "./LimsParameter.queries";
@@ -90,6 +91,7 @@ const LimsParameterList = () => {
   const bulkDelete = useBulkDeleteLimsParameter();
   const bulkUpdate = useBulkUpdateLimsParameter();
   const restoreParameter = useRestoreLimsParameter();
+  const bulkRestoreParameter = useBulkRestoreLimsParameter();
 
   const busy =
     createParameter.isPending ||
@@ -98,7 +100,8 @@ const LimsParameterList = () => {
     bulkCopy.isPending ||
     bulkDelete.isPending ||
     bulkUpdate.isPending ||
-    restoreParameter.isPending;
+    restoreParameter.isPending ||
+    bulkRestoreParameter.isPending;
 
   const columnDefs = useMemo(() => getLimsParameterColumns({ t }), [t]);
 
@@ -185,7 +188,7 @@ const LimsParameterList = () => {
     () => [
       {
         key: "view",
-        label: () => t("view", { entity: t("limsParameters") }),
+        label: () => t("limsView"),
         icon: EyeIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.VIEW_PARAMETER,
@@ -199,7 +202,7 @@ const LimsParameterList = () => {
       },
       {
         key: "clone",
-        label: (count) => (count > 1 ? "Copy parameters" : "Copy parameter"),
+        label: () => t("limsCopy"),
         icon: CopyIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_PARAMETER,
@@ -227,9 +230,30 @@ const LimsParameterList = () => {
         }
       },
       {
+        key: "restore",
+        label: () => t("limsRestore"),
+        icon: CopyIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_PARAMETER,
+        // Only offered when the current selection actually has something removed —
+        // an all-active selection would otherwise fire a no-op restore request.
+        hidden: (rows) => !rows.some((row) => row.isRemoved),
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          compliance.requestBulkRestore(
+            selection.ids,
+            table.rows
+              .filter((row) => selection.ids.includes(row.id))
+              .map((row) => row.parameterName)
+          );
+        }
+      },
+      {
         key: "delete",
-        label: (count) =>
-          count > 1 ? "Remove parameters" : "Remove parameter",
+        label: () => t("limsRemove"),
         icon: TrashBinIcon,
         variant: "destructive",
         permission: LIMS_PERMISSIONS.DELETE_PARAMETER,
@@ -252,7 +276,7 @@ const LimsParameterList = () => {
     () => [
       {
         key: "view",
-        label: "View parameter",
+        label: t("limsView"),
         icon: EyeIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_PARAMETER,
@@ -260,7 +284,7 @@ const LimsParameterList = () => {
       },
       {
         key: "edit",
-        label: "Edit parameter",
+        label: t("edit"),
         icon: PencilIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.UPDATE_PARAMETER,
@@ -268,7 +292,7 @@ const LimsParameterList = () => {
       },
       {
         key: "audit",
-        label: "Audit trail",
+        label: t("limsAudit"),
         icon: TimeIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.VIEW_PARAMETER,
@@ -276,7 +300,7 @@ const LimsParameterList = () => {
       },
       {
         key: "clone",
-        label: "Copy parameter",
+        label: t("limsCopy"),
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_PARAMETER,
@@ -285,7 +309,7 @@ const LimsParameterList = () => {
       },
       {
         key: "restore",
-        label: "Restore parameter",
+        label: t("limsRestore"),
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.UPDATE_PARAMETER,
@@ -294,7 +318,7 @@ const LimsParameterList = () => {
       },
       {
         key: "delete",
-        label: "Remove parameter",
+        label: t("limsRemove"),
         icon: TrashBinIcon,
         placement: "menu",
         tone: "danger",
@@ -306,7 +330,7 @@ const LimsParameterList = () => {
           ])
       }
     ],
-    [compliance, openCopy, openForm]
+    [compliance, openCopy, openForm, t]
   );
 
   return (
@@ -401,6 +425,7 @@ const LimsParameterList = () => {
         updating={updateParameter.isPending}
         deleting={bulkDelete.isPending}
         restoring={restoreParameter.isPending}
+        bulkRestoring={bulkRestoreParameter.isPending}
         bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
@@ -440,6 +465,17 @@ const LimsParameterList = () => {
             });
           }
           compliance.clearRestore();
+        }}
+        onBulkRestore={async (reason) => {
+          const pending = compliance.pendingBulkRestore;
+          if (pending) {
+            await bulkRestoreParameter.mutateAsync({
+              selection: { mode: "ids", ids: pending.ids },
+              changeReason: reason
+            });
+            table.clearSelection();
+          }
+          compliance.clearBulkRestore();
         }}
       />
     </div>

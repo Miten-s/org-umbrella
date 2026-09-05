@@ -1,41 +1,54 @@
-Configuration for the redis setup on the local environment
+# Local development
 
-# To run redis with a password, first create a redis.conf file on the redis folder which is ignored in git with the following contents:
+One-time setup, then one command starts everything.
+
+## One-time setup
+
+1. Create `redis/redis.conf` (gitignored) with:
+
+   ```
+   requirepass rock@1812002
+   ```
+
+2. Install dependencies once in each workspace:
+
+   ```
+   npm install --prefix backend
+   npm install --prefix gxp-service
+   npm install --prefix lims-service
+   npm install --prefix frontend
+   npm install
+   ```
+
+3. Make sure `backend/.env`, `gxp-service/.env`, `lims-service/.env` point at
+   the local Postgres/Redis started below (`localhost:5433` / `localhost:6379`).
+
+## Start everything
 
 ```
-requirepass rock@1812002
+npm run dev
 ```
 
-# Then, run the following command to start the redis container:
+This brings up Postgres + Redis via Docker Compose (`docker-compose.local.yml`,
+waiting until both report healthy), then starts backend (`:9001`),
+gxp-service (`:9002`), lims-service (`:9003`) and the frontend (`:3000`)
+together, each with its own colored/labeled log prefix in one terminal.
+`Ctrl+C` stops all of them.
 
-```
-docker run -d --name redis-secure \
- -v $(pwd)/redis/redis.conf:/usr/local/etc/redis/redis.conf \
- -p 6379:6379 \
- redis:latest redis-server /usr/local/etc/redis/redis.conf
-```
+Other useful scripts (see root `package.json`):
 
+- `npm run dev:infra` — just bring up Postgres + Redis.
+- `npm run dev:infra:down` — stop them (data persists in the `postgres` volume).
+- `npm run dev:backend` / `dev:gxp` / `dev:lims` / `dev:frontend` — run a
+  single service on its own, e.g. while the others are already running.
 
-# This command for Window System (if they get DNS network Error)
-  
-step 1:
-Pull the BusyBox image and run a DNS lookup. This refreshes Docker’s DNS configuration.
+## Notes for Windows / Docker DNS issues
+
+If `docker compose` can't resolve images on Windows:
 
 ```
 docker run --rm busybox nslookup google.com
-
+docker pull redis:7-alpine
+docker pull postgres:16-alpine
 ```
-
-step 2:
-Manually pull the Redis image.
-
-```
-docker pull redis:latest
-
-```
-step:3 (One line Command)
-```
-docker run -d --name redis-secure -v ${PWD}\redis\redis.conf:/usr/local/etc/redis/redis.conf -p 6379:6379 redis:latest redis-server /usr/local/etc/redis/redis.conf
-
-```
-# This will start a redis container with a password, and map port 6379 from the container to port 6379 on the host machine.
+then retry `npm run dev:infra`.

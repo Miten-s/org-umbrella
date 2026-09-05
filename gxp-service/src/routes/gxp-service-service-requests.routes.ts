@@ -6,12 +6,20 @@ import {
   updateServiceRequest,
   deleteServiceRequest,
   getServiceTypes,
-  bulkDeleteServiceRequests
+  bulkDeleteServiceRequests,
+  enableServiceRequest,
+  disableServiceRequest,
+  bulkCopyServiceRequests,
+  bulkUpdateServiceRequests,
+  bulkRestoreServiceRequests
 } from "../controllers/gxp-service-service-requests.controller.js";
 import upload from "../middlewares/multer.middleware.js";
 import API_ROUTES from "../utils/routes.js";
 import { validateDto } from "../middlewares/validate-dto.middleware.js";
-import { CreateServiceRequestDto, UpdateServiceRequestDto } from "../dtos/service-request.dto.js";
+import {
+  CreateServiceRequestDto,
+  UpdateServiceRequestDto
+} from "../dtos/service-request.dto.js";
 
 const router = Router();
 
@@ -30,12 +38,27 @@ router.post(
   createServiceRequest
 );
 
-router.post(
-  API_ROUTES.SERVICE_REQUESTS.BULK_DELETE,
-  bulkDeleteServiceRequests
-);
+router.post(API_ROUTES.SERVICE_REQUESTS.BULK_DELETE, bulkDeleteServiceRequests);
+
+router.post(API_ROUTES.SERVICE_REQUESTS.BULK_COPY, bulkCopyServiceRequests);
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
+
+// bulk-update/bulk-restore MUST register before BY_ID ("/:id") — same one-segment
+// path shape, and Express matches whichever is registered first.
+router.patch(
+  API_ROUTES.SERVICE_REQUESTS.BULK_UPDATE,
+  bulkUpdateServiceRequests
+);
+
+router.patch(
+  API_ROUTES.SERVICE_REQUESTS.BULK_RESTORE,
+  bulkRestoreServiceRequests
+);
+
+router.patch(API_ROUTES.SERVICE_REQUESTS.ENABLE_BY_ID, enableServiceRequest);
+
+router.patch(API_ROUTES.SERVICE_REQUESTS.DISABLE_BY_ID, disableServiceRequest);
 
 router.patch(
   API_ROUTES.SERVICE_REQUESTS.BY_ID,

@@ -12,6 +12,7 @@ export class CreateLocationDto {
   @IsString()
   readonly comments?: string;
 
+  @IsOptional()
   @IsString()
   readonly status?: "active" | "disabled";
 }

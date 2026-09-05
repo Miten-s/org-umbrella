@@ -17,9 +17,13 @@ export const addGroup = async (data: any) => {
   return await repo.createGroup(newGroup);
 };
 
-
-export const getAll = async (options: PaginationOptions) => {
-  return await repo.getAllGroups(options);
+export const getAll = async (
+  options: PaginationOptions,
+  includeInactive = false
+) => {
+  const filter: any = {};
+  if (!includeInactive) filter.isActive = true;
+  return await repo.getAllGroups(filter, options);
 };
 export const update = async (id: string, updateData: any) => {
   const { createdOn, createdBy, ...safeUpdateData } = updateData;
@@ -112,7 +116,7 @@ export const bulkDuplicateGroups = async (ids: string[]) => {
 
       let maxIndex = 0;
       similarResult.forEach((item: any) => {
-        const match = item.groupName.match(new RegExp(regexStr, 'i'));
+        const match = item.groupName.match(new RegExp(regexStr, "i"));
         if (match && match[1]) {
           const index = parseInt(match[1], 10);
           if (index > maxIndex) maxIndex = index;

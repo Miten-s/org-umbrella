@@ -18,6 +18,13 @@ export const fetchAssignmentGroupList = async (
   return toListResult<AssignmentGroup>(response.data, params, DATA_KEYS);
 };
 
+/** Full record for the Edit/Copy/View modal — fetched on demand when it opens,
+ * not reused from the list row (see useLimsRecordById, reused generically). */
+export const fetchAssignmentGroupById = async (id: string, signal?: AbortSignal) => {
+  const response = await gxpApi.get(`${ROUTE}/${id}`, { signal });
+  return response.data as AssignmentGroup;
+};
+
 export const fetchAssignmentGroupOptions = async (
   args: { search: string; page: number },
   signal?: AbortSignal
@@ -50,6 +57,25 @@ export const bulkDeleteAssignmentGroup = async (selection: BulkSelection) => {
 export const bulkCloneAssignmentGroup = async (selection: BulkSelection) => {
   const response = await gxpApi.post(`${ROUTE}/bulk-duplicate`, bulkSelectionToBody(selection));
   return response.data;
+};
+
+/** The Copy flow's one and only network call — every reviewed record is
+ * sent together, once (mirrors bulkCreate in lims-service's crud-factory). */
+export const bulkCopyAssignmentGroup = async (records: AssignmentGroupPayload[]) => {
+  const response = await gxpApi.post(`${ROUTE}/bulk-copy`, { records });
+  return response.data as AssignmentGroup[];
+};
+
+export const bulkUpdateAssignmentGroup = async (updates: { id: string; payload: AssignmentGroupPayload }[]) => {
+  const response = await gxpApi.patch(`${ROUTE}/bulk-update`, { updates });
+  return response.data as { results: { id: string; status: "updated" | "skipped" }[] };
+};
+
+/** Bulk-restore is id-keyed (unlike the single enable/disable routes above,
+ * which are groupName-keyed) — matches every other module's bulk-restore shape. */
+export const bulkRestoreAssignmentGroup = async (selection: BulkSelection) => {
+  const response = await gxpApi.patch(`${ROUTE}/bulk-restore`, bulkSelectionToBody(selection));
+  return response.data as { message: string; count: number };
 };
 
 /** enable/disable are keyed by groupName — preserved exactly from the legacy service. */

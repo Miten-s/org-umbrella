@@ -37,6 +37,7 @@ import {
   useCreateLimsSupplier,
   useLimsSupplierAudit,
   useRestoreLimsSupplier,
+  useBulkRestoreLimsSupplier,
   useUpdateLimsSupplier,
   useLimsSupplierById
 } from "./LimsSupplier.queries";
@@ -87,6 +88,7 @@ const LimsSupplierList = () => {
   const bulkDelete = useBulkDeleteLimsSupplier();
   const bulkUpdate = useBulkUpdateLimsSupplier();
   const restoreSupplier = useRestoreLimsSupplier();
+  const bulkRestoreSupplier = useBulkRestoreLimsSupplier();
 
   const busy =
     createSupplier.isPending ||
@@ -95,7 +97,8 @@ const LimsSupplierList = () => {
     bulkCopy.isPending ||
     bulkDelete.isPending ||
     bulkUpdate.isPending ||
-    restoreSupplier.isPending;
+    restoreSupplier.isPending ||
+    bulkRestoreSupplier.isPending;
 
   const columnDefs = useMemo(() => getLimsSupplierColumns({ t }), [t]);
 
@@ -183,7 +186,7 @@ const LimsSupplierList = () => {
     () => [
       {
         key: "view",
-        label: () => t("view", { entity: t("limsSuppliers") }),
+        label: () => t("limsView"),
         icon: EyeIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.VIEW_SUPPLIER,
@@ -197,7 +200,7 @@ const LimsSupplierList = () => {
       },
       {
         key: "clone",
-        label: (count) => (count > 1 ? "Copy suppliers" : "Copy supplier"),
+        label: () => t("limsCopy"),
         icon: CopyIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_SUPPLIER,
@@ -225,8 +228,30 @@ const LimsSupplierList = () => {
         }
       },
       {
+        key: "restore",
+        label: () => t("limsRestore"),
+        icon: CopyIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_SUPPLIER,
+        // Only offered when the current selection actually has something removed —
+        // an all-active selection would otherwise fire a no-op restore request.
+        hidden: (rows) => !rows.some((row) => row.isRemoved),
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          compliance.requestBulkRestore(
+            selection.ids,
+            table.rows
+              .filter((row) => selection.ids.includes(row.id))
+              .map((row) => row.supplierName)
+          );
+        }
+      },
+      {
         key: "delete",
-        label: (count) => (count > 1 ? "Remove suppliers" : "Remove supplier"),
+        label: () => t("limsRemove"),
         icon: TrashBinIcon,
         variant: "destructive",
         permission: LIMS_PERMISSIONS.DELETE_SUPPLIER,
@@ -249,7 +274,7 @@ const LimsSupplierList = () => {
     () => [
       {
         key: "view",
-        label: "View supplier",
+        label: t("limsView"),
         icon: EyeIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_SUPPLIER,
@@ -257,7 +282,7 @@ const LimsSupplierList = () => {
       },
       {
         key: "edit",
-        label: "Edit supplier",
+        label: t("edit"),
         icon: PencilIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.UPDATE_SUPPLIER,
@@ -265,7 +290,7 @@ const LimsSupplierList = () => {
       },
       {
         key: "audit",
-        label: "Audit trail",
+        label: t("limsAudit"),
         icon: TimeIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.VIEW_SUPPLIER,
@@ -273,7 +298,7 @@ const LimsSupplierList = () => {
       },
       {
         key: "clone",
-        label: "Copy supplier",
+        label: t("limsCopy"),
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_SUPPLIER,
@@ -282,7 +307,7 @@ const LimsSupplierList = () => {
       },
       {
         key: "restore",
-        label: "Restore supplier",
+        label: t("limsRestore"),
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.UPDATE_SUPPLIER,
@@ -291,7 +316,7 @@ const LimsSupplierList = () => {
       },
       {
         key: "delete",
-        label: "Remove supplier",
+        label: t("limsRemove"),
         icon: TrashBinIcon,
         placement: "menu",
         tone: "danger",
@@ -303,7 +328,7 @@ const LimsSupplierList = () => {
           ])
       }
     ],
-    [compliance, openCopy, openForm]
+    [compliance, openCopy, openForm, t]
   );
 
   return (
@@ -398,6 +423,7 @@ const LimsSupplierList = () => {
         updating={updateSupplier.isPending}
         deleting={bulkDelete.isPending}
         restoring={restoreSupplier.isPending}
+        bulkRestoring={bulkRestoreSupplier.isPending}
         bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
@@ -437,6 +463,17 @@ const LimsSupplierList = () => {
             });
           }
           compliance.clearRestore();
+        }}
+        onBulkRestore={async (reason) => {
+          const pending = compliance.pendingBulkRestore;
+          if (pending) {
+            await bulkRestoreSupplier.mutateAsync({
+              selection: { mode: "ids", ids: pending.ids },
+              changeReason: reason
+            });
+            table.clearSelection();
+          }
+          compliance.clearBulkRestore();
         }}
       />
     </div>

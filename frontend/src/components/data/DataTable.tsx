@@ -39,6 +39,11 @@ export interface DataTableBulkAction {
   variant?: "primary" | "outline" | "secondary" | "destructive";
   permission?: string | string[];
   permissionLogic?: "all" | "any";
+  /** Hide this action for the current selection — e.g. Restore only when at least one
+   * selected row is actually removed, so it isn't offered (and doesn't fire a no-op
+   * request) over an all-active selection. Checked against currently-loaded rows only —
+   * for a "select all matching" filter selection this can't be known, so the action stays visible. */
+  hidden?: (selectedRows: Array<{ isRemoved?: boolean }>) => boolean;
   /** Receives the scalable BulkSelection (ids OR filter) + the selected count. */
   onClick: (selection: BulkSelection, count: number) => void | Promise<void>;
 }
@@ -77,6 +82,14 @@ interface DataTableProps<T> {
   maxInlineRowActions?: number;
   /** When true, disables toolbar + bulk-action buttons (S2 double-submit guard). */
   busy?: boolean;
+  /** Frequently-changing external state (e.g. a per-row mutation's pending
+   * id) that cellRenderers need read access to — passed to ag-grid's own
+   * `context` and read via `params.context`, NOT baked into `columnDefs`.
+   * Rebuilding columnDefs on every such change gives every cellRenderer a new
+   * function identity, which forces ag-grid to destroy and recreate the cell
+   * (not just re-render it) — killing any CSS transition mid-flight and
+   * reads as a flicker instead of a smooth update. */
+  gridContext?: Record<string, unknown>;
 }
 
 /** Standard server-driven table (STANDARDS.md §7): wires server sort/filter/selection
@@ -104,7 +117,8 @@ export function DataTable<T extends { id: string }>({
   fillAvailableHeight = false,
   actionsColumnHeader = "Actions",
   maxInlineRowActions = 2,
-  busy = false
+  busy = false,
+  gridContext
 }: DataTableProps<T>) {
   const { user } = useAuth();
   const { theme } = useTheme();
@@ -203,6 +217,10 @@ export function DataTable<T extends { id: string }>({
       filter: false,
       minWidth: 140,
       maxWidth: 200,
+      // `RowActionsCell`'s own stopPropagation only blocks native DOM bubbling — ag-grid's
+      // click-to-select check runs off its own internal flag, not bubbling, so a raw
+      // stopPropagation never actually reaches it. This is the real, documented escape hatch.
+      cellRendererParams: { suppressMouseEventHandling: () => true },
       cellRenderer: (params: ICellRendererParams<T>) =>
         params.data ? (
           <RowActionsCell
@@ -352,6 +370,7 @@ export function DataTable<T extends { id: string }>({
             <AgGridReact<T>
               animateRows
               columnDefs={computedColumnDefs}
+              context={gridContext}
               defaultColDef={mergedDefaultColDef}
               getRowId={({ data }) => (data ? table.getRowId(data) : "")}
               pagination={false}
@@ -363,7 +382,9 @@ export function DataTable<T extends { id: string }>({
                     checkboxes: true,
                     headerCheckbox: true,
                     mode: "multiRow",
-                    enableClickSelection: false
+                    // Clicking anywhere in a row toggles its selection, not just the checkbox
+                    // — the actions cell stops its own clicks from bubbling here (see RowActionsCell).
+                    enableClickSelection: true
                   }
                   : undefined
               }
@@ -419,7 +440,17 @@ export function DataTable<T extends { id: string }>({
             <span className="h-5 w-px bg-white/15" />
 
             <div className="flex flex-wrap items-center gap-2">
-              {bulkActions.map((action) => {
+              {bulkActions
+                .filter((action) => {
+                  if (!action.hidden) return true;
+                  // Current-page rows only — good enough for "does the selection
+                  // include a removed row", the only thing `hidden` is used for today.
+                  const selectedRows = table.rows.filter((row) =>
+                    table.selectedIds.has(table.getRowId(row))
+                  ) as unknown as Array<{ isRemoved?: boolean }>;
+                  return !action.hidden(selectedRows);
+                })
+                .map((action) => {
                 const Icon = action.icon;
                 return (
                   <Button

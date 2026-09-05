@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
@@ -26,15 +27,29 @@ import type { AsyncOption } from "@/lib/query/listTypes";
 import { getGxpImageUrl } from "@/services/utils.service";
 import { isImageName } from "@/lib/attachments";
 import { useAttachments } from "@/hooks/useAttachments";
+import { isPayloadEqual } from "@/lib/formChangeDetection";
 
-export type ApplicationFormMode = "create" | "edit" | "view";
+export type ApplicationFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface Props {
   mode?: ApplicationFormMode;
   initialData?: GxpApplication | null;
   onClose: () => void;
-  onSubmit: (values: ApplicationFormValues, newFiles: File[], existingAttachments: string[]) => Promise<void> | void;
+  onUnchanged?: () => void;
+  onSubmit: (values: ApplicationFormValues, newFiles?: File[]) => Promise<void> | void;
   submitting?: boolean;
+  /** Overrides the submit button's label — CopyStepper uses this to say
+   * "Next" on every step but the last, where the batch actually saves. */
+  submitLabel?: string;
+  /** Grays out the submit button without a spinner — EditStepper uses
+   * this on the last step now that its own Save button lives outside it. */
+  disabled?: boolean;
+  /** Set on the `<form>` element so an outside button (CopyStepper's
+   * header Next/Save) can submit it via `<Button form={formId}>`. */
+  formId?: string;
+  /** " (2 of 5)" appended after the title when Copy/Edit are reviewing
+   * more than one record — undefined otherwise. */
+  stepLabel?: string;
 }
 
 // --- ref → id / seed helpers ---
@@ -52,21 +67,31 @@ const seedMany = (v: any, label: (x: any) => string): AsyncOption[] | undefined 
     : undefined;
 const ownerLabel = (u: any) => String(u?.fullName ?? u?.name ?? "");
 
-const GxpApplicationForm = ({ mode = "create", initialData, onClose, onSubmit, submitting = false }: Props) => {
+const GxpApplicationForm = ({
+  mode = "create",
+  initialData,
+  onClose,
+  onUnchanged,
+  onSubmit,
+  submitting = false,
+  submitLabel,
+  disabled = false,
+  formId,
+  stepLabel
+}: Props) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
+  // Copy/bulk-edit save through the JSON-only bulk endpoints — attachments hidden,
+  // same as LIMS's bulk-copy/-edit forms.
+  const hideAttachments = mode === "copy" || mode === "bulk-edit";
 
   const attachments = useAttachments(initialData?.attachments);
 
-  const {
-    register,
-    control,
-    handleSubmit,
-    formState: { errors, isSubmitting }
-  } = useForm<ApplicationFormValues>({
-    resolver: zodResolver(applicationSchema),
-    defaultValues: {
-      applicationName: initialData?.applicationName ?? "",
+  // Captured once per record — also the no-change baseline `submit` diffs
+  // against, so Save is a no-op when nothing actually differs from it.
+  const initialValues = useMemo<ApplicationFormValues>(
+    () => ({
+      applicationName: mode === "copy" ? "" : (initialData?.applicationName ?? ""),
       applicationType: initialData?.applicationType ?? "GxP",
       applicationEnvironment: refId(initialData?.applicationEnvironment),
       group: refId(initialData?.group),
@@ -83,26 +108,46 @@ const GxpApplicationForm = ({ mode = "create", initialData, onClose, onSubmit, s
       notes: initialData?.notes ?? "",
       attachments: attachments.keptIds,
       status: initialData?.status ?? "enabled"
-    }
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [initialData, mode]
+  );
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting }
+  } = useForm<ApplicationFormValues>({
+    resolver: zodResolver(applicationSchema),
+    defaultValues: initialValues
   });
 
   const busy = submitting || isSubmitting;
   // Send the KEPT existing attachment ids; the backend deletes the rest and adds newFiles.
-  const submit = (values: ApplicationFormValues) =>
-    onSubmit(
-      { ...values, attachments: attachments.keptIds },
-      attachments.newFiles,
-      attachments.keptIds
-    );
+  const submit = (values: ApplicationFormValues) => {
+    const payload = { ...values, attachments: attachments.keptIds };
+    if ((mode === "edit" || mode === "bulk-edit") && !attachments.isDirty && isPayloadEqual(payload, initialValues)) {
+      (onUnchanged ?? onClose)();
+      return;
+    }
+    onSubmit(payload, attachments.newFiles);
+  };
 
   const err = (name: keyof ApplicationFormValues) =>
     errors[name] ? <p className="mt-1 text-xs text-red-500">{errors[name]?.message as string}</p> : null;
 
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-2rem)] overflow-y-auto overflow-x-hidden rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-      <form onSubmit={handleSubmit(submit)} className="min-w-0 space-y-4">
+      <form id={formId} onSubmit={handleSubmit(submit)} className="min-w-0 space-y-4">
         <h2 className="text-xl font-semibold">
-          {isReadOnly ? t("view", { entity: t("gxpApplications") }) : initialData ? t("update", { entity: t("gxpApplications") }) : t("create", { entity: t("gxpApplications") })}
+          {isReadOnly
+            ? t("view", { entity: t("gxpApplications") })
+            : mode === "copy"
+              ? `${t("copyEntity", { entity: t("gxpApplications") })}${stepLabel ?? ""}`
+              : initialData
+                ? `${t("update", { entity: t("gxpApplications") })}${stepLabel ?? ""}`
+                : t("create", { entity: t("gxpApplications") })}
         </h2>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -245,7 +290,8 @@ const GxpApplicationForm = ({ mode = "create", initialData, onClose, onSubmit, s
             )} />
           </div>
 
-          {/* Attachments */}
+          {/* Attachments — hidden on Copy/bulk-edit: those save through the JSON-only bulk endpoint. */}
+          {!hideAttachments && (
           <div className="md:col-span-2">
             <Label>{t("attachments")}</Label>
             {attachments.existing.length ? (
@@ -308,6 +354,7 @@ const GxpApplicationForm = ({ mode = "create", initialData, onClose, onSubmit, s
               />
             )}
           </div>
+          )}
 
           <div className="md:col-span-2">
             <Label>{t("status")}</Label>
@@ -321,7 +368,11 @@ const GxpApplicationForm = ({ mode = "create", initialData, onClose, onSubmit, s
 
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="outline" type="button" onClick={onClose} disabled={busy}>{t("cancel")}</Button>
-          {!isReadOnly ? <Button type="submit" variant="primary" loading={busy}>{t("save")}</Button> : null}
+          {!isReadOnly ? (
+            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+              {submitLabel ?? t("save")}
+            </Button>
+          ) : null}
         </div>
       </form>
     </div>

@@ -3,7 +3,10 @@ import { toast } from "@/lib/toast";
 import type { BulkSelection, ListResult, ServerListParams } from "@/lib/query/listTypes";
 import {
   bulkCloneApplication,
+  bulkCopyApplication,
   bulkDeleteApplication,
+  bulkRestoreApplication,
+  bulkUpdateApplication,
   createApplication,
   disableApplication,
   enableApplication,
@@ -87,6 +90,52 @@ export const useBulkCloneApplication = () => {
     onSuccess: (_data, selection) => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
       toast(count && count > 1 ? `${count} applications copied successfully.` : "Application copied successfully.", "success");
+      invalidate();
+    }
+  });
+};
+
+/** The Copy flow's batched save (CopyStepper): one request creates every
+ * reviewed record; a name collision is warned, not rejected. */
+export const useBulkCopyApplication = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (records: GxpApplicationPayload[]) => bulkCopyApplication(records),
+    onSuccess: (data) => {
+      toast(
+        data.length > 1 ? `${data.length} applications copied successfully.` : "Application copied successfully.",
+        "success"
+      );
+      invalidate();
+    }
+  });
+};
+
+export const useBulkUpdateApplication = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (updates: { id: string; payload: GxpApplicationPayload }[]) => bulkUpdateApplication(updates),
+    onSuccess: (data) => {
+      toast(
+        data.results.length > 1
+          ? `${data.results.length} applications updated successfully.`
+          : "Application updated successfully.",
+        "success"
+      );
+      invalidate();
+    }
+  });
+};
+
+export const useBulkRestoreApplication = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (selection: BulkSelection) => bulkRestoreApplication(selection),
+    onSuccess: (data) => {
+      toast(
+        data.count > 1 ? `${data.count} applications restored successfully.` : "Application restored successfully.",
+        "success"
+      );
       invalidate();
     }
   });

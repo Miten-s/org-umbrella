@@ -56,6 +56,23 @@ export const bulkCloneApplication = async (selection: BulkSelection) => {
   return response.data;
 };
 
+/** The Copy flow's one and only network call — every reviewed record is
+ * sent together, once (JSON-only, no attachments — see GxpApplicationForm). */
+export const bulkCopyApplication = async (records: GxpApplicationPayload[]) => {
+  const response = await gxpApi.post(`${ROUTE}/bulk-copy`, { records });
+  return response.data as GxpApplication[];
+};
+
+export const bulkUpdateApplication = async (updates: { id: string; payload: GxpApplicationPayload }[]) => {
+  const response = await gxpApi.patch(`${ROUTE}/bulk-update`, { updates });
+  return response.data as { results: { id: string; status: "updated" | "skipped" }[] };
+};
+
+export const bulkRestoreApplication = async (selection: BulkSelection) => {
+  const response = await gxpApi.patch(`${ROUTE}/bulk-restore`, bulkSelectionToBody(selection));
+  return response.data as { message: string; count: number };
+};
+
 export const enableApplication = async (id: string) => {
   const response = await gxpApi.patch(`${ROUTE}/enable/${id}`);
   return response.data;

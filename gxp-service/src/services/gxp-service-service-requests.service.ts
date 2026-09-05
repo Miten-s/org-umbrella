@@ -51,7 +51,10 @@ const normalizeServiceRequestCodeSegment = (value: unknown): string =>
     .replace(/_+/g, "_")
     .replace(/^_+|_+$/g, "");
 
-const buildServiceRequestId = (applicationName: string, sequence: number): string => {
+const buildServiceRequestId = (
+  applicationName: string,
+  sequence: number
+): string => {
   const normalizedAppName =
     normalizeServiceRequestCodeSegment(applicationName) || "APP";
   const paddedSequence = String(sequence).padStart(4, "0");
@@ -86,9 +89,7 @@ export const createServiceRequest = async (
   payload.assignmentGroup = extractSingleId(
     payload.assignmentGroup ?? payload.group
   );
-  payload.location = extractSingleId(
-    payload.location ?? payload.groupLocation
-  );
+  payload.location = extractSingleId(payload.location ?? payload.groupLocation);
 
   const moduleIds = await resolveIds(
     payload.modules ?? payload.applicationModules,
@@ -164,7 +165,8 @@ export const createServiceRequest = async (
   // collision resolves itself instead of forcing the user to re-submit.
   let newRequest;
   for (let attempt = 0; ; attempt++) {
-    const nextSequence = await repo.getNextServiceRequestSequence(applicationId);
+    const nextSequence =
+      await repo.getNextServiceRequestSequence(applicationId);
     payload.serviceRequestId = buildServiceRequestId(
       applicationRecord.applicationName,
       nextSequence
@@ -205,7 +207,6 @@ export const createServiceRequest = async (
   return await repo.getServiceRequestById(newRequest.id);
 };
 
-
 export const fetchAllRequests = async (options: PaginationOptions) => {
   return await repo.getAllServiceRequests(options);
 };
@@ -241,9 +242,11 @@ export const updateRequest = async (
 ) => {
   const payload = { ...data } as Record<string, any>;
 
-  const existingRequest = (await repo.getServiceRequestIdentityById(id)) as
-    | { _id?: string; application?: unknown; serviceRequestId?: string }
-    | null;
+  const existingRequest = (await repo.getServiceRequestIdentityById(id)) as {
+    _id?: string;
+    application?: unknown;
+    serviceRequestId?: string;
+  } | null;
   if (!existingRequest) {
     throw new Error("Service Request not found");
   }
@@ -356,7 +359,8 @@ export const updateRequest = async (
       throw new Error("Application not found");
     }
 
-    const nextSequence = await repo.getNextServiceRequestSequence(applicationId);
+    const nextSequence =
+      await repo.getNextServiceRequestSequence(applicationId);
     // For update, serviceRequestId is a separate column in the model
     // (the model stores it in the `serviceRequestId` field, separate from the PK `id`)
     // But since `id` is already the SR_APP_XXXX string acting as PK,
@@ -378,7 +382,9 @@ export const updateRequest = async (
     await GxpServiceRequestAttachmentModel.destroy({
       where: {
         serviceRequestId: id,
-        ...(keptAttachmentIds.length ? { id: { [Op.notIn]: keptAttachmentIds } } : {})
+        ...(keptAttachmentIds.length
+          ? { id: { [Op.notIn]: keptAttachmentIds } }
+          : {})
       }
     });
   }
@@ -397,6 +403,14 @@ export const updateRequest = async (
 
   await repo.updateServiceRequest(id, payload);
   return await repo.getServiceRequestById(id);
+};
+
+export const disableServiceRequest = async (id: string) => {
+  return await repo.disableServiceRequest(id);
+};
+
+export const enableServiceRequest = async (id: string) => {
+  return await repo.enableServiceRequest(id);
 };
 
 export const deleteRequest = async (id: string) => {

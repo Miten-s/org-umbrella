@@ -37,6 +37,7 @@ import {
   useCreateLimsScheduler,
   useLimsSchedulerAudit,
   useRestoreLimsScheduler,
+  useBulkRestoreLimsScheduler,
   useUpdateLimsScheduler,
   useLimsSchedulerById
 } from "./LimsScheduler.queries";
@@ -90,6 +91,7 @@ const LimsSchedulerList = () => {
   const bulkDelete = useBulkDeleteLimsScheduler();
   const bulkUpdate = useBulkUpdateLimsScheduler();
   const restore = useRestoreLimsScheduler();
+  const bulkRestoreScheduler = useBulkRestoreLimsScheduler();
 
   const busy =
     create.isPending ||
@@ -98,7 +100,8 @@ const LimsSchedulerList = () => {
     bulkCopy.isPending ||
     bulkDelete.isPending ||
     bulkUpdate.isPending ||
-    restore.isPending;
+    restore.isPending ||
+    bulkRestoreScheduler.isPending;
 
   const columnDefs = useMemo(() => getLimsSchedulerColumns({ t }), [t]);
 
@@ -188,7 +191,7 @@ const LimsSchedulerList = () => {
     () => [
       {
         key: "view",
-        label: () => t("view", { entity: t("limsSchedulers") }),
+        label: () => t("limsView"),
         icon: EyeIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.VIEW_SCHEDULER,
@@ -230,6 +233,28 @@ const LimsSchedulerList = () => {
         }
       },
       {
+        key: "restore",
+        label: () => t("limsRestore"),
+        icon: CopyIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_SCHEDULER,
+        // Only offered when the current selection actually has something removed —
+        // an all-active selection would otherwise fire a no-op restore request.
+        hidden: (rows) => !rows.some((row) => row.isRemoved),
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          compliance.requestBulkRestore(
+            selection.ids,
+            table.rows
+              .filter((row) => selection.ids.includes(row.id))
+              .map(label)
+          );
+        }
+      },
+      {
         key: "delete",
         label: () => t("limsRemove"),
         icon: TrashBinIcon,
@@ -254,7 +279,7 @@ const LimsSchedulerList = () => {
     () => [
       {
         key: "view",
-        label: t("view", { entity: t("limsScheduler") }),
+        label: t("limsView"),
         icon: EyeIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_SCHEDULER,
@@ -402,6 +427,7 @@ const LimsSchedulerList = () => {
         updating={update.isPending}
         deleting={bulkDelete.isPending}
         restoring={restore.isPending}
+        bulkRestoring={bulkRestoreScheduler.isPending}
         bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
@@ -438,6 +464,17 @@ const LimsSchedulerList = () => {
             await restore.mutateAsync({ id: pending.id, changeReason: reason });
           }
           compliance.clearRestore();
+        }}
+        onBulkRestore={async (reason) => {
+          const pending = compliance.pendingBulkRestore;
+          if (pending) {
+            await bulkRestoreScheduler.mutateAsync({
+              selection: { mode: "ids", ids: pending.ids },
+              changeReason: reason
+            });
+            table.clearSelection();
+          }
+          compliance.clearBulkRestore();
         }}
       />
     </div>

@@ -18,9 +18,17 @@ export const addNewEnvironment = async (data: any, user: any) => {
   return await repo.createEnvironment(environmentToCreate);
 };
 
+export const getAllEnvironments = async (
+  options: PaginationOptions,
+  includeDisabled = false
+) => {
+  const filter: any = {};
+  if (!includeDisabled) filter.status = "enabled";
+  return await repo.findAllEnvironments(filter, options);
+};
 
-export const getAllEnvironments = async (options: PaginationOptions) => {
-  return await repo.findAllEnvironments(options);
+export const getEnvironmentById = async (id: string) => {
+  return await repo.findEnvironment(id);
 };
 
 export const updateEnvironment = async (
@@ -94,7 +102,7 @@ export const bulkDuplicateEnvironments = async (ids: string[], user: any) => {
 
       let maxIndex = 0;
       similarEnvsResult.forEach((env: any) => {
-        const match = env.environmentName.match(new RegExp(regexStr, 'i'));
+        const match = env.environmentName.match(new RegExp(regexStr, "i"));
         if (match && match[1]) {
           const index = parseInt(match[1], 10);
           if (index > maxIndex) maxIndex = index;

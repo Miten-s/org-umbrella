@@ -9,6 +9,7 @@ import {
   bulkCloneLimsScheduler,
   bulkCopyLimsScheduler,
   bulkDeleteLimsScheduler,
+  bulkRestoreLimsScheduler,
   bulkUpdateLimsScheduler,
   createLimsScheduler,
   fetchLimsSchedulerAudit,
@@ -100,6 +101,29 @@ export const useBulkDeleteLimsScheduler = () => {
         count && count > 1
           ? `${count} records removed successfully.`
           : "Record removed successfully.",
+        "success"
+      );
+      invalidate();
+    }
+  });
+};
+
+export const useBulkRestoreLimsScheduler = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: ({
+      selection,
+      changeReason
+    }: {
+      selection: BulkSelection;
+      changeReason: string;
+    }) => bulkRestoreLimsScheduler(selection, changeReason),
+    onSuccess: (_data, { selection }) => {
+      const count = selection.mode === "ids" ? selection.ids.length : undefined;
+      toast(
+        count && count > 1
+          ? `${count} records restored successfully.`
+          : "Record restored successfully.",
         "success"
       );
       invalidate();

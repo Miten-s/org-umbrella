@@ -1,7 +1,9 @@
 import { Request } from "express";
 import { Op } from "sequelize";
 import { PaginationOptions } from "../utils/pagination.util";
-import ServiceRequest, { IServiceRequest } from "../models/gxp-service-service-requests.model";
+import ServiceRequest, {
+  IServiceRequest
+} from "../models/gxp-service-service-requests.model";
 import Application from "../models/gxp-service-applications.model";
 import AssignmentGroup from "../models/gxp-service-assignment-groups.model";
 import Workflow from "../models/gxp-service-workflows.model";
@@ -37,7 +39,9 @@ const splitServiceRequestRelations = (data: Record<string, any>) => {
     : undefined;
   const comments = Array.isArray(fields.comments)
     ? (fields.comments as unknown[])
-        .map((c) => (typeof c === "string" ? c : String((c as any)?.commentText ?? "")))
+        .map((c) =>
+          typeof c === "string" ? c : String((c as any)?.commentText ?? "")
+        )
         .map((c) => c.trim())
         .filter(Boolean)
     : undefined;
@@ -74,7 +78,7 @@ const replaceServiceRequestComments = async (
   await ServiceRequestComment.destroy({ where: { serviceRequestId } });
   if (comments.length) {
     await ServiceRequestComment.bulkCreate(
-      comments.map((commentText) => ({ serviceRequestId, commentText } as any))
+      comments.map((commentText) => ({ serviceRequestId, commentText }) as any)
     );
   }
 };
@@ -82,7 +86,7 @@ const replaceServiceRequestComments = async (
 const formatServiceRequest = (sr: any) => {
   if (!sr) return null;
   const json = sr.toJSON ? sr.toJSON() : { ...sr };
-  
+
   json._id = json.id;
 
   if (json.applicationDetails) {
@@ -91,16 +95,31 @@ const formatServiceRequest = (sr: any) => {
       _id: json.applicationDetails.id
     };
     if (json.application.applicationModules) {
-      json.application.applicationModules = json.application.applicationModules.map((m: any) => ({ ...m, _id: m.id, moduleId: m.moduleIdString }));
+      json.application.applicationModules =
+        json.application.applicationModules.map((m: any) => ({
+          ...m,
+          _id: m.id,
+          moduleId: m.moduleIdString
+        }));
     }
     if (json.application.applicationGroups) {
-      json.application.applicationGroups = json.application.applicationGroups.map((g: any) => ({ ...g, _id: g.id }));
+      json.application.applicationGroups =
+        json.application.applicationGroups.map((g: any) => ({
+          ...g,
+          _id: g.id
+        }));
     }
     if (json.application.applicationServiceRequestTypes) {
-      json.application.applicationServiceRequestTypes = json.application.applicationServiceRequestTypes.map((rt: any) => ({ ...rt, _id: rt.id }));
+      json.application.applicationServiceRequestTypes =
+        json.application.applicationServiceRequestTypes.map((rt: any) => ({
+          ...rt,
+          _id: rt.id
+        }));
     }
     if (json.application.attachments) {
-      json.application.attachments = json.application.attachments.map((a: any) => ({ ...a, _id: a.id }));
+      json.application.attachments = json.application.attachments.map(
+        (a: any) => ({ ...a, _id: a.id })
+      );
     }
     delete json.applicationDetails;
   }
@@ -208,19 +227,20 @@ export const getAllServiceRequests = async (options: PaginationOptions) => {
       { description: { [Op.iLike]: `%${search}%` } }
     ];
   }
-  const { count: totalCount, rows: data } = await ServiceRequest.findAndCountAll({
-    where,
-    include: [
-      {
-        model: Application,
-        as: "applicationDetails",
-        attributes: ["applicationName", "id"]
-      }
-    ],
-    offset: skip,
-    limit,
-    order: [["created_at", "DESC"]]
-  });
+  const { count: totalCount, rows: data } =
+    await ServiceRequest.findAndCountAll({
+      where,
+      include: [
+        {
+          model: Application,
+          as: "applicationDetails",
+          attributes: ["applicationName", "id"]
+        }
+      ],
+      offset: skip,
+      limit,
+      order: [["created_at", "DESC"]]
+    });
   return {
     data: data.map(formatServiceRequest),
     metadata: {
@@ -335,6 +355,20 @@ export const updateServiceRequest = async (
   if (moduleIds) await (doc as any).setRequestModules(moduleIds);
   if (roleIds) await (doc as any).setRequestRoles(roleIds);
   if (comments) await replaceServiceRequestComments(id, comments);
+  return formatServiceRequest(doc);
+};
+
+export const disableServiceRequest = async (id: string) => {
+  const doc = await ServiceRequest.findByPk(id);
+  if (!doc) return null;
+  await doc.update({ recordStatus: "disabled" });
+  return formatServiceRequest(doc);
+};
+
+export const enableServiceRequest = async (id: string) => {
+  const doc = await ServiceRequest.findByPk(id);
+  if (!doc) return null;
+  await doc.update({ recordStatus: "enabled" });
   return formatServiceRequest(doc);
 };
 

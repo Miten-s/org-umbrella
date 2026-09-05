@@ -9,6 +9,7 @@ import {
   bulkCloneLimsLocation,
   bulkCopyLimsLocation,
   bulkDeleteLimsLocation,
+  bulkRestoreLimsLocation,
   bulkUpdateLimsLocation,
   createLimsLocation,
   fetchLimsLocationAudit,
@@ -112,6 +113,29 @@ export const useBulkDeleteLimsLocation = () => {
         count && count > 1
           ? `${count} storage locations removed successfully.`
           : "Storage location removed successfully.",
+        "success"
+      );
+      invalidate();
+    }
+  });
+};
+
+export const useBulkRestoreLimsLocation = () => {
+  const invalidate = useInvalidateLimsLocations();
+  return useMutation({
+    mutationFn: ({
+      selection,
+      changeReason
+    }: {
+      selection: BulkSelection;
+      changeReason: string;
+    }) => bulkRestoreLimsLocation(selection, changeReason),
+    onSuccess: (_data, { selection }) => {
+      const count = selection.mode === "ids" ? selection.ids.length : undefined;
+      toast(
+        count && count > 1
+          ? `${count} storage locations restored successfully.`
+          : "Storage location restored successfully.",
         "success"
       );
       invalidate();

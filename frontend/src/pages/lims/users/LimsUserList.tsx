@@ -18,7 +18,6 @@ import { useModal } from "@/hooks/useModal";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { toast } from "@/lib/toast";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
-import { idsSelection } from "@/lib/query/listTypes";
 import {
   CopyIcon,
   EyeIcon,
@@ -38,6 +37,7 @@ import {
   useCreateLimsUser,
   useLimsUserAudit,
   useRestoreLimsUser,
+  useBulkRestoreLimsUser,
   useUpdateLimsUser,
   useLimsUserById
 } from "./LimsUser.queries";
@@ -92,6 +92,7 @@ const LimsUserList = () => {
   const bulkDelete = useBulkDeleteLimsUser();
   const bulkUpdate = useBulkUpdateLimsUser();
   const restore = useRestoreLimsUser();
+  const bulkRestoreUser = useBulkRestoreLimsUser();
 
   const busy =
     create.isPending ||
@@ -100,7 +101,8 @@ const LimsUserList = () => {
     bulkCopy.isPending ||
     bulkDelete.isPending ||
     bulkUpdate.isPending ||
-    restore.isPending;
+    restore.isPending ||
+    bulkRestoreUser.isPending;
 
   const columnDefs = useMemo(() => getLimsUserColumns({ t }), [t]);
 
@@ -157,10 +159,6 @@ const LimsUserList = () => {
     compliance.requestBulkUpdate(updates);
   };
 
-  const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
-    await bulkClone.mutateAsync(idsSelection(unreviewedIds));
-  };
-
   const handleSave = async (payload: LimsUserPayload) => {
     if (activeId) {
       compliance.requestUpdate(activeId, payload);
@@ -189,7 +187,7 @@ const LimsUserList = () => {
     () => [
       {
         key: "view",
-        label: () => t("view", { entity: t("limsUsers") }),
+        label: () => t("limsView"),
         icon: EyeIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.VIEW_USER,
@@ -228,6 +226,27 @@ const LimsUserList = () => {
             return;
           }
           openEdit(selection.ids);
+        }
+      },
+      {
+        key: "restore",
+        label: () => t("limsRestore"),
+        icon: CopyIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_USER,
+        // Only offered when the current selection actually has something removed —
+        // an all-active selection would otherwise fire a no-op restore request.
+        hidden: (rows) => !rows.some((row) => row.isRemoved),
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          const rowsById = new Map(table.rows.map((row) => [row.id, row]));
+          compliance.requestBulkRestore(
+            selection.ids,
+            selection.ids.map((id) => rowsById.get(id)).filter(Boolean).map((row) => label(row as LimsUser))
+          );
         }
       },
       {
@@ -277,7 +296,7 @@ const LimsUserList = () => {
     () => [
       {
         key: "view",
-        label: t("view", { entity: t("limsUser") }),
+        label: t("limsView"),
         icon: EyeIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_USER,
@@ -377,9 +396,11 @@ const LimsUserList = () => {
             fetchById={fetchLimsUserById}
             FormComponent={LimsUserForm}
             onSaveAll={handleSaveCopies}
-            onDuplicateUnreviewed={handleDuplicateUnreviewedCopies}
+            // `userId` names a specific platform user — there is no safe "clone it anyway"
+            // fast path for a record you never opened, unlike every other module's Copy.
+            dropNeverOpened
             onClose={handleCloseForm}
-            saving={bulkCopy.isPending || bulkClone.isPending}
+            saving={bulkCopy.isPending}
             entityLabel={t("limsUser")}
           />
         ) : viewIds ? (
@@ -425,6 +446,7 @@ const LimsUserList = () => {
         updating={update.isPending}
         deleting={bulkDelete.isPending}
         restoring={restore.isPending}
+        bulkRestoring={bulkRestoreUser.isPending}
         bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
@@ -461,6 +483,17 @@ const LimsUserList = () => {
             await restore.mutateAsync({ id: pending.id, changeReason: reason });
           }
           compliance.clearRestore();
+        }}
+        onBulkRestore={async (reason) => {
+          const pending = compliance.pendingBulkRestore;
+          if (pending) {
+            await bulkRestoreUser.mutateAsync({
+              selection: { mode: "ids", ids: pending.ids },
+              changeReason: reason
+            });
+            table.clearSelection();
+          }
+          compliance.clearBulkRestore();
         }}
       />
     </div>

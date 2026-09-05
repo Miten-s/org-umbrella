@@ -1,11 +1,16 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
 import { useAsyncOptions } from "@/hooks/useAsyncOptions";
+import { useLimsRecordById } from "@/hooks/useLimsRecordById";
 import type { BulkSelection, ListResult, ServerListParams } from "@/lib/query/listTypes";
 import {
   bulkCloneModule,
+  bulkCopyModule,
   bulkDeleteModule,
+  bulkRestoreModule,
+  bulkUpdateModule,
   createModule,
+  fetchModuleById,
   fetchModuleOptions,
   setModuleStatus,
   updateModule
@@ -17,6 +22,14 @@ export const moduleKeys = {
   list: (params: ServerListParams) => ["module", "list", params] as const,
   options: ["module", "options"] as const
 };
+
+export const useModuleById = (id?: string, enabled = true) =>
+  useLimsRecordById({
+    queryKey: moduleKeys.all,
+    fetchById: fetchModuleById,
+    id,
+    enabled
+  });
 
 export const useModuleOptions = (args: { search: string; enabled?: boolean; selectedValues?: string[] }) =>
   useAsyncOptions({
@@ -73,6 +86,42 @@ export const useBulkCloneModule = () => {
     onSuccess: (_data, selection) => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
       toast(count && count > 1 ? `${count} modules copied successfully.` : "Module copied successfully.", "success");
+      invalidate();
+    }
+  });
+};
+
+export const useBulkCopyModule = () => {
+  const invalidate = useInvalidateModules();
+  return useMutation({
+    mutationFn: (records: ModulePayload[]) => bulkCopyModule(records),
+    onSuccess: (data) => {
+      toast(data.length > 1 ? `${data.length} modules copied successfully.` : "Module copied successfully.", "success");
+      invalidate();
+    }
+  });
+};
+
+export const useBulkUpdateModule = () => {
+  const invalidate = useInvalidateModules();
+  return useMutation({
+    mutationFn: (updates: { id: string; payload: ModulePayload }[]) => bulkUpdateModule(updates),
+    onSuccess: (data) => {
+      toast(
+        data.results.length > 1 ? `${data.results.length} modules updated successfully.` : "Module updated successfully.",
+        "success"
+      );
+      invalidate();
+    }
+  });
+};
+
+export const useBulkRestoreModule = () => {
+  const invalidate = useInvalidateModules();
+  return useMutation({
+    mutationFn: (selection: BulkSelection) => bulkRestoreModule(selection),
+    onSuccess: (data) => {
+      toast(data.count > 1 ? `${data.count} modules restored successfully.` : "Module restored successfully.", "success");
       invalidate();
     }
   });

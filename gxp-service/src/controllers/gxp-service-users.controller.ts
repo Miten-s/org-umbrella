@@ -10,6 +10,7 @@ import {
 } from "../services/gxp-service-users.service";
 import asyncHandler from "../middlewares/error.middleware";
 import { getPaginationOptions } from "../utils/pagination.util";
+import { buildBulkCrudRoutes } from "../utils/bulk-crud-factory";
 
 export const createUser = asyncHandler(async (req: Request, res: Response) => {
   const data = req.body;
@@ -18,8 +19,9 @@ export const createUser = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
+  const includeDisabled = req.query.includeDisabled === "true";
   const paginationOptions = getPaginationOptions(req.query);
-  const result = await getAllUsersService(paginationOptions);
+  const result = await getAllUsersService(paginationOptions, includeDisabled);
   res.status(200).send(result);
 });
 
@@ -60,3 +62,17 @@ export const bulkDeleteUsers = asyncHandler(
     res.status(200).send(result);
   }
 );
+
+// No nameField: a cloned Lab User's whole point is assigning the same roles
+// to a DIFFERENT platform user, so there's no name to collision-suffix.
+const bulkCrud = buildBulkCrudRoutes({
+  createOne: (payload, currentUser) =>
+    createUserService({ ...payload, createdBy: currentUser }),
+  updateOne: (id, payload, currentUser) =>
+    updateUserService(id, { ...payload, modifiedBy: currentUser }),
+  restore: (id, currentUser) => enableUserService(id, currentUser)
+});
+
+export const bulkCopyUsers = bulkCrud.bulkCopy;
+export const bulkUpdateUsers = bulkCrud.bulkUpdate;
+export const bulkRestoreUsers = bulkCrud.bulkRestore!;

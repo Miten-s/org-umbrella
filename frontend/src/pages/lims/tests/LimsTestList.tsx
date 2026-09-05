@@ -38,6 +38,7 @@ import {
   useLimsTestAudit,
   useLimsTestById,
   useRestoreLimsTest,
+  useBulkRestoreLimsTest,
   useUpdateLimsTest
 } from "./LimsTest.queries";
 import LimsTestForm, { type LimsTestFormMode } from "./LimsTestForm";
@@ -83,6 +84,7 @@ const LimsTestList = () => {
   const bulkDelete = useBulkDeleteLimsTest();
   const bulkUpdate = useBulkUpdateLimsTest();
   const restore = useRestoreLimsTest();
+  const bulkRestoreTest = useBulkRestoreLimsTest();
 
   const busy =
     create.isPending ||
@@ -91,7 +93,8 @@ const LimsTestList = () => {
     bulkCopy.isPending ||
     bulkDelete.isPending ||
     bulkUpdate.isPending ||
-    restore.isPending;
+    restore.isPending ||
+    bulkRestoreTest.isPending;
 
   const columnDefs = useMemo(() => getLimsTestColumns({ t }), [t]);
 
@@ -181,7 +184,7 @@ const LimsTestList = () => {
     () => [
       {
         key: "view",
-        label: () => t("view", { entity: t("limsTests") }),
+        label: () => t("limsView"),
         icon: EyeIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.VIEW_TEST,
@@ -223,6 +226,28 @@ const LimsTestList = () => {
         }
       },
       {
+        key: "restore",
+        label: () => t("limsRestore"),
+        icon: CopyIcon,
+        variant: "outline",
+        permission: LIMS_PERMISSIONS.UPDATE_TEST,
+        // Only offered when the current selection actually has something removed —
+        // an all-active selection would otherwise fire a no-op restore request.
+        hidden: (rows) => !rows.some((row) => row.isRemoved),
+        onClick: (selection) => {
+          if (selection.mode !== "ids") {
+            toast(t("editBulkFilterUnsupported"), "error");
+            return;
+          }
+          compliance.requestBulkRestore(
+            selection.ids,
+            table.rows
+              .filter((row) => selection.ids.includes(row.id))
+              .map(label)
+          );
+        }
+      },
+      {
         key: "delete",
         label: () => t("limsRemove"),
         icon: TrashBinIcon,
@@ -247,7 +272,7 @@ const LimsTestList = () => {
     () => [
       {
         key: "view",
-        label: t("view", { entity: t("limsTest") }),
+        label: t("limsView"),
         icon: EyeIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_TEST,
@@ -395,6 +420,7 @@ const LimsTestList = () => {
         updating={update.isPending}
         deleting={bulkDelete.isPending}
         restoring={restore.isPending}
+        bulkRestoring={bulkRestoreTest.isPending}
         bulkUpdating={bulkUpdate.isPending}
         auditEntries={auditQuery.entries}
 
@@ -431,6 +457,17 @@ const LimsTestList = () => {
             await restore.mutateAsync({ id: pending.id, changeReason: reason });
           }
           compliance.clearRestore();
+        }}
+        onBulkRestore={async (reason) => {
+          const pending = compliance.pendingBulkRestore;
+          if (pending) {
+            await bulkRestoreTest.mutateAsync({
+              selection: { mode: "ids", ids: pending.ids },
+              changeReason: reason
+            });
+            table.clearSelection();
+          }
+          compliance.clearBulkRestore();
         }}
       />
     </div>

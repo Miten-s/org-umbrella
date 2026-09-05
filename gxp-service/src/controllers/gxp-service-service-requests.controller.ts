@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import * as service from "../services/gxp-service-service-requests.service";
 import asyncHandler from "../middlewares/error.middleware";
 import { getPaginationOptions } from "../utils/pagination.util";
+import { buildBulkCrudRoutes } from "../utils/bulk-crud-factory";
 
 export const createServiceRequest = asyncHandler(
   async (req: Request, res: Response) => {
@@ -54,7 +55,11 @@ export const updateServiceRequest = asyncHandler(
     const files = req.files as Express.Multer.File[];
     const attachments = files?.map((file) => file.filename) || [];
 
-    const result = await service.updateRequest(id as string, payload, attachments);
+    const result = await service.updateRequest(
+      id as string,
+      payload,
+      attachments
+    );
 
     if (!result) return res.status(404).json({ message: "Not Found" });
     res.status(200).send(result);
@@ -97,3 +102,42 @@ export const bulkDeleteServiceRequests = asyncHandler(
     res.status(200).send(result);
   }
 );
+
+export const enableServiceRequest = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const restored = await service.enableServiceRequest(id as string);
+    if (!restored) return res.status(404).json({ message: "Not Found" });
+    res
+      .status(200)
+      .send({ message: "Service request restored", serviceRequest: restored });
+  }
+);
+
+export const disableServiceRequest = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const disabled = await service.disableServiceRequest(id as string);
+    if (!disabled) return res.status(404).json({ message: "Not Found" });
+    res
+      .status(200)
+      .send({ message: "Service request disabled", serviceRequest: disabled });
+  }
+);
+
+// No nameField/model: serviceRequestId is minted server-side on every
+// createServiceRequest call (per-application sequence counter), so there's
+// nothing client-supplied to collision-suffix.
+const bulkCrud = buildBulkCrudRoutes({
+  createOne: (payload, currentUser) =>
+    service.createServiceRequest(
+      { ...payload, createdBy: currentUser ?? null },
+      []
+    ),
+  updateOne: (id, payload) => service.updateRequest(id, payload, []),
+  restore: service.enableServiceRequest
+});
+
+export const bulkCopyServiceRequests = bulkCrud.bulkCopy;
+export const bulkUpdateServiceRequests = bulkCrud.bulkUpdate;
+export const bulkRestoreServiceRequests = bulkCrud.bulkRestore!;

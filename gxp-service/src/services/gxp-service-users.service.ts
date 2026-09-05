@@ -15,8 +15,13 @@ export const createUserService = async (data: any) => {
   return await createUserRepo(data);
 };
 
-export const getAllUsersService = async (options: PaginationOptions) => {
-  const result = await findAllUsersRepo(options);
+export const getAllUsersService = async (
+  options: PaginationOptions,
+  includeDisabled = false
+) => {
+  const filter: any = {};
+  if (!includeDisabled) filter.status = "enabled";
+  const result = await findAllUsersRepo(filter, options);
   const usersWithRoles = await Promise.all(
     result.data.map(async (user: any) => {
       return {

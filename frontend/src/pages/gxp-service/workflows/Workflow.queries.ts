@@ -1,13 +1,18 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
 import { useAsyncOptions } from "@/hooks/useAsyncOptions";
+import { useLimsRecordById } from "@/hooks/useLimsRecordById";
 import type { BulkSelection, ListResult, ServerListParams } from "@/lib/query/listTypes";
 import {
   bulkCloneWorkflow,
+  bulkCopyWorkflow,
   bulkDeleteWorkflow,
+  bulkRestoreWorkflow,
+  bulkUpdateWorkflow,
   createWorkflow,
   disableWorkflow,
   enableWorkflow,
+  fetchWorkflowById,
   fetchWorkflowOptions,
   updateWorkflow
 } from "./Workflow.api";
@@ -18,6 +23,14 @@ export const workflowKeys = {
   list: (params: ServerListParams) => ["workflow", "list", params] as const,
   options: ["workflow", "options"] as const
 };
+
+export const useWorkflowById = (id?: string, enabled = true) =>
+  useLimsRecordById({
+    queryKey: workflowKeys.all,
+    fetchById: fetchWorkflowById,
+    id,
+    enabled
+  });
 
 export const useWorkflowOptions = (args: { search: string; enabled?: boolean; selectedValues?: string[] }) =>
   useAsyncOptions({
@@ -74,6 +87,42 @@ export const useBulkCloneWorkflow = () => {
     onSuccess: (_data, selection) => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
       toast(count && count > 1 ? `${count} workflows copied successfully.` : "Workflow copied successfully.", "success");
+      invalidate();
+    }
+  });
+};
+
+export const useBulkCopyWorkflow = () => {
+  const invalidate = useInvalidateWorkflows();
+  return useMutation({
+    mutationFn: (records: WorkflowPayload[]) => bulkCopyWorkflow(records),
+    onSuccess: (data) => {
+      toast(data.length > 1 ? `${data.length} workflows copied successfully.` : "Workflow copied successfully.", "success");
+      invalidate();
+    }
+  });
+};
+
+export const useBulkUpdateWorkflow = () => {
+  const invalidate = useInvalidateWorkflows();
+  return useMutation({
+    mutationFn: (updates: { id: string; payload: WorkflowPayload }[]) => bulkUpdateWorkflow(updates),
+    onSuccess: (data) => {
+      toast(
+        data.results.length > 1 ? `${data.results.length} workflows updated successfully.` : "Workflow updated successfully.",
+        "success"
+      );
+      invalidate();
+    }
+  });
+};
+
+export const useBulkRestoreWorkflow = () => {
+  const invalidate = useInvalidateWorkflows();
+  return useMutation({
+    mutationFn: (selection: BulkSelection) => bulkRestoreWorkflow(selection),
+    onSuccess: (data) => {
+      toast(data.count > 1 ? `${data.count} workflows restored successfully.` : "Workflow restored successfully.", "success");
       invalidate();
     }
   });

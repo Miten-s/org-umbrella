@@ -21,6 +21,9 @@ export const limsUserConfig: CrudConfig<LimsUser> = {
   entityName: "Lab User",
   permissionEntity: "USER",
   uniqueField: "userId",
+  // `userId` is a specific platform user, not a name — a Copy collision must fail loudly,
+  // never auto-suffix into an id that matches nobody. See CrudConfig's own doc comment.
+  strictCopyCollision: true,
   searchFields: ["userId", "userName", "description"],
   defaultSortBy: "userName",
   relations: [
