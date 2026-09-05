@@ -1,13 +1,30 @@
 import { Sequelize } from "sequelize";
 import ENV from "../utils/environment";
 
-// Managed providers require SSL, local dev doesn't. Don't detect via `?sslmode=require` in
-// the URI — pg's own parser then takes over SSL and ignores the `ssl` object below entirely.
-const isLocalPostgres = (uri?: string) => !uri || /localhost|127\.0\.0\.1/.test(uri);
+// Managed providers (Neon, Supabase) require SSL; local dev doesn't.
+// NOTE: don't detect this via `?sslmode=require` in the URI — pg's own
+// connection-string parser then takes over SSL config and ignores the
+// `ssl` object below entirely, forcing full cert verification and failing
+// against Supabase's chain with SELF_SIGNED_CERT_IN_CHAIN.
+const isLocalPostgres = (uri?: string) => {
+  if (!uri) return true;
+  if (/localhost|127\.0\.0\.1|postgres/.test(uri)) {
+    return true;
+  }
+  return !(uri.includes("sslmode=require") || uri.includes("supabase") || uri.includes("neon.tech") || uri.includes("rds.amazonaws.com"));
+};
+
+const sanitizePgUri = (uri?: string) => {
+  if (!uri) return uri;
+  if (isLocalPostgres(uri)) {
+    return uri.replace(/[\?&]sslmode=[^&]+/gi, "").replace(/[\?&]ssl=[^&]+/gi, "");
+  }
+  return uri;
+};
 
 // Main LIMS database connection.
 export const sequelize = new Sequelize(
-  ENV.LIMS_POSTGRES_URI ||
+  sanitizePgUri(ENV.LIMS_POSTGRES_URI) ||
     "postgres://postgres:postgres@localhost:5433/lims_service_db",
   {
     dialect: "postgres",
@@ -31,7 +48,7 @@ export const sequelize = new Sequelize(
 // Secondary auth database — read-only reference for resolving platform users onto LIMS
 // records (LIMS never creates users, only grants access).
 export const authSequelize = new Sequelize(
-  ENV.AUTH_POSTGRES_URI ||
+  sanitizePgUri(ENV.AUTH_POSTGRES_URI) ||
     "postgres://postgres:postgres@localhost:5433/umbrella_auth_db",
   {
     dialect: "postgres",
@@ -61,14 +78,14 @@ export const connectDB = async (): Promise<void> => {
     const { registerAssociations } = await import("../models/associations");
     registerAssociations();
 
-    // Automatically run migrations on connection.
-    const { migrations, runMigrations } = await import("../migrations/index");
-    await runMigrations(sequelize, migrations);
-
     // Mirror the code-defined permission vocabulary into lims_permissions so
     // the catalogue can never describe permissions the code doesn't enforce.
-    const { seedPermissions } = await import("../services/permission.service");
-    await seedPermissions();
+    try {
+      const { seedPermissions } = await import("../services/permission.service");
+      await seedPermissions();
+    } catch (err) {
+      console.warn("Skipping seedPermissions (run migrations first if table is missing):", err);
+    }
 
     // Warn if a pick list is missing/empty; not auto-seeded, since values are a lab's own config.
     const { reportPhraseHealth } = await import("../services/phrase-health.service");
