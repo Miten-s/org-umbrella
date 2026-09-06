@@ -18,6 +18,9 @@
     "migrate:down": "npx migrate-mongo down --file ./dist/configs/migrate-mongo.config.js",
     "migrate:status": "npx migrate-mongo status --file ./dist/configs/migrate-mongo.config.js",
     "db:migrate": "node -e \"import('./dist/migrations/index.js').then(({ migrations, runMigrations }) => import('./dist/configs/db.sequelize.js').then(({ sequelize }) => runMigrations(sequelize, migrations))).then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\"",
+    "db:migrate:up": "npm run db:migrate",
+    "db:migrate:down": "node -e \"console.error('db:migrate:down is not implemented — this runner only supports up(). Roll back manually via psql (docs/DEPLOY.md section 13): reverse the SQL by hand, then DELETE FROM sequelize_meta WHERE name = ...'); process.exit(1)\"",
+    "db:migrate:create": "node scripts/create-migration.js",
     "db:migrate:check": "node -e \"import('./dist/migrations/index.js').then(({ migrations, checkMigrations }) => import('./dist/configs/db.sequelize.js').then(({ sequelize }) => checkMigrations(sequelize, migrations))).then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\""
   },
   "author": "soham",
