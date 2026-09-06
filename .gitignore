@@ -22,3 +22,4 @@ deploy.sh
 # would silently stop working if left in place.)
 docs/
 deploy/
+dump.rdb
