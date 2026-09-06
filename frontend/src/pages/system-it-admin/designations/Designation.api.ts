@@ -1,5 +1,9 @@
 import api from "@/utils/axios.interceptor";
-import { buildServerParams, toListResult, toOptionsPage } from "@/lib/query/listAdapter";
+import {
+  buildServerParams,
+  toListResult,
+  toOptionsPage
+} from "@/lib/query/listAdapter";
 import { normalizeId } from "@/lib/query/normalizeId";
 import { bulkSelectionToBody, type BulkSelection } from "@/lib/query/listTypes";
 import type { ServerListParams } from "@/lib/query/listTypes";
@@ -25,17 +29,29 @@ export const fetchDesignationList = async (
 };
 
 /** Full-detail fetch for the Copy/Edit/View review steppers. */
-export const fetchDesignationById = async (id: string, signal?: AbortSignal) => {
+export const fetchDesignationById = async (
+  id: string,
+  signal?: AbortSignal
+) => {
   const response = await api.get(`${ROUTE}/${id}`, { signal });
-  return normalizeId(response.data?.designation ?? response.data) as Designation;
+  return normalizeId(
+    response.data?.designation ?? response.data
+  ) as Designation;
 };
 
 export const fetchDesignationOptions = async (
   args: { search: string; page: number },
   signal?: AbortSignal
 ) => {
-  const params: ServerListParams = { page: args.page, limit: 20, search: args.search || undefined };
-  const response = await api.get(ROUTE, { params: buildServerParams(params), signal });
+  const params: ServerListParams = {
+    page: args.page,
+    limit: 20,
+    search: args.search || undefined
+  };
+  const response = await api.get(ROUTE, {
+    params: buildServerParams(params),
+    signal
+  });
   return toOptionsPage<Designation>(
     response.data,
     params,
@@ -49,7 +65,10 @@ export const createDesignation = async (payload: DesignationPayload) => {
   return response.data;
 };
 
-export const updateDesignation = async (id: string, payload: DesignationPayload) => {
+export const updateDesignation = async (
+  id: string,
+  payload: DesignationPayload
+) => {
   const response = await api.patch(`${ROUTE}/${id}`, payload);
   return response.data;
 };
@@ -60,12 +79,18 @@ export const deleteDesignation = async (id: string) => {
 };
 
 export const bulkDeleteDesignation = async (selection: BulkSelection) => {
-  const response = await api.post(`${ROUTE}/bulk-delete`, bulkSelectionToBody(selection));
+  const response = await api.post(
+    `${ROUTE}/bulk-delete`,
+    bulkSelectionToBody(selection)
+  );
   return response.data;
 };
 
 export const bulkCloneDesignation = async (selection: BulkSelection) => {
-  const response = await api.post(`${ROUTE}/bulk-duplicate`, bulkSelectionToBody(selection));
+  const response = await api.post(
+    `${ROUTE}/bulk-duplicate`,
+    bulkSelectionToBody(selection)
+  );
   return response.data;
 };
 
@@ -80,7 +105,9 @@ export const bulkCopyDesignation = async (records: DesignationPayload[]) => {
 };
 
 /** Bulk Edit's batched save — only the records actually reviewed and changed. */
-export const bulkUpdateDesignation = async (updates: { id: string; payload: DesignationPayload }[]) => {
+export const bulkUpdateDesignation = async (
+  updates: { id: string; payload: DesignationPayload }[]
+) => {
   const response = await api.patch(`${ROUTE}/bulk-update`, { updates });
   return response.data as {
     message: string;

@@ -1,5 +1,9 @@
 import limsApi from "@/utils/lims.axios.interceptor";
-import { buildServerParams, toListResult, toOptionsPage } from "@/lib/query/listAdapter";
+import {
+  buildServerParams,
+  toListResult,
+  toOptionsPage
+} from "@/lib/query/listAdapter";
 import { bulkSelectionToBody, type BulkSelection } from "@/lib/query/listTypes";
 import type { ServerListParams } from "@/lib/query/listTypes";
 import type { LimsAnalysis, LimsAnalysisPayload } from "./LimsAnalysis.types";
@@ -9,12 +13,20 @@ const ROUTE = "/lims-analyses";
 
 /** Full record for the Edit/View modal — fetched on demand when it opens,
  * not reused from the list row (see useLimsRecordById). */
-export const fetchLimsAnalysisById = async (id: string, signal?: AbortSignal) => {
+export const fetchLimsAnalysisById = async (
+  id: string,
+  signal?: AbortSignal
+) => {
   const response = await limsApi.get(`${ROUTE}/${id}`, { signal });
   return (response.data?.data ?? response.data) as LimsAnalysis;
 };
 const DATA_KEYS = ["analyses", "data"];
-const RELATION_KEYS = ["group", "analysisType", "inspectionPlan", "approvalStatus"];
+const RELATION_KEYS = [
+  "group",
+  "analysisType",
+  "inspectionPlan",
+  "approvalStatus"
+];
 
 export const fetchLimsAnalysisList = async (
   includeRemoved: boolean,
@@ -22,10 +34,18 @@ export const fetchLimsAnalysisList = async (
   signal?: AbortSignal
 ) => {
   const response = await limsApi.get(ROUTE, {
-    params: { ...buildServerParams(params), includeRemoved: includeRemoved || undefined },
+    params: {
+      ...buildServerParams(params),
+      includeRemoved: includeRemoved || undefined
+    },
     signal
   });
-  return toListResult<LimsAnalysis>(response.data, params, DATA_KEYS, RELATION_KEYS);
+  return toListResult<LimsAnalysis>(
+    response.data,
+    params,
+    DATA_KEYS,
+    RELATION_KEYS
+  );
 };
 
 /** Options for other modules selecting this entity. */
@@ -38,7 +58,10 @@ export const fetchLimsAnalysisOptions = async (
     limit: 20,
     search: args.search || undefined
   };
-  const response = await limsApi.get(ROUTE, { params: buildServerParams(params), signal });
+  const response = await limsApi.get(ROUTE, {
+    params: buildServerParams(params),
+    signal
+  });
   return toOptionsPage<LimsAnalysis>(
     response.data,
     params,
@@ -52,7 +75,10 @@ export const createLimsAnalysis = async (payload: LimsAnalysisPayload) => {
   return response.data;
 };
 
-export const updateLimsAnalysis = async (id: string, payload: LimsAnalysisPayload) => {
+export const updateLimsAnalysis = async (
+  id: string,
+  payload: LimsAnalysisPayload
+) => {
   const response = await limsApi.patch(`${ROUTE}/${id}`, payload);
   return response.data;
 };
@@ -80,7 +106,10 @@ export const bulkRestoreLimsAnalysis = async (
 };
 
 export const bulkCloneLimsAnalysis = async (selection: BulkSelection) => {
-  const response = await limsApi.post(`${ROUTE}/bulk-duplicate`, bulkSelectionToBody(selection));
+  const response = await limsApi.post(
+    `${ROUTE}/bulk-duplicate`,
+    bulkSelectionToBody(selection)
+  );
   return response.data;
 };
 
@@ -101,7 +130,10 @@ export const bulkUpdateLimsAnalysis = async (
   updates: { id: string; payload: LimsAnalysisPayload }[],
   changeReason: string
 ) => {
-  const response = await limsApi.patch(`${ROUTE}/bulk-update`, { updates, changeReason });
+  const response = await limsApi.patch(`${ROUTE}/bulk-update`, {
+    updates,
+    changeReason
+  });
   return response.data as {
     message: string;
     count: number;
@@ -110,7 +142,9 @@ export const bulkUpdateLimsAnalysis = async (
 };
 
 export const restoreLimsAnalysis = async (id: string, changeReason: string) => {
-  const response = await limsApi.patch(`${ROUTE}/restore/${id}`, { changeReason });
+  const response = await limsApi.patch(`${ROUTE}/restore/${id}`, {
+    changeReason
+  });
   return response.data;
 };
 
@@ -119,6 +153,9 @@ export const fetchLimsAnalysisAudit = async (
   signal?: AbortSignal,
   params?: { page?: number; limit?: number }
 ) => {
-  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { params, signal });
+  const response = await limsApi.get(`${ROUTE}/${id}/audit`, {
+    params,
+    signal
+  });
   return response.data;
 };

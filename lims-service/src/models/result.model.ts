@@ -57,29 +57,92 @@ export class Result extends Model<IResult> implements IResult {
 
 Result.init(
   {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    resultId: { type: DataTypes.STRING(100), allowNull: false, field: "result_id" },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    resultId: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      field: "result_id"
+    },
     testId: { type: DataTypes.UUID, allowNull: false, field: "test_id" },
-    componentId: { type: DataTypes.STRING(100), allowNull: true, field: "component_id" },
-    componentName: { type: DataTypes.STRING(200), allowNull: true, field: "component_name" },
+    componentId: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "component_id"
+    },
+    componentName: {
+      type: DataTypes.STRING(200),
+      allowNull: true,
+      field: "component_name"
+    },
     value: { type: DataTypes.TEXT, allowNull: true },
     unit: { type: DataTypes.STRING(50), allowNull: true },
-    outOfRange: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "out_of_range" },
-    instrumentId: { type: DataTypes.UUID, allowNull: true, field: "instrument_id" },
+    outOfRange: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: "out_of_range"
+    },
+    instrumentId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: "instrument_id"
+    },
     stockId: { type: DataTypes.UUID, allowNull: true, field: "stock_id" },
     enteredOn: { type: DataTypes.DATE, allowNull: true, field: "entered_on" },
-    enteredBy: { type: DataTypes.STRING(200), allowNull: true, field: "entered_by" },
+    enteredBy: {
+      type: DataTypes.STRING(200),
+      allowNull: true,
+      field: "entered_by"
+    },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 },
-    isLatest: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true, field: "is_latest" },
-    supersedesId: { type: DataTypes.UUID, allowNull: true, field: "supersedes_id" },
-    status: { type: DataTypes.STRING(20), allowNull: false, defaultValue: "Open" },
-    cancelledAt: { type: DataTypes.DATE, allowNull: true, field: "cancelled_at" },
-    cancelledBy: { type: DataTypes.STRING(100), allowNull: true, field: "cancelled_by" },
+    isLatest: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+      field: "is_latest"
+    },
+    supersedesId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: "supersedes_id"
+    },
+    status: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      defaultValue: "Open"
+    },
+    cancelledAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: "cancelled_at"
+    },
+    cancelledBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "cancelled_by"
+    },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
-    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "is_deleted" },
+    isDeleted: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: "is_deleted"
+    },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.STRING(100), allowNull: true, field: "deleted_by" },
-    modifiedBy: { type: DataTypes.STRING(100), allowNull: true, field: "modified_by" }
+    deletedBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "deleted_by"
+    },
+    modifiedBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "modified_by"
+    }
   },
   { sequelize, tableName: "lims_results", underscored: true, timestamps: true }
 );

@@ -7,7 +7,10 @@ export interface IUserPasswordHistory {
   passwordHash: string;
 }
 
-export class UserPasswordHistory extends Model<IUserPasswordHistory> implements IUserPasswordHistory {
+export class UserPasswordHistory
+  extends Model<IUserPasswordHistory>
+  implements IUserPasswordHistory
+{
   public id!: number;
   public userId!: string;
   public passwordHash!: string;

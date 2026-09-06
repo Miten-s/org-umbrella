@@ -146,7 +146,9 @@ const LimsTestList = () => {
     table.clearSelection();
   };
 
-  const handleSaveEdits = (updates: { id: string; payload: LimsTestPayload }[]) => {
+  const handleSaveEdits = (
+    updates: { id: string; payload: LimsTestPayload }[]
+  ) => {
     handleCloseForm();
     compliance.requestBulkUpdate(updates);
   };
@@ -395,7 +397,8 @@ const LimsTestList = () => {
             saving={bulkUpdate.isPending}
             entityLabel={t("limsTest")}
           />
-        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        ) : formMode !== "create" &&
+          (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>
@@ -435,7 +438,10 @@ const LimsTestList = () => {
         onBulkUpdate={async (reason) => {
           const pending = compliance.pendingBulkUpdate;
           if (pending) {
-            await bulkUpdate.mutateAsync({ updates: pending.updates, changeReason: reason });
+            await bulkUpdate.mutateAsync({
+              updates: pending.updates,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearBulkUpdate();

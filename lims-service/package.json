@@ -9,8 +9,12 @@
     "dev": "concurrently \"npm run watch\" \"npm run serve\"",
     "serve": "nodemon dist/server.js",
     "watch": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "prettier:check": "prettier --check \"src/**/*.{js,ts,json,md}\"",
     "lint": "eslint 'src/**/*.{js,ts}'",
-    "format": "prettier --write 'src/**/*.{js,ts,json,md}'"
+    "format": "prettier --write 'src/**/*.{js,ts,json,md}'",
+    "db:migrate": "node -e \"import('./dist/migrations/index.js').then(({ migrations, runMigrations }) => import('./dist/configs/db.sequelize.js').then(({ sequelize }) => runMigrations(sequelize, migrations))).then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\"",
+    "db:migrate:check": "node -e \"import('./dist/migrations/index.js').then(({ migrations, checkMigrations }) => import('./dist/configs/db.sequelize.js').then(({ sequelize }) => checkMigrations(sequelize, migrations))).then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\""
   },
   "author": "umbrella",
   "license": "ISC",

@@ -1,5 +1,9 @@
 import api from "@/utils/axios.interceptor";
-import { buildServerParams, toListResult, toOptionsPage } from "@/lib/query/listAdapter";
+import {
+  buildServerParams,
+  toListResult,
+  toOptionsPage
+} from "@/lib/query/listAdapter";
 import { normalizeIdWithRelations } from "@/lib/query/normalizeId";
 import { bulkSelectionToBody, type BulkSelection } from "@/lib/query/listTypes";
 import type { ServerListParams } from "@/lib/query/listTypes";
@@ -13,8 +17,14 @@ const ROUTE = "/auth/users";
 const DATA_KEYS = ["users"];
 const RELATION_KEYS = ["location", "department", "designation"];
 
-export const fetchUserList = async (params: ServerListParams, signal?: AbortSignal) => {
-  const response = await api.get(ROUTE, { params: buildServerParams(params), signal });
+export const fetchUserList = async (
+  params: ServerListParams,
+  signal?: AbortSignal
+) => {
+  const response = await api.get(ROUTE, {
+    params: buildServerParams(params),
+    signal
+  });
   return toListResult<User>(response.data, params, DATA_KEYS, RELATION_KEYS);
 };
 
@@ -30,7 +40,10 @@ export const fetchUserOptions = async (
     search: args.search || undefined,
     filters: { status: "active" }
   };
-  const response = await api.get(ROUTE, { params: buildServerParams(params), signal });
+  const response = await api.get(ROUTE, {
+    params: buildServerParams(params),
+    signal
+  });
   return toOptionsPage<User>(
     response.data,
     params,
@@ -54,7 +67,11 @@ const buildUserFormData = (payload: Record<string, unknown>): FormData => {
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-    formData.append("signature", new Blob([bytes], { type: mime }), "signature.png");
+    formData.append(
+      "signature",
+      new Blob([bytes], { type: mime }),
+      "signature.png"
+    );
   }
 
   return formData;
@@ -67,10 +84,17 @@ export const createUser = async (payload: Record<string, unknown>) => {
   return response.data;
 };
 
-export const updateUser = async (id: string, payload: Record<string, unknown>) => {
-  const response = await api.patch(`${ROUTE}/${id}`, buildUserFormData(payload), {
-    headers: { "Content-Type": "multipart/form-data" }
-  });
+export const updateUser = async (
+  id: string,
+  payload: Record<string, unknown>
+) => {
+  const response = await api.patch(
+    `${ROUTE}/${id}`,
+    buildUserFormData(payload),
+    {
+      headers: { "Content-Type": "multipart/form-data" }
+    }
+  );
   return response.data;
 };
 
@@ -80,18 +104,26 @@ export const deleteUser = async (id: string) => {
 };
 
 export const bulkDeleteUser = async (selection: BulkSelection) => {
-  const response = await api.post(`${ROUTE}/bulk-delete`, bulkSelectionToBody(selection));
+  const response = await api.post(
+    `${ROUTE}/bulk-delete`,
+    bulkSelectionToBody(selection)
+  );
   return response.data;
 };
 
 /** Full-detail fetch for the Bulk Edit/View review steppers. */
 export const fetchUserById = async (id: string, signal?: AbortSignal) => {
   const response = await api.get(`${ROUTE}/${id}`, { signal });
-  return normalizeIdWithRelations(response.data?.user ?? response.data, RELATION_KEYS) as User;
+  return normalizeIdWithRelations(
+    response.data?.user ?? response.data,
+    RELATION_KEYS
+  ) as User;
 };
 
 /** Bulk Edit's batched save — only the records actually reviewed and changed. */
-export const bulkUpdateUser = async (updates: { id: string; payload: Record<string, unknown> }[]) => {
+export const bulkUpdateUser = async (
+  updates: { id: string; payload: Record<string, unknown> }[]
+) => {
   const response = await api.patch(`${ROUTE}/bulk-update`, { updates });
   return response.data as {
     message: string;

@@ -9,7 +9,9 @@ import TextArea from "@/components/common/form/input/TextArea";
 import Switch from "@/components/common/form/switch/Switch";
 import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
-import SignatureField, { type SignatureFieldHandle } from "@/components/common/SignatureField";
+import SignatureField, {
+  type SignatureFieldHandle
+} from "@/components/common/SignatureField";
 import { getImageUrl } from "@/services/utils.service";
 import { useAvailablePlatformUserOptions } from "./LimsUser.options";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
@@ -22,7 +24,8 @@ import type { AsyncOption } from "@/lib/query/listTypes";
 /** "copy" renders like "create" — the platform user picker (locked on Edit) is unlocked and
  * blanked instead, since Copy's point is assigning the same roles to a DIFFERENT person.
  */
-export type LimsUserFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type LimsUserFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsUserFormProps {
   mode?: LimsUserFormMode;
@@ -118,11 +121,15 @@ const LimsUserForm = ({
     enabled: mode === "copy"
   });
   const noUsersAvailable =
-    mode === "copy" && !availableUsers.isLoading && availableUsers.options.length === 0;
+    mode === "copy" &&
+    !availableUsers.isLoading &&
+    availableUsers.options.length === 0;
 
   const err = (field: keyof LimsUserFormValues) =>
     errors[field] ? (
-      <p className="mt-1 text-xs text-red-500">{errors[field]?.message as string}</p>
+      <p className="mt-1 text-xs text-red-500">
+        {errors[field]?.message as string}
+      </p>
     ) : null;
 
   const submit = (values: LimsUserFormValues) => {
@@ -132,7 +139,11 @@ const LimsUserForm = ({
 
     // Edit + nothing actually changed: skip the reason modal, update call,
     // and audit entry entirely — a no-op Save just closes.
-    if ((mode === "edit" || mode === "bulk-edit") && !signature && isPayloadEqual(values, initialValues)) {
+    if (
+      (mode === "edit" || mode === "bulk-edit") &&
+      !signature &&
+      isPayloadEqual(values, initialValues)
+    ) {
       (onUnchanged ?? onClose)();
       return;
     }
@@ -151,7 +162,11 @@ const LimsUserForm = ({
 
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-      <form id={formId} onSubmit={handleSubmit(submit)} className="min-w-0 space-y-4">
+      <form
+        id={formId}
+        onSubmit={handleSubmit(submit)}
+        className="min-w-0 space-y-4"
+      >
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsUser") })
@@ -173,10 +188,14 @@ const LimsUserForm = ({
                   useOptions={useAvailablePlatformUserOptions}
                   value={field.value}
                   onChange={field.onChange}
-                  onChangeOption={(option) => setSelectedUserName(option?.label ?? "")}
+                  onChangeOption={(option) =>
+                    setSelectedUserName(option?.label ?? "")
+                  }
                   // Existing assignments can't be repointed at a different
                   // user — Copy is the one exception, see LimsUserFormMode.
-                  disabled={isReadOnly || (Boolean(initialData) && mode !== "copy")}
+                  disabled={
+                    isReadOnly || (Boolean(initialData) && mode !== "copy")
+                  }
                   error={!!errors.userId}
                   placeholder={t("select", { entity: t("user") })}
                   initialSelectedOptions={userSeed}
@@ -298,18 +317,30 @@ const LimsUserForm = ({
             <TextArea
               disabled={isReadOnly}
               value={description || ""}
-              onChange={(val) => setValue("description", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("description", val, { shouldValidate: true })
+              }
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

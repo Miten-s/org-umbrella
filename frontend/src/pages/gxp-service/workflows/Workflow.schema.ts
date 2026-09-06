@@ -14,10 +14,17 @@ export const workflowSchema = z.object({
     .string()
     .min(1, "Add at least one level")
     .refine(
-      (v) => v.split(",").map((s) => s.trim()).filter(Boolean).length >= 1,
+      (v) =>
+        v
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean).length >= 1,
       "Add at least one level (comma-separated)"
     ),
-  description: z.string().max(50, "Description must not exceed 50 characters").optional(),
+  description: z
+    .string()
+    .max(50, "Description must not exceed 50 characters")
+    .optional(),
   status: z.enum(["enabled", "disabled"]).optional()
 });
 

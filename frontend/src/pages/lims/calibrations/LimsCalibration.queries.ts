@@ -22,7 +22,8 @@ import type { LimsCalibrationPayload } from "./LimsCalibration.types";
 
 export const limsCalibrationKeys = {
   all: ["limsCalibration"] as const,
-  list: (params: ServerListParams) => ["limsCalibration", "list", params] as const,
+  list: (params: ServerListParams) =>
+    ["limsCalibration", "list", params] as const,
   audit: (id: string) => ["limsCalibration", "audit", id] as const,
   options: ["limsCalibration", "options"] as const
 };
@@ -66,7 +67,8 @@ const useInvalidate = () => {
 export const useCreateLimsCalibration = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (payload: LimsCalibrationPayload) => createLimsCalibration(payload),
+    mutationFn: (payload: LimsCalibrationPayload) =>
+      createLimsCalibration(payload),
     onSuccess: () => {
       toast("Record created successfully.", "success");
       invalidate();
@@ -77,7 +79,13 @@ export const useCreateLimsCalibration = () => {
 export const useUpdateLimsCalibration = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: LimsCalibrationPayload }) => updateLimsCalibration(id, payload),
+    mutationFn: ({
+      id,
+      payload
+    }: {
+      id: string;
+      payload: LimsCalibrationPayload;
+    }) => updateLimsCalibration(id, payload),
     onSuccess: () => {
       toast("Record updated successfully.", "success");
       invalidate();
@@ -134,7 +142,8 @@ export const useBulkRestoreLimsCalibration = () => {
 export const useBulkCloneLimsCalibration = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (selection: BulkSelection) => bulkCloneLimsCalibration(selection),
+    mutationFn: (selection: BulkSelection) =>
+      bulkCloneLimsCalibration(selection),
     onSuccess: (_data, selection) => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
       toast(
@@ -153,7 +162,8 @@ export const useBulkCloneLimsCalibration = () => {
 export const useBulkCopyLimsCalibration = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (records: LimsCalibrationPayload[]) => bulkCopyLimsCalibration(records),
+    mutationFn: (records: LimsCalibrationPayload[]) =>
+      bulkCopyLimsCalibration(records),
     onSuccess: (data) => {
       const warnings = data.results.filter((r) => r.warning);
       toast(

@@ -1,4 +1,6 @@
-import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction
+} from "@/components/data/DataTable";
 import ConfirmDialog from "@/components/data/ConfirmDialog";
 import CopyStepper from "@/components/data/CopyStepper";
 import ViewStepper from "@/components/data/ViewStepper";
@@ -8,7 +10,13 @@ import { Modal } from "@/components/ui/modal";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useModal } from "@/hooks/useModal";
 import { toast } from "@/lib/toast";
-import { CopyIcon, EyeIcon, PencilIcon, PlusIcon, TrashBinIcon } from "@/public/icons";
+import {
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashBinIcon
+} from "@/public/icons";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -39,7 +47,9 @@ const DesignationList = () => {
 
   const [active, setActive] = useState<Designation | null>(null);
   const [formMode, setFormMode] = useState<DesignationFormMode>("create");
-  const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(
+    null
+  );
   const [deleteCount, setDeleteCount] = useState(0);
   const [deleteNames, setDeleteNames] = useState<string[]>([]);
   // Set instead of active/formMode while the multi-record Copy/View/Edit steppers are open.
@@ -69,7 +79,10 @@ const DesignationList = () => {
 
   const columnDefs = useMemo(() => getDesignationColumns({ t }), [t]);
 
-  const openForm = (mode: DesignationFormMode, designation: Designation | null) => {
+  const openForm = (
+    mode: DesignationFormMode,
+    designation: Designation | null
+  ) => {
     setFormMode(mode);
     setActive(designation);
     openModal();
@@ -114,7 +127,9 @@ const DesignationList = () => {
     table.clearSelection();
   };
 
-  const handleSaveEdits = async (updates: { id: string; payload: DesignationFormValues }[]) => {
+  const handleSaveEdits = async (
+    updates: { id: string; payload: DesignationFormValues }[]
+  ) => {
     await bulkUpdate.mutateAsync(updates);
     handleCloseForm();
     table.clearSelection();
@@ -128,7 +143,8 @@ const DesignationList = () => {
     () => [
       {
         key: "view",
-        label: (count) => (count > 1 ? "View designations" : "View designation"),
+        label: (count) =>
+          count > 1 ? "View designations" : "View designation",
         icon: EyeIcon,
         variant: "outline",
         permission: "VIEW:DESIGNATION",
@@ -142,7 +158,8 @@ const DesignationList = () => {
       },
       {
         key: "clone",
-        label: (count) => (count > 1 ? "Copy designations" : "Copy designation"),
+        label: (count) =>
+          count > 1 ? "Copy designations" : "Copy designation",
         icon: CopyIcon,
         variant: "outline",
         permission: "CREATE:DESIGNATION",
@@ -157,7 +174,8 @@ const DesignationList = () => {
       },
       {
         key: "edit",
-        label: (count) => (count > 1 ? "Edit designations" : "Edit designation"),
+        label: (count) =>
+          count > 1 ? "Edit designations" : "Edit designation",
         icon: PencilIcon,
         variant: "outline",
         permission: "UPDATE:DESIGNATION",
@@ -171,7 +189,8 @@ const DesignationList = () => {
       },
       {
         key: "delete",
-        label: (count) => (count > 1 ? "Delete designations" : "Delete designation"),
+        label: (count) =>
+          count > 1 ? "Delete designations" : "Delete designation",
         icon: TrashBinIcon,
         variant: "destructive",
         permission: "DELETE:DESIGNATION",
@@ -299,7 +318,9 @@ const DesignationList = () => {
             initialData={active}
             onClose={handleCloseForm}
             onSubmit={handleSave}
-            submitting={createDesignation.isPending || updateDesignation.isPending}
+            submitting={
+              createDesignation.isPending || updateDesignation.isPending
+            }
           />
         )}
       </Modal>

@@ -35,19 +35,58 @@ export class Parameter extends Model<IParameter> implements IParameter {
 
 Parameter.init(
   {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    parameterId: { type: DataTypes.STRING(100), allowNull: false, unique: true, field: "parameter_id" },
-    parameterName: { type: DataTypes.STRING(200), allowNull: false, field: "parameter_name" },
-    parameterTypeId: { type: DataTypes.UUID, allowNull: true, field: "parameter_type_id" },
-    defaultValue: { type: DataTypes.STRING(255), allowNull: true, field: "default_value" },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    parameterId: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      unique: true,
+      field: "parameter_id"
+    },
+    parameterName: {
+      type: DataTypes.STRING(200),
+      allowNull: false,
+      field: "parameter_name"
+    },
+    parameterTypeId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: "parameter_type_id"
+    },
+    defaultValue: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      field: "default_value"
+    },
     unit: { type: DataTypes.STRING(50), allowNull: true },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
-    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "is_deleted" },
+    isDeleted: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: "is_deleted"
+    },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.STRING(100), allowNull: true, field: "deleted_by" },
-    modifiedBy: { type: DataTypes.STRING(100), allowNull: true, field: "modified_by" }
+    deletedBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "deleted_by"
+    },
+    modifiedBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "modified_by"
+    }
   },
-  { sequelize, tableName: "lims_parameters", underscored: true, timestamps: true }
+  {
+    sequelize,
+    tableName: "lims_parameters",
+    underscored: true,
+    timestamps: true
+  }
 );
 
 export default Parameter;

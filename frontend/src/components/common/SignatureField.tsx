@@ -64,7 +64,11 @@ const SignatureField = forwardRef<SignatureFieldHandle, SignatureFieldProps>(
             <Label required={required}>Signature</Label>
             <div className="rounded-xl border bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
               <div className="h-[200px] w-full rounded-lg bg-gray-100 dark:bg-gray-700">
-                <SignatureCanvas ref={padRef} canvasProps={{ className: "w-full h-full" }} penColor="black" />
+                <SignatureCanvas
+                  ref={padRef}
+                  canvasProps={{ className: "w-full h-full" }}
+                  penColor="black"
+                />
               </div>
               <div className="mt-4 flex justify-end gap-2">
                 <Button

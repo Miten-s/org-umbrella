@@ -8,7 +8,11 @@ import type { LimsRef, LimsSupplier } from "./LimsSupplier.types";
 const refLabel = (ref: LimsRef | null | undefined) => ref?.name ?? "";
 
 /** Column factory (STANDARDS.md §8). */
-export const getLimsSupplierColumns = ({ t }: { t: TFunction }): ColDef<LimsSupplier>[] => [
+export const getLimsSupplierColumns = ({
+  t
+}: {
+  t: TFunction;
+}): ColDef<LimsSupplier>[] => [
   {
     field: "supplierId",
     headerName: t("limsSupplierId"),

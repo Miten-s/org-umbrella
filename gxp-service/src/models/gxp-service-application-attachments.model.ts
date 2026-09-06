@@ -9,7 +9,10 @@ export interface IAppAttachment {
   createdBy?: string | null;
 }
 
-export class AppAttachment extends Model<IAppAttachment> implements IAppAttachment {
+export class AppAttachment
+  extends Model<IAppAttachment>
+  implements IAppAttachment
+{
   public id!: string;
   public applicationId!: string;
   public attachment!: string;

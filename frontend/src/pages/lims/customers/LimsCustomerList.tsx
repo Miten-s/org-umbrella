@@ -26,7 +26,10 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsCustomerById, fetchLimsCustomerList } from "./LimsCustomer.api";
+import {
+  fetchLimsCustomerById,
+  fetchLimsCustomerList
+} from "./LimsCustomer.api";
 import { getLimsCustomerColumns } from "./LimsCustomer.columns";
 import {
   limsCustomerKeys,
@@ -150,7 +153,9 @@ const LimsCustomerList = () => {
     table.clearSelection();
   };
 
-  const handleSaveEdits = (updates: { id: string; payload: LimsCustomerPayload }[]) => {
+  const handleSaveEdits = (
+    updates: { id: string; payload: LimsCustomerPayload }[]
+  ) => {
     handleCloseForm();
     compliance.requestBulkUpdate(updates);
   };
@@ -302,8 +307,7 @@ const LimsCustomerList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_CUSTOMER,
-        onClick: (customer) =>
-          openCopy([customer.id])
+        onClick: (customer) => openCopy([customer.id])
       },
       {
         key: "restore",
@@ -398,7 +402,8 @@ const LimsCustomerList = () => {
             saving={bulkUpdate.isPending}
             entityLabel={t("limsCustomer")}
           />
-        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        ) : formMode !== "create" &&
+          (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>
@@ -438,7 +443,10 @@ const LimsCustomerList = () => {
         onBulkUpdate={async (reason) => {
           const pending = compliance.pendingBulkUpdate;
           if (pending) {
-            await bulkUpdate.mutateAsync({ updates: pending.updates, changeReason: reason });
+            await bulkUpdate.mutateAsync({
+              updates: pending.updates,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearBulkUpdate();

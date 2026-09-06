@@ -188,7 +188,9 @@ function SubFormGrid<R extends Record<string, unknown>>({
 
     return (
       <input
-        type={column.type === "numeric-text" ? "number" : (column.type ?? "text")}
+        type={
+          column.type === "numeric-text" ? "number" : (column.type ?? "text")
+        }
         aria-label={column.header}
         className={inputClasses}
         placeholder={column.placeholder}

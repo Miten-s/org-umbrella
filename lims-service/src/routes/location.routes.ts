@@ -1,7 +1,11 @@
 import Location from "../models/location.model";
 import Group from "../models/group.model";
 import PhraseEntry from "../models/phrase-entry.model";
-import { buildCrudRouter, buildCrudService, CrudConfig } from "../utils/crud-factory";
+import {
+  buildCrudRouter,
+  buildCrudService,
+  CrudConfig
+} from "../utils/crud-factory";
 import { CreateLocationDto, UpdateLocationDto } from "../dtos/master-data.dto";
 
 /** Storage Locations. Self-referencing: `parentLocation`/`subLocations` give the Building →
@@ -19,7 +23,12 @@ export const locationConfig: CrudConfig<Location> = {
     {
       model: Location,
       as: "parentLocation",
-      attributes: ["id", "locationId", "locationName", ["location_name", "name"]],
+      attributes: [
+        "id",
+        "locationId",
+        "locationName",
+        ["location_name", "name"]
+      ],
       where: { isDeleted: false },
       required: false
     },
@@ -27,7 +36,12 @@ export const locationConfig: CrudConfig<Location> = {
       // Without this filter a soft-deleted child kept showing on the parent's chip list.
       model: Location,
       as: "subLocations",
-      attributes: ["id", "locationId", "locationName", ["location_name", "name"]],
+      attributes: [
+        "id",
+        "locationId",
+        "locationName",
+        ["location_name", "name"]
+      ],
       where: { isDeleted: false },
       required: false
     },

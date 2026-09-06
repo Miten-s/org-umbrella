@@ -11,7 +11,10 @@ export const supplierSchema = z.object({
     .max(20, "Supplier name must not exceed 20 characters"),
   typeOfSupplier: z.string().optional(),
   product: z.string().optional(),
-  description: z.string().max(50, "Description must not exceed 50 characters").optional(),
+  description: z
+    .string()
+    .max(50, "Description must not exceed 50 characters")
+    .optional(),
   status: z.enum(["enabled", "disabled"]).optional()
 });
 

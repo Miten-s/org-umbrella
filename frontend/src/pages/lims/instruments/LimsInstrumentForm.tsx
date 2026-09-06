@@ -14,23 +14,41 @@ import SubFormGrid from "@/components/data/SubFormGrid";
 import LimsAttachmentsField from "@/components/lims/LimsAttachmentsField";
 import { useAttachments } from "@/hooks/useAttachments";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
-import { useInstrumentStatusOptions, useInstrumentTypeOptions, useMeasurementTypeOptions } from "@/pages/lims/phrases/LimsPhrase.queries";
+import {
+  useInstrumentStatusOptions,
+  useInstrumentTypeOptions,
+  useMeasurementTypeOptions
+} from "@/pages/lims/phrases/LimsPhrase.queries";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsLocationOptions } from "@/pages/lims/locations/LimsLocation.queries";
 import { useLimsSupplierOptions } from "@/pages/lims/suppliers/LimsSupplier.queries";
-import { limsInstrumentSchema, limsInstrumentCopySchema, type LimsInstrumentFormValues } from "./LimsInstrument.schema";
-import type { LimsInstrument, LimsInstrumentPayload, LimsRef, LimsMaintenanceRow, LimsParameterValue } from "./LimsInstrument.types";
+import {
+  limsInstrumentSchema,
+  limsInstrumentCopySchema,
+  type LimsInstrumentFormValues
+} from "./LimsInstrument.schema";
+import type {
+  LimsInstrument,
+  LimsInstrumentPayload,
+  LimsRef,
+  LimsMaintenanceRow,
+  LimsParameterValue
+} from "./LimsInstrument.types";
 
 /** "copy" renders like "create" except the business ID starts blank (stays EDITABLE —
  * `applyBusinessId` only mints when empty). Attachments hidden: the batch save is JSON-only. */
-export type LimsInstrumentFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type LimsInstrumentFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsInstrumentFormProps {
   mode?: LimsInstrumentFormMode;
   initialData?: LimsInstrument | null;
   onClose: () => void;
   onUnchanged?: () => void;
-  onSubmit: (payload: LimsInstrumentPayload, files: File[]) => Promise<void> | void;
+  onSubmit: (
+    payload: LimsInstrumentPayload,
+    files: File[]
+  ) => Promise<void> | void;
   submitting?: boolean;
   /** Overrides the submit button's label — CopyStepper uses this to say
    * "Next" on every step but the last, where the batch actually saves. */
@@ -66,9 +84,13 @@ const LimsInstrumentForm = ({
   const isReadOnly = mode === "view";
   const attachments = useAttachments(initialData?.attachments);
   const initialParametersRef = useRef(initialData?.parameters ?? []);
-  const [parameters, setParameters] = useState<LimsParameterValue[]>(initialParametersRef.current);
+  const [parameters, setParameters] = useState<LimsParameterValue[]>(
+    initialParametersRef.current
+  );
   const initialMaintenanceRef = useRef(initialData?.maintenance ?? []);
-  const [maintenance, setMaintenance] = useState<LimsMaintenanceRow[]>(initialMaintenanceRef.current);
+  const [maintenance, setMaintenance] = useState<LimsMaintenanceRow[]>(
+    initialMaintenanceRef.current
+  );
 
   // Captured once per record — also the no-change baseline `submit` diffs
   // against, so Save is a no-op when nothing actually differs from it.
@@ -90,7 +112,7 @@ const LimsInstrumentForm = ({
       modelNumber: initialData?.modelNumber ?? "",
       measuringInformation: initialData?.measuringInformation ?? "",
       msaInformation: initialData?.msaInformation ?? "",
-      details: initialData?.details ?? "",
+      details: initialData?.details ?? ""
     }),
     [initialData, mode]
   );
@@ -102,11 +124,16 @@ const LimsInstrumentForm = ({
     setValue,
     formState: { errors, isSubmitting }
   } = useForm<LimsInstrumentFormValues>({
-    resolver: zodResolver(mode === "copy" ? limsInstrumentCopySchema : limsInstrumentSchema),
+    resolver: zodResolver(
+      mode === "copy" ? limsInstrumentCopySchema : limsInstrumentSchema
+    ),
     defaultValues: initialValues
   });
 
-  const measuringInformation = useWatch({ control, name: "measuringInformation" });
+  const measuringInformation = useWatch({
+    control,
+    name: "measuringInformation"
+  });
   const msaInformation = useWatch({ control, name: "msaInformation" });
   const details = useWatch({ control, name: "details" });
   const busy = submitting || isSubmitting;
@@ -168,7 +195,12 @@ const LimsInstrumentForm = ({
             return;
           }
           onSubmit(
-            { ...values, parameters, maintenance, keptAttachmentIds: attachments.keptIds },
+            {
+              ...values,
+              parameters,
+              maintenance,
+              keptAttachmentIds: attachments.keptIds
+            },
             attachments.newFiles
           );
         })}
@@ -177,11 +209,11 @@ const LimsInstrumentForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsInstrument") })
-                        : mode === "copy"
+            : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsInstrument") })}${stepLabel ?? ""}`
               : initialData
-              ? `${t("update", { entity: t("limsInstrument") })}${stepLabel ?? ""}`
-              : t("create", { entity: t("limsInstrument") })}
+                ? `${t("update", { entity: t("limsInstrument") })}${stepLabel ?? ""}`
+                : t("create", { entity: t("limsInstrument") })}
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
@@ -215,7 +247,9 @@ const LimsInstrumentForm = ({
                   value={field.value}
                   onChange={field.onChange}
                   disabled={isReadOnly}
-                  placeholder={t("select", { entity: t("limsMeasurementType") })}
+                  placeholder={t("select", {
+                    entity: t("limsMeasurementType")
+                  })}
                   initialSelectedOptions={seedOne(initialData?.measurementType)}
                 />
               )}
@@ -300,7 +334,9 @@ const LimsInstrumentForm = ({
             <TextArea
               disabled={isReadOnly}
               value={measuringInformation || ""}
-              onChange={(val) => setValue("measuringInformation", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("measuringInformation", val, { shouldValidate: true })
+              }
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
@@ -309,7 +345,9 @@ const LimsInstrumentForm = ({
             <TextArea
               disabled={isReadOnly}
               value={msaInformation || ""}
-              onChange={(val) => setValue("msaInformation", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("msaInformation", val, { shouldValidate: true })
+              }
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
@@ -318,7 +356,9 @@ const LimsInstrumentForm = ({
             <TextArea
               disabled={isReadOnly}
               value={details || ""}
-              onChange={(val) => setValue("details", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("details", val, { shouldValidate: true })
+              }
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
@@ -343,23 +383,40 @@ const LimsInstrumentForm = ({
               disabled={isReadOnly}
               columns={[
                 { key: "maintenanceName", header: t("name") },
-                { key: "performedOn", header: t("limsPerformedOn"), type: "date" },
+                {
+                  key: "performedOn",
+                  header: t("limsPerformedOn"),
+                  type: "date"
+                },
                 { key: "performedBy", header: t("limsPerformedBy") },
                 { key: "remarks", header: t("limsRemarks") }
               ]}
             />
           </div>
           {mode !== "copy" && mode !== "bulk-edit" && (
-            <LimsAttachmentsField attachments={attachments} disabled={isReadOnly} />
+            <LimsAttachmentsField
+              attachments={attachments}
+              disabled={isReadOnly}
+            />
           )}
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

@@ -12,12 +12,17 @@ import { useLimsUserOptions } from "@/pages/lims/users/LimsUser.options";
 
 import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { limsGroupSchema, type LimsGroupFormValues } from "./LimsGroup.schema";
-import type { LimsGroup, LimsGroupPayload, LimsGroupRef } from "./LimsGroup.types";
+import type {
+  LimsGroup,
+  LimsGroupPayload,
+  LimsGroupRef
+} from "./LimsGroup.types";
 
 /** "copy" renders like "create" except `groupId` starts at the `LIMS_` prefix hint (not the
  * source's own id) — Group has no server-minted id, so it stays EDITABLE; the user must type
  * a new unique one before Save succeeds. */
-export type LimsGroupFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type LimsGroupFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsGroupFormProps {
   mode?: LimsGroupFormMode;
@@ -92,7 +97,9 @@ const LimsGroupForm = ({
 
   const err = (field: keyof LimsGroupFormValues) =>
     errors[field] ? (
-      <p className="mt-1 text-xs text-red-500">{errors[field]?.message as string}</p>
+      <p className="mt-1 text-xs text-red-500">
+        {errors[field]?.message as string}
+      </p>
     ) : null;
 
   return (
@@ -102,7 +109,10 @@ const LimsGroupForm = ({
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
-          if ((mode === "edit" || mode === "bulk-edit") && isPayloadEqual(values, initialValues)) {
+          if (
+            (mode === "edit" || mode === "bulk-edit") &&
+            isPayloadEqual(values, initialValues)
+          ) {
             (onUnchanged ?? onClose)();
             return;
           }
@@ -191,7 +201,9 @@ const LimsGroupForm = ({
             <TextArea
               disabled={isReadOnly}
               value={description || ""}
-              onChange={(val) => setValue("description", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("description", val, { shouldValidate: true })
+              }
               error={!!errors.description}
               hint={errors.description?.message}
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
@@ -200,11 +212,21 @@ const LimsGroupForm = ({
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

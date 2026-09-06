@@ -24,7 +24,10 @@ export interface IAnalysisComponent {
   sortOrder?: number | null;
 }
 
-export class AnalysisComponent extends Model<IAnalysisComponent> implements IAnalysisComponent {
+export class AnalysisComponent
+  extends Model<IAnalysisComponent>
+  implements IAnalysisComponent
+{
   public id!: string;
   public analysisId!: string;
   public componentId!: string | null;
@@ -45,9 +48,21 @@ export class AnalysisComponent extends Model<IAnalysisComponent> implements IAna
 
 AnalysisComponent.init(
   {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    analysisId: { type: DataTypes.UUID, allowNull: false, field: "analysis_id" },
-    componentId: { type: DataTypes.STRING(100), allowNull: true, field: "component_id" },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    analysisId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      field: "analysis_id"
+    },
+    componentId: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "component_id"
+    },
     name: { type: DataTypes.STRING(200), allowNull: true },
     description: { type: DataTypes.TEXT, allowNull: true },
     type: { type: DataTypes.STRING(50), allowNull: true },
@@ -57,12 +72,21 @@ AnalysisComponent.init(
     option: { type: DataTypes.STRING(255), allowNull: true },
     list: { type: DataTypes.TEXT, allowNull: true },
     entity: { type: DataTypes.STRING(150), allowNull: true },
-    entityCriteria: { type: DataTypes.TEXT, allowNull: true, field: "entity_criteria" },
+    entityCriteria: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: "entity_criteria"
+    },
     min: { type: DataTypes.STRING(100), allowNull: true },
     max: { type: DataTypes.STRING(100), allowNull: true },
     sortOrder: { type: DataTypes.INTEGER, allowNull: true, field: "sort_order" }
   },
-  { sequelize, tableName: "lims_analysis_components", underscored: true, timestamps: true }
+  {
+    sequelize,
+    tableName: "lims_analysis_components",
+    underscored: true,
+    timestamps: true
+  }
 );
 
 export default AnalysisComponent;

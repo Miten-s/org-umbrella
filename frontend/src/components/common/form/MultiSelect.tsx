@@ -215,7 +215,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
       text: map.get(val) ?? val
     }));
   }, [selectedOptions, internalOptions]);
-  
+
   // Canvas measurement (fast, accurate for font)
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const measureTextPx = useCallback((text: string, font: string) => {

@@ -75,7 +75,9 @@ const permissionsFromRoles = (
 
 /** Returns null when the platform user has no lims_users row — a valid platform token is
  * not by itself LIMS access. */
-export const getUserContext = async (platformUserId: string): Promise<UserContext | null> => {
+export const getUserContext = async (
+  platformUserId: string
+): Promise<UserContext | null> => {
   const cached = await cache.get<CachedContext>(key(platformUserId));
   if (cached) return { ...cached, permissions: new Set(cached.permissions) };
 
@@ -89,7 +91,12 @@ export const getUserContext = async (platformUserId: string): Promise<UserContex
         where: { isDeleted: false },
         include: [{ model: RoleEntry, as: "entries", required: false }]
       },
-      { model: Group, as: "accessGroups", required: false, where: { isDeleted: false } }
+      {
+        model: Group,
+        as: "accessGroups",
+        required: false,
+        where: { isDeleted: false }
+      }
     ]
   })) as (LimsUser & { roles?: Role[]; accessGroups?: Group[] }) | null;
 
@@ -123,7 +130,11 @@ export const getUserContext = async (platformUserId: string): Promise<UserContex
   return context;
 };
 
-export const hasPermission = (context: UserContext, action: LimsAction, entity: string): boolean =>
+export const hasPermission = (
+  context: UserContext,
+  action: LimsAction,
+  entity: string
+): boolean =>
   context.operateAll || context.permissions.has(`LIMS:${action}:${entity}`);
 
 // ---------------------------------------------------------------------------

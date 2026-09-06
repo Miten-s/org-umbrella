@@ -3,7 +3,10 @@ import { TruncateCell } from "@/components/data/cells/TruncateCell";
 import { StatusToggleCell } from "@/components/data/cells/StatusToggleCell";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import type { TFunction } from "i18next";
-import { getModuleApplicationName, type ApplicationSoftwareModule } from "./Module.types";
+import {
+  getModuleApplicationName,
+  type ApplicationSoftwareModule
+} from "./Module.types";
 
 interface ModuleColumnCtx {
   t: TFunction;
@@ -20,14 +23,18 @@ interface ToggleContext {
   togglingId?: string;
 }
 
-export const getModuleColumns = ({ t }: ModuleColumnCtx): ColDef<ApplicationSoftwareModule>[] => [
+export const getModuleColumns = ({
+  t
+}: ModuleColumnCtx): ColDef<ApplicationSoftwareModule>[] => [
   {
     field: "moduleName",
     headerName: t("moduleName"),
     flex: 1,
     minWidth: 240,
     cellRenderer: (params: ICellRendererParams<ApplicationSoftwareModule>) =>
-      params.data ? <AvatarCell label={params.data.moduleName} fallbackInitial="M" /> : null
+      params.data ? (
+        <AvatarCell label={params.data.moduleName} fallbackInitial="M" />
+      ) : null
   },
   {
     field: "application",
@@ -36,7 +43,9 @@ export const getModuleColumns = ({ t }: ModuleColumnCtx): ColDef<ApplicationSoft
     minWidth: 200,
     sortable: false,
     cellRenderer: (params: ICellRendererParams<ApplicationSoftwareModule>) => (
-      <TruncateCell value={params.data ? getModuleApplicationName(params.data) : ""} />
+      <TruncateCell
+        value={params.data ? getModuleApplicationName(params.data) : ""}
+      />
     )
   },
   {

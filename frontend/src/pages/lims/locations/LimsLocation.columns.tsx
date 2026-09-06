@@ -14,7 +14,11 @@ const refLabel = (ref: LimsRef | string | null | undefined): string => {
 };
 
 /** Column factory (STANDARDS.md §8) — no inline cell JSX in module files. */
-export const getLimsLocationColumns = ({ t }: { t: TFunction }): ColDef<LimsLocation>[] => [
+export const getLimsLocationColumns = ({
+  t
+}: {
+  t: TFunction;
+}): ColDef<LimsLocation>[] => [
   {
     field: "locationId",
     headerName: t("limsLocationId"),
@@ -30,7 +34,9 @@ export const getLimsLocationColumns = ({ t }: { t: TFunction }): ColDef<LimsLoca
     flex: 1,
     minWidth: 220,
     cellRenderer: (params: ICellRendererParams<LimsLocation>) =>
-      params.data ? <AvatarCell label={params.data.locationName} fallbackInitial="L" /> : null
+      params.data ? (
+        <AvatarCell label={params.data.locationName} fallbackInitial="L" />
+      ) : null
   },
   {
     colId: "locationType",

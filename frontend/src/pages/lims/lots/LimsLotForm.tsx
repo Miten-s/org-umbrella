@@ -13,7 +13,11 @@ import { useAttachments } from "@/hooks/useAttachments";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsSampleOptions } from "@/pages/lims/samples/LimsSample.queries";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
-import { limsLotSchema, limsLotCopySchema, type LimsLotFormValues } from "./LimsLot.schema";
+import {
+  limsLotSchema,
+  limsLotCopySchema,
+  type LimsLotFormValues
+} from "./LimsLot.schema";
 import type { LimsLot, LimsLotPayload, LimsRef } from "./LimsLot.types";
 
 /** "copy" renders like "create" except the business ID starts blank (stays EDITABLE —
@@ -74,7 +78,7 @@ const LimsLotForm = ({
       lotName: initialData?.lotName ?? "",
       group: initialData?.group?.id ?? "",
       samples: (initialData?.samples ?? []).map((ref) => ref.id),
-      description: initialData?.description ?? "",
+      description: initialData?.description ?? ""
     }),
     [initialData, mode]
   );
@@ -120,22 +124,29 @@ const LimsLotForm = ({
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
-          if ((mode === "edit" || mode === "bulk-edit") && !attachments.isDirty && isPayloadEqual(values, initialValues)) {
+          if (
+            (mode === "edit" || mode === "bulk-edit") &&
+            !attachments.isDirty &&
+            isPayloadEqual(values, initialValues)
+          ) {
             (onUnchanged ?? onClose)();
             return;
           }
-          onSubmit({ ...values, keptAttachmentIds: attachments.keptIds }, attachments.newFiles);
+          onSubmit(
+            { ...values, keptAttachmentIds: attachments.keptIds },
+            attachments.newFiles
+          );
         })}
         className="min-w-0 space-y-4"
       >
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsLot") })
-                        : mode === "copy"
+            : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsLot") })}${stepLabel ?? ""}`
               : initialData
-              ? `${t("update", { entity: t("limsLot") })}${stepLabel ?? ""}`
-              : t("create", { entity: t("limsLot") })}
+                ? `${t("update", { entity: t("limsLot") })}${stepLabel ?? ""}`
+                : t("create", { entity: t("limsLot") })}
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
@@ -164,7 +175,8 @@ const LimsLotForm = ({
               name="samples"
               control={control}
               render={({ field }) => (
-                <AsyncSelect multi
+                <AsyncSelect
+                  multi
                   useOptions={useLimsSampleOptions}
                   value={field.value}
                   onChange={field.onChange}
@@ -180,21 +192,36 @@ const LimsLotForm = ({
             <TextArea
               disabled={isReadOnly}
               value={description || ""}
-              onChange={(val) => setValue("description", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("description", val, { shouldValidate: true })
+              }
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
           {mode !== "copy" && mode !== "bulk-edit" && (
-            <LimsAttachmentsField attachments={attachments} disabled={isReadOnly} />
+            <LimsAttachmentsField
+              attachments={attachments}
+              disabled={isReadOnly}
+            />
           )}
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

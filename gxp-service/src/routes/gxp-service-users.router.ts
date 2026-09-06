@@ -13,9 +13,16 @@ import {
   bulkUpdateUsers,
   bulkRestoreUsers
 } from "../controllers/gxp-service-users.controller";
-import { validateDto, validateDtoArray } from "../middlewares/validate-dto.middleware";
+import {
+  validateDto,
+  validateDtoArray
+} from "../middlewares/validate-dto.middleware";
 import { CreateUserDTO } from "../dtos/user.dto";
-import { BulkCreateDto, BulkUpdateDto, BulkOperationDto } from "../dtos/common.dto";
+import {
+  BulkCreateDto,
+  BulkUpdateDto,
+  BulkOperationDto
+} from "../dtos/common.dto";
 
 const router: Router = Router();
 
@@ -41,8 +48,16 @@ router.post(
 // path shape, and Express matches whichever is registered first.
 // No UpdateUserDTO exists yet — same as the single-record PATCH below, which
 // also runs unvalidated; only the batch-size cap applies here.
-router.patch(API_ROUTES.USER.BULK_UPDATE, validateDto(BulkUpdateDto), bulkUpdateUsers);
-router.patch(API_ROUTES.USER.BULK_RESTORE, validateDto(BulkOperationDto), bulkRestoreUsers);
+router.patch(
+  API_ROUTES.USER.BULK_UPDATE,
+  validateDto(BulkUpdateDto),
+  bulkUpdateUsers
+);
+router.patch(
+  API_ROUTES.USER.BULK_RESTORE,
+  validateDto(BulkOperationDto),
+  bulkRestoreUsers
+);
 
 router.patch(API_ROUTES.USER.BY_ID, updateUser);
 

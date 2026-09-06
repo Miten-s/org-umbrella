@@ -35,18 +35,25 @@ export interface PendingBulkRestore {
  * `<LimsComplianceDialogs>` renders the UI.
  */
 export const useLimsCompliance = <TRow extends { id: string }, TPayload>() => {
-  const [pendingUpdate, setPendingUpdate] = useState<PendingUpdate<TPayload> | null>(null);
-  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [pendingUpdate, setPendingUpdate] =
+    useState<PendingUpdate<TPayload> | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(
+    null
+  );
   const [pendingRestore, setPendingRestore] = useState<TRow | null>(null);
   const [pendingBulkUpdate, setPendingBulkUpdate] =
     useState<PendingBulkUpdate<TPayload> | null>(null);
-  const [pendingBulkRestore, setPendingBulkRestore] = useState<PendingBulkRestore | null>(null);
+  const [pendingBulkRestore, setPendingBulkRestore] =
+    useState<PendingBulkRestore | null>(null);
   const [auditRow, setAuditRow] = useState<TRow | null>(null);
 
   /** Called from the form's submit when editing an existing record. */
-  const requestUpdate = useCallback((id: string, payload: TPayload, files: File[] = []) => {
-    setPendingUpdate({ id, payload, files });
-  }, []);
+  const requestUpdate = useCallback(
+    (id: string, payload: TPayload, files: File[] = []) => {
+      setPendingUpdate({ id, payload, files });
+    },
+    []
+  );
 
   const requestDelete = useCallback(
     (selection: BulkSelection, count: number, names: string[] = []) => {
@@ -58,9 +65,12 @@ export const useLimsCompliance = <TRow extends { id: string }, TPayload>() => {
   const requestRestore = useCallback((row: TRow) => setPendingRestore(row), []);
   /** Called from the bulk-selection popover's Restore action — same one-reason-for-the-batch
    * shape as `requestBulkUpdate`, applied per-id via the module's existing single `restore` mutation. */
-  const requestBulkRestore = useCallback((ids: string[], names: string[] = []) => {
-    setPendingBulkRestore({ ids, names, count: ids.length });
-  }, []);
+  const requestBulkRestore = useCallback(
+    (ids: string[], names: string[] = []) => {
+      setPendingBulkRestore({ ids, names, count: ids.length });
+    },
+    []
+  );
   /** Called from EditStepper's Save-all with the reviewed, already-changed batch. */
   const requestBulkUpdate = useCallback(
     (updates: { id: string; payload: TPayload }[]) => {
@@ -99,6 +109,7 @@ export const useLimsCompliance = <TRow extends { id: string }, TPayload>() => {
   };
 };
 
-export type UseLimsComplianceReturn<TRow extends { id: string }, TPayload> = ReturnType<
-  typeof useLimsCompliance<TRow, TPayload>
->;
+export type UseLimsComplianceReturn<
+  TRow extends { id: string },
+  TPayload
+> = ReturnType<typeof useLimsCompliance<TRow, TPayload>>;

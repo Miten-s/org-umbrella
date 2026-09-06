@@ -66,7 +66,13 @@ const useInvalidate = () => {
 export const useCreateLimsStock = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ payload, files }: { payload: LimsStockPayload; files?: File[] }) => createLimsStock(payload, files),
+    mutationFn: ({
+      payload,
+      files
+    }: {
+      payload: LimsStockPayload;
+      files?: File[];
+    }) => createLimsStock(payload, files),
     onSuccess: () => {
       toast("Record created successfully.", "success");
       invalidate();
@@ -77,8 +83,15 @@ export const useCreateLimsStock = () => {
 export const useUpdateLimsStock = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ id, payload, files }: { id: string; payload: LimsStockPayload; files?: File[] }) =>
-      updateLimsStock(id, payload, files),
+    mutationFn: ({
+      id,
+      payload,
+      files
+    }: {
+      id: string;
+      payload: LimsStockPayload;
+      files?: File[];
+    }) => updateLimsStock(id, payload, files),
     onSuccess: () => {
       toast("Record updated successfully.", "success");
       invalidate();

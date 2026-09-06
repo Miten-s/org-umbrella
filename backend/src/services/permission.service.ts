@@ -27,12 +27,12 @@ const updatePermission = async (req: Request) => {
 const deletePermission = async (req: Request) => {
   const permission = await Permission.findByPk(req.params.id as string);
   if (!permission) return null;
-  
+
   const t = await sequelize.transaction();
   try {
     // Soft delete permission
     await permission.destroy({ transaction: t });
-    
+
     // Remove references from role_permissions
     await sequelize.query(
       `DELETE FROM role_permissions WHERE permission_id = :id`,
@@ -52,7 +52,7 @@ const deletePermission = async (req: Request) => {
 
 const getPermissions = async (options: PaginationOptions, type?: string) => {
   const { page, limit, skip, search } = options;
-  
+
   const where: any = {
     name: {
       [Op.notILike]: "%OPERATE:ALL%"
@@ -152,7 +152,7 @@ const bulkDuplicatePermissions = async (ids: string[], user?: any) => {
 
       let maxIndex = 0;
       similarPermissionsResult.forEach((perm: any) => {
-        const match = perm.name.match(new RegExp(regexStr, 'i'));
+        const match = perm.name.match(new RegExp(regexStr, "i"));
         if (match && match[1]) {
           const index = parseInt(match[1], 10);
           if (index > maxIndex) maxIndex = index;
@@ -161,14 +161,17 @@ const bulkDuplicatePermissions = async (ids: string[], user?: any) => {
 
       const newName = `${baseName}-(${maxIndex + 1})`;
 
-      const savedPermission = await Permission.create({
-        name: newName,
-        description: sourcePermission.description,
-        type: sourcePermission.type,
-        deletedAt: null,
-        modifiedOn: new Date(),
-        modifiedBy: user?.id || user?._id
-      } as any, { transaction: t });
+      const savedPermission = await Permission.create(
+        {
+          name: newName,
+          description: sourcePermission.description,
+          type: sourcePermission.type,
+          deletedAt: null,
+          modifiedOn: new Date(),
+          modifiedBy: user?.id || user?._id
+        } as any,
+        { transaction: t }
+      );
 
       duplicatedPermissions.push(savedPermission);
     }

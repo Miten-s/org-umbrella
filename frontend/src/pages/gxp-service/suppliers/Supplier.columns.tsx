@@ -25,21 +25,27 @@ interface ToggleContext {
  * enable/disable Switch — the handler is injected via ag-grid context, not closed
  * over, so the columns stay pure and referentially stable.
  */
-export const getSupplierColumns = ({ t }: SupplierColumnCtx): ColDef<Supplier>[] => [
+export const getSupplierColumns = ({
+  t
+}: SupplierColumnCtx): ColDef<Supplier>[] => [
   {
     field: "supplierName",
     headerName: t("supplierName"),
     flex: 1,
     minWidth: 240,
     cellRenderer: (params: ICellRendererParams<Supplier>) =>
-      params.data ? <AvatarCell label={params.data.supplierName} fallbackInitial="S" /> : null
+      params.data ? (
+        <AvatarCell label={params.data.supplierName} fallbackInitial="S" />
+      ) : null
   },
   {
     field: "product",
     headerName: t("product"),
     flex: 1,
     minWidth: 200,
-    cellRenderer: (params: ICellRendererParams<Supplier>) => <TruncateCell value={params.value} />
+    cellRenderer: (params: ICellRendererParams<Supplier>) => (
+      <TruncateCell value={params.value} />
+    )
   },
   {
     field: "status",

@@ -5,7 +5,6 @@ export interface LimsRef {
   name?: string;
 }
 
-
 export interface LimsCalibration {
   id: string;
   /** @deprecated compatibility shim — read `id`. */

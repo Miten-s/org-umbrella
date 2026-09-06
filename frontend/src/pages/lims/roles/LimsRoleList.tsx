@@ -147,7 +147,9 @@ const LimsRoleList = () => {
     table.clearSelection();
   };
 
-  const handleSaveEdits = (updates: { id: string; payload: LimsRolePayload }[]) => {
+  const handleSaveEdits = (
+    updates: { id: string; payload: LimsRolePayload }[]
+  ) => {
     handleCloseForm();
     compliance.requestBulkUpdate(updates);
   };
@@ -393,7 +395,8 @@ const LimsRoleList = () => {
             saving={bulkUpdate.isPending}
             entityLabel={t("limsRole")}
           />
-        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        ) : formMode !== "create" &&
+          (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>
@@ -433,7 +436,10 @@ const LimsRoleList = () => {
         onBulkUpdate={async (reason) => {
           const pending = compliance.pendingBulkUpdate;
           if (pending) {
-            await bulkUpdate.mutateAsync({ updates: pending.updates, changeReason: reason });
+            await bulkUpdate.mutateAsync({
+              updates: pending.updates,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearBulkUpdate();

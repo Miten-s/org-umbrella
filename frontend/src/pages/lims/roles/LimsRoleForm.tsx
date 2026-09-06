@@ -24,7 +24,8 @@ import {
  * source's own id) — Role has no server-minted id, so it stays EDITABLE; the user must type
  * a new unique one before Save succeeds. Same `LIMS_` convention as Lab Group.
  */
-export type LimsRoleFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type LimsRoleFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsRoleFormProps {
   mode?: LimsRoleFormMode;
@@ -69,7 +70,9 @@ const LimsRoleForm = ({
 
   // Assigned from the seeded catalog, never free-form; carried over on Copy like any other field.
   const { data: rolePermissions = [] } = useLimsRolePermissions();
-  const initialPermissionsRef = useRef(initialData ? getLimsRolePermissionNames(initialData) : []);
+  const initialPermissionsRef = useRef(
+    initialData ? getLimsRolePermissionNames(initialData) : []
+  );
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>(
     initialPermissionsRef.current
   );
@@ -119,7 +122,11 @@ const LimsRoleForm = ({
 
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-      <form id={formId} onSubmit={handleSubmit(handleFormSubmit)} className="min-w-0 space-y-4">
+      <form
+        id={formId}
+        onSubmit={handleSubmit(handleFormSubmit)}
+        className="min-w-0 space-y-4"
+      >
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsRole") })
@@ -171,7 +178,9 @@ const LimsRoleForm = ({
               )}
             />
             {errors.group ? (
-              <p className="mt-1 text-xs text-red-500">{errors.group.message}</p>
+              <p className="mt-1 text-xs text-red-500">
+                {errors.group.message}
+              </p>
             ) : null}
           </div>
 
@@ -180,7 +189,9 @@ const LimsRoleForm = ({
             <TextArea
               disabled={isReadOnly}
               value={description || ""}
-              onChange={(val) => setValue("description", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("description", val, { shouldValidate: true })
+              }
               error={!!errors.description}
               hint={errors.description?.message}
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
@@ -200,11 +211,21 @@ const LimsRoleForm = ({
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

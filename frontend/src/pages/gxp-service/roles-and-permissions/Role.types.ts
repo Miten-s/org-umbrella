@@ -1,6 +1,7 @@
 /** GXP Role types (STANDARDS.md §1). Roles live on the admin `/roles` endpoint,
  *  filtered/created with type = RoleType.GXP_SERVICE. */
-export type RolePermissionRef = { id?: string; _id?: string; name?: string } | string;
+export type RolePermissionRef =
+  { id?: string; _id?: string; name?: string } | string;
 
 export interface GxpRole {
   id: string;
@@ -26,5 +27,7 @@ export interface GxpPermissionOption {
 
 export const getRolePermissionNames = (role: GxpRole): string[] =>
   (role.permissions ?? [])
-    .map((permission) => (typeof permission === "string" ? permission : (permission?.name ?? "")))
+    .map((permission) =>
+      typeof permission === "string" ? permission : (permission?.name ?? "")
+    )
     .filter(Boolean);

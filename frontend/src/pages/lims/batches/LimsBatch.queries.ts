@@ -66,7 +66,13 @@ const useInvalidate = () => {
 export const useCreateLimsBatch = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ payload, files }: { payload: LimsBatchPayload; files?: File[] }) => createLimsBatch(payload, files),
+    mutationFn: ({
+      payload,
+      files
+    }: {
+      payload: LimsBatchPayload;
+      files?: File[];
+    }) => createLimsBatch(payload, files),
     onSuccess: () => {
       toast("Record created successfully.", "success");
       invalidate();
@@ -77,8 +83,15 @@ export const useCreateLimsBatch = () => {
 export const useUpdateLimsBatch = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ id, payload, files }: { id: string; payload: LimsBatchPayload; files?: File[] }) =>
-      updateLimsBatch(id, payload, files),
+    mutationFn: ({
+      id,
+      payload,
+      files
+    }: {
+      id: string;
+      payload: LimsBatchPayload;
+      files?: File[];
+    }) => updateLimsBatch(id, payload, files),
     onSuccess: () => {
       toast("Record updated successfully.", "success");
       invalidate();

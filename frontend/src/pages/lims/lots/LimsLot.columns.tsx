@@ -9,7 +9,11 @@ import type { LimsLot, LimsRef } from "./LimsLot.types";
 const refLabel = (ref: LimsRef | null | undefined) => ref?.name ?? "";
 
 /** Column factory (STANDARDS.md §8). */
-export const getLimsLotColumns = ({ t }: { t: TFunction }): ColDef<LimsLot>[] => [
+export const getLimsLotColumns = ({
+  t
+}: {
+  t: TFunction;
+}): ColDef<LimsLot>[] => [
   {
     field: "lotId",
     headerName: t("limsLotId"),
@@ -26,7 +30,10 @@ export const getLimsLotColumns = ({ t }: { t: TFunction }): ColDef<LimsLot>[] =>
     minWidth: 210,
     cellRenderer: (params: ICellRendererParams<LimsLot>) =>
       params.data ? (
-        <AvatarCell label={String(params.data.lotName ?? "")} fallbackInitial="•" />
+        <AvatarCell
+          label={String(params.data.lotName ?? "")}
+          fallbackInitial="•"
+        />
       ) : null
   },
   {

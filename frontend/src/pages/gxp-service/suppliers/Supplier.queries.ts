@@ -2,7 +2,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
 import { useAsyncOptions } from "@/hooks/useAsyncOptions";
 import { useLimsRecordById } from "@/hooks/useLimsRecordById";
-import type { BulkSelection, ListResult, ServerListParams } from "@/lib/query/listTypes";
+import type {
+  BulkSelection,
+  ListResult,
+  ServerListParams
+} from "@/lib/query/listTypes";
 import {
   bulkCloneSupplier,
   bulkCopySupplier,
@@ -26,7 +30,11 @@ export const supplierKeys = {
   options: ["supplier", "options"] as const
 };
 
-export const useSupplierOptions = (args: { search: string; enabled?: boolean; selectedValues?: string[] }) =>
+export const useSupplierOptions = (args: {
+  search: string;
+  enabled?: boolean;
+  selectedValues?: string[];
+}) =>
   useAsyncOptions({
     queryKey: supplierKeys.options,
     fetchPage: fetchSupplierOptions,
@@ -77,7 +85,12 @@ export const useBulkDeleteSupplier = () => {
     mutationFn: (selection: BulkSelection) => bulkDeleteSupplier(selection),
     onSuccess: (_data, selection) => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
-      toast(count && count > 1 ? `${count} suppliers deleted successfully.` : "Supplier deleted successfully.", "success");
+      toast(
+        count && count > 1
+          ? `${count} suppliers deleted successfully.`
+          : "Supplier deleted successfully.",
+        "success"
+      );
       invalidate();
     }
   });
@@ -89,7 +102,12 @@ export const useBulkCloneSupplier = () => {
     mutationFn: (selection: BulkSelection) => bulkCloneSupplier(selection),
     onSuccess: (_data, selection) => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
-      toast(count && count > 1 ? `${count} suppliers copied successfully.` : "Supplier copied successfully.", "success");
+      toast(
+        count && count > 1
+          ? `${count} suppliers copied successfully.`
+          : "Supplier copied successfully.",
+        "success"
+      );
       invalidate();
     }
   });
@@ -103,7 +121,9 @@ export const useBulkCopySupplier = () => {
     mutationFn: (records: SupplierPayload[]) => bulkCopySupplier(records),
     onSuccess: (data) => {
       toast(
-        data.length > 1 ? `${data.length} suppliers copied successfully.` : "Supplier copied successfully.",
+        data.length > 1
+          ? `${data.length} suppliers copied successfully.`
+          : "Supplier copied successfully.",
         "success"
       );
       invalidate();
@@ -114,10 +134,13 @@ export const useBulkCopySupplier = () => {
 export const useBulkUpdateSupplier = () => {
   const invalidate = useInvalidateSuppliers();
   return useMutation({
-    mutationFn: (updates: { id: string; payload: SupplierPayload }[]) => bulkUpdateSupplier(updates),
+    mutationFn: (updates: { id: string; payload: SupplierPayload }[]) =>
+      bulkUpdateSupplier(updates),
     onSuccess: (data) => {
       toast(
-        data.results.length > 1 ? `${data.results.length} suppliers updated successfully.` : "Supplier updated successfully.",
+        data.results.length > 1
+          ? `${data.results.length} suppliers updated successfully.`
+          : "Supplier updated successfully.",
         "success"
       );
       invalidate();
@@ -130,7 +153,12 @@ export const useBulkRestoreSupplier = () => {
   return useMutation({
     mutationFn: (selection: BulkSelection) => bulkRestoreSupplier(selection),
     onSuccess: (data) => {
-      toast(data.count > 1 ? `${data.count} suppliers restored successfully.` : "Supplier restored successfully.", "success");
+      toast(
+        data.count > 1
+          ? `${data.count} suppliers restored successfully.`
+          : "Supplier restored successfully.",
+        "success"
+      );
       invalidate();
     }
   });
@@ -149,30 +177,41 @@ export const useToggleSupplierStatus = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (supplier: Supplier) =>
-      supplier.status === "enabled" ? disableSupplier(supplier.id) : enableSupplier(supplier.id),
+      supplier.status === "enabled"
+        ? disableSupplier(supplier.id)
+        : enableSupplier(supplier.id),
     onMutate: async (supplier) => {
       await queryClient.cancelQueries({ queryKey: supplierKeys.all });
       const nextStatus = supplier.status === "enabled" ? "disabled" : "enabled";
-      const snapshots = queryClient.getQueriesData<ListResult<Supplier>>({ queryKey: supplierKeys.all });
+      const snapshots = queryClient.getQueriesData<ListResult<Supplier>>({
+        queryKey: supplierKeys.all
+      });
       snapshots.forEach(([key, data]) => {
         if (!data?.rows) return;
         queryClient.setQueryData<ListResult<Supplier>>(key, {
           ...data,
-          rows: data.rows.map((row) => (row.id === supplier.id ? { ...row, status: nextStatus } : row))
+          rows: data.rows.map((row) =>
+            row.id === supplier.id ? { ...row, status: nextStatus } : row
+          )
         });
       });
       return { snapshots };
     },
     onSuccess: (_data, supplier) =>
       toast(
-        supplier.status === "enabled" ? "Supplier disabled successfully." : "Supplier enabled successfully.",
+        supplier.status === "enabled"
+          ? "Supplier disabled successfully."
+          : "Supplier enabled successfully.",
         "success"
       ),
     // No onError toast — interceptor owns error toasts. Roll back optimistic state only.
     onError: (_error, _supplier, context) => {
-      context?.snapshots.forEach(([key, data]) => queryClient.setQueryData(key, data));
+      context?.snapshots.forEach(([key, data]) =>
+        queryClient.setQueryData(key, data)
+      );
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: supplierKeys.all })
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: supplierKeys.all })
   });
 };
 

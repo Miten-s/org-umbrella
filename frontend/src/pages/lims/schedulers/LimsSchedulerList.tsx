@@ -26,7 +26,10 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsSchedulerById, fetchLimsSchedulerList } from "./LimsScheduler.api";
+import {
+  fetchLimsSchedulerById,
+  fetchLimsSchedulerList
+} from "./LimsScheduler.api";
 import { getLimsSchedulerColumns } from "./LimsScheduler.columns";
 import {
   limsSchedulerKeys,
@@ -153,7 +156,9 @@ const LimsSchedulerList = () => {
     table.clearSelection();
   };
 
-  const handleSaveEdits = (updates: { id: string; payload: LimsSchedulerPayload }[]) => {
+  const handleSaveEdits = (
+    updates: { id: string; payload: LimsSchedulerPayload }[]
+  ) => {
     handleCloseForm();
     compliance.requestBulkUpdate(updates);
   };
@@ -402,7 +407,8 @@ const LimsSchedulerList = () => {
             saving={bulkUpdate.isPending}
             entityLabel={t("limsScheduler")}
           />
-        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        ) : formMode !== "create" &&
+          (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>
@@ -442,7 +448,10 @@ const LimsSchedulerList = () => {
         onBulkUpdate={async (reason) => {
           const pending = compliance.pendingBulkUpdate;
           if (pending) {
-            await bulkUpdate.mutateAsync({ updates: pending.updates, changeReason: reason });
+            await bulkUpdate.mutateAsync({
+              updates: pending.updates,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearBulkUpdate();

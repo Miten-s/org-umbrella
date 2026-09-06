@@ -6,9 +6,7 @@ import { AuthProvider } from "@/context/AuthProvider";
 import ErrorBoundary from "@/components/common/ErrorBoundary";
 import { LoadingSpinner } from "./components/common/Protected";
 
-const AppLoadingFallback = () => (
-  <LoadingSpinner />
-);
+const AppLoadingFallback = () => <LoadingSpinner />;
 
 function App() {
   return (

@@ -23,9 +23,12 @@ export const toast = (
 ) => {
   const { position = "top-right", id, duration } = options || {};
 
-  return hotToast.custom((t) => <ToastCard t={t} message={message} type={type} />, {
-    id,
-    position,
-    duration: duration ?? DEFAULT_DURATION[type]
-  });
+  return hotToast.custom(
+    (t) => <ToastCard t={t} message={message} type={type} />,
+    {
+      id,
+      position,
+      duration: duration ?? DEFAULT_DURATION[type]
+    }
+  );
 };

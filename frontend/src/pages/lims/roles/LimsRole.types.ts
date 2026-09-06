@@ -43,5 +43,7 @@ export interface LimsPermissionOption {
 
 export const getLimsRolePermissionNames = (role: LimsRole): string[] =>
   (role.permissions ?? [])
-    .map((permission) => (typeof permission === "string" ? permission : (permission?.name ?? "")))
+    .map((permission) =>
+      typeof permission === "string" ? permission : (permission?.name ?? "")
+    )
     .filter(Boolean);

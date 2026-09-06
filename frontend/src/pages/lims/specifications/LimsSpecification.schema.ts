@@ -9,7 +9,9 @@ export const limsSpecificationSchema = z.object({
   description: z.string().max(500).optional()
 });
 
-export type LimsSpecificationFormValues = z.infer<typeof limsSpecificationSchema>;
+export type LimsSpecificationFormValues = z.infer<
+  typeof limsSpecificationSchema
+>;
 
 /** Copy mode leaves the business ID blank + disabled (server always mints a fresh
  * one — see LimsSpecificationForm) — same shape, minus the required check. */
@@ -26,10 +28,14 @@ const asNumber = (value: unknown): number | undefined => {
 
 /** The Limits grid lives outside RHF/zod: checks Min/Max are real numbers when present and
  * Min <= Max (parsed — the backend column is STRING, not numeric). */
-export const validateLimitsRows = (rows: LimsLimitRow[]): string | undefined => {
+export const validateLimitsRows = (
+  rows: LimsLimitRow[]
+): string | undefined => {
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    const label = String(row.componentName ?? row.analysisName ?? `Row ${i + 1}`);
+    const label = String(
+      row.componentName ?? row.analysisName ?? `Row ${i + 1}`
+    );
 
     for (const field of ["min", "max"] as const) {
       const raw = row[field];

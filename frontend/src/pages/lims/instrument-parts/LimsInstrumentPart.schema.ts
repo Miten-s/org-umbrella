@@ -18,7 +18,9 @@ export const limsInstrumentPartSchema = z.object({
   details: z.string().max(500).optional()
 });
 
-export type LimsInstrumentPartFormValues = z.infer<typeof limsInstrumentPartSchema>;
+export type LimsInstrumentPartFormValues = z.infer<
+  typeof limsInstrumentPartSchema
+>;
 
 /** Copy mode leaves the business ID blank + disabled (server always mints a fresh
  * one — see LimsInstrumentPartForm) — same shape, minus the required check. */

@@ -13,9 +13,14 @@ import {
 } from "./permissions";
 
 /** Build a user carrying one role with the given permission names. */
-const userWith = (roleName: string, ...permissions: string[]): AuthenticatedUser => ({
+const userWith = (
+  roleName: string,
+  ...permissions: string[]
+): AuthenticatedUser => ({
   id: "user-1",
-  roles: [{ name: roleName, permissions: permissions.map((name) => ({ name })) }]
+  roles: [
+    { name: roleName, permissions: permissions.map((name) => ({ name })) }
+  ]
 });
 
 /** Build a user carrying several roles, so permission union is exercised. */
@@ -32,17 +37,23 @@ const userWithRoles = (
 describe("hasPermission", () => {
   it("grants a permission the user's role actually carries", () => {
     const user = userWith("GXP_OPERATOR", GXP_PERMISSIONS.VIEW_SERVICE_REQUEST);
-    expect(hasPermission(user, GXP_PERMISSIONS.VIEW_SERVICE_REQUEST)).toBe(true);
+    expect(hasPermission(user, GXP_PERMISSIONS.VIEW_SERVICE_REQUEST)).toBe(
+      true
+    );
   });
 
   it("denies a permission the user does not carry", () => {
     const user = userWith("GXP_OPERATOR", GXP_PERMISSIONS.VIEW_SERVICE_REQUEST);
-    expect(hasPermission(user, GXP_PERMISSIONS.DELETE_SERVICE_REQUEST)).toBe(false);
+    expect(hasPermission(user, GXP_PERMISSIONS.DELETE_SERVICE_REQUEST)).toBe(
+      false
+    );
   });
 
   it("treats OPERATE:ALL as a wildcard granting every permission", () => {
     const superAdmin = userWith("SUPER_ADMIN", ADMIN_PERMISSIONS.OPERATE_ALL);
-    expect(hasPermission(superAdmin, GXP_PERMISSIONS.DELETE_SERVICE_REQUEST)).toBe(true);
+    expect(
+      hasPermission(superAdmin, GXP_PERMISSIONS.DELETE_SERVICE_REQUEST)
+    ).toBe(true);
     expect(hasPermission(superAdmin, ADMIN_PERMISSIONS.DELETE_USER)).toBe(true);
   });
 
@@ -51,26 +62,46 @@ describe("hasPermission", () => {
       { name: "VIEWER", permissions: [GXP_PERMISSIONS.VIEW_SERVICE_REQUEST] },
       { name: "EDITOR", permissions: [GXP_PERMISSIONS.UPDATE_SERVICE_REQUEST] }
     );
-    expect(hasPermission(user, GXP_PERMISSIONS.VIEW_SERVICE_REQUEST)).toBe(true);
-    expect(hasPermission(user, GXP_PERMISSIONS.UPDATE_SERVICE_REQUEST)).toBe(true);
-    expect(hasPermission(user, GXP_PERMISSIONS.DELETE_SERVICE_REQUEST)).toBe(false);
+    expect(hasPermission(user, GXP_PERMISSIONS.VIEW_SERVICE_REQUEST)).toBe(
+      true
+    );
+    expect(hasPermission(user, GXP_PERMISSIONS.UPDATE_SERVICE_REQUEST)).toBe(
+      true
+    );
+    expect(hasPermission(user, GXP_PERMISSIONS.DELETE_SERVICE_REQUEST)).toBe(
+      false
+    );
   });
 
   it("denies everything for an anonymous or malformed user", () => {
-    expect(hasPermission(null, GXP_PERMISSIONS.VIEW_SERVICE_REQUEST)).toBe(false);
-    expect(hasPermission(undefined, GXP_PERMISSIONS.VIEW_SERVICE_REQUEST)).toBe(false);
-    expect(hasPermission({} as AuthenticatedUser, GXP_PERMISSIONS.VIEW_SERVICE_REQUEST)).toBe(false);
+    expect(hasPermission(null, GXP_PERMISSIONS.VIEW_SERVICE_REQUEST)).toBe(
+      false
+    );
+    expect(hasPermission(undefined, GXP_PERMISSIONS.VIEW_SERVICE_REQUEST)).toBe(
+      false
+    );
+    expect(
+      hasPermission(
+        {} as AuthenticatedUser,
+        GXP_PERMISSIONS.VIEW_SERVICE_REQUEST
+      )
+    ).toBe(false);
   });
 
   it("denies when a role carries no permissions at all", () => {
     const user: AuthenticatedUser = { id: "u", roles: [{ name: "EMPTY" }] };
-    expect(hasPermission(user, GXP_PERMISSIONS.VIEW_SERVICE_REQUEST)).toBe(false);
+    expect(hasPermission(user, GXP_PERMISSIONS.VIEW_SERVICE_REQUEST)).toBe(
+      false
+    );
   });
 });
 
 describe("hasAnyPermission", () => {
   it("passes when the user holds at least one of the listed permissions", () => {
-    const user = userWith("GXP_OPERATOR", GXP_PERMISSIONS.UPDATE_SERVICE_REQUEST);
+    const user = userWith(
+      "GXP_OPERATOR",
+      GXP_PERMISSIONS.UPDATE_SERVICE_REQUEST
+    );
     expect(
       hasAnyPermission(user, [
         GXP_PERMISSIONS.CREATE_SERVICE_REQUEST,
@@ -91,7 +122,9 @@ describe("hasAnyPermission", () => {
 
   it("honours the OPERATE:ALL wildcard", () => {
     const superAdmin = userWith("SUPER_ADMIN", ADMIN_PERMISSIONS.OPERATE_ALL);
-    expect(hasAnyPermission(superAdmin, [GXP_PERMISSIONS.DELETE_SERVICE_REQUEST])).toBe(true);
+    expect(
+      hasAnyPermission(superAdmin, [GXP_PERMISSIONS.DELETE_SERVICE_REQUEST])
+    ).toBe(true);
   });
 });
 

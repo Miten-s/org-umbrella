@@ -6,7 +6,10 @@ export interface IServiceRequestCounter {
   seq: number;
 }
 
-export class ServiceRequestCounter extends Model<IServiceRequestCounter> implements IServiceRequestCounter {
+export class ServiceRequestCounter
+  extends Model<IServiceRequestCounter>
+  implements IServiceRequestCounter
+{
   public applicationId!: string;
   public seq!: number;
 }

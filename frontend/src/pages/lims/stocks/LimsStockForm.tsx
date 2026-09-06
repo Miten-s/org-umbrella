@@ -18,12 +18,22 @@ import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsUserOptions } from "@/pages/lims/users/LimsUser.options";
 import { useLimsLocationOptions } from "@/pages/lims/locations/LimsLocation.queries";
 import { useLimsSupplierOptions } from "@/pages/lims/suppliers/LimsSupplier.queries";
-import { limsStockSchema, limsStockCopySchema, type LimsStockFormValues } from "./LimsStock.schema";
-import type { LimsStock, LimsStockPayload, LimsRef, LimsParameterValue } from "./LimsStock.types";
+import {
+  limsStockSchema,
+  limsStockCopySchema,
+  type LimsStockFormValues
+} from "./LimsStock.schema";
+import type {
+  LimsStock,
+  LimsStockPayload,
+  LimsRef,
+  LimsParameterValue
+} from "./LimsStock.types";
 
 /** "copy" renders like "create" except the business ID starts blank (stays EDITABLE —
  * `applyBusinessId` only mints when empty). Attachments hidden: the batch save is JSON-only. */
-export type LimsStockFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type LimsStockFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsStockFormProps {
   mode?: LimsStockFormMode;
@@ -66,7 +76,9 @@ const LimsStockForm = ({
   const isReadOnly = mode === "view";
   const attachments = useAttachments(initialData?.attachments);
   const initialParametersRef = useRef(initialData?.parameters ?? []);
-  const [parameters, setParameters] = useState<LimsParameterValue[]>(initialParametersRef.current);
+  const [parameters, setParameters] = useState<LimsParameterValue[]>(
+    initialParametersRef.current
+  );
 
   // Captured once per record — also the no-change baseline `submit` diffs
   // against, so Save is a no-op when nothing actually differs from it.
@@ -85,7 +97,7 @@ const LimsStockForm = ({
       lowAmount: initialData?.lowAmount ?? "",
       lowPercentage: initialData?.lowPercentage ?? "",
       description: initialData?.description ?? "",
-      details: initialData?.details ?? "",
+      details: initialData?.details ?? ""
     }),
     [initialData, mode]
   );
@@ -97,7 +109,9 @@ const LimsStockForm = ({
     setValue,
     formState: { errors, isSubmitting }
   } = useForm<LimsStockFormValues>({
-    resolver: zodResolver(mode === "copy" ? limsStockCopySchema : limsStockSchema),
+    resolver: zodResolver(
+      mode === "copy" ? limsStockCopySchema : limsStockSchema
+    ),
     defaultValues: initialValues
   });
 
@@ -151,11 +165,11 @@ const LimsStockForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsStock") })
-                        : mode === "copy"
+            : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsStock") })}${stepLabel ?? ""}`
               : initialData
-              ? `${t("update", { entity: t("limsStock") })}${stepLabel ?? ""}`
-              : t("create", { entity: t("limsStock") })}
+                ? `${t("update", { entity: t("limsStock") })}${stepLabel ?? ""}`
+                : t("create", { entity: t("limsStock") })}
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
@@ -223,8 +237,12 @@ const LimsStockForm = ({
                   value={field.value}
                   onChange={field.onChange}
                   disabled={isReadOnly}
-                  placeholder={t("select", { entity: t("limsDefaultLocation") })}
-                  initialSelectedOptions={seedRefOption(initialData?.defaultLocation)}
+                  placeholder={t("select", {
+                    entity: t("limsDefaultLocation")
+                  })}
+                  initialSelectedOptions={seedRefOption(
+                    initialData?.defaultLocation
+                  )}
                 />
               )}
             />
@@ -240,8 +258,12 @@ const LimsStockForm = ({
                   value={field.value}
                   onChange={field.onChange}
                   disabled={isReadOnly}
-                  placeholder={t("select", { entity: t("limsPreferredSupplier") })}
-                  initialSelectedOptions={seedRefOption(initialData?.preferredSupplier)}
+                  placeholder={t("select", {
+                    entity: t("limsPreferredSupplier")
+                  })}
+                  initialSelectedOptions={seedRefOption(
+                    initialData?.preferredSupplier
+                  )}
                 />
               )}
             />
@@ -252,13 +274,16 @@ const LimsStockForm = ({
               name="suppliers"
               control={control}
               render={({ field }) => (
-                <AsyncSelect multi
+                <AsyncSelect
+                  multi
                   useOptions={useLimsSupplierOptions}
                   value={field.value}
                   onChange={field.onChange}
                   disabled={isReadOnly}
                   placeholder={t("select", { entity: t("limsSuppliers") })}
-                  initialSelectedOptions={seedRefOptions(initialData?.suppliers)}
+                  initialSelectedOptions={seedRefOptions(
+                    initialData?.suppliers
+                  )}
                 />
               )}
             />
@@ -278,7 +303,9 @@ const LimsStockForm = ({
             <TextArea
               disabled={isReadOnly}
               value={description || ""}
-              onChange={(val) => setValue("description", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("description", val, { shouldValidate: true })
+              }
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
@@ -287,7 +314,9 @@ const LimsStockForm = ({
             <TextArea
               disabled={isReadOnly}
               value={details || ""}
-              onChange={(val) => setValue("details", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("details", val, { shouldValidate: true })
+              }
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
@@ -305,16 +334,29 @@ const LimsStockForm = ({
             />
           </div>
           {mode !== "copy" && mode !== "bulk-edit" && (
-            <LimsAttachmentsField attachments={attachments} disabled={isReadOnly} />
+            <LimsAttachmentsField
+              attachments={attachments}
+              disabled={isReadOnly}
+            />
           )}
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

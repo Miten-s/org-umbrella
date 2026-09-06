@@ -106,10 +106,7 @@ export const updateUser = async (
   return response["data"];
 };
 
-export const deleteUser = async (
-  id: string,
-  options?: SilentOptions
-) => {
+export const deleteUser = async (id: string, options?: SilentOptions) => {
   const response = await api.delete(`${API_ROUTES.users}/${id}`);
   if (!options?.silent) {
     toast(response.data.message, "success");
@@ -117,10 +114,7 @@ export const deleteUser = async (
   return response["data"];
 };
 
-export const bulkDeleteUsers = async (
-  ids: string[],
-  options?: SilentOptions
-) =>
+export const bulkDeleteUsers = async (ids: string[], options?: SilentOptions) =>
   postBulkDeleteIds(
     API_ROUTES.users,
     ids,
@@ -161,10 +155,7 @@ export const updateRole = async (
   return response["data"];
 };
 
-export const deleteRole = async (
-  id: string,
-  options?: SilentOptions
-) => {
+export const deleteRole = async (id: string, options?: SilentOptions) => {
   const response = await api.delete(`${API_ROUTES.roles}/${id}`);
   if (!options?.silent) {
     toast(response.data.message, "success");
@@ -172,10 +163,7 @@ export const deleteRole = async (
   return response["data"];
 };
 
-export const bulkDeleteRoles = async (
-  ids: string[],
-  options?: SilentOptions
-) =>
+export const bulkDeleteRoles = async (ids: string[], options?: SilentOptions) =>
   postBulkDeleteIds(
     API_ROUTES.roles,
     ids,
@@ -226,10 +214,7 @@ export const updatePermission = async (
   return response["data"];
 };
 
-export const deletePermission = async (
-  id: string,
-  options?: SilentOptions
-) => {
+export const deletePermission = async (id: string, options?: SilentOptions) => {
   const response = await api.delete(`${API_ROUTES.permissions}/${id}`);
   if (!options?.silent) {
     toast(response.data.message, "success");
@@ -274,10 +259,7 @@ export const updateDepartment = async (
   return response["data"];
 };
 
-export const deleteDepartment = async (
-  id: string,
-  options?: SilentOptions
-) => {
+export const deleteDepartment = async (id: string, options?: SilentOptions) => {
   const response = await api.delete(`${API_ROUTES.departments}/${id}`);
   if (!options?.silent) {
     toast(response.data.message, "success");
@@ -333,10 +315,7 @@ export const updateLocation = async (
   return response["data"];
 };
 
-export const deleteLocation = async (
-  id: string,
-  options?: SilentOptions
-) => {
+export const deleteLocation = async (id: string, options?: SilentOptions) => {
   const response = await api.delete(`${API_ROUTES.locations}/${id}`);
   if (!options?.silent) {
     toast(response.data.message, "success");
@@ -437,7 +416,10 @@ export const getCompany = async () => {
   return data;
 };
 
-export const updateCompany = async (id: string, payload: FormData | Record<string, any>) => {
+export const updateCompany = async (
+  id: string,
+  payload: FormData | Record<string, any>
+) => {
   let body: FormData;
   if (payload instanceof FormData) {
     body = payload;
@@ -445,10 +427,12 @@ export const updateCompany = async (id: string, payload: FormData | Record<strin
     body = new FormData();
     body.append("name", payload.name);
     body.append("description", payload.description || "");
-    const isFile = payload.logo instanceof File ||
-      (payload.logo && typeof payload.logo === "object" &&
-       typeof payload.logo.name === "string" &&
-       typeof payload.logo.size === "number");
+    const isFile =
+      payload.logo instanceof File ||
+      (payload.logo &&
+        typeof payload.logo === "object" &&
+        typeof payload.logo.name === "string" &&
+        typeof payload.logo.size === "number");
     if (isFile) {
       body.append("logo", payload.logo);
     }

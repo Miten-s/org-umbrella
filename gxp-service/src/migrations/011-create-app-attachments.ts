@@ -38,8 +38,12 @@ export const up = async (queryInterface: QueryInterface) => {
     }
   });
 
-  await queryInterface.addIndex("app_attachments", ["application_id", "attachment"], {
-    unique: true,
-    name: "app_attachments_app_file_idx"
-  });
+  await queryInterface.addIndex(
+    "app_attachments",
+    ["application_id", "attachment"],
+    {
+      unique: true,
+      name: "app_attachments_app_file_idx"
+    }
+  );
 };

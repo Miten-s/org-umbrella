@@ -73,7 +73,8 @@ function ViewStepper<TRecord>({
   const displayRecord = current ?? lastShownRef.current;
   const isLoadingCurrent = current === undefined;
 
-  const goTo = (next: number) => setIndex(Math.max(0, Math.min(total - 1, next)));
+  const goTo = (next: number) =>
+    setIndex(Math.max(0, Math.min(total - 1, next)));
 
   return (
     <div className="relative">
@@ -122,7 +123,11 @@ function ViewStepper<TRecord>({
               initialData={displayRecord}
               onClose={onClose}
               onSubmit={() => {}}
-              stepLabel={isMulti ? ` ${t("viewStep", { current: index + 1, total })}` : undefined}
+              stepLabel={
+                isMulti
+                  ? ` ${t("viewStep", { current: index + 1, total })}`
+                  : undefined
+              }
             />
           </div>
           {isLoadingCurrent && (

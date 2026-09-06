@@ -9,7 +9,11 @@ import type { LimsPhrase, LimsPhraseEntry, LimsRef } from "./LimsPhrase.types";
 const refLabel = (ref: LimsRef | null | undefined) => ref?.name ?? "";
 
 /** Column factory (STANDARDS.md §8). */
-export const getLimsPhraseColumns = ({ t }: { t: TFunction }): ColDef<LimsPhrase>[] => [
+export const getLimsPhraseColumns = ({
+  t
+}: {
+  t: TFunction;
+}): ColDef<LimsPhrase>[] => [
   {
     field: "phrase",
     headerName: t("limsPhraseCode"),
@@ -25,7 +29,9 @@ export const getLimsPhraseColumns = ({ t }: { t: TFunction }): ColDef<LimsPhrase
     flex: 1,
     minWidth: 200,
     cellRenderer: (params: ICellRendererParams<LimsPhrase>) =>
-      params.data ? <AvatarCell label={params.data.name} fallbackInitial="P" /> : null
+      params.data ? (
+        <AvatarCell label={params.data.name} fallbackInitial="P" />
+      ) : null
   },
   {
     colId: "entries",
@@ -59,7 +65,8 @@ export const getLimsPhraseColumns = ({ t }: { t: TFunction }): ColDef<LimsPhrase
     flex: 0.6,
     minWidth: 140,
     sortable: false,
-    valueGetter: (params) => (params.data?.isSystem ? t("limsSystem") : t("limsCustom")),
+    valueGetter: (params) =>
+      params.data?.isSystem ? t("limsSystem") : t("limsCustom"),
     cellRenderer: (params: ICellRendererParams<LimsPhrase>) =>
       params.data?.isSystem ? (
         <StatusPill label={t("limsSystem")} tone="warning" />

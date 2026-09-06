@@ -7,20 +7,41 @@ import type { ServerListParams } from "@/lib/query/listTypes";
 const ROUTE = "/gxp-applications/application-groups";
 const DATA_KEYS = ["applicationGroups", "groups", "data"];
 
-export const applicationGroupKeys = { options: ["applicationGroup", "options"] as const };
+export const applicationGroupKeys = {
+  options: ["applicationGroup", "options"] as const
+};
 
 interface AppGroupRow {
   id: string;
   appGroup?: string;
 }
 
-export const fetchApplicationGroupOptions = async (args: { search: string; page: number }, signal?: AbortSignal) => {
-  const params: ServerListParams = { page: args.page, limit: 20, search: args.search || undefined };
-  const response = await gxpApi.get(ROUTE, { params: buildServerParams(params), signal });
-  return toOptionsPage<AppGroupRow>(response.data, params, (g) => g.appGroup ?? "", DATA_KEYS);
+export const fetchApplicationGroupOptions = async (
+  args: { search: string; page: number },
+  signal?: AbortSignal
+) => {
+  const params: ServerListParams = {
+    page: args.page,
+    limit: 20,
+    search: args.search || undefined
+  };
+  const response = await gxpApi.get(ROUTE, {
+    params: buildServerParams(params),
+    signal
+  });
+  return toOptionsPage<AppGroupRow>(
+    response.data,
+    params,
+    (g) => g.appGroup ?? "",
+    DATA_KEYS
+  );
 };
 
-export const useApplicationGroupOptions = (args: { search: string; enabled?: boolean; selectedValues?: string[] }) =>
+export const useApplicationGroupOptions = (args: {
+  search: string;
+  enabled?: boolean;
+  selectedValues?: string[];
+}) =>
   useAsyncOptions({
     queryKey: applicationGroupKeys.options,
     fetchPage: fetchApplicationGroupOptions,

@@ -107,7 +107,9 @@ export const resolveIds = async (
     );
     ids.push(...existing.map((doc: any) => String(doc.id)));
 
-    const toCreate = cleanedNames.filter((name: string) => !existingNameSet.has(name));
+    const toCreate = cleanedNames.filter(
+      (name: string) => !existingNameSet.has(name)
+    );
     if (toCreate.length) {
       const recordsToCreate = toCreate.map((name: string) => ({
         id: crypto.randomUUID(),

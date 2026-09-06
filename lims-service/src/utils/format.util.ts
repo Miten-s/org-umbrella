@@ -8,11 +8,16 @@ export const formatLimsEntity = (entity: any): any => {
   }
 
   // findAndCountAll result shape.
-  if (entity.rows !== undefined && entity.count !== undefined && Array.isArray(entity.rows)) {
+  if (
+    entity.rows !== undefined &&
+    entity.count !== undefined &&
+    Array.isArray(entity.rows)
+  ) {
     return { count: entity.count, rows: entity.rows.map(formatLimsEntity) };
   }
 
-  const json = typeof entity.toJSON === "function" ? entity.toJSON() : { ...entity };
+  const json =
+    typeof entity.toJSON === "function" ? entity.toJSON() : { ...entity };
 
   if (json.id !== undefined) {
     json._id = json.id;

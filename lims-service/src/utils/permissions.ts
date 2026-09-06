@@ -43,11 +43,16 @@ export type LimsAction = (typeof LIMS_ACTIONS)[number];
 export const OPERATE_ALL = "OPERATE:ALL";
 
 /** `LIMS:CREATE:SAMPLE` — the canonical wire format. */
-export const permissionCode = (action: LimsAction, entity: LimsEntity | string): string =>
-  `LIMS:${action}:${entity}`;
+export const permissionCode = (
+  action: LimsAction,
+  entity: LimsEntity | string
+): string => `LIMS:${action}:${entity}`;
 
 /** Which of the four booleans on a role entry grants a given action. */
-export const ACTION_COLUMN: Record<LimsAction, "canView" | "canCreate" | "canEdit" | "canRemove"> = {
+export const ACTION_COLUMN: Record<
+  LimsAction,
+  "canView" | "canCreate" | "canEdit" | "canRemove"
+> = {
   VIEW: "canView",
   CREATE: "canCreate",
   UPDATE: "canEdit",

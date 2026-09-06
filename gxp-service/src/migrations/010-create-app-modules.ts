@@ -43,8 +43,12 @@ export const up = async (queryInterface: QueryInterface) => {
     }
   });
 
-  await queryInterface.addIndex("app_modules", ["application_id", "module_name"], {
-    unique: true,
-    name: "app_modules_app_name_idx"
-  });
+  await queryInterface.addIndex(
+    "app_modules",
+    ["application_id", "module_name"],
+    {
+      unique: true,
+      name: "app_modules_app_name_idx"
+    }
+  );
 };

@@ -22,7 +22,8 @@ import type { LimsInspectionPlanPayload } from "./LimsInspectionPlan.types";
 
 export const limsInspectionPlanKeys = {
   all: ["limsInspectionPlan"] as const,
-  list: (params: ServerListParams) => ["limsInspectionPlan", "list", params] as const,
+  list: (params: ServerListParams) =>
+    ["limsInspectionPlan", "list", params] as const,
   audit: (id: string) => ["limsInspectionPlan", "audit", id] as const,
   options: ["limsInspectionPlan", "options"] as const
 };
@@ -66,7 +67,8 @@ const useInvalidate = () => {
 export const useCreateLimsInspectionPlan = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (payload: LimsInspectionPlanPayload) => createLimsInspectionPlan(payload),
+    mutationFn: (payload: LimsInspectionPlanPayload) =>
+      createLimsInspectionPlan(payload),
     onSuccess: () => {
       toast("Record created successfully.", "success");
       invalidate();
@@ -77,7 +79,13 @@ export const useCreateLimsInspectionPlan = () => {
 export const useUpdateLimsInspectionPlan = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: LimsInspectionPlanPayload }) => updateLimsInspectionPlan(id, payload),
+    mutationFn: ({
+      id,
+      payload
+    }: {
+      id: string;
+      payload: LimsInspectionPlanPayload;
+    }) => updateLimsInspectionPlan(id, payload),
     onSuccess: () => {
       toast("Record updated successfully.", "success");
       invalidate();
@@ -134,7 +142,8 @@ export const useBulkRestoreLimsInspectionPlan = () => {
 export const useBulkCloneLimsInspectionPlan = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (selection: BulkSelection) => bulkCloneLimsInspectionPlan(selection),
+    mutationFn: (selection: BulkSelection) =>
+      bulkCloneLimsInspectionPlan(selection),
     onSuccess: (_data, selection) => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
       toast(
@@ -153,7 +162,8 @@ export const useBulkCloneLimsInspectionPlan = () => {
 export const useBulkCopyLimsInspectionPlan = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (records: LimsInspectionPlanPayload[]) => bulkCopyLimsInspectionPlan(records),
+    mutationFn: (records: LimsInspectionPlanPayload[]) =>
+      bulkCopyLimsInspectionPlan(records),
     onSuccess: (data) => {
       const warnings = data.results.filter((r) => r.warning);
       toast(

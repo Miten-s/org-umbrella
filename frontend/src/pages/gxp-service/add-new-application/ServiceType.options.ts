@@ -14,13 +14,32 @@ interface ServiceTypeRow {
   service?: string;
 }
 
-export const fetchServiceTypeOptions = async (args: { search: string; page: number }, signal?: AbortSignal) => {
-  const params: ServerListParams = { page: args.page, limit: 20, search: args.search || undefined };
-  const response = await gxpApi.get(ROUTE, { params: buildServerParams(params), signal });
-  return toOptionsPage<ServiceTypeRow>(response.data, params, (s) => s.service ?? "", DATA_KEYS);
+export const fetchServiceTypeOptions = async (
+  args: { search: string; page: number },
+  signal?: AbortSignal
+) => {
+  const params: ServerListParams = {
+    page: args.page,
+    limit: 20,
+    search: args.search || undefined
+  };
+  const response = await gxpApi.get(ROUTE, {
+    params: buildServerParams(params),
+    signal
+  });
+  return toOptionsPage<ServiceTypeRow>(
+    response.data,
+    params,
+    (s) => s.service ?? "",
+    DATA_KEYS
+  );
 };
 
-export const useServiceTypeOptions = (args: { search: string; enabled?: boolean; selectedValues?: string[] }) =>
+export const useServiceTypeOptions = (args: {
+  search: string;
+  enabled?: boolean;
+  selectedValues?: string[];
+}) =>
   useAsyncOptions({
     queryKey: serviceTypeKeys.options,
     fetchPage: fetchServiceTypeOptions,

@@ -37,12 +37,18 @@ export const toExistingAttachments = (raw: unknown): ExistingAttachment[] =>
       const path =
         typeof a === "string"
           ? a
-          : (a?.attachment ?? a?.filename ?? a?.path ?? a?.name ?? a?.url ?? "");
+          : (a?.attachment ??
+            a?.filename ??
+            a?.path ??
+            a?.name ??
+            a?.url ??
+            "");
       if (!path) return null;
       return {
         id: String(a?._id ?? a?.id ?? path),
         path,
-        name: (typeof a === "object" && a?.fileName) || prettifyAttachmentName(path)
+        name:
+          (typeof a === "object" && a?.fileName) || prettifyAttachmentName(path)
       };
     })
     .filter(Boolean) as ExistingAttachment[];

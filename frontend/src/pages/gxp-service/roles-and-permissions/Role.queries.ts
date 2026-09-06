@@ -58,7 +58,8 @@ export const useCreateRole = () => {
 export const useUpdateRole = () => {
   const invalidate = useInvalidateRoles();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: GxpRolePayload }) => updateRole(id, payload),
+    mutationFn: ({ id, payload }: { id: string; payload: GxpRolePayload }) =>
+      updateRole(id, payload),
     onSuccess: () => {
       toast("Role updated successfully.", "success");
       invalidate();
@@ -72,7 +73,12 @@ export const useBulkDeleteRole = () => {
     mutationFn: (selection: BulkSelection) => bulkDeleteRole(selection),
     onSuccess: (_data, selection) => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
-      toast(count && count > 1 ? `${count} roles deleted successfully.` : "Role deleted successfully.", "success");
+      toast(
+        count && count > 1
+          ? `${count} roles deleted successfully.`
+          : "Role deleted successfully.",
+        "success"
+      );
       invalidate();
     }
   });

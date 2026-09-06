@@ -1,7 +1,10 @@
 import { z } from "zod";
 
 const dateOrderRefinement = {
-  check: (data: { lastMaintenanceDate?: string; nextMaintenanceDate?: string }) =>
+  check: (data: {
+    lastMaintenanceDate?: string;
+    nextMaintenanceDate?: string;
+  }) =>
     !data.lastMaintenanceDate ||
     !data.nextMaintenanceDate ||
     data.nextMaintenanceDate >= data.lastMaintenanceDate,

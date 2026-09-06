@@ -7,10 +7,7 @@ import crypto from "crypto";
 const normalizeModuleName = (value: string) => value.trim().toLowerCase();
 
 const normalizeModuleIdSegment = (value: string) =>
-  value
-    .trim()
-    .replace(/\s+/g, "-")
-    .toLowerCase();
+  value.trim().replace(/\s+/g, "-").toLowerCase();
 
 const buildModuleId = (moduleName: string, applicationName?: string) => {
   const left = normalizeModuleIdSegment(moduleName || "");
@@ -63,10 +60,12 @@ export const resolveModuleIdsForApplication = async (
 
   const uniqueIds = Array.from(new Set(ids));
 
-  const selectedById = uniqueIds.length ? await AppModule.findAll({
-    where: { id: uniqueIds },
-    transaction
-  }) : [];
+  const selectedById = uniqueIds.length
+    ? await AppModule.findAll({
+        where: { id: uniqueIds },
+        transaction
+      })
+    : [];
 
   if (selectedById.length !== uniqueIds.length) {
     throw new Error("One or more selected modules do not exist");
@@ -124,7 +123,13 @@ export const resolveModuleIdsForApplication = async (
     const appDoc = await Application.findByPk(applicationId, { transaction });
     const appName = appDoc?.applicationName || "unassigned";
 
-    const toCreate: Array<{ id: string; moduleName: string; applicationId: string; moduleIdString: string; status: "enabled" | "disabled" }> = [];
+    const toCreate: Array<{
+      id: string;
+      moduleName: string;
+      applicationId: string;
+      moduleIdString: string;
+      status: "enabled" | "disabled";
+    }> = [];
     for (const name of unresolvedNames) {
       const key = normalizeModuleName(name);
       const existingId = existingByName.get(key);
@@ -148,10 +153,12 @@ export const resolveModuleIdsForApplication = async (
   }
 
   const finalIds = Array.from(new Set(ids));
-  const finalModules = finalIds.length ? await AppModule.findAll({
-    where: { id: finalIds },
-    transaction
-  }) : [];
+  const finalModules = finalIds.length
+    ? await AppModule.findAll({
+        where: { id: finalIds },
+        transaction
+      })
+    : [];
 
   const seen = new Set<string>();
   for (const module of finalModules) {
@@ -184,8 +191,9 @@ export const syncModuleOwnership = async (
   );
 
   if (removedModuleIds.length) {
-    await AppModule.destroy(
-      { where: { id: removedModuleIds, applicationId }, transaction }
-    );
+    await AppModule.destroy({
+      where: { id: removedModuleIds, applicationId },
+      transaction
+    });
   }
 };

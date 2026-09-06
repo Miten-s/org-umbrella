@@ -148,7 +148,9 @@ const LimsProjectList = () => {
     table.clearSelection();
   };
 
-  const handleSaveEdits = (updates: { id: string; payload: LimsProjectPayload }[]) => {
+  const handleSaveEdits = (
+    updates: { id: string; payload: LimsProjectPayload }[]
+  ) => {
     handleCloseForm();
     compliance.requestBulkUpdate(updates);
   };
@@ -300,8 +302,7 @@ const LimsProjectList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_PROJECT,
-        onClick: (project) =>
-          openCopy([project.id])
+        onClick: (project) => openCopy([project.id])
       },
       {
         key: "restore",
@@ -396,7 +397,8 @@ const LimsProjectList = () => {
             saving={bulkUpdate.isPending}
             entityLabel={t("limsProject")}
           />
-        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        ) : formMode !== "create" &&
+          (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>
@@ -436,7 +438,10 @@ const LimsProjectList = () => {
         onBulkUpdate={async (reason) => {
           const pending = compliance.pendingBulkUpdate;
           if (pending) {
-            await bulkUpdate.mutateAsync({ updates: pending.updates, changeReason: reason });
+            await bulkUpdate.mutateAsync({
+              updates: pending.updates,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearBulkUpdate();

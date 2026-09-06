@@ -8,10 +8,14 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
-import { environmentSchema, type EnvironmentFormValues } from "./Environment.schema";
+import {
+  environmentSchema,
+  type EnvironmentFormValues
+} from "./Environment.schema";
 import type { Environment } from "./Environment.types";
 
-export type EnvironmentFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type EnvironmentFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface EnvironmentFormProps {
   mode?: EnvironmentFormMode;
@@ -52,7 +56,8 @@ const EnvironmentForm = ({
 
   const initialValues = useMemo<EnvironmentFormValues>(
     () => ({
-      environmentName: mode === "copy" ? "" : initialData?.environmentName || "",
+      environmentName:
+        mode === "copy" ? "" : initialData?.environmentName || "",
       description: initialData?.description || "",
       status: initialData?.status || "enabled"
     }),
@@ -79,7 +84,10 @@ const EnvironmentForm = ({
       <form
         id={formId}
         onSubmit={handleSubmit((values) => {
-          if ((mode === "edit" || mode === "bulk-edit") && isPayloadEqual(values, initialValues)) {
+          if (
+            (mode === "edit" || mode === "bulk-edit") &&
+            isPayloadEqual(values, initialValues)
+          ) {
             (onUnchanged ?? onClose)();
             return;
           }
@@ -114,7 +122,9 @@ const EnvironmentForm = ({
             <TextArea
               disabled={isReadOnly}
               value={description || ""}
-              onChange={(val) => setValue("description", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("description", val, { shouldValidate: true })
+              }
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
@@ -125,17 +135,29 @@ const EnvironmentForm = ({
               label={status === "enabled" ? t("enabled") : t("disabled")}
               checked={status === "enabled"}
               disabled={isReadOnly}
-              onChange={(checked) => setValue("status", checked ? "enabled" : "disabled")}
+              onChange={(checked) =>
+                setValue("status", checked ? "enabled" : "disabled")
+              }
             />
           </div>
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

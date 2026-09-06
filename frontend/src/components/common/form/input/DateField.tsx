@@ -10,8 +10,18 @@ import { ChevronLeftIcon } from "@/public/icons";
 dayjs.extend(customParseFormat);
 
 const MONTH_OPTIONS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December"
 ].map((label, index) => ({ label, value: String(index) }));
 
 /** A fixed, generous range rather than "current year ± N" — keeps the list stable. */
@@ -24,7 +34,11 @@ const YEAR_OPTIONS = Array.from({ length: 2100 - 1950 + 1 }, (_, i) => {
  * unchanged; `display`/`placeholder` are just what the user sees. A future UTC/timezone
  * conversion would hook in right where `parsed`/`onChange` touch dayjs below. */
 const FORMATS = {
-  date: { value: "YYYY-MM-DD", display: "dd/MM/yyyy", placeholder: "dd/mm/yyyy" },
+  date: {
+    value: "YYYY-MM-DD",
+    display: "dd/MM/yyyy",
+    placeholder: "dd/mm/yyyy"
+  },
   time: { value: "HH:mm", display: "HH:mm", placeholder: "hh:mm" }
 } as const;
 
@@ -93,7 +107,9 @@ const DateField: FC<DateFieldProps> = ({
       <DatePicker
         name={name}
         selected={selected}
-        onChange={(date: Date | null) => onChange?.(date ? dayjs(date).format(fmt.value) : "")}
+        onChange={(date: Date | null) =>
+          onChange?.(date ? dayjs(date).format(fmt.value) : "")
+        }
         onCalendarOpen={handleCalendarOpen}
         onCalendarClose={handleCalendarClose}
         disabled={disabled}
@@ -112,7 +128,15 @@ const DateField: FC<DateFieldProps> = ({
         timeCaption={mode === "time" ? "Time" : undefined}
         renderCustomHeader={
           mode === "date"
-            ? ({ date, changeYear, changeMonth, decreaseMonth, increaseMonth, prevMonthButtonDisabled, nextMonthButtonDisabled }: ReactDatePickerCustomHeaderProps) => (
+            ? ({
+                date,
+                changeYear,
+                changeMonth,
+                decreaseMonth,
+                increaseMonth,
+                prevMonthButtonDisabled,
+                nextMonthButtonDisabled
+              }: ReactDatePickerCustomHeaderProps) => (
                 <div className="flex items-center justify-center gap-1.5 px-2 pb-2">
                   <button
                     type="button"
@@ -158,7 +182,11 @@ const DateField: FC<DateFieldProps> = ({
         }
       />
       {hint && (
-        <p className={`mt-1.5 text-xs ${error ? "text-error-500" : "text-gray-500"}`}>{hint}</p>
+        <p
+          className={`mt-1.5 text-xs ${error ? "text-error-500" : "text-gray-500"}`}
+        >
+          {hint}
+        </p>
       )}
     </div>
   );

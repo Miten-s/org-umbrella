@@ -13,12 +13,17 @@ import { useAttachments } from "@/hooks/useAttachments";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsLotOptions } from "@/pages/lims/lots/LimsLot.queries";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
-import { limsBatchSchema, limsBatchCopySchema, type LimsBatchFormValues } from "./LimsBatch.schema";
+import {
+  limsBatchSchema,
+  limsBatchCopySchema,
+  type LimsBatchFormValues
+} from "./LimsBatch.schema";
 import type { LimsBatch, LimsBatchPayload, LimsRef } from "./LimsBatch.types";
 
 /** "copy" renders like "create" except the business ID starts blank (stays EDITABLE —
  * `applyBusinessId` only mints when empty). Attachments hidden: the batch save is JSON-only. */
-export type LimsBatchFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type LimsBatchFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsBatchFormProps {
   mode?: LimsBatchFormMode;
@@ -74,7 +79,7 @@ const LimsBatchForm = ({
       batchName: initialData?.batchName ?? "",
       group: initialData?.group?.id ?? "",
       lots: (initialData?.lots ?? []).map((ref) => ref.id),
-      description: initialData?.description ?? "",
+      description: initialData?.description ?? ""
     }),
     [initialData, mode]
   );
@@ -86,7 +91,9 @@ const LimsBatchForm = ({
     setValue,
     formState: { errors, isSubmitting }
   } = useForm<LimsBatchFormValues>({
-    resolver: zodResolver(mode === "copy" ? limsBatchCopySchema : limsBatchSchema),
+    resolver: zodResolver(
+      mode === "copy" ? limsBatchCopySchema : limsBatchSchema
+    ),
     defaultValues: initialValues
   });
 
@@ -120,22 +127,29 @@ const LimsBatchForm = ({
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
-          if ((mode === "edit" || mode === "bulk-edit") && !attachments.isDirty && isPayloadEqual(values, initialValues)) {
+          if (
+            (mode === "edit" || mode === "bulk-edit") &&
+            !attachments.isDirty &&
+            isPayloadEqual(values, initialValues)
+          ) {
             (onUnchanged ?? onClose)();
             return;
           }
-          onSubmit({ ...values, keptAttachmentIds: attachments.keptIds }, attachments.newFiles);
+          onSubmit(
+            { ...values, keptAttachmentIds: attachments.keptIds },
+            attachments.newFiles
+          );
         })}
         className="min-w-0 space-y-4"
       >
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsBatch") })
-                        : mode === "copy"
+            : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsBatch") })}${stepLabel ?? ""}`
               : initialData
-              ? `${t("update", { entity: t("limsBatch") })}${stepLabel ?? ""}`
-              : t("create", { entity: t("limsBatch") })}
+                ? `${t("update", { entity: t("limsBatch") })}${stepLabel ?? ""}`
+                : t("create", { entity: t("limsBatch") })}
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
@@ -164,7 +178,8 @@ const LimsBatchForm = ({
               name="lots"
               control={control}
               render={({ field }) => (
-                <AsyncSelect multi
+                <AsyncSelect
+                  multi
                   useOptions={useLimsLotOptions}
                   value={field.value}
                   onChange={field.onChange}
@@ -180,21 +195,36 @@ const LimsBatchForm = ({
             <TextArea
               disabled={isReadOnly}
               value={description || ""}
-              onChange={(val) => setValue("description", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("description", val, { shouldValidate: true })
+              }
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
           {mode !== "copy" && mode !== "bulk-edit" && (
-            <LimsAttachmentsField attachments={attachments} disabled={isReadOnly} />
+            <LimsAttachmentsField
+              attachments={attachments}
+              disabled={isReadOnly}
+            />
           )}
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

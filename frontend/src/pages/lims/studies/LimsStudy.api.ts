@@ -1,5 +1,9 @@
 import limsApi from "@/utils/lims.axios.interceptor";
-import { buildServerParams, toListResult, toOptionsPage } from "@/lib/query/listAdapter";
+import {
+  buildServerParams,
+  toListResult,
+  toOptionsPage
+} from "@/lib/query/listAdapter";
 import { bulkSelectionToBody, type BulkSelection } from "@/lib/query/listTypes";
 import type { ServerListParams } from "@/lib/query/listTypes";
 import type { LimsStudy, LimsStudyPayload } from "./LimsStudy.types";
@@ -22,10 +26,18 @@ export const fetchLimsStudyList = async (
   signal?: AbortSignal
 ) => {
   const response = await limsApi.get(ROUTE, {
-    params: { ...buildServerParams(params), includeRemoved: includeRemoved || undefined },
+    params: {
+      ...buildServerParams(params),
+      includeRemoved: includeRemoved || undefined
+    },
     signal
   });
-  return toListResult<LimsStudy>(response.data, params, DATA_KEYS, RELATION_KEYS);
+  return toListResult<LimsStudy>(
+    response.data,
+    params,
+    DATA_KEYS,
+    RELATION_KEYS
+  );
 };
 
 /** Options for Stock, Stock Batches and Instruments. */
@@ -38,7 +50,10 @@ export const fetchLimsStudyOptions = async (
     limit: 20,
     search: args.search || undefined
   };
-  const response = await limsApi.get(ROUTE, { params: buildServerParams(params), signal });
+  const response = await limsApi.get(ROUTE, {
+    params: buildServerParams(params),
+    signal
+  });
   return toOptionsPage<LimsStudy>(
     response.data,
     params,
@@ -58,7 +73,10 @@ const toBody = (payload: LimsStudyPayload, files?: File[]) => {
   };
 };
 
-export const createLimsStudy = async (payload: LimsStudyPayload, files?: File[]) => {
+export const createLimsStudy = async (
+  payload: LimsStudyPayload,
+  files?: File[]
+) => {
   const { body, config } = toBody(payload, files);
   const response = await limsApi.post(ROUTE, body, config);
   return response.data;
@@ -97,7 +115,10 @@ export const bulkRestoreLimsStudy = async (
 };
 
 export const bulkCloneLimsStudy = async (selection: BulkSelection) => {
-  const response = await limsApi.post(`${ROUTE}/bulk-duplicate`, bulkSelectionToBody(selection));
+  const response = await limsApi.post(
+    `${ROUTE}/bulk-duplicate`,
+    bulkSelectionToBody(selection)
+  );
   return response.data;
 };
 
@@ -118,7 +139,10 @@ export const bulkUpdateLimsStudy = async (
   updates: { id: string; payload: LimsStudyPayload }[],
   changeReason: string
 ) => {
-  const response = await limsApi.patch(`${ROUTE}/bulk-update`, { updates, changeReason });
+  const response = await limsApi.patch(`${ROUTE}/bulk-update`, {
+    updates,
+    changeReason
+  });
   return response.data as {
     message: string;
     count: number;
@@ -127,7 +151,9 @@ export const bulkUpdateLimsStudy = async (
 };
 
 export const restoreLimsStudy = async (id: string, changeReason: string) => {
-  const response = await limsApi.patch(`${ROUTE}/restore/${id}`, { changeReason });
+  const response = await limsApi.patch(`${ROUTE}/restore/${id}`, {
+    changeReason
+  });
   return response.data;
 };
 
@@ -136,6 +162,9 @@ export const fetchLimsStudyAudit = async (
   signal?: AbortSignal,
   params?: { page?: number; limit?: number }
 ) => {
-  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { params, signal });
+  const response = await limsApi.get(`${ROUTE}/${id}/audit`, {
+    params,
+    signal
+  });
   return response.data;
 };

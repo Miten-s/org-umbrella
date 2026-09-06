@@ -14,7 +14,13 @@ import { QueryInterface } from "sequelize";
  * soft-deleted), so it now succeeds. Restore paths must re-check for an active
  * name collision before un-deleting.
  */
-const TARGETS: { table: string; column: string; oldIndex: string; oldConstraint: string; newIndex: string }[] = [
+const TARGETS: {
+  table: string;
+  column: string;
+  oldIndex: string;
+  oldConstraint: string;
+  newIndex: string;
+}[] = [
   {
     table: "locations",
     column: "location_name",
@@ -42,7 +48,9 @@ export const up = async (queryInterface: QueryInterface) => {
   const sequelize = queryInterface.sequelize;
   for (const { table, column, oldIndex, oldConstraint, newIndex } of TARGETS) {
     // Drop the full unique constraint (from column `unique: true`) if present…
-    await sequelize.query(`ALTER TABLE "${table}" DROP CONSTRAINT IF EXISTS "${oldConstraint}";`);
+    await sequelize.query(
+      `ALTER TABLE "${table}" DROP CONSTRAINT IF EXISTS "${oldConstraint}";`
+    );
     // …and the named full unique index.
     await sequelize.query(`DROP INDEX IF EXISTS "${oldIndex}";`);
     // Also drop any lingering auto-named unique index on the column, defensively.

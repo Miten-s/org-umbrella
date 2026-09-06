@@ -15,12 +15,19 @@ import {
   bulkRestoreEnvironments
 } from "../controllers/gxp-service-environments.controller";
 import API_ROUTES from "../utils/routes";
-import { validateDto, validateDtoArray } from "../middlewares/validate-dto.middleware";
+import {
+  validateDto,
+  validateDtoArray
+} from "../middlewares/validate-dto.middleware";
 import {
   CreateEnvironmentDto,
   UpdateEnvironmentDto
 } from "../dtos/environment.dto";
-import { BulkCreateDto, BulkUpdateDto, BulkOperationDto } from "../dtos/common.dto";
+import {
+  BulkCreateDto,
+  BulkUpdateDto,
+  BulkOperationDto
+} from "../dtos/common.dto";
 
 const router = Router();
 

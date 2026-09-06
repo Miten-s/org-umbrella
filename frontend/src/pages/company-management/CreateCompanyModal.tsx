@@ -68,10 +68,7 @@ const CreateCompanyModal = ({
   }, [initialData?.logo, setValue]);
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-2rem)] overflow-y-auto overflow-x-hidden rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="min-w-0 space-y-4"
-      >
+      <form onSubmit={handleSubmit(onSubmit)} className="min-w-0 space-y-4">
         <h2 className="text-xl font-semibold">
           {t("update", { entity: t("company") })}
         </h2>

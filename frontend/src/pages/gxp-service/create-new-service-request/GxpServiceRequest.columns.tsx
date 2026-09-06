@@ -6,24 +6,37 @@ import type { TFunction } from "i18next";
 import type { GxpServiceRequest } from "./GxpServiceRequest.types";
 
 const appName = (a: any): string =>
-  a && typeof a === "object" ? String(a.applicationName ?? a.name ?? "") : String(a ?? "");
+  a && typeof a === "object"
+    ? String(a.applicationName ?? a.name ?? "")
+    : String(a ?? "");
 
 /** SR columns — id, short description, application, priority, status (read-only). */
-export const getServiceRequestColumns = ({ t }: { t: TFunction }): ColDef<GxpServiceRequest>[] => [
+export const getServiceRequestColumns = ({
+  t
+}: {
+  t: TFunction;
+}): ColDef<GxpServiceRequest>[] => [
   {
     field: "serviceRequestId",
     headerName: t("identity", { defaultValue: "Identity" }),
     flex: 1,
     minWidth: 220,
     cellRenderer: (params: ICellRendererParams<GxpServiceRequest>) =>
-      params.data ? <AvatarCell label={params.data.serviceRequestId || "-"} fallbackInitial="SR" /> : null
+      params.data ? (
+        <AvatarCell
+          label={params.data.serviceRequestId || "-"}
+          fallbackInitial="SR"
+        />
+      ) : null
   },
   {
     field: "shortDescription",
     headerName: t("shortDescription"),
     flex: 1.2,
     minWidth: 220,
-    cellRenderer: (params: ICellRendererParams<GxpServiceRequest>) => <TruncateCell value={params.data?.shortDescription} />
+    cellRenderer: (params: ICellRendererParams<GxpServiceRequest>) => (
+      <TruncateCell value={params.data?.shortDescription} />
+    )
   },
   {
     field: "application",
@@ -32,7 +45,11 @@ export const getServiceRequestColumns = ({ t }: { t: TFunction }): ColDef<GxpSer
     minWidth: 180,
     sortable: false,
     cellRenderer: (params: ICellRendererParams<GxpServiceRequest>) => (
-      <TruncateCell value={appName(params.data?.application) || params.data?.applicationName} />
+      <TruncateCell
+        value={
+          appName(params.data?.application) || params.data?.applicationName
+        }
+      />
     )
   },
   {
@@ -40,7 +57,9 @@ export const getServiceRequestColumns = ({ t }: { t: TFunction }): ColDef<GxpSer
     headerName: t("priority"),
     flex: 0,
     minWidth: 120,
-    cellRenderer: (params: ICellRendererParams<GxpServiceRequest>) => <TruncateCell value={params.data?.priority} />
+    cellRenderer: (params: ICellRendererParams<GxpServiceRequest>) => (
+      <TruncateCell value={params.data?.priority} />
+    )
   },
   {
     field: "status",
@@ -50,7 +69,11 @@ export const getServiceRequestColumns = ({ t }: { t: TFunction }): ColDef<GxpSer
     cellRenderer: (params: ICellRendererParams<GxpServiceRequest>) => {
       const s = params.data?.status;
       if (!s) return <TruncateCell value="-" />;
-      const tone = s.startsWith("Closed") ? "neutral" : s === "New" ? "success" : "warning";
+      const tone = s.startsWith("Closed")
+        ? "neutral"
+        : s === "New"
+          ? "success"
+          : "warning";
       return <StatusPill label={s} tone={tone} center={false} />;
     }
   }

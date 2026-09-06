@@ -3,8 +3,15 @@ import Instrument from "../models/instrument.model";
 import Group from "../models/group.model";
 import PhraseEntry from "../models/phrase-entry.model";
 import LimsUser from "../models/lims-user.model";
-import { buildCrudRouter, buildCrudService, CrudConfig } from "../utils/crud-factory";
-import { CreateCalibrationDto, UpdateCalibrationDto } from "../dtos/instrument.dto";
+import {
+  buildCrudRouter,
+  buildCrudService,
+  CrudConfig
+} from "../utils/crud-factory";
+import {
+  CreateCalibrationDto,
+  UpdateCalibrationDto
+} from "../dtos/instrument.dto";
 
 /**
  * Calibrations and their schedules. `nextMaintenanceDate` is indexed because
@@ -20,10 +27,30 @@ export const calibrationConfig: CrudConfig<Calibration> = {
   defaultSortBy: "calibrationName",
   relations: [
     { model: Group, as: "group", attributes: ["id", "name"], required: false },
-    { model: Instrument, as: "instrument", attributes: ["id", "instrumentId", "name"], required: false },
-    { model: PhraseEntry, as: "calibrationType", attributes: ["id", "phraseEntryId", "name"], required: false },
-    { model: PhraseEntry, as: "status", attributes: ["id", "phraseEntryId", "name"], required: false },
-    { model: LimsUser, as: "owner", attributes: ["id", "userName", ["user_name", "name"]], required: false }
+    {
+      model: Instrument,
+      as: "instrument",
+      attributes: ["id", "instrumentId", "name"],
+      required: false
+    },
+    {
+      model: PhraseEntry,
+      as: "calibrationType",
+      attributes: ["id", "phraseEntryId", "name"],
+      required: false
+    },
+    {
+      model: PhraseEntry,
+      as: "status",
+      attributes: ["id", "phraseEntryId", "name"],
+      required: false
+    },
+    {
+      model: LimsUser,
+      as: "owner",
+      attributes: ["id", "userName", ["user_name", "name"]],
+      required: false
+    }
   ],
   relationFields: {
     group: "groupId",

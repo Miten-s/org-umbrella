@@ -21,18 +21,26 @@ import {
   limsLocationCopySchema,
   type LimsLocationFormValues
 } from "./LimsLocation.schema";
-import type { LimsLocation, LimsLocationPayload, LimsRef } from "./LimsLocation.types";
+import type {
+  LimsLocation,
+  LimsLocationPayload,
+  LimsRef
+} from "./LimsLocation.types";
 
 /** "copy" renders like "create" except the business ID starts blank (stays EDITABLE —
  * `applyBusinessId` only mints when empty, otherwise honors what the user typed). */
-export type LimsLocationFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type LimsLocationFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsLocationFormProps {
   mode?: LimsLocationFormMode;
   initialData?: LimsLocation | null;
   onClose: () => void;
   onUnchanged?: () => void;
-  onSubmit: (payload: LimsLocationPayload, files: File[]) => Promise<void> | void;
+  onSubmit: (
+    payload: LimsLocationPayload,
+    files: File[]
+  ) => Promise<void> | void;
   submitting?: boolean;
   /** Overrides the submit button's label — CopyStepper uses this to say
    * "Next" on every step but the last, where the batch actually saves. */
@@ -50,7 +58,10 @@ interface LimsLocationFormProps {
 
 /** Seeds an AsyncSelect's label from the record's nested relation — the real name
  * instead of a UUID, with no extra fetch (MIGRATION.md §4). */
-const seedOne = (ref: LimsRef | string | null | undefined, label: (r: LimsRef) => string) => {
+const seedOne = (
+  ref: LimsRef | string | null | undefined,
+  label: (r: LimsRef) => string
+) => {
   if (!ref || typeof ref === "string") return undefined;
   const text = label(ref);
   return text ? [{ value: ref.id, label: text }] : undefined;
@@ -99,7 +110,9 @@ const LimsLocationForm = ({
     setValue,
     formState: { errors, isSubmitting }
   } = useForm<LimsLocationFormValues>({
-    resolver: zodResolver(mode === "copy" ? limsLocationCopySchema : limsLocationSchema),
+    resolver: zodResolver(
+      mode === "copy" ? limsLocationCopySchema : limsLocationSchema
+    ),
     defaultValues: initialValues
   });
 
@@ -109,13 +122,19 @@ const LimsLocationForm = ({
 
   const err = (field: keyof LimsLocationFormValues) =>
     errors[field] ? (
-      <p className="mt-1 text-xs text-red-500">{errors[field]?.message as string}</p>
+      <p className="mt-1 text-xs text-red-500">
+        {errors[field]?.message as string}
+      </p>
     ) : null;
 
   const submit = handleSubmit((values) => {
     // Edit + nothing actually changed: skip the reason modal, update call,
     // and audit entry entirely — a no-op Save just closes.
-    if ((mode === "edit" || mode === "bulk-edit") && !attachments.isDirty && isPayloadEqual(values, initialValues)) {
+    if (
+      (mode === "edit" || mode === "bulk-edit") &&
+      !attachments.isDirty &&
+      isPayloadEqual(values, initialValues)
+    ) {
       (onUnchanged ?? onClose)();
       return;
     }
@@ -131,11 +150,11 @@ const LimsLocationForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsLocation") })
-                        : mode === "copy"
+            : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsLocation") })}${stepLabel ?? ""}`
               : initialData
-              ? `${t("update", { entity: t("limsLocation") })}${stepLabel ?? ""}`
-              : t("create", { entity: t("limsLocation") })}
+                ? `${t("update", { entity: t("limsLocation") })}${stepLabel ?? ""}`
+                : t("create", { entity: t("limsLocation") })}
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
@@ -197,9 +216,8 @@ const LimsLocationForm = ({
                   disabled={isReadOnly}
                   error={!!errors.group}
                   placeholder={t("select", { entity: t("limsGroup") })}
-                  initialSelectedOptions={seedOne(
-                    initialData?.group,
-                    (r) => String(r.name ?? "")
+                  initialSelectedOptions={seedOne(initialData?.group, (r) =>
+                    String(r.name ?? "")
                   )}
                 />
               )}
@@ -244,7 +262,9 @@ const LimsLocationForm = ({
                   </span>
                 ))
               ) : (
-                <span className="text-sm text-gray-500 dark:text-gray-400">—</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  —
+                </span>
               )}
             </div>
           </div>
@@ -254,7 +274,9 @@ const LimsLocationForm = ({
             <TextArea
               disabled={isReadOnly}
               value={description || ""}
-              onChange={(val) => setValue("description", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("description", val, { shouldValidate: true })
+              }
               error={!!errors.description}
               hint={errors.description?.message}
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
@@ -266,7 +288,9 @@ const LimsLocationForm = ({
             <TextArea
               disabled={isReadOnly}
               value={otherInformation || ""}
-              onChange={(val) => setValue("otherInformation", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("otherInformation", val, { shouldValidate: true })
+              }
               error={!!errors.otherInformation}
               hint={errors.otherInformation?.message}
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
@@ -274,66 +298,78 @@ const LimsLocationForm = ({
           </div>
 
           {mode !== "copy" && (
-          <div className="min-w-0 md:col-span-2">
-            <Label>{t("limsAttachments")}</Label>
+            <div className="min-w-0 md:col-span-2">
+              <Label>{t("limsAttachments")}</Label>
 
-            {attachments.existing.length ? (
-              <div className="mb-3 flex flex-wrap gap-2">
-                {attachments.existing.map((file) => (
-                  <div
-                    key={file.id}
-                    title={file.name}
-                    className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-800"
-                  >
-                    {isImageName(file.path) ? (
-                      <img
-                        src={getGxpImageUrl(file.path)}
-                        alt={file.name}
-                        className="h-10 w-10 rounded border border-gray-200 object-cover dark:border-gray-700"
-                      />
-                    ) : (
-                      <div className="flex h-10 w-10 items-center justify-center rounded bg-gray-200 text-[10px] font-semibold text-gray-800 dark:bg-gray-700 dark:text-gray-100">
-                        {(file.path.split(".").pop() || "file").toUpperCase().slice(0, 4)}
-                      </div>
-                    )}
-                    <span className="max-w-[220px] truncate text-xs text-gray-800 dark:text-gray-100">
-                      {file.name}
-                    </span>
-                    {!isReadOnly ? (
-                      <button
-                        type="button"
-                        onClick={() => attachments.removeExisting(file.id)}
-                        className="text-[11px] font-semibold text-red-600 hover:text-red-700 dark:text-red-400"
-                      >
-                        {t("delete")}
-                      </button>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            ) : null}
+              {attachments.existing.length ? (
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {attachments.existing.map((file) => (
+                    <div
+                      key={file.id}
+                      title={file.name}
+                      className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-800"
+                    >
+                      {isImageName(file.path) ? (
+                        <img
+                          src={getGxpImageUrl(file.path)}
+                          alt={file.name}
+                          className="h-10 w-10 rounded border border-gray-200 object-cover dark:border-gray-700"
+                        />
+                      ) : (
+                        <div className="flex h-10 w-10 items-center justify-center rounded bg-gray-200 text-[10px] font-semibold text-gray-800 dark:bg-gray-700 dark:text-gray-100">
+                          {(file.path.split(".").pop() || "file")
+                            .toUpperCase()
+                            .slice(0, 4)}
+                        </div>
+                      )}
+                      <span className="max-w-[220px] truncate text-xs text-gray-800 dark:text-gray-100">
+                        {file.name}
+                      </span>
+                      {!isReadOnly ? (
+                        <button
+                          type="button"
+                          onClick={() => attachments.removeExisting(file.id)}
+                          className="text-[11px] font-semibold text-red-600 hover:text-red-700 dark:text-red-400"
+                        >
+                          {t("delete")}
+                        </button>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
 
-            {!isReadOnly ? (
-              <FileUpload
-                value={attachments.newFiles}
-                onChange={attachments.setNewFiles}
-                multiple
-                maxFiles={10}
-                maxSizeMB={10}
-                blockAudioVideo
-                title={t("limsAttachments")}
-              />
-            ) : null}
-          </div>
+              {!isReadOnly ? (
+                <FileUpload
+                  value={attachments.newFiles}
+                  onChange={attachments.setNewFiles}
+                  multiple
+                  maxFiles={10}
+                  maxSizeMB={10}
+                  blockAudioVideo
+                  title={t("limsAttachments")}
+                />
+              ) : null}
+            </div>
           )}
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

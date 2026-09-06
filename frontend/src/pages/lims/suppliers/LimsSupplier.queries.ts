@@ -65,8 +65,13 @@ const useInvalidate = () => {
 export const useCreateLimsSupplier = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ payload, files }: { payload: LimsSupplierPayload; files?: File[] }) =>
-      createLimsSupplier(payload, files),
+    mutationFn: ({
+      payload,
+      files
+    }: {
+      payload: LimsSupplierPayload;
+      files?: File[];
+    }) => createLimsSupplier(payload, files),
     onSuccess: () => {
       toast("Supplier created successfully.", "success");
       invalidate();
@@ -161,7 +166,8 @@ export const useBulkCloneLimsSupplier = () => {
 export const useBulkCopyLimsSupplier = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (records: LimsSupplierPayload[]) => bulkCopyLimsSupplier(records),
+    mutationFn: (records: LimsSupplierPayload[]) =>
+      bulkCopyLimsSupplier(records),
     onSuccess: (data) => {
       const warnings = data.results.filter((r) => r.warning);
       toast(

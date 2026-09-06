@@ -11,7 +11,8 @@ import type { GxpServiceRequestPayload } from "./GxpServiceRequest.types";
 
 export const serviceRequestKeys = {
   all: ["gxpServiceRequest"] as const,
-  list: (params: ServerListParams) => ["gxpServiceRequest", "list", params] as const,
+  list: (params: ServerListParams) =>
+    ["gxpServiceRequest", "list", params] as const,
   detail: (id: string) => ["gxpServiceRequest", "detail", id] as const
 };
 
@@ -45,8 +46,13 @@ const useInvalidate = () => {
 export const useCreateServiceRequest = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ payload, files }: { payload: GxpServiceRequestPayload; files: File[] }) =>
-      createServiceRequest(payload, files),
+    mutationFn: ({
+      payload,
+      files
+    }: {
+      payload: GxpServiceRequestPayload;
+      files: File[];
+    }) => createServiceRequest(payload, files),
     onSuccess: () => {
       toast("Service request created successfully.", "success");
       invalidate();
@@ -57,8 +63,15 @@ export const useCreateServiceRequest = () => {
 export const useUpdateServiceRequest = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ id, payload, files }: { id: string; payload: GxpServiceRequestPayload; files: File[] }) =>
-      updateServiceRequest(id, payload, files),
+    mutationFn: ({
+      id,
+      payload,
+      files
+    }: {
+      id: string;
+      payload: GxpServiceRequestPayload;
+      files: File[];
+    }) => updateServiceRequest(id, payload, files),
     onSuccess: () => {
       toast("Service request updated successfully.", "success");
       invalidate();
@@ -69,10 +82,16 @@ export const useUpdateServiceRequest = () => {
 export const useBulkDeleteServiceRequest = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (selection: BulkSelection) => bulkDeleteServiceRequest(selection),
+    mutationFn: (selection: BulkSelection) =>
+      bulkDeleteServiceRequest(selection),
     onSuccess: (_data, selection) => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
-      toast(count && count > 1 ? `${count} service requests deleted successfully.` : "Service request deleted successfully.", "success");
+      toast(
+        count && count > 1
+          ? `${count} service requests deleted successfully.`
+          : "Service request deleted successfully.",
+        "success"
+      );
       invalidate();
     }
   });

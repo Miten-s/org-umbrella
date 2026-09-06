@@ -24,9 +24,21 @@ export class Aliquot extends Model<IAliquot> implements IAliquot {
 
 Aliquot.init(
   {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    aliquotSetId: { type: DataTypes.UUID, allowNull: false, field: "aliquot_set_id" },
-    aliquotId: { type: DataTypes.STRING(100), allowNull: true, field: "aliquot_id" },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    aliquotSetId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      field: "aliquot_set_id"
+    },
+    aliquotId: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "aliquot_id"
+    },
     description: { type: DataTypes.TEXT, allowNull: true },
     quantity: { type: DataTypes.DECIMAL(18, 6), allowNull: true },
     unit: { type: DataTypes.STRING(50), allowNull: true }

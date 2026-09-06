@@ -8,7 +8,11 @@ import { refLabel } from "@/utils/refLabel";
 import type { LimsScheduler } from "./LimsScheduler.types";
 
 /** Column factory (STANDARDS.md §8). */
-export const getLimsSchedulerColumns = ({ t }: { t: TFunction }): ColDef<LimsScheduler>[] => [
+export const getLimsSchedulerColumns = ({
+  t
+}: {
+  t: TFunction;
+}): ColDef<LimsScheduler>[] => [
   {
     field: "schedulerId",
     headerName: t("limsSchedulerId"),
@@ -25,7 +29,10 @@ export const getLimsSchedulerColumns = ({ t }: { t: TFunction }): ColDef<LimsSch
     minWidth: 210,
     cellRenderer: (params: ICellRendererParams<LimsScheduler>) =>
       params.data ? (
-        <AvatarCell label={String(params.data.name ?? "")} fallbackInitial="•" />
+        <AvatarCell
+          label={String(params.data.name ?? "")}
+          fallbackInitial="•"
+        />
       ) : null
   },
   {

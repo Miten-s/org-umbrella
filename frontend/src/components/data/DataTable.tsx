@@ -25,7 +25,15 @@ import {
   SortChangedEvent
 } from "ag-grid-community";
 import { AgGridReact } from "ag-grid-react";
-import { ComponentType, ReactNode, SVGProps, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ComponentType,
+  ReactNode,
+  SVGProps,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -70,7 +78,11 @@ interface DataTableProps<T> {
   tabs?: DataTableTab[];
   defaultTabKey?: string;
   enableSelection?: boolean;
-  emptyState?: { title?: string; message?: string; action?: { label: string; onClick: () => void } };
+  emptyState?: {
+    title?: string;
+    message?: string;
+    action?: { label: string; onClick: () => void };
+  };
   defaultColDef?: ColDef<T>;
   pageSizeOptions?: number[];
   rowHeight?: number;
@@ -128,9 +140,13 @@ export function DataTable<T extends { id: string }>({
   // Shared across every row's RowActionsCell in this grid — see AppDataTable's
   // own comment on it (BLK-09: opening a second row's ⋮ menu otherwise leaves
   // the first one open too, the two visually overlapping as one "merged" menu).
-  const activeRowMenuRef = useRef<{ id: symbol; close: () => void } | null>(null);
+  const activeRowMenuRef = useRef<{ id: symbol; close: () => void } | null>(
+    null
+  );
 
-  const [activeTab, setActiveTab] = useState(defaultTabKey ?? tabs[0]?.key ?? "");
+  const [activeTab, setActiveTab] = useState(
+    defaultTabKey ?? tabs[0]?.key ?? ""
+  );
 
   // Track the in-flight bulk action so its Button shows the loading spinner
   // (S2 / Rules 3-4) — automatic, no per-module wiring.
@@ -158,7 +174,9 @@ export function DataTable<T extends { id: string }>({
   // --- server tabs → filters ---
   const onTabChange = (tab: DataTableTab) => {
     setActiveTab(tab.key);
-    Object.entries(tab.filter).forEach(([key, value]) => table.setFilter(key, value));
+    Object.entries(tab.filter).forEach(([key, value]) =>
+      table.setFilter(key, value)
+    );
   };
 
   // --- controlled selection sync: hook state -> ag-grid ---
@@ -167,18 +185,27 @@ export function DataTable<T extends { id: string }>({
     syncingRef.current = true;
     gridApi.forEachNode((node) => {
       const id = node.data ? table.getRowId(node.data) : "";
-      const shouldSelect = table.allMatchingSelected || table.selectedIds.has(id);
+      const shouldSelect =
+        table.allMatchingSelected || table.selectedIds.has(id);
       if (node.isSelected() !== shouldSelect) node.setSelected(shouldSelect);
     });
     syncingRef.current = false;
     // Granular table.* deps on purpose — the whole `table` object gets a new identity every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gridApi, table.rows, table.selectedIds, table.allMatchingSelected, table.getRowId]);
+  }, [
+    gridApi,
+    table.rows,
+    table.selectedIds,
+    table.allMatchingSelected,
+    table.getRowId
+  ]);
 
   const onSelectionChanged = (event: SelectionChangedEvent<T>) => {
     if (syncingRef.current) return;
     const pageIds = table.rows.map((row) => table.getRowId(row));
-    const selectedPageIds = event.api.getSelectedRows().map((row) => table.getRowId(row));
+    const selectedPageIds = event.api
+      .getSelectedRows()
+      .map((row) => table.getRowId(row));
     const selectedSet = new Set(selectedPageIds);
     table.setPageSelection(selectedPageIds, true);
     table.setPageSelection(
@@ -190,9 +217,7 @@ export function DataTable<T extends { id: string }>({
   // --- server sort (only when supported) ---
   const onSortChanged = (event: SortChangedEvent<T>) => {
     if (!caps.canSort) return;
-    const sorted = event.api
-      .getColumnState()
-      .find((column) => column.sort);
+    const sorted = event.api.getColumnState().find((column) => column.sort);
     table.setSort(
       sorted?.sort ? { field: sorted.colId, dir: sorted.sort } : undefined
     );
@@ -245,12 +270,16 @@ export function DataTable<T extends { id: string }>({
   );
 
   const firstLoading = table.isLoading && table.rows.length === 0;
-  const showEmpty = !table.isLoading && !table.isError && table.rows.length === 0;
+  const showEmpty =
+    !table.isLoading && !table.isError && table.rows.length === 0;
 
   const errorMessage = getErrorMessage(table.error, "Failed to load records.");
 
   // pagination window numbers
-  const currentPage = Math.min(Math.max(1, table.page), Math.max(1, table.totalPages));
+  const currentPage = Math.min(
+    Math.max(1, table.page),
+    Math.max(1, table.totalPages)
+  );
 
   // "select all matching" affordance
   const allPageSelected =
@@ -321,8 +350,15 @@ export function DataTable<T extends { id: string }>({
               ) : null}
 
               {toolbarActions.map((action) => {
-                const context = { activeTabKey: activeTab, filteredRows: table.rows, selectedRows: [] };
-                const label = typeof action.label === "function" ? action.label(context) : action.label;
+                const context = {
+                  activeTabKey: activeTab,
+                  filteredRows: table.rows,
+                  selectedRows: []
+                };
+                const label =
+                  typeof action.label === "function"
+                    ? action.label(context)
+                    : action.label;
                 const Icon = action.icon;
                 return (
                   <Button
@@ -353,9 +389,17 @@ export function DataTable<T extends { id: string }>({
       ) : null}
 
       {/* body */}
-      <div className={["px-3 pb-3 pt-3", fillAvailableHeight ? "flex min-h-0 flex-1 flex-col" : ""].join(" ")}>
+      <div
+        className={[
+          "px-3 pb-3 pt-3",
+          fillAvailableHeight ? "flex min-h-0 flex-1 flex-col" : ""
+        ].join(" ")}
+      >
         {firstLoading ? (
-          <TableSkeleton rows={6} columns={Math.min(columnDefs.length + 1, 5)} />
+          <TableSkeleton
+            rows={6}
+            columns={Math.min(columnDefs.length + 1, 5)}
+          />
         ) : table.isError && table.rows.length === 0 ? (
           <ErrorState
             message={errorMessage}
@@ -369,7 +413,10 @@ export function DataTable<T extends { id: string }>({
           />
         ) : (
           <div
-            className={["dt-grid", fillAvailableHeight ? "min-h-0 flex-1" : ""].join(" ")}
+            className={[
+              "dt-grid",
+              fillAvailableHeight ? "min-h-0 flex-1" : ""
+            ].join(" ")}
             // `flex-1` alone stretches to fill whatever space the page has, which rarely lands
             // on an exact multiple of rowHeight — the current page slices its last row instead of
             // showing it whole. Capping at the current page's own exact height (header + N full
@@ -393,13 +440,13 @@ export function DataTable<T extends { id: string }>({
               rowSelection={
                 enableSelection
                   ? {
-                    checkboxes: true,
-                    headerCheckbox: true,
-                    mode: "multiRow",
-                    // Clicking anywhere in a row toggles its selection, not just the checkbox
-                    // — the actions cell stops its own clicks from bubbling here (see RowActionsCell).
-                    enableClickSelection: true
-                  }
+                      checkboxes: true,
+                      headerCheckbox: true,
+                      mode: "multiRow",
+                      // Clicking anywhere in a row toggles its selection, not just the checkbox
+                      // — the actions cell stops its own clicks from bubbling here (see RowActionsCell).
+                      enableClickSelection: true
+                    }
                   : undefined
               }
               suppressCellFocus
@@ -412,7 +459,9 @@ export function DataTable<T extends { id: string }>({
         )}
 
         {/* server pagination footer (shared with AppDataTable) */}
-        {!firstLoading && !showEmpty && !(table.isError && table.rows.length === 0) ? (
+        {!firstLoading &&
+        !showEmpty &&
+        !(table.isError && table.rows.length === 0) ? (
           <ServerPaginationFooter
             currentPage={currentPage}
             totalPages={table.totalPages}
@@ -430,8 +479,9 @@ export function DataTable<T extends { id: string }>({
       {pillMounted ? (
         <div className="pointer-events-none absolute inset-x-0 bottom-6 z-30 flex justify-center px-4">
           <div
-            className={`pointer-events-auto flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-gray-900/95 px-4 py-2.5 shadow-2xl shadow-gray-950/40 ring-1 ring-black/5 backdrop-blur-md dark:bg-gray-950/95 ${pillLeaving ? "animate-pill-out" : "animate-pill-in"
-              }`}
+            className={`pointer-events-auto flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-gray-900/95 px-4 py-2.5 shadow-2xl shadow-gray-950/40 ring-1 ring-black/5 backdrop-blur-md dark:bg-gray-950/95 ${
+              pillLeaving ? "animate-pill-out" : "animate-pill-in"
+            }`}
           >
             <span className="inline-flex items-center gap-2 text-sm font-medium text-gray-100">
               <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-brand-500 px-2 text-xs font-semibold text-white shadow-sm shadow-brand-500/40">
@@ -465,34 +515,42 @@ export function DataTable<T extends { id: string }>({
                   return !action.hidden(selectedRows);
                 })
                 .map((action) => {
-                const Icon = action.icon;
-                return (
-                  <Button
-                    key={action.key}
-                    size="sm"
-                    disabled={busy}
-                    loading={runningBulkKey === action.key}
-                    permission={action.permission}
-                    permissionLogic={action.permissionLogic}
-                    startIcon={Icon ? <Icon className="h-[18px] w-[18px]" /> : undefined}
-                    variant="ghost"
-                    className={`gap-2 !rounded-lg !px-3 !py-1.5 text-sm font-medium transition-colors ${action.variant === "destructive"
-                        ? "text-red-400 hover:bg-red-500/10 hover:text-red-300"
-                        : "text-gray-100 hover:bg-white/10"
-                      }`}
-                    onClick={async () => {
-                      setRunningBulkKey(action.key);
-                      try {
-                        await action.onClick(table.resolveBulkSelection(), table.selectionCount);
-                      } finally {
-                        setRunningBulkKey(null);
+                  const Icon = action.icon;
+                  return (
+                    <Button
+                      key={action.key}
+                      size="sm"
+                      disabled={busy}
+                      loading={runningBulkKey === action.key}
+                      permission={action.permission}
+                      permissionLogic={action.permissionLogic}
+                      startIcon={
+                        Icon ? (
+                          <Icon className="h-[18px] w-[18px]" />
+                        ) : undefined
                       }
-                    }}
-                  >
-                    {action.label(table.selectionCount)}
-                  </Button>
-                );
-              })}
+                      variant="ghost"
+                      className={`gap-2 !rounded-lg !px-3 !py-1.5 text-sm font-medium transition-colors ${
+                        action.variant === "destructive"
+                          ? "text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                          : "text-gray-100 hover:bg-white/10"
+                      }`}
+                      onClick={async () => {
+                        setRunningBulkKey(action.key);
+                        try {
+                          await action.onClick(
+                            table.resolveBulkSelection(),
+                            table.selectionCount
+                          );
+                        } finally {
+                          setRunningBulkKey(null);
+                        }
+                      }}
+                    >
+                      {action.label(table.selectionCount)}
+                    </Button>
+                  );
+                })}
               <Button
                 size="sm"
                 variant="ghost"

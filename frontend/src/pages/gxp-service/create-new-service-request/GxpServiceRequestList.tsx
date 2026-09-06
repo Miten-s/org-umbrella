@@ -1,4 +1,6 @@
-import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction
+} from "@/components/data/DataTable";
 import ConfirmDialog from "@/components/data/ConfirmDialog";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
@@ -30,7 +32,9 @@ const GxpServiceRequestList = () => {
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>("create");
-  const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(
+    null
+  );
   const [deleteCount, setDeleteCount] = useState(0);
   const [deleteNames, setDeleteNames] = useState<string[]>([]);
 
@@ -60,8 +64,12 @@ const GxpServiceRequestList = () => {
   };
 
   // Payload shaping preserved verbatim from the legacy index.tsx#toServiceRequestPayload.
-  const toPayload = (data: ServiceRequestFormOutput, existingAttachmentIds: string[]) => {
-    const selectedServiceType = data.applicationServiceRequestTypes?.trim() || "";
+  const toPayload = (
+    data: ServiceRequestFormOutput,
+    existingAttachmentIds: string[]
+  ) => {
+    const selectedServiceType =
+      data.applicationServiceRequestTypes?.trim() || "";
     return {
       priority: data.priority,
       application: data.application,
@@ -102,14 +110,21 @@ const GxpServiceRequestList = () => {
     () => [
       {
         key: "delete",
-        label: (c) => (c > 1 ? "Delete service requests" : "Delete service request"),
+        label: (c) =>
+          c > 1 ? "Delete service requests" : "Delete service request",
         icon: TrashBinIcon,
         variant: "destructive",
         permission: GXP_PERMISSIONS.DELETE_SOFTWARE,
         onClick: (selection, count) => {
           setPendingDelete(selection);
           setDeleteCount(count);
-          setDeleteNames(selection.mode === "ids" ? table.getCachedRows(selection.ids).map((r) => r.serviceRequestId || "-") : []);
+          setDeleteNames(
+            selection.mode === "ids"
+              ? table
+                  .getCachedRows(selection.ids)
+                  .map((r) => r.serviceRequestId || "-")
+              : []
+          );
         }
       }
     ],
@@ -118,11 +133,34 @@ const GxpServiceRequestList = () => {
 
   const rowActions = useMemo<AppDataTableRowAction<GxpServiceRequest>[]>(
     () => [
-      { key: "view", label: "View service request", icon: EyeIcon, placement: "inline", permission: GXP_PERMISSIONS.VIEW_SOFTWARE, onClick: (r) => openForm("view", r.id) },
-      { key: "edit", label: "Edit service request", icon: PencilIcon, placement: "inline", permission: GXP_PERMISSIONS.UPDATE_SOFTWARE, onClick: (r) => openForm("edit", r.id) },
       {
-        key: "delete", label: "Delete service request", icon: TrashBinIcon, placement: "menu", tone: "danger", permission: GXP_PERMISSIONS.DELETE_SOFTWARE,
-        onClick: (r) => { setPendingDelete({ mode: "ids", ids: [r.id] }); setDeleteCount(1); setDeleteNames([r.serviceRequestId || "-"]); }
+        key: "view",
+        label: "View service request",
+        icon: EyeIcon,
+        placement: "inline",
+        permission: GXP_PERMISSIONS.VIEW_SOFTWARE,
+        onClick: (r) => openForm("view", r.id)
+      },
+      {
+        key: "edit",
+        label: "Edit service request",
+        icon: PencilIcon,
+        placement: "inline",
+        permission: GXP_PERMISSIONS.UPDATE_SOFTWARE,
+        onClick: (r) => openForm("edit", r.id)
+      },
+      {
+        key: "delete",
+        label: "Delete service request",
+        icon: TrashBinIcon,
+        placement: "menu",
+        tone: "danger",
+        permission: GXP_PERMISSIONS.DELETE_SOFTWARE,
+        onClick: (r) => {
+          setPendingDelete({ mode: "ids", ids: [r.id] });
+          setDeleteCount(1);
+          setDeleteNames([r.serviceRequestId || "-"]);
+        }
       }
     ],
     [openForm]
@@ -146,22 +184,37 @@ const GxpServiceRequestList = () => {
         rowActions={rowActions}
         bulkActions={bulkActions}
         toolbarActions={[
-          { key: "create", label: t("gxpCreateNewServiceRequest"), icon: PlusIcon, variant: "primary", permission: GXP_PERMISSIONS.CREATE_SOFTWARE, onClick: () => openForm("create", null) }
+          {
+            key: "create",
+            label: t("gxpCreateNewServiceRequest"),
+            icon: PlusIcon,
+            variant: "primary",
+            permission: GXP_PERMISSIONS.CREATE_SOFTWARE,
+            onClick: () => openForm("create", null)
+          }
         ]}
         emptyState={{ title: "No service requests found" }}
       />
 
-      <Modal isOpen={isOpen} onClose={handleClose} className="m-4 max-h-[calc(100dvh-2rem)] max-w-[1000px] overflow-hidden bg-white text-gray-900 dark:bg-gray-900 dark:text-white">
+      <Modal
+        isOpen={isOpen}
+        onClose={handleClose}
+        className="m-4 max-h-[calc(100dvh-2rem)] max-w-[1000px] overflow-hidden bg-white text-gray-900 dark:bg-gray-900 dark:text-white"
+      >
         {showForm ? (
           <GxpServiceRequestForm
             mode={mode}
-            initialData={mode === "create" ? null : ((detail.data as any) ?? null)}
+            initialData={
+              mode === "create" ? null : ((detail.data as any) ?? null)
+            }
             onClose={handleClose}
             onSubmit={handleSave}
             optionSets={{ applications: [] }}
           />
         ) : (
-          <div className="flex items-center justify-center p-10 text-sm text-gray-500">Loading…</div>
+          <div className="flex items-center justify-center p-10 text-sm text-gray-500">
+            Loading…
+          </div>
         )}
       </Modal>
 
@@ -170,9 +223,16 @@ const GxpServiceRequestList = () => {
         onClose={() => setPendingDelete(null)}
         loading={bulkDelete.isPending}
         items={deleteNames}
-        description={deleteCount > 1 ? `Are you sure you want to delete these ${deleteCount} service requests?` : "Are you sure you want to delete this service request?"}
+        description={
+          deleteCount > 1
+            ? `Are you sure you want to delete these ${deleteCount} service requests?`
+            : "Are you sure you want to delete this service request?"
+        }
         onConfirm={async () => {
-          if (pendingDelete) { await bulkDelete.mutateAsync(pendingDelete); table.clearSelection(); }
+          if (pendingDelete) {
+            await bulkDelete.mutateAsync(pendingDelete);
+            table.clearSelection();
+          }
           setPendingDelete(null);
         }}
       />

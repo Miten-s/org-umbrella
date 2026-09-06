@@ -30,14 +30,18 @@ export const getApplicationColumns = ({ t }: Ctx): ColDef<GxpApplication>[] => [
     flex: 1,
     minWidth: 220,
     cellRenderer: (params: ICellRendererParams<GxpApplication>) =>
-      params.data ? <AvatarCell label={params.data.applicationName} fallbackInitial="A" /> : null
+      params.data ? (
+        <AvatarCell label={params.data.applicationName} fallbackInitial="A" />
+      ) : null
   },
   {
     field: "applicationType",
     headerName: t("applicationType"),
     flex: 0,
     minWidth: 130,
-    cellRenderer: (params: ICellRendererParams<GxpApplication>) => <TruncateCell value={params.data?.applicationType} />
+    cellRenderer: (params: ICellRendererParams<GxpApplication>) => (
+      <TruncateCell value={params.data?.applicationType} />
+    )
   },
   {
     field: "applicationEnvironment",
@@ -46,7 +50,9 @@ export const getApplicationColumns = ({ t }: Ctx): ColDef<GxpApplication>[] => [
     minWidth: 180,
     sortable: false,
     cellRenderer: (params: ICellRendererParams<GxpApplication>) => (
-      <TruncateCell value={refName(params.data?.applicationEnvironment, "environmentName")} />
+      <TruncateCell
+        value={refName(params.data?.applicationEnvironment, "environmentName")}
+      />
     )
   },
   {

@@ -36,7 +36,8 @@ const extractErrorList = (data: unknown): string[] => {
   return list
     .map((item) => {
       if (typeof item === "string") return item;
-      if (isRecord(item)) return getStringValue(item.message) ?? getStringValue(item.msg);
+      if (isRecord(item))
+        return getStringValue(item.message) ?? getStringValue(item.msg);
       return undefined;
     })
     .filter((v): v is string => Boolean(v))
@@ -71,7 +72,9 @@ export const getErrorMessage = (
       return list.join("; ");
     }
     if (topMessage) {
-      return GENERIC.test(topMessage) && list.length ? list.join("; ") : humanizeOne(topMessage);
+      return GENERIC.test(topMessage) && list.length
+        ? list.join("; ")
+        : humanizeOne(topMessage);
     }
     if (list.length) return list.join("; ");
   }

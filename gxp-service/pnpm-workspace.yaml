@@ -1,5 +1,0 @@
-allowBuilds:
-  bcrypt: true
-onlyBuiltDependencies:
-  - bcrypt
-minimumReleaseAge: 0

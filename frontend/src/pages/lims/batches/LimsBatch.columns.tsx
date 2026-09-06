@@ -9,7 +9,11 @@ import type { LimsBatch, LimsRef } from "./LimsBatch.types";
 const refLabel = (ref: LimsRef | null | undefined) => ref?.name ?? "";
 
 /** Column factory (STANDARDS.md §8). */
-export const getLimsBatchColumns = ({ t }: { t: TFunction }): ColDef<LimsBatch>[] => [
+export const getLimsBatchColumns = ({
+  t
+}: {
+  t: TFunction;
+}): ColDef<LimsBatch>[] => [
   {
     field: "batchId",
     headerName: t("limsBatchId"),
@@ -26,7 +30,10 @@ export const getLimsBatchColumns = ({ t }: { t: TFunction }): ColDef<LimsBatch>[
     minWidth: 210,
     cellRenderer: (params: ICellRendererParams<LimsBatch>) =>
       params.data ? (
-        <AvatarCell label={String(params.data.batchName ?? "")} fallbackInitial="•" />
+        <AvatarCell
+          label={String(params.data.batchName ?? "")}
+          fallbackInitial="•"
+        />
       ) : null
   },
   {

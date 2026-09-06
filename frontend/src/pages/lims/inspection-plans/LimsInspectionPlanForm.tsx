@@ -30,7 +30,8 @@ import type {
 
 /** "copy" renders like "create" except the business ID starts blank (stays EDITABLE —
  * `applyBusinessId` only mints when empty, otherwise honors what the user typed). */
-export type LimsInspectionPlanFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type LimsInspectionPlanFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsInspectionPlanFormProps {
   mode?: LimsInspectionPlanFormMode;
@@ -107,7 +108,9 @@ const LimsInspectionPlanForm = ({
     setValue,
     formState: { errors, isSubmitting }
   } = useForm<LimsInspectionPlanFormValues>({
-    resolver: zodResolver(mode === "copy" ? limsInspectionPlanCopySchema : limsInspectionPlanSchema),
+    resolver: zodResolver(
+      mode === "copy" ? limsInspectionPlanCopySchema : limsInspectionPlanSchema
+    ),
     defaultValues: initialValues
   });
 
@@ -157,11 +160,11 @@ const LimsInspectionPlanForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsInspectionPlan") })
-                        : mode === "copy"
+            : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsInspectionPlan") })}${stepLabel ?? ""}`
               : initialData
-              ? `${t("update", { entity: t("limsInspectionPlan") })}${stepLabel ?? ""}`
-              : t("create", { entity: t("limsInspectionPlan") })}
+                ? `${t("update", { entity: t("limsInspectionPlan") })}${stepLabel ?? ""}`
+                : t("create", { entity: t("limsInspectionPlan") })}
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
@@ -269,7 +272,12 @@ const LimsInspectionPlanForm = ({
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

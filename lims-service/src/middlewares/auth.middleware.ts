@@ -9,7 +9,8 @@ export const authenticate = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  const token = req.cookies?.accessToken || req.headers?.authorization?.split(" ")[1];
+  const token =
+    req.cookies?.accessToken || req.headers?.authorization?.split(" ")[1];
 
   if (!token) {
     res.status(401).json({ message: "Authentication token not found" });
@@ -17,7 +18,9 @@ export const authenticate = async (
   }
 
   if (!ENV.JWT_SECRET) {
-    res.status(500).json({ message: "Server misconfigured: JWT_SECRET not set" });
+    res
+      .status(500)
+      .json({ message: "Server misconfigured: JWT_SECRET not set" });
     return;
   }
 

@@ -42,23 +42,62 @@ export class Supplier extends Model<ISupplier> implements ISupplier {
 
 Supplier.init(
   {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    supplierId: { type: DataTypes.STRING(100), allowNull: false, unique: true, field: "supplier_id" },
-    supplierName: { type: DataTypes.STRING(200), allowNull: false, field: "supplier_name" },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    supplierId: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      unique: true,
+      field: "supplier_id"
+    },
+    supplierName: {
+      type: DataTypes.STRING(200),
+      allowNull: false,
+      field: "supplier_name"
+    },
     description: { type: DataTypes.TEXT, allowNull: true },
     ratingId: { type: DataTypes.UUID, allowNull: true, field: "rating_id" },
     website: { type: DataTypes.STRING(255), allowNull: true },
-    contactName: { type: DataTypes.STRING(200), allowNull: true, field: "contact_name" },
-    contactPhone: { type: DataTypes.STRING(50), allowNull: true, field: "contact_phone" },
+    contactName: {
+      type: DataTypes.STRING(200),
+      allowNull: true,
+      field: "contact_name"
+    },
+    contactPhone: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      field: "contact_phone"
+    },
     email: { type: DataTypes.STRING(200), allowNull: true },
     address: { type: DataTypes.JSONB, allowNull: true },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
-    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "is_deleted" },
+    isDeleted: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: "is_deleted"
+    },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.STRING(100), allowNull: true, field: "deleted_by" },
-    modifiedBy: { type: DataTypes.STRING(100), allowNull: true, field: "modified_by" }
+    deletedBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "deleted_by"
+    },
+    modifiedBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "modified_by"
+    }
   },
-  { sequelize, tableName: "lims_suppliers", underscored: true, timestamps: true }
+  {
+    sequelize,
+    tableName: "lims_suppliers",
+    underscored: true,
+    timestamps: true
+  }
 );
 
 export default Supplier;

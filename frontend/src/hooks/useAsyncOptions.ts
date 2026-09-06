@@ -1,4 +1,8 @@
-import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useQuery
+} from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useDebouncedValue } from "./useDebouncedValue";
 import type { AsyncOption, OptionsPage } from "@/lib/query/listTypes";
@@ -16,7 +20,10 @@ export interface UseAsyncOptionsParams {
    * pages (editing an existing record). Supported when `canResolveByIds`; when
    * absent the currently-loaded options are used as the only label source.
    */
-  resolveByIds?: (ids: string[], signal?: AbortSignal) => Promise<AsyncOption[]>;
+  resolveByIds?: (
+    ids: string[],
+    signal?: AbortSignal
+  ) => Promise<AsyncOption[]>;
   /** Currently selected value(s) — used to resolve labels not yet loaded. */
   selectedValues?: string[];
   /** Raw typeahead term (debounced internally). */

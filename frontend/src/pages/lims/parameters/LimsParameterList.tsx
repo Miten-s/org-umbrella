@@ -26,7 +26,10 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsParameterById, fetchLimsParameterList } from "./LimsParameter.api";
+import {
+  fetchLimsParameterById,
+  fetchLimsParameterList
+} from "./LimsParameter.api";
 import { getLimsParameterColumns } from "./LimsParameter.columns";
 import {
   limsParameterKeys,
@@ -153,7 +156,9 @@ const LimsParameterList = () => {
     table.clearSelection();
   };
 
-  const handleSaveEdits = (updates: { id: string; payload: LimsParameterPayload }[]) => {
+  const handleSaveEdits = (
+    updates: { id: string; payload: LimsParameterPayload }[]
+  ) => {
     handleCloseForm();
     compliance.requestBulkUpdate(updates);
   };
@@ -304,8 +309,7 @@ const LimsParameterList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_PARAMETER,
-        onClick: (parameter) =>
-          openCopy([parameter.id])
+        onClick: (parameter) => openCopy([parameter.id])
       },
       {
         key: "restore",
@@ -400,7 +404,8 @@ const LimsParameterList = () => {
             saving={bulkUpdate.isPending}
             entityLabel={t("limsParameter")}
           />
-        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        ) : formMode !== "create" &&
+          (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>
@@ -440,7 +445,10 @@ const LimsParameterList = () => {
         onBulkUpdate={async (reason) => {
           const pending = compliance.pendingBulkUpdate;
           if (pending) {
-            await bulkUpdate.mutateAsync({ updates: pending.updates, changeReason: reason });
+            await bulkUpdate.mutateAsync({
+              updates: pending.updates,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearBulkUpdate();

@@ -4,12 +4,20 @@ import { TagListCell } from "@/components/data/cells/TagListCell";
 import { TruncateCell } from "@/components/data/cells/TruncateCell";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import type { TFunction } from "i18next";
-import { getLimsRolePermissionNames, type LimsRole, type LimsRef } from "./LimsRole.types";
+import {
+  getLimsRolePermissionNames,
+  type LimsRole,
+  type LimsRef
+} from "./LimsRole.types";
 
 const refLabel = (ref: LimsRef | null | undefined) => ref?.name ?? "";
 
 /** Column factory (STANDARDS.md §8). */
-export const getLimsRoleColumns = ({ t }: { t: TFunction }): ColDef<LimsRole>[] => [
+export const getLimsRoleColumns = ({
+  t
+}: {
+  t: TFunction;
+}): ColDef<LimsRole>[] => [
   {
     field: "roleId",
     headerName: t("limsRoleId"),
@@ -25,7 +33,9 @@ export const getLimsRoleColumns = ({ t }: { t: TFunction }): ColDef<LimsRole>[] 
     flex: 1,
     minWidth: 200,
     cellRenderer: (params: ICellRendererParams<LimsRole>) =>
-      params.data ? <AvatarCell label={params.data.name} fallbackInitial="P" /> : null
+      params.data ? (
+        <AvatarCell label={params.data.name} fallbackInitial="P" />
+      ) : null
   },
   {
     colId: "permissions",
@@ -33,7 +43,8 @@ export const getLimsRoleColumns = ({ t }: { t: TFunction }): ColDef<LimsRole>[] 
     flex: 1.4,
     minWidth: 260,
     sortable: false,
-    valueGetter: ({ data }) => (data ? getLimsRolePermissionNames(data).join(", ") : ""),
+    valueGetter: ({ data }) =>
+      data ? getLimsRolePermissionNames(data).join(", ") : "",
     // Rule from MIGRATION.md §3-6: multi-item arrays use TagListCell.
     cellRenderer: (params: ICellRendererParams<LimsRole>) => {
       const names = params.data ? getLimsRolePermissionNames(params.data) : [];

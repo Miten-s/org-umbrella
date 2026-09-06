@@ -148,7 +148,9 @@ const prettifyAttachmentName = (path: string) => {
 };
 
 /** Normalize a raw attachments array (SR or application) into display entries. */
-const mapAttachments = (raw: unknown): { id?: string; path: string; name: string }[] =>
+const mapAttachments = (
+  raw: unknown
+): { id?: string; path: string; name: string }[] =>
   (Array.isArray(raw) ? raw : [])
     .map((att: any) => {
       const path =
@@ -156,7 +158,11 @@ const mapAttachments = (raw: unknown): { id?: string; path: string; name: string
           ? att
           : (att?.attachment ?? att?.filename ?? att?.path ?? "");
       if (!path) return null;
-      return { id: att?._id ?? att?.id, path, name: prettifyAttachmentName(path) };
+      return {
+        id: att?._id ?? att?.id,
+        path,
+        name: prettifyAttachmentName(path)
+      };
     })
     .filter(Boolean) as { id?: string; path: string; name: string }[];
 
@@ -389,7 +395,9 @@ const GxpServiceRequestForm = ({
   // Application Role is mandatory (>=1) only for Provide/Modify Access requests.
   const isRolesRequired = isProvideAccessRequest || isModifyAccessRequest;
   const isRolesInvalid =
-    isRolesRequired && roleOptions.length > 0 && (selectedRoles?.length ?? 0) === 0;
+    isRolesRequired &&
+    roleOptions.length > 0 &&
+    (selectedRoles?.length ?? 0) === 0;
 
   // After the first submit attempt, keep the roles requirement in sync live:
   // show the message while empty, clear it the moment a role is added or the
@@ -450,7 +458,9 @@ const GxpServiceRequestForm = ({
     setAppDetails(null);
     setAttachments([]);
     setExistingAttachments(
-      mapAttachments((resolvedInitial as any)?.attachments) as ExistingAttachment[]
+      mapAttachments(
+        (resolvedInitial as any)?.attachments
+      ) as ExistingAttachment[]
     );
     // Seed the selected application's own attachments (read-only reference) from
     // the SR detail's nested application; a later app change refreshes these.
@@ -614,8 +624,8 @@ const GxpServiceRequestForm = ({
     if (!appDetails) {
       const initialRoleOptions = buildRoleOptionsFromValues(
         (resolvedInitial as any)?.application?.applicationRoles ??
-        (resolvedInitial as any)?.roles ??
-        (resolvedInitial as any)?.applicationRoles
+          (resolvedInitial as any)?.roles ??
+          (resolvedInitial as any)?.applicationRoles
       );
       setRoleOptions(mergeUniqueOptions(roleBaseOptions, initialRoleOptions));
       return;
@@ -645,7 +655,7 @@ const GxpServiceRequestForm = ({
     );
     const initialApp =
       resolvedInitial &&
-        typeof (resolvedInitial as any)?.application === "object"
+      typeof (resolvedInitial as any)?.application === "object"
         ? (resolvedInitial as any).application
         : null;
     const initialAppMatchesSelection =
@@ -718,9 +728,9 @@ const GxpServiceRequestForm = ({
         setValue(
           "groupLocation",
           details.groupLocationName ||
-          (details.groupLocationId
-            ? (locationNameById[details.groupLocationId] ?? "")
-            : "")
+            (details.groupLocationId
+              ? (locationNameById[details.groupLocationId] ?? "")
+              : "")
         );
         setValue("applicationWorkflow", details.workflowId);
         setValue("applicationModules", details.moduleIds);
@@ -804,28 +814,49 @@ const GxpServiceRequestForm = ({
   const ri = resolvedInitial as any;
   // Order: SR-detail's own value first, then the fetched application's value.
   const environmentSeed = dedupeById([
-    ...nestedSeed(ri?.environment ?? ri?.applicationEnvironment, "environmentName"),
+    ...nestedSeed(
+      ri?.environment ?? ri?.applicationEnvironment,
+      "environmentName"
+    ),
     ...(appDetails?.environmentId
-      ? [{ value: appDetails.environmentId, label: appDetails.environmentName || appDetails.environmentId }]
+      ? [
+          {
+            value: appDetails.environmentId,
+            label: appDetails.environmentName || appDetails.environmentId
+          }
+        ]
       : [])
   ]);
   const assignmentGroupSeed = dedupeById([
     ...nestedSeed(ri?.assignmentGroup ?? ri?.group, "groupName"),
     ...(appDetails?.assignmentGroupId
-      ? [{ value: appDetails.assignmentGroupId, label: appDetails.assignmentGroupName || appDetails.assignmentGroupId }]
+      ? [
+          {
+            value: appDetails.assignmentGroupId,
+            label:
+              appDetails.assignmentGroupName || appDetails.assignmentGroupId
+          }
+        ]
       : [])
   ]);
   const workflowSeed = dedupeById([
     ...nestedSeed(ri?.workflow ?? ri?.applicationWorkflow, "workflowName"),
     ...(appDetails?.workflowId
-      ? [{ value: appDetails.workflowId, label: appDetails.workflowName || appDetails.workflowId }]
+      ? [
+          {
+            value: appDetails.workflowId,
+            label: appDetails.workflowName || appDetails.workflowId
+          }
+        ]
       : [])
   ]);
   const initialModuleSeed: AsyncOption[] = Array.isArray(ri?.modules)
     ? ri.modules
         .map((m: any) => ({
           value: normalizeMixedId(m),
-          label: (typeof m === "object" && (m?.moduleName ?? m?.name)) || normalizeMixedId(m)
+          label:
+            (typeof m === "object" && (m?.moduleName ?? m?.name)) ||
+            normalizeMixedId(m)
         }))
         .filter((o: AsyncOption) => o.value)
     : [];
@@ -869,9 +900,24 @@ const GxpServiceRequestForm = ({
                 </Label>
                 {autofilling && (
                   <span className="mb-1.5 inline-flex items-center gap-1 text-xs text-brand-500">
-                    <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    <svg
+                      className="h-3 w-3 animate-spin"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      />
                     </svg>
                     {t("loading", { defaultValue: "Loading details…" })}
                   </span>
@@ -955,7 +1001,7 @@ const GxpServiceRequestForm = ({
                       selectedApplicationLocationLabel ||
                       locationNameById[field.value ?? ""] ||
                       (typeof field.value === "string" &&
-                        field.value.length === 24
+                      field.value.length === 24
                         ? ""
                         : (field.value ?? ""))
                     }

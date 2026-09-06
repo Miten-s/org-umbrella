@@ -14,10 +14,30 @@ const groupIds = Array.from({ length: 4 }, () => newId());
 const owner = (name: string) => ref(newId(), name);
 
 const groups: MockRow[] = [
-  { id: groupIds[0], groupId: "LIMS_QC", name: "QC Lab", description: "Quality control" },
-  { id: groupIds[1], groupId: "LIMS_RD", name: "R&D Lab", description: "Research" },
-  { id: groupIds[2], groupId: "LIMS_MB", name: "Microbiology", description: "Micro testing" },
-  { id: groupIds[3], groupId: "LIMS_ST", name: "Stability", description: "Stability studies" }
+  {
+    id: groupIds[0],
+    groupId: "LIMS_QC",
+    name: "QC Lab",
+    description: "Quality control"
+  },
+  {
+    id: groupIds[1],
+    groupId: "LIMS_RD",
+    name: "R&D Lab",
+    description: "Research"
+  },
+  {
+    id: groupIds[2],
+    groupId: "LIMS_MB",
+    name: "Microbiology",
+    description: "Micro testing"
+  },
+  {
+    id: groupIds[3],
+    groupId: "LIMS_ST",
+    name: "Stability",
+    description: "Stability studies"
+  }
 ].map((row, index) => ({
   ...row,
   // Relations come back nested as { id, label }, per the spec.
@@ -67,7 +87,10 @@ export const phraseEntries: Record<string, MockRow[]> = {
 
 // --- Parameters -------------------------------------------------------------
 const parameterType = (name: string) =>
-  ref(phraseEntries.PARAMETER_TYPE.find((e) => e.name === name)?.id ?? newId(), name);
+  ref(
+    phraseEntries.PARAMETER_TYPE.find((e) => e.name === name)?.id ?? newId(),
+    name
+  );
 
 const parameters: MockRow[] = [
   ["PARAM-001", "pH", "Numeric", "7.0", "pH"],
@@ -97,56 +120,114 @@ const PHRASE_META: Record<string, string> = {
   PARAMETER_TYPE: "Type of parameter"
 };
 
-const phrases: MockRow[] = Object.entries(phraseEntries).map(([code, entries]) => ({
-  id: newId(),
-  phrase: code,
-  name: PHRASE_META[code] ?? code,
-  description: `Values for ${PHRASE_META[code] ?? code}`,
-  group: ref(groupIds[0], "QC Lab"),
-  // Seeded by the backend — cannot be renamed or removed.
-  isSystem: true,
-  entries: entries.map((entry) => ({
-    phraseEntryId: entry.phraseEntryId,
-    name: entry.name,
-    description: ""
-  })),
-  isRemoved: false
-}));
+const phrases: MockRow[] = Object.entries(phraseEntries).map(
+  ([code, entries]) => ({
+    id: newId(),
+    phrase: code,
+    name: PHRASE_META[code] ?? code,
+    description: `Values for ${PHRASE_META[code] ?? code}`,
+    group: ref(groupIds[0], "QC Lab"),
+    // Seeded by the backend — cannot be renamed or removed.
+    isSystem: true,
+    entries: entries.map((entry) => ({
+      phraseEntryId: entry.phraseEntryId,
+      name: entry.name,
+      description: ""
+    })),
+    isRemoved: false
+  })
+);
 
 // --- Suppliers --------------------------------------------------------------
 const rating = (name: string) =>
   ref(phraseEntries.RATING.find((e) => e.name === name)?.id ?? newId(), name);
 
 const suppliers: MockRow[] = [
-  ["SUP-001", "Merck", "Preferred", "orders@merck.example", "K. Rao", "+91 22 4000 1000"],
-  ["SUP-002", "Sigma-Aldrich", "Preferred", "sales@sigma.example", "N. Desai", "+91 22 4000 1001"],
-  ["SUP-003", "Thermo Fisher", "Approved", "info@thermo.example", "M. Joshi", "+91 22 4000 1002"],
-  ["SUP-004", "Agilent", "Approved", "care@agilent.example", "S. Kulkarni", "+91 22 4000 1003"],
-  ["SUP-005", "Waters", "Conditional", "hello@waters.example", "D. Menon", "+91 22 4000 1004"],
-  ["SUP-006", "Honeywell", "Approved", "chem@honeywell.example", "A. Bose", "+91 22 4000 1005"],
-  ["SUP-007", "Borosil", "Conditional", "glass@borosil.example", "V. Shetty", "+91 22 4000 1006"]
-].map(([supplierId, supplierName, ratingName, email, contactName, contactPhone], index) => ({
-  id: newId(),
-  supplierId,
-  supplierName,
-  description: `${supplierName} — laboratory supplier`,
-  group: ref(groupIds[index % 4], String(groups[index % 4].name)),
-  rating: rating(ratingName),
-  website: `https://${String(supplierName).toLowerCase().replace(/[^a-z]/g, "")}.example`,
-  contactName,
-  contactPhone,
-  email,
-  address: {
-    line1: `${index + 1} Industrial Estate`,
-    line2: "",
-    town: "Mumbai",
-    state: "Maharashtra",
-    zipcode: "400001",
-    country: "India"
-  },
-  attachments: [],
-  isRemoved: false
-}));
+  [
+    "SUP-001",
+    "Merck",
+    "Preferred",
+    "orders@merck.example",
+    "K. Rao",
+    "+91 22 4000 1000"
+  ],
+  [
+    "SUP-002",
+    "Sigma-Aldrich",
+    "Preferred",
+    "sales@sigma.example",
+    "N. Desai",
+    "+91 22 4000 1001"
+  ],
+  [
+    "SUP-003",
+    "Thermo Fisher",
+    "Approved",
+    "info@thermo.example",
+    "M. Joshi",
+    "+91 22 4000 1002"
+  ],
+  [
+    "SUP-004",
+    "Agilent",
+    "Approved",
+    "care@agilent.example",
+    "S. Kulkarni",
+    "+91 22 4000 1003"
+  ],
+  [
+    "SUP-005",
+    "Waters",
+    "Conditional",
+    "hello@waters.example",
+    "D. Menon",
+    "+91 22 4000 1004"
+  ],
+  [
+    "SUP-006",
+    "Honeywell",
+    "Approved",
+    "chem@honeywell.example",
+    "A. Bose",
+    "+91 22 4000 1005"
+  ],
+  [
+    "SUP-007",
+    "Borosil",
+    "Conditional",
+    "glass@borosil.example",
+    "V. Shetty",
+    "+91 22 4000 1006"
+  ]
+].map(
+  (
+    [supplierId, supplierName, ratingName, email, contactName, contactPhone],
+    index
+  ) => ({
+    id: newId(),
+    supplierId,
+    supplierName,
+    description: `${supplierName} — laboratory supplier`,
+    group: ref(groupIds[index % 4], String(groups[index % 4].name)),
+    rating: rating(ratingName),
+    website: `https://${String(supplierName)
+      .toLowerCase()
+      .replace(/[^a-z]/g, "")}.example`,
+    contactName,
+    contactPhone,
+    email,
+    address: {
+      line1: `${index + 1} Industrial Estate`,
+      line2: "",
+      town: "Mumbai",
+      state: "Maharashtra",
+      zipcode: "400001",
+      country: "India"
+    },
+    attachments: [],
+    isRemoved: false
+  })
+);
 
 // --- Customers & Projects ---------------------------------------------------
 const customers: MockRow[] = [
@@ -165,7 +246,9 @@ const customers: MockRow[] = [
   website: "",
   contactName,
   contactPhone: `+91 40 2000 100${index}`,
-  email: `qa@${String(customerName).toLowerCase().replace(/[^a-z]/g, "")}.example`,
+  email: `qa@${String(customerName)
+    .toLowerCase()
+    .replace(/[^a-z]/g, "")}.example`,
   address: {
     line1: `${index + 10} Pharma City`,
     line2: "",
@@ -194,7 +277,11 @@ const projects: MockRow[] = [
   code,
   details: `${name} — analytical work package`,
   group: ref(groupIds[index % 4], String(groups[index % 4].name)),
-  customer: ref(String(customers[index % customers.length].id), String(customers[index % customers.length].customerName), "customerName"),
+  customer: ref(
+    String(customers[index % customers.length].id),
+    String(customers[index % customers.length].customerName),
+    "customerName"
+  ),
   customerContact: String(customers[index % customers.length].contactName),
   supervisor: ref(newId(), ["A. Shah", "R. Mehta", "P. Nair"][index % 3]),
   attachments: [],
@@ -213,8 +300,14 @@ const studies: MockRow[] = [
   name,
   studyCode,
   details: `${name} — study protocol`,
-  group: ref(groupIds[Number(projectIndex) % 4], String(groups[Number(projectIndex) % 4].name)),
-  project: ref(String(projects[Number(projectIndex)].id), String(projects[Number(projectIndex)].name)),
+  group: ref(
+    groupIds[Number(projectIndex) % 4],
+    String(groups[Number(projectIndex) % 4].name)
+  ),
+  project: ref(
+    String(projects[Number(projectIndex)].id),
+    String(projects[Number(projectIndex)].name)
+  ),
   projectDetails: String(projects[Number(projectIndex)].details),
   supervisor: ref(newId(), "A. Shah"),
   attachments: [],
@@ -226,7 +319,9 @@ const studies: MockRow[] = [
 // backend/src/migrations/012-seed-initial-data.ts for the pattern): one row per
 // LIMS_PERMISSIONS entry. Roles only ever pick a subset of it; nothing here is
 // created or edited from the UI.
-export const limsPermissionCatalog: MockRow[] = Object.values(LIMS_PERMISSIONS).map((name) => ({
+export const limsPermissionCatalog: MockRow[] = Object.values(
+  LIMS_PERMISSIONS
+).map((name) => ({
   id: newId(),
   name,
   description: `Grants ${String(name)}`
@@ -234,7 +329,9 @@ export const limsPermissionCatalog: MockRow[] = Object.values(LIMS_PERMISSIONS).
 
 const permissionRef = (name: string) => {
   const permission = limsPermissionCatalog.find((p) => p.name === name);
-  return permission ? ref(String(permission.id), String(permission.name)) : null;
+  return permission
+    ? ref(String(permission.id), String(permission.name))
+    : null;
 };
 
 const roles: MockRow[] = [
@@ -288,7 +385,10 @@ const testGroups: MockRow[] = [
 
 // --- Equipment, inventory, testing definitions ------------------------------
 const instrumentStatus = (n: string) =>
-  ref(phraseEntries.INSTRUMENT_STATUS.find((e) => e.name === n)?.id ?? newId(), n);
+  ref(
+    phraseEntries.INSTRUMENT_STATUS.find((e) => e.name === n)?.id ?? newId(),
+    n
+  );
 const stockType = (n: string) =>
   ref(phraseEntries.STOCK_TYPE.find((e) => e.name === n)?.id ?? newId(), n);
 
@@ -300,14 +400,24 @@ const instruments: MockRow[] = [
   ["INS-005", "Dissolution Apparatus", "Out of Service"],
   ["INS-006", "FTIR Spectrometer", "Available"]
 ].map(([instrumentId, name, status], index) => ({
-  id: newId(), instrumentId, name,
+  id: newId(),
+  instrumentId,
+  name,
   description: `${name} laboratory instrument`,
   status: instrumentStatus(status),
   group: ref(groupIds[index % 4], String(groups[index % 4].name)),
-  location: null, supplier: null, type: null, measurementType: null,
-  manufacturer: "Agilent", serialNumber: `SN-${1000 + index}`,
-  modelNumber: `MDL-${index + 1}`, sopReference: `SOP-INS-${index + 1}`,
-  parameters: [], maintenance: [], attachments: [], isRemoved: false
+  location: null,
+  supplier: null,
+  type: null,
+  measurementType: null,
+  manufacturer: "Agilent",
+  serialNumber: `SN-${1000 + index}`,
+  modelNumber: `MDL-${index + 1}`,
+  sopReference: `SOP-INS-${index + 1}`,
+  parameters: [],
+  maintenance: [],
+  attachments: [],
+  isRemoved: false
 }));
 
 const instrumentParts: MockRow[] = [
@@ -316,14 +426,24 @@ const instrumentParts: MockRow[] = [
   ["PRT-003", "Injector Needle"],
   ["PRT-004", "Pump Seal Kit"]
 ].map(([partId, partName], index) => ({
-  id: newId(), partId, partName,
+  id: newId(),
+  partId,
+  partName,
   description: `${partName} spare part`,
   status: instrumentStatus("Available"),
-  instrument: ref(String(instruments[index % instruments.length].id), String(instruments[index % instruments.length].name)),
+  instrument: ref(
+    String(instruments[index % instruments.length].id),
+    String(instruments[index % instruments.length].name)
+  ),
   group: ref(groupIds[index % 4], String(groups[index % 4].name)),
-  location: null, supplier: null,
-  manufacturer: "Agilent", serialNumber: `PSN-${200 + index}`, modelNumber: `PM-${index}`,
-  maintenance: [], attachments: [], isRemoved: false
+  location: null,
+  supplier: null,
+  manufacturer: "Agilent",
+  serialNumber: `PSN-${200 + index}`,
+  modelNumber: `PM-${index}`,
+  maintenance: [],
+  attachments: [],
+  isRemoved: false
 }));
 
 const calibrations: MockRow[] = [
@@ -331,12 +451,24 @@ const calibrations: MockRow[] = [
   ["CAL-002", "Balance Daily Check", "Daily"],
   ["CAL-003", "GC-01 Monthly Verification", "Monthly"]
 ].map(([calibrationId, calibrationName, plan], index) => ({
-  id: newId(), calibrationId, calibrationName, plan,
-  instrument: ref(String(instruments[index].id), String(instruments[index].name)),
-  calibrationType: null, status: null, owner: null,
-  planTime: "08:00", leadTimeValue: 2, leadTimeUnit: "Day",
-  contractor: "Agilent Services", autoLogin: index === 0,
-  lastMaintenanceDate: "2026-01-15", nextMaintenanceDate: "2027-01-15",
+  id: newId(),
+  calibrationId,
+  calibrationName,
+  plan,
+  instrument: ref(
+    String(instruments[index].id),
+    String(instruments[index].name)
+  ),
+  calibrationType: null,
+  status: null,
+  owner: null,
+  planTime: "08:00",
+  leadTimeValue: 2,
+  leadTimeUnit: "Day",
+  contractor: "Agilent Services",
+  autoLogin: index === 0,
+  lastMaintenanceDate: "2026-01-15",
+  nextMaintenanceDate: "2027-01-15",
   isRemoved: false
 }));
 
@@ -367,13 +499,24 @@ const stocks: MockRow[] = [
   ["STK-004", "Buffer pH 7", "Reagent", "L"],
   ["STK-005", "Sodium Hydroxide", "Reagent", "kg"]
 ].map(([stockId, stockName, type, unit], index) => ({
-  id: newId(), stockId, stockName, unit,
+  id: newId(),
+  stockId,
+  stockName,
+  unit,
   description: `${stockName} laboratory stock`,
   stockType: stockType(type),
   group: ref(groupIds[index % 4], String(groups[index % 4].name)),
-  operator: null, defaultLocation: null, preferredSupplier: null, suppliers: [],
-  targetAmount: 50, lowAmount: 5, lowPercentage: 10, inventory: 20 + index,
-  parameters: [], attachments: [], isRemoved: false
+  operator: null,
+  defaultLocation: null,
+  preferredSupplier: null,
+  suppliers: [],
+  targetAmount: 50,
+  lowAmount: 5,
+  lowPercentage: 10,
+  inventory: 20 + index,
+  parameters: [],
+  attachments: [],
+  isRemoved: false
 }));
 
 const stockBatches: MockRow[] = stocks.slice(0, 4).map((stock, index) => ({
@@ -382,12 +525,22 @@ const stockBatches: MockRow[] = stocks.slice(0, 4).map((stock, index) => ({
   batchNumber: index + 1,
   stockBatchId: `${stock.stockId}/${index + 1}`,
   description: `Batch ${index + 1} of ${stock.stockName}`,
-  status: null, project: null, supplier: null, location: null,
-  manufacturingDate: "2026-01-10", expiryDate: "2027-01-10",
-  supplierBatchNumber: `SB-${300 + index}`, sapBatchId: `SAP-${index}`,
+  status: null,
+  project: null,
+  supplier: null,
+  location: null,
+  manufacturingDate: "2026-01-10",
+  expiryDate: "2027-01-10",
+  supplierBatchNumber: `SB-${300 + index}`,
+  sapBatchId: `SAP-${index}`,
   internalBatchId: `INT-${index}`,
-  initialAmount: 10, currentAmount: 7, unit: String(stock.unit),
-  consumptions: [], parameters: [], attachments: [], isRemoved: false
+  initialAmount: 10,
+  currentAmount: 7,
+  unit: String(stock.unit),
+  consumptions: [],
+  parameters: [],
+  attachments: [],
+  isRemoved: false
 }));
 
 const aliquots: MockRow[] = stockBatches.slice(0, 3).map((batch, index) => ({
@@ -396,7 +549,10 @@ const aliquots: MockRow[] = stockBatches.slice(0, 3).map((batch, index) => ({
   stockBatch: ref(String(batch.id), String(batch.stockBatchId)),
   aliquotsNumber: index + 2,
   aliquots: Array.from({ length: index + 2 }, (_, i) => ({
-    aliquotId: `A${i + 1}`, description: "", quantity: 1, unit: String(batch.unit)
+    aliquotId: `A${i + 1}`,
+    description: "",
+    quantity: 1,
+    unit: String(batch.unit)
   })),
   isRemoved: false
 }));
@@ -405,11 +561,15 @@ const inspectionPlans: MockRow[] = [
   ["INSP-001", "Standard Review", "Linear"],
   ["INSP-002", "Peer Round Robin", "Round robin"]
 ].map(([inspectionId, name, inspectionType], index) => ({
-  id: newId(), inspectionId, name, inspectionType,
+  id: newId(),
+  inspectionId,
+  name,
+  inspectionType,
   description: `${name} inspection plan`,
   group: ref(groupIds[index % 4], String(groups[index % 4].name)),
   personnel: [{ inspectionType: "User", person: "A. Shah", role: "" }],
-  details: "", isRemoved: false
+  details: "",
+  isRemoved: false
 }));
 
 const analyses: MockRow[] = [
@@ -418,16 +578,30 @@ const analyses: MockRow[] = [
   ["ANL-003", "Water Content (KF)"],
   ["ANL-004", "Appearance"]
 ].map(([analysisId, name], index) => ({
-  id: newId(), analysisId, name,
+  id: newId(),
+  analysisId,
+  name,
   description: `${name} analytical method`,
   group: ref(groupIds[index % 4], String(groups[index % 4].name)),
-  analysisType: null, approvalStatus: null,
-  inspectionPlan: ref(String(inspectionPlans[index % 2].id), String(inspectionPlans[index % 2].name)),
+  analysisType: null,
+  approvalStatus: null,
+  inspectionPlan: ref(
+    String(inspectionPlans[index % 2].id),
+    String(inspectionPlans[index % 2].name)
+  ),
   sopReference: `SOP-ANL-${index + 1}`,
   components: [
-    { componentId: "C1", name: "Result", type: "Numeric", unit: "%", min: "95", max: "105" }
+    {
+      componentId: "C1",
+      name: "Result",
+      type: "Numeric",
+      unit: "%",
+      min: "95",
+      max: "105"
+    }
   ],
-  details: "", isRemoved: false
+  details: "",
+  isRemoved: false
 }));
 
 const specifications: MockRow[] = [
@@ -435,13 +609,21 @@ const specifications: MockRow[] = [
   ["SPEC-002", "Raw Material Spec"],
   ["SPEC-003", "Stability Spec"]
 ].map(([specId, name], index) => ({
-  id: newId(), specId, name,
+  id: newId(),
+  specId,
+  name,
   description: `${name} acceptance criteria`,
   group: ref(groupIds[index % 4], String(groups[index % 4].name)),
   limits: [
-    { analysisName: "Assay by HPLC", componentName: "Result", min: "95", max: "105" }
+    {
+      analysisName: "Assay by HPLC",
+      componentName: "Result",
+      min: "95",
+      max: "105"
+    }
   ],
-  attachments: [], isRemoved: false
+  attachments: [],
+  isRemoved: false
 }));
 
 // --- Lab Executions ---------------------------------------------------------
@@ -453,15 +635,29 @@ const samples: MockRow[] = [
   ["SMP-0005", "Paracetamol Stability 3M"],
   ["SMP-0006", "Excipient Lactose"]
 ].map(([sampleId, sampleName], index) => ({
-  id: newId(), sampleId, sampleName,
-  idNumeric: 1000 + index, idText: `S${1000 + index}`,
+  id: newId(),
+  sampleId,
+  sampleName,
+  idNumeric: 1000 + index,
+  idText: `S${1000 + index}`,
   description: `${sampleName} sample`,
-  project: null, sampleType: null, specification: null, testGroup: null,
-  location: null, group: ref(groupIds[index % 4], String(groups[index % 4].name)),
-  stockBatch: null, lotNumber: `L-${index + 1}`, serialNumber: `SR-${index + 1}`,
-  loginDate: "2026-08-01", loginBy: "A. Shah",
-  sampleStartDate: "2026-08-02", sampleStartBy: "R. Mehta",
-  comments: "", testWindows: [], attachments: [], isRemoved: false
+  project: null,
+  sampleType: null,
+  specification: null,
+  testGroup: null,
+  location: null,
+  group: ref(groupIds[index % 4], String(groups[index % 4].name)),
+  stockBatch: null,
+  lotNumber: `L-${index + 1}`,
+  serialNumber: `SR-${index + 1}`,
+  loginDate: "2026-08-01",
+  loginBy: "A. Shah",
+  sampleStartDate: "2026-08-02",
+  sampleStartBy: "R. Mehta",
+  comments: "",
+  testWindows: [],
+  attachments: [],
+  isRemoved: false
 }));
 
 const lots: MockRow[] = [
@@ -469,22 +665,32 @@ const lots: MockRow[] = [
   ["LOT-002", "Stability Pull 3M"],
   ["LOT-003", "Water Monitoring Weekly"]
 ].map(([lotId, lotName], index) => ({
-  id: newId(), lotId, lotName,
+  id: newId(),
+  lotId,
+  lotName,
   description: `${lotName} lot`,
   group: ref(groupIds[index % 4], String(groups[index % 4].name)),
-  samples: samples.slice(index, index + 2).map((sm) => ref(String(sm.id), String(sm.sampleName))),
-  attachments: [], isRemoved: false
+  samples: samples
+    .slice(index, index + 2)
+    .map((sm) => ref(String(sm.id), String(sm.sampleName))),
+  attachments: [],
+  isRemoved: false
 }));
 
 const batches: MockRow[] = [
   ["BAT-001", "August Release Batch"],
   ["BAT-002", "Stability Batch Q3"]
 ].map(([batchId, batchName], index) => ({
-  id: newId(), batchId, batchName,
+  id: newId(),
+  batchId,
+  batchName,
   description: `${batchName} batch`,
   group: ref(groupIds[index % 4], String(groups[index % 4].name)),
-  lots: lots.slice(index, index + 2).map((lt) => ref(String(lt.id), String(lt.lotName))),
-  attachments: [], isRemoved: false
+  lots: lots
+    .slice(index, index + 2)
+    .map((lt) => ref(String(lt.id), String(lt.lotName))),
+  attachments: [],
+  isRemoved: false
 }));
 
 const tests: MockRow[] = [
@@ -494,12 +700,23 @@ const tests: MockRow[] = [
   ["TST-0004", "Appearance"],
   ["TST-0005", "pH"]
 ].map(([testId, testName], index) => ({
-  id: newId(), testId, testName,
-  sample: ref(String(samples[index % samples.length].id), String(samples[index % samples.length].sampleName)),
-  analysis: null, instrument: null,
+  id: newId(),
+  testId,
+  testName,
+  sample: ref(
+    String(samples[index % samples.length].id),
+    String(samples[index % samples.length].sampleName)
+  ),
+  analysis: null,
+  instrument: null,
   group: ref(groupIds[index % 4], String(groups[index % 4].name)),
-  replicateCount: 2, loginDate: "2026-08-02", loginBy: "A. Shah",
-  description: "", components: [], attachments: [], isRemoved: false
+  replicateCount: 2,
+  loginDate: "2026-08-02",
+  loginBy: "A. Shah",
+  description: "",
+  components: [],
+  attachments: [],
+  isRemoved: false
 }));
 
 const results: MockRow[] = tests.slice(0, 4).map((test, index) => ({
@@ -507,11 +724,18 @@ const results: MockRow[] = tests.slice(0, 4).map((test, index) => ({
   resultId: `RES-000${index + 1}`,
   test: ref(String(test.id), String(test.testName)),
   sample: test.sample,
-  analysis: null, instrument: null, stock: null,
-  componentId: "C1", componentName: "Result",
-  value: String(98 + index), unit: "%", version: 1,
-  enteredOn: "2026-08-03", enteredBy: "R. Mehta",
-  outOfRange: false, isRemoved: false
+  analysis: null,
+  instrument: null,
+  stock: null,
+  componentId: "C1",
+  componentName: "Result",
+  value: String(98 + index),
+  unit: "%",
+  version: 1,
+  enteredOn: "2026-08-03",
+  enteredBy: "R. Mehta",
+  outOfRange: false,
+  isRemoved: false
 }));
 
 // --- Schedulers -------------------------------------------------------------
@@ -521,22 +745,40 @@ const schedulers: MockRow[] = [
   ["SCH-003", "Weekly Assay Test", "Test", "Daily"],
   ["SCH-004", "Quarterly Result Review", "Result", "Monthly"]
 ].map(([schedulerId, name, scope, plan], index) => ({
-  id: newId(), schedulerId, name, scope, plan,
+  id: newId(),
+  schedulerId,
+  name,
+  scope,
+  plan,
   description: `${name} recurring schedule`,
   group: ref(groupIds[index % 4], String(groups[index % 4].name)),
-  project: null, analysis: null, testGroup: null, specification: null,
-  sampleType: null, owner: null,
-  planTime: "06:00", leadTimeValue: 1, leadTimeUnit: "Day",
-  lastRunDate: "2026-08-01", nextRunDate: "2026-08-09",
+  project: null,
+  analysis: null,
+  testGroup: null,
+  specification: null,
+  sampleType: null,
+  owner: null,
+  planTime: "06:00",
+  leadTimeValue: 1,
+  leadTimeUnit: "Day",
+  lastRunDate: "2026-08-01",
+  nextRunDate: "2026-08-09",
   generatedCount: 12 * (index + 1),
-  autoLogin: true, isActive: index !== 3, isRemoved: false
+  autoLogin: true,
+  isActive: index !== 3,
+  isRemoved: false
 }));
 
 // --- Storage Locations ------------------------------------------------------
 /** Index 1 is seeded as removed so it sits on page 1 for the "show removed" toggle. */
 const REMOVED_INDEX = 1;
 
-const LOCATION_SEED: [code: string, name: string, type: string, group: number][] = [
+const LOCATION_SEED: [
+  code: string,
+  name: string,
+  type: string,
+  group: number
+][] = [
   ["LOC-001", "Cold Room A", "Storage Room", 0],
   ["LOC-000", "Decommissioned Freezer", "Freezer", 0],
   ["LOC-002", "Cold Room B", "Storage Room", 0],
@@ -565,24 +807,28 @@ const LOCATION_SEED: [code: string, name: string, type: string, group: number][]
 
 const locationIds = LOCATION_SEED.map(() => newId());
 
-const locations: MockRow[] = LOCATION_SEED.map(([code, name, type, groupIndex], index) => ({
-  id: locationIds[index],
-  locationId: code,
-  locationName: name,
-  description: `${name} storage area`,
-  // Relations come back nested as { id, label } — the shape the spec requires.
-  locationType: ref(
-    phraseEntries.LOCATION_TYPE.find((e) => e.name === type)?.id ?? newId(),
-    type
-  ),
-  group: ref(groupIds[groupIndex], String(groups[groupIndex].name)),
-  parentLocation: index > 14 ? ref(locationIds[0], "Cold Room A", "locationName") : null,
-  subLocations: index === 0 ? [ref(locationIds[16], "Shelf A2", "locationName")] : [],
-  otherInformation: "",
-  attachments: [],
-  // One row starts removed so the "Show removed" toggle has something to reveal.
-  isRemoved: index === REMOVED_INDEX
-}));
+const locations: MockRow[] = LOCATION_SEED.map(
+  ([code, name, type, groupIndex], index) => ({
+    id: locationIds[index],
+    locationId: code,
+    locationName: name,
+    description: `${name} storage area`,
+    // Relations come back nested as { id, label } — the shape the spec requires.
+    locationType: ref(
+      phraseEntries.LOCATION_TYPE.find((e) => e.name === type)?.id ?? newId(),
+      type
+    ),
+    group: ref(groupIds[groupIndex], String(groups[groupIndex].name)),
+    parentLocation:
+      index > 14 ? ref(locationIds[0], "Cold Room A", "locationName") : null,
+    subLocations:
+      index === 0 ? [ref(locationIds[16], "Shelf A2", "locationName")] : [],
+    otherInformation: "",
+    attachments: [],
+    // One row starts removed so the "Show removed" toggle has something to reveal.
+    isRemoved: index === REMOVED_INDEX
+  })
+);
 
 export const registerLimsFixtures = () => {
   registerEntity({
@@ -820,9 +1066,12 @@ export const registerLimsFixtures = () => {
   });
 
   // Registered so their endpoints answer before their modules are built.
-  const pending: [route: string, dataKey: string, unique: string, label: string][] = [
-    ["lims-aliquots", "aliquots", "id", "id"],
-  ];
+  const pending: [
+    route: string,
+    dataKey: string,
+    unique: string,
+    label: string
+  ][] = [["lims-aliquots", "aliquots", "id", "id"]];
 
   pending.forEach(([route, dataKey, uniqueField, labelField]) =>
     registerEntity({

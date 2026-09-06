@@ -46,4 +46,4 @@ export const migrations: Migration[] = [
   { name: "021-make-app-module-application-id-nullable", up: m021.up },
   { name: "022-add-service-request-record-status", up: m022.up }
 ];
-export { runMigrations } from "./runner";
+export { runMigrations, checkMigrations } from "./runner";

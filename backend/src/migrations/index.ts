@@ -30,5 +30,4 @@ export const migrations: Migration[] = [
   { name: "013-partial-unique-active-names", up: m013.up },
   { name: "014-add-users-list-indexes", up: m014.up }
 ];
-export { runMigrations } from "./runner";
-
+export { runMigrations, checkMigrations } from "./runner";

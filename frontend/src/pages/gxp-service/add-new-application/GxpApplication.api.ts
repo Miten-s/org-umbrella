@@ -3,13 +3,19 @@ import { buildServerParams, toListResult } from "@/lib/query/listAdapter";
 import { normalizeId } from "@/lib/query/normalizeId";
 import { bulkSelectionToBody, type BulkSelection } from "@/lib/query/listTypes";
 import type { ServerListParams } from "@/lib/query/listTypes";
-import type { GxpApplication, GxpApplicationPayload } from "./GxpApplication.types";
+import type {
+  GxpApplication,
+  GxpApplicationPayload
+} from "./GxpApplication.types";
 
 /** GXP Application API (GXP). `.api` is pure HTTP — toasts in the mutation layer. */
 const ROUTE = "/gxp-applications";
 const DATA_KEYS = ["applications", "data"];
 
-const buildApplicationFormData = (payload: GxpApplicationPayload, files?: File[]) => {
+const buildApplicationFormData = (
+  payload: GxpApplicationPayload,
+  files?: File[]
+) => {
   const formData = new FormData();
   formData.append("data", JSON.stringify(payload));
   (files || []).forEach((file) => formData.append("attachments", file));
@@ -21,38 +27,67 @@ export const fetchApplicationList = async (
   params: ServerListParams,
   signal?: AbortSignal
 ) => {
-  const query = { ...buildServerParams(params), ...(includeDisabled ? { includeDisabled: true } : {}) };
+  const query = {
+    ...buildServerParams(params),
+    ...(includeDisabled ? { includeDisabled: true } : {})
+  };
   const response = await gxpApi.get(ROUTE, { params: query, signal });
   return toListResult<GxpApplication>(response.data, params, DATA_KEYS);
 };
 
 /** Full record with populated relation refs (used to seed the form on edit). */
-export const fetchApplicationById = async (id: string, signal?: AbortSignal): Promise<GxpApplication> => {
+export const fetchApplicationById = async (
+  id: string,
+  signal?: AbortSignal
+): Promise<GxpApplication> => {
   const response = await gxpApi.get(`${ROUTE}/${id}`, { signal });
-  return normalizeId(response.data?.application ?? response.data?.data ?? response.data);
+  return normalizeId(
+    response.data?.application ?? response.data?.data ?? response.data
+  );
 };
 
-export const createApplication = async (payload: GxpApplicationPayload, files?: File[]) => {
-  const response = await gxpApi.post(ROUTE, buildApplicationFormData(payload, files), {
-    headers: { "Content-Type": "multipart/form-data" }
-  });
+export const createApplication = async (
+  payload: GxpApplicationPayload,
+  files?: File[]
+) => {
+  const response = await gxpApi.post(
+    ROUTE,
+    buildApplicationFormData(payload, files),
+    {
+      headers: { "Content-Type": "multipart/form-data" }
+    }
+  );
   return response.data;
 };
 
-export const updateApplication = async (id: string, payload: GxpApplicationPayload, files?: File[]) => {
-  const response = await gxpApi.patch(`${ROUTE}/${id}`, buildApplicationFormData(payload, files), {
-    headers: { "Content-Type": "multipart/form-data" }
-  });
+export const updateApplication = async (
+  id: string,
+  payload: GxpApplicationPayload,
+  files?: File[]
+) => {
+  const response = await gxpApi.patch(
+    `${ROUTE}/${id}`,
+    buildApplicationFormData(payload, files),
+    {
+      headers: { "Content-Type": "multipart/form-data" }
+    }
+  );
   return response.data;
 };
 
 export const bulkDeleteApplication = async (selection: BulkSelection) => {
-  const response = await gxpApi.post(`${ROUTE}/bulk-delete`, bulkSelectionToBody(selection));
+  const response = await gxpApi.post(
+    `${ROUTE}/bulk-delete`,
+    bulkSelectionToBody(selection)
+  );
   return response.data;
 };
 
 export const bulkCloneApplication = async (selection: BulkSelection) => {
-  const response = await gxpApi.post(`${ROUTE}/bulk-duplicate`, bulkSelectionToBody(selection));
+  const response = await gxpApi.post(
+    `${ROUTE}/bulk-duplicate`,
+    bulkSelectionToBody(selection)
+  );
   return response.data;
 };
 
@@ -63,13 +98,20 @@ export const bulkCopyApplication = async (records: GxpApplicationPayload[]) => {
   return response.data as GxpApplication[];
 };
 
-export const bulkUpdateApplication = async (updates: { id: string; payload: GxpApplicationPayload }[]) => {
+export const bulkUpdateApplication = async (
+  updates: { id: string; payload: GxpApplicationPayload }[]
+) => {
   const response = await gxpApi.patch(`${ROUTE}/bulk-update`, { updates });
-  return response.data as { results: { id: string; status: "updated" | "skipped" }[] };
+  return response.data as {
+    results: { id: string; status: "updated" | "skipped" }[];
+  };
 };
 
 export const bulkRestoreApplication = async (selection: BulkSelection) => {
-  const response = await gxpApi.patch(`${ROUTE}/bulk-restore`, bulkSelectionToBody(selection));
+  const response = await gxpApi.patch(
+    `${ROUTE}/bulk-restore`,
+    bulkSelectionToBody(selection)
+  );
   return response.data as { message: string; count: number };
 };
 

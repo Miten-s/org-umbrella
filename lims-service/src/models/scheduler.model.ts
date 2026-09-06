@@ -63,33 +63,107 @@ export class Scheduler extends Model<IScheduler> implements IScheduler {
 
 Scheduler.init(
   {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    schedulerId: { type: DataTypes.STRING(100), allowNull: false, unique: true, field: "scheduler_id" },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    schedulerId: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      unique: true,
+      field: "scheduler_id"
+    },
     name: { type: DataTypes.STRING(200), allowNull: false },
     scope: { type: DataTypes.STRING(50), allowNull: true },
     projectId: { type: DataTypes.UUID, allowNull: true, field: "project_id" },
     analysisId: { type: DataTypes.UUID, allowNull: true, field: "analysis_id" },
-    testGroupId: { type: DataTypes.UUID, allowNull: true, field: "test_group_id" },
-    specificationId: { type: DataTypes.UUID, allowNull: true, field: "specification_id" },
-    sampleTypeId: { type: DataTypes.UUID, allowNull: true, field: "sample_type_id" },
+    testGroupId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: "test_group_id"
+    },
+    specificationId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: "specification_id"
+    },
+    sampleTypeId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: "sample_type_id"
+    },
     ownerId: { type: DataTypes.UUID, allowNull: true, field: "owner_id" },
     plan: { type: DataTypes.STRING(50), allowNull: true },
-    planTime: { type: DataTypes.STRING(20), allowNull: true, field: "plan_time" },
-    leadTimeValue: { type: DataTypes.INTEGER, allowNull: true, field: "lead_time_value" },
-    leadTimeUnit: { type: DataTypes.STRING(20), allowNull: true, field: "lead_time_unit" },
-    lastRunDate: { type: DataTypes.DATE, allowNull: true, field: "last_run_date" },
-    nextRunDate: { type: DataTypes.DATE, allowNull: true, field: "next_run_date" },
-    generatedCount: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0, field: "generated_count" },
+    planTime: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+      field: "plan_time"
+    },
+    leadTimeValue: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: "lead_time_value"
+    },
+    leadTimeUnit: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+      field: "lead_time_unit"
+    },
+    lastRunDate: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: "last_run_date"
+    },
+    nextRunDate: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: "next_run_date"
+    },
+    generatedCount: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+      field: "generated_count"
+    },
     description: { type: DataTypes.TEXT, allowNull: true },
-    autoLogin: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "auto_login" },
-    isActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true, field: "is_active" },
+    autoLogin: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: "auto_login"
+    },
+    isActive: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+      field: "is_active"
+    },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
-    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "is_deleted" },
+    isDeleted: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: "is_deleted"
+    },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.STRING(100), allowNull: true, field: "deleted_by" },
-    modifiedBy: { type: DataTypes.STRING(100), allowNull: true, field: "modified_by" }
+    deletedBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "deleted_by"
+    },
+    modifiedBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "modified_by"
+    }
   },
-  { sequelize, tableName: "lims_schedulers", underscored: true, timestamps: true }
+  {
+    sequelize,
+    tableName: "lims_schedulers",
+    underscored: true,
+    timestamps: true
+  }
 );
 
 export default Scheduler;

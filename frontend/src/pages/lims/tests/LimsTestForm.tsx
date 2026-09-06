@@ -19,11 +19,17 @@ import { useLimsAnalysisOptions } from "@/pages/lims/analyses/LimsAnalysis.queri
 import { useLimsInstrumentOptions } from "@/pages/lims/instruments/LimsInstrument.queries";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { limsTestSchema, type LimsTestFormValues } from "./LimsTest.schema";
-import type { LimsTest, LimsTestPayload, LimsRef, LimsResultRow } from "./LimsTest.types";
+import type {
+  LimsTest,
+  LimsTestPayload,
+  LimsRef,
+  LimsResultRow
+} from "./LimsTest.types";
 
 /** "copy" renders like "create" — testId is locked/server-generated either way.
  * Attachments hidden: the batch save is JSON-only. */
-export type LimsTestFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type LimsTestFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsTestFormProps {
   mode?: LimsTestFormMode;
@@ -66,7 +72,9 @@ const LimsTestForm = ({
   const isReadOnly = mode === "view";
   const attachments = useAttachments(initialData?.attachments);
   const initialComponentsRef = useRef(initialData?.components ?? []);
-  const [components, setComponents] = useState<LimsResultRow[]>(initialComponentsRef.current);
+  const [components, setComponents] = useState<LimsResultRow[]>(
+    initialComponentsRef.current
+  );
 
   // Captured once per record — also the no-change baseline `submit` diffs
   // against, so Save is a no-op when nothing actually differs from it.
@@ -80,7 +88,7 @@ const LimsTestForm = ({
       replicateCount: initialData?.replicateCount ?? "",
       loginDate: initialData?.loginDate ?? "",
       loginBy: initialData?.loginBy ?? "",
-      description: initialData?.description ?? "",
+      description: initialData?.description ?? ""
     }),
     [initialData]
   );
@@ -197,7 +205,9 @@ const LimsTestForm = ({
               )}
             />
             {errors.sample ? (
-              <p className="mt-1 text-xs text-red-500">{errors.sample.message}</p>
+              <p className="mt-1 text-xs text-red-500">
+                {errors.sample.message}
+              </p>
             ) : null}
           </div>
           <div className="min-w-0">
@@ -259,7 +269,9 @@ const LimsTestForm = ({
             <TextArea
               disabled={isReadOnly}
               value={description || ""}
-              onChange={(val) => setValue("description", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("description", val, { shouldValidate: true })
+              }
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
@@ -274,23 +286,40 @@ const LimsTestForm = ({
                 { key: "componentName", header: t("limsComponentName") },
                 { key: "value", header: t("limsValue") },
                 { key: "unit", header: t("limsUnit") },
-                { key: "outOfRange", header: t("limsOutOfRange"), type: "checkbox" },
+                {
+                  key: "outOfRange",
+                  header: t("limsOutOfRange"),
+                  type: "checkbox"
+                },
                 { key: "enteredOn", header: t("limsEnteredOn"), type: "date" },
                 { key: "enteredBy", header: t("limsEnteredBy") }
               ]}
             />
           </div>
           {mode !== "copy" && mode !== "bulk-edit" && (
-            <LimsAttachmentsField attachments={attachments} disabled={isReadOnly} />
+            <LimsAttachmentsField
+              attachments={attachments}
+              disabled={isReadOnly}
+            />
           )}
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

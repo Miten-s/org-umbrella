@@ -111,10 +111,12 @@ const assertClaimInScope = async (
     transaction
   });
   const candidateGroupId = candidate?.get?.("groupId") as
-    | string
-    | null
-    | undefined;
-  if (candidate && candidateGroupId && !scope.accessGroupIds.includes(candidateGroupId)) {
+    string | null | undefined;
+  if (
+    candidate &&
+    candidateGroupId &&
+    !scope.accessGroupIds.includes(candidateGroupId)
+  ) {
     throw Object.assign(new Error("That record is outside your groups."), {
       statusCode: 403
     });

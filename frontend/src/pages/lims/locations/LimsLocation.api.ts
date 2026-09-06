@@ -16,7 +16,10 @@ const ROUTE = "/lims-locations";
 
 /** Full record for the Edit/View modal — fetched on demand when it opens,
  * not reused from the list row (see useLimsRecordById). */
-export const fetchLimsLocationById = async (id: string, signal?: AbortSignal) => {
+export const fetchLimsLocationById = async (
+  id: string,
+  signal?: AbortSignal
+) => {
   const response = await limsApi.get(`${ROUTE}/${id}`, { signal });
   return (response.data?.data ?? response.data) as LimsLocation;
 };
@@ -30,10 +33,18 @@ export const fetchLimsLocationList = async (
   signal?: AbortSignal
 ) => {
   const response = await limsApi.get(ROUTE, {
-    params: { ...buildServerParams(params), includeRemoved: includeRemoved || undefined },
+    params: {
+      ...buildServerParams(params),
+      includeRemoved: includeRemoved || undefined
+    },
     signal
   });
-  return toListResult<LimsLocation>(response.data, params, DATA_KEYS, RELATION_KEYS);
+  return toListResult<LimsLocation>(
+    response.data,
+    params,
+    DATA_KEYS,
+    RELATION_KEYS
+  );
 };
 
 export const fetchLimsLocationOptions = async (
@@ -72,7 +83,10 @@ const toBody = (payload: LimsLocationPayload, files?: File[]) => {
   };
 };
 
-export const createLimsLocation = async (payload: LimsLocationPayload, files?: File[]) => {
+export const createLimsLocation = async (
+  payload: LimsLocationPayload,
+  files?: File[]
+) => {
   const { body, config } = toBody(payload, files);
   const response = await limsApi.post(ROUTE, body, config);
   return response.data;
@@ -90,7 +104,9 @@ export const updateLimsLocation = async (
 
 /** Soft delete — the row stays for the audit trail and can be restored. */
 export const deleteLimsLocation = async (id: string, changeReason: string) => {
-  const response = await limsApi.delete(`${ROUTE}/${id}`, { data: { changeReason } });
+  const response = await limsApi.delete(`${ROUTE}/${id}`, {
+    data: { changeReason }
+  });
   return response.data;
 };
 
@@ -141,7 +157,10 @@ export const bulkUpdateLimsLocation = async (
   updates: { id: string; payload: LimsLocationPayload }[],
   changeReason: string
 ) => {
-  const response = await limsApi.patch(`${ROUTE}/bulk-update`, { updates, changeReason });
+  const response = await limsApi.patch(`${ROUTE}/bulk-update`, {
+    updates,
+    changeReason
+  });
   return response.data as {
     message: string;
     count: number;
@@ -150,7 +169,9 @@ export const bulkUpdateLimsLocation = async (
 };
 
 export const restoreLimsLocation = async (id: string, changeReason: string) => {
-  const response = await limsApi.patch(`${ROUTE}/restore/${id}`, { changeReason });
+  const response = await limsApi.patch(`${ROUTE}/restore/${id}`, {
+    changeReason
+  });
   return response.data;
 };
 
@@ -159,6 +180,9 @@ export const fetchLimsLocationAudit = async (
   signal?: AbortSignal,
   params?: { page?: number; limit?: number }
 ) => {
-  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { params, signal });
+  const response = await limsApi.get(`${ROUTE}/${id}/audit`, {
+    params,
+    signal
+  });
   return response.data;
 };

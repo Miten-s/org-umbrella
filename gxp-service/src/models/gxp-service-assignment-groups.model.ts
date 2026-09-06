@@ -15,7 +15,10 @@ export interface IAssignmentGroup {
   isActive: boolean;
 }
 
-export class AssignmentGroup extends Model<IAssignmentGroup> implements IAssignmentGroup {
+export class AssignmentGroup
+  extends Model<IAssignmentGroup>
+  implements IAssignmentGroup
+{
   public id!: string;
   public groupName!: string;
   public managerUserId!: string;

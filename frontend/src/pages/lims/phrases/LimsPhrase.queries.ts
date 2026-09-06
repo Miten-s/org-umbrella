@@ -26,7 +26,8 @@ export const limsPhraseKeys = {
   all: ["limsPhrase"] as const,
   list: (params: ServerListParams) => ["limsPhrase", "list", params] as const,
   audit: (id: string) => ["limsPhrase", "audit", id] as const,
-  entryOptions: (phrase: PhraseCode) => ["limsPhrase", "entries", phrase] as const
+  entryOptions: (phrase: PhraseCode) =>
+    ["limsPhrase", "entries", phrase] as const
 };
 
 /**
@@ -44,25 +45,43 @@ export const makePhraseOptionsHook =
       selectedValues: args.selectedValues
     });
 
-export const useLocationTypeOptions = makePhraseOptionsHook(PHRASE_CODES.LOCATION_TYPE);
-export const useParameterTypeOptions = makePhraseOptionsHook(PHRASE_CODES.PARAMETER_TYPE);
+export const useLocationTypeOptions = makePhraseOptionsHook(
+  PHRASE_CODES.LOCATION_TYPE
+);
+export const useParameterTypeOptions = makePhraseOptionsHook(
+  PHRASE_CODES.PARAMETER_TYPE
+);
 export const useRatingOptions = makePhraseOptionsHook(PHRASE_CODES.RATING);
-export const useStockTypeOptions = makePhraseOptionsHook(PHRASE_CODES.STOCK_TYPE);
+export const useStockTypeOptions = makePhraseOptionsHook(
+  PHRASE_CODES.STOCK_TYPE
+);
 export const useStockBatchStatusOptions = makePhraseOptionsHook(
   PHRASE_CODES.STOCK_BATCH_STATUS
 );
-export const useInstrumentTypeOptions = makePhraseOptionsHook(PHRASE_CODES.INSTRUMENT_TYPE);
-export const useMeasurementTypeOptions = makePhraseOptionsHook(PHRASE_CODES.MEASUREMENT_TYPE);
+export const useInstrumentTypeOptions = makePhraseOptionsHook(
+  PHRASE_CODES.INSTRUMENT_TYPE
+);
+export const useMeasurementTypeOptions = makePhraseOptionsHook(
+  PHRASE_CODES.MEASUREMENT_TYPE
+);
 export const useInstrumentStatusOptions = makePhraseOptionsHook(
   PHRASE_CODES.INSTRUMENT_STATUS
 );
-export const useCalibrationTypeOptions = makePhraseOptionsHook(PHRASE_CODES.CALIBRATION_TYPE);
+export const useCalibrationTypeOptions = makePhraseOptionsHook(
+  PHRASE_CODES.CALIBRATION_TYPE
+);
 export const useCalibrationStatusOptions = makePhraseOptionsHook(
   PHRASE_CODES.CALIBRATION_STATUS
 );
-export const useAnalysisTypeOptions = makePhraseOptionsHook(PHRASE_CODES.ANALYSIS_TYPE);
-export const useApprovalStatusOptions = makePhraseOptionsHook(PHRASE_CODES.APPROVAL_STATUS);
-export const useSampleTypeOptions = makePhraseOptionsHook(PHRASE_CODES.SAMPLE_TYPE);
+export const useAnalysisTypeOptions = makePhraseOptionsHook(
+  PHRASE_CODES.ANALYSIS_TYPE
+);
+export const useApprovalStatusOptions = makePhraseOptionsHook(
+  PHRASE_CODES.APPROVAL_STATUS
+);
+export const useSampleTypeOptions = makePhraseOptionsHook(
+  PHRASE_CODES.SAMPLE_TYPE
+);
 
 export const useLimsPhraseAudit = (id?: string) =>
   useLimsAuditTrail({

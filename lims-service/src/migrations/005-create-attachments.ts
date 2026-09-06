@@ -4,7 +4,11 @@ import { QueryInterface, DataTypes } from "sequelize";
  * `entity_id`), instead of ~12 identical join tables. No real FK — every entity is soft-deleted, so attachments stay reachable. */
 export const up = async (queryInterface: QueryInterface) => {
   await queryInterface.createTable("lims_attachments", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
 
     // Catalogue entity code ("SAMPLE") + that row's UUID.
     entity_name: { type: DataTypes.STRING(50), allowNull: false },
@@ -33,17 +37,33 @@ export const up = async (queryInterface: QueryInterface) => {
       onDelete: "SET NULL"
     },
 
-    is_deleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    is_deleted: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    },
     deleted_at: { type: DataTypes.DATE, allowNull: true },
     deleted_by: { type: DataTypes.STRING(100), allowNull: true },
     modified_by: { type: DataTypes.STRING(100), allowNull: true },
-    created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
-    updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    }
   });
 
   // The only lookup that matters: "every attachment on this record".
-  await queryInterface.addIndex("lims_attachments", ["entity_name", "entity_id"], {
-    name: "lims_attachments_owner_idx"
-  });
+  await queryInterface.addIndex(
+    "lims_attachments",
+    ["entity_name", "entity_id"],
+    {
+      name: "lims_attachments_owner_idx"
+    }
+  );
   await queryInterface.addIndex("lims_attachments", ["group_id"]);
 };

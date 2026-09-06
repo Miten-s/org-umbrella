@@ -22,7 +22,8 @@ import type { LimsStockBatchPayload } from "./LimsStockBatch.types";
 
 export const limsStockBatchKeys = {
   all: ["limsStockBatch"] as const,
-  list: (params: ServerListParams) => ["limsStockBatch", "list", params] as const,
+  list: (params: ServerListParams) =>
+    ["limsStockBatch", "list", params] as const,
   audit: (id: string) => ["limsStockBatch", "audit", id] as const,
   options: ["limsStockBatch", "options"] as const
 };
@@ -66,7 +67,13 @@ const useInvalidate = () => {
 export const useCreateLimsStockBatch = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ payload, files }: { payload: LimsStockBatchPayload; files?: File[] }) => createLimsStockBatch(payload, files),
+    mutationFn: ({
+      payload,
+      files
+    }: {
+      payload: LimsStockBatchPayload;
+      files?: File[];
+    }) => createLimsStockBatch(payload, files),
     onSuccess: () => {
       toast("Record created successfully.", "success");
       invalidate();
@@ -77,8 +84,15 @@ export const useCreateLimsStockBatch = () => {
 export const useUpdateLimsStockBatch = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ id, payload, files }: { id: string; payload: LimsStockBatchPayload; files?: File[] }) =>
-      updateLimsStockBatch(id, payload, files),
+    mutationFn: ({
+      id,
+      payload,
+      files
+    }: {
+      id: string;
+      payload: LimsStockBatchPayload;
+      files?: File[];
+    }) => updateLimsStockBatch(id, payload, files),
     onSuccess: () => {
       toast("Record updated successfully.", "success");
       invalidate();
@@ -135,7 +149,8 @@ export const useBulkRestoreLimsStockBatch = () => {
 export const useBulkCloneLimsStockBatch = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (selection: BulkSelection) => bulkCloneLimsStockBatch(selection),
+    mutationFn: (selection: BulkSelection) =>
+      bulkCloneLimsStockBatch(selection),
     onSuccess: (_data, selection) => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
       toast(
@@ -154,7 +169,8 @@ export const useBulkCloneLimsStockBatch = () => {
 export const useBulkCopyLimsStockBatch = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (records: LimsStockBatchPayload[]) => bulkCopyLimsStockBatch(records),
+    mutationFn: (records: LimsStockBatchPayload[]) =>
+      bulkCopyLimsStockBatch(records),
     onSuccess: (data) => {
       const warnings = data.results.filter((r) => r.warning);
       toast(

@@ -64,18 +64,18 @@ export type OptionalTranslations = {
 // frontend enum must be in this order because of component to set
 // default languages in admin panel
 export enum SupportedLanguages {
-  "en" = "en",
-  "ar" = "ar",
-  "de" = "de",
-  "es" = "es",
-  "fr" = "fr",
-  "he" = "he",
-  "it" = "it",
-  "hi" = "hi",
-  "gu" = "gu",
-  "ta" = "ta",
-  "te" = "te",
-  "mr" = "mr"
+  en = "en",
+  ar = "ar",
+  de = "de",
+  es = "es",
+  fr = "fr",
+  he = "he",
+  it = "it",
+  hi = "hi",
+  gu = "gu",
+  ta = "ta",
+  te = "te",
+  mr = "mr"
 }
 
 export const applicationTypeOptions = [

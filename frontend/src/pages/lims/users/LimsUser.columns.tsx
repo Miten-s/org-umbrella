@@ -8,7 +8,11 @@ import { refLabel } from "@/utils/refLabel";
 import type { LimsRef, LimsUser } from "./LimsUser.types";
 
 /** Column factory (STANDARDS.md §8). */
-export const getLimsUserColumns = ({ t }: { t: TFunction }): ColDef<LimsUser>[] => [
+export const getLimsUserColumns = ({
+  t
+}: {
+  t: TFunction;
+}): ColDef<LimsUser>[] => [
   {
     colId: "user",
     headerName: t("user"),
@@ -17,7 +21,11 @@ export const getLimsUserColumns = ({ t }: { t: TFunction }): ColDef<LimsUser>[] 
     valueGetter: (params) => params.data?.userName ?? "",
     cellRenderer: (params: ICellRendererParams<LimsUser>) =>
       params.data ? (
-        <AvatarCell label={String(params.value ?? "")} fallbackInitial="U" showAvatar />
+        <AvatarCell
+          label={String(params.value ?? "")}
+          fallbackInitial="U"
+          showAvatar
+        />
       ) : null
   },
   {

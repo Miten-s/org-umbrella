@@ -1,4 +1,6 @@
-import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction
+} from "@/components/data/DataTable";
 import ConfirmDialog from "@/components/data/ConfirmDialog";
 import CopyStepper from "@/components/data/CopyStepper";
 import ViewStepper from "@/components/data/ViewStepper";
@@ -10,7 +12,13 @@ import { useServerTable } from "@/hooks/useServerTable";
 import { useModal } from "@/hooks/useModal";
 import { GXP_PERMISSIONS } from "@/utils/permissions";
 import { toast } from "@/lib/toast";
-import { CopyIcon, EyeIcon, PencilIcon, PlusIcon, TrashBinIcon } from "@/public/icons";
+import {
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashBinIcon
+} from "@/public/icons";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -38,14 +46,18 @@ const EnvironmentList = () => {
 
   const [active, setActive] = useState<Environment | null>(null);
   const [formMode, setFormMode] = useState<EnvironmentFormMode>("create");
-  const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(
+    null
+  );
   const [deleteCount, setDeleteCount] = useState(0);
   const [deleteNames, setDeleteNames] = useState<string[]>([]);
   // Set instead of active/formMode while the Copy/View/Edit review flow is open.
   const [copyIds, setCopyIds] = useState<string[] | null>(null);
   const [viewIds, setViewIds] = useState<string[] | null>(null);
   const [editIds, setEditIds] = useState<string[] | null>(null);
-  const [pendingRestore, setPendingRestore] = useState<BulkSelection | null>(null);
+  const [pendingRestore, setPendingRestore] = useState<BulkSelection | null>(
+    null
+  );
   const [restoreNames, setRestoreNames] = useState<string[]>([]);
   const [includeDisabled, setIncludeDisabled] = useState(false);
 
@@ -87,7 +99,9 @@ const EnvironmentList = () => {
   const gridContext = useMemo(
     () => ({
       toggleDisabled: toggleStatus.isPending,
-      togglingId: toggleStatus.isPending ? toggleStatus.variables?.id : undefined,
+      togglingId: toggleStatus.isPending
+        ? toggleStatus.variables?.id
+        : undefined,
       onToggleStatus: (environment: Environment) => {
         if (toggleStatus.isPending) return;
         toggleStatus.mutate(environment);
@@ -96,7 +110,10 @@ const EnvironmentList = () => {
     [toggleStatus]
   );
 
-  const openForm = (mode: EnvironmentFormMode, environment: Environment | null) => {
+  const openForm = (
+    mode: EnvironmentFormMode,
+    environment: Environment | null
+  ) => {
     setFormMode(mode);
     setActive(environment);
     openModal();
@@ -150,7 +167,9 @@ const EnvironmentList = () => {
     table.clearSelection();
   };
 
-  const handleSaveEdits = async (updates: { id: string; payload: EnvironmentFormValues }[]) => {
+  const handleSaveEdits = async (
+    updates: { id: string; payload: EnvironmentFormValues }[]
+  ) => {
     await bulkUpdate.mutateAsync(updates);
     handleCloseForm();
     table.clearSelection();
@@ -160,7 +179,8 @@ const EnvironmentList = () => {
     () => [
       {
         key: "view",
-        label: (count) => (count > 1 ? "View environments" : "View environment"),
+        label: (count) =>
+          count > 1 ? "View environments" : "View environment",
         icon: EyeIcon,
         variant: "outline",
         permission: GXP_PERMISSIONS.VIEW_ENVIRONMENT,
@@ -174,7 +194,8 @@ const EnvironmentList = () => {
       },
       {
         key: "clone",
-        label: (count) => (count > 1 ? "Copy environments" : "Copy environment"),
+        label: (count) =>
+          count > 1 ? "Copy environments" : "Copy environment",
         icon: CopyIcon,
         variant: "outline",
         permission: GXP_PERMISSIONS.CREATE_ENVIRONMENT,
@@ -189,7 +210,8 @@ const EnvironmentList = () => {
       },
       {
         key: "edit",
-        label: (count) => (count > 1 ? "Edit environments" : "Edit environment"),
+        label: (count) =>
+          count > 1 ? "Edit environments" : "Edit environment",
         icon: PencilIcon,
         variant: "outline",
         permission: GXP_PERMISSIONS.UPDATE_ENVIRONMENT,
@@ -203,23 +225,28 @@ const EnvironmentList = () => {
       },
       {
         key: "restore",
-        label: (count) => (count > 1 ? "Restore environments" : "Restore environment"),
+        label: (count) =>
+          count > 1 ? "Restore environments" : "Restore environment",
         icon: CopyIcon,
         variant: "outline",
         permission: GXP_PERMISSIONS.UPDATE_ENVIRONMENT,
-        hidden: (rows) => !(rows as Environment[]).some((row) => row.status === "disabled"),
+        hidden: (rows) =>
+          !(rows as Environment[]).some((row) => row.status === "disabled"),
         onClick: (selection) => {
           if (selection.mode !== "ids") {
             toast("Select individual rows to restore.", "error");
             return;
           }
           setPendingRestore(selection);
-          setRestoreNames(table.getCachedRows(selection.ids).map((r) => r.environmentName));
+          setRestoreNames(
+            table.getCachedRows(selection.ids).map((r) => r.environmentName)
+          );
         }
       },
       {
         key: "delete",
-        label: (count) => (count > 1 ? "Delete environments" : "Delete environment"),
+        label: (count) =>
+          count > 1 ? "Delete environments" : "Delete environment",
         icon: TrashBinIcon,
         variant: "destructive",
         permission: GXP_PERMISSIONS.DELETE_ENVIRONMENT,
@@ -304,7 +331,11 @@ const EnvironmentList = () => {
         fillAvailableHeight
         busy={busy}
         titleExtra={
-          <Switch label={t("includeDisabled")} checked={includeDisabled} onChange={setIncludeDisabled} />
+          <Switch
+            label={t("includeDisabled")}
+            checked={includeDisabled}
+            onChange={setIncludeDisabled}
+          />
         }
         rowActions={rowActions}
         bulkActions={bulkActions}
@@ -361,7 +392,9 @@ const EnvironmentList = () => {
             initialData={active}
             onClose={handleCloseForm}
             onSubmit={handleSave}
-            submitting={createEnvironment.isPending || updateEnvironment.isPending}
+            submitting={
+              createEnvironment.isPending || updateEnvironment.isPending
+            }
           />
         )}
       </Modal>

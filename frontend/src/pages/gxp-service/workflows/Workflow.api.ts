@@ -1,5 +1,9 @@
 import gxpApi from "@/utils/gxp.axios.interceptor";
-import { buildServerParams, toListResult, toOptionsPage } from "@/lib/query/listAdapter";
+import {
+  buildServerParams,
+  toListResult,
+  toOptionsPage
+} from "@/lib/query/listAdapter";
 import { bulkSelectionToBody, type BulkSelection } from "@/lib/query/listTypes";
 import type { ServerListParams } from "@/lib/query/listTypes";
 import type { Workflow, WorkflowPayload } from "./Workflow.types";
@@ -13,7 +17,10 @@ export const fetchWorkflowList = async (
   params: ServerListParams,
   signal?: AbortSignal
 ) => {
-  const query = { ...buildServerParams(params), ...(includeDisabled ? { includeDisabled: true } : {}) };
+  const query = {
+    ...buildServerParams(params),
+    ...(includeDisabled ? { includeDisabled: true } : {})
+  };
   const response = await gxpApi.get(ROUTE, { params: query, signal });
   return toListResult<Workflow>(response.data, params, DATA_KEYS);
 };
@@ -29,9 +36,21 @@ export const fetchWorkflowOptions = async (
   args: { search: string; page: number },
   signal?: AbortSignal
 ) => {
-  const params: ServerListParams = { page: args.page, limit: 20, search: args.search || undefined };
-  const response = await gxpApi.get(ROUTE, { params: buildServerParams(params), signal });
-  return toOptionsPage<Workflow>(response.data, params, (row) => row.workflowName, DATA_KEYS);
+  const params: ServerListParams = {
+    page: args.page,
+    limit: 20,
+    search: args.search || undefined
+  };
+  const response = await gxpApi.get(ROUTE, {
+    params: buildServerParams(params),
+    signal
+  });
+  return toOptionsPage<Workflow>(
+    response.data,
+    params,
+    (row) => row.workflowName,
+    DATA_KEYS
+  );
 };
 
 export const createWorkflow = async (payload: WorkflowPayload) => {
@@ -50,12 +69,18 @@ export const deleteWorkflow = async (id: string) => {
 };
 
 export const bulkDeleteWorkflow = async (selection: BulkSelection) => {
-  const response = await gxpApi.post(`${ROUTE}/bulk-delete`, bulkSelectionToBody(selection));
+  const response = await gxpApi.post(
+    `${ROUTE}/bulk-delete`,
+    bulkSelectionToBody(selection)
+  );
   return response.data;
 };
 
 export const bulkCloneWorkflow = async (selection: BulkSelection) => {
-  const response = await gxpApi.post(`${ROUTE}/bulk-duplicate`, bulkSelectionToBody(selection));
+  const response = await gxpApi.post(
+    `${ROUTE}/bulk-duplicate`,
+    bulkSelectionToBody(selection)
+  );
   return response.data;
 };
 
@@ -66,13 +91,20 @@ export const bulkCopyWorkflow = async (records: WorkflowPayload[]) => {
   return response.data as Workflow[];
 };
 
-export const bulkUpdateWorkflow = async (updates: { id: string; payload: WorkflowPayload }[]) => {
+export const bulkUpdateWorkflow = async (
+  updates: { id: string; payload: WorkflowPayload }[]
+) => {
   const response = await gxpApi.patch(`${ROUTE}/bulk-update`, { updates });
-  return response.data as { results: { id: string; status: "updated" | "skipped" }[] };
+  return response.data as {
+    results: { id: string; status: "updated" | "skipped" }[];
+  };
 };
 
 export const bulkRestoreWorkflow = async (selection: BulkSelection) => {
-  const response = await gxpApi.patch(`${ROUTE}/bulk-restore`, bulkSelectionToBody(selection));
+  const response = await gxpApi.patch(
+    `${ROUTE}/bulk-restore`,
+    bulkSelectionToBody(selection)
+  );
   return response.data as { message: string; count: number };
 };
 

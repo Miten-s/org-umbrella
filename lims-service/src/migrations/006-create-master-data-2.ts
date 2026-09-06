@@ -4,12 +4,24 @@ import { QueryInterface, DataTypes } from "sequelize";
  * queries); sub-form grids are real child tables, not JSON, so they can be audited row-by-row. */
 
 const softDeleteFields = {
-  is_deleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+  is_deleted: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
   deleted_at: { type: DataTypes.DATE, allowNull: true },
   deleted_by: { type: DataTypes.STRING(100), allowNull: true },
   modified_by: { type: DataTypes.STRING(100), allowNull: true },
-  created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
-  updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
+  created_at: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW
+  },
+  updated_at: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW
+  }
 };
 
 const groupRef = {
@@ -39,8 +51,16 @@ const userRef = {
 export const up = async (queryInterface: QueryInterface) => {
   // ─── lims_customers ───────────────────────────────────────────────────────
   await queryInterface.createTable("lims_customers", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    customer_id: { type: DataTypes.STRING(100), allowNull: false, unique: true },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    customer_id: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      unique: true
+    },
     customer_name: { type: DataTypes.STRING(200), allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
     rating_id: phraseEntryRef,
@@ -57,8 +77,16 @@ export const up = async (queryInterface: QueryInterface) => {
 
   // ─── lims_suppliers ───────────────────────────────────────────────────────
   await queryInterface.createTable("lims_suppliers", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    supplier_id: { type: DataTypes.STRING(100), allowNull: false, unique: true },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    supplier_id: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      unique: true
+    },
     supplier_name: { type: DataTypes.STRING(200), allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
     rating_id: phraseEntryRef,
@@ -74,7 +102,11 @@ export const up = async (queryInterface: QueryInterface) => {
 
   // ─── lims_projects ────────────────────────────────────────────────────────
   await queryInterface.createTable("lims_projects", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     project_id: { type: DataTypes.STRING(100), allowNull: false, unique: true },
     name: { type: DataTypes.STRING(200), allowNull: false },
     code: { type: DataTypes.STRING(100), allowNull: true },
@@ -96,7 +128,11 @@ export const up = async (queryInterface: QueryInterface) => {
 
   // ─── lims_studies ─────────────────────────────────────────────────────────
   await queryInterface.createTable("lims_studies", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     study_id: { type: DataTypes.STRING(100), allowNull: false, unique: true },
     name: { type: DataTypes.STRING(200), allowNull: false },
     study_code: { type: DataTypes.STRING(100), allowNull: true },
@@ -119,8 +155,16 @@ export const up = async (queryInterface: QueryInterface) => {
 
   // ─── lims_parameters ──────────────────────────────────────────────────────
   await queryInterface.createTable("lims_parameters", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    parameter_id: { type: DataTypes.STRING(100), allowNull: false, unique: true },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    parameter_id: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      unique: true
+    },
     parameter_name: { type: DataTypes.STRING(200), allowNull: false },
     parameter_type_id: phraseEntryRef,
     default_value: { type: DataTypes.STRING(255), allowNull: true },
@@ -132,7 +176,11 @@ export const up = async (queryInterface: QueryInterface) => {
 
   // ─── lims_stocks ──────────────────────────────────────────────────────────
   await queryInterface.createTable("lims_stocks", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     stock_id: { type: DataTypes.STRING(100), allowNull: false, unique: true },
     stock_name: { type: DataTypes.STRING(200), allowNull: false },
     stock_type_id: phraseEntryRef,
@@ -165,7 +213,11 @@ export const up = async (queryInterface: QueryInterface) => {
   // Stock ↔ Supplier, the "Suppliers (multiple can be added)" field. Separate
   // from preferred_supplier_id, which is the single default.
   await queryInterface.createTable("lims_stock_suppliers", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     stock_id: {
       type: DataTypes.UUID,
       allowNull: false,
@@ -180,17 +232,33 @@ export const up = async (queryInterface: QueryInterface) => {
       onUpdate: "CASCADE",
       onDelete: "CASCADE"
     },
-    created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
-    updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    }
   });
-  await queryInterface.addIndex("lims_stock_suppliers", ["stock_id", "supplier_id"], {
-    unique: true,
-    name: "lims_stock_suppliers_pair_idx"
-  });
+  await queryInterface.addIndex(
+    "lims_stock_suppliers",
+    ["stock_id", "supplier_id"],
+    {
+      unique: true,
+      name: "lims_stock_suppliers_pair_idx"
+    }
+  );
 
   // Sub-form: Parameters (Identity / Value / Unit) on a Stock.
   await queryInterface.createTable("lims_stock_parameter_values", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     stock_id: {
       type: DataTypes.UUID,
       allowNull: false,
@@ -201,16 +269,32 @@ export const up = async (queryInterface: QueryInterface) => {
     identity: { type: DataTypes.STRING(200), allowNull: true },
     value: { type: DataTypes.STRING(255), allowNull: true },
     unit: { type: DataTypes.STRING(50), allowNull: true },
-    created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
-    updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    }
   });
   await queryInterface.addIndex("lims_stock_parameter_values", ["stock_id"]);
 
   // ─── lims_stock_batches ───────────────────────────────────────────────────
   await queryInterface.createTable("lims_stock_batches", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     // "Stock ID/Batch Number", derived on create — never typed.
-    stock_batch_id: { type: DataTypes.STRING(150), allowNull: false, unique: true },
+    stock_batch_id: {
+      type: DataTypes.STRING(150),
+      allowNull: false,
+      unique: true
+    },
     // Increments per stock, not globally (spec §B.8.b).
     batch_number: { type: DataTypes.INTEGER, allowNull: false },
     stock_id: {
@@ -258,14 +342,22 @@ export const up = async (queryInterface: QueryInterface) => {
   });
   await queryInterface.addIndex("lims_stock_batches", ["stock_id"]);
   await queryInterface.addIndex("lims_stock_batches", ["group_id"]);
-  await queryInterface.addIndex("lims_stock_batches", ["stock_id", "batch_number"], {
-    unique: true,
-    name: "lims_stock_batches_number_per_stock_idx"
-  });
+  await queryInterface.addIndex(
+    "lims_stock_batches",
+    ["stock_id", "batch_number"],
+    {
+      unique: true,
+      name: "lims_stock_batches_number_per_stock_idx"
+    }
+  );
 
   // Sub-form: "Current Status (List to Consumption records)".
   await queryInterface.createTable("lims_stock_batch_consumptions", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     stock_batch_id: {
       type: DataTypes.UUID,
       allowNull: false,
@@ -278,14 +370,28 @@ export const up = async (queryInterface: QueryInterface) => {
     amount: { type: DataTypes.DECIMAL(18, 6), allowNull: true },
     unit: { type: DataTypes.STRING(50), allowNull: true },
     remarks: { type: DataTypes.TEXT, allowNull: true },
-    created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
-    updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    }
   });
-  await queryInterface.addIndex("lims_stock_batch_consumptions", ["stock_batch_id"]);
+  await queryInterface.addIndex("lims_stock_batch_consumptions", [
+    "stock_batch_id"
+  ]);
 
   // Sub-form: Parameters on a Stock Batch.
   await queryInterface.createTable("lims_stock_batch_parameter_values", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     stock_batch_id: {
       type: DataTypes.UUID,
       allowNull: false,
@@ -296,16 +402,34 @@ export const up = async (queryInterface: QueryInterface) => {
     identity: { type: DataTypes.STRING(200), allowNull: true },
     value: { type: DataTypes.STRING(255), allowNull: true },
     unit: { type: DataTypes.STRING(50), allowNull: true },
-    created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
-    updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    }
   });
-  await queryInterface.addIndex("lims_stock_batch_parameter_values", ["stock_batch_id"]);
+  await queryInterface.addIndex("lims_stock_batch_parameter_values", [
+    "stock_batch_id"
+  ]);
 
   // ─── lims_aliquot_sets ────────────────────────────────────────────────────
   // The UI models an aliquot SET ("split into 12") — hence a set table plus a row table.
   await queryInterface.createTable("lims_aliquot_sets", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    aliquot_set_id: { type: DataTypes.STRING(100), allowNull: false, unique: true },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    aliquot_set_id: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      unique: true
+    },
     stock_batch_id: {
       type: DataTypes.UUID,
       allowNull: false,
@@ -321,7 +445,11 @@ export const up = async (queryInterface: QueryInterface) => {
   await queryInterface.addIndex("lims_aliquot_sets", ["group_id"]);
 
   await queryInterface.createTable("lims_aliquots", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     aliquot_set_id: {
       type: DataTypes.UUID,
       allowNull: false,
@@ -333,8 +461,16 @@ export const up = async (queryInterface: QueryInterface) => {
     description: { type: DataTypes.TEXT, allowNull: true },
     quantity: { type: DataTypes.DECIMAL(18, 6), allowNull: true },
     unit: { type: DataTypes.STRING(50), allowNull: true },
-    created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
-    updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    }
   });
   await queryInterface.addIndex("lims_aliquots", ["aliquot_set_id"]);
 };

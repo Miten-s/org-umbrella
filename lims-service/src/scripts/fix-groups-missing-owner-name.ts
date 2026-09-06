@@ -11,7 +11,10 @@ const TARGET_IDS = [
 
 const run = async () => {
   await sequelize.transaction(async (transaction) => {
-    const rows = await Group.findAll({ where: { id: TARGET_IDS }, transaction });
+    const rows = await Group.findAll({
+      where: { id: TARGET_IDS },
+      transaction
+    });
 
     if (rows.length !== TARGET_IDS.length) {
       throw new Error(
@@ -21,15 +24,22 @@ const run = async () => {
 
     for (const row of rows) {
       if (!row.ownedBy) {
-        console.log(`skip "${row.groupId}" — ownedBy is now empty, nothing to backfill.`);
+        console.log(
+          `skip "${row.groupId}" — ownedBy is now empty, nothing to backfill.`
+        );
         continue;
       }
       const owner = await LimsUser.findByPk(row.ownedBy, { transaction });
       if (!owner) {
-        console.log(`skip "${row.groupId}" — no LimsUser found for ownedBy=${row.ownedBy}.`);
+        console.log(
+          `skip "${row.groupId}" — no LimsUser found for ownedBy=${row.ownedBy}.`
+        );
         continue;
       }
-      await row.update({ ownedByName: owner.userName ?? null }, { transaction });
+      await row.update(
+        { ownedByName: owner.userName ?? null },
+        { transaction }
+      );
       console.log(`"${row.groupId}": ownedByName -> "${owner.userName}"`);
     }
   });

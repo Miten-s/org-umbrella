@@ -8,7 +8,15 @@ export const up = async (queryInterface: QueryInterface) => {
     entity: { type: DataTypes.STRING(50), primaryKey: true },
     prefix: { type: DataTypes.STRING(10), allowNull: false },
     last_value: { type: DataTypes.BIGINT, allowNull: false, defaultValue: 0 },
-    created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
-    updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    }
   });
 };

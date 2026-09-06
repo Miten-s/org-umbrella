@@ -19,9 +19,14 @@ vi.mock("@/components/common/LoadingSpinner", () => {
 // Imported after the mock so ProtectedRoute picks up the stubbed useAuth.
 const { default: ProtectedRoute } = await import("./Protected");
 
-const userWith = (roleName: string, ...permissions: string[]): AuthenticatedUser => ({
+const userWith = (
+  roleName: string,
+  ...permissions: string[]
+): AuthenticatedUser => ({
   id: "user-1",
-  roles: [{ name: roleName, permissions: permissions.map((name) => ({ name })) }]
+  roles: [
+    { name: roleName, permissions: permissions.map((name) => ({ name })) }
+  ]
 });
 
 const setAuth = (state: {
@@ -34,7 +39,10 @@ const setAuth = (state: {
  * Renders the guarded page at `/gxp-service/users` with a stand-in sign-in
  * route, so a redirect is observable as rendered content.
  */
-const renderGuarded = (props: { requiredPermission?: string; requiredRole?: string }) =>
+const renderGuarded = (props: {
+  requiredPermission?: string;
+  requiredRole?: string;
+}) =>
   render(
     <MemoryRouter initialEntries={["/gxp-service/users"]}>
       <Routes>
@@ -114,7 +122,9 @@ describe("ProtectedRoute", () => {
       isAuthenticated: true
     });
 
-    renderGuarded({ requiredPermission: GXP_PERMISSIONS.DELETE_SERVICE_REQUEST });
+    renderGuarded({
+      requiredPermission: GXP_PERMISSIONS.DELETE_SERVICE_REQUEST
+    });
 
     expect(screen.getByText("GXP Users page")).toBeInTheDocument();
   });

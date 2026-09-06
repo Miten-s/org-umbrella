@@ -9,7 +9,11 @@ import type { LimsCalibration, LimsRef } from "./LimsCalibration.types";
 const refLabel = (ref: LimsRef | null | undefined) => ref?.name ?? "";
 
 /** Column factory (STANDARDS.md §8). */
-export const getLimsCalibrationColumns = ({ t }: { t: TFunction }): ColDef<LimsCalibration>[] => [
+export const getLimsCalibrationColumns = ({
+  t
+}: {
+  t: TFunction;
+}): ColDef<LimsCalibration>[] => [
   {
     field: "calibrationId",
     headerName: t("limsCalibrationId"),
@@ -26,7 +30,10 @@ export const getLimsCalibrationColumns = ({ t }: { t: TFunction }): ColDef<LimsC
     minWidth: 210,
     cellRenderer: (params: ICellRendererParams<LimsCalibration>) =>
       params.data ? (
-        <AvatarCell label={String(params.data.calibrationName ?? "")} fallbackInitial="•" />
+        <AvatarCell
+          label={String(params.data.calibrationName ?? "")}
+          fallbackInitial="•"
+        />
       ) : null
   },
   {

@@ -21,7 +21,9 @@ interface ToggleContext {
   togglingId?: string;
 }
 
-export const getGxpUserColumns = ({ t }: GxpUserColumnCtx): ColDef<GxpUser>[] => [
+export const getGxpUserColumns = ({
+  t
+}: GxpUserColumnCtx): ColDef<GxpUser>[] => [
   {
     field: "user",
     headerName: t("userName"),
@@ -29,14 +31,22 @@ export const getGxpUserColumns = ({ t }: GxpUserColumnCtx): ColDef<GxpUser>[] =>
     minWidth: 220,
     valueGetter: ({ data }) => data?.user?.name ?? "",
     cellRenderer: (params: ICellRendererParams<GxpUser>) =>
-      params.data ? <AvatarCell label={params.data.user.name || "-"} fallbackInitial="U" showAvatar /> : null
+      params.data ? (
+        <AvatarCell
+          label={params.data.user.name || "-"}
+          fallbackInitial="U"
+          showAvatar
+        />
+      ) : null
   },
   {
     field: "userType",
     headerName: t("userType"),
     flex: 0,
     minWidth: 140,
-    cellRenderer: (params: ICellRendererParams<GxpUser>) => <TruncateCell value={params.data?.userType} />
+    cellRenderer: (params: ICellRendererParams<GxpUser>) => (
+      <TruncateCell value={params.data?.userType} />
+    )
   },
   {
     field: "roles",
@@ -59,7 +69,9 @@ export const getGxpUserColumns = ({ t }: GxpUserColumnCtx): ColDef<GxpUser>[] =>
     flex: 1,
     minWidth: 200,
     sortable: false,
-    cellRenderer: (params: ICellRendererParams<GxpUser>) => <TruncateCell value={params.data?.description} />
+    cellRenderer: (params: ICellRendererParams<GxpUser>) => (
+      <TruncateCell value={params.data?.description} />
+    )
   },
   {
     field: "status",

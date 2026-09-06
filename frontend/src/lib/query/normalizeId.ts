@@ -20,7 +20,9 @@ const hasIdLike = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
 /** Normalize a single row: ensure canonical `id`, keep `_id` shim in sync. */
-export const normalizeId = <T extends Record<string, any>>(row: T): WithId<T> => {
+export const normalizeId = <T extends Record<string, any>>(
+  row: T
+): WithId<T> => {
   const id = String(row.id ?? row._id ?? "");
   return { ...row, id, _id: id };
 };

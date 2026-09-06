@@ -11,7 +11,10 @@ export const limsLocationSchema = z.object({
     .string()
     .min(1, "Name is required")
     .max(100, "Name must not exceed 100 characters"),
-  description: z.string().max(200, "Description must not exceed 200 characters").optional(),
+  description: z
+    .string()
+    .max(200, "Description must not exceed 200 characters")
+    .optional(),
   locationType: z.string().optional(),
   group: z.string().optional(),
   parentLocation: z.string().optional(),

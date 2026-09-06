@@ -11,7 +11,10 @@ export interface IUserAccessGroup {
   groupId: string;
 }
 
-export class UserAccessGroup extends Model<IUserAccessGroup> implements IUserAccessGroup {
+export class UserAccessGroup
+  extends Model<IUserAccessGroup>
+  implements IUserAccessGroup
+{
   public id!: string;
   public limsUserId!: string;
   public groupId!: string;
@@ -19,11 +22,24 @@ export class UserAccessGroup extends Model<IUserAccessGroup> implements IUserAcc
 
 UserAccessGroup.init(
   {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    limsUserId: { type: DataTypes.UUID, allowNull: false, field: "lims_user_id" },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    limsUserId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      field: "lims_user_id"
+    },
     groupId: { type: DataTypes.UUID, allowNull: false, field: "group_id" }
   },
-  { sequelize, tableName: "lims_user_access_groups", underscored: true, timestamps: true }
+  {
+    sequelize,
+    tableName: "lims_user_access_groups",
+    underscored: true,
+    timestamps: true
+  }
 );
 
 export default UserAccessGroup;

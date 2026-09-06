@@ -26,7 +26,10 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsCalibrationById, fetchLimsCalibrationList } from "./LimsCalibration.api";
+import {
+  fetchLimsCalibrationById,
+  fetchLimsCalibrationList
+} from "./LimsCalibration.api";
 import { getLimsCalibrationColumns } from "./LimsCalibration.columns";
 import {
   limsCalibrationKeys,
@@ -156,7 +159,9 @@ const LimsCalibrationList = () => {
     table.clearSelection();
   };
 
-  const handleSaveEdits = (updates: { id: string; payload: LimsCalibrationPayload }[]) => {
+  const handleSaveEdits = (
+    updates: { id: string; payload: LimsCalibrationPayload }[]
+  ) => {
     handleCloseForm();
     compliance.requestBulkUpdate(updates);
   };
@@ -405,7 +410,8 @@ const LimsCalibrationList = () => {
             saving={bulkUpdate.isPending}
             entityLabel={t("limsCalibration")}
           />
-        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        ) : formMode !== "create" &&
+          (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>
@@ -445,7 +451,10 @@ const LimsCalibrationList = () => {
         onBulkUpdate={async (reason) => {
           const pending = compliance.pendingBulkUpdate;
           if (pending) {
-            await bulkUpdate.mutateAsync({ updates: pending.updates, changeReason: reason });
+            await bulkUpdate.mutateAsync({
+              updates: pending.updates,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearBulkUpdate();

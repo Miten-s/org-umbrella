@@ -65,8 +65,13 @@ const useInvalidate = () => {
 export const useCreateLimsStudy = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ payload, files }: { payload: LimsStudyPayload; files?: File[] }) =>
-      createLimsStudy(payload, files),
+    mutationFn: ({
+      payload,
+      files
+    }: {
+      payload: LimsStudyPayload;
+      files?: File[];
+    }) => createLimsStudy(payload, files),
     onSuccess: () => {
       toast("Study created successfully.", "success");
       invalidate();

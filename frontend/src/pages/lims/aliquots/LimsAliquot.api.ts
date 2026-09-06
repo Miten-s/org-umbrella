@@ -1,5 +1,9 @@
 import limsApi from "@/utils/lims.axios.interceptor";
-import { buildServerParams, toListResult, toOptionsPage } from "@/lib/query/listAdapter";
+import {
+  buildServerParams,
+  toListResult,
+  toOptionsPage
+} from "@/lib/query/listAdapter";
 import { bulkSelectionToBody, type BulkSelection } from "@/lib/query/listTypes";
 import type { ServerListParams } from "@/lib/query/listTypes";
 import type { LimsAliquot, LimsAliquotPayload } from "./LimsAliquot.types";
@@ -9,7 +13,10 @@ const ROUTE = "/lims-aliquots";
 
 /** Full record for the Edit/View modal — fetched on demand when it opens,
  * not reused from the list row (see useLimsRecordById). */
-export const fetchLimsAliquotById = async (id: string, signal?: AbortSignal) => {
+export const fetchLimsAliquotById = async (
+  id: string,
+  signal?: AbortSignal
+) => {
   const response = await limsApi.get(`${ROUTE}/${id}`, { signal });
   return (response.data?.data ?? response.data) as LimsAliquot;
 };
@@ -22,10 +29,18 @@ export const fetchLimsAliquotList = async (
   signal?: AbortSignal
 ) => {
   const response = await limsApi.get(ROUTE, {
-    params: { ...buildServerParams(params), includeRemoved: includeRemoved || undefined },
+    params: {
+      ...buildServerParams(params),
+      includeRemoved: includeRemoved || undefined
+    },
     signal
   });
-  return toListResult<LimsAliquot>(response.data, params, DATA_KEYS, RELATION_KEYS);
+  return toListResult<LimsAliquot>(
+    response.data,
+    params,
+    DATA_KEYS,
+    RELATION_KEYS
+  );
 };
 
 /** Options for other modules selecting this entity. */
@@ -38,7 +53,10 @@ export const fetchLimsAliquotOptions = async (
     limit: 20,
     search: args.search || undefined
   };
-  const response = await limsApi.get(ROUTE, { params: buildServerParams(params), signal });
+  const response = await limsApi.get(ROUTE, {
+    params: buildServerParams(params),
+    signal
+  });
   return toOptionsPage<LimsAliquot>(
     response.data,
     params,
@@ -52,7 +70,10 @@ export const createLimsAliquot = async (payload: LimsAliquotPayload) => {
   return response.data;
 };
 
-export const updateLimsAliquot = async (id: string, payload: LimsAliquotPayload) => {
+export const updateLimsAliquot = async (
+  id: string,
+  payload: LimsAliquotPayload
+) => {
   const response = await limsApi.patch(`${ROUTE}/${id}`, payload);
   return response.data;
 };
@@ -80,7 +101,10 @@ export const bulkRestoreLimsAliquot = async (
 };
 
 export const bulkCloneLimsAliquot = async (selection: BulkSelection) => {
-  const response = await limsApi.post(`${ROUTE}/bulk-duplicate`, bulkSelectionToBody(selection));
+  const response = await limsApi.post(
+    `${ROUTE}/bulk-duplicate`,
+    bulkSelectionToBody(selection)
+  );
   return response.data;
 };
 
@@ -101,7 +125,10 @@ export const bulkUpdateLimsAliquot = async (
   updates: { id: string; payload: LimsAliquotPayload }[],
   changeReason: string
 ) => {
-  const response = await limsApi.patch(`${ROUTE}/bulk-update`, { updates, changeReason });
+  const response = await limsApi.patch(`${ROUTE}/bulk-update`, {
+    updates,
+    changeReason
+  });
   return response.data as {
     message: string;
     count: number;
@@ -110,7 +137,9 @@ export const bulkUpdateLimsAliquot = async (
 };
 
 export const restoreLimsAliquot = async (id: string, changeReason: string) => {
-  const response = await limsApi.patch(`${ROUTE}/restore/${id}`, { changeReason });
+  const response = await limsApi.patch(`${ROUTE}/restore/${id}`, {
+    changeReason
+  });
   return response.data;
 };
 
@@ -119,6 +148,9 @@ export const fetchLimsAliquotAudit = async (
   signal?: AbortSignal,
   params?: { page?: number; limit?: number }
 ) => {
-  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { params, signal });
+  const response = await limsApi.get(`${ROUTE}/${id}/audit`, {
+    params,
+    signal
+  });
   return response.data;
 };

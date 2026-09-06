@@ -10,11 +10,15 @@ import Switch from "@/components/common/form/switch/Switch";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import { useUserOptions } from "@/pages/system-it-admin/users/User.queries";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
-import { assignmentGroupSchema, type AssignmentGroupFormValues } from "./AssignmentGroup.schema";
+import {
+  assignmentGroupSchema,
+  type AssignmentGroupFormValues
+} from "./AssignmentGroup.schema";
 import type { AssignmentGroup, GroupMember } from "./AssignmentGroup.types";
 import type { AsyncOption } from "@/lib/query/listTypes";
 
-export type AssignmentGroupFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type AssignmentGroupFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface AssignmentGroupFormProps {
   mode?: AssignmentGroupFormMode;
@@ -38,10 +42,14 @@ interface AssignmentGroupFormProps {
 }
 
 const memberSeed = (members?: GroupMember[]): AsyncOption[] | undefined =>
-  members?.length ? members.map((m) => ({ value: m.userId, label: m.name })) : undefined;
+  members?.length
+    ? members.map((m) => ({ value: m.userId, label: m.name }))
+    : undefined;
 
 const managerSeed = (manager?: GroupMember): AsyncOption[] | undefined =>
-  manager?.userId ? [{ value: manager.userId, label: manager.name }] : undefined;
+  manager?.userId
+    ? [{ value: manager.userId, label: manager.name }]
+    : undefined;
 
 /**
  * Assignment Group form. manager (single) and members (multi) are stored as
@@ -93,7 +101,10 @@ const AssignmentGroupForm = ({
       <form
         id={formId}
         onSubmit={handleSubmit((values) => {
-          if ((mode === "edit" || mode === "bulk-edit") && isPayloadEqual(values, initialValues)) {
+          if (
+            (mode === "edit" || mode === "bulk-edit") &&
+            isPayloadEqual(values, initialValues)
+          ) {
             (onUnchanged ?? onClose)();
             return;
           }
@@ -134,7 +145,11 @@ const AssignmentGroupForm = ({
                   value={field.value?.userId || ""}
                   onChange={() => {}}
                   onChangeOption={(option) =>
-                    field.onChange(option ? { userId: option.value, name: option.label } : { userId: "", name: "" })
+                    field.onChange(
+                      option
+                        ? { userId: option.value, name: option.label }
+                        : { userId: "", name: "" }
+                    )
                   }
                   disabled={isReadOnly}
                   error={!!errors.manager}
@@ -144,7 +159,9 @@ const AssignmentGroupForm = ({
               )}
             />
             {errors.manager?.userId && (
-              <p className="mt-1 text-xs text-error-500">{errors.manager.userId.message as string}</p>
+              <p className="mt-1 text-xs text-error-500">
+                {errors.manager.userId.message as string}
+              </p>
             )}
           </div>
 
@@ -160,7 +177,9 @@ const AssignmentGroupForm = ({
                   value={(field.value ?? []).map((m) => m.userId)}
                   onChange={() => {}}
                   onChangeOptions={(options) =>
-                    field.onChange(options.map((o) => ({ userId: o.value, name: o.label })))
+                    field.onChange(
+                      options.map((o) => ({ userId: o.value, name: o.label }))
+                    )
                   }
                   disabled={isReadOnly}
                   placeholder={t("select", { entity: t("members") })}
@@ -198,11 +217,21 @@ const AssignmentGroupForm = ({
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

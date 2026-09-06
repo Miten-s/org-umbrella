@@ -12,15 +12,27 @@ import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
 
 import { useLimsInstrumentOptions } from "@/pages/lims/instruments/LimsInstrument.queries";
-import { useCalibrationStatusOptions, useCalibrationTypeOptions } from "@/pages/lims/phrases/LimsPhrase.queries";
+import {
+  useCalibrationStatusOptions,
+  useCalibrationTypeOptions
+} from "@/pages/lims/phrases/LimsPhrase.queries";
 import { useLimsUserOptions } from "@/pages/lims/users/LimsUser.options";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
-import { limsCalibrationSchema, limsCalibrationCopySchema, type LimsCalibrationFormValues } from "./LimsCalibration.schema";
-import type { LimsCalibration, LimsCalibrationPayload, LimsRef } from "./LimsCalibration.types";
+import {
+  limsCalibrationSchema,
+  limsCalibrationCopySchema,
+  type LimsCalibrationFormValues
+} from "./LimsCalibration.schema";
+import type {
+  LimsCalibration,
+  LimsCalibrationPayload,
+  LimsRef
+} from "./LimsCalibration.types";
 
 /** "copy" renders like "create" except the business ID starts blank (stays EDITABLE —
  * `applyBusinessId` only mints when empty, otherwise honors what the user typed). */
-export type LimsCalibrationFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type LimsCalibrationFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsCalibrationFormProps {
   mode?: LimsCalibrationFormMode;
@@ -79,7 +91,7 @@ const LimsCalibrationForm = ({
       contractor: initialData?.contractor ?? "",
       lastMaintenanceDate: initialData?.lastMaintenanceDate ?? "",
       nextMaintenanceDate: initialData?.nextMaintenanceDate ?? "",
-      autoLogin: initialData?.autoLogin ?? false,
+      autoLogin: initialData?.autoLogin ?? false
     }),
     [initialData, mode]
   );
@@ -90,7 +102,9 @@ const LimsCalibrationForm = ({
     handleSubmit,
     formState: { errors, isSubmitting }
   } = useForm<LimsCalibrationFormValues>({
-    resolver: zodResolver(mode === "copy" ? limsCalibrationCopySchema : limsCalibrationSchema),
+    resolver: zodResolver(
+      mode === "copy" ? limsCalibrationCopySchema : limsCalibrationSchema
+    ),
     defaultValues: initialValues
   });
 
@@ -142,7 +156,10 @@ const LimsCalibrationForm = ({
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
-          if ((mode === "edit" || mode === "bulk-edit") && isPayloadEqual(values, initialValues)) {
+          if (
+            (mode === "edit" || mode === "bulk-edit") &&
+            isPayloadEqual(values, initialValues)
+          ) {
             (onUnchanged ?? onClose)();
             return;
           }
@@ -153,11 +170,11 @@ const LimsCalibrationForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsCalibration") })
-                        : mode === "copy"
+            : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsCalibration") })}${stepLabel ?? ""}`
               : initialData
-              ? `${t("update", { entity: t("limsCalibration") })}${stepLabel ?? ""}`
-              : t("create", { entity: t("limsCalibration") })}
+                ? `${t("update", { entity: t("limsCalibration") })}${stepLabel ?? ""}`
+                : t("create", { entity: t("limsCalibration") })}
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
@@ -181,7 +198,9 @@ const LimsCalibrationForm = ({
               )}
             />
             {errors.instrument ? (
-              <p className="mt-1 text-xs text-red-500">{errors.instrument.message}</p>
+              <p className="mt-1 text-xs text-red-500">
+                {errors.instrument.message}
+              </p>
             ) : null}
           </div>
           <div className="min-w-0">
@@ -195,7 +214,9 @@ const LimsCalibrationForm = ({
                   value={field.value}
                   onChange={field.onChange}
                   disabled={isReadOnly}
-                  placeholder={t("select", { entity: t("limsCalibrationType") })}
+                  placeholder={t("select", {
+                    entity: t("limsCalibrationType")
+                  })}
                   initialSelectedOptions={seedOne(initialData?.calibrationType)}
                 />
               )}
@@ -227,7 +248,11 @@ const LimsCalibrationForm = ({
                 <SelectDropdown
                   value={field.value ?? ""}
                   onChange={field.onChange}
-                  options={[{ label: "Daily", value: "Daily" }, { label: "Monthly", value: "Monthly" }, { label: "Yearly", value: "Yearly" }]}
+                  options={[
+                    { label: "Daily", value: "Daily" },
+                    { label: "Monthly", value: "Monthly" },
+                    { label: "Yearly", value: "Yearly" }
+                  ]}
                   placeholder={t("select", { entity: t("limsPlan") })}
                 />
               )}
@@ -244,7 +269,12 @@ const LimsCalibrationForm = ({
                 <SelectDropdown
                   value={field.value ?? ""}
                   onChange={field.onChange}
-                  options={[{ label: "Day", value: "Day" }, { label: "Hours", value: "Hours" }, { label: "Min", value: "Min" }, { label: "Second", value: "Second" }]}
+                  options={[
+                    { label: "Day", value: "Day" },
+                    { label: "Hours", value: "Hours" },
+                    { label: "Min", value: "Min" },
+                    { label: "Second", value: "Second" }
+                  ]}
                   placeholder={t("select", { entity: t("limsLeadTimeUnit") })}
                 />
               )}
@@ -268,8 +298,18 @@ const LimsCalibrationForm = ({
             />
           </div>
           {text("contractor", t("limsContractor"), false, "text")}
-          {text("lastMaintenanceDate", t("limsLastMaintenanceDate"), false, "date")}
-          {text("nextMaintenanceDate", t("limsNextMaintenanceDate"), false, "date")}
+          {text(
+            "lastMaintenanceDate",
+            t("limsLastMaintenanceDate"),
+            false,
+            "date"
+          )}
+          {text(
+            "nextMaintenanceDate",
+            t("limsNextMaintenanceDate"),
+            false,
+            "date"
+          )}
           <div className="min-w-0">
             <Label>{t("limsAutoLogin")}</Label>
             <Controller
@@ -289,11 +329,21 @@ const LimsCalibrationForm = ({
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

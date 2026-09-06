@@ -11,7 +11,8 @@ import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { supplierSchema, type SupplierFormValues } from "./Supplier.schema";
 import type { Supplier } from "./Supplier.types";
 
-export type SupplierFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type SupplierFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface SupplierFormProps {
   mode?: SupplierFormMode;
@@ -84,7 +85,10 @@ const SupplierForm = ({
         id={formId}
         onSubmit={handleSubmit((values) => {
           // Edit/bulk-edit + nothing actually changed: skip the update call entirely.
-          if ((mode === "edit" || mode === "bulk-edit") && isPayloadEqual(values, initialValues)) {
+          if (
+            (mode === "edit" || mode === "bulk-edit") &&
+            isPayloadEqual(values, initialValues)
+          ) {
             (onUnchanged ?? onClose)();
             return;
           }
@@ -144,7 +148,9 @@ const SupplierForm = ({
               label={status === "enabled" ? t("enabled") : t("disabled")}
               checked={status === "enabled"}
               disabled={isReadOnly}
-              onChange={(checked) => setValue("status", checked ? "enabled" : "disabled")}
+              onChange={(checked) =>
+                setValue("status", checked ? "enabled" : "disabled")
+              }
             />
           </div>
 
@@ -160,11 +166,21 @@ const SupplierForm = ({
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

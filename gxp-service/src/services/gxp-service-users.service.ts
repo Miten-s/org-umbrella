@@ -41,7 +41,9 @@ export const getUserService = async (id: string) => {
   return {
     ...user,
     roles: await fetchRolesFromAuthService(
-      Array.isArray((user as any).roles) ? (user as any).roles : [(user as any).roles]
+      Array.isArray((user as any).roles)
+        ? (user as any).roles
+        : [(user as any).roles]
     )
   };
 };

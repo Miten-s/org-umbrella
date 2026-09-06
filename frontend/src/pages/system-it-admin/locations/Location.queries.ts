@@ -56,7 +56,8 @@ export const useCreateLocation = () => {
 export const useUpdateLocation = () => {
   const invalidate = useInvalidateLocations();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: LocationPayload }) => updateLocation(id, payload),
+    mutationFn: ({ id, payload }: { id: string; payload: LocationPayload }) =>
+      updateLocation(id, payload),
     onSuccess: () => {
       toast("Location updated successfully.", "success");
       invalidate();
@@ -78,7 +79,12 @@ export const useBulkDeleteLocation = () => {
     mutationFn: (selection: BulkSelection) => bulkDeleteLocation(selection),
     onSuccess: (_data, selection) => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
-      toast(count && count > 1 ? `${count} locations deleted successfully.` : "Location deleted successfully.", "success");
+      toast(
+        count && count > 1
+          ? `${count} locations deleted successfully.`
+          : "Location deleted successfully.",
+        "success"
+      );
       invalidate();
     }
   });
@@ -90,7 +96,12 @@ export const useBulkCloneLocation = () => {
     mutationFn: (selection: BulkSelection) => bulkCloneLocation(selection),
     onSuccess: (_data, selection) => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
-      toast(count && count > 1 ? `${count} locations copied successfully.` : "Location copied successfully.", "success");
+      toast(
+        count && count > 1
+          ? `${count} locations copied successfully.`
+          : "Location copied successfully.",
+        "success"
+      );
       invalidate();
     }
   });
@@ -102,7 +113,9 @@ export const useBulkCopyLocation = () => {
     mutationFn: (records: LocationPayload[]) => bulkCopyLocation(records),
     onSuccess: (data) => {
       toast(
-        data.count > 1 ? `${data.count} locations copied successfully.` : "Location copied successfully.",
+        data.count > 1
+          ? `${data.count} locations copied successfully.`
+          : "Location copied successfully.",
         "success"
       );
       const warnings = data.results.filter((r) => r.warning);
@@ -122,10 +135,13 @@ export const useBulkCopyLocation = () => {
 export const useBulkUpdateLocation = () => {
   const invalidate = useInvalidateLocations();
   return useMutation({
-    mutationFn: (updates: { id: string; payload: LocationPayload }[]) => bulkUpdateLocation(updates),
+    mutationFn: (updates: { id: string; payload: LocationPayload }[]) =>
+      bulkUpdateLocation(updates),
     onSuccess: (data) => {
       toast(
-        data.count > 1 ? `${data.count} locations updated successfully.` : "Location updated successfully.",
+        data.count > 1
+          ? `${data.count} locations updated successfully.`
+          : "Location updated successfully.",
         "success"
       );
       invalidate();

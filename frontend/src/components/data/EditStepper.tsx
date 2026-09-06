@@ -33,7 +33,9 @@ export interface EditStepperProps<TRecord, TPayload> {
   FormComponent: React.ComponentType<EditStepperFormProps<TRecord, TPayload>>;
   // Fires once, on Save-all, with only records that actually changed, each paired with its
   // id — never opened, or opened-but-untouched records are excluded entirely.
-  onSaveAll: (updates: { id: string; payload: TPayload }[]) => void | Promise<void>;
+  onSaveAll: (
+    updates: { id: string; payload: TPayload }[]
+  ) => void | Promise<void>;
   onClose: () => void;
   saving?: boolean;
   entityLabel: string;
@@ -71,7 +73,10 @@ function EditStepper<TRecord, TPayload>({
   const sweepRef = useRef<number[] | null>(null);
   const sweepTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [autoSubmitting, setAutoSubmitting] = useState(false);
-  const [sweepProgress, setSweepProgress] = useState<{ current: number; total: number } | null>(null);
+  const [sweepProgress, setSweepProgress] = useState<{
+    current: number;
+    total: number;
+  } | null>(null);
 
   const clearSweep = () => {
     sweepRef.current = null;
@@ -86,7 +91,8 @@ function EditStepper<TRecord, TPayload>({
   // Same `flushSync` reasoning as CopyStepper's `loadSource` — the sweep needs `sources[i]`
   // actually committed, not just scheduled, or it finds no mounted `<form>` and hangs.
   const loadSource = async (i: number) => {
-    if (sourcesRef.current[i] !== undefined) return sourcesRef.current[i] as TRecord;
+    if (sourcesRef.current[i] !== undefined)
+      return sourcesRef.current[i] as TRecord;
     const generation = generationRef.current;
     const record = await fetchById(ids[i]);
     if (generation !== generationRef.current) return record;
@@ -139,7 +145,8 @@ function EditStepper<TRecord, TPayload>({
   const finalize = async () => {
     const updates: { id: string; payload: TPayload }[] = [];
     payloadsRef.current.forEach((payload, i) => {
-      if (payload !== null && payload !== undefined) updates.push({ id: ids[i], payload });
+      if (payload !== null && payload !== undefined)
+        updates.push({ id: ids[i], payload });
     });
     if (!updates.length) {
       toast(t("editNoChanges"), "info");
@@ -158,7 +165,9 @@ function EditStepper<TRecord, TPayload>({
       setIndex(i);
       setDisplayIndex(i);
     });
-    (document.getElementById(`${formId}-${i}`) as HTMLFormElement | null)?.requestSubmit();
+    (
+      document.getElementById(`${formId}-${i}`) as HTMLFormElement | null
+    )?.requestSubmit();
     if (sweepTimeoutRef.current) clearTimeout(sweepTimeoutRef.current);
     sweepTimeoutRef.current = setTimeout(() => {
       clearSweep();
@@ -200,7 +209,15 @@ function EditStepper<TRecord, TPayload>({
         }
       } else {
         setSweepProgress((prev) =>
-          prev ? { current: Math.min(prev.total - remaining.length + 1, prev.total), total: prev.total } : prev
+          prev
+            ? {
+                current: Math.min(
+                  prev.total - remaining.length + 1,
+                  prev.total
+                ),
+                total: prev.total
+              }
+            : prev
         );
         runSweepStep(remaining[0]);
       }
@@ -210,7 +227,8 @@ function EditStepper<TRecord, TPayload>({
     goTo(Math.min(i + 1, total - 1));
   };
 
-  const handleStepSubmit = (i: number, values: TPayload, _files?: File[]) => commitStep(i, values);
+  const handleStepSubmit = (i: number, values: TPayload, _files?: File[]) =>
+    commitStep(i, values);
   const handleStepUnchanged = (i: number) => commitStep(i, null);
 
   // Every VISITED step is re-swept (current one unconditionally, to catch a live unsaved
@@ -274,7 +292,9 @@ function EditStepper<TRecord, TPayload>({
                 onClose={onClose}
                 onUnchanged={() => handleStepUnchanged(i)}
                 onSubmit={(values, files) => handleStepSubmit(i, values, files)}
-                submitting={(saving && total === 1) || (autoSubmitting && i === index)}
+                submitting={
+                  (saving && total === 1) || (autoSubmitting && i === index)
+                }
                 submitLabel={isMulti ? t("next") : undefined}
                 disabled={isMulti && i === total - 1}
                 formId={`${formId}-${i}`}
@@ -320,8 +340,15 @@ function EditStepper<TRecord, TPayload>({
               );
             })}
           </div>
-          <Button className="shrink-0" onClick={handleSaveAllClick} loading={busy} disabled={busy}>
-            {sweepProgress ? t("editReviewingProgress", sweepProgress) : t("editSaveAll")}
+          <Button
+            className="shrink-0"
+            onClick={handleSaveAllClick}
+            loading={busy}
+            disabled={busy}
+          >
+            {sweepProgress
+              ? t("editReviewingProgress", sweepProgress)
+              : t("editSaveAll")}
           </Button>
         </div>
       )}

@@ -15,19 +15,31 @@ import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsCustomerOptions } from "@/pages/lims/customers/LimsCustomer.queries";
 import { useLimsUserOptions } from "@/pages/lims/users/LimsUser.options";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
-import { limsProjectSchema, limsProjectCopySchema, type LimsProjectFormValues } from "./LimsProject.schema";
-import type { LimsProject, LimsProjectPayload, LimsRef } from "./LimsProject.types";
+import {
+  limsProjectSchema,
+  limsProjectCopySchema,
+  type LimsProjectFormValues
+} from "./LimsProject.schema";
+import type {
+  LimsProject,
+  LimsProjectPayload,
+  LimsRef
+} from "./LimsProject.types";
 
 /** "copy" renders like "create" except the business ID starts blank (stays EDITABLE —
  * `applyBusinessId` only mints when empty). Attachments hidden: the batch save is JSON-only. */
-export type LimsProjectFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type LimsProjectFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsProjectFormProps {
   mode?: LimsProjectFormMode;
   initialData?: LimsProject | null;
   onClose: () => void;
   onUnchanged?: () => void;
-  onSubmit: (payload: LimsProjectPayload, files: File[]) => Promise<void> | void;
+  onSubmit: (
+    payload: LimsProjectPayload,
+    files: File[]
+  ) => Promise<void> | void;
   submitting?: boolean;
   /** Overrides the submit button's label — CopyStepper uses this to say
    * "Next" on every step but the last, where the batch actually saves. */
@@ -87,14 +99,21 @@ const LimsProjectForm = ({
     setValue,
     formState: { errors, isSubmitting }
   } = useForm<LimsProjectFormValues>({
-    resolver: zodResolver(mode === "copy" ? limsProjectCopySchema : limsProjectSchema),
+    resolver: zodResolver(
+      mode === "copy" ? limsProjectCopySchema : limsProjectSchema
+    ),
     defaultValues: initialValues
   });
 
   const details = useWatch({ control, name: "details" });
   const busy = submitting || isSubmitting;
 
-  const text = (name: keyof LimsProjectFormValues, label: string, required = false, forceDisabled = false) => (
+  const text = (
+    name: keyof LimsProjectFormValues,
+    label: string,
+    required = false,
+    forceDisabled = false
+  ) => (
     <div className="min-w-0">
       <Label required={required}>{label}</Label>
       <Input
@@ -114,22 +133,29 @@ const LimsProjectForm = ({
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
-          if ((mode === "edit" || mode === "bulk-edit") && !attachments.isDirty && isPayloadEqual(values, initialValues)) {
+          if (
+            (mode === "edit" || mode === "bulk-edit") &&
+            !attachments.isDirty &&
+            isPayloadEqual(values, initialValues)
+          ) {
             (onUnchanged ?? onClose)();
             return;
           }
-          onSubmit({ ...values, keptAttachmentIds: attachments.keptIds }, attachments.newFiles);
+          onSubmit(
+            { ...values, keptAttachmentIds: attachments.keptIds },
+            attachments.newFiles
+          );
         })}
         className="min-w-0 space-y-4"
       >
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsProject") })
-                        : mode === "copy"
+            : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsProject") })}${stepLabel ?? ""}`
               : initialData
-              ? `${t("update", { entity: t("limsProject") })}${stepLabel ?? ""}`
-              : t("create", { entity: t("limsProject") })}
+                ? `${t("update", { entity: t("limsProject") })}${stepLabel ?? ""}`
+                : t("create", { entity: t("limsProject") })}
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
@@ -187,7 +213,9 @@ const LimsProjectForm = ({
                   onChange={field.onChange}
                   disabled={isReadOnly}
                   placeholder={t("select", { entity: t("limsSupervisor") })}
-                  initialSelectedOptions={seedRefOption(initialData?.supervisor)}
+                  initialSelectedOptions={seedRefOption(
+                    initialData?.supervisor
+                  )}
                 />
               )}
             />
@@ -198,7 +226,9 @@ const LimsProjectForm = ({
             <TextArea
               disabled={isReadOnly}
               value={details || ""}
-              onChange={(val) => setValue("details", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("details", val, { shouldValidate: true })
+              }
               error={!!errors.details}
               hint={errors.details?.message}
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
@@ -206,16 +236,29 @@ const LimsProjectForm = ({
           </div>
 
           {mode !== "copy" && mode !== "bulk-edit" && (
-            <LimsAttachmentsField attachments={attachments} disabled={isReadOnly} />
+            <LimsAttachmentsField
+              attachments={attachments}
+              disabled={isReadOnly}
+            />
           )}
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

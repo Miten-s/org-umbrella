@@ -49,7 +49,8 @@ export const convertMongooseError = (message: {
   }
 };
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** "supplier_name" -> "Supplier", "application_id" -> "Application". Never a raw DB column in a user-facing message. */
 const humanizeField = (raw: string): string => {
@@ -63,9 +64,12 @@ export const friendlyUniqueConflictMessage = (
   fields: string[],
   values: unknown[] = []
 ): string => {
-  const fieldLabel = fields.filter(Boolean).map(humanizeField).join(" + ") || "record";
+  const fieldLabel =
+    fields.filter(Boolean).map(humanizeField).join(" + ") || "record";
   const shown = values
-    .filter((v): v is string | number => v !== undefined && v !== null && v !== "")
+    .filter(
+      (v): v is string | number => v !== undefined && v !== null && v !== ""
+    )
     .filter((v) => !UUID_RE.test(String(v)));
   return shown.length
     ? `A record with this ${fieldLabel} already exists: "${shown.join(", ")}".`

@@ -94,9 +94,14 @@ const GxpUserForm = ({
     : undefined;
 
   // Copy's picker only offers platform users with no GXP user record yet.
-  const availableUsers = useAvailablePlatformUserOptions({ search: "", enabled: mode === "copy" });
+  const availableUsers = useAvailablePlatformUserOptions({
+    search: "",
+    enabled: mode === "copy"
+  });
   const noUsersAvailable =
-    mode === "copy" && !availableUsers.isLoading && availableUsers.options.length === 0;
+    mode === "copy" &&
+    !availableUsers.isLoading &&
+    availableUsers.options.length === 0;
 
   const submit = (values: GxpUserFormValues) => {
     const payload: GxpUserPayload = {
@@ -106,7 +111,10 @@ const GxpUserForm = ({
       description: values.description,
       status: values.status
     };
-    if ((mode === "edit" || mode === "bulk-edit") && isPayloadEqual(values, initialValues)) {
+    if (
+      (mode === "edit" || mode === "bulk-edit") &&
+      isPayloadEqual(values, initialValues)
+    ) {
       (onUnchanged ?? onClose)();
       return;
     }
@@ -115,7 +123,11 @@ const GxpUserForm = ({
 
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-2rem)] overflow-y-auto overflow-x-hidden rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-      <form id={formId} onSubmit={handleSubmit(submit)} className="min-w-0 space-y-4">
+      <form
+        id={formId}
+        onSubmit={handleSubmit(submit)}
+        className="min-w-0 space-y-4"
+      >
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("gxpUsers") })
@@ -137,20 +149,30 @@ const GxpUserForm = ({
                   useOptions={useAvailablePlatformUserOptions}
                   value={field.value}
                   onChange={field.onChange}
-                  onChangeOption={(option) => setSelectedUserName(option?.label ?? "")}
+                  onChangeOption={(option) =>
+                    setSelectedUserName(option?.label ?? "")
+                  }
                   // Existing assignments can't be repointed at a different
                   // user — Copy is the one exception, see GxpUserFormMode.
-                  disabled={isReadOnly || (Boolean(initialData) && mode !== "copy")}
+                  disabled={
+                    isReadOnly || (Boolean(initialData) && mode !== "copy")
+                  }
                   error={!!errors.userId}
                   placeholder={t("select", { entity: t("user") })}
                   initialSelectedOptions={userSeed}
                 />
               )}
             />
-            {errors.userId && <p className="mt-1 text-xs text-red-500">{errors.userId.message}</p>}
+            {errors.userId && (
+              <p className="mt-1 text-xs text-red-500">
+                {errors.userId.message}
+              </p>
+            )}
             {noUsersAvailable && (
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                {t("gxpNoAvailablePlatformUsers", { defaultValue: "No unassigned users available." })}
+                {t("gxpNoAvailablePlatformUsers", {
+                  defaultValue: "No unassigned users available."
+                })}
               </p>
             )}
           </div>
@@ -173,7 +195,11 @@ const GxpUserForm = ({
                 />
               )}
             />
-            {errors.userType && <p className="mt-1 text-xs text-red-500">{errors.userType.message as string}</p>}
+            {errors.userType && (
+              <p className="mt-1 text-xs text-red-500">
+                {errors.userType.message as string}
+              </p>
+            )}
           </div>
 
           <div className="md:col-span-2">
@@ -193,7 +219,11 @@ const GxpUserForm = ({
                 />
               )}
             />
-            {errors.roleId && <p className="mt-1 text-xs text-red-500">{errors.roleId.message as string}</p>}
+            {errors.roleId && (
+              <p className="mt-1 text-xs text-red-500">
+                {errors.roleId.message as string}
+              </p>
+            )}
           </div>
 
           <div className="md:col-span-2">
@@ -224,7 +254,9 @@ const GxpUserForm = ({
                     <Switch
                       checked={on}
                       disabled={isReadOnly}
-                      onChange={(val: boolean) => field.onChange(val ? "enabled" : "disabled")}
+                      onChange={(val: boolean) =>
+                        field.onChange(val ? "enabled" : "disabled")
+                      }
                       label={on ? t("enabled") : t("disabled")}
                     />
                   </div>
@@ -235,11 +267,21 @@ const GxpUserForm = ({
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

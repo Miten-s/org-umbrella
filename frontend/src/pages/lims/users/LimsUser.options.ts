@@ -73,7 +73,10 @@ const fetchLinkedPlatformUserIds = async (
     rows.forEach((row) => {
       if (row.userId) ids.add(row.userId);
     });
-    totalPages = extractPaginationMetadata(response.data, { currentPage: page, limit }).totalPages;
+    totalPages = extractPaginationMetadata(response.data, {
+      currentPage: page,
+      limit
+    }).totalPages;
     page += 1;
   } while (page <= totalPages);
   return ids;

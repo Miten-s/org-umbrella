@@ -12,21 +12,35 @@ export const getUserSchema = (isUpdate: boolean) =>
         .string()
         .min(1, "Full name is required")
         .max(30, "Full name must not exceed 30 characters"),
-      email: z.string().email("Invalid email").max(30, "Email must not exceed 30 characters"),
+      email: z
+        .string()
+        .email("Invalid email")
+        .max(30, "Email must not exceed 30 characters"),
       userType: z.enum([UserTypes.ADMIN, UserTypes.USER]),
-      mobileNumber: z.string().max(15, "Phone number must not exceed 15 characters").optional(),
+      mobileNumber: z
+        .string()
+        .max(15, "Phone number must not exceed 15 characters")
+        .optional(),
       locationGroup: z.string().optional(),
       designation: z.string().optional(),
       department: z.string().optional(),
-      description: z.string().max(50, "Description must not exceed 50 characters").optional(),
+      description: z
+        .string()
+        .max(50, "Description must not exceed 50 characters")
+        .optional(),
       modifiable: z.boolean().optional(),
       trainingCompleted: z.boolean().optional(),
       status: z.boolean().optional(),
       signature: z.string().optional(),
       password: isUpdate
         ? z.string().optional()
-        : z.string().min(8, "Password must be at least 8 characters").max(20, "Password must not exceed 20 characters"),
-      confirmPassword: isUpdate ? z.string().optional() : z.string().min(1, "Please confirm your password")
+        : z
+            .string()
+            .min(8, "Password must be at least 8 characters")
+            .max(20, "Password must not exceed 20 characters"),
+      confirmPassword: isUpdate
+        ? z.string().optional()
+        : z.string().min(1, "Please confirm your password")
     })
     .refine((data) => data.password === data.confirmPassword, {
       path: ["confirmPassword"],
@@ -44,7 +58,8 @@ export const getUserSchema = (isUpdate: boolean) =>
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             path: ["password"],
-            message: "Password must include uppercase, lowercase, number, and symbol"
+            message:
+              "Password must include uppercase, lowercase, number, and symbol"
           });
         }
       }
@@ -52,11 +67,23 @@ export const getUserSchema = (isUpdate: boolean) =>
       if (data.userType === UserTypes.ADMIN) return;
 
       if (!data.locationGroup)
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["locationGroup"], message: "Location is required" });
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["locationGroup"],
+          message: "Location is required"
+        });
       if (!data.designation)
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["designation"], message: "Designation is required" });
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["designation"],
+          message: "Designation is required"
+        });
       if (!data.department)
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["department"], message: "Department is required" });
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["department"],
+          message: "Department is required"
+        });
     });
 
 export type UserFormValues = z.infer<ReturnType<typeof getUserSchema>>;

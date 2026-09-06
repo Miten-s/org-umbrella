@@ -49,24 +49,74 @@ export class Test extends Model<ITest> implements ITest {
 
 Test.init(
   {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    testId: { type: DataTypes.STRING(100), allowNull: false, unique: true, field: "test_id" },
-    testName: { type: DataTypes.STRING(200), allowNull: true, field: "test_name" },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    testId: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      unique: true,
+      field: "test_id"
+    },
+    testName: {
+      type: DataTypes.STRING(200),
+      allowNull: true,
+      field: "test_name"
+    },
     sampleId: { type: DataTypes.UUID, allowNull: false, field: "sample_id" },
     analysisId: { type: DataTypes.UUID, allowNull: true, field: "analysis_id" },
-    instrumentId: { type: DataTypes.UUID, allowNull: true, field: "instrument_id" },
-    replicateCount: { type: DataTypes.INTEGER, allowNull: true, field: "replicate_count" },
+    instrumentId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: "instrument_id"
+    },
+    replicateCount: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: "replicate_count"
+    },
     loginDate: { type: DataTypes.DATE, allowNull: true, field: "login_date" },
-    loginBy: { type: DataTypes.STRING(200), allowNull: true, field: "login_by" },
+    loginBy: {
+      type: DataTypes.STRING(200),
+      allowNull: true,
+      field: "login_by"
+    },
     description: { type: DataTypes.TEXT, allowNull: true },
-    status: { type: DataTypes.STRING(20), allowNull: false, defaultValue: "Open" },
-    cancelledAt: { type: DataTypes.DATE, allowNull: true, field: "cancelled_at" },
-    cancelledBy: { type: DataTypes.STRING(100), allowNull: true, field: "cancelled_by" },
+    status: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      defaultValue: "Open"
+    },
+    cancelledAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: "cancelled_at"
+    },
+    cancelledBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "cancelled_by"
+    },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
-    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "is_deleted" },
+    isDeleted: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: "is_deleted"
+    },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.STRING(100), allowNull: true, field: "deleted_by" },
-    modifiedBy: { type: DataTypes.STRING(100), allowNull: true, field: "modified_by" }
+    deletedBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "deleted_by"
+    },
+    modifiedBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "modified_by"
+    }
   },
   { sequelize, tableName: "lims_tests", underscored: true, timestamps: true }
 );

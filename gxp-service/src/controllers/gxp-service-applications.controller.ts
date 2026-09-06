@@ -191,17 +191,25 @@ export const bulkDuplicateApplications = asyncHandler(
 // owner yet isn't at risk of being stolen from anywhere — leave its id alone so it's
 // linked to the new application instead of spawning a duplicate.
 const cloneApplicationModulesByName = async (payload: any) => {
-  if (!Array.isArray(payload.applicationModules) || !payload.applicationModules.length) {
+  if (
+    !Array.isArray(payload.applicationModules) ||
+    !payload.applicationModules.length
+  ) {
     return payload;
   }
   // A freshly-typed "Add on-demand" name (not a UUID yet, since it hasn't been created)
   // must not reach this id lookup — Postgres rejects a non-UUID literal outright.
   const ids = payload.applicationModules.filter(
-    (m: unknown): m is string => typeof m === "string" && toObjectIdString(m) !== undefined
+    (m: unknown): m is string =>
+      typeof m === "string" && toObjectIdString(m) !== undefined
   );
-  const modules = ids.length ? await AppModule.findAll({ where: { id: ids } }) : [];
+  const modules = ids.length
+    ? await AppModule.findAll({ where: { id: ids } })
+    : [];
   const namesById = new Map(modules.map((m) => [m.id, m.moduleName]));
-  const ownedIds = new Set(modules.filter((m) => m.applicationId).map((m) => m.id));
+  const ownedIds = new Set(
+    modules.filter((m) => m.applicationId).map((m) => m.id)
+  );
   return {
     ...payload,
     applicationModules: payload.applicationModules.map((m: unknown) =>
@@ -215,7 +223,10 @@ const bulkCrud = buildBulkCrudRoutes({
   nameField: "applicationName",
   createDtoClass: CreateApplicationDto,
   createOne: async (payload, currentUser) =>
-    service.createApplication(await cloneApplicationModulesByName(payload), currentUser),
+    service.createApplication(
+      await cloneApplicationModulesByName(payload),
+      currentUser
+    ),
   updateOne: service.updateApplication,
   restore: service.enableApplication
 });

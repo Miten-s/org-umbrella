@@ -1,4 +1,6 @@
-import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction
+} from "@/components/data/DataTable";
 import ConfirmDialog from "@/components/data/ConfirmDialog";
 import CopyStepper from "@/components/data/CopyStepper";
 import ViewStepper from "@/components/data/ViewStepper";
@@ -8,7 +10,13 @@ import { Modal } from "@/components/ui/modal";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useModal } from "@/hooks/useModal";
 import { toast } from "@/lib/toast";
-import { CopyIcon, EyeIcon, PencilIcon, PlusIcon, TrashBinIcon } from "@/public/icons";
+import {
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashBinIcon
+} from "@/public/icons";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -35,7 +43,9 @@ const LocationList = () => {
 
   const [active, setActive] = useState<Location | null>(null);
   const [formMode, setFormMode] = useState<LocationFormMode>("create");
-  const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(
+    null
+  );
   const [deleteCount, setDeleteCount] = useState(0);
   const [deleteNames, setDeleteNames] = useState<string[]>([]);
   // Set instead of active/formMode while the multi-record Copy/View/Edit steppers are open.
@@ -110,7 +120,9 @@ const LocationList = () => {
     table.clearSelection();
   };
 
-  const handleSaveEdits = async (updates: { id: string; payload: LocationFormValues }[]) => {
+  const handleSaveEdits = async (
+    updates: { id: string; payload: LocationFormValues }[]
+  ) => {
     await bulkUpdate.mutateAsync(updates);
     handleCloseForm();
     table.clearSelection();

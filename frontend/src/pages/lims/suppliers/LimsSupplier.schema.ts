@@ -19,7 +19,10 @@ export const limsSupplierSchema = z.object({
     .string()
     .min(1, "Supplier name is required")
     .max(100, "Supplier name must not exceed 100 characters"),
-  description: z.string().max(200, "Description must not exceed 200 characters").optional(),
+  description: z
+    .string()
+    .max(200, "Description must not exceed 200 characters")
+    .optional(),
   group: z.string().optional(),
   rating: z.string().optional(),
   website: z.string().max(200).optional(),
@@ -29,7 +32,11 @@ export const limsSupplierSchema = z.object({
     .max(20, "Phone must not exceed 20 characters")
     .regex(/^[0-9+()\-\s]*$/, "Enter a valid phone number")
     .optional(),
-  email: z.string().email("Enter a valid email address").optional().or(z.literal("")),
+  email: z
+    .string()
+    .email("Enter a valid email address")
+    .optional()
+    .or(z.literal("")),
   address: addressSchema.optional()
 });
 

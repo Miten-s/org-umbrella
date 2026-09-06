@@ -36,7 +36,8 @@ import type {
 
 /** "copy" renders like "create" — sampleId/idNumeric are locked/server-generated either way,
  * so unlike a businessId-driven module there's no editable ID field to blank. */
-export type LimsSampleFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type LimsSampleFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsSampleFormProps {
   mode?: LimsSampleFormMode;
@@ -403,7 +404,10 @@ const LimsSampleForm = ({
             />
           </div>
           {mode !== "bulk-edit" && (
-            <LimsAttachmentsField attachments={attachments} disabled={isReadOnly} />
+            <LimsAttachmentsField
+              attachments={attachments}
+              disabled={isReadOnly}
+            />
           )}
         </div>
 
@@ -417,7 +421,12 @@ const LimsSampleForm = ({
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

@@ -10,7 +10,8 @@ export const getSafeFilters = (
   const safe: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(filters)) {
-    if (!attributes.includes(key) || value === undefined || value === "") continue;
+    if (!attributes.includes(key) || value === undefined || value === "")
+      continue;
     safe[key] = value;
   }
 

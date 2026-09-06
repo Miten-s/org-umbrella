@@ -31,7 +31,8 @@ export const getListQuery = (query: any): ListQuery => {
   const pagination = getPaginationOptions(query);
   const includeRemoved = query.includeRemoved === "true";
   const sortBy = typeof query.sortBy === "string" ? query.sortBy : undefined;
-  const sortDir = query.sortDir === "asc" || query.sortDir === "ASC" ? "ASC" : "DESC";
+  const sortDir =
+    query.sortDir === "asc" || query.sortDir === "ASC" ? "ASC" : "DESC";
 
   // Express's extended query parser (see app.ts) turns `filter[name]=x` into
   // `query.filter = { name: "x" }`.

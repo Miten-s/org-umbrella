@@ -30,7 +30,9 @@ export const DateCell = memo(
     return (
       <div
         className={`truncate py-1.5 text-sm ${
-          muted ? "text-gray-600 dark:text-gray-300" : "text-gray-900 dark:text-white"
+          muted
+            ? "text-gray-600 dark:text-gray-300"
+            : "text-gray-900 dark:text-white"
         }`}
         title={formatted ?? undefined}
       >

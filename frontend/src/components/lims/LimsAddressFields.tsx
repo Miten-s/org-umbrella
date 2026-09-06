@@ -10,7 +10,10 @@ interface LimsAddressFieldsProps {
 }
 
 /** The six-line address block shared by Supplier and Customer (spec §B.3/B.4). */
-const LimsAddressFields = ({ register, disabled = false }: LimsAddressFieldsProps) => {
+const LimsAddressFields = ({
+  register,
+  disabled = false
+}: LimsAddressFieldsProps) => {
   const { t } = useTranslation();
 
   const field = (name: string, label: string) => (

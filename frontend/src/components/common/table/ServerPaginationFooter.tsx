@@ -82,11 +82,19 @@ export const ServerPaginationFooter = ({
       </span>
 
       <div className="flex justify-end gap-2">
-        <PagerButton label="First page" disabled={page <= 1 || disabled} onClick={() => onPageChange(1)}>
+        <PagerButton
+          label="First page"
+          disabled={page <= 1 || disabled}
+          onClick={() => onPageChange(1)}
+        >
           <ChevronLeftIcon className="h-4 w-4" />
           <ChevronLeftIcon className="-ml-2 h-4 w-4" />
         </PagerButton>
-        <PagerButton label="Previous page" disabled={page <= 1 || disabled} onClick={() => onPageChange(page - 1)}>
+        <PagerButton
+          label="Previous page"
+          disabled={page <= 1 || disabled}
+          onClick={() => onPageChange(page - 1)}
+        >
           <ChevronLeftIcon className="h-4 w-4" />
         </PagerButton>
         <PagerButton
