@@ -26,7 +26,10 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsAnalysisById, fetchLimsAnalysisList } from "./LimsAnalysis.api";
+import {
+  fetchLimsAnalysisById,
+  fetchLimsAnalysisList
+} from "./LimsAnalysis.api";
 import { getLimsAnalysisColumns } from "./LimsAnalysis.columns";
 import {
   limsAnalysisKeys,
@@ -151,7 +154,9 @@ const LimsAnalysisList = () => {
   };
 
   // Shared change-reason comes from LimsComplianceDialogs, not EditStepper itself.
-  const handleSaveEdits = (updates: { id: string; payload: LimsAnalysisPayload }[]) => {
+  const handleSaveEdits = (
+    updates: { id: string; payload: LimsAnalysisPayload }[]
+  ) => {
     handleCloseForm();
     compliance.requestBulkUpdate(updates);
   };
@@ -401,7 +406,8 @@ const LimsAnalysisList = () => {
             saving={bulkUpdate.isPending}
             entityLabel={t("limsAnalysis")}
           />
-        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        ) : formMode !== "create" &&
+          (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>
@@ -441,7 +447,10 @@ const LimsAnalysisList = () => {
         onBulkUpdate={async (reason) => {
           const pending = compliance.pendingBulkUpdate;
           if (pending) {
-            await bulkUpdate.mutateAsync({ updates: pending.updates, changeReason: reason });
+            await bulkUpdate.mutateAsync({
+              updates: pending.updates,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearBulkUpdate();

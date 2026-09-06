@@ -20,4 +20,11 @@ export interface WorkflowPayload {
 
 /** Split the comma-separated levels field into a deduped, trimmed array. */
 export const parseLevels = (value: string): string[] =>
-  Array.from(new Set(value.split(",").map((s) => s.trim()).filter(Boolean)));
+  Array.from(
+    new Set(
+      value
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    )
+  );

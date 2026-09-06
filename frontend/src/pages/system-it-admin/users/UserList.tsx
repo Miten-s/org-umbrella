@@ -1,4 +1,7 @@
-import DataTable, { type DataTableBulkAction, type DataTableTab } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction,
+  type DataTableTab
+} from "@/components/data/DataTable";
 import ConfirmDialog from "@/components/data/ConfirmDialog";
 import ViewStepper from "@/components/data/ViewStepper";
 import EditStepper from "@/components/data/EditStepper";
@@ -7,10 +10,22 @@ import { Modal } from "@/components/ui/modal";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useModal } from "@/hooks/useModal";
 import { toast } from "@/lib/toast";
-import { EyeIcon, LockIcon, PencilIcon, PlusIcon, TrashBinIcon } from "@/public/icons";
+import {
+  EyeIcon,
+  LockIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashBinIcon
+} from "@/public/icons";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { userKeys, useBulkDeleteUser, useBulkUpdateUser, useCreateUser, useUpdateUser } from "./User.queries";
+import {
+  userKeys,
+  useBulkDeleteUser,
+  useBulkUpdateUser,
+  useCreateUser,
+  useUpdateUser
+} from "./User.queries";
 import { fetchUserById, fetchUserList } from "./User.api";
 import { getUserColumns, getUserDisplayName } from "./User.columns";
 import UserForm, { type UserFormMode } from "./UserForm";
@@ -36,7 +51,9 @@ const UserList = () => {
 
   const [active, setActive] = useState<User | null>(null);
   const [formMode, setFormMode] = useState<UserFormMode>("create");
-  const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(
+    null
+  );
   const [deleteCount, setDeleteCount] = useState(0);
   const [deleteNames, setDeleteNames] = useState<string[]>([]);
   // Set instead of active/formMode while the multi-record View/Edit steppers are open.
@@ -53,7 +70,11 @@ const UserList = () => {
   const updateUser = useUpdateUser();
   const bulkDelete = useBulkDeleteUser();
   const bulkUpdate = useBulkUpdateUser();
-  const busy = createUser.isPending || updateUser.isPending || bulkDelete.isPending || bulkUpdate.isPending;
+  const busy =
+    createUser.isPending ||
+    updateUser.isPending ||
+    bulkDelete.isPending ||
+    bulkUpdate.isPending;
 
   const columnDefs = useMemo(() => getUserColumns({ t }), [t]);
 
@@ -90,7 +111,9 @@ const UserList = () => {
     handleCloseForm();
   };
 
-  const handleSaveEdits = async (updates: { id: string; payload: Record<string, unknown> }[]) => {
+  const handleSaveEdits = async (
+    updates: { id: string; payload: Record<string, unknown> }[]
+  ) => {
     await bulkUpdate.mutateAsync(updates);
     handleCloseForm();
     table.clearSelection();
@@ -197,7 +220,10 @@ const UserList = () => {
         placement: "menu",
         permission: "UPDATE:USER",
         onClick: () => {
-          toast("Reset password will be connected when the API is ready.", "success");
+          toast(
+            "Reset password will be connected when the API is ready.",
+            "success"
+          );
         }
       }
     ],
@@ -224,7 +250,12 @@ const UserList = () => {
             label: "New user",
             icon: PlusIcon,
             variant: "primary",
-            permission: ["CREATE:USER", "VIEW:DEPARTMENT", "VIEW:DESIGNATION", "VIEW:LOCATION"],
+            permission: [
+              "CREATE:USER",
+              "VIEW:DEPARTMENT",
+              "VIEW:DESIGNATION",
+              "VIEW:LOCATION"
+            ],
             permissionLogic: "all",
             onClick: () => openForm("create", null)
           }

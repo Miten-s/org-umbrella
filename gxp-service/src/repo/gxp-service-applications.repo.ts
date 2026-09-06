@@ -79,16 +79,19 @@ const formatApplication = (app: any) => {
   }
 
   if (json.applicationServiceRequestTypes) {
-    json.applicationServiceRequestTypes = json.applicationServiceRequestTypes.map((s: any) => ({
-      ...s,
-      _id: s.id
-    }));
+    json.applicationServiceRequestTypes =
+      json.applicationServiceRequestTypes.map((s: any) => ({
+        ...s,
+        _id: s.id
+      }));
   }
 
   json.applicationSystemOwner = json.applicationSystemOwnerId;
   json.applicationProcessOwner = json.applicationProcessOwnerId;
-  json.applicationWorkflow = json.applicationWorkflow || json.applicationWorkflowId;
-  json.applicationEnvironment = json.applicationEnvironment || json.applicationEnvironmentId;
+  json.applicationWorkflow =
+    json.applicationWorkflow || json.applicationWorkflowId;
+  json.applicationEnvironment =
+    json.applicationEnvironment || json.applicationEnvironmentId;
   json.assignmentGroup = json.assignmentGroup || json.assignmentGroupId;
   json.supplier = json.supplier || json.supplierId;
 

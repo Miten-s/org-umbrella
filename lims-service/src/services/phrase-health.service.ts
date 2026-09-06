@@ -32,7 +32,9 @@ export interface PhraseHealth {
 export const checkPhraseHealth = async (): Promise<PhraseHealth> => {
   const phrases = await Phrase.findAll({
     where: { isDeleted: false },
-    include: [{ model: PhraseEntry, as: "entries", attributes: ["id"], required: false }]
+    include: [
+      { model: PhraseEntry, as: "entries", attributes: ["id"], required: false }
+    ]
   });
 
   const byCode = new Map(phrases.map((row) => [row.phrase, row]));
@@ -47,7 +49,11 @@ export const checkPhraseHealth = async (): Promise<PhraseHealth> => {
     else if (((found as any).entries?.length ?? 0) === 0) empty.push(code);
   }
 
-  return { missing, empty, healthy: REQUIRED_PHRASE_CODES.length - missing.length - empty.length };
+  return {
+    missing,
+    empty,
+    healthy: REQUIRED_PHRASE_CODES.length - missing.length - empty.length
+  };
 };
 
 /** Runs the check and logs the outcome. Never throws — boot must not depend on it. */
@@ -60,12 +66,15 @@ export const reportPhraseHealth = async (): Promise<void> => {
       return;
     }
 
-    logError("PICK LISTS INCOMPLETE — dropdowns will render empty with no error", {
-      missing,
-      empty,
-      healthy,
-      fix: "npx ts-node src/scripts/seed-phrases.ts"
-    });
+    logError(
+      "PICK LISTS INCOMPLETE — dropdowns will render empty with no error",
+      {
+        missing,
+        empty,
+        healthy,
+        fix: "npx ts-node src/scripts/seed-phrases.ts"
+      }
+    );
   } catch (error) {
     logError("pick list health check failed", { error: String(error) });
   }

@@ -4,12 +4,24 @@ import { QueryInterface, DataTypes } from "sequelize";
  * deliberately match the frontend's payload field names, avoiding a translation layer. */
 
 const softDeleteFields = {
-  is_deleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+  is_deleted: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
   deleted_at: { type: DataTypes.DATE, allowNull: true },
   deleted_by: { type: DataTypes.STRING(100), allowNull: true },
   modified_by: { type: DataTypes.STRING(100), allowNull: true },
-  created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
-  updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
+  created_at: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW
+  },
+  updated_at: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW
+  }
 };
 
 export const up = async (queryInterface: QueryInterface) => {
@@ -29,7 +41,11 @@ export const up = async (queryInterface: QueryInterface) => {
   // ─── lims_phrases — pick lists ────────────────────────────────────────────
   // group_id is nullable: phrases are global reference data, visible to every group.
   await queryInterface.createTable("lims_phrases", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     phrase: { type: DataTypes.STRING(100), allowNull: false, unique: true },
     name: { type: DataTypes.STRING(200), allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
@@ -42,12 +58,20 @@ export const up = async (queryInterface: QueryInterface) => {
     },
     // Seeded lists the application depends on: values may be added, but the
     // list itself cannot be renamed or removed.
-    is_system: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    is_system: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    },
     ...softDeleteFields
   });
 
   await queryInterface.createTable("lims_phrase_entries", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     phrase_id: {
       type: DataTypes.UUID,
       allowNull: false,
@@ -58,21 +82,45 @@ export const up = async (queryInterface: QueryInterface) => {
     phrase_entry_id: { type: DataTypes.STRING(100), allowNull: false },
     name: { type: DataTypes.STRING(200), allowNull: true },
     description: { type: DataTypes.TEXT, allowNull: true },
-    created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
-    updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    }
   });
-  await queryInterface.addIndex("lims_phrase_entries", ["phrase_id", "phrase_entry_id"], {
-    unique: true
-  });
+  await queryInterface.addIndex(
+    "lims_phrase_entries",
+    ["phrase_id", "phrase_entry_id"],
+    {
+      unique: true
+    }
+  );
 
   // ─── lims_locations ───────────────────────────────────────────────────────
   await queryInterface.createTable("lims_locations", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    location_id: { type: DataTypes.STRING(100), allowNull: false, unique: true },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    location_id: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      unique: true
+    },
     location_name: { type: DataTypes.STRING(200), allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
     other_information: { type: DataTypes.TEXT, allowNull: true },
-    status: { type: DataTypes.STRING(20), allowNull: false, defaultValue: "enabled" },
+    status: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      defaultValue: "enabled"
+    },
     location_type_id: {
       type: DataTypes.UUID,
       allowNull: true,

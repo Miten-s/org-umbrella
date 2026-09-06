@@ -8,22 +8,27 @@ import type { OptionsPage } from "@/lib/query/listTypes";
 
 /** Component-shell smoke test: mounts, opens on click, wires search to the hook. */
 
-const fetchPage = vi.fn(
-  async (): Promise<OptionsPage> => ({
-    options: [
-      { value: "1", label: "Alpha" },
-      { value: "2", label: "Beta" }
-    ],
-    nextPage: null
-  })
-);
+const fetchPage = vi.fn(async (): Promise<OptionsPage> => ({
+  options: [
+    { value: "1", label: "Alpha" },
+    { value: "2", label: "Beta" }
+  ],
+  nextPage: null
+}));
 
-const useTestOptions = (args: { search: string; enabled?: boolean; selectedValues?: string[] }) =>
-  useAsyncOptions({ queryKey: ["test-async"], fetchPage, ...args });
+const useTestOptions = (args: {
+  search: string;
+  enabled?: boolean;
+  selectedValues?: string[];
+}) => useAsyncOptions({ queryKey: ["test-async"], fetchPage, ...args });
 
 const wrap = (node: ReactNode) => {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
-  return render(<QueryClientProvider client={queryClient}>{node}</QueryClientProvider>);
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 } }
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>{node}</QueryClientProvider>
+  );
 };
 
 describe("AsyncSelect", () => {
@@ -56,7 +61,8 @@ describe("AsyncSelect", () => {
       search: string;
       enabled?: boolean;
       selectedValues?: string[];
-    }) => useAsyncOptions({ queryKey: ["seed"], fetchPage: neverCalled, ...args });
+    }) =>
+      useAsyncOptions({ queryKey: ["seed"], fetchPage: neverCalled, ...args });
 
     wrap(
       <AsyncSelect
@@ -64,7 +70,9 @@ describe("AsyncSelect", () => {
         value="id-4999"
         onChange={() => {}}
         placeholder="Select designation"
-        initialSelectedOptions={[{ value: "id-4999", label: "Senior Engineer" }]}
+        initialSelectedOptions={[
+          { value: "id-4999", label: "Senior Engineer" }
+        ]}
       />
     );
 

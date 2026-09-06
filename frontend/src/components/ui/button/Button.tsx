@@ -99,7 +99,8 @@ const Button: React.FC<ButtonProps> = ({
 
   const userHasPermission = checkPermissions(user, permission, permissionLogic);
   const missingPermissions = getMissingPermissions(user, permission);
-  const isDisabled = disabled || loading || !!(permission && !userHasPermission);
+  const isDisabled =
+    disabled || loading || !!(permission && !userHasPermission);
 
   const handleClick = () => {
     if (isDisabled) {
@@ -225,7 +226,9 @@ const Button: React.FC<ButtonProps> = ({
           startIcon && <span className="flex items-center">{startIcon}</span>
         )}
         {children}
-        {!loading && endIcon && <span className="flex items-center">{endIcon}</span>}
+        {!loading && endIcon && (
+          <span className="flex items-center">{endIcon}</span>
+        )}
       </button>
 
       {/* Tooltip */}

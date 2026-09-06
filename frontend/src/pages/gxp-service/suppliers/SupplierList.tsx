@@ -1,4 +1,6 @@
-import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction
+} from "@/components/data/DataTable";
 import ConfirmDialog from "@/components/data/ConfirmDialog";
 import CopyStepper from "@/components/data/CopyStepper";
 import ViewStepper from "@/components/data/ViewStepper";
@@ -10,7 +12,13 @@ import { useServerTable } from "@/hooks/useServerTable";
 import { useModal } from "@/hooks/useModal";
 import { GXP_PERMISSIONS } from "@/utils/permissions";
 import { toast } from "@/lib/toast";
-import { CopyIcon, EyeIcon, PencilIcon, PlusIcon, TrashBinIcon } from "@/public/icons";
+import {
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashBinIcon
+} from "@/public/icons";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -38,7 +46,9 @@ const SupplierList = () => {
 
   const [active, setActive] = useState<Supplier | null>(null);
   const [formMode, setFormMode] = useState<SupplierFormMode>("create");
-  const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(
+    null
+  );
   const [deleteCount, setDeleteCount] = useState(0);
   const [deleteNames, setDeleteNames] = useState<string[]>([]);
   const [includeDisabled, setIncludeDisabled] = useState(false);
@@ -46,7 +56,9 @@ const SupplierList = () => {
   const [copyIds, setCopyIds] = useState<string[] | null>(null);
   const [viewIds, setViewIds] = useState<string[] | null>(null);
   const [editIds, setEditIds] = useState<string[] | null>(null);
-  const [pendingRestore, setPendingRestore] = useState<BulkSelection | null>(null);
+  const [pendingRestore, setPendingRestore] = useState<BulkSelection | null>(
+    null
+  );
   const [restoreNames, setRestoreNames] = useState<string[]>([]);
 
   // includeDisabled is a supported backend filter param, surfaced as a toggle.
@@ -87,7 +99,9 @@ const SupplierList = () => {
   const gridContext = useMemo(
     () => ({
       toggleDisabled: toggleStatus.isPending,
-      togglingId: toggleStatus.isPending ? toggleStatus.variables?.id : undefined,
+      togglingId: toggleStatus.isPending
+        ? toggleStatus.variables?.id
+        : undefined,
       onToggleStatus: (supplier: Supplier) => {
         if (toggleStatus.isPending) return;
         toggleStatus.mutate(supplier);
@@ -141,7 +155,9 @@ const SupplierList = () => {
     table.clearSelection();
   };
 
-  const handleSaveEdits = async (updates: { id: string; payload: SupplierFormValues }[]) => {
+  const handleSaveEdits = async (
+    updates: { id: string; payload: SupplierFormValues }[]
+  ) => {
     await bulkUpdate.mutateAsync(updates);
     handleCloseForm();
     table.clearSelection();
@@ -203,18 +219,22 @@ const SupplierList = () => {
       },
       {
         key: "restore",
-        label: (count) => (count > 1 ? "Restore suppliers" : "Restore supplier"),
+        label: (count) =>
+          count > 1 ? "Restore suppliers" : "Restore supplier",
         icon: CopyIcon,
         variant: "outline",
         permission: GXP_PERMISSIONS.UPDATE_SUPPLIERS,
-        hidden: (rows) => !(rows as Supplier[]).some((row) => row.status === "disabled"),
+        hidden: (rows) =>
+          !(rows as Supplier[]).some((row) => row.status === "disabled"),
         onClick: (selection) => {
           if (selection.mode !== "ids") {
             toast("Select individual rows to restore.", "error");
             return;
           }
           setPendingRestore(selection);
-          setRestoreNames(table.getCachedRows(selection.ids).map((r) => r.supplierName));
+          setRestoreNames(
+            table.getCachedRows(selection.ids).map((r) => r.supplierName)
+          );
         }
       },
       {

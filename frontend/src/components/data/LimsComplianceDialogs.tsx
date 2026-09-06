@@ -96,7 +96,10 @@ function LimsComplianceDialogs<TRow extends { id: string }, TPayload>({
         items={compliance.pendingDelete?.names ?? []}
         description={
           deleteCount > 1
-            ? t("limsRemoveManyPrompt", { count: deleteCount, entity: entityLabelPlural })
+            ? t("limsRemoveManyPrompt", {
+                count: deleteCount,
+                entity: entityLabelPlural
+              })
             : t("limsRemoveOnePrompt", { entity: entityLabel })
         }
         onConfirm={(reason) => onDelete(reason ?? "")}
@@ -109,7 +112,9 @@ function LimsComplianceDialogs<TRow extends { id: string }, TPayload>({
         tone="default"
         requireReason
         items={
-          compliance.pendingRestore ? [getRecordLabel(compliance.pendingRestore)] : []
+          compliance.pendingRestore
+            ? [getRecordLabel(compliance.pendingRestore)]
+            : []
         }
         description={t("limsRestorePrompt", { entity: entityLabel })}
         onConfirm={(reason) => onRestore(reason ?? "")}
@@ -137,7 +142,9 @@ function LimsComplianceDialogs<TRow extends { id: string }, TPayload>({
       <AuditTrailDialog
         isOpen={compliance.auditRow !== null}
         onClose={compliance.closeAudit}
-        recordLabel={compliance.auditRow ? getRecordLabel(compliance.auditRow) : undefined}
+        recordLabel={
+          compliance.auditRow ? getRecordLabel(compliance.auditRow) : undefined
+        }
         entries={auditEntries}
         loading={auditLoading}
         hasNextPage={auditHasNextPage}

@@ -39,7 +39,7 @@ const createRole = async (req: Request) => {
       await (role as any).setPermissions(permissions, { transaction: t });
     }
     await t.commit();
-    
+
     const reloaded = await Role.findByPk(role.id, {
       include: ["permissions"]
     });
@@ -80,7 +80,7 @@ const deleteRole = async (req: Request) => {
     });
     if (!role) return null;
     await role.destroy({ transaction: t });
-    
+
     // Clean up references in junction tables
     await sequelize.query(`DELETE FROM user_roles WHERE role_id = :id`, {
       replacements: { id: req.params.id },
@@ -90,7 +90,7 @@ const deleteRole = async (req: Request) => {
       replacements: { id: req.params.id },
       transaction: t
     });
-    
+
     await t.commit();
     return formatRole(role);
   } catch (error) {
@@ -110,7 +110,9 @@ const getRoles = async (
     where = { type };
   } else if (isSuperAdmin(user)) {
     where = {
-      type: { [Op.in]: [RoleType.CUSTOM, RoleType.BUILT_IN, RoleType.GXP_SERVICE] }
+      type: {
+        [Op.in]: [RoleType.CUSTOM, RoleType.BUILT_IN, RoleType.GXP_SERVICE]
+      }
     };
   }
 
@@ -145,15 +147,12 @@ const bulkDeleteRoles = async (ids: string[]) => {
       where: { id: ids },
       transaction: t
     });
- 
+
     // Cascade: remove deleted role refs from all user_roles
-    await sequelize.query(
-      `DELETE FROM user_roles WHERE role_id IN (:ids)`,
-      {
-        replacements: { ids },
-        transaction: t
-      }
-    );
+    await sequelize.query(`DELETE FROM user_roles WHERE role_id IN (:ids)`, {
+      replacements: { ids },
+      transaction: t
+    });
 
     // Cascade: remove deleted role refs from all role_permissions
     await sequelize.query(
@@ -206,7 +205,7 @@ const bulkDuplicateRoles = async (ids: string[]) => {
 
       let maxIndex = 0;
       similarRolesResult.forEach((role: any) => {
-        const match = role.name.match(new RegExp(regexStr, 'i'));
+        const match = role.name.match(new RegExp(regexStr, "i"));
         if (match && match[1]) {
           const index = parseInt(match[1], 10);
           if (index > maxIndex) maxIndex = index;
@@ -215,11 +214,14 @@ const bulkDuplicateRoles = async (ids: string[]) => {
 
       const newName = `${baseName}-(${maxIndex + 1})`;
 
-      const savedRole = await Role.create({
-        name: newName,
-        type: RoleType.CUSTOM,
-        deletedAt: null
-      } as any, { transaction: t });
+      const savedRole = await Role.create(
+        {
+          name: newName,
+          type: RoleType.CUSTOM,
+          deletedAt: null
+        } as any,
+        { transaction: t }
+      );
 
       if (sourceRole.permissions && sourceRole.permissions.length > 0) {
         const permIds = sourceRole.permissions.map((p: any) => p.id);
@@ -230,9 +232,9 @@ const bulkDuplicateRoles = async (ids: string[]) => {
     }
 
     await t.commit();
-    
+
     // Fetch duplicated roles with permissions populated
-    const dupIds = duplicatedRoles.map(r => r.id);
+    const dupIds = duplicatedRoles.map((r) => r.id);
     const populated = await Role.findAll({
       where: { id: dupIds },
       include: ["permissions"]

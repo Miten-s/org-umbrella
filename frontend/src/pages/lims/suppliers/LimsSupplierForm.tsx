@@ -14,19 +14,31 @@ import { useAttachments } from "@/hooks/useAttachments";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useRatingOptions } from "@/pages/lims/phrases/LimsPhrase.queries";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
-import { limsSupplierSchema, limsSupplierCopySchema, type LimsSupplierFormValues } from "./LimsSupplier.schema";
-import type { LimsRef, LimsSupplier, LimsSupplierPayload } from "./LimsSupplier.types";
+import {
+  limsSupplierSchema,
+  limsSupplierCopySchema,
+  type LimsSupplierFormValues
+} from "./LimsSupplier.schema";
+import type {
+  LimsRef,
+  LimsSupplier,
+  LimsSupplierPayload
+} from "./LimsSupplier.types";
 
 /** "copy" renders like "create" except the business ID starts blank (stays EDITABLE —
  * `applyBusinessId` only mints when empty). Attachments hidden: the batch save is JSON-only. */
-export type LimsSupplierFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type LimsSupplierFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsSupplierFormProps {
   mode?: LimsSupplierFormMode;
   initialData?: LimsSupplier | null;
   onClose: () => void;
   onUnchanged?: () => void;
-  onSubmit: (payload: LimsSupplierPayload, files: File[]) => Promise<void> | void;
+  onSubmit: (
+    payload: LimsSupplierPayload,
+    files: File[]
+  ) => Promise<void> | void;
   submitting?: boolean;
   /** Overrides the submit button's label — CopyStepper uses this to say
    * "Next" on every step but the last, where the batch actually saves. */
@@ -93,14 +105,21 @@ const LimsSupplierForm = ({
     setValue,
     formState: { errors, isSubmitting }
   } = useForm<LimsSupplierFormValues>({
-    resolver: zodResolver(mode === "copy" ? limsSupplierCopySchema : limsSupplierSchema),
+    resolver: zodResolver(
+      mode === "copy" ? limsSupplierCopySchema : limsSupplierSchema
+    ),
     defaultValues: initialValues
   });
 
   const description = useWatch({ control, name: "description" });
   const busy = submitting || isSubmitting;
 
-  const text = (name: keyof LimsSupplierFormValues, label: string, required = false, forceDisabled = false) => (
+  const text = (
+    name: keyof LimsSupplierFormValues,
+    label: string,
+    required = false,
+    forceDisabled = false
+  ) => (
     <div className="min-w-0">
       <Label required={required}>{label}</Label>
       <Input
@@ -120,7 +139,11 @@ const LimsSupplierForm = ({
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
-          if ((mode === "edit" || mode === "bulk-edit") && !attachments.isDirty && isPayloadEqual(values, initialValues)) {
+          if (
+            (mode === "edit" || mode === "bulk-edit") &&
+            !attachments.isDirty &&
+            isPayloadEqual(values, initialValues)
+          ) {
             (onUnchanged ?? onClose)();
             return;
           }
@@ -134,11 +157,11 @@ const LimsSupplierForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsSupplier") })
-                        : mode === "copy"
+            : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsSupplier") })}${stepLabel ?? ""}`
               : initialData
-              ? `${t("update", { entity: t("limsSupplier") })}${stepLabel ?? ""}`
-              : t("create", { entity: t("limsSupplier") })}
+                ? `${t("update", { entity: t("limsSupplier") })}${stepLabel ?? ""}`
+                : t("create", { entity: t("limsSupplier") })}
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
@@ -191,7 +214,9 @@ const LimsSupplierForm = ({
             <TextArea
               disabled={isReadOnly}
               value={description || ""}
-              onChange={(val) => setValue("description", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("description", val, { shouldValidate: true })
+              }
               error={!!errors.description}
               hint={errors.description?.message}
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
@@ -199,21 +224,36 @@ const LimsSupplierForm = ({
           </div>
 
           <LimsAddressFields
-            register={register as unknown as (name: string) => Record<string, unknown>}
+            register={
+              register as unknown as (name: string) => Record<string, unknown>
+            }
             disabled={isReadOnly}
           />
 
           {mode !== "copy" && mode !== "bulk-edit" && (
-            <LimsAttachmentsField attachments={attachments} disabled={isReadOnly} />
+            <LimsAttachmentsField
+              attachments={attachments}
+              disabled={isReadOnly}
+            />
           )}
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

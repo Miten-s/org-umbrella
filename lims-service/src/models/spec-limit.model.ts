@@ -37,12 +37,32 @@ export class SpecLimit extends Model<ISpecLimit> implements ISpecLimit {
 
 SpecLimit.init(
   {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    specificationId: { type: DataTypes.UUID, allowNull: false, field: "specification_id" },
-    analysisName: { type: DataTypes.STRING(200), allowNull: true, field: "analysis_name" },
-    componentName: { type: DataTypes.STRING(200), allowNull: true, field: "component_name" },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    specificationId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      field: "specification_id"
+    },
+    analysisName: {
+      type: DataTypes.STRING(200),
+      allowNull: true,
+      field: "analysis_name"
+    },
+    componentName: {
+      type: DataTypes.STRING(200),
+      allowNull: true,
+      field: "component_name"
+    },
     analysisId: { type: DataTypes.UUID, allowNull: true, field: "analysis_id" },
-    componentId: { type: DataTypes.UUID, allowNull: true, field: "component_id" },
+    componentId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: "component_id"
+    },
     min: { type: DataTypes.STRING(100), allowNull: true },
     max: { type: DataTypes.STRING(100), allowNull: true },
     text: { type: DataTypes.STRING(255), allowNull: true },
@@ -51,7 +71,12 @@ SpecLimit.init(
     calculation: { type: DataTypes.TEXT, allowNull: true },
     sortOrder: { type: DataTypes.INTEGER, allowNull: true, field: "sort_order" }
   },
-  { sequelize, tableName: "lims_spec_limits", underscored: true, timestamps: true }
+  {
+    sequelize,
+    tableName: "lims_spec_limits",
+    underscored: true,
+    timestamps: true
+  }
 );
 
 export default SpecLimit;

@@ -3,7 +3,11 @@ import { Op } from "sequelize";
 import Phrase from "../models/phrase.model";
 import PhraseEntry from "../models/phrase-entry.model";
 import Group from "../models/group.model";
-import { buildCrudRouter, buildCrudService, CrudConfig } from "../utils/crud-factory";
+import {
+  buildCrudRouter,
+  buildCrudService,
+  CrudConfig
+} from "../utils/crud-factory";
 import { CreatePhraseDto, UpdatePhraseDto } from "../dtos/master-data.dto";
 import { authorize } from "../middlewares/authorize.middleware";
 import { getPaginationOptions } from "../utils/pagination.util";
@@ -69,7 +73,8 @@ router.get(
   "/entries",
   authorize("PHRASE", "VIEW"),
   asyncHandler(async (req: Request, res: Response) => {
-    const phraseCode = typeof req.query.phrase === "string" ? req.query.phrase : undefined;
+    const phraseCode =
+      typeof req.query.phrase === "string" ? req.query.phrase : undefined;
     if (!phraseCode) {
       return res.status(400).json({ message: "phrase is required." });
     }
@@ -79,7 +84,14 @@ router.get(
 
     const { rows, count } = await PhraseEntry.findAndCountAll({
       where,
-      include: [{ model: Phrase, as: "phrase", where: { phrase: phraseCode }, attributes: [] }],
+      include: [
+        {
+          model: Phrase,
+          as: "phrase",
+          where: { phrase: phraseCode },
+          attributes: []
+        }
+      ],
       order: [["name", "ASC"]],
       limit,
       offset: skip
@@ -103,11 +115,14 @@ const SYSTEM_LIST_MESSAGE =
   "This is a system pick list and cannot be removed — the forms that read it " +
   "would stop working. You can still add, rename or remove the values inside it.";
 
-const blockSystemDelete = asyncHandler(async (req: Request, res: Response, next) => {
-  const record = await Phrase.findByPk(req.params["id"] as string);
-  if (record?.isSystem) return res.status(409).json({ message: SYSTEM_LIST_MESSAGE });
-  next();
-});
+const blockSystemDelete = asyncHandler(
+  async (req: Request, res: Response, next) => {
+    const record = await Phrase.findByPk(req.params["id"] as string);
+    if (record?.isSystem)
+      return res.status(409).json({ message: SYSTEM_LIST_MESSAGE });
+    next();
+  }
+);
 
 router.delete("/:id", authorize("PHRASE", "DELETE"), blockSystemDelete);
 

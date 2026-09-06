@@ -9,7 +9,10 @@ export interface IGxpServicePortalPermission {
   modifiedBy?: string;
 }
 
-export class GxpServicePortalPermission extends Model<IGxpServicePortalPermission> implements IGxpServicePortalPermission {
+export class GxpServicePortalPermission
+  extends Model<IGxpServicePortalPermission>
+  implements IGxpServicePortalPermission
+{
   public id!: string;
   public permissionName!: string;
   public description!: string;

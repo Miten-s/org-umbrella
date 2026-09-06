@@ -22,9 +22,21 @@ export const fetchApplicationOptions = async (
   args: { search: string; page: number },
   signal?: AbortSignal
 ) => {
-  const params: ServerListParams = { page: args.page, limit: 20, search: args.search || undefined };
-  const response = await gxpApi.get(ROUTE, { params: buildServerParams(params), signal });
-  return toOptionsPage<ApplicationRow>(response.data, params, (row) => row.applicationName, DATA_KEYS);
+  const params: ServerListParams = {
+    page: args.page,
+    limit: 20,
+    search: args.search || undefined
+  };
+  const response = await gxpApi.get(ROUTE, {
+    params: buildServerParams(params),
+    signal
+  });
+  return toOptionsPage<ApplicationRow>(
+    response.data,
+    params,
+    (row) => row.applicationName,
+    DATA_KEYS
+  );
 };
 
 export const useApplicationOptions = (args: {

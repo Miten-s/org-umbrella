@@ -4,12 +4,20 @@ import { TagListCell } from "@/components/data/cells/TagListCell";
 import { TruncateCell } from "@/components/data/cells/TruncateCell";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import type { TFunction } from "i18next";
-import type { LimsTestGroup, LimsTestRow, LimsRef } from "./LimsTestGroup.types";
+import type {
+  LimsTestGroup,
+  LimsTestRow,
+  LimsRef
+} from "./LimsTestGroup.types";
 
 const refLabel = (ref: LimsRef | null | undefined) => ref?.name ?? "";
 
 /** Column factory (STANDARDS.md §8). */
-export const getLimsTestGroupColumns = ({ t }: { t: TFunction }): ColDef<LimsTestGroup>[] => [
+export const getLimsTestGroupColumns = ({
+  t
+}: {
+  t: TFunction;
+}): ColDef<LimsTestGroup>[] => [
   {
     field: "testGroupId",
     headerName: t("limsTestGroupId"),
@@ -25,7 +33,9 @@ export const getLimsTestGroupColumns = ({ t }: { t: TFunction }): ColDef<LimsTes
     flex: 1,
     minWidth: 200,
     cellRenderer: (params: ICellRendererParams<LimsTestGroup>) =>
-      params.data ? <AvatarCell label={params.data.name} fallbackInitial="P" /> : null
+      params.data ? (
+        <AvatarCell label={params.data.name} fallbackInitial="P" />
+      ) : null
   },
   {
     colId: "tests",

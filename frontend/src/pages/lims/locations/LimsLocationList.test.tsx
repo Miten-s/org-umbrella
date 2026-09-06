@@ -13,7 +13,12 @@ vi.mock("@/context/AuthContext", () => ({
     // OPERATE:ALL so permission gating never masks a genuine failure here.
     user: {
       id: "u1",
-      roles: [{ name: "SUPER_ADMIN", permissions: [{ name: ADMIN_PERMISSIONS.OPERATE_ALL }] }]
+      roles: [
+        {
+          name: "SUPER_ADMIN",
+          permissions: [{ name: ADMIN_PERMISSIONS.OPERATE_ALL }]
+        }
+      ]
     },
     isAuthenticated: true,
     isLoading: false
@@ -67,7 +72,9 @@ describe("LimsLocationList (integration, mocked lims-service)", () => {
 
     await screen.findByText("Cold Room A");
     // "Decommissioned Freezer" is seeded as removed.
-    expect(screen.queryByText("Decommissioned Freezer")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Decommissioned Freezer")
+    ).not.toBeInTheDocument();
 
     // The Switch renders a plain <label> with no input, so click its text.
     await user.click(screen.getByText("limsShowRemoved"));
@@ -83,7 +90,10 @@ describe("LimsLocationList (integration, mocked lims-service)", () => {
 
     await screen.findByText("Cold Room A");
 
-    await user.type(screen.getByPlaceholderText(/search storage locations/i), "Freezer");
+    await user.type(
+      screen.getByPlaceholderText(/search storage locations/i),
+      "Freezer"
+    );
 
     expect(await screen.findByText("Freezer -20°C")).toBeInTheDocument();
     // useServerTable keeps previous rows while refetching, so wait for the

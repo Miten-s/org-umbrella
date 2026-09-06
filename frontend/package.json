@@ -16,6 +16,7 @@
     "eslint:fix": "eslint --fix \"src/**/*.{js,ts,tsx}\" --config ./eslint.config.js",
     "prettier-format": "prettier --config .prettierrc.js 'src/**/*.ts' --write",
     "prettier": "prettier src --check",
+    "prettier:check": "prettier src --check",
     "prettier:ci": "prettier src --check --loglevel error",
     "prettier:fix": "prettier src --write",
     "validate": "npm run typecheck && npm run eslint:ci && npm run test",

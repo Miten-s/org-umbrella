@@ -1,6 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
-import type { BulkSelection, ListResult, ServerListParams } from "@/lib/query/listTypes";
+import type {
+  BulkSelection,
+  ListResult,
+  ServerListParams
+} from "@/lib/query/listTypes";
 import {
   bulkCloneApplication,
   bulkCopyApplication,
@@ -13,11 +17,15 @@ import {
   fetchApplicationById,
   updateApplication
 } from "./GxpApplication.api";
-import type { GxpApplication, GxpApplicationPayload } from "./GxpApplication.types";
+import type {
+  GxpApplication,
+  GxpApplicationPayload
+} from "./GxpApplication.types";
 
 export const applicationKeys = {
   all: ["gxpApplication"] as const,
-  list: (params: ServerListParams) => ["gxpApplication", "list", params] as const,
+  list: (params: ServerListParams) =>
+    ["gxpApplication", "list", params] as const,
   detail: (id: string) => ["gxpApplication", "detail", id] as const
 };
 
@@ -50,8 +58,13 @@ const useInvalidate = () => {
 export const useCreateApplication = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ payload, files }: { payload: GxpApplicationPayload; files: File[] }) =>
-      createApplication(payload, files),
+    mutationFn: ({
+      payload,
+      files
+    }: {
+      payload: GxpApplicationPayload;
+      files: File[];
+    }) => createApplication(payload, files),
     onSuccess: () => {
       toast("Application created successfully.", "success");
       invalidate();
@@ -62,8 +75,15 @@ export const useCreateApplication = () => {
 export const useUpdateApplication = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ id, payload, files }: { id: string; payload: GxpApplicationPayload; files: File[] }) =>
-      updateApplication(id, payload, files),
+    mutationFn: ({
+      id,
+      payload,
+      files
+    }: {
+      id: string;
+      payload: GxpApplicationPayload;
+      files: File[];
+    }) => updateApplication(id, payload, files),
     onSuccess: () => {
       toast("Application updated successfully.", "success");
       invalidate();
@@ -77,7 +97,12 @@ export const useBulkDeleteApplication = () => {
     mutationFn: (selection: BulkSelection) => bulkDeleteApplication(selection),
     onSuccess: (_data, selection) => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
-      toast(count && count > 1 ? `${count} applications deleted successfully.` : "Application deleted successfully.", "success");
+      toast(
+        count && count > 1
+          ? `${count} applications deleted successfully.`
+          : "Application deleted successfully.",
+        "success"
+      );
       invalidate();
     }
   });
@@ -89,7 +114,12 @@ export const useBulkCloneApplication = () => {
     mutationFn: (selection: BulkSelection) => bulkCloneApplication(selection),
     onSuccess: (_data, selection) => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
-      toast(count && count > 1 ? `${count} applications copied successfully.` : "Application copied successfully.", "success");
+      toast(
+        count && count > 1
+          ? `${count} applications copied successfully.`
+          : "Application copied successfully.",
+        "success"
+      );
       invalidate();
     }
   });
@@ -100,10 +130,13 @@ export const useBulkCloneApplication = () => {
 export const useBulkCopyApplication = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (records: GxpApplicationPayload[]) => bulkCopyApplication(records),
+    mutationFn: (records: GxpApplicationPayload[]) =>
+      bulkCopyApplication(records),
     onSuccess: (data) => {
       toast(
-        data.length > 1 ? `${data.length} applications copied successfully.` : "Application copied successfully.",
+        data.length > 1
+          ? `${data.length} applications copied successfully.`
+          : "Application copied successfully.",
         "success"
       );
       invalidate();
@@ -114,7 +147,8 @@ export const useBulkCopyApplication = () => {
 export const useBulkUpdateApplication = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (updates: { id: string; payload: GxpApplicationPayload }[]) => bulkUpdateApplication(updates),
+    mutationFn: (updates: { id: string; payload: GxpApplicationPayload }[]) =>
+      bulkUpdateApplication(updates),
     onSuccess: (data) => {
       toast(
         data.results.length > 1
@@ -133,7 +167,9 @@ export const useBulkRestoreApplication = () => {
     mutationFn: (selection: BulkSelection) => bulkRestoreApplication(selection),
     onSuccess: (data) => {
       toast(
-        data.count > 1 ? `${data.count} applications restored successfully.` : "Application restored successfully.",
+        data.count > 1
+          ? `${data.count} applications restored successfully.`
+          : "Application restored successfully.",
         "success"
       );
       invalidate();
@@ -145,25 +181,40 @@ export const useToggleApplicationStatus = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (application: GxpApplication) =>
-      application.status === "enabled" ? disableApplication(application.id) : enableApplication(application.id),
+      application.status === "enabled"
+        ? disableApplication(application.id)
+        : enableApplication(application.id),
     onMutate: async (application) => {
       await queryClient.cancelQueries({ queryKey: applicationKeys.all });
-      const nextStatus = application.status === "enabled" ? "disabled" : "enabled";
-      const snapshots = queryClient.getQueriesData<ListResult<GxpApplication>>({ queryKey: applicationKeys.all });
+      const nextStatus =
+        application.status === "enabled" ? "disabled" : "enabled";
+      const snapshots = queryClient.getQueriesData<ListResult<GxpApplication>>({
+        queryKey: applicationKeys.all
+      });
       snapshots.forEach(([key, data]) => {
         if (!data?.rows) return;
         queryClient.setQueryData<ListResult<GxpApplication>>(key, {
           ...data,
-          rows: data.rows.map((row) => (row.id === application.id ? { ...row, status: nextStatus } : row))
+          rows: data.rows.map((row) =>
+            row.id === application.id ? { ...row, status: nextStatus } : row
+          )
         });
       });
       return { snapshots };
     },
     onSuccess: (_data, application) =>
-      toast(application.status === "enabled" ? "Application disabled successfully." : "Application enabled successfully.", "success"),
+      toast(
+        application.status === "enabled"
+          ? "Application disabled successfully."
+          : "Application enabled successfully.",
+        "success"
+      ),
     onError: (_error, _application, context) => {
-      context?.snapshots.forEach(([key, data]) => queryClient.setQueryData(key, data));
+      context?.snapshots.forEach(([key, data]) =>
+        queryClient.setQueryData(key, data)
+      );
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: applicationKeys.all })
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: applicationKeys.all })
   });
 };

@@ -21,14 +21,18 @@ interface ToggleContext {
   togglingId?: string;
 }
 
-export const getAssignmentGroupColumns = ({ t }: Ctx): ColDef<AssignmentGroup>[] => [
+export const getAssignmentGroupColumns = ({
+  t
+}: Ctx): ColDef<AssignmentGroup>[] => [
   {
     field: "groupName",
     headerName: t("groupName"),
     flex: 1,
     minWidth: 220,
     cellRenderer: (params: ICellRendererParams<AssignmentGroup>) =>
-      params.data ? <AvatarCell label={params.data.groupName} fallbackInitial="G" /> : null
+      params.data ? (
+        <AvatarCell label={params.data.groupName} fallbackInitial="G" />
+      ) : null
   },
   {
     field: "manager",

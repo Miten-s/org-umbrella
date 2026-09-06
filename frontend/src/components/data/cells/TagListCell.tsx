@@ -41,7 +41,11 @@ export function TagListCell<T>({
 }: TagListCellProps<T>) {
   const list = items ?? [];
   if (!list.length) {
-    return <div className="py-1.5 text-sm text-gray-600 dark:text-gray-300">{emptyFallback}</div>;
+    return (
+      <div className="py-1.5 text-sm text-gray-600 dark:text-gray-300">
+        {emptyFallback}
+      </div>
+    );
   }
 
   const visible = list.slice(0, max);

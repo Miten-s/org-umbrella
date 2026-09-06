@@ -154,7 +154,9 @@ const LimsUserList = () => {
     table.clearSelection();
   };
 
-  const handleSaveEdits = (updates: { id: string; payload: LimsUserPayload }[]) => {
+  const handleSaveEdits = (
+    updates: { id: string; payload: LimsUserPayload }[]
+  ) => {
     handleCloseForm();
     compliance.requestBulkUpdate(updates);
   };
@@ -245,7 +247,10 @@ const LimsUserList = () => {
           const rowsById = new Map(table.rows.map((row) => [row.id, row]));
           compliance.requestBulkRestore(
             selection.ids,
-            selection.ids.map((id) => rowsById.get(id)).filter(Boolean).map((row) => label(row as LimsUser))
+            selection.ids
+              .map((id) => rowsById.get(id))
+              .filter(Boolean)
+              .map((row) => label(row as LimsUser))
           );
         }
       },
@@ -421,7 +426,8 @@ const LimsUserList = () => {
             saving={bulkUpdate.isPending}
             entityLabel={t("limsUser")}
           />
-        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        ) : formMode !== "create" &&
+          (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>
@@ -461,7 +467,10 @@ const LimsUserList = () => {
         onBulkUpdate={async (reason) => {
           const pending = compliance.pendingBulkUpdate;
           if (pending) {
-            await bulkUpdate.mutateAsync({ updates: pending.updates, changeReason: reason });
+            await bulkUpdate.mutateAsync({
+              updates: pending.updates,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearBulkUpdate();

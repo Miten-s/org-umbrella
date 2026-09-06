@@ -7,7 +7,11 @@ import { refLabel } from "@/utils/refLabel";
 import type { LimsStudy } from "./LimsStudy.types";
 
 /** Column factory (STANDARDS.md §8). */
-export const getLimsStudyColumns = ({ t }: { t: TFunction }): ColDef<LimsStudy>[] => [
+export const getLimsStudyColumns = ({
+  t
+}: {
+  t: TFunction;
+}): ColDef<LimsStudy>[] => [
   {
     field: "studyId",
     headerName: t("limsStudyId"),
@@ -24,7 +28,11 @@ export const getLimsStudyColumns = ({ t }: { t: TFunction }): ColDef<LimsStudy>[
     minWidth: 220,
     cellRenderer: (params: ICellRendererParams<LimsStudy>) =>
       params.data ? (
-        <AvatarCell label={params.data.name} sublabel={params.data.studyCode} fallbackInitial="P" />
+        <AvatarCell
+          label={params.data.name}
+          sublabel={params.data.studyCode}
+          fallbackInitial="P"
+        />
       ) : null
   },
   {

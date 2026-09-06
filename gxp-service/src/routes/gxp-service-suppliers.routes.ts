@@ -15,9 +15,16 @@ import {
   bulkRestoreSuppliers
 } from "../controllers/gxp-service-suppliers.controller";
 import API_ROUTES from "../utils/routes";
-import { validateDto, validateDtoArray } from "../middlewares/validate-dto.middleware";
+import {
+  validateDto,
+  validateDtoArray
+} from "../middlewares/validate-dto.middleware";
 import { CreateSupplierDto, UpdateSupplierDto } from "../dtos/supplier.dto";
-import { BulkCreateDto, BulkUpdateDto, BulkOperationDto } from "../dtos/common.dto";
+import {
+  BulkCreateDto,
+  BulkUpdateDto,
+  BulkOperationDto
+} from "../dtos/common.dto";
 
 const router = Router();
 

@@ -14,11 +14,16 @@ import {
   limsParameterCopySchema,
   type LimsParameterFormValues
 } from "./LimsParameter.schema";
-import type { LimsParameter, LimsParameterPayload, LimsRef } from "./LimsParameter.types";
+import type {
+  LimsParameter,
+  LimsParameterPayload,
+  LimsRef
+} from "./LimsParameter.types";
 
 /** "copy" renders like "create" except the business ID starts blank (stays EDITABLE —
  * `applyBusinessId` only mints when empty, otherwise honors what the user typed). */
-export type LimsParameterFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type LimsParameterFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsParameterFormProps {
   mode?: LimsParameterFormMode;
@@ -80,13 +85,17 @@ const LimsParameterForm = ({
     clearErrors,
     formState: { errors, isSubmitting }
   } = useForm<LimsParameterFormValues>({
-    resolver: zodResolver(mode === "copy" ? limsParameterCopySchema : limsParameterSchema),
+    resolver: zodResolver(
+      mode === "copy" ? limsParameterCopySchema : limsParameterSchema
+    ),
     defaultValues: initialValues
   });
 
   // Only for the client-side type/value consistency check below — never submitted itself,
   // since the payload only ever carries the type's id (see LimsParameter.schema).
-  const [typeLabel, setTypeLabel] = useState(initialData?.parameterType?.name ?? "");
+  const [typeLabel, setTypeLabel] = useState(
+    initialData?.parameterType?.name ?? ""
+  );
 
   const busy = submitting || isSubmitting;
 
@@ -97,15 +106,27 @@ const LimsParameterForm = ({
     if (!value) return true;
     const type = typeLabel.trim().toLowerCase();
     if (type === "numeric" && Number.isNaN(Number(value))) {
-      setError("defaultValue", { type: "manual", message: `"${value}" is not a valid number for a Numeric parameter.` });
+      setError("defaultValue", {
+        type: "manual",
+        message: `"${value}" is not a valid number for a Numeric parameter.`
+      });
       return false;
     }
     if (type === "date" && Number.isNaN(Date.parse(value))) {
-      setError("defaultValue", { type: "manual", message: `"${value}" is not a valid date for a Date parameter.` });
+      setError("defaultValue", {
+        type: "manual",
+        message: `"${value}" is not a valid date for a Date parameter.`
+      });
       return false;
     }
-    if (type === "boolean" && !["true", "false"].includes(value.toLowerCase())) {
-      setError("defaultValue", { type: "manual", message: `"${value}" must be true or false for a Boolean parameter.` });
+    if (
+      type === "boolean" &&
+      !["true", "false"].includes(value.toLowerCase())
+    ) {
+      setError("defaultValue", {
+        type: "manual",
+        message: `"${value}" must be true or false for a Boolean parameter.`
+      });
       return false;
     }
     clearErrors("defaultValue");
@@ -119,11 +140,15 @@ const LimsParameterForm = ({
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
-          if ((mode === "edit" || mode === "bulk-edit") && isPayloadEqual(values, initialValues)) {
+          if (
+            (mode === "edit" || mode === "bulk-edit") &&
+            isPayloadEqual(values, initialValues)
+          ) {
             (onUnchanged ?? onClose)();
             return;
           }
-          if (!validateDefaultValueAgainstType(values.defaultValue ?? "")) return;
+          if (!validateDefaultValueAgainstType(values.defaultValue ?? ""))
+            return;
           onSubmit(values);
         })}
         className="min-w-0 space-y-4"
@@ -131,11 +156,11 @@ const LimsParameterForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsParameter") })
-                        : mode === "copy"
+            : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsParameter") })}${stepLabel ?? ""}`
               : initialData
-              ? `${t("update", { entity: t("limsParameter") })}${stepLabel ?? ""}`
-              : t("create", { entity: t("limsParameter") })}
+                ? `${t("update", { entity: t("limsParameter") })}${stepLabel ?? ""}`
+                : t("create", { entity: t("limsParameter") })}
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
@@ -180,7 +205,9 @@ const LimsParameterForm = ({
               )}
             />
             {errors.parameterType ? (
-              <p className="mt-1 text-xs text-red-500">{errors.parameterType.message}</p>
+              <p className="mt-1 text-xs text-red-500">
+                {errors.parameterType.message}
+              </p>
             ) : null}
           </div>
 
@@ -208,11 +235,21 @@ const LimsParameterForm = ({
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

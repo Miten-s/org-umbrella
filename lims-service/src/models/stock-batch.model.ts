@@ -55,30 +55,89 @@ export class StockBatch extends Model<IStockBatch> implements IStockBatch {
 
 StockBatch.init(
   {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    stockBatchId: { type: DataTypes.STRING(150), allowNull: false, unique: true, field: "stock_batch_id" },
-    batchNumber: { type: DataTypes.INTEGER, allowNull: false, field: "batch_number" },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    stockBatchId: {
+      type: DataTypes.STRING(150),
+      allowNull: false,
+      unique: true,
+      field: "stock_batch_id"
+    },
+    batchNumber: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      field: "batch_number"
+    },
     stockId: { type: DataTypes.UUID, allowNull: false, field: "stock_id" },
     statusId: { type: DataTypes.UUID, allowNull: true, field: "status_id" },
     projectId: { type: DataTypes.UUID, allowNull: true, field: "project_id" },
     supplierId: { type: DataTypes.UUID, allowNull: true, field: "supplier_id" },
     locationId: { type: DataTypes.UUID, allowNull: true, field: "location_id" },
-    manufacturingDate: { type: DataTypes.DATEONLY, allowNull: true, field: "manufacturing_date" },
-    expiryDate: { type: DataTypes.DATEONLY, allowNull: true, field: "expiry_date" },
-    supplierBatchNumber: { type: DataTypes.STRING(150), allowNull: true, field: "supplier_batch_number" },
-    sapBatchId: { type: DataTypes.STRING(150), allowNull: true, field: "sap_batch_id" },
-    internalBatchId: { type: DataTypes.STRING(150), allowNull: true, field: "internal_batch_id" },
-    initialAmount: { type: DataTypes.DECIMAL(18, 6), allowNull: true, field: "initial_amount" },
-    currentAmount: { type: DataTypes.DECIMAL(18, 6), allowNull: true, field: "current_amount" },
+    manufacturingDate: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+      field: "manufacturing_date"
+    },
+    expiryDate: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+      field: "expiry_date"
+    },
+    supplierBatchNumber: {
+      type: DataTypes.STRING(150),
+      allowNull: true,
+      field: "supplier_batch_number"
+    },
+    sapBatchId: {
+      type: DataTypes.STRING(150),
+      allowNull: true,
+      field: "sap_batch_id"
+    },
+    internalBatchId: {
+      type: DataTypes.STRING(150),
+      allowNull: true,
+      field: "internal_batch_id"
+    },
+    initialAmount: {
+      type: DataTypes.DECIMAL(18, 6),
+      allowNull: true,
+      field: "initial_amount"
+    },
+    currentAmount: {
+      type: DataTypes.DECIMAL(18, 6),
+      allowNull: true,
+      field: "current_amount"
+    },
     unit: { type: DataTypes.STRING(50), allowNull: true },
     description: { type: DataTypes.TEXT, allowNull: true },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
-    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "is_deleted" },
+    isDeleted: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: "is_deleted"
+    },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.STRING(100), allowNull: true, field: "deleted_by" },
-    modifiedBy: { type: DataTypes.STRING(100), allowNull: true, field: "modified_by" }
+    deletedBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "deleted_by"
+    },
+    modifiedBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "modified_by"
+    }
   },
-  { sequelize, tableName: "lims_stock_batches", underscored: true, timestamps: true }
+  {
+    sequelize,
+    tableName: "lims_stock_batches",
+    underscored: true,
+    timestamps: true
+  }
 );
 
 export default StockBatch;

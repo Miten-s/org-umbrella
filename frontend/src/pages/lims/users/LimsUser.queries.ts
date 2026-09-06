@@ -77,7 +77,8 @@ export const useCreateLimsUser = () => {
 export const useUpdateLimsUser = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: LimsUserPayload }) => updateLimsUser(id, payload),
+    mutationFn: ({ id, payload }: { id: string; payload: LimsUserPayload }) =>
+      updateLimsUser(id, payload),
     onSuccess: () => {
       toast("Record updated successfully.", "success");
       invalidate();

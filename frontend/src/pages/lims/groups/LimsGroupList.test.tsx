@@ -11,7 +11,12 @@ vi.mock("@/context/AuthContext", () => ({
   useAuth: () => ({
     user: {
       id: "u1",
-      roles: [{ name: "SUPER_ADMIN", permissions: [{ name: ADMIN_PERMISSIONS.OPERATE_ALL }] }]
+      roles: [
+        {
+          name: "SUPER_ADMIN",
+          permissions: [{ name: ADMIN_PERMISSIONS.OPERATE_ALL }]
+        }
+      ]
     },
     isAuthenticated: true,
     isLoading: false
@@ -71,6 +76,8 @@ describe("LimsGroupList (integration, mocked lims-service)", () => {
     await user.type(screen.getByPlaceholderText(/search lab groups/i), "Micro");
 
     expect(await screen.findByText("LIMS_MB")).toBeInTheDocument();
-    await waitFor(() => expect(screen.queryByText("LIMS_RD")).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByText("LIMS_RD")).not.toBeInTheDocument()
+    );
   });
 });

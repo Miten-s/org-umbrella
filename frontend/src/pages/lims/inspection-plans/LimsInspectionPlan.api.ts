@@ -1,15 +1,25 @@
 import limsApi from "@/utils/lims.axios.interceptor";
-import { buildServerParams, toListResult, toOptionsPage } from "@/lib/query/listAdapter";
+import {
+  buildServerParams,
+  toListResult,
+  toOptionsPage
+} from "@/lib/query/listAdapter";
 import { bulkSelectionToBody, type BulkSelection } from "@/lib/query/listTypes";
 import type { ServerListParams } from "@/lib/query/listTypes";
-import type { LimsInspectionPlan, LimsInspectionPlanPayload } from "./LimsInspectionPlan.types";
+import type {
+  LimsInspectionPlan,
+  LimsInspectionPlanPayload
+} from "./LimsInspectionPlan.types";
 
 /** LimsInspectionPlan API. Pure HTTP — toasts live in the mutation layer. */
 const ROUTE = "/lims-inspection-plans";
 
 /** Full record for the Edit/View modal — fetched on demand when it opens,
  * not reused from the list row (see useLimsRecordById). */
-export const fetchLimsInspectionPlanById = async (id: string, signal?: AbortSignal) => {
+export const fetchLimsInspectionPlanById = async (
+  id: string,
+  signal?: AbortSignal
+) => {
   const response = await limsApi.get(`${ROUTE}/${id}`, { signal });
   return (response.data?.data ?? response.data) as LimsInspectionPlan;
 };
@@ -22,10 +32,18 @@ export const fetchLimsInspectionPlanList = async (
   signal?: AbortSignal
 ) => {
   const response = await limsApi.get(ROUTE, {
-    params: { ...buildServerParams(params), includeRemoved: includeRemoved || undefined },
+    params: {
+      ...buildServerParams(params),
+      includeRemoved: includeRemoved || undefined
+    },
     signal
   });
-  return toListResult<LimsInspectionPlan>(response.data, params, DATA_KEYS, RELATION_KEYS);
+  return toListResult<LimsInspectionPlan>(
+    response.data,
+    params,
+    DATA_KEYS,
+    RELATION_KEYS
+  );
 };
 
 /** Options for other modules selecting this entity. */
@@ -38,7 +56,10 @@ export const fetchLimsInspectionPlanOptions = async (
     limit: 20,
     search: args.search || undefined
   };
-  const response = await limsApi.get(ROUTE, { params: buildServerParams(params), signal });
+  const response = await limsApi.get(ROUTE, {
+    params: buildServerParams(params),
+    signal
+  });
   return toOptionsPage<LimsInspectionPlan>(
     response.data,
     params,
@@ -47,12 +68,17 @@ export const fetchLimsInspectionPlanOptions = async (
   );
 };
 
-export const createLimsInspectionPlan = async (payload: LimsInspectionPlanPayload) => {
+export const createLimsInspectionPlan = async (
+  payload: LimsInspectionPlanPayload
+) => {
   const response = await limsApi.post(ROUTE, payload);
   return response.data;
 };
 
-export const updateLimsInspectionPlan = async (id: string, payload: LimsInspectionPlanPayload) => {
+export const updateLimsInspectionPlan = async (
+  id: string,
+  payload: LimsInspectionPlanPayload
+) => {
   const response = await limsApi.patch(`${ROUTE}/${id}`, payload);
   return response.data;
 };
@@ -80,7 +106,10 @@ export const bulkRestoreLimsInspectionPlan = async (
 };
 
 export const bulkCloneLimsInspectionPlan = async (selection: BulkSelection) => {
-  const response = await limsApi.post(`${ROUTE}/bulk-duplicate`, bulkSelectionToBody(selection));
+  const response = await limsApi.post(
+    `${ROUTE}/bulk-duplicate`,
+    bulkSelectionToBody(selection)
+  );
   return response.data;
 };
 
@@ -88,7 +117,9 @@ export const bulkCloneLimsInspectionPlan = async (selection: BulkSelection) => {
  * The Copy flow's one and only network call — every reviewed record is
  * sent together, once. See `bulkCreate` in crud-factory.ts.
  */
-export const bulkCopyLimsInspectionPlan = async (records: LimsInspectionPlanPayload[]) => {
+export const bulkCopyLimsInspectionPlan = async (
+  records: LimsInspectionPlanPayload[]
+) => {
   const response = await limsApi.post(`${ROUTE}/bulk-copy`, { records });
   return response.data as {
     message: string;
@@ -101,7 +132,10 @@ export const bulkUpdateLimsInspectionPlan = async (
   updates: { id: string; payload: LimsInspectionPlanPayload }[],
   changeReason: string
 ) => {
-  const response = await limsApi.patch(`${ROUTE}/bulk-update`, { updates, changeReason });
+  const response = await limsApi.patch(`${ROUTE}/bulk-update`, {
+    updates,
+    changeReason
+  });
   return response.data as {
     message: string;
     count: number;
@@ -109,8 +143,13 @@ export const bulkUpdateLimsInspectionPlan = async (
   };
 };
 
-export const restoreLimsInspectionPlan = async (id: string, changeReason: string) => {
-  const response = await limsApi.patch(`${ROUTE}/restore/${id}`, { changeReason });
+export const restoreLimsInspectionPlan = async (
+  id: string,
+  changeReason: string
+) => {
+  const response = await limsApi.patch(`${ROUTE}/restore/${id}`, {
+    changeReason
+  });
   return response.data;
 };
 
@@ -119,6 +158,9 @@ export const fetchLimsInspectionPlanAudit = async (
   signal?: AbortSignal,
   params?: { page?: number; limit?: number }
 ) => {
-  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { params, signal });
+  const response = await limsApi.get(`${ROUTE}/${id}/audit`, {
+    params,
+    signal
+  });
   return response.data;
 };

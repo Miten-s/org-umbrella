@@ -103,7 +103,10 @@ function CopyStepper<TRecord, TPayload>({
   const [autoSubmitting, setAutoSubmitting] = useState(false);
   // `sweepProgress` is real per-record sweep progress; `finalizingCount` is the record count
   // covered by the two batch calls that follow (no per-record progress inside one POST).
-  const [sweepProgress, setSweepProgress] = useState<{ current: number; total: number } | null>(null);
+  const [sweepProgress, setSweepProgress] = useState<{
+    current: number;
+    total: number;
+  } | null>(null);
   const [finalizingCount, setFinalizingCount] = useState<number | null>(null);
   // Indices whose `loadSource` rejected — rendered as an error state instead of
   // leaving the step spinning forever (see the plain per-step load effect below).
@@ -123,7 +126,8 @@ function CopyStepper<TRecord, TPayload>({
   // Fetches record `i` unless the selection has moved on. `flushSync` here: `runSweepStep`
   // looks up the just-loaded step's `<form>` right after and needs the commit to be real, not scheduled.
   const loadSource = async (i: number) => {
-    if (sourcesRef.current[i] !== undefined) return sourcesRef.current[i] as TRecord;
+    if (sourcesRef.current[i] !== undefined)
+      return sourcesRef.current[i] as TRecord;
     const generation = generationRef.current;
     const record = await fetchById(ids[i]);
     if (generation !== generationRef.current) return record;
@@ -157,7 +161,9 @@ function CopyStepper<TRecord, TPayload>({
   // fetched yet. Save-all's sweep loads every OTHER step itself.
   useEffect(() => {
     loadSource(index).catch(() => {
-      setSourceErrors((prev) => (prev.includes(index) ? prev : [...prev, index]));
+      setSourceErrors((prev) =>
+        prev.includes(index) ? prev : [...prev, index]
+      );
       toast(t("copySourceLoadFailed", { current: index + 1 }), "error");
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -199,7 +205,9 @@ function CopyStepper<TRecord, TPayload>({
       setIndex(i);
       setDisplayIndex(i);
     });
-    (document.getElementById(`${formId}-${i}`) as HTMLFormElement | null)?.requestSubmit();
+    (
+      document.getElementById(`${formId}-${i}`) as HTMLFormElement | null
+    )?.requestSubmit();
     if (sweepTimeoutRef.current) clearTimeout(sweepTimeoutRef.current);
     sweepTimeoutRef.current = setTimeout(() => {
       clearSweep();
@@ -210,14 +218,20 @@ function CopyStepper<TRecord, TPayload>({
 
   // Bound to step `i` at render time, not the live `index` — normally commits and advances;
   // during a sweep it feeds the next queued step, or fires the batch call once all resolve.
-  const handleStepSubmit = async (i: number, values: TPayload, _files?: File[]) => {
+  const handleStepSubmit = async (
+    i: number,
+    values: TPayload,
+    _files?: File[]
+  ) => {
     const next = payloadsRef.current.map((p, pi) => (pi === i ? values : p));
     payloadsRef.current = next;
     setPayloads(next);
 
     if (total === 1) {
       await onSaveAll(
-        next.map((p, pi) => p ?? (sourcesRef.current[pi] as unknown as TPayload))
+        next.map(
+          (p, pi) => p ?? (sourcesRef.current[pi] as unknown as TPayload)
+        )
       );
       return;
     }
@@ -263,8 +277,12 @@ function CopyStepper<TRecord, TPayload>({
         setFinalizingCount(reviewed.length + duplicateCount);
         try {
           // Run concurrently — two independent network calls, nothing to hand off between them.
-          await Promise.all([duplicatePromise, reviewed.length ? onSaveAll(reviewed) : null]);
-          if (droppedCount) toast(t("copySkippedUnreviewed", { count: droppedCount }), "info");
+          await Promise.all([
+            duplicatePromise,
+            reviewed.length ? onSaveAll(reviewed) : null
+          ]);
+          if (droppedCount)
+            toast(t("copySkippedUnreviewed", { count: droppedCount }), "info");
         } finally {
           setAutoSubmitting(false);
           setFinalizingCount(null);
@@ -272,7 +290,15 @@ function CopyStepper<TRecord, TPayload>({
       } else {
         // `remaining.length` is what's left, so `total - remaining` just finished.
         setSweepProgress((prev) =>
-          prev ? { current: Math.min(prev.total - remaining.length + 1, prev.total), total: prev.total } : prev
+          prev
+            ? {
+                current: Math.min(
+                  prev.total - remaining.length + 1,
+                  prev.total
+                ),
+                total: prev.total
+              }
+            : prev
         );
         runSweepStep(remaining[0]);
       }
@@ -290,11 +316,17 @@ function CopyStepper<TRecord, TPayload>({
     const skipsNeverOpened = Boolean(onDuplicateUnreviewed) || dropNeverOpened;
     const neverOpened = skipsNeverOpened
       ? Array.from({ length: total }, (_, i) => i).filter(
-          (i) => i !== index && !visited.includes(i) && payloadsRef.current[i] === undefined
+          (i) =>
+            i !== index &&
+            !visited.includes(i) &&
+            payloadsRef.current[i] === undefined
         )
       : [];
     const uncommitted = Array.from({ length: total }, (_, i) => i).filter(
-      (i) => i !== index && payloadsRef.current[i] === undefined && !neverOpened.includes(i)
+      (i) =>
+        i !== index &&
+        payloadsRef.current[i] === undefined &&
+        !neverOpened.includes(i)
     );
     const toSubmit = [index, ...uncommitted];
     if (onDuplicateUnreviewed) {
@@ -313,7 +345,9 @@ function CopyStepper<TRecord, TPayload>({
       droppedIndicesRef.current = new Set();
     }
     setAutoSubmitting(true);
-    setSweepProgress(toSubmit.length ? { current: 1, total: toSubmit.length } : null);
+    setSweepProgress(
+      toSubmit.length ? { current: 1, total: toSubmit.length } : null
+    );
     sweepRef.current = toSubmit;
     runSweepStep(toSubmit[0]);
   };
@@ -379,7 +413,9 @@ function CopyStepper<TRecord, TPayload>({
                 initialData={sources[i] as TRecord}
                 onClose={onClose}
                 onSubmit={(values, files) => handleStepSubmit(i, values, files)}
-                submitting={(saving && total === 1) || (autoSubmitting && i === index)}
+                submitting={
+                  (saving && total === 1) || (autoSubmitting && i === index)
+                }
                 submitLabel={isMulti ? t("next") : undefined}
                 formId={`${formId}-${i}`}
                 stepLabel={
@@ -428,7 +464,12 @@ function CopyStepper<TRecord, TPayload>({
               );
             })}
           </div>
-          <Button className="shrink-0" onClick={handleSaveAllClick} loading={busy} disabled={busy}>
+          <Button
+            className="shrink-0"
+            onClick={handleSaveAllClick}
+            loading={busy}
+            disabled={busy}
+          >
             {sweepProgress
               ? t("copyReviewingProgress", sweepProgress)
               : finalizingCount !== null

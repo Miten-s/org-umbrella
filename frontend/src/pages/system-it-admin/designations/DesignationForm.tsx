@@ -6,10 +6,14 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
-import { designationSchema, type DesignationFormValues } from "./Designation.schema";
+import {
+  designationSchema,
+  type DesignationFormValues
+} from "./Designation.schema";
 import type { Designation } from "./Designation.types";
 
-export type DesignationFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type DesignationFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface DesignationFormProps {
   mode?: DesignationFormMode;
@@ -75,7 +79,10 @@ const DesignationForm = ({
         id={formId}
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the update call entirely — a no-op Save just closes.
-          if ((mode === "edit" || mode === "bulk-edit") && isPayloadEqual(values, initialValues)) {
+          if (
+            (mode === "edit" || mode === "bulk-edit") &&
+            isPayloadEqual(values, initialValues)
+          ) {
             (onUnchanged ?? onClose)();
             return;
           }
@@ -111,7 +118,9 @@ const DesignationForm = ({
             <TextArea
               disabled={isReadOnly}
               value={watch("description") || ""}
-              onChange={(value) => setValue("description", value, { shouldValidate: true })}
+              onChange={(value) =>
+                setValue("description", value, { shouldValidate: true })
+              }
               error={!!errors.description}
               hint={errors.description?.message}
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
@@ -120,11 +129,21 @@ const DesignationForm = ({
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

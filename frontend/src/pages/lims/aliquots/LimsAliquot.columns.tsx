@@ -6,7 +6,11 @@ import { refLabel } from "@/utils/refLabel";
 import type { LimsAliquot } from "./LimsAliquot.types";
 
 /** Column factory (STANDARDS.md §8). */
-export const getLimsAliquotColumns = ({ t }: { t: TFunction }): ColDef<LimsAliquot>[] => [
+export const getLimsAliquotColumns = ({
+  t
+}: {
+  t: TFunction;
+}): ColDef<LimsAliquot>[] => [
   {
     field: "aliquotSetId",
     headerName: t("limsAliquotSetId"),

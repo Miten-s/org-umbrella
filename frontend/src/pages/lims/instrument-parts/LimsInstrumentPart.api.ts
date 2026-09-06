@@ -1,15 +1,25 @@
 import limsApi from "@/utils/lims.axios.interceptor";
-import { buildServerParams, toListResult, toOptionsPage } from "@/lib/query/listAdapter";
+import {
+  buildServerParams,
+  toListResult,
+  toOptionsPage
+} from "@/lib/query/listAdapter";
 import { bulkSelectionToBody, type BulkSelection } from "@/lib/query/listTypes";
 import type { ServerListParams } from "@/lib/query/listTypes";
-import type { LimsInstrumentPart, LimsInstrumentPartPayload } from "./LimsInstrumentPart.types";
+import type {
+  LimsInstrumentPart,
+  LimsInstrumentPartPayload
+} from "./LimsInstrumentPart.types";
 
 /** LimsInstrumentPart API. Pure HTTP — toasts live in the mutation layer. */
 const ROUTE = "/lims-instrument-parts";
 
 /** Full record for the Edit/View modal — fetched on demand when it opens,
  * not reused from the list row (see useLimsRecordById). */
-export const fetchLimsInstrumentPartById = async (id: string, signal?: AbortSignal) => {
+export const fetchLimsInstrumentPartById = async (
+  id: string,
+  signal?: AbortSignal
+) => {
   const response = await limsApi.get(`${ROUTE}/${id}`, { signal });
   return (response.data?.data ?? response.data) as LimsInstrumentPart;
 };
@@ -22,10 +32,18 @@ export const fetchLimsInstrumentPartList = async (
   signal?: AbortSignal
 ) => {
   const response = await limsApi.get(ROUTE, {
-    params: { ...buildServerParams(params), includeRemoved: includeRemoved || undefined },
+    params: {
+      ...buildServerParams(params),
+      includeRemoved: includeRemoved || undefined
+    },
     signal
   });
-  return toListResult<LimsInstrumentPart>(response.data, params, DATA_KEYS, RELATION_KEYS);
+  return toListResult<LimsInstrumentPart>(
+    response.data,
+    params,
+    DATA_KEYS,
+    RELATION_KEYS
+  );
 };
 
 /** Options for other modules selecting this entity. */
@@ -38,7 +56,10 @@ export const fetchLimsInstrumentPartOptions = async (
     limit: 20,
     search: args.search || undefined
   };
-  const response = await limsApi.get(ROUTE, { params: buildServerParams(params), signal });
+  const response = await limsApi.get(ROUTE, {
+    params: buildServerParams(params),
+    signal
+  });
   return toOptionsPage<LimsInstrumentPart>(
     response.data,
     params,
@@ -58,7 +79,10 @@ const toBody = (payload: LimsInstrumentPartPayload, files?: File[]) => {
   };
 };
 
-export const createLimsInstrumentPart = async (payload: LimsInstrumentPartPayload, files?: File[]) => {
+export const createLimsInstrumentPart = async (
+  payload: LimsInstrumentPartPayload,
+  files?: File[]
+) => {
   const { body, config } = toBody(payload, files);
   const response = await limsApi.post(ROUTE, body, config);
   return response.data;
@@ -97,7 +121,10 @@ export const bulkRestoreLimsInstrumentPart = async (
 };
 
 export const bulkCloneLimsInstrumentPart = async (selection: BulkSelection) => {
-  const response = await limsApi.post(`${ROUTE}/bulk-duplicate`, bulkSelectionToBody(selection));
+  const response = await limsApi.post(
+    `${ROUTE}/bulk-duplicate`,
+    bulkSelectionToBody(selection)
+  );
   return response.data;
 };
 
@@ -105,7 +132,9 @@ export const bulkCloneLimsInstrumentPart = async (selection: BulkSelection) => {
  * The Copy flow's one and only network call — every reviewed record is
  * sent together, once. See `bulkCreate` in crud-factory.ts.
  */
-export const bulkCopyLimsInstrumentPart = async (records: LimsInstrumentPartPayload[]) => {
+export const bulkCopyLimsInstrumentPart = async (
+  records: LimsInstrumentPartPayload[]
+) => {
   const response = await limsApi.post(`${ROUTE}/bulk-copy`, { records });
   return response.data as {
     message: string;
@@ -118,7 +147,10 @@ export const bulkUpdateLimsInstrumentPart = async (
   updates: { id: string; payload: LimsInstrumentPartPayload }[],
   changeReason: string
 ) => {
-  const response = await limsApi.patch(`${ROUTE}/bulk-update`, { updates, changeReason });
+  const response = await limsApi.patch(`${ROUTE}/bulk-update`, {
+    updates,
+    changeReason
+  });
   return response.data as {
     message: string;
     count: number;
@@ -126,8 +158,13 @@ export const bulkUpdateLimsInstrumentPart = async (
   };
 };
 
-export const restoreLimsInstrumentPart = async (id: string, changeReason: string) => {
-  const response = await limsApi.patch(`${ROUTE}/restore/${id}`, { changeReason });
+export const restoreLimsInstrumentPart = async (
+  id: string,
+  changeReason: string
+) => {
+  const response = await limsApi.patch(`${ROUTE}/restore/${id}`, {
+    changeReason
+  });
   return response.data;
 };
 
@@ -136,6 +173,9 @@ export const fetchLimsInstrumentPartAudit = async (
   signal?: AbortSignal,
   params?: { page?: number; limit?: number }
 ) => {
-  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { params, signal });
+  const response = await limsApi.get(`${ROUTE}/${id}/audit`, {
+    params,
+    signal
+  });
   return response.data;
 };

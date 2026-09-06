@@ -21,13 +21,22 @@ export class Permission extends Model<IPermission> implements IPermission {
 
 Permission.init(
   {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     code: { type: DataTypes.STRING(100), allowNull: false, unique: true },
     entity: { type: DataTypes.STRING(50), allowNull: true },
     action: { type: DataTypes.STRING(20), allowNull: true },
     label: { type: DataTypes.STRING(200), allowNull: false }
   },
-  { sequelize, tableName: "lims_permissions", underscored: true, timestamps: true }
+  {
+    sequelize,
+    tableName: "lims_permissions",
+    underscored: true,
+    timestamps: true
+  }
 );
 
 export default Permission;

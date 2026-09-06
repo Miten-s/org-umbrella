@@ -80,10 +80,7 @@ export const updateSupplier = async (
   return response["data"];
 };
 
-export const deleteSupplier = async (
-  id: string,
-  options?: SilentOptions
-) => {
+export const deleteSupplier = async (id: string, options?: SilentOptions) => {
   const response = await gxpApi.delete(`${API_ROUTES.suppliers}/${id}`);
   if (!options?.silent) {
     toastSuccess(response, "Supplier deleted successfully");
@@ -167,10 +164,7 @@ export const updateWorkflow = async (
   return response["data"];
 };
 
-export const deleteWorkflow = async (
-  id: string,
-  options?: SilentOptions
-) => {
+export const deleteWorkflow = async (id: string, options?: SilentOptions) => {
   const response = await gxpApi.delete(`${API_ROUTES.workflows}/${id}`);
   if (!options?.silent) {
     toastSuccess(response, "Workflow deleted successfully");
@@ -870,10 +864,7 @@ export const updateGxpUser = async (
   return response["data"];
 };
 
-export const deleteGxpUser = async (
-  id: string,
-  options?: SilentOptions
-) => {
+export const deleteGxpUser = async (id: string, options?: SilentOptions) => {
   const response = await gxpApi.delete(`${API_ROUTES.gxpUsers}/${id}`);
   if (!options?.silent) {
     toastSuccess(response, "User deleted successfully");

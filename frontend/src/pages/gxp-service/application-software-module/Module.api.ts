@@ -1,5 +1,9 @@
 import gxpApi from "@/utils/gxp.axios.interceptor";
-import { buildServerParams, toListResult, toOptionsPage } from "@/lib/query/listAdapter";
+import {
+  buildServerParams,
+  toListResult,
+  toOptionsPage
+} from "@/lib/query/listAdapter";
 import { bulkSelectionToBody, type BulkSelection } from "@/lib/query/listTypes";
 import type { ServerListParams } from "@/lib/query/listTypes";
 import type { ApplicationSoftwareModule, ModulePayload } from "./Module.types";
@@ -14,9 +18,17 @@ export const fetchModuleList = async (
   params: ServerListParams,
   signal?: AbortSignal
 ) => {
-  const query = { ...buildServerParams(params), ...(includeDisabled ? { includeDisabled: true } : {}) };
+  const query = {
+    ...buildServerParams(params),
+    ...(includeDisabled ? { includeDisabled: true } : {})
+  };
   const response = await gxpApi.get(ROUTE, { params: query, signal });
-  return toListResult<ApplicationSoftwareModule>(response.data, params, DATA_KEYS, RELATION_KEYS);
+  return toListResult<ApplicationSoftwareModule>(
+    response.data,
+    params,
+    DATA_KEYS,
+    RELATION_KEYS
+  );
 };
 
 /** Full record for the Edit/Copy/View modal — fetched on demand when it opens,
@@ -30,9 +42,21 @@ export const fetchModuleOptions = async (
   args: { search: string; page: number },
   signal?: AbortSignal
 ) => {
-  const params: ServerListParams = { page: args.page, limit: 20, search: args.search || undefined };
-  const response = await gxpApi.get(ROUTE, { params: buildServerParams(params), signal });
-  return toOptionsPage<ApplicationSoftwareModule>(response.data, params, (row) => row.moduleName, DATA_KEYS);
+  const params: ServerListParams = {
+    page: args.page,
+    limit: 20,
+    search: args.search || undefined
+  };
+  const response = await gxpApi.get(ROUTE, {
+    params: buildServerParams(params),
+    signal
+  });
+  return toOptionsPage<ApplicationSoftwareModule>(
+    response.data,
+    params,
+    (row) => row.moduleName,
+    DATA_KEYS
+  );
 };
 
 export const createModule = async (payload: ModulePayload) => {
@@ -51,12 +75,18 @@ export const deleteModule = async (id: string) => {
 };
 
 export const bulkDeleteModule = async (selection: BulkSelection) => {
-  const response = await gxpApi.post(`${ROUTE}/bulk-delete`, bulkSelectionToBody(selection));
+  const response = await gxpApi.post(
+    `${ROUTE}/bulk-delete`,
+    bulkSelectionToBody(selection)
+  );
   return response.data;
 };
 
 export const bulkCloneModule = async (selection: BulkSelection) => {
-  const response = await gxpApi.post(`${ROUTE}/bulk-duplicate`, bulkSelectionToBody(selection));
+  const response = await gxpApi.post(
+    `${ROUTE}/bulk-duplicate`,
+    bulkSelectionToBody(selection)
+  );
   return response.data;
 };
 
@@ -64,7 +94,10 @@ export const bulkCloneModule = async (selection: BulkSelection) => {
  * A2: this module has no /enable|/disable route — drive the status toggle
  * through the update endpoint (PATCH /:id with just { status }).
  */
-export const setModuleStatus = async (id: string, status: "enabled" | "disabled") => {
+export const setModuleStatus = async (
+  id: string,
+  status: "enabled" | "disabled"
+) => {
   const response = await gxpApi.patch(`${ROUTE}/${id}`, { status });
   return response.data;
 };
@@ -76,14 +109,21 @@ export const bulkCopyModule = async (records: ModulePayload[]) => {
   return response.data as ApplicationSoftwareModule[];
 };
 
-export const bulkUpdateModule = async (updates: { id: string; payload: ModulePayload }[]) => {
+export const bulkUpdateModule = async (
+  updates: { id: string; payload: ModulePayload }[]
+) => {
   const response = await gxpApi.patch(`${ROUTE}/bulk-update`, { updates });
-  return response.data as { results: { id: string; status: "updated" | "skipped" }[] };
+  return response.data as {
+    results: { id: string; status: "updated" | "skipped" }[];
+  };
 };
 
 /** Bulk-restore reuses the generic status-update path (see setModuleStatus —
  * this module has no dedicated /enable route either). */
 export const bulkRestoreModule = async (selection: BulkSelection) => {
-  const response = await gxpApi.patch(`${ROUTE}/bulk-restore`, bulkSelectionToBody(selection));
+  const response = await gxpApi.patch(
+    `${ROUTE}/bulk-restore`,
+    bulkSelectionToBody(selection)
+  );
   return response.data as { message: string; count: number };
 };

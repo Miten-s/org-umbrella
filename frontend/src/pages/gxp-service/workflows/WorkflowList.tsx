@@ -1,4 +1,6 @@
-import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction
+} from "@/components/data/DataTable";
 import ConfirmDialog from "@/components/data/ConfirmDialog";
 import CopyStepper from "@/components/data/CopyStepper";
 import ViewStepper from "@/components/data/ViewStepper";
@@ -10,7 +12,13 @@ import { useServerTable } from "@/hooks/useServerTable";
 import { useModal } from "@/hooks/useModal";
 import { GXP_PERMISSIONS } from "@/utils/permissions";
 import { toast } from "@/lib/toast";
-import { CopyIcon, EyeIcon, PencilIcon, PlusIcon, TrashBinIcon } from "@/public/icons";
+import {
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashBinIcon
+} from "@/public/icons";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -37,14 +45,18 @@ const WorkflowList = () => {
 
   const [active, setActive] = useState<Workflow | null>(null);
   const [formMode, setFormMode] = useState<WorkflowFormMode>("create");
-  const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(
+    null
+  );
   const [deleteCount, setDeleteCount] = useState(0);
   const [deleteNames, setDeleteNames] = useState<string[]>([]);
   // Set instead of active/formMode while the Copy/View/Edit review flow is open.
   const [copyIds, setCopyIds] = useState<string[] | null>(null);
   const [viewIds, setViewIds] = useState<string[] | null>(null);
   const [editIds, setEditIds] = useState<string[] | null>(null);
-  const [pendingRestore, setPendingRestore] = useState<BulkSelection | null>(null);
+  const [pendingRestore, setPendingRestore] = useState<BulkSelection | null>(
+    null
+  );
   const [restoreNames, setRestoreNames] = useState<string[]>([]);
   const [includeDisabled, setIncludeDisabled] = useState(false);
 
@@ -86,7 +98,9 @@ const WorkflowList = () => {
   const gridContext = useMemo(
     () => ({
       toggleDisabled: toggleStatus.isPending,
-      togglingId: toggleStatus.isPending ? toggleStatus.variables?.id : undefined,
+      togglingId: toggleStatus.isPending
+        ? toggleStatus.variables?.id
+        : undefined,
       onToggleStatus: (workflow: Workflow) => {
         if (toggleStatus.isPending) return;
         toggleStatus.mutate(workflow);
@@ -149,7 +163,9 @@ const WorkflowList = () => {
     table.clearSelection();
   };
 
-  const handleSaveEdits = async (updates: { id: string; payload: WorkflowPayload }[]) => {
+  const handleSaveEdits = async (
+    updates: { id: string; payload: WorkflowPayload }[]
+  ) => {
     await bulkUpdate.mutateAsync(updates);
     handleCloseForm();
     table.clearSelection();
@@ -202,18 +218,22 @@ const WorkflowList = () => {
       },
       {
         key: "restore",
-        label: (count) => (count > 1 ? "Restore workflows" : "Restore workflow"),
+        label: (count) =>
+          count > 1 ? "Restore workflows" : "Restore workflow",
         icon: CopyIcon,
         variant: "outline",
         permission: GXP_PERMISSIONS.UPDATE_WORKFLOW,
-        hidden: (rows) => !(rows as Workflow[]).some((row) => row.status === "disabled"),
+        hidden: (rows) =>
+          !(rows as Workflow[]).some((row) => row.status === "disabled"),
         onClick: (selection) => {
           if (selection.mode !== "ids") {
             toast("Select individual rows to restore.", "error");
             return;
           }
           setPendingRestore(selection);
-          setRestoreNames(table.getCachedRows(selection.ids).map((r) => r.workflowName));
+          setRestoreNames(
+            table.getCachedRows(selection.ids).map((r) => r.workflowName)
+          );
         }
       },
       {
@@ -303,7 +323,11 @@ const WorkflowList = () => {
         fillAvailableHeight
         busy={busy}
         titleExtra={
-          <Switch label={t("includeDisabled")} checked={includeDisabled} onChange={setIncludeDisabled} />
+          <Switch
+            label={t("includeDisabled")}
+            checked={includeDisabled}
+            onChange={setIncludeDisabled}
+          />
         }
         rowActions={rowActions}
         bulkActions={bulkActions}

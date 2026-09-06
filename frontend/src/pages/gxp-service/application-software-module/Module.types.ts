@@ -22,16 +22,21 @@ export interface ModulePayload {
 }
 
 /** application id from a module row (ref object or bare id). Ported verbatim. */
-export const getModuleApplicationId = (module?: ApplicationSoftwareModule | null): string => {
+export const getModuleApplicationId = (
+  module?: ApplicationSoftwareModule | null
+): string => {
   const app = module?.application;
   if (!app) return "";
   if (typeof app === "string") return app;
   return app.id ?? app._id ?? "";
 };
 
-export const getModuleApplicationName = (module?: ApplicationSoftwareModule | null): string => {
+export const getModuleApplicationName = (
+  module?: ApplicationSoftwareModule | null
+): string => {
   const app = module?.application;
   return app && typeof app === "object" ? (app.applicationName ?? "") : "";
 };
 
-export const normalizeModuleName = (value?: string) => (value ?? "").trim().toLowerCase();
+export const normalizeModuleName = (value?: string) =>
+  (value ?? "").trim().toLowerCase();

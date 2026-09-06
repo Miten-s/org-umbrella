@@ -3,7 +3,10 @@ import crypto from "crypto";
 
 // Generate a deterministic UUID from a string
 function stringToUUID(str: string, namespace: string): string {
-  const hash = crypto.createHash("sha256").update(namespace + ":" + str).digest("hex");
+  const hash = crypto
+    .createHash("sha256")
+    .update(namespace + ":" + str)
+    .digest("hex");
   const p1 = hash.substring(0, 8);
   const p2 = hash.substring(8, 12);
   const p3 = hash.substring(12, 16);

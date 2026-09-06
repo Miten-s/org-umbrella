@@ -9,9 +9,14 @@ import Switch from "@/components/common/form/switch/Switch";
 import { Controller } from "react-hook-form";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { workflowSchema, type WorkflowFormValues } from "./Workflow.schema";
-import { parseLevels, type Workflow, type WorkflowPayload } from "./Workflow.types";
+import {
+  parseLevels,
+  type Workflow,
+  type WorkflowPayload
+} from "./Workflow.types";
 
-export type WorkflowFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type WorkflowFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface WorkflowFormProps {
   mode?: WorkflowFormMode;
@@ -71,7 +76,10 @@ const WorkflowForm = ({
   const busy = submitting || isSubmitting;
 
   const submit = (values: WorkflowFormValues) => {
-    if ((mode === "edit" || mode === "bulk-edit") && isPayloadEqual(values, initialValues)) {
+    if (
+      (mode === "edit" || mode === "bulk-edit") &&
+      isPayloadEqual(values, initialValues)
+    ) {
       (onUnchanged ?? onClose)();
       return;
     }
@@ -86,7 +94,11 @@ const WorkflowForm = ({
 
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-      <form id={formId} onSubmit={handleSubmit(submit)} className="min-w-0 space-y-4">
+      <form
+        id={formId}
+        onSubmit={handleSubmit(submit)}
+        className="min-w-0 space-y-4"
+      >
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("workflow") })
@@ -134,7 +146,9 @@ const WorkflowForm = ({
                   label={value === "enabled" ? t("enabled") : t("disabled")}
                   checked={value === "enabled"}
                   disabled={isReadOnly}
-                  onChange={(checked) => onChange(checked ? "enabled" : "disabled")}
+                  onChange={(checked) =>
+                    onChange(checked ? "enabled" : "disabled")
+                  }
                 />
               )}
             />
@@ -142,11 +156,21 @@ const WorkflowForm = ({
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

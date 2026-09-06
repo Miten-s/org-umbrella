@@ -1,4 +1,6 @@
-import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction
+} from "@/components/data/DataTable";
 import ConfirmDialog from "@/components/data/ConfirmDialog";
 import CopyStepper from "@/components/data/CopyStepper";
 import ViewStepper from "@/components/data/ViewStepper";
@@ -10,7 +12,13 @@ import { useServerTable } from "@/hooks/useServerTable";
 import { useModal } from "@/hooks/useModal";
 import { GXP_PERMISSIONS } from "@/utils/permissions";
 import { toast } from "@/lib/toast";
-import { CopyIcon, EyeIcon, PencilIcon, PlusIcon, TrashBinIcon } from "@/public/icons";
+import {
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashBinIcon
+} from "@/public/icons";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -24,9 +32,14 @@ import {
   useToggleAssignmentGroupStatus,
   useUpdateAssignmentGroup
 } from "./AssignmentGroup.queries";
-import { fetchAssignmentGroupById, fetchAssignmentGroupList } from "./AssignmentGroup.api";
+import {
+  fetchAssignmentGroupById,
+  fetchAssignmentGroupList
+} from "./AssignmentGroup.api";
 import { getAssignmentGroupColumns } from "./AssignmentGroup.columns";
-import AssignmentGroupForm, { type AssignmentGroupFormMode } from "./AssignmentGroupForm";
+import AssignmentGroupForm, {
+  type AssignmentGroupFormMode
+} from "./AssignmentGroupForm";
 import type { AssignmentGroupFormValues } from "./AssignmentGroup.schema";
 import type { AssignmentGroup } from "./AssignmentGroup.types";
 import type { BulkSelection } from "@/lib/query/listTypes";
@@ -38,7 +51,9 @@ const AssignmentGroupList = () => {
 
   const [active, setActive] = useState<AssignmentGroup | null>(null);
   const [formMode, setFormMode] = useState<AssignmentGroupFormMode>("create");
-  const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(
+    null
+  );
   const [deleteCount, setDeleteCount] = useState(0);
   const [deleteNames, setDeleteNames] = useState<string[]>([]);
   const [includeInactive, setIncludeInactive] = useState(false);
@@ -46,14 +61,17 @@ const AssignmentGroupList = () => {
   const [copyIds, setCopyIds] = useState<string[] | null>(null);
   const [viewIds, setViewIds] = useState<string[] | null>(null);
   const [editIds, setEditIds] = useState<string[] | null>(null);
-  const [pendingRestore, setPendingRestore] = useState<BulkSelection | null>(null);
+  const [pendingRestore, setPendingRestore] = useState<BulkSelection | null>(
+    null
+  );
   const [restoreNames, setRestoreNames] = useState<string[]>([]);
 
   const table = useServerTable<AssignmentGroup>({
     entity: "assignmentGroup",
     queryKey: [...assignmentGroupKeys.all, { includeInactive }],
     fetchList: useCallback(
-      (params, signal) => fetchAssignmentGroupList(includeInactive, params, signal),
+      (params, signal) =>
+        fetchAssignmentGroupList(includeInactive, params, signal),
       [includeInactive]
     )
   });
@@ -85,7 +103,9 @@ const AssignmentGroupList = () => {
   const gridContext = useMemo(
     () => ({
       toggleDisabled: toggleStatus.isPending,
-      togglingId: toggleStatus.isPending ? toggleStatus.variables?.id : undefined,
+      togglingId: toggleStatus.isPending
+        ? toggleStatus.variables?.id
+        : undefined,
       onToggleStatus: (group: AssignmentGroup) => {
         if (toggleStatus.isPending) return;
         toggleStatus.mutate(group);
@@ -94,7 +114,10 @@ const AssignmentGroupList = () => {
     [toggleStatus]
   );
 
-  const openForm = (mode: AssignmentGroupFormMode, group: AssignmentGroup | null) => {
+  const openForm = (
+    mode: AssignmentGroupFormMode,
+    group: AssignmentGroup | null
+  ) => {
     setFormMode(mode);
     setActive(group);
     openModal();
@@ -144,14 +167,21 @@ const AssignmentGroupList = () => {
   };
 
   const handleSaveCopies = async (payloads: AssignmentGroupFormValues[]) => {
-    await bulkCopy.mutateAsync(payloads.map((values) => ({ ...values, members: values.members ?? [] })));
+    await bulkCopy.mutateAsync(
+      payloads.map((values) => ({ ...values, members: values.members ?? [] }))
+    );
     handleCloseForm();
     table.clearSelection();
   };
 
-  const handleSaveEdits = async (updates: { id: string; payload: AssignmentGroupFormValues }[]) => {
+  const handleSaveEdits = async (
+    updates: { id: string; payload: AssignmentGroupFormValues }[]
+  ) => {
     await bulkUpdate.mutateAsync(
-      updates.map(({ id, payload }) => ({ id, payload: { ...payload, members: payload.members ?? [] } }))
+      updates.map(({ id, payload }) => ({
+        id,
+        payload: { ...payload, members: payload.members ?? [] }
+      }))
     );
     handleCloseForm();
     table.clearSelection();
@@ -161,7 +191,8 @@ const AssignmentGroupList = () => {
     () => [
       {
         key: "view",
-        label: (count) => (count > 1 ? "View assignment groups" : "View assignment group"),
+        label: (count) =>
+          count > 1 ? "View assignment groups" : "View assignment group",
         icon: EyeIcon,
         variant: "outline",
         permission: GXP_PERMISSIONS.VIEW_ASSIGNMENT_GROUP,
@@ -175,7 +206,8 @@ const AssignmentGroupList = () => {
       },
       {
         key: "clone",
-        label: (count) => (count > 1 ? "Copy assignment groups" : "Copy assignment group"),
+        label: (count) =>
+          count > 1 ? "Copy assignment groups" : "Copy assignment group",
         icon: CopyIcon,
         variant: "outline",
         permission: GXP_PERMISSIONS.CREATE_ASSIGNMENT_GROUP,
@@ -190,7 +222,8 @@ const AssignmentGroupList = () => {
       },
       {
         key: "edit",
-        label: (count) => (count > 1 ? "Edit assignment groups" : "Edit assignment group"),
+        label: (count) =>
+          count > 1 ? "Edit assignment groups" : "Edit assignment group",
         icon: PencilIcon,
         variant: "outline",
         permission: GXP_PERMISSIONS.UPDATE_ASSIGNMENT_GROUP,
@@ -208,14 +241,17 @@ const AssignmentGroupList = () => {
         icon: CopyIcon,
         variant: "outline",
         permission: GXP_PERMISSIONS.UPDATE_ASSIGNMENT_GROUP,
-        hidden: (rows) => !(rows as AssignmentGroup[]).some((row) => !row.isActive),
+        hidden: (rows) =>
+          !(rows as AssignmentGroup[]).some((row) => !row.isActive),
         onClick: (selection) => {
           if (selection.mode !== "ids") {
             toast("Select individual rows to restore.", "error");
             return;
           }
           setPendingRestore(selection);
-          setRestoreNames(table.getCachedRows(selection.ids).map((r) => r.groupName));
+          setRestoreNames(
+            table.getCachedRows(selection.ids).map((r) => r.groupName)
+          );
         }
       },
       {
@@ -305,7 +341,11 @@ const AssignmentGroupList = () => {
         fillAvailableHeight
         busy={busy}
         titleExtra={
-          <Switch label={t("includeInactive")} checked={includeInactive} onChange={setIncludeInactive} />
+          <Switch
+            label={t("includeInactive")}
+            checked={includeInactive}
+            onChange={setIncludeInactive}
+          />
         }
         rowActions={rowActions}
         bulkActions={bulkActions}

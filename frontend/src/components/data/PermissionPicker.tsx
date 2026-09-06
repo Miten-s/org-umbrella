@@ -7,7 +7,9 @@ import Label from "@/components/common/form/Label";
 type GroupedPermission = { action: string; key: string };
 
 /** Parses "ACTION:ENTITY" or "<PREFIX>:ACTION:ENTITY" (e.g. "LIMS:CREATE:ROLE"). */
-const groupPermissions = (permissions: string[]): Record<string, GroupedPermission[]> => {
+const groupPermissions = (
+  permissions: string[]
+): Record<string, GroupedPermission[]> => {
   const grouped: Record<string, GroupedPermission[]> = {};
   permissions.forEach((perm) => {
     const parts = perm.split(":");
@@ -90,13 +92,18 @@ const PermissionPicker = ({
 
       <Checkbox
         label="Select All Permissions"
-        checked={allPermissions.length > 0 && allPermissions.every((p) => selected.includes(p))}
+        checked={
+          allPermissions.length > 0 &&
+          allPermissions.every((p) => selected.includes(p))
+        }
         disabled={disabled || allPermissions.length === 0}
         onChange={toggleAllPermissions}
         className="flex"
       />
 
-      {error ? <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p> : null}
+      {error ? (
+        <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>
+      ) : null}
 
       <div className="mt-4 grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-6">
         {Object.entries(groupedPermissions).map(([entity, items]) => {
@@ -121,7 +128,10 @@ const PermissionPicker = ({
                 {items.map((item) => (
                   <Checkbox
                     key={item.key}
-                    label={item.action.charAt(0).toUpperCase() + item.action.slice(1).toLowerCase()}
+                    label={
+                      item.action.charAt(0).toUpperCase() +
+                      item.action.slice(1).toLowerCase()
+                    }
                     checked={selected.includes(item.key)}
                     disabled={disabled}
                     onChange={() => togglePermission(item.key)}

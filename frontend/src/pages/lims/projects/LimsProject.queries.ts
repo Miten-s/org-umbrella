@@ -65,8 +65,13 @@ const useInvalidate = () => {
 export const useCreateLimsProject = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ payload, files }: { payload: LimsProjectPayload; files?: File[] }) =>
-      createLimsProject(payload, files),
+    mutationFn: ({
+      payload,
+      files
+    }: {
+      payload: LimsProjectPayload;
+      files?: File[];
+    }) => createLimsProject(payload, files),
     onSuccess: () => {
       toast("Project created successfully.", "success");
       invalidate();

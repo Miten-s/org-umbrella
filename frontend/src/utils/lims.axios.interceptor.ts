@@ -33,7 +33,8 @@ const processQueue = (error: AxiosError | null) => {
 
 limsApi.interceptors.request.use((config) => {
   const token =
-    sessionStorage.getItem(AUTH_TOKEN_KEY) ?? localStorage.getItem(AUTH_TOKEN_KEY);
+    sessionStorage.getItem(AUTH_TOKEN_KEY) ??
+    localStorage.getItem(AUTH_TOKEN_KEY);
 
   if (token) {
     config.headers = config.headers ?? {};
@@ -54,11 +55,14 @@ limsApi.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+    const originalRequest = error.config as AxiosRequestConfig & {
+      _retry?: boolean;
+    };
 
     if (
       error.response?.status === 401 &&
-      (error?.response?.data as { message?: string })?.message === "Token Expired" &&
+      (error?.response?.data as { message?: string })?.message ===
+        "Token Expired" &&
       !originalRequest._retry
     ) {
       if (isRefreshing) {
@@ -91,7 +95,8 @@ limsApi.interceptors.response.use(
     // Mutations must never toast onError.
     if (
       error.response?.status !== 404 &&
-      (error.response?.data as { message?: string })?.message !== "Token not found"
+      (error.response?.data as { message?: string })?.message !==
+        "Token not found"
     ) {
       toast(getErrorMessage(error), "error");
     }

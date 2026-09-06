@@ -1,6 +1,10 @@
 import Group from "../models/group.model";
 import LimsUser from "../models/lims-user.model";
-import { buildCrudRouter, buildCrudService, CrudConfig } from "../utils/crud-factory";
+import {
+  buildCrudRouter,
+  buildCrudService,
+  CrudConfig
+} from "../utils/crud-factory";
 import { CreateGroupDto, UpdateGroupDto } from "../dtos/master-data.dto";
 import { invalidateAllUserContexts } from "../services/user-context.service";
 
@@ -24,7 +28,14 @@ export const groupConfig: CrudConfig<Group> = {
   uniqueField: "groupId",
   searchFields: ["groupId", "name", "description"],
   defaultSortBy: "name",
-  relations: [{ model: Group, as: "parentGroup", attributes: ["id", "name"], required: false }],
+  relations: [
+    {
+      model: Group,
+      as: "parentGroup",
+      attributes: ["id", "name"],
+      required: false
+    }
+  ],
   relationFields: { parentGroup: "parentGroupId" },
 
   // The owner's name is denormalised alongside the id (cross-database, can't join) — without
@@ -36,7 +47,9 @@ export const groupConfig: CrudConfig<Group> = {
   // the `{ id, name }` shape the client expects from every relation.
   postFormat: (row) => ({
     ...row,
-    ownedBy: row.ownedBy ? { id: row.ownedBy, name: row.ownedByName ?? "" } : null
+    ownedBy: row.ownedBy
+      ? { id: row.ownedBy, name: row.ownedByName ?? "" }
+      : null
   }),
 
   // The group tree feeds every access decision, so a change here has to drop

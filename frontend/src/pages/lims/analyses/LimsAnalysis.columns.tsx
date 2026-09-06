@@ -8,7 +8,11 @@ import type { LimsAnalysis, LimsRef } from "./LimsAnalysis.types";
 const refLabel = (ref: LimsRef | null | undefined) => ref?.name ?? "";
 
 /** Column factory (STANDARDS.md §8). */
-export const getLimsAnalysisColumns = ({ t }: { t: TFunction }): ColDef<LimsAnalysis>[] => [
+export const getLimsAnalysisColumns = ({
+  t
+}: {
+  t: TFunction;
+}): ColDef<LimsAnalysis>[] => [
   {
     field: "analysisId",
     headerName: t("limsAnalysisId"),
@@ -25,7 +29,10 @@ export const getLimsAnalysisColumns = ({ t }: { t: TFunction }): ColDef<LimsAnal
     minWidth: 210,
     cellRenderer: (params: ICellRendererParams<LimsAnalysis>) =>
       params.data ? (
-        <AvatarCell label={String(params.data.name ?? "")} fallbackInitial="•" />
+        <AvatarCell
+          label={String(params.data.name ?? "")}
+          fallbackInitial="•"
+        />
       ) : null
   },
   {

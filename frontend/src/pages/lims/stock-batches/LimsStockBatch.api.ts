@@ -1,15 +1,25 @@
 import limsApi from "@/utils/lims.axios.interceptor";
-import { buildServerParams, toListResult, toOptionsPage } from "@/lib/query/listAdapter";
+import {
+  buildServerParams,
+  toListResult,
+  toOptionsPage
+} from "@/lib/query/listAdapter";
 import { bulkSelectionToBody, type BulkSelection } from "@/lib/query/listTypes";
 import type { ServerListParams } from "@/lib/query/listTypes";
-import type { LimsStockBatch, LimsStockBatchPayload } from "./LimsStockBatch.types";
+import type {
+  LimsStockBatch,
+  LimsStockBatchPayload
+} from "./LimsStockBatch.types";
 
 /** LimsStockBatch API. Pure HTTP — toasts live in the mutation layer. */
 const ROUTE = "/lims-stock-batches";
 
 /** Full record for the Edit/View modal — fetched on demand when it opens,
  * not reused from the list row (see useLimsRecordById). */
-export const fetchLimsStockBatchById = async (id: string, signal?: AbortSignal) => {
+export const fetchLimsStockBatchById = async (
+  id: string,
+  signal?: AbortSignal
+) => {
   const response = await limsApi.get(`${ROUTE}/${id}`, { signal });
   return (response.data?.data ?? response.data) as LimsStockBatch;
 };
@@ -22,10 +32,18 @@ export const fetchLimsStockBatchList = async (
   signal?: AbortSignal
 ) => {
   const response = await limsApi.get(ROUTE, {
-    params: { ...buildServerParams(params), includeRemoved: includeRemoved || undefined },
+    params: {
+      ...buildServerParams(params),
+      includeRemoved: includeRemoved || undefined
+    },
     signal
   });
-  return toListResult<LimsStockBatch>(response.data, params, DATA_KEYS, RELATION_KEYS);
+  return toListResult<LimsStockBatch>(
+    response.data,
+    params,
+    DATA_KEYS,
+    RELATION_KEYS
+  );
 };
 
 /** Options for other modules selecting this entity. */
@@ -38,7 +56,10 @@ export const fetchLimsStockBatchOptions = async (
     limit: 20,
     search: args.search || undefined
   };
-  const response = await limsApi.get(ROUTE, { params: buildServerParams(params), signal });
+  const response = await limsApi.get(ROUTE, {
+    params: buildServerParams(params),
+    signal
+  });
   return toOptionsPage<LimsStockBatch>(
     response.data,
     params,
@@ -58,7 +79,10 @@ const toBody = (payload: LimsStockBatchPayload, files?: File[]) => {
   };
 };
 
-export const createLimsStockBatch = async (payload: LimsStockBatchPayload, files?: File[]) => {
+export const createLimsStockBatch = async (
+  payload: LimsStockBatchPayload,
+  files?: File[]
+) => {
   const { body, config } = toBody(payload, files);
   const response = await limsApi.post(ROUTE, body, config);
   return response.data;
@@ -97,7 +121,10 @@ export const bulkRestoreLimsStockBatch = async (
 };
 
 export const bulkCloneLimsStockBatch = async (selection: BulkSelection) => {
-  const response = await limsApi.post(`${ROUTE}/bulk-duplicate`, bulkSelectionToBody(selection));
+  const response = await limsApi.post(
+    `${ROUTE}/bulk-duplicate`,
+    bulkSelectionToBody(selection)
+  );
   return response.data;
 };
 
@@ -105,7 +132,9 @@ export const bulkCloneLimsStockBatch = async (selection: BulkSelection) => {
  * The Copy flow's one and only network call — every reviewed record is
  * sent together, once. See `bulkCreate` in crud-factory.ts.
  */
-export const bulkCopyLimsStockBatch = async (records: LimsStockBatchPayload[]) => {
+export const bulkCopyLimsStockBatch = async (
+  records: LimsStockBatchPayload[]
+) => {
   const response = await limsApi.post(`${ROUTE}/bulk-copy`, { records });
   return response.data as {
     message: string;
@@ -118,7 +147,10 @@ export const bulkUpdateLimsStockBatch = async (
   updates: { id: string; payload: LimsStockBatchPayload }[],
   changeReason: string
 ) => {
-  const response = await limsApi.patch(`${ROUTE}/bulk-update`, { updates, changeReason });
+  const response = await limsApi.patch(`${ROUTE}/bulk-update`, {
+    updates,
+    changeReason
+  });
   return response.data as {
     message: string;
     count: number;
@@ -126,8 +158,13 @@ export const bulkUpdateLimsStockBatch = async (
   };
 };
 
-export const restoreLimsStockBatch = async (id: string, changeReason: string) => {
-  const response = await limsApi.patch(`${ROUTE}/restore/${id}`, { changeReason });
+export const restoreLimsStockBatch = async (
+  id: string,
+  changeReason: string
+) => {
+  const response = await limsApi.patch(`${ROUTE}/restore/${id}`, {
+    changeReason
+  });
   return response.data;
 };
 
@@ -136,6 +173,9 @@ export const fetchLimsStockBatchAudit = async (
   signal?: AbortSignal,
   params?: { page?: number; limit?: number }
 ) => {
-  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { params, signal });
+  const response = await limsApi.get(`${ROUTE}/${id}/audit`, {
+    params,
+    signal
+  });
   return response.data;
 };

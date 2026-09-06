@@ -1,4 +1,6 @@
-import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction
+} from "@/components/data/DataTable";
 import ConfirmDialog from "@/components/data/ConfirmDialog";
 import CopyStepper from "@/components/data/CopyStepper";
 import ViewStepper from "@/components/data/ViewStepper";
@@ -10,7 +12,13 @@ import { useServerTable } from "@/hooks/useServerTable";
 import { useModal } from "@/hooks/useModal";
 import { GXP_PERMISSIONS } from "@/utils/permissions";
 import { toast } from "@/lib/toast";
-import { CopyIcon, EyeIcon, PencilIcon, PlusIcon, TrashBinIcon } from "@/public/icons";
+import {
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashBinIcon
+} from "@/public/icons";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -25,9 +33,14 @@ import {
   useToggleApplicationStatus,
   useUpdateApplication
 } from "./GxpApplication.queries";
-import { fetchApplicationById, fetchApplicationList } from "./GxpApplication.api";
+import {
+  fetchApplicationById,
+  fetchApplicationList
+} from "./GxpApplication.api";
 import { getApplicationColumns } from "./GxpApplication.columns";
-import GxpApplicationForm, { type ApplicationFormMode } from "./GxpApplicationForm";
+import GxpApplicationForm, {
+  type ApplicationFormMode
+} from "./GxpApplicationForm";
 import type { ApplicationFormValues } from "./GxpApplication.schema";
 import type { GxpApplication } from "./GxpApplication.types";
 import type { BulkSelection } from "@/lib/query/listTypes";
@@ -38,7 +51,9 @@ const GxpApplicationList = () => {
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<ApplicationFormMode>("create");
-  const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(
+    null
+  );
   const [deleteCount, setDeleteCount] = useState(0);
   const [deleteNames, setDeleteNames] = useState<string[]>([]);
   const [includeDisabled, setIncludeDisabled] = useState(false);
@@ -46,17 +61,25 @@ const GxpApplicationList = () => {
   const [copyIds, setCopyIds] = useState<string[] | null>(null);
   const [viewIds, setViewIds] = useState<string[] | null>(null);
   const [editIds, setEditIds] = useState<string[] | null>(null);
-  const [pendingRestore, setPendingRestore] = useState<BulkSelection | null>(null);
+  const [pendingRestore, setPendingRestore] = useState<BulkSelection | null>(
+    null
+  );
   const [restoreNames, setRestoreNames] = useState<string[]>([]);
 
   const table = useServerTable<GxpApplication>({
     entity: "gxpApplication",
     queryKey: [...applicationKeys.all, { includeDisabled }],
-    fetchList: useCallback((params, signal) => fetchApplicationList(includeDisabled, params, signal), [includeDisabled])
+    fetchList: useCallback(
+      (params, signal) => fetchApplicationList(includeDisabled, params, signal),
+      [includeDisabled]
+    )
   });
 
   // On edit/view we need the full record (nested refs) to seed the form.
-  const detail = useApplicationDetail(activeId, isOpen && formMode !== "create");
+  const detail = useApplicationDetail(
+    activeId,
+    isOpen && formMode !== "create"
+  );
   const createApp = useCreateApplication();
   const updateApp = useUpdateApplication();
   const bulkClone = useBulkCloneApplication();
@@ -84,7 +107,9 @@ const GxpApplicationList = () => {
   const gridContext = useMemo(
     () => ({
       toggleDisabled: toggleStatus.isPending,
-      togglingId: toggleStatus.isPending ? toggleStatus.variables?.id : undefined,
+      togglingId: toggleStatus.isPending
+        ? toggleStatus.variables?.id
+        : undefined,
       onToggleStatus: (app: GxpApplication) => {
         if (toggleStatus.isPending) return;
         toggleStatus.mutate(app);
@@ -132,9 +157,16 @@ const GxpApplicationList = () => {
     setEditIds(null);
   };
 
-  const handleSave = async (values: ApplicationFormValues, newFiles: File[] = []) => {
+  const handleSave = async (
+    values: ApplicationFormValues,
+    newFiles: File[] = []
+  ) => {
     if (activeId) {
-      await updateApp.mutateAsync({ id: activeId, payload: values, files: newFiles });
+      await updateApp.mutateAsync({
+        id: activeId,
+        payload: values,
+        files: newFiles
+      });
     } else {
       await createApp.mutateAsync({ payload: values, files: newFiles });
     }
@@ -147,7 +179,9 @@ const GxpApplicationList = () => {
     table.clearSelection();
   };
 
-  const handleSaveEdits = async (updates: { id: string; payload: ApplicationFormValues }[]) => {
+  const handleSaveEdits = async (
+    updates: { id: string; payload: ApplicationFormValues }[]
+  ) => {
     await bulkUpdate.mutateAsync(updates);
     handleClose();
     table.clearSelection();
@@ -204,14 +238,17 @@ const GxpApplicationList = () => {
         icon: CopyIcon,
         variant: "outline",
         permission: GXP_PERMISSIONS.UPDATE_SOFTWARE,
-        hidden: (rows) => !(rows as GxpApplication[]).some((row) => row.status === "disabled"),
+        hidden: (rows) =>
+          !(rows as GxpApplication[]).some((row) => row.status === "disabled"),
         onClick: (selection) => {
           if (selection.mode !== "ids") {
             toast("Select individual rows to restore.", "error");
             return;
           }
           setPendingRestore(selection);
-          setRestoreNames(table.getCachedRows(selection.ids).map((r) => r.applicationName));
+          setRestoreNames(
+            table.getCachedRows(selection.ids).map((r) => r.applicationName)
+          );
         }
       },
       {
@@ -223,7 +260,11 @@ const GxpApplicationList = () => {
         onClick: (selection, count) => {
           setPendingDelete(selection);
           setDeleteCount(count);
-          setDeleteNames(selection.mode === "ids" ? table.getCachedRows(selection.ids).map((r) => r.applicationName) : []);
+          setDeleteNames(
+            selection.mode === "ids"
+              ? table.getCachedRows(selection.ids).map((r) => r.applicationName)
+              : []
+          );
         }
       }
     ],
@@ -232,20 +273,54 @@ const GxpApplicationList = () => {
 
   const rowActions = useMemo<AppDataTableRowAction<GxpApplication>[]>(
     () => [
-      { key: "view", label: "View application", icon: EyeIcon, placement: "inline", permission: GXP_PERMISSIONS.VIEW_SOFTWARE, onClick: (a) => openForm("view", a.id) },
-      { key: "edit", label: "Edit application", icon: PencilIcon, placement: "inline", permission: GXP_PERMISSIONS.UPDATE_SOFTWARE, onClick: (a) => openForm("edit", a.id) },
       {
-        key: "clone", label: "Copy application", icon: CopyIcon, placement: "menu", permission: GXP_PERMISSIONS.CREATE_SOFTWARE,
+        key: "view",
+        label: "View application",
+        icon: EyeIcon,
+        placement: "inline",
+        permission: GXP_PERMISSIONS.VIEW_SOFTWARE,
+        onClick: (a) => openForm("view", a.id)
+      },
+      {
+        key: "edit",
+        label: "Edit application",
+        icon: PencilIcon,
+        placement: "inline",
+        permission: GXP_PERMISSIONS.UPDATE_SOFTWARE,
+        onClick: (a) => openForm("edit", a.id)
+      },
+      {
+        key: "clone",
+        label: "Copy application",
+        icon: CopyIcon,
+        placement: "menu",
+        permission: GXP_PERMISSIONS.CREATE_SOFTWARE,
         onClick: (a) => openCopy([a.id])
       },
       {
-        key: "restore", label: "Restore application", icon: CopyIcon, placement: "menu", permission: GXP_PERMISSIONS.UPDATE_SOFTWARE,
+        key: "restore",
+        label: "Restore application",
+        icon: CopyIcon,
+        placement: "menu",
+        permission: GXP_PERMISSIONS.UPDATE_SOFTWARE,
         hidden: (a) => a.status !== "disabled",
-        onClick: (a) => { setPendingRestore({ mode: "ids", ids: [a.id] }); setRestoreNames([a.applicationName]); }
+        onClick: (a) => {
+          setPendingRestore({ mode: "ids", ids: [a.id] });
+          setRestoreNames([a.applicationName]);
+        }
       },
       {
-        key: "delete", label: "Delete application", icon: TrashBinIcon, placement: "menu", tone: "danger", permission: GXP_PERMISSIONS.DELETE_SOFTWARE,
-        onClick: (a) => { setPendingDelete({ mode: "ids", ids: [a.id] }); setDeleteCount(1); setDeleteNames([a.applicationName]); }
+        key: "delete",
+        label: "Delete application",
+        icon: TrashBinIcon,
+        placement: "menu",
+        tone: "danger",
+        permission: GXP_PERMISSIONS.DELETE_SOFTWARE,
+        onClick: (a) => {
+          setPendingDelete({ mode: "ids", ids: [a.id] });
+          setDeleteCount(1);
+          setDeleteNames([a.applicationName]);
+        }
       }
     ],
     [openCopy, openForm]
@@ -254,7 +329,8 @@ const GxpApplicationList = () => {
   // For edit/view, wait for a FRESH fetch before rendering the form — otherwise
   // React Query serves the previous (stale) cache for this id while it refetches,
   // flashing old values. isFetching covers both first load and background refetch.
-  const showForm = formMode === "create" || (!!detail.data && !detail.isFetching);
+  const showForm =
+    formMode === "create" || (!!detail.data && !detail.isFetching);
 
   return (
     <div className="flex flex-col lg:h-[calc(100dvh-132px)] lg:min-h-0">
@@ -267,16 +343,34 @@ const GxpApplicationList = () => {
         enableSelection
         fillAvailableHeight
         busy={busy}
-        titleExtra={<Switch label={t("includeDisabled")} checked={includeDisabled} onChange={setIncludeDisabled} />}
+        titleExtra={
+          <Switch
+            label={t("includeDisabled")}
+            checked={includeDisabled}
+            onChange={setIncludeDisabled}
+          />
+        }
         rowActions={rowActions}
         bulkActions={bulkActions}
         toolbarActions={[
-          { key: "create", label: t("create", { entity: t("gxpApplications") }), icon: PlusIcon, variant: "primary", permission: GXP_PERMISSIONS.CREATE_SOFTWARE, onClick: () => openForm("create", null) }
+          {
+            key: "create",
+            label: t("create", { entity: t("gxpApplications") }),
+            icon: PlusIcon,
+            variant: "primary",
+            permission: GXP_PERMISSIONS.CREATE_SOFTWARE,
+            onClick: () => openForm("create", null)
+          }
         ]}
         emptyState={{ title: "No applications found" }}
       />
 
-      <Modal isOpen={isOpen} onClose={handleClose} className="m-4 max-h-[calc(100dvh-2rem)] max-w-[1000px] overflow-hidden bg-white text-gray-900 dark:bg-gray-900 dark:text-white" disableOuterScroll>
+      <Modal
+        isOpen={isOpen}
+        onClose={handleClose}
+        className="m-4 max-h-[calc(100dvh-2rem)] max-w-[1000px] overflow-hidden bg-white text-gray-900 dark:bg-gray-900 dark:text-white"
+        disableOuterScroll
+      >
         {copyIds ? (
           <CopyStepper<GxpApplication, ApplicationFormValues>
             ids={copyIds}
@@ -314,7 +408,9 @@ const GxpApplicationList = () => {
             submitting={createApp.isPending || updateApp.isPending}
           />
         ) : (
-          <div className="flex items-center justify-center p-10 text-sm text-gray-500">Loading…</div>
+          <div className="flex items-center justify-center p-10 text-sm text-gray-500">
+            Loading…
+          </div>
         )}
       </Modal>
 
@@ -323,9 +419,16 @@ const GxpApplicationList = () => {
         onClose={() => setPendingDelete(null)}
         loading={bulkDelete.isPending}
         items={deleteNames}
-        description={deleteCount > 1 ? `Are you sure you want to delete these ${deleteCount} applications?` : "Are you sure you want to delete this application?"}
+        description={
+          deleteCount > 1
+            ? `Are you sure you want to delete these ${deleteCount} applications?`
+            : "Are you sure you want to delete this application?"
+        }
         onConfirm={async () => {
-          if (pendingDelete) { await bulkDelete.mutateAsync(pendingDelete); table.clearSelection(); }
+          if (pendingDelete) {
+            await bulkDelete.mutateAsync(pendingDelete);
+            table.clearSelection();
+          }
           setPendingDelete(null);
         }}
       />
@@ -335,9 +438,16 @@ const GxpApplicationList = () => {
         onClose={() => setPendingRestore(null)}
         loading={bulkRestore.isPending}
         items={restoreNames}
-        description={restoreNames.length > 1 ? `Are you sure you want to restore these ${restoreNames.length} applications?` : "Are you sure you want to restore this application?"}
+        description={
+          restoreNames.length > 1
+            ? `Are you sure you want to restore these ${restoreNames.length} applications?`
+            : "Are you sure you want to restore this application?"
+        }
         onConfirm={async () => {
-          if (pendingRestore) { await bulkRestore.mutateAsync(pendingRestore); table.clearSelection(); }
+          if (pendingRestore) {
+            await bulkRestore.mutateAsync(pendingRestore);
+            table.clearSelection();
+          }
           setPendingRestore(null);
         }}
       />

@@ -230,7 +230,7 @@ User.beforeSave(async (user: User) => {
   if (user.changed("password")) {
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(user.password, salt);
-    
+
     // Automatically set default Password Expiry Time 30 days
     user.passwordExpiryTime = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30);
   }
@@ -259,7 +259,10 @@ Department.hasMany(User, { foreignKey: "department_id", as: "users" });
 User.belongsTo(Location, { foreignKey: "location_id", as: "location" });
 Location.hasMany(User, { foreignKey: "location_id", as: "users" });
 
-User.belongsTo(Designation, { foreignKey: "designation_id", as: "designation" });
+User.belongsTo(Designation, {
+  foreignKey: "designation_id",
+  as: "designation"
+});
 Designation.hasMany(User, { foreignKey: "designation_id", as: "users" });
 
 // Self references (Manager, Creator, Modifier)
@@ -268,21 +271,24 @@ User.belongsTo(User, { foreignKey: "created_by", as: "creator" });
 User.belongsTo(User, { foreignKey: "modified_by", as: "modifier" });
 
 export class UserRole extends Model {}
-UserRole.init({
-  user_id: {
-    type: DataTypes.UUID,
-    primaryKey: true
+UserRole.init(
+  {
+    user_id: {
+      type: DataTypes.UUID,
+      primaryKey: true
+    },
+    role_id: {
+      type: DataTypes.UUID,
+      primaryKey: true
+    }
   },
-  role_id: {
-    type: DataTypes.UUID,
-    primaryKey: true
+  {
+    sequelize,
+    tableName: "user_roles",
+    timestamps: false,
+    underscored: true
   }
-}, {
-  sequelize,
-  tableName: "user_roles",
-  timestamps: false,
-  underscored: true
-});
+);
 
 // Many-to-Many relationship with Role
 User.belongsToMany(Role, {
@@ -298,8 +304,10 @@ Role.belongsToMany(User, {
   as: "users"
 });
 
-
 // Department Manager Relationship (Circular reference resolved here)
-Department.belongsTo(User, { foreignKey: "department_manager_id", as: "manager" });
+Department.belongsTo(User, {
+  foreignKey: "department_manager_id",
+  as: "manager"
+});
 
 export default User;

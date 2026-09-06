@@ -21,13 +21,26 @@ export class PhraseEntry extends Model<IPhraseEntry> implements IPhraseEntry {
 
 PhraseEntry.init(
   {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     phraseId: { type: DataTypes.UUID, allowNull: false, field: "phrase_id" },
-    phraseEntryId: { type: DataTypes.STRING(100), allowNull: false, field: "phrase_entry_id" },
+    phraseEntryId: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      field: "phrase_entry_id"
+    },
     name: { type: DataTypes.STRING(200), allowNull: true },
     description: { type: DataTypes.TEXT, allowNull: true }
   },
-  { sequelize, tableName: "lims_phrase_entries", underscored: true, timestamps: true }
+  {
+    sequelize,
+    tableName: "lims_phrase_entries",
+    underscored: true,
+    timestamps: true
+  }
 );
 
 export default PhraseEntry;

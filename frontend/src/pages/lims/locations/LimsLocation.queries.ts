@@ -69,8 +69,13 @@ const useInvalidateLimsLocations = () => {
 export const useCreateLimsLocation = () => {
   const invalidate = useInvalidateLimsLocations();
   return useMutation({
-    mutationFn: ({ payload, files }: { payload: LimsLocationPayload; files?: File[] }) =>
-      createLimsLocation(payload, files),
+    mutationFn: ({
+      payload,
+      files
+    }: {
+      payload: LimsLocationPayload;
+      files?: File[];
+    }) => createLimsLocation(payload, files),
     onSuccess: () => {
       toast("Storage location created successfully.", "success");
       invalidate();
@@ -165,7 +170,8 @@ export const useBulkCloneLimsLocation = () => {
 export const useBulkCopyLimsLocation = () => {
   const invalidate = useInvalidateLimsLocations();
   return useMutation({
-    mutationFn: (records: LimsLocationPayload[]) => bulkCopyLimsLocation(records),
+    mutationFn: (records: LimsLocationPayload[]) =>
+      bulkCopyLimsLocation(records),
     onSuccess: (data) => {
       const warnings = data.results.filter((r) => r.warning);
       toast(

@@ -12,7 +12,10 @@ export interface ListSort {
  * Per-field filters sent to the server (Ask #2). Values are scalars or arrays
  * (multi-value filters). Tabs are expressed as a filter too, e.g. { status: "active" }.
  */
-export type ListFilters = Record<string, string | number | boolean | string[] | undefined>;
+export type ListFilters = Record<
+  string,
+  string | number | boolean | string[] | undefined
+>;
 
 /** Everything a list endpoint may receive. `search` is already debounced upstream. */
 export interface ServerListParams extends ListQueryParams {
@@ -36,9 +39,17 @@ export interface ListResult<T> {
  */
 export type BulkSelection =
   | { mode: "ids"; ids: string[] }
-  | { mode: "filter"; filters: ListFilters; search?: string; excludeIds?: string[] };
+  | {
+      mode: "filter";
+      filters: ListFilters;
+      search?: string;
+      excludeIds?: string[];
+    };
 
-export const idsSelection = (ids: string[]): BulkSelection => ({ mode: "ids", ids });
+export const idsSelection = (ids: string[]): BulkSelection => ({
+  mode: "ids",
+  ids
+});
 
 export const filterSelection = (
   filters: ListFilters,
@@ -78,7 +89,9 @@ export interface OptionsPage {
  */
 export const bulkSelectionToBody = (
   selection: BulkSelection
-): { ids: string[] } | { filter: ListFilters; search?: string; excludeIds?: string[] } =>
+):
+  | { ids: string[] }
+  | { filter: ListFilters; search?: string; excludeIds?: string[] } =>
   selection.mode === "ids"
     ? { ids: selection.ids }
     : {

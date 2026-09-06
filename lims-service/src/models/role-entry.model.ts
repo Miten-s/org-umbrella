@@ -25,17 +25,31 @@ export class RoleEntry extends Model<IRoleEntry> implements IRoleEntry {
 
 RoleEntry.init(
   {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     roleId: { type: DataTypes.UUID, allowNull: false, field: "role_id" },
     entry: { type: DataTypes.STRING(50), allowNull: false },
-    canView: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "can_view" },
+    canView: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: "can_view"
+    },
     canCreate: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false,
       field: "can_create"
     },
-    canEdit: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "can_edit" },
+    canEdit: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: "can_edit"
+    },
     canRemove: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
@@ -43,7 +57,12 @@ RoleEntry.init(
       field: "can_remove"
     }
   },
-  { sequelize, tableName: "lims_role_entries", underscored: true, timestamps: true }
+  {
+    sequelize,
+    tableName: "lims_role_entries",
+    underscored: true,
+    timestamps: true
+  }
 );
 
 export default RoleEntry;

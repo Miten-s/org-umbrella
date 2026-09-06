@@ -12,12 +12,21 @@ import SubFormGrid from "@/components/data/SubFormGrid";
 import { useLimsStockBatchOptions } from "@/pages/lims/stock-batches/LimsStockBatch.queries";
 import { seedRefOption } from "@/utils/refLabel";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
-import { limsAliquotSchema, limsAliquotCopySchema, type LimsAliquotFormValues } from "./LimsAliquot.schema";
-import type { LimsAliquot, LimsAliquotPayload, LimsAliquotRow } from "./LimsAliquot.types";
+import {
+  limsAliquotSchema,
+  limsAliquotCopySchema,
+  type LimsAliquotFormValues
+} from "./LimsAliquot.schema";
+import type {
+  LimsAliquot,
+  LimsAliquotPayload,
+  LimsAliquotRow
+} from "./LimsAliquot.types";
 
 /** "copy" renders like "create" except the business ID starts blank (stays EDITABLE —
  * `applyBusinessId` only mints when empty, otherwise honors what the user typed). */
-export type LimsAliquotFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type LimsAliquotFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsAliquotFormProps {
   mode?: LimsAliquotFormMode;
@@ -55,7 +64,9 @@ const LimsAliquotForm = ({
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
   const initialAliquotsRef = useRef(initialData?.aliquots ?? []);
-  const [aliquots, setAliquots] = useState<LimsAliquotRow[]>(initialAliquotsRef.current);
+  const [aliquots, setAliquots] = useState<LimsAliquotRow[]>(
+    initialAliquotsRef.current
+  );
 
   // Captured once per record — also the no-change baseline `submit` diffs
   // against, so Save is a no-op when nothing actually differs from it.
@@ -63,7 +74,7 @@ const LimsAliquotForm = ({
     () => ({
       aliquotSetId: mode === "copy" ? "" : (initialData?.aliquotSetId ?? ""),
       stockBatch: initialData?.stockBatch?.id ?? "",
-      aliquotsNumber: initialData?.aliquotsNumber ?? "",
+      aliquotsNumber: initialData?.aliquotsNumber ?? ""
     }),
     [initialData, mode]
   );
@@ -74,7 +85,9 @@ const LimsAliquotForm = ({
     handleSubmit,
     formState: { errors, isSubmitting }
   } = useForm<LimsAliquotFormValues>({
-    resolver: zodResolver(mode === "copy" ? limsAliquotCopySchema : limsAliquotSchema),
+    resolver: zodResolver(
+      mode === "copy" ? limsAliquotCopySchema : limsAliquotSchema
+    ),
     defaultValues: initialValues
   });
 
@@ -122,11 +135,11 @@ const LimsAliquotForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsAliquot") })
-                        : mode === "copy"
+            : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsAliquot") })}${stepLabel ?? ""}`
               : initialData
-              ? `${t("update", { entity: t("limsAliquot") })}${stepLabel ?? ""}`
-              : t("create", { entity: t("limsAliquot") })}
+                ? `${t("update", { entity: t("limsAliquot") })}${stepLabel ?? ""}`
+                : t("create", { entity: t("limsAliquot") })}
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
@@ -143,7 +156,9 @@ const LimsAliquotForm = ({
                   onChange={field.onChange}
                   disabled={isReadOnly}
                   placeholder={t("select", { entity: t("limsStockBatch") })}
-                  initialSelectedOptions={seedRefOption(initialData?.stockBatch)}
+                  initialSelectedOptions={seedRefOption(
+                    initialData?.stockBatch
+                  )}
                 />
               )}
             />
@@ -166,11 +181,21 @@ const LimsAliquotForm = ({
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

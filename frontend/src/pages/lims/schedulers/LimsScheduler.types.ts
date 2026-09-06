@@ -5,7 +5,6 @@ export interface LimsRef {
   name?: string;
 }
 
-
 export interface LimsScheduler {
   id: string;
   /** @deprecated compatibility shim — read `id`. */

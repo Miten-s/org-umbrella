@@ -1,6 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import asyncHandler from "./error.middleware";
-import { getUserContext, hasPermission } from "../services/user-context.service";
+import {
+  getUserContext,
+  hasPermission
+} from "../services/user-context.service";
 import AccessBypassLog from "../models/access-bypass-log.model";
 import { LimsAction, LimsEntity, LIMS_ENTITIES } from "../utils/permissions";
 import { logError } from "../configs/logger.config";
@@ -19,13 +22,18 @@ const logBypass = (req: Request, entity: string, action: LimsAction) => {
     method: req.method,
     path: req.originalUrl.split("?")[0] ?? req.originalUrl,
     requestId: (req as Request & { id?: string }).id ?? null
-  }).catch((error) => logError("bypass audit write failed", { error: String(error) }));
+  }).catch((error) =>
+    logError("bypass audit write failed", { error: String(error) })
+  );
 };
 
 /** @param entity Catalogue entity code, or a function of the request for routes serving
  * many entities (attachments check against whichever parent they hang off).
  * @param action Passed explicitly, not derived from the HTTP verb — the verb lies. */
-export const authorize = (entity: string | ((req: Request) => string | undefined), action: LimsAction) =>
+export const authorize = (
+  entity: string | ((req: Request) => string | undefined),
+  action: LimsAction
+) =>
   asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const resolved = typeof entity === "function" ? entity(req) : entity;
 
@@ -48,7 +56,8 @@ export const authorize = (entity: string | ((req: Request) => string | undefined
     // A valid platform token is not LIMS access. No lims_users row, no entry.
     if (!context) {
       return res.status(403).json({
-        message: "You do not have access to LIMS. Ask an administrator to create your lab user."
+        message:
+          "You do not have access to LIMS. Ask an administrator to create your lab user."
       });
     }
 

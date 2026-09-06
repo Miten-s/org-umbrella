@@ -20,10 +20,7 @@ import {
   syncModuleOwnership
 } from "./application-module-linking.service";
 import { PaginationOptions } from "../utils/pagination.util";
-import {
-  resolveIds,
-  toObjectIdString
-} from "./mixed-id-resolution.service";
+import { resolveIds, toObjectIdString } from "./mixed-id-resolution.service";
 import { sequelize } from "../configs/db.sequelize";
 import { Op } from "sequelize";
 import crypto from "crypto";
@@ -40,7 +37,9 @@ const normalizeApplicationIdSegment = (value: unknown): string =>
     .replace(/-+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-const resolveLocationNameFromGroup = async (group: unknown): Promise<string> => {
+const resolveLocationNameFromGroup = async (
+  group: unknown
+): Promise<string> => {
   const raw = String(group ?? "").trim();
   if (!raw) return "";
   if (raw.length !== 36) return raw;
@@ -86,7 +85,9 @@ const dedupeGroupIdsByName = async (
   const seenNames = new Set<string>();
   const kept: string[] = [];
   for (const group of groups as any[]) {
-    const key = String(group.appGroup ?? "").trim().toLowerCase();
+    const key = String(group.appGroup ?? "")
+      .trim()
+      .toLowerCase();
     if (key && seenNames.has(key)) continue; // drop the duplicate-named group
     if (key) seenNames.add(key);
     kept.push(String(group.id));
@@ -145,7 +146,9 @@ const renameServiceRequestIdentitiesForApplication = async (
   const conflictingRequest = await ServiceRequest.findOne({
     where: {
       id: { [Op.notIn]: renameTargets.map((target) => target._id) },
-      serviceRequestId: { [Op.in]: renameTargets.map((target) => target.nextServiceRequestId) }
+      serviceRequestId: {
+        [Op.in]: renameTargets.map((target) => target.nextServiceRequestId)
+      }
     },
     attributes: ["id"]
   });
@@ -176,12 +179,23 @@ export const createApplication = async (
     const toSave: any = {
       applicationName: payload.applicationName,
       applicationType: payload.applicationType,
-      applicationEnvironmentId: payload.applicationEnvironmentId || payload.applicationEnvironment || null,
+      applicationEnvironmentId:
+        payload.applicationEnvironmentId ||
+        payload.applicationEnvironment ||
+        null,
       group: payload.group,
-      assignmentGroupId: payload.assignmentGroupId || payload.assignmentGroup || null,
-      applicationWorkflowId: payload.applicationWorkflowId || payload.applicationWorkflow || null,
-      applicationSystemOwnerId: payload.applicationSystemOwnerId || payload.applicationSystemOwner || null,
-      applicationProcessOwnerId: payload.applicationProcessOwnerId || payload.applicationProcessOwner || null,
+      assignmentGroupId:
+        payload.assignmentGroupId || payload.assignmentGroup || null,
+      applicationWorkflowId:
+        payload.applicationWorkflowId || payload.applicationWorkflow || null,
+      applicationSystemOwnerId:
+        payload.applicationSystemOwnerId ||
+        payload.applicationSystemOwner ||
+        null,
+      applicationProcessOwnerId:
+        payload.applicationProcessOwnerId ||
+        payload.applicationProcessOwner ||
+        null,
       supplierId: payload.supplierId || payload.supplier || null,
       notes: payload.notes,
       createdOn: now,
@@ -227,11 +241,16 @@ export const createApplication = async (
     const applicationId = applicationDoc.id;
 
     if (roleIds) {
-      await (applicationDoc as any).setApplicationRoles(roleIds, { transaction: t });
+      await (applicationDoc as any).setApplicationRoles(roleIds, {
+        transaction: t
+      });
     }
 
     if (serviceTypeIds) {
-      await (applicationDoc as any).setApplicationServiceRequestTypes(serviceTypeIds, { transaction: t });
+      await (applicationDoc as any).setApplicationServiceRequestTypes(
+        serviceTypeIds,
+        { transaction: t }
+      );
     }
 
     if (payload.applicationGroups) {
@@ -302,7 +321,10 @@ export const createApplication = async (
   }
 };
 
-export const getApplications = async (options: PaginationOptions, includeDisabled = false) => {
+export const getApplications = async (
+  options: PaginationOptions,
+  includeDisabled = false
+) => {
   const filter: any = {};
   if (!includeDisabled) filter.status = "enabled";
   return await repo.getApplications(filter, options);
@@ -314,9 +336,12 @@ export const getApplicationById = async (id: string) => {
 
   return {
     ...application,
-    departments: application.departments && application.departments.length
-      ? await fetchDepartmentsFromAuthService(application.departments.map((d: any) => d.departmentName))
-      : [],
+    departments:
+      application.departments && application.departments.length
+        ? await fetchDepartmentsFromAuthService(
+            application.departments.map((d: any) => d.departmentName)
+          )
+        : [],
     group: application.group
       ? (await fetchLocationsFromAuthService([application.group]))[0]
       : null
@@ -349,13 +374,18 @@ export const updateApplication = async (
   const applicationNameChanged = nextApplicationName !== currentApplicationName;
 
   if (applicationNameChanged) {
-    const isNameTaken = await repo.isApplicationNameTaken(nextApplicationName, id);
+    const isNameTaken = await repo.isApplicationNameTaken(
+      nextApplicationName,
+      id
+    );
     if (isNameTaken) {
       throw new Error("Application name must be unique");
     }
   }
 
-  const existingModules = await (isApplicationExist as any).getApplicationModules();
+  const existingModules = await (
+    isApplicationExist as any
+  ).getApplicationModules();
   const existingModuleIds = existingModules.map((m: any) => m.id);
 
   const t = await sequelize.transaction();
@@ -369,45 +399,71 @@ export const updateApplication = async (
       locationName
     );
 
-    const environmentId = updates.applicationEnvironmentId !== undefined 
-      ? updates.applicationEnvironmentId 
-      : (updates.applicationEnvironment !== undefined ? updates.applicationEnvironment : (isApplicationExist as any).applicationEnvironmentId);
-      
-    const assignmentGroupId = updates.assignmentGroupId !== undefined 
-      ? updates.assignmentGroupId 
-      : (updates.assignmentGroup !== undefined ? updates.assignmentGroup : (isApplicationExist as any).assignmentGroupId);
+    const environmentId =
+      updates.applicationEnvironmentId !== undefined
+        ? updates.applicationEnvironmentId
+        : updates.applicationEnvironment !== undefined
+          ? updates.applicationEnvironment
+          : (isApplicationExist as any).applicationEnvironmentId;
 
-    const workflowId = updates.applicationWorkflowId !== undefined 
-      ? updates.applicationWorkflowId 
-      : (updates.applicationWorkflow !== undefined ? updates.applicationWorkflow : (isApplicationExist as any).applicationWorkflowId);
+    const assignmentGroupId =
+      updates.assignmentGroupId !== undefined
+        ? updates.assignmentGroupId
+        : updates.assignmentGroup !== undefined
+          ? updates.assignmentGroup
+          : (isApplicationExist as any).assignmentGroupId;
 
-    const systemOwnerId = updates.applicationSystemOwnerId !== undefined 
-      ? updates.applicationSystemOwnerId 
-      : (updates.applicationSystemOwner !== undefined ? updates.applicationSystemOwner : (isApplicationExist as any).applicationSystemOwnerId);
+    const workflowId =
+      updates.applicationWorkflowId !== undefined
+        ? updates.applicationWorkflowId
+        : updates.applicationWorkflow !== undefined
+          ? updates.applicationWorkflow
+          : (isApplicationExist as any).applicationWorkflowId;
 
-    const processOwnerId = updates.applicationProcessOwnerId !== undefined 
-      ? updates.applicationProcessOwnerId 
-      : (updates.applicationProcessOwner !== undefined ? updates.applicationProcessOwner : (isApplicationExist as any).applicationProcessOwnerId);
+    const systemOwnerId =
+      updates.applicationSystemOwnerId !== undefined
+        ? updates.applicationSystemOwnerId
+        : updates.applicationSystemOwner !== undefined
+          ? updates.applicationSystemOwner
+          : (isApplicationExist as any).applicationSystemOwnerId;
 
-    const supplierId = updates.supplierId !== undefined 
-      ? updates.supplierId 
-      : (updates.supplier !== undefined ? updates.supplier : (isApplicationExist as any).supplierId);
+    const processOwnerId =
+      updates.applicationProcessOwnerId !== undefined
+        ? updates.applicationProcessOwnerId
+        : updates.applicationProcessOwner !== undefined
+          ? updates.applicationProcessOwner
+          : (isApplicationExist as any).applicationProcessOwnerId;
 
-    await isApplicationExist.update({
-      applicationName: nextApplicationName,
-      applicationType: updates.applicationType ?? (isApplicationExist as any).applicationType,
-      applicationEnvironmentId: environmentId,
-      group: updates.group ?? (isApplicationExist as any).group,
-      assignmentGroupId: assignmentGroupId,
-      applicationWorkflowId: workflowId,
-      applicationSystemOwnerId: systemOwnerId,
-      applicationProcessOwnerId: processOwnerId,
-      supplierId: supplierId,
-      notes: updates.notes !== undefined ? updates.notes : (isApplicationExist as any).notes,
-      applicationId: applicationIdString,
-      modifiedOn: new Date(),
-      modifiedBy: currentUser || undefined
-    }, { transaction: t });
+    const supplierId =
+      updates.supplierId !== undefined
+        ? updates.supplierId
+        : updates.supplier !== undefined
+          ? updates.supplier
+          : (isApplicationExist as any).supplierId;
+
+    await isApplicationExist.update(
+      {
+        applicationName: nextApplicationName,
+        applicationType:
+          updates.applicationType ??
+          (isApplicationExist as any).applicationType,
+        applicationEnvironmentId: environmentId,
+        group: updates.group ?? (isApplicationExist as any).group,
+        assignmentGroupId: assignmentGroupId,
+        applicationWorkflowId: workflowId,
+        applicationSystemOwnerId: systemOwnerId,
+        applicationProcessOwnerId: processOwnerId,
+        supplierId: supplierId,
+        notes:
+          updates.notes !== undefined
+            ? updates.notes
+            : (isApplicationExist as any).notes,
+        applicationId: applicationIdString,
+        modifiedOn: new Date(),
+        modifiedBy: currentUser || undefined
+      },
+      { transaction: t }
+    );
 
     if (updates.applicationRoles) {
       const roleIds = await resolveIds(updates.applicationRoles, {
@@ -417,7 +473,9 @@ export const updateApplication = async (
         transaction: t
       });
       if (roleIds) {
-        await (isApplicationExist as any).setApplicationRoles(roleIds, { transaction: t });
+        await (isApplicationExist as any).setApplicationRoles(roleIds, {
+          transaction: t
+        });
       }
     }
 
@@ -432,7 +490,10 @@ export const updateApplication = async (
         }
       );
       if (serviceTypeIds) {
-        await (isApplicationExist as any).setApplicationServiceRequestTypes(serviceTypeIds, { transaction: t });
+        await (isApplicationExist as any).setApplicationServiceRequestTypes(
+          serviceTypeIds,
+          { transaction: t }
+        );
       }
     }
 
@@ -473,7 +534,10 @@ export const updateApplication = async (
 
     if (updates.departments && Array.isArray(updates.departments)) {
       // Clear old departments
-      await AppDepartment.destroy({ where: { applicationId: id }, transaction: t });
+      await AppDepartment.destroy({
+        where: { applicationId: id },
+        transaction: t
+      });
       await Promise.all(
         updates.departments.map((deptId) =>
           AppDepartment.create(
@@ -490,7 +554,11 @@ export const updateApplication = async (
     }
 
     if (updates.applicationModules) {
-      const moduleIds = await resolveModuleIdsForApplication(updates.applicationModules, id, t);
+      const moduleIds = await resolveModuleIdsForApplication(
+        updates.applicationModules,
+        id,
+        t
+      );
       if (moduleIds) {
         await syncModuleOwnership(id, moduleIds, existingModuleIds, t);
       }
@@ -500,12 +568,16 @@ export const updateApplication = async (
     // rest (the ones the user removed), then add the newly-uploaded files.
     if ("attachments" in updates) {
       const keptAttachmentIds = Array.isArray((updates as any).attachments)
-        ? ((updates as any).attachments as unknown[]).map(String).filter(Boolean)
+        ? ((updates as any).attachments as unknown[])
+            .map(String)
+            .filter(Boolean)
         : [];
       await AppAttachment.destroy({
         where: {
           applicationId: id,
-          ...(keptAttachmentIds.length ? { id: { [Op.notIn]: keptAttachmentIds } } : {})
+          ...(keptAttachmentIds.length
+            ? { id: { [Op.notIn]: keptAttachmentIds } }
+            : {})
         },
         transaction: t
       });
@@ -513,18 +585,24 @@ export const updateApplication = async (
     if (attachments?.length) {
       await Promise.all(
         attachments.map((attachment) =>
-          AppAttachment.create({
-            applicationId: id,
-            attachment,
-            active: true,
-            createdBy: currentUser || undefined
-          }, { transaction: t })
+          AppAttachment.create(
+            {
+              applicationId: id,
+              attachment,
+              active: true,
+              createdBy: currentUser || undefined
+            },
+            { transaction: t }
+          )
         )
       );
     }
 
     if (applicationNameChanged) {
-      await renameServiceRequestIdentitiesForApplication(id, nextApplicationName);
+      await renameServiceRequestIdentitiesForApplication(
+        id,
+        nextApplicationName
+      );
     }
 
     await t.commit();
@@ -537,20 +615,26 @@ export const updateApplication = async (
 };
 
 export const disableApplication = async (id: string, currentUser?: string) => {
-  await Application.update({
-    status: "disabled",
-    modifiedOn: new Date(),
-    modifiedBy: currentUser || undefined
-  }, { where: { id } });
+  await Application.update(
+    {
+      status: "disabled",
+      modifiedOn: new Date(),
+      modifiedBy: currentUser || undefined
+    },
+    { where: { id } }
+  );
   return await repo.disableApplication(id);
 };
 
 export const enableApplication = async (id: string, currentUser?: string) => {
-  await Application.update({
-    status: "enabled",
-    modifiedOn: new Date(),
-    modifiedBy: currentUser || undefined
-  }, { where: { id } });
+  await Application.update(
+    {
+      status: "enabled",
+      modifiedOn: new Date(),
+      modifiedBy: currentUser || undefined
+    },
+    { where: { id } }
+  );
   return await repo.enableApplication(id);
 };
 
@@ -568,7 +652,10 @@ export const deleteApplication = async (id: string) => {
   const t = await sequelize.transaction();
   try {
     await AppGroup.destroy({ where: { applicationId: id }, transaction: t });
-    await AppAttachment.destroy({ where: { applicationId: id }, transaction: t });
+    await AppAttachment.destroy({
+      where: { applicationId: id },
+      transaction: t
+    });
 
     const deleted = await repo.deleteApplcation(id, { transaction: t });
 
@@ -614,7 +701,7 @@ export const duplicateApplication = async (
 
     let maxIndex = 0;
     similarAppsResult.data.forEach((app: any) => {
-      const match = app.applicationName.match(new RegExp(regexStr, 'i'));
+      const match = app.applicationName.match(new RegExp(regexStr, "i"));
       if (match && match[1]) {
         const index = parseInt(match[1], 10);
         if (index > maxIndex) maxIndex = index;
@@ -655,13 +742,23 @@ export const duplicateApplication = async (
     const sourceAppDoc = await Application.findByPk(id);
     if (sourceAppDoc) {
       const roles = await (sourceAppDoc as any).getApplicationRoles();
-      await (newApp as any).setApplicationRoles(roles.map((r: any) => r.id), { transaction: t });
+      await (newApp as any).setApplicationRoles(
+        roles.map((r: any) => r.id),
+        { transaction: t }
+      );
 
-      const services = await (sourceAppDoc as any).getApplicationServiceRequestTypes();
-      await (newApp as any).setApplicationServiceRequestTypes(services.map((s: any) => s.id), { transaction: t });
+      const services = await (
+        sourceAppDoc as any
+      ).getApplicationServiceRequestTypes();
+      await (newApp as any).setApplicationServiceRequestTypes(
+        services.map((s: any) => s.id),
+        { transaction: t }
+      );
     }
 
-    const sourceGroups = await AppGroup.findAll({ where: { applicationId: id } });
+    const sourceGroups = await AppGroup.findAll({
+      where: { applicationId: id }
+    });
     if (sourceGroups.length > 0) {
       const newGroups = sourceGroups.map((group) => ({
         id: crypto.randomUUID(),
@@ -673,7 +770,9 @@ export const duplicateApplication = async (
       await AppGroup.bulkCreate(newGroups, { transaction: t });
     }
 
-    const sourceAttachments = await AppAttachment.findAll({ where: { applicationId: id } });
+    const sourceAttachments = await AppAttachment.findAll({
+      where: { applicationId: id }
+    });
     if (sourceAttachments.length > 0) {
       const newAttachments = sourceAttachments.map((att) => ({
         id: crypto.randomUUID(),
@@ -687,7 +786,12 @@ export const duplicateApplication = async (
 
     const sourceModules = await (sourceAppDoc as any)?.getApplicationModules();
     if (sourceModules && sourceModules.length > 0) {
-      await syncModuleOwnership(newAppId, sourceModules.map((m: any) => m.id), [], t);
+      await syncModuleOwnership(
+        newAppId,
+        sourceModules.map((m: any) => m.id),
+        [],
+        t
+      );
     }
 
     await t.commit();
@@ -711,8 +815,14 @@ export const bulkDeleteApplications = async (ids: string[]) => {
 
   const t = await sequelize.transaction();
   try {
-    await AppGroup.destroy({ where: { applicationId: { [Op.in]: ids } }, transaction: t });
-    await AppAttachment.destroy({ where: { applicationId: { [Op.in]: ids } }, transaction: t });
+    await AppGroup.destroy({
+      where: { applicationId: { [Op.in]: ids } },
+      transaction: t
+    });
+    await AppAttachment.destroy({
+      where: { applicationId: { [Op.in]: ids } },
+      transaction: t
+    });
 
     const deleted = await repo.bulkDeleteApplications(ids, { transaction: t });
 

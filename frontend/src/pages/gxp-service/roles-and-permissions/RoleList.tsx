@@ -1,4 +1,6 @@
-import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction
+} from "@/components/data/DataTable";
 import ConfirmDialog from "@/components/data/ConfirmDialog";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
@@ -11,7 +13,13 @@ import { useTranslation } from "react-i18next";
 import CreateRoleModal from "@/pages/access-management/roles-and-permissions/CreateRoleModal";
 import { PermissionType, RoleType } from "@/utils/common.constants";
 import { GXP_PERMISSIONS } from "@/utils/permissions";
-import { roleKeys, useBulkDeleteRole, useCreateRole, useRolePermissions, useUpdateRole } from "./Role.queries";
+import {
+  roleKeys,
+  useBulkDeleteRole,
+  useCreateRole,
+  useRolePermissions,
+  useUpdateRole
+} from "./Role.queries";
 import { fetchRoleList } from "./Role.api";
 import { getRoleColumns } from "./Role.columns";
 import { getRolePermissionNames, type GxpRole } from "./Role.types";
@@ -26,7 +34,9 @@ const RoleList = () => {
 
   const [active, setActive] = useState<GxpRole | null>(null);
   const [mode, setMode] = useState<RoleModalMode>("create");
-  const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(
+    null
+  );
   const [deleteCount, setDeleteCount] = useState(0);
   const [deleteNames, setDeleteNames] = useState<string[]>([]);
 
@@ -40,7 +50,8 @@ const RoleList = () => {
   const createRole = useCreateRole();
   const updateRole = useUpdateRole();
   const bulkDelete = useBulkDeleteRole();
-  const busy = createRole.isPending || updateRole.isPending || bulkDelete.isPending;
+  const busy =
+    createRole.isPending || updateRole.isPending || bulkDelete.isPending;
 
   const columnDefs = useMemo(() => getRoleColumns({ t }), [t]);
 
@@ -56,11 +67,18 @@ const RoleList = () => {
   };
 
   // Preserve pre-migration behaviour: the modal returns permission NAMES; map to ids.
-  const handleSave = async (data: { roleName: string; permissions: string[] }) => {
+  const handleSave = async (data: {
+    roleName: string;
+    permissions: string[];
+  }) => {
     const permissionIds = data.permissions
       .map((name) => rolePermissions.find((p) => p.name === name)?.id)
       .filter((id): id is string => Boolean(id));
-    const payload = { name: data.roleName.trim(), permissions: permissionIds, type: RoleType.GXP_SERVICE };
+    const payload = {
+      name: data.roleName.trim(),
+      permissions: permissionIds,
+      type: RoleType.GXP_SERVICE
+    };
     if (active) {
       await updateRole.mutateAsync({ id: active.id, payload });
     } else {
@@ -81,7 +99,9 @@ const RoleList = () => {
           setPendingDelete(selection);
           setDeleteCount(count);
           setDeleteNames(
-            selection.mode === "ids" ? table.getCachedRows(selection.ids).map((r) => r.name) : []
+            selection.mode === "ids"
+              ? table.getCachedRows(selection.ids).map((r) => r.name)
+              : []
           );
         }
       }
@@ -91,8 +111,22 @@ const RoleList = () => {
 
   const rowActions = useMemo<AppDataTableRowAction<GxpRole>[]>(
     () => [
-      { key: "view", label: "View role", icon: EyeIcon, placement: "inline", permission: GXP_PERMISSIONS.VIEW_ROLE, onClick: (role) => openForm("view", role) },
-      { key: "edit", label: "Edit role", icon: PencilIcon, placement: "inline", permission: GXP_PERMISSIONS.UPDATE_ROLE, onClick: (role) => openForm("edit", role) },
+      {
+        key: "view",
+        label: "View role",
+        icon: EyeIcon,
+        placement: "inline",
+        permission: GXP_PERMISSIONS.VIEW_ROLE,
+        onClick: (role) => openForm("view", role)
+      },
+      {
+        key: "edit",
+        label: "Edit role",
+        icon: PencilIcon,
+        placement: "inline",
+        permission: GXP_PERMISSIONS.UPDATE_ROLE,
+        onClick: (role) => openForm("edit", role)
+      },
       {
         key: "delete",
         label: "Delete role",
@@ -142,8 +176,19 @@ const RoleList = () => {
       >
         <CreateRoleModal
           onClose={handleClose}
-          onSubmit={({ name, permissions }) => handleSave({ roleName: name, permissions })}
-          activeRole={active ? { name: active.name, permissions: getRolePermissionNames(active).map((name) => ({ name })) } : undefined}
+          onSubmit={({ name, permissions }) =>
+            handleSave({ roleName: name, permissions })
+          }
+          activeRole={
+            active
+              ? {
+                  name: active.name,
+                  permissions: getRolePermissionNames(active).map((name) => ({
+                    name
+                  }))
+                }
+              : undefined
+          }
           permissions={rolePermissions.map((p) => p.name)}
           permissionType={PermissionType.GXP_SERVICE}
           mode={mode}
@@ -155,7 +200,11 @@ const RoleList = () => {
         onClose={() => setPendingDelete(null)}
         loading={bulkDelete.isPending}
         items={deleteNames}
-        description={deleteCount > 1 ? `Are you sure you want to delete these ${deleteCount} roles?` : "Are you sure you want to delete this role?"}
+        description={
+          deleteCount > 1
+            ? `Are you sure you want to delete these ${deleteCount} roles?`
+            : "Are you sure you want to delete this role?"
+        }
         onConfirm={async () => {
           if (pendingDelete) {
             await bulkDelete.mutateAsync(pendingDelete);

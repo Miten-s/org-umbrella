@@ -26,7 +26,10 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsInspectionPlanById, fetchLimsInspectionPlanList } from "./LimsInspectionPlan.api";
+import {
+  fetchLimsInspectionPlanById,
+  fetchLimsInspectionPlanList
+} from "./LimsInspectionPlan.api";
 import { getLimsInspectionPlanColumns } from "./LimsInspectionPlan.columns";
 import {
   limsInspectionPlanKeys,
@@ -157,7 +160,9 @@ const LimsInspectionPlanList = () => {
     table.clearSelection();
   };
 
-  const handleSaveEdits = (updates: { id: string; payload: LimsInspectionPlanPayload }[]) => {
+  const handleSaveEdits = (
+    updates: { id: string; payload: LimsInspectionPlanPayload }[]
+  ) => {
     handleCloseForm();
     compliance.requestBulkUpdate(updates);
   };
@@ -406,7 +411,8 @@ const LimsInspectionPlanList = () => {
             saving={bulkUpdate.isPending}
             entityLabel={t("limsInspectionPlan")}
           />
-        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        ) : formMode !== "create" &&
+          (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>
@@ -446,7 +452,10 @@ const LimsInspectionPlanList = () => {
         onBulkUpdate={async (reason) => {
           const pending = compliance.pendingBulkUpdate;
           if (pending) {
-            await bulkUpdate.mutateAsync({ updates: pending.updates, changeReason: reason });
+            await bulkUpdate.mutateAsync({
+              updates: pending.updates,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearBulkUpdate();

@@ -22,11 +22,11 @@ import type { LimsTestGroupPayload } from "./LimsTestGroup.types";
 
 export const limsTestGroupKeys = {
   all: ["limsTestGroup"] as const,
-  list: (params: ServerListParams) => ["limsTestGroup", "list", params] as const,
+  list: (params: ServerListParams) =>
+    ["limsTestGroup", "list", params] as const,
   audit: (id: string) => ["limsTestGroup", "audit", id] as const,
   options: ["limsTestGroup", "options"] as const
 };
-
 
 /** Consumed by other modules selecting this entity. */
 export const useLimsTestGroupOptions = (args: {
@@ -78,8 +78,13 @@ export const useCreateLimsTestGroup = () => {
 export const useUpdateLimsTestGroup = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: LimsTestGroupPayload }) =>
-      updateLimsTestGroup(id, payload),
+    mutationFn: ({
+      id,
+      payload
+    }: {
+      id: string;
+      payload: LimsTestGroupPayload;
+    }) => updateLimsTestGroup(id, payload),
     onSuccess: () => {
       toast("Test group updated successfully.", "success");
       invalidate();
@@ -155,7 +160,8 @@ export const useBulkCloneLimsTestGroup = () => {
 export const useBulkCopyLimsTestGroup = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (records: LimsTestGroupPayload[]) => bulkCopyLimsTestGroup(records),
+    mutationFn: (records: LimsTestGroupPayload[]) =>
+      bulkCopyLimsTestGroup(records),
     onSuccess: (data) => {
       const warnings = data.results.filter((r) => r.warning);
       toast(

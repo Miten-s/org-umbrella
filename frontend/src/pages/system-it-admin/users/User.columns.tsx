@@ -21,7 +21,12 @@ export const getUserColumns = ({ t }: { t: TFunction }): ColDef<User>[] => [
     valueGetter: ({ data }) => getUserDisplayName(data),
     cellRenderer: (params: ICellRendererParams<User>) =>
       params.data ? (
-        <AvatarCell label={getUserDisplayName(params.data)} fallbackInitial="U" size="sm" showAvatar />
+        <AvatarCell
+          label={getUserDisplayName(params.data)}
+          fallbackInitial="U"
+          size="sm"
+          showAvatar
+        />
       ) : null
   },
   {
@@ -29,7 +34,9 @@ export const getUserColumns = ({ t }: { t: TFunction }): ColDef<User>[] => [
     headerName: t("email"),
     flex: 1.2,
     minWidth: 240,
-    cellRenderer: (params: ICellRendererParams<User>) => <TruncateCell value={params.value} />
+    cellRenderer: (params: ICellRendererParams<User>) => (
+      <TruncateCell value={params.value} />
+    )
   },
   {
     field: "status",
@@ -37,10 +44,16 @@ export const getUserColumns = ({ t }: { t: TFunction }): ColDef<User>[] => [
     minWidth: 128,
     maxWidth: 128,
     width: 128,
-    valueGetter: ({ data }) => (data?.status === "active" ? t("active") : "Inactive"),
+    valueGetter: ({ data }) =>
+      data?.status === "active" ? t("active") : "Inactive",
     cellRenderer: (params: ICellRendererParams<User>) => {
       const isActive = params.data?.status === "active";
-      return <StatusPill label={isActive ? t("active") : "Inactive"} tone={statusTone(!!isActive)} />;
+      return (
+        <StatusPill
+          label={isActive ? t("active") : "Inactive"}
+          tone={statusTone(!!isActive)}
+        />
+      );
     }
   }
 ];

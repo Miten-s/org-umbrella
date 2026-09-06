@@ -7,7 +7,11 @@ import { refLabel } from "@/utils/refLabel";
 import type { LimsStockBatch } from "./LimsStockBatch.types";
 
 /** Column factory (STANDARDS.md §8). */
-export const getLimsStockBatchColumns = ({ t }: { t: TFunction }): ColDef<LimsStockBatch>[] => [
+export const getLimsStockBatchColumns = ({
+  t
+}: {
+  t: TFunction;
+}): ColDef<LimsStockBatch>[] => [
   {
     field: "stockBatchId",
     headerName: t("limsStockBatchId"),

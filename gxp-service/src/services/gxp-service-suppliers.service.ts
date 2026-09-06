@@ -22,8 +22,10 @@ export const createSupplier = async (
   return await repo.createSupplier(toSave);
 };
 
-
-export const listSuppliers = async (options: PaginationOptions, includeDisabled = false) => {
+export const listSuppliers = async (
+  options: PaginationOptions,
+  includeDisabled = false
+) => {
   const filter: any = {};
   if (!includeDisabled) filter.status = "enabled";
   return await repo.findAllSuppliers(filter, options);
@@ -115,7 +117,7 @@ export const bulkDuplicateSuppliers = async (ids: string[], user: any) => {
 
       let maxIndex = 0;
       similarResult.forEach((item: any) => {
-        const match = item.supplierName.match(new RegExp(regexStr, 'i'));
+        const match = item.supplierName.match(new RegExp(regexStr, "i"));
         if (match && match[1]) {
           const index = parseInt(match[1], 10);
           if (index > maxIndex) maxIndex = index;

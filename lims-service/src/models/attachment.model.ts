@@ -43,16 +43,49 @@ export class Attachment extends Model<IAttachment> implements IAttachment {
 
 Attachment.init(
   {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    entityName: { type: DataTypes.STRING(50), allowNull: false, field: "entity_name" },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    entityName: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+      field: "entity_name"
+    },
     entityId: { type: DataTypes.UUID, allowNull: false, field: "entity_id" },
-    fileName: { type: DataTypes.STRING(255), allowNull: false, field: "file_name" },
-    storedName: { type: DataTypes.STRING(255), allowNull: false, field: "stored_name" },
-    mimeType: { type: DataTypes.STRING(150), allowNull: true, field: "mime_type" },
-    sizeBytes: { type: DataTypes.BIGINT, allowNull: false, defaultValue: 0, field: "size_bytes" },
+    fileName: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+      field: "file_name"
+    },
+    storedName: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+      field: "stored_name"
+    },
+    mimeType: {
+      type: DataTypes.STRING(150),
+      allowNull: true,
+      field: "mime_type"
+    },
+    sizeBytes: {
+      type: DataTypes.BIGINT,
+      allowNull: false,
+      defaultValue: 0,
+      field: "size_bytes"
+    },
     comment: { type: DataTypes.TEXT, allowNull: true },
-    uploadedBy: { type: DataTypes.STRING(100), allowNull: true, field: "uploaded_by" },
-    uploadedByName: { type: DataTypes.STRING(200), allowNull: true, field: "uploaded_by_name" },
+    uploadedBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "uploaded_by"
+    },
+    uploadedByName: {
+      type: DataTypes.STRING(200),
+      allowNull: true,
+      field: "uploaded_by_name"
+    },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
     isDeleted: {
       type: DataTypes.BOOLEAN,
@@ -61,10 +94,23 @@ Attachment.init(
       field: "is_deleted"
     },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.STRING(100), allowNull: true, field: "deleted_by" },
-    modifiedBy: { type: DataTypes.STRING(100), allowNull: true, field: "modified_by" }
+    deletedBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "deleted_by"
+    },
+    modifiedBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "modified_by"
+    }
   },
-  { sequelize, tableName: "lims_attachments", underscored: true, timestamps: true }
+  {
+    sequelize,
+    tableName: "lims_attachments",
+    underscored: true,
+    timestamps: true
+  }
 );
 
 export default Attachment;

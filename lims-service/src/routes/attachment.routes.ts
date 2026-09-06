@@ -32,7 +32,11 @@ const entityFromRequest = (req: Request): string | undefined =>
 const inGroupScope = (
   groupId: string | null | undefined,
   scope?: { accessGroupIds: string[]; operateAll: boolean }
-) => !scope || scope.operateAll || !groupId || scope.accessGroupIds.includes(groupId);
+) =>
+  !scope ||
+  scope.operateAll ||
+  !groupId ||
+  scope.accessGroupIds.includes(groupId);
 
 /** For `/:id` routes the parent isn't in the request — load the row first so `authorize`
  * checks the real parent, not a forgeable client-supplied name. Translates through the
@@ -98,8 +102,11 @@ router.post(
     // including ones in a group they can't otherwise reach.
     const ParentModel = modelFor(entityName);
     if (ParentModel) {
-      const parent = await ParentModel.findOne({ where: { id: entityId } as any });
-      const parentGroupId = parent?.get?.("groupId") as string | null | undefined;
+      const parent = await ParentModel.findOne({
+        where: { id: entityId } as any
+      });
+      const parentGroupId = parent?.get?.("groupId") as
+        string | null | undefined;
       if (!parent || !inGroupScope(parentGroupId, req.access)) {
         removeStoredFile(req.file.filename);
         return res

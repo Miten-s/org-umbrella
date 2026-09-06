@@ -13,9 +13,16 @@ import {
   bulkRestoreApplicationModules
 } from "../controllers/gxp-service-application-modules.controller";
 import API_ROUTES from "../utils/routes";
-import { validateDto, validateDtoArray } from "../middlewares/validate-dto.middleware";
+import {
+  validateDto,
+  validateDtoArray
+} from "../middlewares/validate-dto.middleware";
 import { CreateAppModuleDto } from "../dtos/master-data.dto";
-import { BulkCreateDto, BulkUpdateDto, BulkOperationDto } from "../dtos/common.dto";
+import {
+  BulkCreateDto,
+  BulkUpdateDto,
+  BulkOperationDto
+} from "../dtos/common.dto";
 
 const router = Router();
 

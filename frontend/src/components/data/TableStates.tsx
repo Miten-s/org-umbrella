@@ -10,7 +10,10 @@ interface TableSkeletonProps {
 }
 
 /** Shimmer skeleton for first-load. On refetch, keep old rows instead. */
-export const TableSkeleton = ({ rows = 6, columns = 4 }: TableSkeletonProps) => (
+export const TableSkeleton = ({
+  rows = 6,
+  columns = 4
+}: TableSkeletonProps) => (
   <div
     className="w-full animate-pulse space-y-3 p-4"
     role="status"
@@ -44,13 +47,24 @@ export const EmptyState = ({
   action
 }: EmptyStateProps) => (
   <div className="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center">
-    {icon ? <div className="text-gray-300 dark:text-gray-600">{icon}</div> : null}
-    <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{title}</p>
+    {icon ? (
+      <div className="text-gray-300 dark:text-gray-600">{icon}</div>
+    ) : null}
+    <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
+      {title}
+    </p>
     {message ? (
-      <p className="max-w-sm text-sm text-gray-500 dark:text-gray-400">{message}</p>
+      <p className="max-w-sm text-sm text-gray-500 dark:text-gray-400">
+        {message}
+      </p>
     ) : null}
     {action ? (
-      <Button size="sm" variant="primary" onClick={action.onClick} className="mt-2">
+      <Button
+        size="sm"
+        variant="primary"
+        onClick={action.onClick}
+        className="mt-2"
+      >
         {action.label}
       </Button>
     ) : null}
@@ -67,7 +81,9 @@ export const ErrorState = ({
   onRetry
 }: ErrorStateProps) => (
   <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-    <p className="max-w-sm text-sm text-error-600 dark:text-error-300">{message}</p>
+    <p className="max-w-sm text-sm text-error-600 dark:text-error-300">
+      {message}
+    </p>
     {onRetry ? (
       <Button size="sm" variant="outline" onClick={onRetry}>
         Retry

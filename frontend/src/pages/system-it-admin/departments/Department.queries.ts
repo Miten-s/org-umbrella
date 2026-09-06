@@ -78,7 +78,9 @@ export const useBulkDeleteDepartment = () => {
     onSuccess: (_data, selection) => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
       toast(
-        count && count > 1 ? `${count} departments deleted successfully.` : "Department deleted successfully.",
+        count && count > 1
+          ? `${count} departments deleted successfully.`
+          : "Department deleted successfully.",
         "success"
       );
       invalidate();
@@ -93,7 +95,9 @@ export const useBulkCloneDepartment = () => {
     onSuccess: (_data, selection) => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
       toast(
-        count && count > 1 ? `${count} departments copied successfully.` : "Department copied successfully.",
+        count && count > 1
+          ? `${count} departments copied successfully.`
+          : "Department copied successfully.",
         "success"
       );
       invalidate();
@@ -107,7 +111,9 @@ export const useBulkCopyDepartment = () => {
     mutationFn: (records: DepartmentPayload[]) => bulkCopyDepartment(records),
     onSuccess: (data) => {
       toast(
-        data.count > 1 ? `${data.count} departments copied successfully.` : "Department copied successfully.",
+        data.count > 1
+          ? `${data.count} departments copied successfully.`
+          : "Department copied successfully.",
         "success"
       );
       const warnings = data.results.filter((r) => r.warning);
@@ -127,10 +133,13 @@ export const useBulkCopyDepartment = () => {
 export const useBulkUpdateDepartment = () => {
   const invalidate = useInvalidateDepartments();
   return useMutation({
-    mutationFn: (updates: { id: string; payload: DepartmentPayload }[]) => bulkUpdateDepartment(updates),
+    mutationFn: (updates: { id: string; payload: DepartmentPayload }[]) =>
+      bulkUpdateDepartment(updates),
     onSuccess: (data) => {
       toast(
-        data.count > 1 ? `${data.count} departments updated successfully.` : "Department updated successfully.",
+        data.count > 1
+          ? `${data.count} departments updated successfully.`
+          : "Department updated successfully.",
         "success"
       );
       invalidate();

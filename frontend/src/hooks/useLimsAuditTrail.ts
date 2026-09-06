@@ -34,13 +34,22 @@ export const useLimsAuditTrail = ({
     queryKey: [...queryKey, id ?? "none", pageSize],
     queryFn: async ({ pageParam, signal }) => {
       const page = pageParam as number;
-      const response = await fetchPage(id as string, signal, { page, limit: pageSize });
-      const entries = extractList<LimsAuditEntry>(response, ["audit", "auditTrail", "entries"]);
+      const response = await fetchPage(id as string, signal, {
+        page,
+        limit: pageSize
+      });
+      const entries = extractList<LimsAuditEntry>(response, [
+        "audit",
+        "auditTrail",
+        "entries"
+      ]);
       // The audit endpoint returns `{ audit, total }`, not a `metadata` block —
       // fall back to computing totalPages from `total` the same way the list
       // adapter does for every other paginated response in the app.
       const totalRaw =
-        response && typeof response === "object" && "total" in (response as Record<string, unknown>)
+        response &&
+        typeof response === "object" &&
+        "total" in (response as Record<string, unknown>)
           ? Number((response as Record<string, unknown>).total)
           : entries.length;
       const metadata = extractPaginationMetadata(response, {
@@ -51,7 +60,8 @@ export const useLimsAuditTrail = ({
       return { entries, hasMore: metadata.currentPage < metadata.totalPages };
     },
     initialPageParam: 1,
-    getNextPageParam: (lastPage, allPages) => (lastPage.hasMore ? allPages.length + 1 : undefined),
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.hasMore ? allPages.length + 1 : undefined,
     enabled: Boolean(id)
   });
 

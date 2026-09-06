@@ -26,7 +26,10 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsStockBatchById, fetchLimsStockBatchList } from "./LimsStockBatch.api";
+import {
+  fetchLimsStockBatchById,
+  fetchLimsStockBatchList
+} from "./LimsStockBatch.api";
 import { getLimsStockBatchColumns } from "./LimsStockBatch.columns";
 import {
   limsStockBatchKeys,
@@ -153,7 +156,9 @@ const LimsStockBatchList = () => {
     table.clearSelection();
   };
 
-  const handleSaveEdits = (updates: { id: string; payload: LimsStockBatchPayload }[]) => {
+  const handleSaveEdits = (
+    updates: { id: string; payload: LimsStockBatchPayload }[]
+  ) => {
     handleCloseForm();
     compliance.requestBulkUpdate(updates);
   };
@@ -403,7 +408,8 @@ const LimsStockBatchList = () => {
             saving={bulkUpdate.isPending}
             entityLabel={t("limsStockBatch")}
           />
-        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        ) : formMode !== "create" &&
+          (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>
@@ -443,7 +449,10 @@ const LimsStockBatchList = () => {
         onBulkUpdate={async (reason) => {
           const pending = compliance.pendingBulkUpdate;
           if (pending) {
-            await bulkUpdate.mutateAsync({ updates: pending.updates, changeReason: reason });
+            await bulkUpdate.mutateAsync({
+              updates: pending.updates,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearBulkUpdate();

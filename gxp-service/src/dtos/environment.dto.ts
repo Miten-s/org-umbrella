@@ -9,7 +9,7 @@ export class CreateEnvironmentDto {
   @IsString()
   @IsOptional()
   description?: string;
-  
+
   // Status handled by defaults or separate logic?
 }
 
@@ -21,5 +21,5 @@ export class UpdateEnvironmentDto {
   // Status is usually updated via enable/disable routes, but can be here too.
   @IsString()
   @IsOptional()
-  status?: string; 
+  status?: string;
 }

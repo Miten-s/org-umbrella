@@ -10,7 +10,10 @@ export interface IStockSupplier {
   supplierId: string;
 }
 
-export class StockSupplier extends Model<IStockSupplier> implements IStockSupplier {
+export class StockSupplier
+  extends Model<IStockSupplier>
+  implements IStockSupplier
+{
   public id!: string;
   public stockId!: string;
   public supplierId!: string;
@@ -18,11 +21,20 @@ export class StockSupplier extends Model<IStockSupplier> implements IStockSuppli
 
 StockSupplier.init(
   {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     stockId: { type: DataTypes.UUID, allowNull: false, field: "stock_id" },
     supplierId: { type: DataTypes.UUID, allowNull: false, field: "supplier_id" }
   },
-  { sequelize, tableName: "lims_stock_suppliers", underscored: true, timestamps: true }
+  {
+    sequelize,
+    tableName: "lims_stock_suppliers",
+    underscored: true,
+    timestamps: true
+  }
 );
 
 export default StockSupplier;

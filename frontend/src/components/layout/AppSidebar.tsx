@@ -503,9 +503,7 @@ const AppSidebar: React.FC = () => {
                 >
                   {group.icon}
                 </span>
-                <span className="menu-item-text text-start">
-                  {group.name}
-                </span>
+                <span className="menu-item-text text-start">{group.name}</span>
                 <ChevronDownIcon
                   className={`ml-auto w-5 h-5 transition-transform duration-300 ${COLLAPSIBLE_EASE} ${
                     isGroupOpen ? "rotate-180 text-brand-500" : ""
@@ -613,11 +611,12 @@ const AppSidebar: React.FC = () => {
   return (
     <aside
       className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 lg:left-[max(0px,calc((100vw-2400px)/2))] bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200
-        ${isExpanded || isMobileOpen
-          ? "w-[290px]"
-          : isHovered
+        ${
+          isExpanded || isMobileOpen
             ? "w-[290px]"
-            : "w-[90px]"
+            : isHovered
+              ? "w-[290px]"
+              : "w-[90px]"
         }
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0`}
@@ -628,8 +627,9 @@ const AppSidebar: React.FC = () => {
       }}
     >
       <div
-        className={`py-4 flex ${!isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
-          }`}
+        className={`py-4 flex ${
+          !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
+        }`}
       >
         <Link to={PageUrl.Dashboard.path} className="flex items-center gap-2">
           {isExpanded || isHovered || isMobileOpen ? (
@@ -646,10 +646,11 @@ const AppSidebar: React.FC = () => {
           <div className="flex flex-col gap-4">
             <div>
               <h2
-                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${!isExpanded && !isHovered
+                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
+                  !isExpanded && !isHovered
                     ? "lg:justify-center"
                     : "justify-start"
-                  }`}
+                }`}
               >
                 {isExpanded || isHovered || isMobileOpen ? (
                   "Menu"

@@ -17,7 +17,9 @@ const run = async () => {
 
   console.log(`Found ${affected.length} affected row(s):\n`);
   for (const row of affected) {
-    console.log(`  id=${row.id}  groupId="${row.groupId}"  ownedBy=${row.ownedBy}`);
+    console.log(
+      `  id=${row.id}  groupId="${row.groupId}"  ownedBy=${row.ownedBy}`
+    );
   }
 };
 

@@ -1,5 +1,10 @@
 import Permission from "../models/permission.model";
-import { ALL_PERMISSIONS, LIMS_ENTITIES, ENTITY_LABELS, LIMS_ACTIONS } from "../utils/permissions";
+import {
+  ALL_PERMISSIONS,
+  LIMS_ENTITIES,
+  ENTITY_LABELS,
+  LIMS_ACTIONS
+} from "../utils/permissions";
 import { logInfo } from "../configs/logger.config";
 
 /** Mirrors the code-defined permission vocabulary into `lims_permissions` on every boot —

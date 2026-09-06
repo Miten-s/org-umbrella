@@ -15,12 +15,19 @@ import {
 } from "../controllers/gxp-service-service-requests.controller.js";
 import upload from "../middlewares/multer.middleware.js";
 import API_ROUTES from "../utils/routes.js";
-import { validateDto, validateDtoArray } from "../middlewares/validate-dto.middleware.js";
+import {
+  validateDto,
+  validateDtoArray
+} from "../middlewares/validate-dto.middleware.js";
 import {
   CreateServiceRequestDto,
   UpdateServiceRequestDto
 } from "../dtos/service-request.dto.js";
-import { BulkCreateDto, BulkUpdateDto, BulkOperationDto } from "../dtos/common.dto.js";
+import {
+  BulkCreateDto,
+  BulkUpdateDto,
+  BulkOperationDto
+} from "../dtos/common.dto.js";
 
 const router = Router();
 

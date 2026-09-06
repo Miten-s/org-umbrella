@@ -16,7 +16,9 @@ import type {
  * When the backend doesn't support filters yet, callers pass `filters: undefined`
  * (gated by capabilities) so nothing is emitted.
  */
-export const buildServerParams = (params: ServerListParams): ListQueryParams => {
+export const buildServerParams = (
+  params: ServerListParams
+): ListQueryParams => {
   const { filters, sortBy, sortDir, ...rest } = params;
   const flatFilters: Record<string, unknown> = {};
   if (filters) {
@@ -94,7 +96,10 @@ export const toOptionsPage = <T extends Record<string, any>>(
   });
   const hasMore = metadata.currentPage < metadata.totalPages;
   return {
-    options: rows.map((row) => ({ value: getValue(row), label: getLabel(row) })),
+    options: rows.map((row) => ({
+      value: getValue(row),
+      label: getLabel(row)
+    })),
     nextPage: hasMore ? metadata.currentPage + 1 : null
   };
 };

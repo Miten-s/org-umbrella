@@ -19,19 +19,32 @@ import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsInstrumentOptions } from "@/pages/lims/instruments/LimsInstrument.queries";
 import { useLimsLocationOptions } from "@/pages/lims/locations/LimsLocation.queries";
 import { useLimsSupplierOptions } from "@/pages/lims/suppliers/LimsSupplier.queries";
-import { limsInstrumentPartSchema, limsInstrumentPartCopySchema, type LimsInstrumentPartFormValues } from "./LimsInstrumentPart.schema";
-import type { LimsInstrumentPart, LimsInstrumentPartPayload, LimsRef, LimsMaintenanceRow } from "./LimsInstrumentPart.types";
+import {
+  limsInstrumentPartSchema,
+  limsInstrumentPartCopySchema,
+  type LimsInstrumentPartFormValues
+} from "./LimsInstrumentPart.schema";
+import type {
+  LimsInstrumentPart,
+  LimsInstrumentPartPayload,
+  LimsRef,
+  LimsMaintenanceRow
+} from "./LimsInstrumentPart.types";
 
 /** "copy" renders like "create" except the business ID starts blank (stays EDITABLE —
  * `applyBusinessId` only mints when empty). Attachments hidden: the batch save is JSON-only. */
-export type LimsInstrumentPartFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type LimsInstrumentPartFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsInstrumentPartFormProps {
   mode?: LimsInstrumentPartFormMode;
   initialData?: LimsInstrumentPart | null;
   onClose: () => void;
   onUnchanged?: () => void;
-  onSubmit: (payload: LimsInstrumentPartPayload, files: File[]) => Promise<void> | void;
+  onSubmit: (
+    payload: LimsInstrumentPartPayload,
+    files: File[]
+  ) => Promise<void> | void;
   submitting?: boolean;
   /** Overrides the submit button's label — CopyStepper uses this to say
    * "Next" on every step but the last, where the batch actually saves. */
@@ -67,7 +80,9 @@ const LimsInstrumentPartForm = ({
   const isReadOnly = mode === "view";
   const attachments = useAttachments(initialData?.attachments);
   const initialMaintenanceRef = useRef(initialData?.maintenance ?? []);
-  const [maintenance, setMaintenance] = useState<LimsMaintenanceRow[]>(initialMaintenanceRef.current);
+  const [maintenance, setMaintenance] = useState<LimsMaintenanceRow[]>(
+    initialMaintenanceRef.current
+  );
 
   // Captured once per record — also the no-change baseline `submit` diffs
   // against, so Save is a no-op when nothing actually differs from it.
@@ -86,7 +101,7 @@ const LimsInstrumentPartForm = ({
       serialNumber: initialData?.serialNumber ?? "",
       modelNumber: initialData?.modelNumber ?? "",
       measuringInformation: initialData?.measuringInformation ?? "",
-      details: initialData?.details ?? "",
+      details: initialData?.details ?? ""
     }),
     [initialData, mode]
   );
@@ -98,11 +113,16 @@ const LimsInstrumentPartForm = ({
     setValue,
     formState: { errors, isSubmitting }
   } = useForm<LimsInstrumentPartFormValues>({
-    resolver: zodResolver(mode === "copy" ? limsInstrumentPartCopySchema : limsInstrumentPartSchema),
+    resolver: zodResolver(
+      mode === "copy" ? limsInstrumentPartCopySchema : limsInstrumentPartSchema
+    ),
     defaultValues: initialValues
   });
 
-  const measuringInformation = useWatch({ control, name: "measuringInformation" });
+  const measuringInformation = useWatch({
+    control,
+    name: "measuringInformation"
+  });
   const details = useWatch({ control, name: "details" });
   const busy = submitting || isSubmitting;
 
@@ -171,11 +191,11 @@ const LimsInstrumentPartForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsInstrumentPart") })
-                        : mode === "copy"
+            : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsInstrumentPart") })}${stepLabel ?? ""}`
               : initialData
-              ? `${t("update", { entity: t("limsInstrumentPart") })}${stepLabel ?? ""}`
-              : t("create", { entity: t("limsInstrumentPart") })}
+                ? `${t("update", { entity: t("limsInstrumentPart") })}${stepLabel ?? ""}`
+                : t("create", { entity: t("limsInstrumentPart") })}
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
@@ -233,7 +253,9 @@ const LimsInstrumentPartForm = ({
               )}
             />
             {errors.instrument ? (
-              <p className="mt-1 text-xs text-red-500">{errors.instrument.message}</p>
+              <p className="mt-1 text-xs text-red-500">
+                {errors.instrument.message}
+              </p>
             ) : null}
           </div>
           <div className="min-w-0">
@@ -280,7 +302,9 @@ const LimsInstrumentPartForm = ({
             <TextArea
               disabled={isReadOnly}
               value={measuringInformation || ""}
-              onChange={(val) => setValue("measuringInformation", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("measuringInformation", val, { shouldValidate: true })
+              }
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
@@ -289,7 +313,9 @@ const LimsInstrumentPartForm = ({
             <TextArea
               disabled={isReadOnly}
               value={details || ""}
-              onChange={(val) => setValue("details", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("details", val, { shouldValidate: true })
+              }
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
@@ -301,23 +327,40 @@ const LimsInstrumentPartForm = ({
               disabled={isReadOnly}
               columns={[
                 { key: "maintenanceName", header: t("name") },
-                { key: "performedOn", header: t("limsPerformedOn"), type: "date" },
+                {
+                  key: "performedOn",
+                  header: t("limsPerformedOn"),
+                  type: "date"
+                },
                 { key: "performedBy", header: t("limsPerformedBy") },
                 { key: "remarks", header: t("limsRemarks") }
               ]}
             />
           </div>
           {mode !== "copy" && mode !== "bulk-edit" && (
-            <LimsAttachmentsField attachments={attachments} disabled={isReadOnly} />
+            <LimsAttachmentsField
+              attachments={attachments}
+              disabled={isReadOnly}
+            />
           )}
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

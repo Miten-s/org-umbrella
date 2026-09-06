@@ -28,7 +28,10 @@ export interface IInstrumentPart {
   modifiedBy?: string | null;
 }
 
-export class InstrumentPart extends Model<IInstrumentPart> implements IInstrumentPart {
+export class InstrumentPart
+  extends Model<IInstrumentPart>
+  implements IInstrumentPart
+{
   public id!: string;
   public partId!: string;
   public partName!: string;
@@ -53,28 +56,83 @@ export class InstrumentPart extends Model<IInstrumentPart> implements IInstrumen
 
 InstrumentPart.init(
   {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    partId: { type: DataTypes.STRING(100), allowNull: false, unique: true, field: "part_id" },
-    partName: { type: DataTypes.STRING(200), allowNull: false, field: "part_name" },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    partId: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      unique: true,
+      field: "part_id"
+    },
+    partName: {
+      type: DataTypes.STRING(200),
+      allowNull: false,
+      field: "part_name"
+    },
     description: { type: DataTypes.TEXT, allowNull: true },
-    instrumentId: { type: DataTypes.UUID, allowNull: false, field: "instrument_id" },
+    instrumentId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      field: "instrument_id"
+    },
     statusId: { type: DataTypes.UUID, allowNull: true, field: "status_id" },
     locationId: { type: DataTypes.UUID, allowNull: true, field: "location_id" },
     supplierId: { type: DataTypes.UUID, allowNull: true, field: "supplier_id" },
-    dateInstalled: { type: DataTypes.DATEONLY, allowNull: true, field: "date_installed" },
-    sopReference: { type: DataTypes.STRING(200), allowNull: true, field: "sop_reference" },
+    dateInstalled: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+      field: "date_installed"
+    },
+    sopReference: {
+      type: DataTypes.STRING(200),
+      allowNull: true,
+      field: "sop_reference"
+    },
     manufacturer: { type: DataTypes.STRING(200), allowNull: true },
-    serialNumber: { type: DataTypes.STRING(150), allowNull: true, field: "serial_number" },
-    modelNumber: { type: DataTypes.STRING(150), allowNull: true, field: "model_number" },
-    measuringInformation: { type: DataTypes.TEXT, allowNull: true, field: "measuring_information" },
+    serialNumber: {
+      type: DataTypes.STRING(150),
+      allowNull: true,
+      field: "serial_number"
+    },
+    modelNumber: {
+      type: DataTypes.STRING(150),
+      allowNull: true,
+      field: "model_number"
+    },
+    measuringInformation: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: "measuring_information"
+    },
     details: { type: DataTypes.TEXT, allowNull: true },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
-    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "is_deleted" },
+    isDeleted: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: "is_deleted"
+    },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.STRING(100), allowNull: true, field: "deleted_by" },
-    modifiedBy: { type: DataTypes.STRING(100), allowNull: true, field: "modified_by" }
+    deletedBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "deleted_by"
+    },
+    modifiedBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "modified_by"
+    }
   },
-  { sequelize, tableName: "lims_instrument_parts", underscored: true, timestamps: true }
+  {
+    sequelize,
+    tableName: "lims_instrument_parts",
+    underscored: true,
+    timestamps: true
+  }
 );
 
 export default InstrumentPart;

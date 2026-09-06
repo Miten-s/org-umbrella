@@ -29,7 +29,6 @@ export const limsRoleKeys = {
   permissions: ["limsRole", "permissions"] as const
 };
 
-
 /** Consumed by other modules selecting this entity. */
 export const useLimsRoleOptions = (args: {
   search: string;

@@ -12,7 +12,9 @@ export const getRoleColumns = ({ t }: { t: TFunction }): ColDef<GxpRole>[] => [
     flex: 0.9,
     minWidth: 240,
     cellRenderer: (params: ICellRendererParams<GxpRole>) =>
-      params.data ? <AvatarCell label={params.data.name} fallbackInitial="R" /> : null
+      params.data ? (
+        <AvatarCell label={params.data.name} fallbackInitial="R" />
+      ) : null
   },
   {
     field: "permissions",
@@ -20,7 +22,8 @@ export const getRoleColumns = ({ t }: { t: TFunction }): ColDef<GxpRole>[] => [
     flex: 1.4,
     minWidth: 320,
     sortable: false,
-    valueGetter: ({ data }) => (data ? getRolePermissionNames(data).join(", ") : ""),
+    valueGetter: ({ data }) =>
+      data ? getRolePermissionNames(data).join(", ") : "",
     cellRenderer: (params: ICellRendererParams<GxpRole>) => {
       const names = params.data ? getRolePermissionNames(params.data) : [];
       return (

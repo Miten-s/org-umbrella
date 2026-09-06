@@ -8,7 +8,10 @@ export interface IServiceRequestComment {
   commentText: string;
 }
 
-export class ServiceRequestComment extends Model<IServiceRequestComment> implements IServiceRequestComment {
+export class ServiceRequestComment
+  extends Model<IServiceRequestComment>
+  implements IServiceRequestComment
+{
   public id!: number;
   public serviceRequestId!: string;
   public commentText!: string;
@@ -45,7 +48,13 @@ ServiceRequestComment.init(
 );
 
 // One-to-Many request comments
-ServiceRequest.hasMany(ServiceRequestComment, { foreignKey: "service_request_id", as: "comments" });
-ServiceRequestComment.belongsTo(ServiceRequest, { foreignKey: "service_request_id", as: "serviceRequest" });
+ServiceRequest.hasMany(ServiceRequestComment, {
+  foreignKey: "service_request_id",
+  as: "comments"
+});
+ServiceRequestComment.belongsTo(ServiceRequest, {
+  foreignKey: "service_request_id",
+  as: "serviceRequest"
+});
 
 export default ServiceRequestComment;

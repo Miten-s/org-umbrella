@@ -30,9 +30,14 @@ vi.mock("react-i18next", () => ({
 
 const { default: AppSidebar } = await import("./AppSidebar");
 
-const userWith = (roleName: string, ...permissions: string[]): AuthenticatedUser => ({
+const userWith = (
+  roleName: string,
+  ...permissions: string[]
+): AuthenticatedUser => ({
   id: "user-1",
-  roles: [{ name: roleName, permissions: permissions.map((name) => ({ name })) }]
+  roles: [
+    { name: roleName, permissions: permissions.map((name) => ({ name })) }
+  ]
 });
 
 const renderSidebar = (user: AuthenticatedUser | null) => {
@@ -63,7 +68,9 @@ describe("AppSidebar — menu visibility by permission", () => {
   it("hides System IT Administration from a GXP-only user", () => {
     renderSidebar(userWith("GXP_VIEWER", GXP_PERMISSIONS.VIEW_SERVICE_REQUEST));
 
-    expect(screen.queryByText("systemITAdministration")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("systemITAdministration")
+    ).not.toBeInTheDocument();
   });
 
   it("shows System IT Administration to a user with admin user permissions", () => {
@@ -118,6 +125,8 @@ describe("AppSidebar — menu visibility by permission", () => {
 
     expect(screen.queryByText("dashboard")).not.toBeInTheDocument();
     expect(screen.queryByText("gxpService")).not.toBeInTheDocument();
-    expect(screen.queryByText("systemITAdministration")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("systemITAdministration")
+    ).not.toBeInTheDocument();
   });
 });

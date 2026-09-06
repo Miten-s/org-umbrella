@@ -18,7 +18,10 @@ import {
   updateLimsAnalysis,
   fetchLimsAnalysisById
 } from "./LimsAnalysis.api";
-import type { LimsAnalysisPayload, LimsComponentRow } from "./LimsAnalysis.types";
+import type {
+  LimsAnalysisPayload,
+  LimsComponentRow
+} from "./LimsAnalysis.types";
 
 export const limsAnalysisKeys = {
   all: ["limsAnalysis"] as const,
@@ -74,7 +77,11 @@ export const useLimsAnalysisComponentOptions = (
       const term = search.trim().toLowerCase();
       const options = (analysis?.components ?? [])
         .filter((component: LimsComponentRow) =>
-          term ? String(component.name ?? "").toLowerCase().includes(term) : true
+          term
+            ? String(component.name ?? "")
+                .toLowerCase()
+                .includes(term)
+            : true
         )
         .map((component: LimsComponentRow) => ({
           value: String(component.id ?? ""),
@@ -109,7 +116,13 @@ export const useCreateLimsAnalysis = () => {
 export const useUpdateLimsAnalysis = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: LimsAnalysisPayload }) => updateLimsAnalysis(id, payload),
+    mutationFn: ({
+      id,
+      payload
+    }: {
+      id: string;
+      payload: LimsAnalysisPayload;
+    }) => updateLimsAnalysis(id, payload),
     onSuccess: () => {
       toast("Record updated successfully.", "success");
       invalidate();
@@ -185,7 +198,8 @@ export const useBulkCloneLimsAnalysis = () => {
 export const useBulkCopyLimsAnalysis = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (records: LimsAnalysisPayload[]) => bulkCopyLimsAnalysis(records),
+    mutationFn: (records: LimsAnalysisPayload[]) =>
+      bulkCopyLimsAnalysis(records),
     onSuccess: (data) => {
       const warnings = data.results.filter((r) => r.warning);
       toast(

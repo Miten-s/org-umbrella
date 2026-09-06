@@ -8,7 +8,11 @@ import type { LimsSpecification, LimsRef } from "./LimsSpecification.types";
 const refLabel = (ref: LimsRef | null | undefined) => ref?.name ?? "";
 
 /** Column factory (STANDARDS.md §8). */
-export const getLimsSpecificationColumns = ({ t }: { t: TFunction }): ColDef<LimsSpecification>[] => [
+export const getLimsSpecificationColumns = ({
+  t
+}: {
+  t: TFunction;
+}): ColDef<LimsSpecification>[] => [
   {
     field: "specId",
     headerName: t("limsSpecId"),
@@ -25,7 +29,10 @@ export const getLimsSpecificationColumns = ({ t }: { t: TFunction }): ColDef<Lim
     minWidth: 210,
     cellRenderer: (params: ICellRendererParams<LimsSpecification>) =>
       params.data ? (
-        <AvatarCell label={String(params.data.name ?? "")} fallbackInitial="•" />
+        <AvatarCell
+          label={String(params.data.name ?? "")}
+          fallbackInitial="•"
+        />
       ) : null
   },
   {

@@ -20,14 +20,18 @@ interface ToggleContext {
   togglingId?: string;
 }
 
-export const getWorkflowColumns = ({ t }: WorkflowColumnCtx): ColDef<Workflow>[] => [
+export const getWorkflowColumns = ({
+  t
+}: WorkflowColumnCtx): ColDef<Workflow>[] => [
   {
     field: "workflowName",
     headerName: t("workflowName"),
     flex: 1,
     minWidth: 240,
     cellRenderer: (params: ICellRendererParams<Workflow>) =>
-      params.data ? <AvatarCell label={params.data.workflowName} fallbackInitial="W" /> : null
+      params.data ? (
+        <AvatarCell label={params.data.workflowName} fallbackInitial="W" />
+      ) : null
   },
   {
     field: "numberOfLevels",

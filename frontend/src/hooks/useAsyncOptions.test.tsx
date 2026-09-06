@@ -20,7 +20,13 @@ const ALL = Array.from({ length: 5000 }, (_, i) => ({
 
 const makeFetchPage = () =>
   vi.fn(
-    async ({ search, page }: { search: string; page: number }): Promise<OptionsPage> => {
+    async ({
+      search,
+      page
+    }: {
+      search: string;
+      page: number;
+    }): Promise<OptionsPage> => {
       const filtered = ALL.filter((o) =>
         o.name.toLowerCase().includes(search.toLowerCase())
       );
@@ -69,7 +75,13 @@ describe("useAsyncOptions", () => {
   it("loads the first page when opened", async () => {
     const fetchPage = makeFetchPage();
     const { result } = renderHook(
-      () => useAsyncOptions({ queryKey: ["t"], fetchPage, search: "", enabled: true }),
+      () =>
+        useAsyncOptions({
+          queryKey: ["t"],
+          fetchPage,
+          search: "",
+          enabled: true
+        }),
       { wrapper: createWrapper() }
     );
 
@@ -84,13 +96,21 @@ describe("useAsyncOptions", () => {
   it("appends pages via infinite scroll (fetchNextPage)", async () => {
     const fetchPage = makeFetchPage();
     const { result } = renderHook(
-      () => useAsyncOptions({ queryKey: ["t"], fetchPage, search: "", enabled: true }),
+      () =>
+        useAsyncOptions({
+          queryKey: ["t"],
+          fetchPage,
+          search: "",
+          enabled: true
+        }),
       { wrapper: createWrapper() }
     );
 
     await waitFor(() => expect(result.current.options).toHaveLength(PAGE_SIZE));
     await result.current.fetchNextPage();
-    await waitFor(() => expect(result.current.options).toHaveLength(PAGE_SIZE * 2));
+    await waitFor(() =>
+      expect(result.current.options).toHaveLength(PAGE_SIZE * 2)
+    );
   });
 
   it("debounces search into the query key and filters server-side", async () => {
@@ -107,7 +127,9 @@ describe("useAsyncOptions", () => {
       { wrapper: createWrapper(), initialProps: { search: "" } }
     );
 
-    await waitFor(() => expect(result.current.options.length).toBeGreaterThan(0));
+    await waitFor(() =>
+      expect(result.current.options.length).toBeGreaterThan(0)
+    );
 
     // rapid typing — only the settled value should drive a fetch
     rerender({ search: "Option 123" });
@@ -166,9 +188,13 @@ describe("useAsyncOptions", () => {
     );
 
     await waitFor(() => expect(result.current.options).toHaveLength(PAGE_SIZE));
-    await waitFor(() => expect(result.current.resolvedSelected).toHaveLength(2));
+    await waitFor(() =>
+      expect(result.current.resolvedSelected).toHaveLength(2)
+    );
 
-    const resolvedValues = result.current.resolvedSelected.map((o) => o.value).sort();
+    const resolvedValues = result.current.resolvedSelected
+      .map((o) => o.value)
+      .sort();
     expect(resolvedValues).toEqual(["id-4000", "id-4999"]);
     // id-0 (already loaded) must NOT be sent to resolveByIds
     expect(resolveByIds).toHaveBeenCalledWith(

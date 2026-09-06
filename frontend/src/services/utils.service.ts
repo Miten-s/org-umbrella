@@ -34,7 +34,10 @@ export const getPageTitle = (
  * see the three thin wrappers below — so a production deploy changes one env
  * var per service and both the API calls and the asset URLs follow.
  */
-const buildAssetUrl = (apiBaseUrl: string, path?: string | null): string | undefined => {
+const buildAssetUrl = (
+  apiBaseUrl: string,
+  path?: string | null
+): string | undefined => {
   if (!path) return undefined;
   if (/^https?:\/\//i.test(path)) return path;
   // A signature captured straight from a canvas (Lab Users) is a data URI,
@@ -42,7 +45,9 @@ const buildAssetUrl = (apiBaseUrl: string, path?: string | null): string | undef
   // broken src like ".../uploads/data:image/png;base64,...". Valid as-is.
   if (/^data:/i.test(path)) return path;
 
-  const assetBaseUrl = apiBaseUrl.replace(/\/v\d+\/api\/?$/, "").replace(/\/$/, "");
+  const assetBaseUrl = apiBaseUrl
+    .replace(/\/v\d+\/api\/?$/, "")
+    .replace(/\/$/, "");
   const cleanPath = path.startsWith("/uploads") ? path : `/uploads${path}`;
 
   return assetBaseUrl ? `${assetBaseUrl}${cleanPath}` : cleanPath;

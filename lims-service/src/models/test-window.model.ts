@@ -41,22 +41,56 @@ export class TestWindow extends Model<ITestWindow> implements ITestWindow {
 
 TestWindow.init(
   {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     sampleId: { type: DataTypes.UUID, allowNull: false, field: "sample_id" },
     testId: { type: DataTypes.UUID, allowNull: true, field: "test_id" },
-    analysisName: { type: DataTypes.STRING(200), allowNull: true, field: "analysis_name" },
-    componentId: { type: DataTypes.STRING(100), allowNull: true, field: "component_id" },
-    componentName: { type: DataTypes.STRING(200), allowNull: true, field: "component_name" },
+    analysisName: {
+      type: DataTypes.STRING(200),
+      allowNull: true,
+      field: "analysis_name"
+    },
+    componentId: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "component_id"
+    },
+    componentName: {
+      type: DataTypes.STRING(200),
+      allowNull: true,
+      field: "component_name"
+    },
     description: { type: DataTypes.TEXT, allowNull: true },
     value: { type: DataTypes.TEXT, allowNull: true },
     unit: { type: DataTypes.STRING(50), allowNull: true },
-    outOfRange: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "out_of_range" },
+    outOfRange: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: "out_of_range"
+    },
     enteredOn: { type: DataTypes.DATE, allowNull: true, field: "entered_on" },
-    enteredBy: { type: DataTypes.STRING(200), allowNull: true, field: "entered_by" },
-    instrumentId: { type: DataTypes.UUID, allowNull: true, field: "instrument_id" },
+    enteredBy: {
+      type: DataTypes.STRING(200),
+      allowNull: true,
+      field: "entered_by"
+    },
+    instrumentId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: "instrument_id"
+    },
     stockId: { type: DataTypes.UUID, allowNull: true, field: "stock_id" }
   },
-  { sequelize, tableName: "lims_test_windows", underscored: true, timestamps: true }
+  {
+    sequelize,
+    tableName: "lims_test_windows",
+    underscored: true,
+    timestamps: true
+  }
 );
 
 export default TestWindow;

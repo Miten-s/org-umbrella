@@ -35,8 +35,12 @@ export const up = async (queryInterface: QueryInterface) => {
     }
   });
 
-  await queryInterface.addIndex("app_departments", ["application_id", "department_name"], {
-    unique: true,
-    name: "app_departments_app_dept_idx"
-  });
+  await queryInterface.addIndex(
+    "app_departments",
+    ["application_id", "department_name"],
+    {
+      unique: true,
+      name: "app_departments_app_dept_idx"
+    }
+  );
 };

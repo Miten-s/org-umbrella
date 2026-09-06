@@ -11,7 +11,6 @@ export interface LimsAttachment {
   comment?: string;
 }
 
-
 export interface LimsBatch {
   id: string;
   /** @deprecated compatibility shim — read `id`. */

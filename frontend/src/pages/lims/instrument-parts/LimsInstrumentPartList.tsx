@@ -26,7 +26,10 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsInstrumentPartById, fetchLimsInstrumentPartList } from "./LimsInstrumentPart.api";
+import {
+  fetchLimsInstrumentPartById,
+  fetchLimsInstrumentPartList
+} from "./LimsInstrumentPart.api";
 import { getLimsInstrumentPartColumns } from "./LimsInstrumentPart.columns";
 import {
   limsInstrumentPartKeys,
@@ -157,7 +160,9 @@ const LimsInstrumentPartList = () => {
     table.clearSelection();
   };
 
-  const handleSaveEdits = (updates: { id: string; payload: LimsInstrumentPartPayload }[]) => {
+  const handleSaveEdits = (
+    updates: { id: string; payload: LimsInstrumentPartPayload }[]
+  ) => {
     handleCloseForm();
     compliance.requestBulkUpdate(updates);
   };
@@ -410,7 +415,8 @@ const LimsInstrumentPartList = () => {
             saving={bulkUpdate.isPending}
             entityLabel={t("limsInstrumentPart")}
           />
-        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        ) : formMode !== "create" &&
+          (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>
@@ -450,7 +456,10 @@ const LimsInstrumentPartList = () => {
         onBulkUpdate={async (reason) => {
           const pending = compliance.pendingBulkUpdate;
           if (pending) {
-            await bulkUpdate.mutateAsync({ updates: pending.updates, changeReason: reason });
+            await bulkUpdate.mutateAsync({
+              updates: pending.updates,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearBulkUpdate();

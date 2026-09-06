@@ -37,7 +37,8 @@ export const useAttachments = (initialRaw?: unknown) => {
   const keptIds = existing.map((a) => a.id).filter(Boolean);
 
   /** True once a file is added or an existing one removed. */
-  const isDirty = newFiles.length > 0 || existing.length !== initialCountRef.current;
+  const isDirty =
+    newFiles.length > 0 || existing.length !== initialCountRef.current;
 
   return {
     existing,

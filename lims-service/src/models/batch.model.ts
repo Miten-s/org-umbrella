@@ -35,18 +35,56 @@ export class Batch extends Model<IBatch> implements IBatch {
 
 Batch.init(
   {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    batchId: { type: DataTypes.STRING(100), allowNull: false, unique: true, field: "batch_id" },
-    batchName: { type: DataTypes.STRING(200), allowNull: false, field: "batch_name" },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    batchId: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      unique: true,
+      field: "batch_id"
+    },
+    batchName: {
+      type: DataTypes.STRING(200),
+      allowNull: false,
+      field: "batch_name"
+    },
     description: { type: DataTypes.TEXT, allowNull: true },
-    status: { type: DataTypes.STRING(20), allowNull: false, defaultValue: "Open" },
-    cancelledAt: { type: DataTypes.DATE, allowNull: true, field: "cancelled_at" },
-    cancelledBy: { type: DataTypes.STRING(100), allowNull: true, field: "cancelled_by" },
+    status: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      defaultValue: "Open"
+    },
+    cancelledAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: "cancelled_at"
+    },
+    cancelledBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "cancelled_by"
+    },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
-    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "is_deleted" },
+    isDeleted: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: "is_deleted"
+    },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.STRING(100), allowNull: true, field: "deleted_by" },
-    modifiedBy: { type: DataTypes.STRING(100), allowNull: true, field: "modified_by" }
+    deletedBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "deleted_by"
+    },
+    modifiedBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "modified_by"
+    }
   },
   { sequelize, tableName: "lims_batches", underscored: true, timestamps: true }
 );

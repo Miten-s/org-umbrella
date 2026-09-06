@@ -24,9 +24,11 @@ export const designationKeys = {
 };
 
 /** Bound options hook for AsyncSelect consumers of Designation. */
-export const useDesignationOptions = (
-  args: { search: string; enabled?: boolean; selectedValues?: string[] }
-) =>
+export const useDesignationOptions = (args: {
+  search: string;
+  enabled?: boolean;
+  selectedValues?: string[];
+}) =>
   useAsyncOptions({
     queryKey: designationKeys.options,
     fetchPage: fetchDesignationOptions,
@@ -55,8 +57,13 @@ export const useCreateDesignation = () => {
 export const useUpdateDesignation = () => {
   const invalidate = useInvalidateDesignations();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: DesignationPayload }) =>
-      updateDesignation(id, payload),
+    mutationFn: ({
+      id,
+      payload
+    }: {
+      id: string;
+      payload: DesignationPayload;
+    }) => updateDesignation(id, payload),
     onSuccess: () => {
       toast("Designation updated successfully.", "success");
       invalidate();
@@ -79,7 +86,9 @@ export const useBulkDeleteDesignation = () => {
     onSuccess: (_data, selection) => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
       toast(
-        count && count > 1 ? `${count} designations deleted successfully.` : "Designation deleted successfully.",
+        count && count > 1
+          ? `${count} designations deleted successfully.`
+          : "Designation deleted successfully.",
         "success"
       );
       invalidate();
@@ -94,7 +103,9 @@ export const useBulkCloneDesignation = () => {
     onSuccess: (_data, selection) => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
       toast(
-        count && count > 1 ? `${count} designations copied successfully.` : "Designation copied successfully.",
+        count && count > 1
+          ? `${count} designations copied successfully.`
+          : "Designation copied successfully.",
         "success"
       );
       invalidate();
@@ -108,7 +119,9 @@ export const useBulkCopyDesignation = () => {
     mutationFn: (records: DesignationPayload[]) => bulkCopyDesignation(records),
     onSuccess: (data) => {
       toast(
-        data.count > 1 ? `${data.count} designations copied successfully.` : "Designation copied successfully.",
+        data.count > 1
+          ? `${data.count} designations copied successfully.`
+          : "Designation copied successfully.",
         "success"
       );
       const warnings = data.results.filter((r) => r.warning);
@@ -128,10 +141,13 @@ export const useBulkCopyDesignation = () => {
 export const useBulkUpdateDesignation = () => {
   const invalidate = useInvalidateDesignations();
   return useMutation({
-    mutationFn: (updates: { id: string; payload: DesignationPayload }[]) => bulkUpdateDesignation(updates),
+    mutationFn: (updates: { id: string; payload: DesignationPayload }[]) =>
+      bulkUpdateDesignation(updates),
     onSuccess: (data) => {
       toast(
-        data.count > 1 ? `${data.count} designations updated successfully.` : "Designation updated successfully.",
+        data.count > 1
+          ? `${data.count} designations updated successfully.`
+          : "Designation updated successfully.",
         "success"
       );
       invalidate();

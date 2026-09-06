@@ -55,7 +55,8 @@ const run = async () => {
     defaults: {
       roleId: ADMIN_ROLE_ID,
       name: "LIMS Administrator",
-      description: "Full access. Bypasses group filtering; every use is audited.",
+      description:
+        "Full access. Bypasses group filtering; every use is audited.",
       groupId: rootGroup.id,
       operateAll: true
     }
@@ -84,7 +85,9 @@ const run = async () => {
   console.log(
     [
       "",
-      userCreated ? "Bootstrapped a new LIMS administrator." : "Administrator already existed — re-linked.",
+      userCreated
+        ? "Bootstrapped a new LIMS administrator."
+        : "Administrator already existed — re-linked.",
       `  platform user : ${platformUserId} (${fullName})`,
       `  lims_users.id : ${limsUser.id}`,
       `  root group    : ${ROOT_GROUP_ID} (${rootGroup.id})`,

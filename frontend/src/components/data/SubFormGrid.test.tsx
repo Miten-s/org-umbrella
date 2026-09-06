@@ -2,7 +2,11 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/context/AuthContext", () => ({
-  useAuth: () => ({ user: { id: "u1", roles: [] }, isAuthenticated: true, isLoading: false })
+  useAuth: () => ({
+    user: { id: "u1", roles: [] },
+    isAuthenticated: true,
+    isLoading: false
+  })
 }));
 
 vi.mock("react-i18next", () => ({
@@ -94,7 +98,9 @@ describe("SubFormGrid", () => {
   it("edits a cell without disturbing the other rows", () => {
     const onChange = renderGrid([{ name: "pH" }, { name: "Assay" }]);
 
-    fireEvent.change(screen.getAllByLabelText("Name")[1], { target: { value: "Purity" } });
+    fireEvent.change(screen.getAllByLabelText("Name")[1], {
+      target: { value: "Purity" }
+    });
 
     expect(onChange).toHaveBeenCalledWith([{ name: "pH" }, { name: "Purity" }]);
   });
@@ -121,8 +127,12 @@ describe("SubFormGrid", () => {
   it("is read-only when disabled — no add, no remove, inputs locked", () => {
     renderGrid([{ name: "pH" }], vi.fn(), { disabled: true });
 
-    expect(screen.queryByRole("button", { name: "limsAddRow" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /delete/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "limsAddRow" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /delete/ })
+    ).not.toBeInTheDocument();
     expect(screen.getByLabelText("Name")).toBeDisabled();
   });
 
@@ -148,7 +158,9 @@ describe("SubFormGrid", () => {
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
     expect(screen.getByText("Components 1")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Field 3"), { target: { value: "x" } });
+    fireEvent.change(screen.getByLabelText("Field 3"), {
+      target: { value: "x" }
+    });
     expect(onChange).toHaveBeenCalledWith([{ f0: "a", f3: "x" }]);
   });
 
@@ -160,7 +172,11 @@ describe("SubFormGrid", () => {
   it("can hide only the add button, keeping rows removable", () => {
     renderGrid([{ name: "pH" }], vi.fn(), { allowAdd: false });
 
-    expect(screen.queryByRole("button", { name: "limsAddRow" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "delete 1" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "limsAddRow" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "delete 1" })
+    ).toBeInTheDocument();
   });
 });

@@ -58,21 +58,24 @@ Role.init(
 );
 
 export class RolePermission extends Model {}
-RolePermission.init({
-  role_id: {
-    type: DataTypes.UUID,
-    primaryKey: true
+RolePermission.init(
+  {
+    role_id: {
+      type: DataTypes.UUID,
+      primaryKey: true
+    },
+    permission_id: {
+      type: DataTypes.UUID,
+      primaryKey: true
+    }
   },
-  permission_id: {
-    type: DataTypes.UUID,
-    primaryKey: true
+  {
+    sequelize,
+    tableName: "role_permissions",
+    timestamps: false,
+    underscored: true
   }
-}, {
-  sequelize,
-  tableName: "role_permissions",
-  timestamps: false,
-  underscored: true
-});
+);
 
 // Many-to-Many relationship with Permission
 Role.belongsToMany(Permission, {
@@ -88,6 +91,5 @@ Permission.belongsToMany(Role, {
   otherKey: "role_id",
   as: "roles"
 });
-
 
 export default Role;

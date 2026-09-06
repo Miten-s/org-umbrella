@@ -2,7 +2,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
 import { useAsyncOptions } from "@/hooks/useAsyncOptions";
 import { useLimsRecordById } from "@/hooks/useLimsRecordById";
-import type { BulkSelection, ListResult, ServerListParams } from "@/lib/query/listTypes";
+import type {
+  BulkSelection,
+  ListResult,
+  ServerListParams
+} from "@/lib/query/listTypes";
 import {
   bulkCloneModule,
   bulkCopyModule,
@@ -31,7 +35,11 @@ export const useModuleById = (id?: string, enabled = true) =>
     enabled
   });
 
-export const useModuleOptions = (args: { search: string; enabled?: boolean; selectedValues?: string[] }) =>
+export const useModuleOptions = (args: {
+  search: string;
+  enabled?: boolean;
+  selectedValues?: string[];
+}) =>
   useAsyncOptions({
     queryKey: moduleKeys.options,
     fetchPage: fetchModuleOptions,
@@ -59,7 +67,8 @@ export const useCreateModule = () => {
 export const useUpdateModule = () => {
   const invalidate = useInvalidateModules();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: ModulePayload }) => updateModule(id, payload),
+    mutationFn: ({ id, payload }: { id: string; payload: ModulePayload }) =>
+      updateModule(id, payload),
     onSuccess: () => {
       toast("Module updated successfully.", "success");
       invalidate();
@@ -73,7 +82,12 @@ export const useBulkDeleteModule = () => {
     mutationFn: (selection: BulkSelection) => bulkDeleteModule(selection),
     onSuccess: (_data, selection) => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
-      toast(count && count > 1 ? `${count} modules deleted successfully.` : "Module deleted successfully.", "success");
+      toast(
+        count && count > 1
+          ? `${count} modules deleted successfully.`
+          : "Module deleted successfully.",
+        "success"
+      );
       invalidate();
     }
   });
@@ -85,7 +99,12 @@ export const useBulkCloneModule = () => {
     mutationFn: (selection: BulkSelection) => bulkCloneModule(selection),
     onSuccess: (_data, selection) => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
-      toast(count && count > 1 ? `${count} modules copied successfully.` : "Module copied successfully.", "success");
+      toast(
+        count && count > 1
+          ? `${count} modules copied successfully.`
+          : "Module copied successfully.",
+        "success"
+      );
       invalidate();
     }
   });
@@ -96,7 +115,12 @@ export const useBulkCopyModule = () => {
   return useMutation({
     mutationFn: (records: ModulePayload[]) => bulkCopyModule(records),
     onSuccess: (data) => {
-      toast(data.length > 1 ? `${data.length} modules copied successfully.` : "Module copied successfully.", "success");
+      toast(
+        data.length > 1
+          ? `${data.length} modules copied successfully.`
+          : "Module copied successfully.",
+        "success"
+      );
       invalidate();
     }
   });
@@ -105,10 +129,13 @@ export const useBulkCopyModule = () => {
 export const useBulkUpdateModule = () => {
   const invalidate = useInvalidateModules();
   return useMutation({
-    mutationFn: (updates: { id: string; payload: ModulePayload }[]) => bulkUpdateModule(updates),
+    mutationFn: (updates: { id: string; payload: ModulePayload }[]) =>
+      bulkUpdateModule(updates),
     onSuccess: (data) => {
       toast(
-        data.results.length > 1 ? `${data.results.length} modules updated successfully.` : "Module updated successfully.",
+        data.results.length > 1
+          ? `${data.results.length} modules updated successfully.`
+          : "Module updated successfully.",
         "success"
       );
       invalidate();
@@ -121,7 +148,12 @@ export const useBulkRestoreModule = () => {
   return useMutation({
     mutationFn: (selection: BulkSelection) => bulkRestoreModule(selection),
     onSuccess: (data) => {
-      toast(data.count > 1 ? `${data.count} modules restored successfully.` : "Module restored successfully.", "success");
+      toast(
+        data.count > 1
+          ? `${data.count} modules restored successfully.`
+          : "Module restored successfully.",
+        "success"
+      );
       invalidate();
     }
   });
@@ -132,24 +164,38 @@ export const useToggleModuleStatus = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (module: ApplicationSoftwareModule) =>
-      setModuleStatus(module.id, module.status === "enabled" ? "disabled" : "enabled"),
+      setModuleStatus(
+        module.id,
+        module.status === "enabled" ? "disabled" : "enabled"
+      ),
     onMutate: async (module) => {
       await queryClient.cancelQueries({ queryKey: moduleKeys.all });
       const nextStatus = module.status === "enabled" ? "disabled" : "enabled";
-      const snapshots = queryClient.getQueriesData<ListResult<ApplicationSoftwareModule>>({ queryKey: moduleKeys.all });
+      const snapshots = queryClient.getQueriesData<
+        ListResult<ApplicationSoftwareModule>
+      >({ queryKey: moduleKeys.all });
       snapshots.forEach(([key, data]) => {
         if (!data?.rows) return;
         queryClient.setQueryData<ListResult<ApplicationSoftwareModule>>(key, {
           ...data,
-          rows: data.rows.map((row) => (row.id === module.id ? { ...row, status: nextStatus } : row))
+          rows: data.rows.map((row) =>
+            row.id === module.id ? { ...row, status: nextStatus } : row
+          )
         });
       });
       return { snapshots };
     },
     onSuccess: (_data, module) =>
-      toast(module.status === "enabled" ? "Module disabled successfully." : "Module enabled successfully.", "success"),
+      toast(
+        module.status === "enabled"
+          ? "Module disabled successfully."
+          : "Module enabled successfully.",
+        "success"
+      ),
     onError: (_error, _module, context) => {
-      context?.snapshots.forEach(([key, data]) => queryClient.setQueryData(key, data));
+      context?.snapshots.forEach(([key, data]) =>
+        queryClient.setQueryData(key, data)
+      );
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: moduleKeys.all })
   });

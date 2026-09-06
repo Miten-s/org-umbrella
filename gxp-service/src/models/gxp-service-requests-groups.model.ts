@@ -9,7 +9,10 @@ export interface IGxpServiceRequestGroup {
   createdBy?: string;
 }
 
-export class GxpServiceRequestGroup extends Model<IGxpServiceRequestGroup> implements IGxpServiceRequestGroup {
+export class GxpServiceRequestGroup
+  extends Model<IGxpServiceRequestGroup>
+  implements IGxpServiceRequestGroup
+{
   public id!: string;
   public requestId!: string;
   public group!: string;

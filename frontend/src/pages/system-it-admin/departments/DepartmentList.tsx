@@ -1,4 +1,6 @@
-import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction
+} from "@/components/data/DataTable";
 import ConfirmDialog from "@/components/data/ConfirmDialog";
 import CopyStepper from "@/components/data/CopyStepper";
 import ViewStepper from "@/components/data/ViewStepper";
@@ -8,7 +10,13 @@ import { Modal } from "@/components/ui/modal";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useModal } from "@/hooks/useModal";
 import { toast } from "@/lib/toast";
-import { CopyIcon, EyeIcon, PencilIcon, PlusIcon, TrashBinIcon } from "@/public/icons";
+import {
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashBinIcon
+} from "@/public/icons";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -35,7 +43,9 @@ const DepartmentList = () => {
 
   const [active, setActive] = useState<Department | null>(null);
   const [formMode, setFormMode] = useState<DepartmentFormMode>("create");
-  const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(
+    null
+  );
   const [deleteCount, setDeleteCount] = useState(0);
   const [deleteNames, setDeleteNames] = useState<string[]>([]);
   // Set instead of active/formMode while the multi-record Copy/View/Edit steppers are open.
@@ -65,7 +75,10 @@ const DepartmentList = () => {
 
   const columnDefs = useMemo(() => getDepartmentColumns({ t }), [t]);
 
-  const openForm = (mode: DepartmentFormMode, department: Department | null) => {
+  const openForm = (
+    mode: DepartmentFormMode,
+    department: Department | null
+  ) => {
     setFormMode(mode);
     setActive(department);
     openModal();
@@ -110,7 +123,9 @@ const DepartmentList = () => {
     table.clearSelection();
   };
 
-  const handleSaveEdits = async (updates: { id: string; payload: DepartmentFormValues }[]) => {
+  const handleSaveEdits = async (
+    updates: { id: string; payload: DepartmentFormValues }[]
+  ) => {
     await bulkUpdate.mutateAsync(updates);
     handleCloseForm();
     table.clearSelection();
@@ -167,7 +182,8 @@ const DepartmentList = () => {
       },
       {
         key: "delete",
-        label: (count) => (count > 1 ? "Delete departments" : "Delete department"),
+        label: (count) =>
+          count > 1 ? "Delete departments" : "Delete department",
         icon: TrashBinIcon,
         variant: "destructive",
         permission: "DELETE:DEPARTMENT",
@@ -293,7 +309,9 @@ const DepartmentList = () => {
             initialData={active}
             onClose={handleCloseForm}
             onSubmit={handleSave}
-            submitting={createDepartment.isPending || updateDepartment.isPending}
+            submitting={
+              createDepartment.isPending || updateDepartment.isPending
+            }
           />
         )}
       </Modal>

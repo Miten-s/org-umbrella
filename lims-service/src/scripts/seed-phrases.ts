@@ -25,19 +25,41 @@ const SYSTEM_PHRASES: SeedPhrase[] = [
     phrase: "LOCATION_TYPE",
     name: "Location Type",
     description: "Kind of storage location",
-    entries: ["Building", "Room", "Freezer", "Refrigerator", "Cabinet", "Shelf", "Rack"]
+    entries: [
+      "Building",
+      "Room",
+      "Freezer",
+      "Refrigerator",
+      "Cabinet",
+      "Shelf",
+      "Rack"
+    ]
   },
   {
     phrase: "STOCK_TYPE",
     name: "Stock Type",
     description: "Kind of stock item",
-    entries: ["Reagent", "Solvent", "Standard", "Consumable", "Column", "Glassware"]
+    entries: [
+      "Reagent",
+      "Solvent",
+      "Standard",
+      "Consumable",
+      "Column",
+      "Glassware"
+    ]
   },
   {
     phrase: "STOCK_BATCH_STATUS",
     name: "Stock Batch Status",
     description: "Lifecycle state of a stock batch",
-    entries: ["Available", "Quarantine", "In Use", "Expired", "Depleted", "Rejected"]
+    entries: [
+      "Available",
+      "Quarantine",
+      "In Use",
+      "Expired",
+      "Depleted",
+      "Rejected"
+    ]
   },
   {
     phrase: "PARAMETER_TYPE",
@@ -49,13 +71,29 @@ const SYSTEM_PHRASES: SeedPhrase[] = [
     phrase: "INSTRUMENT_TYPE",
     name: "Instrument Type",
     description: "Category of instrument",
-    entries: ["HPLC", "GC", "UV-Vis Spectrophotometer", "FTIR", "Balance", "pH Meter", "Dissolution Apparatus", "Karl Fischer Titrator"]
+    entries: [
+      "HPLC",
+      "GC",
+      "UV-Vis Spectrophotometer",
+      "FTIR",
+      "Balance",
+      "pH Meter",
+      "Dissolution Apparatus",
+      "Karl Fischer Titrator"
+    ]
   },
   {
     phrase: "MEASUREMENT_TYPE",
     name: "Measurement Type",
     description: "What an instrument measures",
-    entries: ["Chromatographic", "Spectroscopic", "Gravimetric", "Volumetric", "Physical", "Electrochemical"]
+    entries: [
+      "Chromatographic",
+      "Spectroscopic",
+      "Gravimetric",
+      "Volumetric",
+      "Physical",
+      "Electrochemical"
+    ]
   },
   {
     phrase: "INSTRUMENT_STATUS",
@@ -63,13 +101,25 @@ const SYSTEM_PHRASES: SeedPhrase[] = [
     description: "Operational state of an instrument",
     // "In Calibration" is required by the spec: a calibration falling due sets
     // the instrument to it, which blocks results being recorded against it.
-    entries: ["Operational", "In Calibration", "Under Maintenance", "Out of Service", "Retired"]
+    entries: [
+      "Operational",
+      "In Calibration",
+      "Under Maintenance",
+      "Out of Service",
+      "Retired"
+    ]
   },
   {
     phrase: "CALIBRATION_TYPE",
     name: "Calibration Type",
     description: "Kind of calibration activity",
-    entries: ["Internal", "External", "Preventive Maintenance", "Qualification", "Verification"]
+    entries: [
+      "Internal",
+      "External",
+      "Preventive Maintenance",
+      "Qualification",
+      "Verification"
+    ]
   },
   {
     phrase: "CALIBRATION_STATUS",
@@ -81,25 +131,52 @@ const SYSTEM_PHRASES: SeedPhrase[] = [
     phrase: "ANALYSIS_TYPE",
     name: "Analysis Type",
     description: "Category of analytical method",
-    entries: ["Assay", "Impurity", "Dissolution", "Microbiological", "Physical", "Identification", "Water Content"]
+    entries: [
+      "Assay",
+      "Impurity",
+      "Dissolution",
+      "Microbiological",
+      "Physical",
+      "Identification",
+      "Water Content"
+    ]
   },
   {
     phrase: "APPROVAL_STATUS",
     name: "Approval Status",
     description: "Approval state of a method or specification",
-    entries: ["Draft", "In Review", "Approved", "Rejected", "Superseded", "Retired"]
+    entries: [
+      "Draft",
+      "In Review",
+      "Approved",
+      "Rejected",
+      "Superseded",
+      "Retired"
+    ]
   },
   {
     phrase: "SAMPLE_TYPE",
     name: "Sample Type",
     description: "Kind of sample",
-    entries: ["Raw Material", "In-Process", "Finished Product", "Stability", "Environmental", "Water", "Retain", "Calibration"]
+    entries: [
+      "Raw Material",
+      "In-Process",
+      "Finished Product",
+      "Stability",
+      "Environmental",
+      "Water",
+      "Retain",
+      "Calibration"
+    ]
   }
 ];
 
 /** `LOCATION_TYPE` + "Freezer" → `LOCATION_TYPE_FREEZER`. */
 const entryKey = (phrase: string, value: string) =>
-  `${phrase}_${value.toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_|_$/g, "")}`;
+  `${phrase}_${value
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/^_|_$/g, "")}`;
 
 const run = async () => {
   await sequelize.authenticate();
@@ -126,7 +203,10 @@ const run = async () => {
 
     for (const value of seed.entries) {
       const [, entryIsNew] = await PhraseEntry.findOrCreate({
-        where: { phraseId: phrase.id, phraseEntryId: entryKey(seed.phrase, value) },
+        where: {
+          phraseId: phrase.id,
+          phraseEntryId: entryKey(seed.phrase, value)
+        },
         defaults: {
           phraseId: phrase.id,
           phraseEntryId: entryKey(seed.phrase, value),

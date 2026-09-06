@@ -10,7 +10,9 @@ export const limsInspectionPlanSchema = z.object({
   details: z.string().max(500).optional()
 });
 
-export type LimsInspectionPlanFormValues = z.infer<typeof limsInspectionPlanSchema>;
+export type LimsInspectionPlanFormValues = z.infer<
+  typeof limsInspectionPlanSchema
+>;
 
 /** Copy mode leaves the business ID blank + disabled (server always mints a fresh
  * one — see LimsInspectionPlanForm) — same shape, minus the required check. */

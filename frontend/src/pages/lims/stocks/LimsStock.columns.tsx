@@ -7,7 +7,11 @@ import { refLabel } from "@/utils/refLabel";
 import type { LimsStock } from "./LimsStock.types";
 
 /** Column factory (STANDARDS.md §8). */
-export const getLimsStockColumns = ({ t }: { t: TFunction }): ColDef<LimsStock>[] => [
+export const getLimsStockColumns = ({
+  t
+}: {
+  t: TFunction;
+}): ColDef<LimsStock>[] => [
   {
     field: "stockId",
     headerName: t("limsStockId"),
@@ -24,7 +28,10 @@ export const getLimsStockColumns = ({ t }: { t: TFunction }): ColDef<LimsStock>[
     minWidth: 210,
     cellRenderer: (params: ICellRendererParams<LimsStock>) =>
       params.data ? (
-        <AvatarCell label={String(params.data.stockName ?? "")} fallbackInitial="•" />
+        <AvatarCell
+          label={String(params.data.stockName ?? "")}
+          fallbackInitial="•"
+        />
       ) : null
   },
   {

@@ -4,14 +4,20 @@ import type { TFunction } from "i18next";
 import type { GxpPermission } from "./Permission.types";
 
 /** GXP Permission columns — name (avatar) + clamped description. */
-export const getPermissionColumns = ({ t }: { t: TFunction }): ColDef<GxpPermission>[] => [
+export const getPermissionColumns = ({
+  t
+}: {
+  t: TFunction;
+}): ColDef<GxpPermission>[] => [
   {
     field: "permissionName",
     headerName: t("permissionName"),
     flex: 1,
     minWidth: 260,
     cellRenderer: (params: ICellRendererParams<GxpPermission>) =>
-      params.data ? <AvatarCell label={params.data.permissionName} fallbackInitial="P" /> : null
+      params.data ? (
+        <AvatarCell label={params.data.permissionName} fallbackInitial="P" />
+      ) : null
   },
   {
     field: "description",

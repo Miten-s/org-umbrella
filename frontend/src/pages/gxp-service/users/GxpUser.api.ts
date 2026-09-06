@@ -15,7 +15,10 @@ const normalizeRoles = (roles: unknown): GxpUserRole[] => {
     .map((r: any) =>
       typeof r === "string"
         ? { id: r, name: r }
-        : { id: String(r?._id ?? r?.id ?? ""), name: String(r?.name ?? r?._id ?? r?.id ?? "") }
+        : {
+            id: String(r?._id ?? r?.id ?? ""),
+            name: String(r?.name ?? r?._id ?? r?.id ?? "")
+          }
     )
     .filter((r) => r.id);
 };
@@ -25,7 +28,10 @@ export const fetchGxpUserList = async (
   params: ServerListParams,
   signal?: AbortSignal
 ) => {
-  const query = { ...buildServerParams(params), ...(includeDisabled ? { includeDisabled: true } : {}) };
+  const query = {
+    ...buildServerParams(params),
+    ...(includeDisabled ? { includeDisabled: true } : {})
+  };
   const response = await gxpApi.get(ROUTE, { params: query, signal });
   const result = toListResult<GxpUser>(response.data, params, DATA_KEYS);
   result.rows = result.rows.map((u: any) => ({
@@ -40,7 +46,10 @@ export const fetchGxpUserList = async (
 
 /** Full record for the Edit/Copy/View modal — fetched on demand when it opens,
  * not reused from the list row (see useLimsRecordById, reused generically). */
-export const fetchGxpUserById = async (id: string, signal?: AbortSignal): Promise<GxpUser> => {
+export const fetchGxpUserById = async (
+  id: string,
+  signal?: AbortSignal
+): Promise<GxpUser> => {
   const response = await gxpApi.get(`${ROUTE}/${id}`, { signal });
   const u: any = response.data;
   return {
@@ -55,7 +64,9 @@ export const fetchGxpUserById = async (id: string, signal?: AbortSignal): Promis
 
 /** Every platform userId already mapped to a GXP user, active OR disabled — included on
  * purpose, since the backend has no uniqueness check scoped to active rows either. */
-export const fetchLinkedPlatformUserIds = async (signal?: AbortSignal): Promise<Set<string>> => {
+export const fetchLinkedPlatformUserIds = async (
+  signal?: AbortSignal
+): Promise<Set<string>> => {
   const limit = 500;
   const ids = new Set<string>();
   let page = 1;
@@ -92,7 +103,10 @@ export const deleteGxpUser = async (id: string) => {
 };
 
 export const bulkDeleteGxpUser = async (selection: BulkSelection) => {
-  const response = await gxpApi.post(`${ROUTE}/bulk-delete`, bulkSelectionToBody(selection));
+  const response = await gxpApi.post(
+    `${ROUTE}/bulk-delete`,
+    bulkSelectionToBody(selection)
+  );
   return response.data;
 };
 
@@ -103,13 +117,20 @@ export const bulkCopyGxpUser = async (records: GxpUserPayload[]) => {
   return response.data as GxpUser[];
 };
 
-export const bulkUpdateGxpUser = async (updates: { id: string; payload: GxpUserPayload }[]) => {
+export const bulkUpdateGxpUser = async (
+  updates: { id: string; payload: GxpUserPayload }[]
+) => {
   const response = await gxpApi.patch(`${ROUTE}/bulk-update`, { updates });
-  return response.data as { results: { id: string; status: "updated" | "skipped" }[] };
+  return response.data as {
+    results: { id: string; status: "updated" | "skipped" }[];
+  };
 };
 
 export const bulkRestoreGxpUser = async (selection: BulkSelection) => {
-  const response = await gxpApi.patch(`${ROUTE}/bulk-restore`, bulkSelectionToBody(selection));
+  const response = await gxpApi.patch(
+    `${ROUTE}/bulk-restore`,
+    bulkSelectionToBody(selection)
+  );
   return response.data as { message: string; count: number };
 };
 

@@ -28,7 +28,9 @@ export const getLimsParameterColumns = ({
     flex: 1,
     minWidth: 220,
     cellRenderer: (params: ICellRendererParams<LimsParameter>) =>
-      params.data ? <AvatarCell label={params.data.parameterName} fallbackInitial="P" /> : null
+      params.data ? (
+        <AvatarCell label={params.data.parameterName} fallbackInitial="P" />
+      ) : null
   },
   {
     colId: "parameterType",

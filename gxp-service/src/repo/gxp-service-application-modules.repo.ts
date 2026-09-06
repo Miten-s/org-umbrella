@@ -1,4 +1,6 @@
-import AppModule, { IAppModule } from "../models/gxp-service-application-modules.model";
+import AppModule, {
+  IAppModule
+} from "../models/gxp-service-application-modules.model";
 import Application from "../models/gxp-service-applications.model";
 import { PaginationOptions } from "../utils/pagination.util";
 import { Op } from "sequelize";
@@ -32,7 +34,7 @@ export const createApplicationModule = async (
     ...payload,
     createdBy: currentUser
   } as any);
-  
+
   const reloaded = await AppModule.findByPk(doc.id, {
     include: [moduleApplicationPopulate]
   });
@@ -126,7 +128,10 @@ export const findApplicationModulesByFilter = async (filter: any) => {
   return data.map(formatAppModule);
 };
 
-export const bulkDeleteApplicationModules = async (ids: string[], session?: any) => {
+export const bulkDeleteApplicationModules = async (
+  ids: string[],
+  session?: any
+) => {
   return await AppModule.destroy({
     where: { id: ids }
   });

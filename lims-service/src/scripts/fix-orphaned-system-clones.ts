@@ -15,7 +15,10 @@ const TARGET_IDS = [
 
 const run = async () => {
   await sequelize.transaction(async (transaction) => {
-    const rows = await Phrase.findAll({ where: { id: TARGET_IDS }, transaction });
+    const rows = await Phrase.findAll({
+      where: { id: TARGET_IDS },
+      transaction
+    });
 
     if (rows.length !== TARGET_IDS.length) {
       throw new Error(

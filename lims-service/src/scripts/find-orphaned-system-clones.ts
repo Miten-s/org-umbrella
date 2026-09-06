@@ -10,7 +10,9 @@ const run = async () => {
   // `isDeleted` is a plain boolean column here, not Sequelize `paranoid`
   // mode — a bare findAll already returns every row, soft-deleted or not.
   const all = await Phrase.findAll();
-  const suspects = all.filter((row) => row.isSystem && CLONE_SUFFIX.test(row.phrase));
+  const suspects = all.filter(
+    (row) => row.isSystem && CLONE_SUFFIX.test(row.phrase)
+  );
 
   if (!suspects.length) {
     console.log("No orphaned system-flagged clones found.");

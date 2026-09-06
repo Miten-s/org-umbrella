@@ -1,4 +1,4 @@
-2/**
+2; /**
  * In-memory stand-in for lims-service, implementing the contract in
  * LIMS_BACKEND_SPEC.md. Delete this folder once the real service is up.
  *
@@ -69,7 +69,9 @@ export const getAudit = (route: string, recordId: string) => {
   const entity = registry.get(route);
   const record = entity?.rows.find((r) => r.id === recordId);
   const uniqueId = String(record?.[entity?.uniqueField ?? "id"] ?? recordId);
-  return (auditLog.get(route) ?? []).filter((entry) => entry.uniqueId === uniqueId);
+  return (auditLog.get(route) ?? []).filter(
+    (entry) => entry.uniqueId === uniqueId
+  );
 };
 
 export const recordAudit = (
@@ -81,10 +83,22 @@ export const recordAudit = (
 ) => {
   const entity = registry.get(route);
   const uniqueId = String(record[entity?.uniqueField ?? "id"] ?? record.id);
-  const base = { uniqueId, action, changeReason: changeReason ?? null, who: MOCK_USER, when: nowIso() };
+  const base = {
+    uniqueId,
+    action,
+    changeReason: changeReason ?? null,
+    who: MOCK_USER,
+    when: nowIso()
+  };
 
   if (!changes.length) {
-    pushAudit(route, { id: newId(), field: null, oldValue: null, newValue: null, ...base });
+    pushAudit(route, {
+      id: newId(),
+      field: null,
+      oldValue: null,
+      newValue: null,
+      ...base
+    });
     return;
   }
 
@@ -104,7 +118,11 @@ export const diffFields = (before: MockRow, after: Record<string, unknown>) =>
   Object.keys(after)
     .filter((key) => key !== "changeReason" && key !== "id")
     .filter((key) => JSON.stringify(before[key]) !== JSON.stringify(after[key]))
-    .map((key) => ({ field: key, oldValue: before[key], newValue: after[key] }));
+    .map((key) => ({
+      field: key,
+      oldValue: before[key],
+      newValue: after[key]
+    }));
 
 export interface ListArgs {
   page: number;
@@ -116,13 +134,17 @@ export interface ListArgs {
 }
 
 export const queryList = (entity: MockEntity, args: ListArgs) => {
-  let rows = entity.rows.filter((row) => (args.includeRemoved ? true : !row.isRemoved));
+  let rows = entity.rows.filter((row) =>
+    args.includeRemoved ? true : !row.isRemoved
+  );
 
   if (args.search) {
     const term = args.search.toLowerCase();
     rows = rows.filter((row) =>
       entity.searchFields.some((field) =>
-        String(row[field] ?? "").toLowerCase().includes(term)
+        String(row[field] ?? "")
+          .toLowerCase()
+          .includes(term)
       )
     );
   }
@@ -156,7 +178,11 @@ export const queryList = (entity: MockEntity, args: ListArgs) => {
  * value of `field` (defaults to the label, e.g. Name — `bulkCreateRows`
  * below reuses this against `uniqueField`, e.g. a Pick List's code).
  */
-export const cloneNameFor = (entity: MockEntity, value: string, field: string) => {
+export const cloneNameFor = (
+  entity: MockEntity,
+  value: string,
+  field: string
+) => {
   const base = value.replace(/-\(\d+\)$/, "");
   const taken = new Set(
     entity.rows.filter((r) => !r.isRemoved).map((r) => String(r[field] ?? ""))
@@ -169,7 +195,10 @@ export const cloneNameFor = (entity: MockEntity, value: string, field: string) =
 export const cloneName = (entity: MockEntity, value: string) =>
   cloneNameFor(entity, value, entity.labelField);
 
-export const createRow = (entity: MockEntity, payload: Record<string, unknown>) => {
+export const createRow = (
+  entity: MockEntity,
+  payload: Record<string, unknown>
+) => {
   const row: MockRow = {
     ...payload,
     id: newId(),
@@ -198,7 +227,9 @@ export const bulkCreateRows = (
   records.map((payload) => {
     const value = String(payload[entity.uniqueField] ?? "");
     const taken = new Set(
-      entity.rows.filter((r) => !r.isRemoved).map((r) => String(r[entity.uniqueField] ?? ""))
+      entity.rows
+        .filter((r) => !r.isRemoved)
+        .map((r) => String(r[entity.uniqueField] ?? ""))
     );
 
     let warning: string | undefined;
@@ -236,7 +267,11 @@ export const updateRow = (
   return row;
 };
 
-export const softDelete = (entity: MockEntity, ids: string[], changeReason?: string) => {
+export const softDelete = (
+  entity: MockEntity,
+  ids: string[],
+  changeReason?: string
+) => {
   let count = 0;
   ids.forEach((id) => {
     const row = entity.rows.find((r) => r.id === id && !r.isRemoved);
@@ -249,7 +284,11 @@ export const softDelete = (entity: MockEntity, ids: string[], changeReason?: str
   return count;
 };
 
-export const restoreRow = (entity: MockEntity, id: string, changeReason?: string) => {
+export const restoreRow = (
+  entity: MockEntity,
+  id: string,
+  changeReason?: string
+) => {
   const row = entity.rows.find((r) => r.id === id);
   if (!row) return undefined;
   row.isRemoved = false;
@@ -269,7 +308,10 @@ export const duplicateRows = (entity: MockEntity, ids: string[]) => {
         isRemoved: false,
         createdOn: nowIso(),
         modifiedOn: nowIso(),
-        [entity.labelField]: cloneName(entity, String((source as MockRow)[entity.labelField] ?? ""))
+        [entity.labelField]: cloneName(
+          entity,
+          String((source as MockRow)[entity.labelField] ?? "")
+        )
       };
       return clone;
     });

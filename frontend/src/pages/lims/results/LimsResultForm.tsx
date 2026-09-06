@@ -17,12 +17,20 @@ import { useLimsSampleOptions } from "@/pages/lims/samples/LimsSample.queries";
 import { useLimsAnalysisOptions } from "@/pages/lims/analyses/LimsAnalysis.queries";
 import { useLimsInstrumentOptions } from "@/pages/lims/instruments/LimsInstrument.queries";
 import { useLimsStockOptions } from "@/pages/lims/stocks/LimsStock.queries";
-import { limsResultSchema, type LimsResultFormValues } from "./LimsResult.schema";
-import type { LimsResult, LimsResultPayload, LimsRef } from "./LimsResult.types";
+import {
+  limsResultSchema,
+  type LimsResultFormValues
+} from "./LimsResult.schema";
+import type {
+  LimsResult,
+  LimsResultPayload,
+  LimsRef
+} from "./LimsResult.types";
 
 /** "copy" renders like "create" — resultId/version are locked/server-generated either way
  * (see the read-only displays below). */
-export type LimsResultFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type LimsResultFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsResultFormProps {
   mode?: LimsResultFormMode;
@@ -79,7 +87,7 @@ const LimsResultForm = ({
       stock: initialData?.stock?.id ?? "",
       enteredOn: initialData?.enteredOn ?? "",
       enteredBy: initialData?.enteredBy ?? "",
-      outOfRange: initialData?.outOfRange ?? false,
+      outOfRange: initialData?.outOfRange ?? false
     }),
     [initialData]
   );
@@ -141,7 +149,10 @@ const LimsResultForm = ({
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
-          if ((mode === "edit" || mode === "bulk-edit") && isPayloadEqual(values, initialValues)) {
+          if (
+            (mode === "edit" || mode === "bulk-edit") &&
+            isPayloadEqual(values, initialValues)
+          ) {
             (onUnchanged ?? onClose)();
             return;
           }
@@ -287,11 +298,21 @@ const LimsResultForm = ({
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

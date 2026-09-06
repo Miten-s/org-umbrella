@@ -43,7 +43,8 @@ export const errorHandler = (
   // Handle Sequelize Validation Error
   else if (err?.name === "SequelizeValidationError") {
     statusCode = 400;
-    message = (err as any).errors?.map((e: any) => e.message).join(", ") || err.message;
+    message =
+      (err as any).errors?.map((e: any) => e.message).join(", ") || err.message;
   }
   // Handle Sequelize Foreign Key Constraint Error
   else if (err?.name === "SequelizeForeignKeyConstraintError") {

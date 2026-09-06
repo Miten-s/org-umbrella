@@ -8,7 +8,11 @@ import type { LimsGroup, LimsGroupRef } from "./LimsGroup.types";
 const refLabel = (ref: LimsGroupRef | null | undefined) => ref?.name ?? "";
 
 /** Column factory (STANDARDS.md §8). */
-export const getLimsGroupColumns = ({ t }: { t: TFunction }): ColDef<LimsGroup>[] => [
+export const getLimsGroupColumns = ({
+  t
+}: {
+  t: TFunction;
+}): ColDef<LimsGroup>[] => [
   {
     field: "groupId",
     headerName: t("limsGroupId"),
@@ -24,7 +28,9 @@ export const getLimsGroupColumns = ({ t }: { t: TFunction }): ColDef<LimsGroup>[
     flex: 1,
     minWidth: 220,
     cellRenderer: (params: ICellRendererParams<LimsGroup>) =>
-      params.data ? <AvatarCell label={params.data.name} fallbackInitial="G" /> : null
+      params.data ? (
+        <AvatarCell label={params.data.name} fallbackInitial="G" />
+      ) : null
   },
   {
     field: "description",

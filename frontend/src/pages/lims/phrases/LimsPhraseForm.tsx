@@ -11,7 +11,10 @@ import AsyncSelect from "@/components/data/AsyncSelect";
 import SubFormGrid from "@/components/data/SubFormGrid";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
-import { limsPhraseSchema, type LimsPhraseFormValues } from "./LimsPhrase.schema";
+import {
+  limsPhraseSchema,
+  type LimsPhraseFormValues
+} from "./LimsPhrase.schema";
 import type {
   LimsPhrase,
   LimsPhraseEntry,
@@ -21,7 +24,8 @@ import type {
 
 /** "copy" renders like "create" except the code starts blank (Phrase has no server-minted
  * id, stays EDITABLE). `isSystem` is only read on edit/view — a copy is never itself system. */
-export type LimsPhraseFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type LimsPhraseFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsPhraseFormProps {
   mode?: LimsPhraseFormMode;
@@ -67,7 +71,9 @@ const LimsPhraseForm = ({
   const identityLocked = isReadOnly || isSystem;
 
   const initialEntriesRef = useRef(initialData?.entries ?? []);
-  const [entries, setEntries] = useState<LimsPhraseEntry[]>(initialEntriesRef.current);
+  const [entries, setEntries] = useState<LimsPhraseEntry[]>(
+    initialEntriesRef.current
+  );
 
   // Captured once per record — also the no-change baseline `submit` diffs
   // against, so Save is a no-op when nothing actually differs from it.
@@ -171,7 +177,9 @@ const LimsPhraseForm = ({
               )}
             />
             {errors.group ? (
-              <p className="mt-1 text-xs text-red-500">{errors.group.message}</p>
+              <p className="mt-1 text-xs text-red-500">
+                {errors.group.message}
+              </p>
             ) : null}
           </div>
 
@@ -180,7 +188,9 @@ const LimsPhraseForm = ({
             <TextArea
               disabled={isReadOnly}
               value={description || ""}
-              onChange={(val) => setValue("description", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("description", val, { shouldValidate: true })
+              }
               error={!!errors.description}
               hint={errors.description?.message}
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
@@ -206,11 +216,21 @@ const LimsPhraseForm = ({
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

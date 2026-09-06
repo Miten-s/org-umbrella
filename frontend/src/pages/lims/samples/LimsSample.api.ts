@@ -1,5 +1,9 @@
 import limsApi from "@/utils/lims.axios.interceptor";
-import { buildServerParams, toListResult, toOptionsPage } from "@/lib/query/listAdapter";
+import {
+  buildServerParams,
+  toListResult,
+  toOptionsPage
+} from "@/lib/query/listAdapter";
 import { bulkSelectionToBody, type BulkSelection } from "@/lib/query/listTypes";
 import type { ServerListParams } from "@/lib/query/listTypes";
 import type { LimsSample, LimsSamplePayload } from "./LimsSample.types";
@@ -14,7 +18,15 @@ export const fetchLimsSampleById = async (id: string, signal?: AbortSignal) => {
   return (response.data?.data ?? response.data) as LimsSample;
 };
 const DATA_KEYS = ["samples", "data"];
-const RELATION_KEYS = ["group", "project", "sampleType", "specification", "location", "testGroup", "stockBatch"];
+const RELATION_KEYS = [
+  "group",
+  "project",
+  "sampleType",
+  "specification",
+  "location",
+  "testGroup",
+  "stockBatch"
+];
 
 export const fetchLimsSampleList = async (
   includeRemoved: boolean,
@@ -22,10 +34,18 @@ export const fetchLimsSampleList = async (
   signal?: AbortSignal
 ) => {
   const response = await limsApi.get(ROUTE, {
-    params: { ...buildServerParams(params), includeRemoved: includeRemoved || undefined },
+    params: {
+      ...buildServerParams(params),
+      includeRemoved: includeRemoved || undefined
+    },
     signal
   });
-  return toListResult<LimsSample>(response.data, params, DATA_KEYS, RELATION_KEYS);
+  return toListResult<LimsSample>(
+    response.data,
+    params,
+    DATA_KEYS,
+    RELATION_KEYS
+  );
 };
 
 /** Options for other modules selecting this entity. */
@@ -38,7 +58,10 @@ export const fetchLimsSampleOptions = async (
     limit: 20,
     search: args.search || undefined
   };
-  const response = await limsApi.get(ROUTE, { params: buildServerParams(params), signal });
+  const response = await limsApi.get(ROUTE, {
+    params: buildServerParams(params),
+    signal
+  });
   return toOptionsPage<LimsSample>(
     response.data,
     params,
@@ -58,7 +81,10 @@ const toBody = (payload: LimsSamplePayload, files?: File[]) => {
   };
 };
 
-export const createLimsSample = async (payload: LimsSamplePayload, files?: File[]) => {
+export const createLimsSample = async (
+  payload: LimsSamplePayload,
+  files?: File[]
+) => {
   const { body, config } = toBody(payload, files);
   const response = await limsApi.post(ROUTE, body, config);
   return response.data;
@@ -97,7 +123,10 @@ export const bulkRestoreLimsSample = async (
 };
 
 export const bulkCloneLimsSample = async (selection: BulkSelection) => {
-  const response = await limsApi.post(`${ROUTE}/bulk-duplicate`, bulkSelectionToBody(selection));
+  const response = await limsApi.post(
+    `${ROUTE}/bulk-duplicate`,
+    bulkSelectionToBody(selection)
+  );
   return response.data;
 };
 
@@ -116,7 +145,10 @@ export const bulkUpdateLimsSample = async (
   updates: { id: string; payload: LimsSamplePayload }[],
   changeReason: string
 ) => {
-  const response = await limsApi.patch(`${ROUTE}/bulk-update`, { updates, changeReason });
+  const response = await limsApi.patch(`${ROUTE}/bulk-update`, {
+    updates,
+    changeReason
+  });
   return response.data as {
     message: string;
     count: number;
@@ -125,7 +157,9 @@ export const bulkUpdateLimsSample = async (
 };
 
 export const restoreLimsSample = async (id: string, changeReason: string) => {
-  const response = await limsApi.patch(`${ROUTE}/restore/${id}`, { changeReason });
+  const response = await limsApi.patch(`${ROUTE}/restore/${id}`, {
+    changeReason
+  });
   return response.data;
 };
 
@@ -134,6 +168,9 @@ export const fetchLimsSampleAudit = async (
   signal?: AbortSignal,
   params?: { page?: number; limit?: number }
 ) => {
-  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { params, signal });
+  const response = await limsApi.get(`${ROUTE}/${id}/audit`, {
+    params,
+    signal
+  });
   return response.data;
 };

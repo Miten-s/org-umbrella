@@ -186,7 +186,10 @@ interface RowActionsCellProps<T> {
   user: AuthenticatedUser;
   /** Shared by every row's cell in this grid so opening one ⋮ menu closes
    * whichever other row's was left open — see AppDataTable's own comment on it. */
-  activeMenuRef: React.MutableRefObject<{ id: symbol; close: () => void } | null>;
+  activeMenuRef: React.MutableRefObject<{
+    id: symbol;
+    close: () => void;
+  } | null>;
 }
 
 export const RowActionsCell = <T extends object>({
@@ -267,10 +270,16 @@ export const RowActionsCell = <T extends object>({
       if (next) {
         // A stopPropagation'd click here never reaches another row's own
         // outside-click listener, so it never learns to close itself — ask it to.
-        if (activeMenuRef.current && activeMenuRef.current.id !== selfIdRef.current) {
+        if (
+          activeMenuRef.current &&
+          activeMenuRef.current.id !== selfIdRef.current
+        ) {
           activeMenuRef.current.close();
         }
-        activeMenuRef.current = { id: selfIdRef.current, close: () => setIsMenuOpen(false) };
+        activeMenuRef.current = {
+          id: selfIdRef.current,
+          close: () => setIsMenuOpen(false)
+        };
       } else {
         releaseIfSelf();
       }
@@ -451,7 +460,9 @@ const AppDataTable = <T extends object>({
   // previously-open row's outside-click listener from ever seeing the click — so
   // without this, opening a second row's menu leaves the first one open too, the
   // two visually overlapping as one "merged" menu (see BLK-09).
-  const activeRowMenuRef = useRef<{ id: symbol; close: () => void } | null>(null);
+  const activeRowMenuRef = useRef<{ id: symbol; close: () => void } | null>(
+    null
+  );
   const [gridApi, setGridApi] = useState<GridApi<T> | null>(null);
   const [selectedRows, setSelectedRows] = useState<T[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -657,7 +668,8 @@ const AppDataTable = <T extends object>({
     // A truncated header (long label, narrow/resized column) has no other way to
     // discover its full text — fall back to the header string itself as a tooltip.
     const withHeaderTooltips = columnDefs.map((colDef) =>
-      colDef.headerTooltip === undefined && typeof colDef.headerName === "string"
+      colDef.headerTooltip === undefined &&
+      typeof colDef.headerName === "string"
         ? { ...colDef, headerTooltip: colDef.headerName }
         : colDef
     );

@@ -757,8 +757,9 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
       const results: { id?: string; warning?: string; error?: string }[] = [];
       for (const raw of records) {
         try {
-          const { result, warning } = await sequelize.transaction((transaction) =>
-            createOne(raw, ctx, transaction, { collisionMode: "reject" })
+          const { result, warning } = await sequelize.transaction(
+            (transaction) =>
+              createOne(raw, ctx, transaction, { collisionMode: "reject" })
           );
           results.push({ id: result?.id ?? result?._id, warning });
         } catch (error: any) {
@@ -778,7 +779,9 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
   // only the LIST is scoped by the "show removed" toggle. Without this, opening Edit on a
   // soft-deleted row 404'd internally and the form silently loaded blank.
   const getById = async (id: string, ctx: CrudContext) =>
-    shape(formatLimsEntity(await repo.findById(id, ctx.scope, undefined, true)));
+    shape(
+      formatLimsEntity(await repo.findById(id, ctx.scope, undefined, true))
+    );
 
   const getAll = async (
     query: {

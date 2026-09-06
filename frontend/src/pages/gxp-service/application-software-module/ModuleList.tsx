@@ -1,4 +1,6 @@
-import DataTable, { type DataTableBulkAction } from "@/components/data/DataTable";
+import DataTable, {
+  type DataTableBulkAction
+} from "@/components/data/DataTable";
 import ConfirmDialog from "@/components/data/ConfirmDialog";
 import CopyStepper from "@/components/data/CopyStepper";
 import ViewStepper from "@/components/data/ViewStepper";
@@ -10,7 +12,13 @@ import { toast } from "@/lib/toast";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useModal } from "@/hooks/useModal";
 import { GXP_PERMISSIONS } from "@/utils/permissions";
-import { CopyIcon, EyeIcon, PencilIcon, PlusIcon, TrashBinIcon } from "@/public/icons";
+import {
+  CopyIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashBinIcon
+} from "@/public/icons";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -43,7 +51,9 @@ const ModuleList = () => {
 
   const [active, setActive] = useState<ApplicationSoftwareModule | null>(null);
   const [formMode, setFormMode] = useState<ModuleFormMode>("create");
-  const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<BulkSelection | null>(
+    null
+  );
   const [deleteCount, setDeleteCount] = useState(0);
   const [deleteNames, setDeleteNames] = useState<string[]>([]);
   const [includeDisabled, setIncludeDisabled] = useState(false);
@@ -51,7 +61,9 @@ const ModuleList = () => {
   const [copyIds, setCopyIds] = useState<string[] | null>(null);
   const [viewIds, setViewIds] = useState<string[] | null>(null);
   const [editIds, setEditIds] = useState<string[] | null>(null);
-  const [pendingRestore, setPendingRestore] = useState<BulkSelection | null>(null);
+  const [pendingRestore, setPendingRestore] = useState<BulkSelection | null>(
+    null
+  );
   const [restoreNames, setRestoreNames] = useState<string[]>([]);
 
   const table = useServerTable<ApplicationSoftwareModule>({
@@ -90,12 +102,17 @@ const ModuleList = () => {
   // Row actions seed `active` from the list's own (potentially stale) row — refetch it
   // fresh here so an application linked to this module from the Application side shows up,
   // same fix as GxpApplicationList's `useApplicationDetail`.
-  const activeDetail = useModuleById(active?.id, isOpen && formMode !== "create");
+  const activeDetail = useModuleById(
+    active?.id,
+    isOpen && formMode !== "create"
+  );
 
   const gridContext = useMemo(
     () => ({
       toggleDisabled: toggleStatus.isPending,
-      togglingId: toggleStatus.isPending ? toggleStatus.variables?.id : undefined,
+      togglingId: toggleStatus.isPending
+        ? toggleStatus.variables?.id
+        : undefined,
       onToggleStatus: (module: ApplicationSoftwareModule) => {
         if (toggleStatus.isPending) return;
         toggleStatus.mutate(module);
@@ -104,7 +121,10 @@ const ModuleList = () => {
     [toggleStatus]
   );
 
-  const openForm = (mode: ModuleFormMode, module: ApplicationSoftwareModule | null) => {
+  const openForm = (
+    mode: ModuleFormMode,
+    module: ApplicationSoftwareModule | null
+  ) => {
     setFormMode(mode);
     setActive(module);
     openModal();
@@ -145,17 +165,25 @@ const ModuleList = () => {
 
   const handleSaveCopies = async (payloads: ModuleFormValues[]) => {
     await bulkCopy.mutateAsync(
-      payloads.map((values) => ({ ...values, application: (values.application ?? "").trim() || undefined }))
+      payloads.map((values) => ({
+        ...values,
+        application: (values.application ?? "").trim() || undefined
+      }))
     );
     handleCloseForm();
     table.clearSelection();
   };
 
-  const handleSaveEdits = async (updates: { id: string; payload: ModuleFormValues }[]) => {
+  const handleSaveEdits = async (
+    updates: { id: string; payload: ModuleFormValues }[]
+  ) => {
     await bulkUpdate.mutateAsync(
       updates.map(({ id, payload }) => ({
         id,
-        payload: { ...payload, application: (payload.application ?? "").trim() || undefined }
+        payload: {
+          ...payload,
+          application: (payload.application ?? "").trim() || undefined
+        }
       }))
     );
     handleCloseForm();
@@ -170,12 +198,16 @@ const ModuleList = () => {
     const duplicate = nextApplicationId
       ? table.rows.find((module) => {
           if (active?.id === module.id) return false;
-          if (normalizeModuleName(module.moduleName) !== nextModuleName) return false;
+          if (normalizeModuleName(module.moduleName) !== nextModuleName)
+            return false;
           return getModuleApplicationId(module) === nextApplicationId;
         })
       : undefined;
     if (duplicate) {
-      toast("This module name already exists for the selected application.", "error");
+      toast(
+        "This module name already exists for the selected application.",
+        "error"
+      );
       return;
     }
 
@@ -239,14 +271,19 @@ const ModuleList = () => {
         icon: CopyIcon,
         variant: "outline",
         permission: GXP_PERMISSIONS.UPDATE_SOFTWARE_MODULES,
-        hidden: (rows) => !(rows as ApplicationSoftwareModule[]).some((row) => row.status === "disabled"),
+        hidden: (rows) =>
+          !(rows as ApplicationSoftwareModule[]).some(
+            (row) => row.status === "disabled"
+          ),
         onClick: (selection) => {
           if (selection.mode !== "ids") {
             toast("Select individual rows to restore.", "error");
             return;
           }
           setPendingRestore(selection);
-          setRestoreNames(table.getCachedRows(selection.ids).map((r) => r.moduleName));
+          setRestoreNames(
+            table.getCachedRows(selection.ids).map((r) => r.moduleName)
+          );
         }
       },
       {
@@ -269,7 +306,9 @@ const ModuleList = () => {
     [bulkClone, openCopy, openEdit, openView, table]
   );
 
-  const rowActions = useMemo<AppDataTableRowAction<ApplicationSoftwareModule>[]>(
+  const rowActions = useMemo<
+    AppDataTableRowAction<ApplicationSoftwareModule>[]
+  >(
     () => [
       {
         key: "view",
@@ -336,7 +375,11 @@ const ModuleList = () => {
         fillAvailableHeight
         busy={busy}
         titleExtra={
-          <Switch label={t("includeDisabled")} checked={includeDisabled} onChange={setIncludeDisabled} />
+          <Switch
+            label={t("includeDisabled")}
+            checked={includeDisabled}
+            onChange={setIncludeDisabled}
+          />
         }
         rowActions={rowActions}
         bulkActions={bulkActions}
@@ -390,7 +433,9 @@ const ModuleList = () => {
         ) : (
           <ModuleForm
             mode={formMode}
-            initialData={formMode === "create" ? null : (activeDetail.data ?? null)}
+            initialData={
+              formMode === "create" ? null : (activeDetail.data ?? null)
+            }
             onClose={handleCloseForm}
             onSubmit={handleSave}
             submitting={createModule.isPending || updateModule.isPending}

@@ -7,7 +7,11 @@ import { refLabel } from "@/utils/refLabel";
 import type { LimsInstrumentPart } from "./LimsInstrumentPart.types";
 
 /** Column factory (STANDARDS.md §8). */
-export const getLimsInstrumentPartColumns = ({ t }: { t: TFunction }): ColDef<LimsInstrumentPart>[] => [
+export const getLimsInstrumentPartColumns = ({
+  t
+}: {
+  t: TFunction;
+}): ColDef<LimsInstrumentPart>[] => [
   {
     field: "partId",
     headerName: t("limsPartId"),
@@ -24,7 +28,10 @@ export const getLimsInstrumentPartColumns = ({ t }: { t: TFunction }): ColDef<Li
     minWidth: 210,
     cellRenderer: (params: ICellRendererParams<LimsInstrumentPart>) =>
       params.data ? (
-        <AvatarCell label={String(params.data.partName ?? "")} fallbackInitial="•" />
+        <AvatarCell
+          label={String(params.data.partName ?? "")}
+          fallbackInitial="•"
+        />
       ) : null
   },
   {

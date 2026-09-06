@@ -10,7 +10,10 @@ export interface IServiceRequestAttachment {
   createdBy?: string | null;
 }
 
-export class ServiceRequestAttachment extends Model<IServiceRequestAttachment> implements IServiceRequestAttachment {
+export class ServiceRequestAttachment
+  extends Model<IServiceRequestAttachment>
+  implements IServiceRequestAttachment
+{
   public id!: string;
   public serviceRequestId!: string;
   public attachment!: string;
@@ -56,7 +59,13 @@ ServiceRequestAttachment.init(
 );
 
 // One-to-Many request attachments
-ServiceRequest.hasMany(ServiceRequestAttachment, { foreignKey: "service_request_id", as: "attachments" });
-ServiceRequestAttachment.belongsTo(ServiceRequest, { foreignKey: "service_request_id", as: "serviceRequest" });
+ServiceRequest.hasMany(ServiceRequestAttachment, {
+  foreignKey: "service_request_id",
+  as: "attachments"
+});
+ServiceRequestAttachment.belongsTo(ServiceRequest, {
+  foreignKey: "service_request_id",
+  as: "serviceRequest"
+});
 
 export default ServiceRequestAttachment;

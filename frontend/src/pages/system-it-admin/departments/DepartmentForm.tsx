@@ -9,11 +9,15 @@ import AsyncSelect from "@/components/data/AsyncSelect";
 import { useUserOptions } from "@/pages/system-it-admin/users/User.queries";
 import { useLocationOptions } from "@/pages/system-it-admin/locations/Location.queries";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
-import { departmentSchema, type DepartmentFormValues } from "./Department.schema";
+import {
+  departmentSchema,
+  type DepartmentFormValues
+} from "./Department.schema";
 import type { Department } from "./Department.types";
 import type { AsyncOption } from "@/lib/query/listTypes";
 
-export type DepartmentFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type DepartmentFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface DepartmentFormProps {
   mode?: DepartmentFormMode;
@@ -40,7 +44,9 @@ const seed = (
   ref: Department["departmentManager"],
   labelKey: "name" | "locationName"
 ): AsyncOption[] | undefined =>
-  ref?.id && ref[labelKey] ? [{ value: ref.id, label: ref[labelKey] as string }] : undefined;
+  ref?.id && ref[labelKey]
+    ? [{ value: ref.id, label: ref[labelKey] as string }]
+    : undefined;
 
 /**
  * Department create/edit/view/copy/bulk-edit form. Manager (User) and Location dropdowns use
@@ -89,7 +95,10 @@ const DepartmentForm = ({
         id={formId}
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the update call entirely — a no-op Save just closes.
-          if ((mode === "edit" || mode === "bulk-edit") && isPayloadEqual(values, initialValues)) {
+          if (
+            (mode === "edit" || mode === "bulk-edit") &&
+            isPayloadEqual(values, initialValues)
+          ) {
             (onUnchanged ?? onClose)();
             return;
           }
@@ -144,12 +153,17 @@ const DepartmentForm = ({
                   disabled={isReadOnly}
                   error={!!errors.departmentManager}
                   placeholder={t("select", { entity: t("departmentManager") })}
-                  initialSelectedOptions={seed(initialData?.departmentManager, "name")}
+                  initialSelectedOptions={seed(
+                    initialData?.departmentManager,
+                    "name"
+                  )}
                 />
               )}
             />
             {errors.departmentManager && (
-              <p className="mt-1 text-xs text-error-500">{errors.departmentManager.message}</p>
+              <p className="mt-1 text-xs text-error-500">
+                {errors.departmentManager.message}
+              </p>
             )}
           </div>
 
@@ -166,22 +180,37 @@ const DepartmentForm = ({
                   disabled={isReadOnly}
                   error={!!errors.departmentGroupLocation}
                   placeholder={t("select", { entity: t("location") })}
-                  initialSelectedOptions={seed(initialData?.departmentGroupLocation, "locationName")}
+                  initialSelectedOptions={seed(
+                    initialData?.departmentGroupLocation,
+                    "locationName"
+                  )}
                 />
               )}
             />
             {errors.departmentGroupLocation && (
-              <p className="mt-1 text-xs text-error-500">{errors.departmentGroupLocation.message}</p>
+              <p className="mt-1 text-xs text-error-500">
+                {errors.departmentGroupLocation.message}
+              </p>
             )}
           </div>
         </div>
 
         <div className="flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

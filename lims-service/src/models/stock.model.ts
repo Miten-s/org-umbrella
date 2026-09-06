@@ -49,24 +49,74 @@ export class Stock extends Model<IStock> implements IStock {
 
 Stock.init(
   {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    stockId: { type: DataTypes.STRING(100), allowNull: false, unique: true, field: "stock_id" },
-    stockName: { type: DataTypes.STRING(200), allowNull: false, field: "stock_name" },
-    stockTypeId: { type: DataTypes.UUID, allowNull: true, field: "stock_type_id" },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    stockId: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      unique: true,
+      field: "stock_id"
+    },
+    stockName: {
+      type: DataTypes.STRING(200),
+      allowNull: false,
+      field: "stock_name"
+    },
+    stockTypeId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: "stock_type_id"
+    },
     operatorId: { type: DataTypes.UUID, allowNull: true, field: "operator_id" },
-    defaultLocationId: { type: DataTypes.UUID, allowNull: true, field: "default_location_id" },
-    preferredSupplierId: { type: DataTypes.UUID, allowNull: true, field: "preferred_supplier_id" },
+    defaultLocationId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: "default_location_id"
+    },
+    preferredSupplierId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: "preferred_supplier_id"
+    },
     unit: { type: DataTypes.STRING(50), allowNull: true },
-    targetAmount: { type: DataTypes.DECIMAL(18, 6), allowNull: true, field: "target_amount" },
-    lowAmount: { type: DataTypes.DECIMAL(18, 6), allowNull: true, field: "low_amount" },
-    lowPercentage: { type: DataTypes.DECIMAL(5, 2), allowNull: true, field: "low_percentage" },
+    targetAmount: {
+      type: DataTypes.DECIMAL(18, 6),
+      allowNull: true,
+      field: "target_amount"
+    },
+    lowAmount: {
+      type: DataTypes.DECIMAL(18, 6),
+      allowNull: true,
+      field: "low_amount"
+    },
+    lowPercentage: {
+      type: DataTypes.DECIMAL(5, 2),
+      allowNull: true,
+      field: "low_percentage"
+    },
     description: { type: DataTypes.TEXT, allowNull: true },
     details: { type: DataTypes.TEXT, allowNull: true },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
-    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "is_deleted" },
+    isDeleted: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: "is_deleted"
+    },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.STRING(100), allowNull: true, field: "deleted_by" },
-    modifiedBy: { type: DataTypes.STRING(100), allowNull: true, field: "modified_by" }
+    deletedBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "deleted_by"
+    },
+    modifiedBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "modified_by"
+    }
   },
   { sequelize, tableName: "lims_stocks", underscored: true, timestamps: true }
 );

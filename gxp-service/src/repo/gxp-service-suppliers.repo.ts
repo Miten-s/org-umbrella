@@ -20,7 +20,7 @@ export const findAllSuppliers = async (
 ) => {
   const { page = 1, limit = 10, skip = 0, search } = options;
   const where: any = { ...filter };
-  
+
   if (where._id) {
     where.id = where._id;
     delete where._id;

@@ -22,7 +22,8 @@ import type { LimsSpecificationPayload } from "./LimsSpecification.types";
 
 export const limsSpecificationKeys = {
   all: ["limsSpecification"] as const,
-  list: (params: ServerListParams) => ["limsSpecification", "list", params] as const,
+  list: (params: ServerListParams) =>
+    ["limsSpecification", "list", params] as const,
   audit: (id: string) => ["limsSpecification", "audit", id] as const,
   options: ["limsSpecification", "options"] as const
 };
@@ -66,7 +67,13 @@ const useInvalidate = () => {
 export const useCreateLimsSpecification = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ payload, files }: { payload: LimsSpecificationPayload; files?: File[] }) => createLimsSpecification(payload, files),
+    mutationFn: ({
+      payload,
+      files
+    }: {
+      payload: LimsSpecificationPayload;
+      files?: File[];
+    }) => createLimsSpecification(payload, files),
     onSuccess: () => {
       toast("Record created successfully.", "success");
       invalidate();
@@ -77,8 +84,15 @@ export const useCreateLimsSpecification = () => {
 export const useUpdateLimsSpecification = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ id, payload, files }: { id: string; payload: LimsSpecificationPayload; files?: File[] }) =>
-      updateLimsSpecification(id, payload, files),
+    mutationFn: ({
+      id,
+      payload,
+      files
+    }: {
+      id: string;
+      payload: LimsSpecificationPayload;
+      files?: File[];
+    }) => updateLimsSpecification(id, payload, files),
     onSuccess: () => {
       toast("Record updated successfully.", "success");
       invalidate();
@@ -135,7 +149,8 @@ export const useBulkRestoreLimsSpecification = () => {
 export const useBulkCloneLimsSpecification = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (selection: BulkSelection) => bulkCloneLimsSpecification(selection),
+    mutationFn: (selection: BulkSelection) =>
+      bulkCloneLimsSpecification(selection),
     onSuccess: (_data, selection) => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
       toast(
@@ -154,7 +169,8 @@ export const useBulkCloneLimsSpecification = () => {
 export const useBulkCopyLimsSpecification = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (records: LimsSpecificationPayload[]) => bulkCopyLimsSpecification(records),
+    mutationFn: (records: LimsSpecificationPayload[]) =>
+      bulkCopyLimsSpecification(records),
     onSuccess: (data) => {
       const warnings = data.results.filter((r) => r.warning);
       toast(

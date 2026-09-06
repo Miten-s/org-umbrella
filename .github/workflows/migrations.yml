@@ -1,4 +1,4 @@
-﻿name: Database Migrations Management
+name: Database Migrations Management
 
 on:
   workflow_dispatch:
@@ -13,6 +13,14 @@ on:
           - backend
           - gxp-service
           - lims-service
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'migrate'
+        type: choice
+        options:
+          - migrate
+          - check
       environment:
         description: 'Infisical Environment'
         required: true
@@ -35,16 +43,17 @@ jobs:
           script: |
             cd ~/org-umbrella
             git config --global --add safe.directory $(pwd)
-            git fetch origin
-            git checkout sp/docker-based-deployment
-            git reset --hard origin/sp/docker-based-deployment
+            git fetch origin main
+            git checkout main
+            git reset --hard origin/main
             
             SERVICE="${{ github.event.inputs.service }}"
+            ACTION="${{ github.event.inputs.action }}"
             ENV_NAME="${{ github.event.inputs.environment }}"
             
             run_service_migration() {
               SVC=$1
-              echo "===> Running migrations for $SVC in $ENV_NAME environment..."
+              echo "===> Executing $ACTION for $SVC in $ENV_NAME environment..."
               CONTAINER_ID=$(docker compose -f docker-compose.yml ps -q $SVC)
               if [ -z "$CONTAINER_ID" ]; then
                 echo "Error: Container for $SVC is not running. Starting it now..."
@@ -52,8 +61,14 @@ jobs:
                 CONTAINER_ID=$(docker compose -f docker-compose.yml ps -q $SVC)
               fi
               
-              infisical run --env=$ENV_NAME --path=/$SVC --recursive -- docker exec -i $CONTAINER_ID npm run db:migrate
-              echo "===> Migrations for $SVC completed successfully!"
+              if [ "$ACTION" = "check" ]; then
+                infisical run --env=$ENV_NAME --path=/$SVC --recursive -- docker exec -i $CONTAINER_ID npm run db:migrate:check
+              else
+                infisical run --env=$ENV_NAME --path=/$SVC --recursive -- docker exec -i $CONTAINER_ID npm run db:migrate
+                echo "===> Verifying database sync post-migration..."
+                infisical run --env=$ENV_NAME --path=/$SVC --recursive -- docker exec -i $CONTAINER_ID npm run db:migrate:check
+              fi
+              echo "===> Operation ($ACTION) for $SVC completed successfully!"
             }
 
             if [ "$SERVICE" = "all" ] || [ "$SERVICE" = "backend" ]; then

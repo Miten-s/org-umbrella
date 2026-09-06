@@ -1,5 +1,9 @@
 import limsApi from "@/utils/lims.axios.interceptor";
-import { buildServerParams, toListResult, toOptionsPage } from "@/lib/query/listAdapter";
+import {
+  buildServerParams,
+  toListResult,
+  toOptionsPage
+} from "@/lib/query/listAdapter";
 import { bulkSelectionToBody, type BulkSelection } from "@/lib/query/listTypes";
 import type { ServerListParams } from "@/lib/query/listTypes";
 import type { LimsPhrase, LimsPhrasePayload } from "./LimsPhrase.types";
@@ -44,10 +48,18 @@ export const fetchLimsPhraseList = async (
   signal?: AbortSignal
 ) => {
   const response = await limsApi.get(ROUTE, {
-    params: { ...buildServerParams(params), includeRemoved: includeRemoved || undefined },
+    params: {
+      ...buildServerParams(params),
+      includeRemoved: includeRemoved || undefined
+    },
     signal
   });
-  return toListResult<LimsPhrase>(response.data, params, DATA_KEYS, RELATION_KEYS);
+  return toListResult<LimsPhrase>(
+    response.data,
+    params,
+    DATA_KEYS,
+    RELATION_KEYS
+  );
 };
 
 interface PhraseEntryRow extends Record<string, unknown> {
@@ -85,7 +97,10 @@ export const createLimsPhrase = async (payload: LimsPhrasePayload) => {
   return response.data;
 };
 
-export const updateLimsPhrase = async (id: string, payload: LimsPhrasePayload) => {
+export const updateLimsPhrase = async (
+  id: string,
+  payload: LimsPhrasePayload
+) => {
   const response = await limsApi.patch(`${ROUTE}/${id}`, payload);
   return response.data;
 };
@@ -113,7 +128,10 @@ export const bulkRestoreLimsPhrase = async (
 };
 
 export const bulkCloneLimsPhrase = async (selection: BulkSelection) => {
-  const response = await limsApi.post(`${ROUTE}/bulk-duplicate`, bulkSelectionToBody(selection));
+  const response = await limsApi.post(
+    `${ROUTE}/bulk-duplicate`,
+    bulkSelectionToBody(selection)
+  );
   return response.data;
 };
 
@@ -134,7 +152,10 @@ export const bulkUpdateLimsPhrase = async (
   updates: { id: string; payload: LimsPhrasePayload }[],
   changeReason: string
 ) => {
-  const response = await limsApi.patch(`${ROUTE}/bulk-update`, { updates, changeReason });
+  const response = await limsApi.patch(`${ROUTE}/bulk-update`, {
+    updates,
+    changeReason
+  });
   return response.data as {
     message: string;
     count: number;
@@ -143,7 +164,9 @@ export const bulkUpdateLimsPhrase = async (
 };
 
 export const restoreLimsPhrase = async (id: string, changeReason: string) => {
-  const response = await limsApi.patch(`${ROUTE}/restore/${id}`, { changeReason });
+  const response = await limsApi.patch(`${ROUTE}/restore/${id}`, {
+    changeReason
+  });
   return response.data;
 };
 
@@ -152,6 +175,9 @@ export const fetchLimsPhraseAudit = async (
   signal?: AbortSignal,
   params?: { page?: number; limit?: number }
 ) => {
-  const response = await limsApi.get(`${ROUTE}/${id}/audit`, { params, signal });
+  const response = await limsApi.get(`${ROUTE}/${id}/audit`, {
+    params,
+    signal
+  });
   return response.data;
 };

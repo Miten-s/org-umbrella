@@ -10,10 +10,7 @@ import {
 import { createPortal } from "react-dom";
 import { ChipList } from "@/components/common/form/chipList";
 export type TooltipPlacement =
-  | "top-right"
-  | "top-left"
-  | "bottom-right"
-  | "bottom-left";
+  "top-right" | "top-left" | "bottom-right" | "bottom-left";
 export type TooltipPlacementInput = TooltipPlacement | "right" | "left";
 
 interface CountWithTooltipProps {

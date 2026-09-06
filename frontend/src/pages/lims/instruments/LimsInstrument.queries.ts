@@ -22,7 +22,8 @@ import type { LimsInstrumentPayload } from "./LimsInstrument.types";
 
 export const limsInstrumentKeys = {
   all: ["limsInstrument"] as const,
-  list: (params: ServerListParams) => ["limsInstrument", "list", params] as const,
+  list: (params: ServerListParams) =>
+    ["limsInstrument", "list", params] as const,
   audit: (id: string) => ["limsInstrument", "audit", id] as const,
   options: ["limsInstrument", "options"] as const
 };
@@ -66,7 +67,13 @@ const useInvalidate = () => {
 export const useCreateLimsInstrument = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ payload, files }: { payload: LimsInstrumentPayload; files?: File[] }) => createLimsInstrument(payload, files),
+    mutationFn: ({
+      payload,
+      files
+    }: {
+      payload: LimsInstrumentPayload;
+      files?: File[];
+    }) => createLimsInstrument(payload, files),
     onSuccess: () => {
       toast("Record created successfully.", "success");
       invalidate();
@@ -77,8 +84,15 @@ export const useCreateLimsInstrument = () => {
 export const useUpdateLimsInstrument = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ id, payload, files }: { id: string; payload: LimsInstrumentPayload; files?: File[] }) =>
-      updateLimsInstrument(id, payload, files),
+    mutationFn: ({
+      id,
+      payload,
+      files
+    }: {
+      id: string;
+      payload: LimsInstrumentPayload;
+      files?: File[];
+    }) => updateLimsInstrument(id, payload, files),
     onSuccess: () => {
       toast("Record updated successfully.", "success");
       invalidate();
@@ -135,7 +149,8 @@ export const useBulkRestoreLimsInstrument = () => {
 export const useBulkCloneLimsInstrument = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (selection: BulkSelection) => bulkCloneLimsInstrument(selection),
+    mutationFn: (selection: BulkSelection) =>
+      bulkCloneLimsInstrument(selection),
     onSuccess: (_data, selection) => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
       toast(
@@ -154,7 +169,8 @@ export const useBulkCloneLimsInstrument = () => {
 export const useBulkCopyLimsInstrument = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (records: LimsInstrumentPayload[]) => bulkCopyLimsInstrument(records),
+    mutationFn: (records: LimsInstrumentPayload[]) =>
+      bulkCopyLimsInstrument(records),
     onSuccess: (data) => {
       const warnings = data.results.filter((r) => r.warning);
       toast(

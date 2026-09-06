@@ -10,7 +10,10 @@ import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import SubFormGrid from "@/components/data/SubFormGrid";
 
-import { useAnalysisTypeOptions, useApprovalStatusOptions } from "@/pages/lims/phrases/LimsPhrase.queries";
+import {
+  useAnalysisTypeOptions,
+  useApprovalStatusOptions
+} from "@/pages/lims/phrases/LimsPhrase.queries";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsInspectionPlanOptions } from "@/pages/lims/inspection-plans/LimsInspectionPlan.queries";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
@@ -19,11 +22,17 @@ import {
   limsAnalysisCopySchema,
   type LimsAnalysisFormValues
 } from "./LimsAnalysis.schema";
-import type { LimsAnalysis, LimsAnalysisPayload, LimsRef, LimsComponentRow } from "./LimsAnalysis.types";
+import type {
+  LimsAnalysis,
+  LimsAnalysisPayload,
+  LimsRef,
+  LimsComponentRow
+} from "./LimsAnalysis.types";
 
 /** "copy" renders like "create" except the business ID starts blank (stays EDITABLE — mints
  * fresh only when empty). "bulk-edit" is like "edit" but calls `onUnchanged` instead of closing. */
-export type LimsAnalysisFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type LimsAnalysisFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsAnalysisFormProps {
   mode?: LimsAnalysisFormMode;
@@ -66,7 +75,9 @@ const LimsAnalysisForm = ({
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
   const initialComponentsRef = useRef(initialData?.components ?? []);
-  const [components, setComponents] = useState<LimsComponentRow[]>(initialComponentsRef.current);
+  const [components, setComponents] = useState<LimsComponentRow[]>(
+    initialComponentsRef.current
+  );
   const [componentsError, setComponentsError] = useState<string | undefined>();
 
   // Captured once per record — also the no-change baseline `submit` diffs
@@ -81,7 +92,7 @@ const LimsAnalysisForm = ({
       inspectionPlan: initialData?.inspectionPlan?.id ?? "",
       sopReference: initialData?.sopReference ?? "",
       description: initialData?.description ?? "",
-      details: initialData?.details ?? "",
+      details: initialData?.details ?? ""
     }),
     [initialData, mode]
   );
@@ -93,7 +104,9 @@ const LimsAnalysisForm = ({
     setValue,
     formState: { errors, isSubmitting }
   } = useForm<LimsAnalysisFormValues>({
-    resolver: zodResolver(mode === "copy" ? limsAnalysisCopySchema : limsAnalysisSchema),
+    resolver: zodResolver(
+      mode === "copy" ? limsAnalysisCopySchema : limsAnalysisSchema
+    ),
     defaultValues: initialValues
   });
 
@@ -138,10 +151,13 @@ const LimsAnalysisForm = ({
           // A component saved with a blank Min/Max can never be fixed once picked
           // elsewhere (Specifications copies it in read-only) — block it at the source.
           const missingLimits = components.some(
-            (row) => !String(row.min ?? "").trim() || !String(row.max ?? "").trim()
+            (row) =>
+              !String(row.min ?? "").trim() || !String(row.max ?? "").trim()
           );
           if (missingLimits) {
-            setComponentsError("Every component needs both a Min and a Max value.");
+            setComponentsError(
+              "Every component needs both a Min and a Max value."
+            );
             return;
           }
           setComponentsError(undefined);
@@ -236,7 +252,9 @@ const LimsAnalysisForm = ({
             <TextArea
               disabled={isReadOnly}
               value={description || ""}
-              onChange={(val) => setValue("description", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("description", val, { shouldValidate: true })
+              }
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
@@ -245,7 +263,9 @@ const LimsAnalysisForm = ({
             <TextArea
               disabled={isReadOnly}
               value={details || ""}
-              onChange={(val) => setValue("details", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("details", val, { shouldValidate: true })
+              }
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
@@ -271,19 +291,37 @@ const LimsAnalysisForm = ({
                 { key: "list", header: t("limsList") },
                 { key: "entity", header: t("limsEntity") },
                 { key: "entityCriteria", header: t("limsEntityCriteria") },
-                { key: "min", header: `${t("limsMin")} *`, type: "numeric-text" },
-                { key: "max", header: `${t("limsMax")} *`, type: "numeric-text" }
+                {
+                  key: "min",
+                  header: `${t("limsMin")} *`,
+                  type: "numeric-text"
+                },
+                {
+                  key: "max",
+                  header: `${t("limsMax")} *`,
+                  type: "numeric-text"
+                }
               ]}
             />
           </div>
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

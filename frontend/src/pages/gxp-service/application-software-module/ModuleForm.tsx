@@ -10,7 +10,10 @@ import AsyncSelect from "@/components/data/AsyncSelect";
 import { useApplicationOptions } from "@/pages/gxp-service/add-new-application/Application.options";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { moduleSchema, type ModuleFormValues } from "./Module.schema";
-import { getModuleApplicationId, type ApplicationSoftwareModule } from "./Module.types";
+import {
+  getModuleApplicationId,
+  type ApplicationSoftwareModule
+} from "./Module.types";
 import type { AsyncOption } from "@/lib/query/listTypes";
 
 export type ModuleFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
@@ -36,7 +39,9 @@ interface ModuleFormProps {
   stepLabel?: string;
 }
 
-const seedApplication = (module?: ApplicationSoftwareModule | null): AsyncOption[] | undefined => {
+const seedApplication = (
+  module?: ApplicationSoftwareModule | null
+): AsyncOption[] | undefined => {
   const app = module?.application;
   if (app && typeof app === "object" && app.id && app.applicationName) {
     return [{ value: app.id, label: app.applicationName }];
@@ -85,7 +90,10 @@ const ModuleForm = ({
       <form
         id={formId}
         onSubmit={handleSubmit((values) => {
-          if ((mode === "edit" || mode === "bulk-edit") && isPayloadEqual(values, initialValues)) {
+          if (
+            (mode === "edit" || mode === "bulk-edit") &&
+            isPayloadEqual(values, initialValues)
+          ) {
             (onUnchanged ?? onClose)();
             return;
           }
@@ -145,7 +153,9 @@ const ModuleForm = ({
                   label={value === "enabled" ? t("enabled") : t("disabled")}
                   checked={value === "enabled"}
                   disabled={isReadOnly}
-                  onChange={(checked) => onChange(checked ? "enabled" : "disabled")}
+                  onChange={(checked) =>
+                    onChange(checked ? "enabled" : "disabled")
+                  }
                 />
               )}
             />
@@ -153,11 +163,21 @@ const ModuleForm = ({
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

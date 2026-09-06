@@ -77,7 +77,13 @@ export const useCreateLimsAliquot = () => {
 export const useUpdateLimsAliquot = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: LimsAliquotPayload }) => updateLimsAliquot(id, payload),
+    mutationFn: ({
+      id,
+      payload
+    }: {
+      id: string;
+      payload: LimsAliquotPayload;
+    }) => updateLimsAliquot(id, payload),
     onSuccess: () => {
       toast("Record updated successfully.", "success");
       invalidate();

@@ -9,13 +9,16 @@
     "dev": "concurrently \"npm run watch\" \"npm run serve\"",
     "serve": "nodemon dist/server.js",
     "watch": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "prettier:check": "prettier --check \"src/**/*.{js,ts,json,md}\"",
     "lint": "eslint 'src/**/*.{js,ts}'",
     "format": "prettier --write 'src/**/*.{js,ts,json,md}'",
     "migrate:create": "npx migrate-mongo create --file ./dist/configs/migrate-mongo.config.js",
     "migrate:up": "npx migrate-mongo up --file ./dist/configs/migrate-mongo.config.js",
     "migrate:down": "npx migrate-mongo down --file ./dist/configs/migrate-mongo.config.js",
     "migrate:status": "npx migrate-mongo status --file ./dist/configs/migrate-mongo.config.js",
-    "db:migrate": "node -e \"import('./dist/migrations/index.js').then(({ migrations, runMigrations }) => import('./dist/configs/db.sequelize.js').then(({ sequelize }) => runMigrations(sequelize, migrations))).then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\""
+    "db:migrate": "node -e \"import('./dist/migrations/index.js').then(({ migrations, runMigrations }) => import('./dist/configs/db.sequelize.js').then(({ sequelize }) => runMigrations(sequelize, migrations))).then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\"",
+    "db:migrate:check": "node -e \"import('./dist/migrations/index.js').then(({ migrations, checkMigrations }) => import('./dist/configs/db.sequelize.js').then(({ sequelize }) => checkMigrations(sequelize, migrations))).then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\""
   },
   "author": "soham",
   "license": "ISC",

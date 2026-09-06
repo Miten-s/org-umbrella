@@ -1,4 +1,12 @@
-import { IsBoolean, IsNotEmpty, IsOptional, IsString, Matches, ValidateNested, IsArray } from "class-validator";
+import {
+  IsBoolean,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  ValidateNested,
+  IsArray
+} from "class-validator";
 import { Type } from "class-transformer";
 
 class UserRefDto {

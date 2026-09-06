@@ -9,7 +9,11 @@ import type { LimsSample, LimsRef } from "./LimsSample.types";
 const refLabel = (ref: LimsRef | null | undefined) => ref?.name ?? "";
 
 /** Column factory (STANDARDS.md §8). */
-export const getLimsSampleColumns = ({ t }: { t: TFunction }): ColDef<LimsSample>[] => [
+export const getLimsSampleColumns = ({
+  t
+}: {
+  t: TFunction;
+}): ColDef<LimsSample>[] => [
   {
     field: "sampleId",
     headerName: t("limsSampleId"),
@@ -26,7 +30,10 @@ export const getLimsSampleColumns = ({ t }: { t: TFunction }): ColDef<LimsSample
     minWidth: 210,
     cellRenderer: (params: ICellRendererParams<LimsSample>) =>
       params.data ? (
-        <AvatarCell label={String(params.data.sampleName ?? "")} fallbackInitial="•" />
+        <AvatarCell
+          label={String(params.data.sampleName ?? "")}
+          fallbackInitial="•"
+        />
       ) : null
   },
   {

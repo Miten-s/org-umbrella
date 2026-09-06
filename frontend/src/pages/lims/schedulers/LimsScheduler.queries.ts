@@ -22,7 +22,8 @@ import type { LimsSchedulerPayload } from "./LimsScheduler.types";
 
 export const limsSchedulerKeys = {
   all: ["limsScheduler"] as const,
-  list: (params: ServerListParams) => ["limsScheduler", "list", params] as const,
+  list: (params: ServerListParams) =>
+    ["limsScheduler", "list", params] as const,
   audit: (id: string) => ["limsScheduler", "audit", id] as const,
   options: ["limsScheduler", "options"] as const
 };
@@ -77,7 +78,13 @@ export const useCreateLimsScheduler = () => {
 export const useUpdateLimsScheduler = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: LimsSchedulerPayload }) => updateLimsScheduler(id, payload),
+    mutationFn: ({
+      id,
+      payload
+    }: {
+      id: string;
+      payload: LimsSchedulerPayload;
+    }) => updateLimsScheduler(id, payload),
     onSuccess: () => {
       toast("Record updated successfully.", "success");
       invalidate();
@@ -153,7 +160,8 @@ export const useBulkCloneLimsScheduler = () => {
 export const useBulkCopyLimsScheduler = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (records: LimsSchedulerPayload[]) => bulkCopyLimsScheduler(records),
+    mutationFn: (records: LimsSchedulerPayload[]) =>
+      bulkCopyLimsScheduler(records),
     onSuccess: (data) => {
       const warnings = data.results.filter((r) => r.warning);
       toast(

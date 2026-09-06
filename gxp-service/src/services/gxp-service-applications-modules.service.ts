@@ -8,10 +8,7 @@ import { Op } from "sequelize";
 import crypto from "crypto";
 
 const normalizeModuleIdSegment = (value: string) =>
-  value
-    .trim()
-    .replace(/\s+/g, "-")
-    .toLowerCase();
+  value.trim().replace(/\s+/g, "-").toLowerCase();
 
 const buildModuleId = (moduleName: string, applicationName?: string) => {
   const left = normalizeModuleIdSegment(moduleName || "");
@@ -76,9 +73,13 @@ const findDuplicateForApplication = async (
   }
 
   const matchesResult = await repo.getApplicationModules(filter);
-  const matches = Array.isArray(matchesResult) ? matchesResult : matchesResult.data;
+  const matches = Array.isArray(matchesResult)
+    ? matchesResult
+    : matchesResult.data;
 
-  return matches.find((item: any) => String(item?.id) !== String(excludeId ?? ""));
+  return matches.find(
+    (item: any) => String(item?.id) !== String(excludeId ?? "")
+  );
 };
 
 const stripLegacyUniqueName = (value: any) => {
@@ -96,7 +97,9 @@ export const createApplicationModule = async (
 ) => {
   console.log("Creating application module with payload:", payload);
   const moduleName = (payload.moduleName ?? "").trim();
-  const application = parseApplicationId(payload.applicationId || (payload as any).application);
+  const application = parseApplicationId(
+    payload.applicationId || (payload as any).application
+  );
   const applicationName = await resolveApplicationName(application);
 
   if (application && !applicationName) {
@@ -119,21 +122,30 @@ export const createApplicationModule = async (
   }
 
   const created = await repo.createApplicationModule(
-    { ...payload, moduleName, applicationId: application, moduleIdString: moduleId },
+    {
+      ...payload,
+      moduleName,
+      applicationId: application,
+      moduleIdString: moduleId
+    },
     currentUser
   );
 
   return stripLegacyUniqueName(created);
 };
 
-
-export const getApplicationModules = async (options: PaginationOptions, includeDisabled = false) => {
+export const getApplicationModules = async (
+  options: PaginationOptions,
+  includeDisabled = false
+) => {
   const filter: any = {};
   if (!includeDisabled) filter.status = "enabled";
 
   const result = await repo.getApplicationModules(filter, options);
   if (result && (result as any).data && Array.isArray((result as any).data)) {
-    (result as any).data = (result as any).data.map((item: any) => stripLegacyUniqueName(item));
+    (result as any).data = (result as any).data.map((item: any) =>
+      stripLegacyUniqueName(item)
+    );
     return result;
   }
   return result;
@@ -154,8 +166,12 @@ export const updateApplicationModule = async (
     throw new Error("Application module not found");
   }
 
-  const previousApplicationId = parseApplicationId((existing as any).applicationId || (existing as any).application);
-  const previousApplicationName = parseApplicationName((existing as any).application);
+  const previousApplicationId = parseApplicationId(
+    (existing as any).applicationId || (existing as any).application
+  );
+  const previousApplicationName = parseApplicationName(
+    (existing as any).application
+  );
 
   const moduleName =
     updates.moduleName !== undefined
@@ -171,7 +187,10 @@ export const updateApplicationModule = async (
         ? parseApplicationId((updates as any).applicationId)
         : previousApplicationId;
 
-  const applicationName = await resolveApplicationName(application, previousApplicationName);
+  const applicationName = await resolveApplicationName(
+    application,
+    previousApplicationName
+  );
 
   if (application && !applicationName) {
     throw new Error("Application name not found for selected application");
@@ -211,7 +230,10 @@ export const bulkDeleteApplicationModules = async (ids: string[]) => {
   return await repo.bulkDeleteApplicationModules(ids);
 };
 
-export const bulkDuplicateApplicationModules = async (ids: string[], user: any) => {
+export const bulkDuplicateApplicationModules = async (
+  ids: string[],
+  user: any
+) => {
   const t = await sequelize.transaction();
   try {
     const sourceModules = await repo.findApplicationModulesByIds(ids);
@@ -237,7 +259,7 @@ export const bulkDuplicateApplicationModules = async (ids: string[], user: any) 
 
       let maxIndex = 0;
       similarResult.forEach((item: any) => {
-        const match = item.moduleName.match(new RegExp(regexStr, 'i'));
+        const match = item.moduleName.match(new RegExp(regexStr, "i"));
         if (match && match[1]) {
           const index = parseInt(match[1], 10);
           if (index > maxIndex) maxIndex = index;
@@ -245,7 +267,9 @@ export const bulkDuplicateApplicationModules = async (ids: string[], user: any) 
       });
 
       const newName = `${baseName}-(${maxIndex + 1})`;
-      const applicationName = await resolveApplicationName(source.applicationId);
+      const applicationName = await resolveApplicationName(
+        source.applicationId
+      );
       const newModuleId = buildModuleId(newName, applicationName);
 
       const now = new Date();

@@ -24,18 +24,27 @@ import {
   validateLimitsRows,
   type LimsSpecificationFormValues
 } from "./LimsSpecification.schema";
-import type { LimsSpecification, LimsSpecificationPayload, LimsRef, LimsLimitRow } from "./LimsSpecification.types";
+import type {
+  LimsSpecification,
+  LimsSpecificationPayload,
+  LimsRef,
+  LimsLimitRow
+} from "./LimsSpecification.types";
 
 /** "copy" renders like "create" except the business ID starts blank (stays EDITABLE —
  * `applyBusinessId` only mints when empty). Attachments hidden: the batch save is JSON-only. */
-export type LimsSpecificationFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type LimsSpecificationFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsSpecificationFormProps {
   mode?: LimsSpecificationFormMode;
   initialData?: LimsSpecification | null;
   onClose: () => void;
   onUnchanged?: () => void;
-  onSubmit: (payload: LimsSpecificationPayload, files: File[]) => Promise<void> | void;
+  onSubmit: (
+    payload: LimsSpecificationPayload,
+    files: File[]
+  ) => Promise<void> | void;
   submitting?: boolean;
   /** Overrides the submit button's label — CopyStepper uses this to say
    * "Next" on every step but the last, where the batch actually saves. */
@@ -71,7 +80,9 @@ const LimsSpecificationForm = ({
   const isReadOnly = mode === "view";
   const attachments = useAttachments(initialData?.attachments);
   const initialLimitsRef = useRef(initialData?.limits ?? []);
-  const [limits, setLimits] = useState<LimsLimitRow[]>(initialLimitsRef.current);
+  const [limits, setLimits] = useState<LimsLimitRow[]>(
+    initialLimitsRef.current
+  );
   // Limits live outside RHF/zod; computed live so the grid's error banner tracks edits.
   const limitsError = useMemo(() => validateLimitsRows(limits), [limits]);
 
@@ -82,7 +93,7 @@ const LimsSpecificationForm = ({
       specId: mode === "copy" ? "" : (initialData?.specId ?? ""),
       name: initialData?.name ?? "",
       group: initialData?.group?.id ?? "",
-      description: initialData?.description ?? "",
+      description: initialData?.description ?? ""
     }),
     [initialData, mode]
   );
@@ -94,7 +105,9 @@ const LimsSpecificationForm = ({
     setValue,
     formState: { errors, isSubmitting }
   } = useForm<LimsSpecificationFormValues>({
-    resolver: zodResolver(mode === "copy" ? limsSpecificationCopySchema : limsSpecificationSchema),
+    resolver: zodResolver(
+      mode === "copy" ? limsSpecificationCopySchema : limsSpecificationSchema
+    ),
     defaultValues: initialValues
   });
 
@@ -151,11 +164,11 @@ const LimsSpecificationForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsSpecification") })
-                        : mode === "copy"
+            : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsSpecification") })}${stepLabel ?? ""}`
               : initialData
-              ? `${t("update", { entity: t("limsSpecification") })}${stepLabel ?? ""}`
-              : t("create", { entity: t("limsSpecification") })}
+                ? `${t("update", { entity: t("limsSpecification") })}${stepLabel ?? ""}`
+                : t("create", { entity: t("limsSpecification") })}
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
@@ -183,7 +196,9 @@ const LimsSpecificationForm = ({
             <TextArea
               disabled={isReadOnly}
               value={description || ""}
-              onChange={(val) => setValue("description", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("description", val, { shouldValidate: true })
+              }
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
@@ -223,12 +238,19 @@ const LimsSpecificationForm = ({
                   // cell holds — see useLimsAnalysisComponentOptions.
                   useOptions: useLimsAnalysisComponentOptions,
                   onSelectOption: (_row, option) => {
-                    const component = option.data as LimsComponentRow | undefined;
+                    const component = option.data as
+                      LimsComponentRow | undefined;
                     return {
                       componentName: option.label,
                       // min/max are STRING columns backend-side, not real numeric ones.
-                      min: component?.min !== undefined ? String(component.min) : undefined,
-                      max: component?.max !== undefined ? String(component.max) : undefined
+                      min:
+                        component?.min !== undefined
+                          ? String(component.min)
+                          : undefined,
+                      max:
+                        component?.max !== undefined
+                          ? String(component.max)
+                          : undefined
                     };
                   }
                 },
@@ -257,16 +279,29 @@ const LimsSpecificationForm = ({
             />
           </div>
           {mode !== "copy" && mode !== "bulk-edit" && (
-            <LimsAttachmentsField attachments={attachments} disabled={isReadOnly} />
+            <LimsAttachmentsField
+              attachments={attachments}
+              disabled={isReadOnly}
+            />
           )}
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

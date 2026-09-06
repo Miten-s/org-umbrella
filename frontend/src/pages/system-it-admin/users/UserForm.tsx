@@ -46,7 +46,10 @@ interface UserFormProps {
 }
 
 /** Seed AsyncSelect with the label already present on the edited record. */
-const seedOption = (ref?: { id: string } & Record<string, unknown>, labelKey?: string): AsyncOption[] | undefined =>
+const seedOption = (
+  ref?: { id: string } & Record<string, unknown>,
+  labelKey?: string
+): AsyncOption[] | undefined =>
   ref && labelKey && typeof ref[labelKey] === "string"
     ? [{ value: ref.id, label: ref[labelKey] as string }]
     : undefined;
@@ -121,7 +124,10 @@ const UserForm = ({
 
   const handleFormSubmit = async (data: UserFormValues) => {
     // Edit + nothing actually changed: skip the update call entirely — a no-op Save just closes.
-    if ((mode === "edit" || mode === "bulk-edit") && isPayloadEqual(data, initialValues)) {
+    if (
+      (mode === "edit" || mode === "bulk-edit") &&
+      isPayloadEqual(data, initialValues)
+    ) {
       (onUnchanged ?? onClose)();
       return;
     }
@@ -157,7 +163,11 @@ const UserForm = ({
 
   return (
     <div className="modal-scrollbar max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-      <form id={formId} onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+      <form
+        id={formId}
+        onSubmit={handleSubmit(handleFormSubmit)}
+        className="space-y-4"
+      >
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("user") })
@@ -189,11 +199,18 @@ const UserForm = ({
                   value={field.value}
                   onChange={field.onChange}
                   placeholder={t("selectEntity", { entity: t("userType") })}
-                  options={Object.entries(UserTypes).map(([key, value]) => ({ label: key, value }))}
+                  options={Object.entries(UserTypes).map(([key, value]) => ({
+                    label: key,
+                    value
+                  }))}
                 />
               )}
             />
-            {errors.userType && <p className="mt-1 text-xs text-red-500">{errors.userType.message as string}</p>}
+            {errors.userType && (
+              <p className="mt-1 text-xs text-red-500">
+                {errors.userType.message as string}
+              </p>
+            )}
           </div>
 
           <div>
@@ -205,8 +222,7 @@ const UserForm = ({
               className="lowercase"
               autoComplete="off"
               {...register("email", {
-                setValueAs: (v) =>
-                  typeof v === "string" ? v.toLowerCase() : v
+                setValueAs: (v) => (typeof v === "string" ? v.toLowerCase() : v)
               })}
               disabled={isReadOnly || !!initialData}
               error={!!errors.email}
@@ -235,7 +251,13 @@ const UserForm = ({
                     ) : (
                       <CloseIcon className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                     )}
-                    <span className={item.ok ? "text-gray-800 dark:text-gray-100" : ""}>{item.label}</span>
+                    <span
+                      className={
+                        item.ok ? "text-gray-800 dark:text-gray-100" : ""
+                      }
+                    >
+                      {item.label}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -261,7 +283,12 @@ const UserForm = ({
               name="status"
               control={control}
               render={({ field: { value, onChange } }) => (
-                <Switch label="" checked={value ?? false} disabled={isReadOnly} onChange={onChange} />
+                <Switch
+                  label=""
+                  checked={value ?? false}
+                  disabled={isReadOnly}
+                  onChange={onChange}
+                />
               )}
             />
           </div>
@@ -275,7 +302,12 @@ const UserForm = ({
                     name="modifiable"
                     control={control}
                     render={({ field: { value, onChange } }) => (
-                      <Checkbox checked={value ?? false} disabled={isReadOnly} onChange={onChange} label={t("yes")} />
+                      <Checkbox
+                        checked={value ?? false}
+                        disabled={isReadOnly}
+                        onChange={onChange}
+                        label={t("yes")}
+                      />
                     )}
                   />
                 </div>
@@ -285,7 +317,12 @@ const UserForm = ({
                     name="trainingCompleted"
                     control={control}
                     render={({ field: { value, onChange } }) => (
-                      <Checkbox checked={value ?? false} disabled={isReadOnly} onChange={onChange} label={t("yes")} />
+                      <Checkbox
+                        checked={value ?? false}
+                        disabled={isReadOnly}
+                        onChange={onChange}
+                        label={t("yes")}
+                      />
                     )}
                   />
                 </div>
@@ -315,12 +352,17 @@ const UserForm = ({
                       disabled={isReadOnly}
                       error={!!errors.locationGroup}
                       placeholder={t("select", { entity: t("location") })}
-                      initialSelectedOptions={seedOption(initialData?.location, "locationName")}
+                      initialSelectedOptions={seedOption(
+                        initialData?.location,
+                        "locationName"
+                      )}
                     />
                   )}
                 />
                 {errors.locationGroup && (
-                  <p className="mt-1 text-xs text-red-500">{errors.locationGroup.message as string}</p>
+                  <p className="mt-1 text-xs text-red-500">
+                    {errors.locationGroup.message as string}
+                  </p>
                 )}
               </div>
 
@@ -337,12 +379,17 @@ const UserForm = ({
                       disabled={isReadOnly}
                       error={!!errors.designation}
                       placeholder={t("select", { entity: t("designation") })}
-                      initialSelectedOptions={seedOption(initialData?.designation, "designationName")}
+                      initialSelectedOptions={seedOption(
+                        initialData?.designation,
+                        "designationName"
+                      )}
                     />
                   )}
                 />
                 {errors.designation && (
-                  <p className="mt-1 text-xs text-red-500">{errors.designation.message as string}</p>
+                  <p className="mt-1 text-xs text-red-500">
+                    {errors.designation.message as string}
+                  </p>
                 )}
               </div>
 
@@ -359,12 +406,17 @@ const UserForm = ({
                       disabled={isReadOnly}
                       error={!!errors.department}
                       placeholder={t("select", { entity: t("department") })}
-                      initialSelectedOptions={seedOption(initialData?.department, "departmentName")}
+                      initialSelectedOptions={seedOption(
+                        initialData?.department,
+                        "departmentName"
+                      )}
                     />
                   )}
                 />
                 {errors.department && (
-                  <p className="mt-1 text-xs text-red-500">{errors.department.message as string}</p>
+                  <p className="mt-1 text-xs text-red-500">
+                    {errors.department.message as string}
+                  </p>
                 )}
               </div>
 
@@ -419,7 +471,12 @@ const UserForm = ({
                         />
                       </div>
                       <div className="mt-4 flex justify-end gap-2">
-                        <Button type="button" variant="outline" disabled={isReadOnly} onClick={handleClearSignature}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={isReadOnly}
+                          onClick={handleClearSignature}
+                        >
                           Clear
                         </Button>
                       </div>
@@ -432,11 +489,21 @@ const UserForm = ({
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

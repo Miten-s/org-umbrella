@@ -4,7 +4,10 @@ import bcrypt from "bcrypt";
 
 // Generate a deterministic UUID from a string
 function stringToUUID(str: string, namespace: string): string {
-  const hash = crypto.createHash("sha256").update(namespace + ":" + str).digest("hex");
+  const hash = crypto
+    .createHash("sha256")
+    .update(namespace + ":" + str)
+    .digest("hex");
   const p1 = hash.substring(0, 8);
   const p2 = hash.substring(8, 12);
   const p3 = hash.substring(12, 16);
@@ -56,34 +59,67 @@ export const up = async (queryInterface: QueryInterface) => {
     { name: "GXP:VIEW:USER", description: "View users" },
     { name: "GXP:UPDATE:USER", description: "Update user details" },
     { name: "GXP:DELETE:USER", description: "Delete a user" },
-    { name: "GXP:CREATE:ASSIGNMENT_GROUP", description: "Create an assignment group" },
-    { name: "GXP:VIEW:ASSIGNMENT_GROUP", description: "View assignment groups" },
-    { name: "GXP:UPDATE:ASSIGNMENT_GROUP", description: "Update assignment group details" },
-    { name: "GXP:DELETE:ASSIGNMENT_GROUP", description: "Delete an assignment group" },
+    {
+      name: "GXP:CREATE:ASSIGNMENT_GROUP",
+      description: "Create an assignment group"
+    },
+    {
+      name: "GXP:VIEW:ASSIGNMENT_GROUP",
+      description: "View assignment groups"
+    },
+    {
+      name: "GXP:UPDATE:ASSIGNMENT_GROUP",
+      description: "Update assignment group details"
+    },
+    {
+      name: "GXP:DELETE:ASSIGNMENT_GROUP",
+      description: "Delete an assignment group"
+    },
     { name: "GXP:CREATE:WORKFLOW", description: "Create a workflow" },
     { name: "GXP:VIEW:WORKFLOW", description: "View workflows" },
     { name: "GXP:UPDATE:WORKFLOW", description: "Update workflow details" },
     { name: "GXP:DELETE:WORKFLOW", description: "Delete a workflow" },
     { name: "GXP:CREATE:ENVIRONMENT", description: "Create an environment" },
     { name: "GXP:VIEW:ENVIRONMENT", description: "View environments" },
-    { name: "GXP:UPDATE:ENVIRONMENT", description: "Update environment details" },
+    {
+      name: "GXP:UPDATE:ENVIRONMENT",
+      description: "Update environment details"
+    },
     { name: "GXP:DELETE:ENVIRONMENT", description: "Delete an environment" },
     { name: "GXP:CREATE:SUPPLIERS", description: "Create a supplier" },
     { name: "GXP:VIEW:SUPPLIERS", description: "View suppliers" },
     { name: "GXP:UPDATE:SUPPLIERS", description: "Update supplier details" },
     { name: "GXP:DELETE:SUPPLIERS", description: "Delete a supplier" },
-    { name: "GXP:CREATE:SOFTWARE_MODULES", description: "Create a software module" },
+    {
+      name: "GXP:CREATE:SOFTWARE_MODULES",
+      description: "Create a software module"
+    },
     { name: "GXP:VIEW:SOFTWARE_MODULES", description: "View software modules" },
-    { name: "GXP:UPDATE:SOFTWARE_MODULES", description: "Update software module details" },
-    { name: "GXP:DELETE:SOFTWARE_MODULES", description: "Delete a software module" },
+    {
+      name: "GXP:UPDATE:SOFTWARE_MODULES",
+      description: "Update software module details"
+    },
+    {
+      name: "GXP:DELETE:SOFTWARE_MODULES",
+      description: "Delete a software module"
+    },
     { name: "GXP:CREATE:SOFTWARE", description: "Create a software" },
     { name: "GXP:VIEW:SOFTWARE", description: "View software" },
     { name: "GXP:UPDATE:SOFTWARE", description: "Update software details" },
     { name: "GXP:DELETE:SOFTWARE", description: "Delete a software" },
-    { name: "GXP:CREATE:SERVICE_REQUEST", description: "Create a service request" },
+    {
+      name: "GXP:CREATE:SERVICE_REQUEST",
+      description: "Create a service request"
+    },
     { name: "GXP:VIEW:SERVICE_REQUEST", description: "View service requests" },
-    { name: "GXP:UPDATE:SERVICE_REQUEST", description: "Update service request details" },
-    { name: "GXP:DELETE:SERVICE_REQUEST", description: "Delete a service request" }
+    {
+      name: "GXP:UPDATE:SERVICE_REQUEST",
+      description: "Update service request details"
+    },
+    {
+      name: "GXP:DELETE:SERVICE_REQUEST",
+      description: "Delete a service request"
+    }
   ];
 
   const now = new Date();
@@ -95,7 +131,14 @@ export const up = async (queryInterface: QueryInterface) => {
       `INSERT INTO permissions (id, name, description, type, created_at, updated_at)
        VALUES (:id, :name, :description, 'default', :now, :now)
        ON CONFLICT (name) DO NOTHING`,
-      { replacements: { id, name: perm.name, description: perm.description, now } }
+      {
+        replacements: {
+          id,
+          name: perm.name,
+          description: perm.description,
+          now
+        }
+      }
     );
   }
 
@@ -106,7 +149,14 @@ export const up = async (queryInterface: QueryInterface) => {
       `INSERT INTO permissions (id, name, description, type, created_at, updated_at)
        VALUES (:id, :name, :description, 'gxp_service', :now, :now)
        ON CONFLICT (name) DO NOTHING`,
-      { replacements: { id, name: perm.name, description: perm.description, now } }
+      {
+        replacements: {
+          id,
+          name: perm.name,
+          description: perm.description,
+          now
+        }
+      }
     );
   }
 
@@ -160,7 +210,9 @@ export const up = async (queryInterface: QueryInterface) => {
       `INSERT INTO role_permissions (role_id, permission_id)
        VALUES (:roleId, :permId)
        ON CONFLICT DO NOTHING`,
-      { replacements: { roleId: superAdminRoleId, permId: operateAllPerm[0].id } }
+      {
+        replacements: { roleId: superAdminRoleId, permId: operateAllPerm[0].id }
+      }
     );
   }
 

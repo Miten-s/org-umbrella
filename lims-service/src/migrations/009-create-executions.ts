@@ -4,12 +4,24 @@ import { QueryInterface, DataTypes } from "sequelize";
  * are insert-only (`version`/`is_latest`, Part 11) and carry a partial index for 1M rows/day. */
 
 const softDeleteFields = {
-  is_deleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+  is_deleted: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
   deleted_at: { type: DataTypes.DATE, allowNull: true },
   deleted_by: { type: DataTypes.STRING(100), allowNull: true },
   modified_by: { type: DataTypes.STRING(100), allowNull: true },
-  created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
-  updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
+  created_at: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW
+  },
+  updated_at: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW
+  }
 };
 
 /**
@@ -42,7 +54,11 @@ const statusColumn = {
 export const up = async (queryInterface: QueryInterface) => {
   // ─── lims_batches ─────────────────────────────────────────────────────────
   await queryInterface.createTable("lims_batches", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     batch_id: { type: DataTypes.STRING(100), allowNull: false, unique: true },
     batch_name: { type: DataTypes.STRING(200), allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
@@ -58,7 +74,11 @@ export const up = async (queryInterface: QueryInterface) => {
   // ─── lims_lots ────────────────────────────────────────────────────────────
   // A lot belongs to at most one batch; the client picks lots when editing a batch.
   await queryInterface.createTable("lims_lots", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     lot_id: { type: DataTypes.STRING(100), allowNull: false, unique: true },
     lot_name: { type: DataTypes.STRING(200), allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
@@ -80,7 +100,11 @@ export const up = async (queryInterface: QueryInterface) => {
 
   // ─── lims_samples ─────────────────────────────────────────────────────────
   await queryInterface.createTable("lims_samples", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     // Always server-generated (spec: "ID Numeric (Auto Increment)").
     sample_id: { type: DataTypes.STRING(100), allowNull: false, unique: true },
     id_numeric: { type: DataTypes.BIGINT, allowNull: true },
@@ -156,7 +180,11 @@ export const up = async (queryInterface: QueryInterface) => {
 
   // ─── lims_tests ───────────────────────────────────────────────────────────
   await queryInterface.createTable("lims_tests", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     test_id: { type: DataTypes.STRING(100), allowNull: false, unique: true },
     test_name: { type: DataTypes.STRING(200), allowNull: true },
     sample_id: {
@@ -204,7 +232,11 @@ export const up = async (queryInterface: QueryInterface) => {
   // ─── lims_results ─────────────────────────────────────────────────────────
   // The 1M-rows-a-day table. Insert-only: see the header note.
   await queryInterface.createTable("lims_results", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     result_id: { type: DataTypes.STRING(100), allowNull: false },
     test_id: {
       type: DataTypes.UUID,
@@ -217,7 +249,11 @@ export const up = async (queryInterface: QueryInterface) => {
     component_name: { type: DataTypes.STRING(200), allowNull: true },
     value: { type: DataTypes.TEXT, allowNull: true },
     unit: { type: DataTypes.STRING(50), allowNull: true },
-    out_of_range: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    out_of_range: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    },
     instrument_id: {
       type: DataTypes.UUID,
       allowNull: true,
@@ -238,7 +274,11 @@ export const up = async (queryInterface: QueryInterface) => {
     // Versioning. `version` counts from 1; exactly one row per (test,
     // component) carries is_latest = true.
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 },
-    is_latest: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+    is_latest: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true
+    },
     /** The row this one supersedes — the chain back to the original entry. */
     supersedes_id: { type: DataTypes.UUID, allowNull: true },
 
@@ -269,14 +309,26 @@ export const up = async (queryInterface: QueryInterface) => {
   );
 
   // Version history for one component, oldest → newest.
-  await queryInterface.addIndex("lims_results", ["test_id", "component_id", "version"], {
-    name: "lims_results_version_chain_idx"
-  });
+  await queryInterface.addIndex(
+    "lims_results",
+    ["test_id", "component_id", "version"],
+    {
+      name: "lims_results_version_chain_idx"
+    }
+  );
 
   // ─── lims_schedulers ──────────────────────────────────────────────────────
   await queryInterface.createTable("lims_schedulers", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    scheduler_id: { type: DataTypes.STRING(100), allowNull: false, unique: true },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    scheduler_id: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      unique: true
+    },
     name: { type: DataTypes.STRING(200), allowNull: false },
     // Sample | Test | Result — what this scheduler raises.
     scope: { type: DataTypes.STRING(50), allowNull: true },
@@ -322,10 +374,22 @@ export const up = async (queryInterface: QueryInterface) => {
     lead_time_unit: { type: DataTypes.STRING(20), allowNull: true },
     last_run_date: { type: DataTypes.DATE, allowNull: true },
     next_run_date: { type: DataTypes.DATE, allowNull: true },
-    generated_count: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+    generated_count: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0
+    },
     description: { type: DataTypes.TEXT, allowNull: true },
-    auto_login: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
-    is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+    auto_login: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    },
+    is_active: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true
+    },
     group_id: requiredGroupRef,
     ...softDeleteFields
   });
@@ -340,7 +404,11 @@ export const up = async (queryInterface: QueryInterface) => {
   // ─── lims_test_windows ────────────────────────────────────────────────────
   // The result-entry grid on a sample — its own table, not nested, for the same volume reason as Results.
   await queryInterface.createTable("lims_test_windows", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     sample_id: {
       type: DataTypes.UUID,
       allowNull: false,
@@ -361,7 +429,11 @@ export const up = async (queryInterface: QueryInterface) => {
     description: { type: DataTypes.TEXT, allowNull: true },
     value: { type: DataTypes.TEXT, allowNull: true },
     unit: { type: DataTypes.STRING(50), allowNull: true },
-    out_of_range: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    out_of_range: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    },
     entered_on: { type: DataTypes.DATE, allowNull: true },
     entered_by: { type: DataTypes.STRING(200), allowNull: true },
     instrument_id: {
@@ -378,8 +450,16 @@ export const up = async (queryInterface: QueryInterface) => {
       onUpdate: "CASCADE",
       onDelete: "SET NULL"
     },
-    created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
-    updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    }
   });
   await queryInterface.addIndex("lims_test_windows", ["sample_id"]);
   await queryInterface.addIndex("lims_test_windows", ["test_id"]);

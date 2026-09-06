@@ -2,7 +2,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
 import { useLimsRecordById } from "@/hooks/useLimsRecordById";
 import { useUserOptions } from "@/pages/system-it-admin/users/User.queries";
-import type { BulkSelection, ListResult, ServerListParams } from "@/lib/query/listTypes";
+import type {
+  BulkSelection,
+  ListResult,
+  ServerListParams
+} from "@/lib/query/listTypes";
 import {
   bulkCopyGxpUser,
   bulkDeleteGxpUser,
@@ -74,7 +78,8 @@ export const useCreateGxpUser = () => {
 export const useUpdateGxpUser = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: GxpUserPayload }) => updateGxpUser(id, payload),
+    mutationFn: ({ id, payload }: { id: string; payload: GxpUserPayload }) =>
+      updateGxpUser(id, payload),
     onSuccess: () => {
       toast("User updated successfully.", "success");
       invalidate();
@@ -88,7 +93,12 @@ export const useBulkDeleteGxpUser = () => {
     mutationFn: (selection: BulkSelection) => bulkDeleteGxpUser(selection),
     onSuccess: (_data, selection) => {
       const count = selection.mode === "ids" ? selection.ids.length : undefined;
-      toast(count && count > 1 ? `${count} users deleted successfully.` : "User deleted successfully.", "success");
+      toast(
+        count && count > 1
+          ? `${count} users deleted successfully.`
+          : "User deleted successfully.",
+        "success"
+      );
       invalidate();
     }
   });
@@ -101,7 +111,12 @@ export const useBulkCopyGxpUser = () => {
   return useMutation({
     mutationFn: (records: GxpUserPayload[]) => bulkCopyGxpUser(records),
     onSuccess: (data) => {
-      toast(data.length > 1 ? `${data.length} users copied successfully.` : "User copied successfully.", "success");
+      toast(
+        data.length > 1
+          ? `${data.length} users copied successfully.`
+          : "User copied successfully.",
+        "success"
+      );
       invalidate();
     }
   });
@@ -110,10 +125,13 @@ export const useBulkCopyGxpUser = () => {
 export const useBulkUpdateGxpUser = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (updates: { id: string; payload: GxpUserPayload }[]) => bulkUpdateGxpUser(updates),
+    mutationFn: (updates: { id: string; payload: GxpUserPayload }[]) =>
+      bulkUpdateGxpUser(updates),
     onSuccess: (data) => {
       toast(
-        data.results.length > 1 ? `${data.results.length} users updated successfully.` : "User updated successfully.",
+        data.results.length > 1
+          ? `${data.results.length} users updated successfully.`
+          : "User updated successfully.",
         "success"
       );
       invalidate();
@@ -126,7 +144,12 @@ export const useBulkRestoreGxpUser = () => {
   return useMutation({
     mutationFn: (selection: BulkSelection) => bulkRestoreGxpUser(selection),
     onSuccess: (data) => {
-      toast(data.count > 1 ? `${data.count} users restored successfully.` : "User restored successfully.", "success");
+      toast(
+        data.count > 1
+          ? `${data.count} users restored successfully.`
+          : "User restored successfully.",
+        "success"
+      );
       invalidate();
     }
   });
@@ -137,25 +160,39 @@ export const useToggleGxpUserStatus = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (user: GxpUser) =>
-      user.status === "enabled" ? disableGxpUser(user.id) : enableGxpUser(user.id),
+      user.status === "enabled"
+        ? disableGxpUser(user.id)
+        : enableGxpUser(user.id),
     onMutate: async (user) => {
       await queryClient.cancelQueries({ queryKey: gxpUserKeys.all });
       const nextStatus = user.status === "enabled" ? "disabled" : "enabled";
-      const snapshots = queryClient.getQueriesData<ListResult<GxpUser>>({ queryKey: gxpUserKeys.all });
+      const snapshots = queryClient.getQueriesData<ListResult<GxpUser>>({
+        queryKey: gxpUserKeys.all
+      });
       snapshots.forEach(([key, data]) => {
         if (!data?.rows) return;
         queryClient.setQueryData<ListResult<GxpUser>>(key, {
           ...data,
-          rows: data.rows.map((row) => (row.id === user.id ? { ...row, status: nextStatus } : row))
+          rows: data.rows.map((row) =>
+            row.id === user.id ? { ...row, status: nextStatus } : row
+          )
         });
       });
       return { snapshots };
     },
     onSuccess: (_data, user) =>
-      toast(user.status === "enabled" ? "User disabled successfully." : "User enabled successfully.", "success"),
+      toast(
+        user.status === "enabled"
+          ? "User disabled successfully."
+          : "User enabled successfully.",
+        "success"
+      ),
     onError: (_error, _user, context) => {
-      context?.snapshots.forEach(([key, data]) => queryClient.setQueryData(key, data));
+      context?.snapshots.forEach(([key, data]) =>
+        queryClient.setQueryData(key, data)
+      );
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: gxpUserKeys.all })
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: gxpUserKeys.all })
   });
 };

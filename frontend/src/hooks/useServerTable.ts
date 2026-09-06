@@ -1,7 +1,10 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDebouncedValue } from "./useDebouncedValue";
-import { getCapabilities, type TableCapabilities } from "@/lib/query/capabilities";
+import {
+  getCapabilities,
+  type TableCapabilities
+} from "@/lib/query/capabilities";
 import {
   filterSelection,
   idsSelection,
@@ -90,7 +93,15 @@ export const useServerTable = <T>({
       sortDir: caps.canSort ? sort?.dir : undefined,
       filters: caps.canFilter ? effectiveFilters : undefined
     }),
-    [page, pageSize, search, sort, caps.canSort, caps.canFilter, effectiveFilters]
+    [
+      page,
+      pageSize,
+      search,
+      sort,
+      caps.canSort,
+      caps.canFilter,
+      effectiveFilters
+    ]
   );
 
   const query = useQuery<ListResult<T>>({
@@ -129,7 +140,10 @@ export const useServerTable = <T>({
   );
 
   // --- setters (reset page where it affects the result window) ---
-  const setPage = useCallback((next: number) => setPageState(Math.max(1, next)), []);
+  const setPage = useCallback(
+    (next: number) => setPageState(Math.max(1, next)),
+    []
+  );
 
   const setPageSize = useCallback((next: number) => {
     setPageSizeState(next);
@@ -216,7 +230,13 @@ export const useServerTable = <T>({
       return filterSelection(effectiveFilters, search || undefined);
     }
     return idsSelection([...selectedIds]);
-  }, [allMatchingSelected, caps.canBulkByFilter, effectiveFilters, search, selectedIds]);
+  }, [
+    allMatchingSelected,
+    caps.canBulkByFilter,
+    effectiveFilters,
+    search,
+    selectedIds
+  ]);
 
   const selectionCount = allMatchingSelected ? total : selectedIds.size;
   const hasSelection = allMatchingSelected || selectedIds.size > 0;

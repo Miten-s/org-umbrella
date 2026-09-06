@@ -4,12 +4,7 @@ import { sequelize } from "../configs/db.sequelize";
 /** One shared audit table for every entity (spec §11), discriminated by `entityName` +
  * `entityId` instead of one table per entity. CANCEL/REACTIVATE are execution-only. */
 export type AuditAction =
-  | "CREATE"
-  | "UPDATE"
-  | "DELETE"
-  | "RESTORE"
-  | "CANCEL"
-  | "REACTIVATE";
+  "CREATE" | "UPDATE" | "DELETE" | "RESTORE" | "CANCEL" | "REACTIVATE";
 
 export interface IAuditLog {
   id?: string;

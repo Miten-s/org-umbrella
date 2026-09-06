@@ -14,9 +14,16 @@ import {
   bulkUpdateWorkflows,
   bulkRestoreWorkflows
 } from "../controllers/gxp-service-workflows.controller";
-import { validateDto, validateDtoArray } from "../middlewares/validate-dto.middleware";
+import {
+  validateDto,
+  validateDtoArray
+} from "../middlewares/validate-dto.middleware";
 import { CreateWorkflowDto, UpdateWorkflowDto } from "../dtos/workflow.dto";
-import { BulkCreateDto, BulkUpdateDto, BulkOperationDto } from "../dtos/common.dto";
+import {
+  BulkCreateDto,
+  BulkUpdateDto,
+  BulkOperationDto
+} from "../dtos/common.dto";
 
 const router: Router = Router();
 

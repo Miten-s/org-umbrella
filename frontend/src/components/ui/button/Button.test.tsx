@@ -14,9 +14,14 @@ vi.mock("react-i18next", () => ({
 
 const { default: Button } = await import("./Button");
 
-const userWith = (roleName: string, ...permissions: string[]): AuthenticatedUser => ({
+const userWith = (
+  roleName: string,
+  ...permissions: string[]
+): AuthenticatedUser => ({
   id: "user-1",
-  roles: [{ name: roleName, permissions: permissions.map((name) => ({ name })) }]
+  roles: [
+    { name: roleName, permissions: permissions.map((name) => ({ name })) }
+  ]
 });
 
 const signedInAs = (user: AuthenticatedUser) =>
@@ -28,7 +33,11 @@ describe("Button — permission gating", () => {
   it("stays enabled when the user holds the required permission", () => {
     signedInAs(userWith("GXP_ADMIN", GXP_PERMISSIONS.DELETE_SERVICE_REQUEST));
 
-    render(<Button permission={GXP_PERMISSIONS.DELETE_SERVICE_REQUEST}>Delete</Button>);
+    render(
+      <Button permission={GXP_PERMISSIONS.DELETE_SERVICE_REQUEST}>
+        Delete
+      </Button>
+    );
 
     expect(screen.getByRole("button", { name: "Delete" })).toBeEnabled();
   });
@@ -36,7 +45,11 @@ describe("Button — permission gating", () => {
   it("disables — rather than hides — the action when the permission is missing", () => {
     signedInAs(userWith("GXP_VIEWER", GXP_PERMISSIONS.VIEW_SERVICE_REQUEST));
 
-    render(<Button permission={GXP_PERMISSIONS.DELETE_SERVICE_REQUEST}>Delete</Button>);
+    render(
+      <Button permission={GXP_PERMISSIONS.DELETE_SERVICE_REQUEST}>
+        Delete
+      </Button>
+    );
 
     const button = screen.getByRole("button", { name: "Delete" });
     // The control is still discoverable, but inert.
@@ -49,7 +62,10 @@ describe("Button — permission gating", () => {
     const onClick = vi.fn();
 
     render(
-      <Button permission={GXP_PERMISSIONS.DELETE_SERVICE_REQUEST} onClick={onClick}>
+      <Button
+        permission={GXP_PERMISSIONS.DELETE_SERVICE_REQUEST}
+        onClick={onClick}
+      >
         Delete
       </Button>
     );
@@ -63,7 +79,10 @@ describe("Button — permission gating", () => {
     const onClick = vi.fn();
 
     render(
-      <Button permission={GXP_PERMISSIONS.DELETE_SERVICE_REQUEST} onClick={onClick}>
+      <Button
+        permission={GXP_PERMISSIONS.DELETE_SERVICE_REQUEST}
+        onClick={onClick}
+      >
         Delete
       </Button>
     );
@@ -75,7 +94,11 @@ describe("Button — permission gating", () => {
   it("lets an OPERATE:ALL super admin through", () => {
     signedInAs(userWith(ROLES.SUPER_ADMIN, ADMIN_PERMISSIONS.OPERATE_ALL));
 
-    render(<Button permission={GXP_PERMISSIONS.DELETE_SERVICE_REQUEST}>Delete</Button>);
+    render(
+      <Button permission={GXP_PERMISSIONS.DELETE_SERVICE_REQUEST}>
+        Delete
+      </Button>
+    );
 
     expect(screen.getByRole("button", { name: "Delete" })).toBeEnabled();
   });

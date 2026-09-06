@@ -19,11 +19,24 @@ export class UserRole extends Model<IUserRole> implements IUserRole {
 
 UserRole.init(
   {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    limsUserId: { type: DataTypes.UUID, allowNull: false, field: "lims_user_id" },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    limsUserId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      field: "lims_user_id"
+    },
     roleId: { type: DataTypes.UUID, allowNull: false, field: "role_id" }
   },
-  { sequelize, tableName: "lims_user_roles", underscored: true, timestamps: true }
+  {
+    sequelize,
+    tableName: "lims_user_roles",
+    underscored: true,
+    timestamps: true
+  }
 );
 
 export default UserRole;

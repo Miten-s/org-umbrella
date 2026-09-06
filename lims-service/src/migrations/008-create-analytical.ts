@@ -4,12 +4,24 @@ import { QueryInterface, DataTypes } from "sequelize";
  * executions in 009). Component/limit rows keep `min`/`max`/etc. as loose strings, since type decides which matter. */
 
 const softDeleteFields = {
-  is_deleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+  is_deleted: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
   deleted_at: { type: DataTypes.DATE, allowNull: true },
   deleted_by: { type: DataTypes.STRING(100), allowNull: true },
   modified_by: { type: DataTypes.STRING(100), allowNull: true },
-  created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
-  updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
+  created_at: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW
+  },
+  updated_at: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW
+  }
 };
 
 const groupRef = {
@@ -31,8 +43,16 @@ const phraseEntryRef = {
 export const up = async (queryInterface: QueryInterface) => {
   // ─── lims_analyses ────────────────────────────────────────────────────────
   await queryInterface.createTable("lims_analyses", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    analysis_id: { type: DataTypes.STRING(100), allowNull: false, unique: true },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    analysis_id: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      unique: true
+    },
     name: { type: DataTypes.STRING(200), allowNull: false },
     analysis_type_id: phraseEntryRef,
     approval_status_id: phraseEntryRef,
@@ -52,7 +72,11 @@ export const up = async (queryInterface: QueryInterface) => {
   await queryInterface.addIndex("lims_analyses", ["group_id"]);
 
   await queryInterface.createTable("lims_analysis_components", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     analysis_id: {
       type: DataTypes.UUID,
       allowNull: false,
@@ -76,15 +100,31 @@ export const up = async (queryInterface: QueryInterface) => {
     min: { type: DataTypes.STRING(100), allowNull: true },
     max: { type: DataTypes.STRING(100), allowNull: true },
     sort_order: { type: DataTypes.INTEGER, allowNull: true },
-    created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
-    updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    }
   });
   await queryInterface.addIndex("lims_analysis_components", ["analysis_id"]);
 
   // ─── lims_test_groups ─────────────────────────────────────────────────────
   await queryInterface.createTable("lims_test_groups", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    test_group_id: { type: DataTypes.STRING(100), allowNull: false, unique: true },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    test_group_id: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      unique: true
+    },
     name: { type: DataTypes.STRING(200), allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
     group_id: groupRef,
@@ -93,7 +133,11 @@ export const up = async (queryInterface: QueryInterface) => {
   await queryInterface.addIndex("lims_test_groups", ["group_id"]);
 
   await queryInterface.createTable("lims_test_group_items", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     test_group_id: {
       type: DataTypes.UUID,
       allowNull: false,
@@ -113,14 +157,26 @@ export const up = async (queryInterface: QueryInterface) => {
     },
     replicate_count: { type: DataTypes.INTEGER, allowNull: true },
     sort_order: { type: DataTypes.INTEGER, allowNull: true },
-    created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
-    updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    }
   });
   await queryInterface.addIndex("lims_test_group_items", ["test_group_id"]);
 
   // ─── lims_specifications ──────────────────────────────────────────────────
   await queryInterface.createTable("lims_specifications", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     spec_id: { type: DataTypes.STRING(100), allowNull: false, unique: true },
     name: { type: DataTypes.STRING(200), allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
@@ -130,7 +186,11 @@ export const up = async (queryInterface: QueryInterface) => {
   await queryInterface.addIndex("lims_specifications", ["group_id"]);
 
   await queryInterface.createTable("lims_spec_limits", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     specification_id: {
       type: DataTypes.UUID,
       allowNull: false,
@@ -148,8 +208,16 @@ export const up = async (queryInterface: QueryInterface) => {
     boolean: { type: DataTypes.STRING(20), allowNull: true },
     calculation: { type: DataTypes.TEXT, allowNull: true },
     sort_order: { type: DataTypes.INTEGER, allowNull: true },
-    created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
-    updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    }
   });
   await queryInterface.addIndex("lims_spec_limits", ["specification_id"]);
 };

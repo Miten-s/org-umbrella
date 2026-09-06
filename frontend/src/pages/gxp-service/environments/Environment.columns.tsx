@@ -22,21 +22,27 @@ interface ToggleContext {
 
 /** Column factory (STANDARDS.md §8) — preserves the pre-migration columns, plus the
  * interactive enable/disable Switch every other GXP module already has. */
-export const getEnvironmentColumns = ({ t }: EnvironmentColumnCtx): ColDef<Environment>[] => [
+export const getEnvironmentColumns = ({
+  t
+}: EnvironmentColumnCtx): ColDef<Environment>[] => [
   {
     field: "environmentName",
     headerName: t("environmentName"),
     flex: 1,
     minWidth: 260,
     cellRenderer: (params: ICellRendererParams<Environment>) =>
-      params.data ? <AvatarCell label={params.data.environmentName} fallbackInitial="E" /> : null
+      params.data ? (
+        <AvatarCell label={params.data.environmentName} fallbackInitial="E" />
+      ) : null
   },
   {
     field: "description",
     headerName: t("description"),
     flex: 1.2,
     minWidth: 280,
-    cellRenderer: (params: ICellRendererParams<Environment>) => <TruncateCell value={params.value} />
+    cellRenderer: (params: ICellRendererParams<Environment>) => (
+      <TruncateCell value={params.value} />
+    )
   },
   {
     field: "status",

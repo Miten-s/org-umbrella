@@ -59,31 +59,90 @@ export class Instrument extends Model<IInstrument> implements IInstrument {
 
 Instrument.init(
   {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    instrumentId: { type: DataTypes.STRING(100), allowNull: false, unique: true, field: "instrument_id" },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    instrumentId: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      unique: true,
+      field: "instrument_id"
+    },
     name: { type: DataTypes.STRING(200), allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
     typeId: { type: DataTypes.UUID, allowNull: true, field: "type_id" },
-    measurementTypeId: { type: DataTypes.UUID, allowNull: true, field: "measurement_type_id" },
+    measurementTypeId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: "measurement_type_id"
+    },
     statusId: { type: DataTypes.UUID, allowNull: true, field: "status_id" },
     locationId: { type: DataTypes.UUID, allowNull: true, field: "location_id" },
     supplierId: { type: DataTypes.UUID, allowNull: true, field: "supplier_id" },
-    dateInstalled: { type: DataTypes.DATEONLY, allowNull: true, field: "date_installed" },
-    lastMsaDate: { type: DataTypes.DATEONLY, allowNull: true, field: "last_msa_date" },
-    sopReference: { type: DataTypes.STRING(200), allowNull: true, field: "sop_reference" },
+    dateInstalled: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+      field: "date_installed"
+    },
+    lastMsaDate: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+      field: "last_msa_date"
+    },
+    sopReference: {
+      type: DataTypes.STRING(200),
+      allowNull: true,
+      field: "sop_reference"
+    },
     manufacturer: { type: DataTypes.STRING(200), allowNull: true },
-    serialNumber: { type: DataTypes.STRING(150), allowNull: true, field: "serial_number" },
-    modelNumber: { type: DataTypes.STRING(150), allowNull: true, field: "model_number" },
-    measuringInformation: { type: DataTypes.TEXT, allowNull: true, field: "measuring_information" },
-    msaInformation: { type: DataTypes.TEXT, allowNull: true, field: "msa_information" },
+    serialNumber: {
+      type: DataTypes.STRING(150),
+      allowNull: true,
+      field: "serial_number"
+    },
+    modelNumber: {
+      type: DataTypes.STRING(150),
+      allowNull: true,
+      field: "model_number"
+    },
+    measuringInformation: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: "measuring_information"
+    },
+    msaInformation: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: "msa_information"
+    },
     details: { type: DataTypes.TEXT, allowNull: true },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
-    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: "is_deleted" },
+    isDeleted: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: "is_deleted"
+    },
     deletedAt: { type: DataTypes.DATE, allowNull: true, field: "deleted_at" },
-    deletedBy: { type: DataTypes.STRING(100), allowNull: true, field: "deleted_by" },
-    modifiedBy: { type: DataTypes.STRING(100), allowNull: true, field: "modified_by" }
+    deletedBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "deleted_by"
+    },
+    modifiedBy: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: "modified_by"
+    }
   },
-  { sequelize, tableName: "lims_instruments", underscored: true, timestamps: true }
+  {
+    sequelize,
+    tableName: "lims_instruments",
+    underscored: true,
+    timestamps: true
+  }
 );
 
 export default Instrument;

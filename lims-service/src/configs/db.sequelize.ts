@@ -11,13 +11,20 @@ const isLocalPostgres = (uri?: string) => {
   if (/localhost|127\.0\.0\.1|postgres/.test(uri)) {
     return true;
   }
-  return !(uri.includes("sslmode=require") || uri.includes("supabase") || uri.includes("neon.tech") || uri.includes("rds.amazonaws.com"));
+  return !(
+    uri.includes("sslmode=require") ||
+    uri.includes("supabase") ||
+    uri.includes("neon.tech") ||
+    uri.includes("rds.amazonaws.com")
+  );
 };
 
 const sanitizePgUri = (uri?: string) => {
   if (!uri) return uri;
   if (isLocalPostgres(uri)) {
-    return uri.replace(/[\?&]sslmode=[^&]+/gi, "").replace(/[\?&]ssl=[^&]+/gi, "");
+    return uri
+      .replace(/[\?&]sslmode=[^&]+/gi, "")
+      .replace(/[\?&]ssl=[^&]+/gi, "");
   }
   return uri;
 };
@@ -81,20 +88,30 @@ export const connectDB = async (): Promise<void> => {
     // Mirror the code-defined permission vocabulary into lims_permissions so
     // the catalogue can never describe permissions the code doesn't enforce.
     try {
-      const { seedPermissions } = await import("../services/permission.service");
+      const { seedPermissions } =
+        await import("../services/permission.service");
       await seedPermissions();
     } catch (err) {
-      console.warn("Skipping seedPermissions (run migrations first if table is missing):", err);
+      console.warn(
+        "Skipping seedPermissions (run migrations first if table is missing):",
+        err
+      );
     }
 
     // Warn if a pick list is missing/empty; not auto-seeded, since values are a lab's own config.
-    const { reportPhraseHealth } = await import("../services/phrase-health.service");
+    const { reportPhraseHealth } =
+      await import("../services/phrase-health.service");
     await reportPhraseHealth();
 
     await authSequelize.authenticate();
-    console.log("umbrella_auth_db secondary connection connected successfully!");
+    console.log(
+      "umbrella_auth_db secondary connection connected successfully!"
+    );
   } catch (error) {
-    console.error("PostgreSQL connection/migration error in lims-service:", error);
+    console.error(
+      "PostgreSQL connection/migration error in lims-service:",
+      error
+    );
     process.exit(1);
   }
 };

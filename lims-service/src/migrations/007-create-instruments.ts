@@ -4,12 +4,24 @@ import { QueryInterface, DataTypes } from "sequelize";
  * tables (not one self-referencing table) — listed, permissioned and searched independently. */
 
 const softDeleteFields = {
-  is_deleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+  is_deleted: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
   deleted_at: { type: DataTypes.DATE, allowNull: true },
   deleted_by: { type: DataTypes.STRING(100), allowNull: true },
   modified_by: { type: DataTypes.STRING(100), allowNull: true },
-  created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
-  updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
+  created_at: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW
+  },
+  updated_at: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW
+  }
 };
 
 const groupRef = {
@@ -47,8 +59,16 @@ const supplierRef = {
 export const up = async (queryInterface: QueryInterface) => {
   // ─── lims_instruments ─────────────────────────────────────────────────────
   await queryInterface.createTable("lims_instruments", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    instrument_id: { type: DataTypes.STRING(100), allowNull: false, unique: true },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    instrument_id: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      unique: true
+    },
     name: { type: DataTypes.STRING(200), allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
     type_id: phraseEntryRef,
@@ -72,7 +92,11 @@ export const up = async (queryInterface: QueryInterface) => {
 
   // ─── lims_instrument_parts ────────────────────────────────────────────────
   await queryInterface.createTable("lims_instrument_parts", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     part_id: { type: DataTypes.STRING(100), allowNull: false, unique: true },
     part_name: { type: DataTypes.STRING(200), allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
@@ -101,7 +125,11 @@ export const up = async (queryInterface: QueryInterface) => {
 
   // Sub-form: the Parameters grid on an Instrument.
   await queryInterface.createTable("lims_instrument_parameter_values", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     instrument_id: {
       type: DataTypes.UUID,
       allowNull: false,
@@ -112,15 +140,29 @@ export const up = async (queryInterface: QueryInterface) => {
     identity: { type: DataTypes.STRING(200), allowNull: true },
     value: { type: DataTypes.STRING(255), allowNull: true },
     unit: { type: DataTypes.STRING(50), allowNull: true },
-    created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
-    updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    }
   });
-  await queryInterface.addIndex("lims_instrument_parameter_values", ["instrument_id"]);
+  await queryInterface.addIndex("lims_instrument_parameter_values", [
+    "instrument_id"
+  ]);
 
   // Maintenance rows hang off an instrument or a part — two nullable FKs + a check
   // constraint, not a polymorphic pair, so the database still enforces referential integrity.
   await queryInterface.createTable("lims_maintenance_records", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     instrument_id: {
       type: DataTypes.UUID,
       allowNull: true,
@@ -139,11 +181,21 @@ export const up = async (queryInterface: QueryInterface) => {
     performed_on: { type: DataTypes.DATE, allowNull: true },
     performed_by: { type: DataTypes.STRING(200), allowNull: true },
     remarks: { type: DataTypes.TEXT, allowNull: true },
-    created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
-    updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    }
   });
   await queryInterface.addIndex("lims_maintenance_records", ["instrument_id"]);
-  await queryInterface.addIndex("lims_maintenance_records", ["instrument_part_id"]);
+  await queryInterface.addIndex("lims_maintenance_records", [
+    "instrument_part_id"
+  ]);
   await queryInterface.sequelize.query(
     `ALTER TABLE lims_maintenance_records
        ADD CONSTRAINT lims_maintenance_one_owner
@@ -153,8 +205,16 @@ export const up = async (queryInterface: QueryInterface) => {
   // ─── lims_calibrations ────────────────────────────────────────────────────
   // Calibration and its schedule are one record — the spec lists them as a single form.
   await queryInterface.createTable("lims_calibrations", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    calibration_id: { type: DataTypes.STRING(100), allowNull: false, unique: true },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    calibration_id: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      unique: true
+    },
     calibration_name: { type: DataTypes.STRING(200), allowNull: false },
     instrument_id: {
       type: DataTypes.UUID,
@@ -183,7 +243,11 @@ export const up = async (queryInterface: QueryInterface) => {
     next_maintenance_date: { type: DataTypes.DATEONLY, allowNull: true },
     // "Auto Login (Check mark)" — whether the scheduler raises the calibration
     // sample automatically when it falls due.
-    auto_login: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    auto_login: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    },
     group_id: groupRef,
     ...softDeleteFields
   });
@@ -193,8 +257,16 @@ export const up = async (queryInterface: QueryInterface) => {
 
   // ─── lims_inspection_plans ────────────────────────────────────────────────
   await queryInterface.createTable("lims_inspection_plans", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    inspection_id: { type: DataTypes.STRING(100), allowNull: false, unique: true },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    inspection_id: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      unique: true
+    },
     name: { type: DataTypes.STRING(200), allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
     // "Round robin" | "Linear" — free text rather than a pick list because the
@@ -208,7 +280,11 @@ export const up = async (queryInterface: QueryInterface) => {
 
   // Sub-form: "we should be able to add any person or any role".
   await queryInterface.createTable("lims_inspection_personnel", {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     inspection_plan_id: {
       type: DataTypes.UUID,
       allowNull: false,
@@ -232,8 +308,18 @@ export const up = async (queryInterface: QueryInterface) => {
       onUpdate: "CASCADE",
       onDelete: "SET NULL"
     },
-    created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
-    updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW
+    }
   });
-  await queryInterface.addIndex("lims_inspection_personnel", ["inspection_plan_id"]);
+  await queryInterface.addIndex("lims_inspection_personnel", [
+    "inspection_plan_id"
+  ]);
 };

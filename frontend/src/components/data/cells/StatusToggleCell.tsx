@@ -23,7 +23,12 @@ interface StatusToggleCellProps {
 export const StatusToggleCell = memo(
   ({ checked, label, disabled, loading, onChange }: StatusToggleCellProps) => (
     <div className="flex items-center gap-2 py-1.5">
-      <Switch label={label} checked={checked} disabled={disabled || loading} onChange={onChange} />
+      <Switch
+        label={label}
+        checked={checked}
+        disabled={disabled || loading}
+        onChange={onChange}
+      />
       {loading && (
         <span
           className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-gray-300 border-t-brand-500 dark:border-gray-600 dark:border-t-brand-400"

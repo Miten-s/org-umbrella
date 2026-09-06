@@ -27,7 +27,8 @@ import type {
 
 /** "copy" renders like "create" except the business ID starts blank (stays EDITABLE —
  * `applyBusinessId` only mints when empty, otherwise honors what the user typed). */
-export type LimsTestGroupFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type LimsTestGroupFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsTestGroupFormProps {
   mode?: LimsTestGroupFormMode;
@@ -101,7 +102,9 @@ const LimsTestGroupForm = ({
     setValue,
     formState: { errors, isSubmitting }
   } = useForm<LimsTestGroupFormValues>({
-    resolver: zodResolver(mode === "copy" ? limsTestGroupCopySchema : limsTestGroupSchema),
+    resolver: zodResolver(
+      mode === "copy" ? limsTestGroupCopySchema : limsTestGroupSchema
+    ),
     defaultValues: initialValues
   });
 
@@ -130,11 +133,11 @@ const LimsTestGroupForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsTestGroup") })
-                        : mode === "copy"
+            : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsTestGroup") })}${stepLabel ?? ""}`
               : initialData
-              ? `${t("update", { entity: t("limsTestGroup") })}${stepLabel ?? ""}`
-              : t("create", { entity: t("limsTestGroup") })}
+                ? `${t("update", { entity: t("limsTestGroup") })}${stepLabel ?? ""}`
+                : t("create", { entity: t("limsTestGroup") })}
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
@@ -240,7 +243,12 @@ const LimsTestGroupForm = ({
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

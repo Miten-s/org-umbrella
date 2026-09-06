@@ -27,4 +27,4 @@ export const migrations: Migration[] = [
   { name: "012-spec-limit-analysis-links", up: m012.up }
 ];
 
-export { runMigrations } from "./runner";
+export { runMigrations, checkMigrations } from "./runner";

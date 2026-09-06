@@ -1,5 +1,9 @@
 import gxpApi from "@/utils/gxp.axios.interceptor";
-import { buildServerParams, toListResult, toOptionsPage } from "@/lib/query/listAdapter";
+import {
+  buildServerParams,
+  toListResult,
+  toOptionsPage
+} from "@/lib/query/listAdapter";
 import { bulkSelectionToBody, type BulkSelection } from "@/lib/query/listTypes";
 import type { ServerListParams } from "@/lib/query/listTypes";
 import type { Supplier, SupplierPayload } from "./Supplier.types";
@@ -36,9 +40,21 @@ export const fetchSupplierOptions = async (
   args: { search: string; page: number },
   signal?: AbortSignal
 ) => {
-  const params: ServerListParams = { page: args.page, limit: 20, search: args.search || undefined };
-  const response = await gxpApi.get(ROUTE, { params: buildServerParams(params), signal });
-  return toOptionsPage<Supplier>(response.data, params, (row) => row.supplierName, DATA_KEYS);
+  const params: ServerListParams = {
+    page: args.page,
+    limit: 20,
+    search: args.search || undefined
+  };
+  const response = await gxpApi.get(ROUTE, {
+    params: buildServerParams(params),
+    signal
+  });
+  return toOptionsPage<Supplier>(
+    response.data,
+    params,
+    (row) => row.supplierName,
+    DATA_KEYS
+  );
 };
 
 export const createSupplier = async (payload: SupplierPayload) => {
@@ -57,12 +73,18 @@ export const deleteSupplier = async (id: string) => {
 };
 
 export const bulkDeleteSupplier = async (selection: BulkSelection) => {
-  const response = await gxpApi.post(`${ROUTE}/bulk-delete`, bulkSelectionToBody(selection));
+  const response = await gxpApi.post(
+    `${ROUTE}/bulk-delete`,
+    bulkSelectionToBody(selection)
+  );
   return response.data;
 };
 
 export const bulkCloneSupplier = async (selection: BulkSelection) => {
-  const response = await gxpApi.post(`${ROUTE}/bulk-duplicate`, bulkSelectionToBody(selection));
+  const response = await gxpApi.post(
+    `${ROUTE}/bulk-duplicate`,
+    bulkSelectionToBody(selection)
+  );
   return response.data;
 };
 
@@ -73,13 +95,20 @@ export const bulkCopySupplier = async (records: SupplierPayload[]) => {
   return response.data as Supplier[];
 };
 
-export const bulkUpdateSupplier = async (updates: { id: string; payload: SupplierPayload }[]) => {
+export const bulkUpdateSupplier = async (
+  updates: { id: string; payload: SupplierPayload }[]
+) => {
   const response = await gxpApi.patch(`${ROUTE}/bulk-update`, { updates });
-  return response.data as { results: { id: string; status: "updated" | "skipped" }[] };
+  return response.data as {
+    results: { id: string; status: "updated" | "skipped" }[];
+  };
 };
 
 export const bulkRestoreSupplier = async (selection: BulkSelection) => {
-  const response = await gxpApi.patch(`${ROUTE}/bulk-restore`, bulkSelectionToBody(selection));
+  const response = await gxpApi.patch(
+    `${ROUTE}/bulk-restore`,
+    bulkSelectionToBody(selection)
+  );
   return response.data as { message: string; count: number };
 };
 

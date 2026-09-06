@@ -8,7 +8,10 @@ export interface IAppDepartment {
   active: boolean;
 }
 
-export class AppDepartment extends Model<IAppDepartment> implements IAppDepartment {
+export class AppDepartment
+  extends Model<IAppDepartment>
+  implements IAppDepartment
+{
   public id!: string;
   public applicationId!: string;
   public departmentName!: string;

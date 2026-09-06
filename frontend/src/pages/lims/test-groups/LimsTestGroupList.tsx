@@ -26,7 +26,10 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsTestGroupById, fetchLimsTestGroupList } from "./LimsTestGroup.api";
+import {
+  fetchLimsTestGroupById,
+  fetchLimsTestGroupList
+} from "./LimsTestGroup.api";
 import { getLimsTestGroupColumns } from "./LimsTestGroup.columns";
 import {
   limsTestGroupKeys,
@@ -154,7 +157,9 @@ const LimsTestGroupList = () => {
     table.clearSelection();
   };
 
-  const handleSaveEdits = (updates: { id: string; payload: LimsTestGroupPayload }[]) => {
+  const handleSaveEdits = (
+    updates: { id: string; payload: LimsTestGroupPayload }[]
+  ) => {
     handleCloseForm();
     compliance.requestBulkUpdate(updates);
   };
@@ -400,7 +405,8 @@ const LimsTestGroupList = () => {
             saving={bulkUpdate.isPending}
             entityLabel={t("limsTestGroup")}
           />
-        ) : formMode !== "create" && (detailQuery.isLoading || detailQuery.isFetching) ? (
+        ) : formMode !== "create" &&
+          (detailQuery.isLoading || detailQuery.isFetching) ? (
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>
@@ -440,7 +446,10 @@ const LimsTestGroupList = () => {
         onBulkUpdate={async (reason) => {
           const pending = compliance.pendingBulkUpdate;
           if (pending) {
-            await bulkUpdate.mutateAsync({ updates: pending.updates, changeReason: reason });
+            await bulkUpdate.mutateAsync({
+              updates: pending.updates,
+              changeReason: reason
+            });
             table.clearSelection();
           }
           compliance.clearBulkUpdate();

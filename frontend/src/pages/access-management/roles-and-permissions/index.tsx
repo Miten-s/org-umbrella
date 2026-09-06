@@ -65,8 +65,7 @@ const RolesAndPermissions = () => {
   const [roles, setRoles] = useState<Role[]>([]);
   const { isOpen, openModal, closeModal } = useModal();
   const [activeRole, setActiveRole] = useState<Role | null>(null);
-  const [roleModalMode, setRoleModalMode] =
-    useState<RoleModalMode>("create");
+  const [roleModalMode, setRoleModalMode] = useState<RoleModalMode>("create");
   const { reFetch, setReFetch } = useGlobalContext();
   const [pendingDeleteRoles, setPendingDeleteRoles] = useState<Role[]>([]);
   const { t } = useTranslation();
@@ -156,19 +155,25 @@ const RolesAndPermissions = () => {
     openModal();
   }, [openModal]);
 
-  const handleOpenEdit = useCallback((role: Role) => {
-    setActiveRole(role);
-    setRoleModalMode("edit");
-    setPermissionType(resolvePermissionType(role));
-    openModal();
-  }, [openModal]);
+  const handleOpenEdit = useCallback(
+    (role: Role) => {
+      setActiveRole(role);
+      setRoleModalMode("edit");
+      setPermissionType(resolvePermissionType(role));
+      openModal();
+    },
+    [openModal]
+  );
 
-  const handleOpenView = useCallback((role: Role) => {
-    setActiveRole(role);
-    setRoleModalMode("view");
-    setPermissionType(resolvePermissionType(role));
-    openModal();
-  }, [openModal]);
+  const handleOpenView = useCallback(
+    (role: Role) => {
+      setActiveRole(role);
+      setRoleModalMode("view");
+      setPermissionType(resolvePermissionType(role));
+      openModal();
+    },
+    [openModal]
+  );
 
   const handleDuplicateRoles = useCallback(
     async (rows: Role[]) => {

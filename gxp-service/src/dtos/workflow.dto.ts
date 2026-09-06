@@ -1,4 +1,12 @@
-import { IsArray, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from "class-validator";
+import {
+  IsArray,
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Min
+} from "class-validator";
 
 export class CreateWorkflowDto {
   @IsString()

@@ -13,54 +13,69 @@ const isLocalPostgres = (uri?: string) => {
   if (/localhost|127\.0\.0\.1|postgres/.test(uri)) {
     return true;
   }
-  return !(uri.includes("sslmode=require") || uri.includes("supabase") || uri.includes("neon.tech") || uri.includes("rds.amazonaws.com"));
+  return !(
+    uri.includes("sslmode=require") ||
+    uri.includes("supabase") ||
+    uri.includes("neon.tech") ||
+    uri.includes("rds.amazonaws.com")
+  );
 };
 
 const sanitizePgUri = (uri?: string) => {
   if (!uri) return uri;
   if (isLocalPostgres(uri)) {
-    return uri.replace(/[\?&]sslmode=[^&]+/gi, "").replace(/[\?&]ssl=[^&]+/gi, "");
+    return uri
+      .replace(/[\?&]sslmode=[^&]+/gi, "")
+      .replace(/[\?&]ssl=[^&]+/gi, "");
   }
   return uri;
 };
 
 // Main GxP Database Connection
-export const sequelize = new Sequelize(sanitizePgUri(gxpPostgresUri) || "postgres://postgres:postgres@localhost:5433/gxp_workflow_db", {
-  dialect: "postgres",
-  logging: (msg) => console.log(msg),
-  pool: {
-    max: 10,
-    min: 2,
-    acquire: 30000,
-    idle: 10000
-  },
-  dialectOptions: isLocalPostgres(gxpPostgresUri)
-    ? undefined
-    : { ssl: { require: true, rejectUnauthorized: false } },
-  define: {
-    underscored: true,
-    timestamps: true
+export const sequelize = new Sequelize(
+  sanitizePgUri(gxpPostgresUri) ||
+    "postgres://postgres:postgres@localhost:5433/gxp_workflow_db",
+  {
+    dialect: "postgres",
+    logging: (msg) => console.log(msg),
+    pool: {
+      max: 10,
+      min: 2,
+      acquire: 30000,
+      idle: 10000
+    },
+    dialectOptions: isLocalPostgres(gxpPostgresUri)
+      ? undefined
+      : { ssl: { require: true, rejectUnauthorized: false } },
+    define: {
+      underscored: true,
+      timestamps: true
+    }
   }
-});
+);
 
 // Secondary Auth Database Connection (Read-only reference)
-export const authSequelize = new Sequelize(sanitizePgUri(authPostgresUri) || "postgres://postgres:postgres@localhost:5433/umbrella_auth_db", {
-  dialect: "postgres",
-  logging: (msg) => console.log(msg),
-  dialectOptions: isLocalPostgres(authPostgresUri)
-    ? undefined
-    : { ssl: { require: true, rejectUnauthorized: false } },
-  pool: {
-    max: 5,
-    min: 1,
-    acquire: 30000,
-    idle: 10000
-  },
-  define: {
-    underscored: true,
-    timestamps: true
+export const authSequelize = new Sequelize(
+  sanitizePgUri(authPostgresUri) ||
+    "postgres://postgres:postgres@localhost:5433/umbrella_auth_db",
+  {
+    dialect: "postgres",
+    logging: (msg) => console.log(msg),
+    dialectOptions: isLocalPostgres(authPostgresUri)
+      ? undefined
+      : { ssl: { require: true, rejectUnauthorized: false } },
+    pool: {
+      max: 5,
+      min: 1,
+      acquire: 30000,
+      idle: 10000
+    },
+    define: {
+      underscored: true,
+      timestamps: true
+    }
   }
-});
+);
 
 export const connectDB = async (): Promise<void> => {
   try {
@@ -68,7 +83,9 @@ export const connectDB = async (): Promise<void> => {
     console.log("gxp_workflow_db (PostgreSQL) connected successfully!");
 
     await authSequelize.authenticate();
-    console.log("umbrella_auth_db secondary connection connected successfully!");
+    console.log(
+      "umbrella_auth_db secondary connection connected successfully!"
+    );
   } catch (error) {
     console.error("PostgreSQL connection error in gxp-service:", error);
     process.exit(1);

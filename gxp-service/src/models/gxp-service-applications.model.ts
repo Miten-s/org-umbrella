@@ -151,57 +151,96 @@ Application.init(
 // Associations
 
 // Parent Links
-Application.belongsTo(Environment, { foreignKey: "application_environment_id", as: "environment" });
-Application.belongsTo(AssignmentGroup, { foreignKey: "assignment_group_id", as: "assignmentGroup" });
-Application.belongsTo(Workflow, { foreignKey: "application_workflow_id", as: "workflow" });
+Application.belongsTo(Environment, {
+  foreignKey: "application_environment_id",
+  as: "environment"
+});
+Application.belongsTo(AssignmentGroup, {
+  foreignKey: "assignment_group_id",
+  as: "assignmentGroup"
+});
+Application.belongsTo(Workflow, {
+  foreignKey: "application_workflow_id",
+  as: "workflow"
+});
 Application.belongsTo(Supplier, { foreignKey: "supplier_id", as: "supplier" });
 
 // 1-to-Many Child Tables
-Application.hasMany(AppModule, { foreignKey: "application_id", as: "applicationModules" });
-AppModule.belongsTo(Application, { foreignKey: "application_id", as: "application" });
+Application.hasMany(AppModule, {
+  foreignKey: "application_id",
+  as: "applicationModules"
+});
+AppModule.belongsTo(Application, {
+  foreignKey: "application_id",
+  as: "application"
+});
 
-Application.hasMany(AppAttachment, { foreignKey: "application_id", as: "attachments" });
-AppAttachment.belongsTo(Application, { foreignKey: "application_id", as: "application" });
+Application.hasMany(AppAttachment, {
+  foreignKey: "application_id",
+  as: "attachments"
+});
+AppAttachment.belongsTo(Application, {
+  foreignKey: "application_id",
+  as: "application"
+});
 
-Application.hasMany(AppGroup, { foreignKey: "application_id", as: "applicationGroups" });
-AppGroup.belongsTo(Application, { foreignKey: "application_id", as: "application" });
+Application.hasMany(AppGroup, {
+  foreignKey: "application_id",
+  as: "applicationGroups"
+});
+AppGroup.belongsTo(Application, {
+  foreignKey: "application_id",
+  as: "application"
+});
 
-Application.hasMany(AppDepartment, { foreignKey: "application_id", as: "departments" });
-AppDepartment.belongsTo(Application, { foreignKey: "application_id", as: "application" });
+Application.hasMany(AppDepartment, {
+  foreignKey: "application_id",
+  as: "departments"
+});
+AppDepartment.belongsTo(Application, {
+  foreignKey: "application_id",
+  as: "application"
+});
 
 export class ApplicationAppRole extends Model {}
-ApplicationAppRole.init({
-  application_id: {
-    type: DataTypes.UUID,
-    primaryKey: true
+ApplicationAppRole.init(
+  {
+    application_id: {
+      type: DataTypes.UUID,
+      primaryKey: true
+    },
+    role_id: {
+      type: DataTypes.UUID,
+      primaryKey: true
+    }
   },
-  role_id: {
-    type: DataTypes.UUID,
-    primaryKey: true
+  {
+    sequelize,
+    tableName: "application_app_roles",
+    timestamps: false,
+    underscored: true
   }
-}, {
-  sequelize,
-  tableName: "application_app_roles",
-  timestamps: false,
-  underscored: true
-});
+);
 
 export class ApplicationAppService extends Model {}
-ApplicationAppService.init({
-  application_id: {
-    type: DataTypes.UUID,
-    primaryKey: true
+ApplicationAppService.init(
+  {
+    application_id: {
+      type: DataTypes.UUID,
+      primaryKey: true
+    },
+    service_id: {
+      type: DataTypes.UUID,
+      primaryKey: true
+    }
   },
-  service_id: {
-    type: DataTypes.UUID,
-    primaryKey: true
+  {
+    sequelize,
+    tableName: "application_app_services",
+    timestamps: false,
+    underscored: true
   }
-}, {
-  sequelize,
-  tableName: "application_app_services",
-  timestamps: false,
-  underscored: true
-});
+);
 
 // Many-to-Many Application Roles & Services
 Application.belongsToMany(AppRole, {
@@ -227,6 +266,5 @@ AppService.belongsToMany(Application, {
   foreignKey: "service_id",
   otherKey: "application_id"
 });
-
 
 export default Application;

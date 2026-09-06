@@ -22,7 +22,8 @@ import type { LimsParameterPayload } from "./LimsParameter.types";
 
 export const limsParameterKeys = {
   all: ["limsParameter"] as const,
-  list: (params: ServerListParams) => ["limsParameter", "list", params] as const,
+  list: (params: ServerListParams) =>
+    ["limsParameter", "list", params] as const,
   audit: (id: string) => ["limsParameter", "audit", id] as const,
   options: ["limsParameter", "options"] as const
 };
@@ -76,8 +77,13 @@ export const useCreateLimsParameter = () => {
 export const useUpdateLimsParameter = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: LimsParameterPayload }) =>
-      updateLimsParameter(id, payload),
+    mutationFn: ({
+      id,
+      payload
+    }: {
+      id: string;
+      payload: LimsParameterPayload;
+    }) => updateLimsParameter(id, payload),
     onSuccess: () => {
       toast("Parameter updated successfully.", "success");
       invalidate();
@@ -153,7 +159,8 @@ export const useBulkCloneLimsParameter = () => {
 export const useBulkCopyLimsParameter = () => {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (records: LimsParameterPayload[]) => bulkCopyLimsParameter(records),
+    mutationFn: (records: LimsParameterPayload[]) =>
+      bulkCopyLimsParameter(records),
     onSuccess: (data) => {
       const warnings = data.results.filter((r) => r.warning);
       toast(

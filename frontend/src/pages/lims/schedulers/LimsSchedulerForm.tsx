@@ -21,12 +21,21 @@ import { useLimsSpecificationOptions } from "@/pages/lims/specifications/LimsSpe
 import { useSampleTypeOptions } from "@/pages/lims/phrases/LimsPhrase.queries";
 import { useLimsUserOptions } from "@/pages/lims/users/LimsUser.options";
 import { seedRefOption } from "@/utils/refLabel";
-import { limsSchedulerSchema, limsSchedulerCopySchema, type LimsSchedulerFormValues } from "./LimsScheduler.schema";
-import type { LimsScheduler, LimsSchedulerPayload, LimsRef } from "./LimsScheduler.types";
+import {
+  limsSchedulerSchema,
+  limsSchedulerCopySchema,
+  type LimsSchedulerFormValues
+} from "./LimsScheduler.schema";
+import type {
+  LimsScheduler,
+  LimsSchedulerPayload,
+  LimsRef
+} from "./LimsScheduler.types";
 
 /** "copy" renders like "create" except the business ID starts blank (stays EDITABLE —
  * `applyBusinessId` only mints when empty, otherwise honors what the user typed). */
-export type LimsSchedulerFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type LimsSchedulerFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsSchedulerFormProps {
   mode?: LimsSchedulerFormMode;
@@ -89,7 +98,7 @@ const LimsSchedulerForm = ({
       nextRunDate: initialData?.nextRunDate ?? "",
       description: initialData?.description ?? "",
       autoLogin: initialData?.autoLogin ?? false,
-      isActive: initialData?.isActive ?? false,
+      isActive: initialData?.isActive ?? false
     }),
     [initialData, mode]
   );
@@ -101,7 +110,9 @@ const LimsSchedulerForm = ({
     setValue,
     formState: { errors, isSubmitting }
   } = useForm<LimsSchedulerFormValues>({
-    resolver: zodResolver(mode === "copy" ? limsSchedulerCopySchema : limsSchedulerSchema),
+    resolver: zodResolver(
+      mode === "copy" ? limsSchedulerCopySchema : limsSchedulerSchema
+    ),
     defaultValues: initialValues
   });
 
@@ -154,7 +165,10 @@ const LimsSchedulerForm = ({
         onSubmit={handleSubmit((values) => {
           // Edit + nothing actually changed: skip the reason modal, update
           // call, and audit entry entirely — a no-op Save just closes.
-          if ((mode === "edit" || mode === "bulk-edit") && isPayloadEqual(values, initialValues)) {
+          if (
+            (mode === "edit" || mode === "bulk-edit") &&
+            isPayloadEqual(values, initialValues)
+          ) {
             (onUnchanged ?? onClose)();
             return;
           }
@@ -165,11 +179,11 @@ const LimsSchedulerForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsScheduler") })
-                        : mode === "copy"
+            : mode === "copy"
               ? `${t("copyEntity", { entity: t("limsScheduler") })}${stepLabel ?? ""}`
               : initialData
-              ? `${t("update", { entity: t("limsScheduler") })}${stepLabel ?? ""}`
-              : t("create", { entity: t("limsScheduler") })}
+                ? `${t("update", { entity: t("limsScheduler") })}${stepLabel ?? ""}`
+                : t("create", { entity: t("limsScheduler") })}
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
@@ -184,7 +198,11 @@ const LimsSchedulerForm = ({
                 <SelectDropdown
                   value={field.value ?? ""}
                   onChange={field.onChange}
-                  options={[{ label: "Sample", value: "Sample" }, { label: "Test", value: "Test" }, { label: "Result", value: "Result" }]}
+                  options={[
+                    { label: "Sample", value: "Sample" },
+                    { label: "Test", value: "Test" },
+                    { label: "Result", value: "Result" }
+                  ]}
                   placeholder={t("select", { entity: t("limsSchedulerScope") })}
                 />
               )}
@@ -318,7 +336,11 @@ const LimsSchedulerForm = ({
                 <SelectDropdown
                   value={field.value ?? ""}
                   onChange={field.onChange}
-                  options={[{ label: "Daily", value: "Daily" }, { label: "Monthly", value: "Monthly" }, { label: "Yearly", value: "Yearly" }]}
+                  options={[
+                    { label: "Daily", value: "Daily" },
+                    { label: "Monthly", value: "Monthly" },
+                    { label: "Yearly", value: "Yearly" }
+                  ]}
                   placeholder={t("select", { entity: t("limsPlan") })}
                 />
               )}
@@ -335,7 +357,12 @@ const LimsSchedulerForm = ({
                 <SelectDropdown
                   value={field.value ?? ""}
                   onChange={field.onChange}
-                  options={[{ label: "Day", value: "Day" }, { label: "Hours", value: "Hours" }, { label: "Min", value: "Min" }, { label: "Second", value: "Second" }]}
+                  options={[
+                    { label: "Day", value: "Day" },
+                    { label: "Hours", value: "Hours" },
+                    { label: "Min", value: "Min" },
+                    { label: "Second", value: "Second" }
+                  ]}
                   placeholder={t("select", { entity: t("limsLeadTimeUnit") })}
                 />
               )}
@@ -361,7 +388,9 @@ const LimsSchedulerForm = ({
             <TextArea
               disabled={isReadOnly}
               value={description || ""}
-              onChange={(val) => setValue("description", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("description", val, { shouldValidate: true })
+              }
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
@@ -400,11 +429,21 @@ const LimsSchedulerForm = ({
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}

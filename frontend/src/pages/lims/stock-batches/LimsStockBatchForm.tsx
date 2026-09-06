@@ -19,19 +19,32 @@ import { useStockBatchStatusOptions } from "@/pages/lims/phrases/LimsPhrase.quer
 import { useLimsProjectOptions } from "@/pages/lims/projects/LimsProject.queries";
 import { useLimsSupplierOptions } from "@/pages/lims/suppliers/LimsSupplier.queries";
 import { useLimsLocationOptions } from "@/pages/lims/locations/LimsLocation.queries";
-import { limsStockBatchSchema, type LimsStockBatchFormValues } from "./LimsStockBatch.schema";
-import type { LimsStockBatch, LimsStockBatchPayload, LimsRef, LimsConsumptionRow, LimsParameterValue } from "./LimsStockBatch.types";
+import {
+  limsStockBatchSchema,
+  type LimsStockBatchFormValues
+} from "./LimsStockBatch.schema";
+import type {
+  LimsStockBatch,
+  LimsStockBatchPayload,
+  LimsRef,
+  LimsConsumptionRow,
+  LimsParameterValue
+} from "./LimsStockBatch.types";
 
 /** "copy" renders like "create" — stockBatchId is server-derived either way. Attachments
  * hidden: the batch save is JSON-only. */
-export type LimsStockBatchFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type LimsStockBatchFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
 
 interface LimsStockBatchFormProps {
   mode?: LimsStockBatchFormMode;
   initialData?: LimsStockBatch | null;
   onClose: () => void;
   onUnchanged?: () => void;
-  onSubmit: (payload: LimsStockBatchPayload, files: File[]) => Promise<void> | void;
+  onSubmit: (
+    payload: LimsStockBatchPayload,
+    files: File[]
+  ) => Promise<void> | void;
   submitting?: boolean;
   /** Overrides the submit button's label — CopyStepper uses this to say
    * "Next" on every step but the last, where the batch actually saves. */
@@ -67,9 +80,13 @@ const LimsStockBatchForm = ({
   const isReadOnly = mode === "view";
   const attachments = useAttachments(initialData?.attachments);
   const initialConsumptionsRef = useRef(initialData?.consumptions ?? []);
-  const [consumptions, setConsumptions] = useState<LimsConsumptionRow[]>(initialConsumptionsRef.current);
+  const [consumptions, setConsumptions] = useState<LimsConsumptionRow[]>(
+    initialConsumptionsRef.current
+  );
   const initialParametersRef = useRef(initialData?.parameters ?? []);
-  const [parameters, setParameters] = useState<LimsParameterValue[]>(initialParametersRef.current);
+  const [parameters, setParameters] = useState<LimsParameterValue[]>(
+    initialParametersRef.current
+  );
 
   // Captured once per record — also the no-change baseline `submit` diffs
   // against, so Save is a no-op when nothing actually differs from it.
@@ -88,7 +105,7 @@ const LimsStockBatchForm = ({
       initialAmount: initialData?.initialAmount ?? "",
       currentAmount: initialData?.currentAmount ?? "",
       unit: initialData?.unit ?? "",
-      description: initialData?.description ?? "",
+      description: initialData?.description ?? ""
     }),
     [initialData]
   );
@@ -163,7 +180,12 @@ const LimsStockBatchForm = ({
             return;
           }
           onSubmit(
-            { ...values, consumptions, parameters, keptAttachmentIds: attachments.keptIds },
+            {
+              ...values,
+              consumptions,
+              parameters,
+              keptAttachmentIds: attachments.keptIds
+            },
             attachments.newFiles
           );
         })}
@@ -273,7 +295,12 @@ const LimsStockBatchForm = ({
           </div>
           {text("manufacturingDate", t("limsManufacturingDate"), false, "date")}
           {text("expiryDate", t("limsExpiryDate"), false, "date")}
-          {text("supplierBatchNumber", t("limsSupplierBatchNumber"), false, "text")}
+          {text(
+            "supplierBatchNumber",
+            t("limsSupplierBatchNumber"),
+            false,
+            "text"
+          )}
           {text("sapBatchId", t("limsSapBatchId"), false, "text")}
           {text("internalBatchId", t("limsInternalBatchId"), false, "text")}
           {text("initialAmount", t("limsInitialAmount"), false, "number")}
@@ -284,7 +311,9 @@ const LimsStockBatchForm = ({
             <TextArea
               disabled={isReadOnly}
               value={description || ""}
-              onChange={(val) => setValue("description", val, { shouldValidate: true })}
+              onChange={(val) =>
+                setValue("description", val, { shouldValidate: true })
+              }
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
@@ -295,7 +324,11 @@ const LimsStockBatchForm = ({
               onChange={setConsumptions}
               disabled={isReadOnly}
               columns={[
-                { key: "consumedOn", header: t("limsConsumedOn"), type: "date" },
+                {
+                  key: "consumedOn",
+                  header: t("limsConsumedOn"),
+                  type: "date"
+                },
                 { key: "consumedBy", header: t("limsConsumedBy") },
                 { key: "amount", header: t("limsAmount"), type: "number" },
                 { key: "unit", header: t("limsUnit") },
@@ -317,16 +350,29 @@ const LimsStockBatchForm = ({
             />
           </div>
           {mode !== "copy" && mode !== "bulk-edit" && (
-            <LimsAttachmentsField attachments={attachments} disabled={isReadOnly} />
+            <LimsAttachmentsField
+              attachments={attachments}
+              disabled={isReadOnly}
+            />
           )}
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
             {t("cancel")}
           </Button>
           {!isReadOnly ? (
-            <Button type="submit" variant="primary" loading={busy} disabled={busy || disabled}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
               {submitLabel ?? t("save")}
             </Button>
           ) : null}
