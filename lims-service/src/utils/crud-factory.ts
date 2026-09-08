@@ -40,6 +40,7 @@ import {
 import { registerEntity } from "./entity-registry";
 import Attachment from "../models/attachment.model";
 import { uploadAttachments } from "../middlewares/multer.middleware";
+import { cacheResponse, getCachedResponse, deleteCacheByPrefix } from "../configs/redis.config";
 
 /**
  * The generic engine behind every one of the 26 LIMS entities (spec §2's ten-endpoint
@@ -773,6 +774,7 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
 
   const afterWrite = async () => {
     if (config.afterWrite) await config.afterWrite();
+    await deleteCacheByPrefix(`lims:all:${entityName}:`);
   };
 
   // A single-record lookup by known id (Edit/View/Copy) always includes removed rows —
@@ -794,8 +796,15 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
       filters: Record<string, string>;
     },
     ctx: CrudContext
-  ) =>
-    shape(formatLimsEntity(await repo.findAll({ ...query, scope: ctx.scope })));
+  ) => {
+    const cacheKey = `lims:all:${entityName}:${JSON.stringify({ ...query, scope: ctx.scope })}`;
+    const cached = await getCachedResponse(cacheKey);
+    if (cached) return cached;
+
+    const result = shape(formatLimsEntity(await repo.findAll({ ...query, scope: ctx.scope })));
+    await cacheResponse({ key: cacheKey, value: result, ttl: 3600 });
+    return result;
+  };
 
   /** Single-update guts minus its own transaction, shared by `update` and `bulkUpdate`.
    * Returns `null` when not found/out of scope — `bulkUpdate` marks that entry skipped. */
