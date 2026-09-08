@@ -40,7 +40,11 @@ import {
 import { registerEntity } from "./entity-registry";
 import Attachment from "../models/attachment.model";
 import { uploadAttachments } from "../middlewares/multer.middleware";
-import { cacheResponse, getCachedResponse, deleteCacheByPrefix } from "../configs/redis.config";
+import {
+  cacheResponse,
+  getCachedResponse,
+  deleteCacheByPrefix
+} from "../configs/redis.config";
 
 /**
  * The generic engine behind every one of the 26 LIMS entities (spec §2's ten-endpoint
@@ -801,7 +805,9 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     const cached = await getCachedResponse(cacheKey);
     if (cached) return cached;
 
-    const result = shape(formatLimsEntity(await repo.findAll({ ...query, scope: ctx.scope })));
+    const result = shape(
+      formatLimsEntity(await repo.findAll({ ...query, scope: ctx.scope }))
+    );
     await cacheResponse({ key: cacheKey, value: result, ttl: 3600 });
     return result;
   };

@@ -3,7 +3,11 @@ import * as locationService from "../services/location.service";
 import asyncHandler from "../middlewares/error.middleware";
 import { CUSTOM_MESSAGES } from "../utils/common.util";
 import { getPaginationOptions } from "../utils/pagination.util";
-import { cacheResponse, getCachedResponse, deleteCacheByPrefix } from "../configs/redis.config";
+import {
+  cacheResponse,
+  getCachedResponse,
+  deleteCacheByPrefix
+} from "../configs/redis.config";
 
 export const createLocation = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
@@ -30,7 +34,7 @@ export const getAllLocations = asyncHandler(
 
     const result = await locationService.getAllLocations(paginationOptions);
     await cacheResponse({ key: cacheKey, value: result, ttl: 3600 });
-    
+
     res.status(200).json(result);
   }
 );
@@ -54,9 +58,9 @@ export const updateLocation = asyncHandler(
     );
     if (!location)
       return res.status(404).json({ error: "Location/Group not found" });
-      
+
     await deleteCacheByPrefix("locations:all:");
-    
+
     res.status(200).json({
       message: CUSTOM_MESSAGES.ENTITY_UPDATED.replace(
         "{{ entity }}",
@@ -73,9 +77,9 @@ export const deleteLocation = asyncHandler(
     );
     if (!location)
       return res.status(404).json({ error: "Location/Group not found" });
-      
+
     await deleteCacheByPrefix("locations:all:");
-    
+
     res.status(200).json({
       message: CUSTOM_MESSAGES.ENTITY_DELETED.replace(
         "{{ entity }}",

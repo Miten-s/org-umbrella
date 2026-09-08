@@ -5,7 +5,11 @@ import { getPaginationOptions } from "../utils/pagination.util";
 import { buildBulkCrudRoutes } from "../utils/bulk-crud-factory";
 import Supplier from "../models/gxp-service-suppliers.model";
 import { CreateSupplierDto } from "../dtos/supplier.dto";
-import { cacheResponse, getCachedResponse, deleteCacheByPrefix } from "../configs/redis.config";
+import {
+  cacheResponse,
+  getCachedResponse,
+  deleteCacheByPrefix
+} from "../configs/redis.config";
 
 export const createSupplier = asyncHandler(
   async (req: Request, res: Response) => {
@@ -25,7 +29,7 @@ export const getSuppliers = asyncHandler(
   async (req: Request, res: Response) => {
     const includeDisabled = req.query.includeDisabled === "true";
     const paginationOptions = getPaginationOptions(req.query);
-    
+
     const cacheKey = `gxp:suppliers:all:${JSON.stringify({ ...paginationOptions, includeDisabled })}`;
     const cached = await getCachedResponse(cacheKey);
     if (cached) return res.json(cached);
@@ -34,7 +38,7 @@ export const getSuppliers = asyncHandler(
       paginationOptions,
       includeDisabled
     );
-    
+
     await cacheResponse({ key: cacheKey, value: items, ttl: 3600 });
     return res.json(items);
   }
@@ -62,7 +66,7 @@ export const updateSupplier = asyncHandler(
     );
     if (!updated)
       return res.status(404).json({ message: "Supplier not found" });
-      
+
     await deleteCacheByPrefix("gxp:suppliers:");
     return res.json(updated);
   }
@@ -79,7 +83,7 @@ export const disableSupplier = asyncHandler(
     );
     if (!disabled)
       return res.status(404).json({ message: "Supplier not found" });
-      
+
     await deleteCacheByPrefix("gxp:suppliers:");
     return res.json({ message: "Supplier disabled", supplier: disabled });
   }
@@ -97,7 +101,7 @@ export const enableSupplier = asyncHandler(
     );
     if (!restored)
       return res.status(404).json({ message: "Supplier not found" });
-      
+
     await deleteCacheByPrefix("gxp:suppliers:");
     return res.json({
       message: "Supplier restored",
@@ -113,7 +117,7 @@ export const deleteSupplier = asyncHandler(
     const deleted = await service.deleteSupplier(id as string);
     if (!deleted)
       return res.status(404).json({ message: "Supplier not found" });
-      
+
     await deleteCacheByPrefix("gxp:suppliers:");
     return res.json({ message: "Supplier deleted", supplier: deleted });
   }
