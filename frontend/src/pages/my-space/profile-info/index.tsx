@@ -2,7 +2,7 @@ import UserInfoCard from "./UserInfoCard";
 import UserCompanyCard from "./UserCompanyCard";
 import UserMetaCard from "./UserMetaCard";
 
-const ProfileInfo = () => {  
+const ProfileInfo = () => {
   return (
     <>
       <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] lg:p-6">
@@ -10,9 +10,9 @@ const ProfileInfo = () => {
           Profile
         </h3>
         <div className="space-y-6">
-          <UserMetaCard/>
+          <UserMetaCard />
           <UserInfoCard />
-          <UserCompanyCard /> 
+          <UserCompanyCard />
         </div>
       </div>
     </>

@@ -4,19 +4,38 @@ import {
   createEnvironment,
   deleteEnvironment,
   getEnvironments,
+  getEnvironmentById,
   enableEnvironment,
   updateEnvironment,
-  disableEnvironment
+  disableEnvironment,
+  bulkDeleteEnvironments,
+  bulkDuplicateEnvironments,
+  bulkCopyEnvironments,
+  bulkUpdateEnvironments,
+  bulkRestoreEnvironments
 } from "../controllers/gxp-service-environments.controller";
 import API_ROUTES from "../utils/routes";
-import { validateDto } from "../middlewares/validate-dto.middleware";
-import { CreateEnvironmentDto, UpdateEnvironmentDto } from "../dtos/environment.dto";
+import {
+  validateDto,
+  validateDtoArray
+} from "../middlewares/validate-dto.middleware";
+import {
+  CreateEnvironmentDto,
+  UpdateEnvironmentDto
+} from "../dtos/environment.dto";
+import {
+  BulkCreateDto,
+  BulkUpdateDto,
+  BulkOperationDto
+} from "../dtos/common.dto";
 
 const router = Router();
 
 // ---------------------------------------------------------------------------------------- GET Requests ----------------------------------------------------------------------------------------
 
 router.get(API_ROUTES.ENVIRONMENT.ROOT, getEnvironments);
+
+router.get(API_ROUTES.ENVIRONMENT.BY_ID, getEnvironmentById);
 
 // ---------------------------------------------------------------------------------------- POST Requests ----------------------------------------------------------------------------------------
 
@@ -26,7 +45,33 @@ router.post(
   createEnvironment
 );
 
+router.post(API_ROUTES.ENVIRONMENT.BULK_DELETE, bulkDeleteEnvironments);
+
+router.post(API_ROUTES.ENVIRONMENT.BULK_DUPLICATE, bulkDuplicateEnvironments);
+
+router.post(
+  API_ROUTES.ENVIRONMENT.BULK_COPY,
+  validateDto(BulkCreateDto),
+  validateDtoArray(CreateEnvironmentDto, "records"),
+  bulkCopyEnvironments
+);
+
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
+
+// bulk-update/bulk-restore MUST register before BY_ID ("/:id") — same one-segment
+// path shape, and Express matches whichever is registered first.
+router.patch(
+  API_ROUTES.ENVIRONMENT.BULK_UPDATE,
+  validateDto(BulkUpdateDto),
+  validateDtoArray(UpdateEnvironmentDto, "updates", "payload"),
+  bulkUpdateEnvironments
+);
+
+router.patch(
+  API_ROUTES.ENVIRONMENT.BULK_RESTORE,
+  validateDto(BulkOperationDto),
+  bulkRestoreEnvironments
+);
 
 router.patch(
   API_ROUTES.ENVIRONMENT.BY_ID,

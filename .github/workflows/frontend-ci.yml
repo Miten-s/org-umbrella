@@ -1,0 +1,4 @@
+# Consolidated into .github/workflows/frontend.yml
+name: Frontend Quality CI (Disabled)
+on: []
+jobs: {}

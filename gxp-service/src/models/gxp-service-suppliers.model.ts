@@ -1,36 +1,91 @@
-import mongoose, { Document, Schema } from "mongoose";
+import { Model, DataTypes } from "sequelize";
+import { sequelize } from "../configs/db.sequelize";
 
-export interface IGxpSupplier extends Document {
+export interface ISupplier {
+  id: string;
   supplierName: string;
   typeOfSupplier?: string;
   product?: string;
-  description?: string | null;
-  createdOn?: Date | null;
-  createdBy?: string | null;
-  modifiedOn?: Date | null;
-  modifiedBy?: string | null;
+  description?: string;
   status: "enabled" | "disabled";
+  createdOn?: Date;
+  createdBy?: string;
+  modifiedOn?: Date;
+  modifiedBy?: string;
 }
 
-const GxpSupplierSchema = new Schema<IGxpSupplier>(
+export class Supplier extends Model<ISupplier> implements ISupplier {
+  public id!: string;
+  public supplierName!: string;
+  public typeOfSupplier!: string;
+  public product!: string;
+  public description!: string;
+  public status!: "enabled" | "disabled";
+  public createdOn!: Date;
+  public createdBy!: string;
+  public modifiedOn!: Date;
+  public modifiedBy!: string;
+  public readonly created_at!: Date;
+  public readonly updated_at!: Date;
+}
+
+Supplier.init(
   {
-    supplierName: { type: String, required: true, maxlength: 20, trim: true },
-    typeOfSupplier: { type: String, trim: true },
-    product: { type: String, default: null },
-    description: { type: String, maxlength: 50, default: null, trim: true },
-    createdOn: { type: Date, default: null },
-    createdBy: { type: String, default: null, trim: true },
-    modifiedOn: { type: Date, default: null },
-    modifiedBy: { type: String, default: null, trim: true },
-    status: { type: String, enum: ["enabled", "disabled"], default: "enabled" }
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    supplierName: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      unique: true,
+      field: "supplier_name"
+    },
+    typeOfSupplier: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: "type_of_supplier"
+    },
+    product: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    description: {
+      type: DataTypes.STRING(50),
+      allowNull: true
+    },
+    status: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: "enabled"
+    },
+    createdOn: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: "created_on"
+    },
+    createdBy: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: "created_by"
+    },
+    modifiedOn: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: "modified_on"
+    },
+    modifiedBy: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: "modified_by"
+    }
   },
   {
-    timestamps: false,
-    collection: "gxp-service-suppliers"
+    sequelize,
+    tableName: "suppliers",
+    underscored: true,
+    timestamps: true
   }
 );
-
-export const GxpSupplierModel = mongoose.model<IGxpSupplier>(
-  "GxpServiceSupplier",
-  GxpSupplierSchema
-);
+export default Supplier;

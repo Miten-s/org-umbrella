@@ -11,11 +11,27 @@ import {
   deleteAttachments,
   duplicateApplication,
   getApplicationRoles,
+  bulkDeleteApplications,
+  bulkDuplicateApplications,
+  bulkCopyApplications,
+  bulkUpdateApplications,
+  bulkRestoreApplications
 } from "../controllers/gxp-service-applications.controller";
 import API_ROUTES from "../utils/routes";
 import upload from "../middlewares/multer.middleware.js";
-import { validateDto } from "../middlewares/validate-dto.middleware";
-import { CreateApplicationDto, UpdateApplicationDto } from "../dtos/application.dto";
+import {
+  validateDto,
+  validateDtoArray
+} from "../middlewares/validate-dto.middleware";
+import {
+  CreateApplicationDto,
+  UpdateApplicationDto
+} from "../dtos/application.dto";
+import {
+  BulkCreateDto,
+  BulkUpdateDto,
+  BulkOperationDto
+} from "../dtos/common.dto";
 
 const router = Router();
 
@@ -28,10 +44,7 @@ router.get(
   getApplicationGroups
 );
 
-router.get(
-  API_ROUTES.APPLICATIONS.GET_APPLICATION_ROLES,
-  getApplicationRoles
-);
+router.get(API_ROUTES.APPLICATIONS.GET_APPLICATION_ROLES, getApplicationRoles);
 
 router.get(API_ROUTES.APPLICATIONS.BY_ID, getApplicationById);
 
@@ -44,12 +57,35 @@ router.post(
   createApplication
 );
 
+router.post(API_ROUTES.APPLICATIONS.DUPLICATE_BY_ID, duplicateApplication);
+
+router.post(API_ROUTES.APPLICATIONS.BULK_DELETE, bulkDeleteApplications);
+
+router.post(API_ROUTES.APPLICATIONS.BULK_DUPLICATE, bulkDuplicateApplications);
+
 router.post(
-  API_ROUTES.APPLICATIONS.DUPLICATE_BY_ID,
-  duplicateApplication
+  API_ROUTES.APPLICATIONS.BULK_COPY,
+  validateDto(BulkCreateDto),
+  validateDtoArray(CreateApplicationDto, "records"),
+  bulkCopyApplications
 );
 
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
+
+// bulk-update/bulk-restore MUST register before BY_ID ("/:id") — same one-segment
+// path shape, and Express matches whichever is registered first.
+router.patch(
+  API_ROUTES.APPLICATIONS.BULK_UPDATE,
+  validateDto(BulkUpdateDto),
+  validateDtoArray(UpdateApplicationDto, "updates", "payload"),
+  bulkUpdateApplications
+);
+
+router.patch(
+  API_ROUTES.APPLICATIONS.BULK_RESTORE,
+  validateDto(BulkOperationDto),
+  bulkRestoreApplications
+);
 
 router.patch(API_ROUTES.APPLICATIONS.ENABLE_BY_ID, enableApplication);
 

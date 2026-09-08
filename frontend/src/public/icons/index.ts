@@ -56,6 +56,8 @@ import { ReactComponent as LanguageIcon } from "./language.svg?react";
 import { ReactComponent as AccessIcon } from "./access-svgrepo-com.svg?react";
 import { ReactComponent as CompanyIcon } from "./company.svg?react";
 import { ReactComponent as UserManagement } from "./employee-setting.svg?react";
+import { ReactComponent as FlaskIcon } from "./flask.svg?react";
+import { ReactComponent as LabAccessIcon } from "./lab-access.svg?react";
 
 export {
   ErrorHexaIcon,
@@ -115,5 +117,7 @@ export {
   LanguageIcon,
   AccessIcon,
   CompanyIcon,
-  UserManagement
+  UserManagement,
+  FlaskIcon,
+  LabAccessIcon
 };

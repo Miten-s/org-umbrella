@@ -6,19 +6,25 @@ import { useTranslation } from "react-i18next";
 interface ButtonProps {
   children: ReactNode;
   size?: "sm" | "md";
-  variant?: "primary" | "outline" | "secondary" | "destructive";
+  variant?: "primary" | "outline" | "secondary" | "destructive" | "ghost";
   startIcon?: ReactNode;
   endIcon?: ReactNode;
+  title?: string;
   onClick?: () => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
   disabled?: boolean;
   className?: string;
   type?: "button" | "submit" | "reset";
+  /** Submits/resets a `<form>` elsewhere in the DOM by id — lets a
+   * `type="submit"` button sit outside its form (e.g. CopyStepper's Next in
+   * the modal header, submitting the form rendered below it). */
+  form?: string;
   permission?: string | string[];
-  permissionLogic?: 'all' | 'any';
+  permissionLogic?: "all" | "any";
   tooltipMessage?: string;
-  tooltipPosition?: 'top' | 'bottom' | 'left' | 'right';
+  tooltipPosition?: "top" | "bottom" | "left" | "right";
+  loading?: boolean;
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -27,17 +33,20 @@ const Button: React.FC<ButtonProps> = ({
   variant = "primary",
   startIcon,
   endIcon,
+  title,
   onClick,
   onMouseEnter,
   onMouseLeave,
   className = "",
   disabled = false,
   type = "button",
+  form,
   // Permission-related props
   permission,
-  permissionLogic = 'all',
+  permissionLogic = "all",
   tooltipMessage,
-  tooltipPosition = 'bottom'
+  tooltipPosition = "bottom",
+  loading = false
 }) => {
   const { user } = useAuth();
   const { t } = useTranslation();
@@ -58,29 +67,40 @@ const Button: React.FC<ButtonProps> = ({
       "bg-gray-400 text-gray-800 ring-1 ring-inset ring-gray-30 hover:bg-gray-500 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition-all duration-200",
     destructive:
       "bg-white text-red-600 ring-1 ring-inset ring-red-500 hover:bg-red-50 dark:bg-transparent dark:text-red-400 dark:ring-red-600 dark:hover:bg-red-900/10",
+    // Borderless, no color of its own — caller supplies text/hover via className
+    // (e.g. the dark selection pill paints icon + label white / red).
+    ghost: "bg-transparent"
   };
 
   // Permission checking
-  const checkPermissions = (user: any, permission: string | string[] | undefined, logic: 'all' | 'any') => {
+  const checkPermissions = (
+    user: any,
+    permission: string | string[] | undefined,
+    logic: "all" | "any"
+  ) => {
     if (!permission) return true;
     if (Array.isArray(permission)) {
-      const results = permission.map(p => hasPermission(user, p));
-      return logic === 'all' ? results.every(Boolean) : results.some(Boolean);
+      const results = permission.map((p) => hasPermission(user, p));
+      return logic === "all" ? results.every(Boolean) : results.some(Boolean);
     }
     return hasPermission(user, permission);
   };
 
-  const getMissingPermissions = (user: any, permission: string | string[] | undefined) => {
+  const getMissingPermissions = (
+    user: any,
+    permission: string | string[] | undefined
+  ) => {
     if (!permission) return [];
     if (Array.isArray(permission)) {
-      return permission.filter(p => !hasPermission(user, p));
+      return permission.filter((p) => !hasPermission(user, p));
     }
     return hasPermission(user, permission) ? [] : [permission];
   };
 
   const userHasPermission = checkPermissions(user, permission, permissionLogic);
   const missingPermissions = getMissingPermissions(user, permission);
-  const isDisabled = disabled || (permission && !userHasPermission);
+  const isDisabled =
+    disabled || loading || !!(permission && !userHasPermission);
 
   const handleClick = () => {
     if (isDisabled) {
@@ -104,58 +124,63 @@ const Button: React.FC<ButtonProps> = ({
   // Hide tooltip when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (buttonRef.current && !buttonRef.current.contains(event.target as Node)) {
+      if (
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
         setShowTooltip(false);
       }
     };
 
     if (showTooltip) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showTooltip]);
 
   // Tooltip message logic
-  let defaultTooltipMessage = '';
+  let defaultTooltipMessage = "";
   if (permission && !userHasPermission) {
     if (Array.isArray(permission)) {
       defaultTooltipMessage =
-        t('noPermissionMessage', { action: t('create', { entity: '' }) }) +
-        ': ' +
-        missingPermissions.map(p => t('permission.' + p, p)).join(', ');
+        t("noPermissionMessage", { action: t("create", { entity: "" }) }) +
+        ": " +
+        missingPermissions.map((p) => t("permission." + p, p)).join(", ");
     } else {
-      defaultTooltipMessage = t('noPermissionMessage', {
-        action: t('create', { entity: permission?.split(':')[1]?.toLowerCase() || 'this item' }),
+      defaultTooltipMessage = t("noPermissionMessage", {
+        action: t("create", {
+          entity: permission?.split(":")[1]?.toLowerCase() || "this item"
+        })
       });
     }
   }
 
   const getTooltipPositionClasses = () => {
     switch (tooltipPosition) {
-      case 'top':
-        return ' bottom-full left-1/2 transform -translate-x-1/2 mb-2';
-      case 'left':
-        return 'right-full top-1/2 transform -translate-y-1/2 mr-2';
-      case 'right':
-        return 'left-full top-1/2 transform -translate-y-1/2 ml-2';
+      case "top":
+        return " bottom-full left-1/2 transform -translate-x-1/2 mb-2";
+      case "left":
+        return "right-full top-1/2 transform -translate-y-1/2 mr-2";
+      case "right":
+        return "left-full top-1/2 transform -translate-y-1/2 ml-2";
       default: //  bottom
-        return 'top-full left-1/2 transform -translate-x-1/2 mt-2';
+        return "top-full left-1/2 transform -translate-x-1/2 mt-2";
     }
   };
 
   const getTooltipArrowClasses = () => {
     switch (tooltipPosition) {
-      case 'top':
-        return 'top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900';
-      case 'left':
-        return 'left-full top-1/2 transform -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-gray-900';
-      case 'right':
-        return 'right-full top-1/2 transform -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-l-4 border-transparent border-l-gray-900';
+      case "top":
+        return "top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900";
+      case "left":
+        return "left-full top-1/2 transform -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-gray-900";
+      case "right":
+        return "right-full top-1/2 transform -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-l-4 border-transparent border-l-gray-900";
       default: //  bottom
-        return 'bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900';;
+        return "bottom-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900";
     }
   };
 
@@ -163,17 +188,47 @@ const Button: React.FC<ButtonProps> = ({
     <div className="relative inline-block" ref={buttonRef}>
       <button
         type={type}
-        className={`inline-flex items-center justify-center gap-2 rounded-lg transition ${className} ${sizeClasses[size]
-          } ${variantClasses[variant]} ${isDisabled ? "cursor-not-allowed opacity-50" : ""
-          }`}
+        form={form}
+        title={title}
+        disabled={isDisabled}
+        className={`inline-flex items-center justify-center gap-2 rounded-lg transition ${className} ${
+          sizeClasses[size]
+        } ${variantClasses[variant]} ${
+          isDisabled ? "cursor-not-allowed opacity-50" : ""
+        }`}
         onClick={handleClick}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         aria-disabled={isDisabled || false}
+        aria-busy={loading || undefined}
       >
-        {startIcon && <span className="flex items-center">{startIcon}</span>}
+        {loading ? (
+          <svg
+            className={`animate-spin text-current ${size === "sm" ? "h-4 w-4" : "h-5 w-5"}`}
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            />
+          </svg>
+        ) : (
+          startIcon && <span className="flex items-center">{startIcon}</span>
+        )}
         {children}
-        {endIcon && <span className="flex items-center">{endIcon}</span>}
+        {!loading && endIcon && (
+          <span className="flex items-center">{endIcon}</span>
+        )}
       </button>
 
       {/* Tooltip */}

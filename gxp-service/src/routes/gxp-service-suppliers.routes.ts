@@ -7,11 +7,24 @@ import {
   updateSupplier,
   disableSupplier,
   enableSupplier,
-  deleteSupplier
+  deleteSupplier,
+  bulkDeleteSuppliers,
+  bulkDuplicateSuppliers,
+  bulkCopySuppliers,
+  bulkUpdateSuppliers,
+  bulkRestoreSuppliers
 } from "../controllers/gxp-service-suppliers.controller";
 import API_ROUTES from "../utils/routes";
-import { validateDto } from "../middlewares/validate-dto.middleware";
+import {
+  validateDto,
+  validateDtoArray
+} from "../middlewares/validate-dto.middleware";
 import { CreateSupplierDto, UpdateSupplierDto } from "../dtos/supplier.dto";
+import {
+  BulkCreateDto,
+  BulkUpdateDto,
+  BulkOperationDto
+} from "../dtos/common.dto";
 
 const router = Router();
 
@@ -29,7 +42,33 @@ router.post(
   createSupplier
 );
 
+router.post(API_ROUTES.SUPPLIER.BULK_DELETE, bulkDeleteSuppliers);
+
+router.post(API_ROUTES.SUPPLIER.BULK_DUPLICATE, bulkDuplicateSuppliers);
+
+router.post(
+  API_ROUTES.SUPPLIER.BULK_COPY,
+  validateDto(BulkCreateDto),
+  validateDtoArray(CreateSupplierDto, "records"),
+  bulkCopySuppliers
+);
+
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
+
+// bulk-update/bulk-restore MUST register before BY_ID ("/:id") — same one-segment
+// path shape, and Express matches whichever is registered first.
+router.patch(
+  API_ROUTES.SUPPLIER.BULK_UPDATE,
+  validateDto(BulkUpdateDto),
+  validateDtoArray(UpdateSupplierDto, "updates", "payload"),
+  bulkUpdateSuppliers
+);
+
+router.patch(
+  API_ROUTES.SUPPLIER.BULK_RESTORE,
+  validateDto(BulkOperationDto),
+  bulkRestoreSuppliers
+);
 
 router.patch(
   API_ROUTES.SUPPLIER.BY_ID,

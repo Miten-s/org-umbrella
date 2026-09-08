@@ -1,6 +1,10 @@
 import { Request, Response } from "express";
 import * as service from "../services/gxp-service-workflows.service";
 import asyncHandler from "../middlewares/error.middleware";
+import { getPaginationOptions } from "../utils/pagination.util";
+import { buildBulkCrudRoutes } from "../utils/bulk-crud-factory";
+import Workflow from "../models/gxp-service-workflows.model";
+import { CreateWorkflowDto } from "../dtos/workflow.dto";
 
 export const createWorkflow = asyncHandler(
   async (req: Request, res: Response) => {
@@ -11,9 +15,23 @@ export const createWorkflow = asyncHandler(
 );
 
 export const getAllWorkflows = asyncHandler(
-  async (_req: Request, res: Response) => {
-    const workflows = await service.getWorkflows();
+  async (req: Request, res: Response) => {
+    const includeDisabled = req.query.includeDisabled === "true";
+    const paginationOptions = getPaginationOptions(req.query);
+    const workflows = await service.getWorkflows(
+      paginationOptions,
+      includeDisabled
+    );
     res.status(200).send(workflows);
+  }
+);
+
+export const getWorkflowById = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { workflowId } = req.params;
+    const result = await service.getWorkflowById(workflowId as string);
+    if (!result) return res.status(404).json({ message: "Workflow not found" });
+    res.status(200).send(result);
   }
 );
 
@@ -55,3 +73,46 @@ export const deleteWorkflow = asyncHandler(
     res.status(200).send(result);
   }
 );
+
+export const bulkDeleteWorkflows = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res
+        .status(400)
+        .send({ message: "Invalid workflow IDs provided for deletion" });
+    }
+    const result = await service.bulkDeleteWorkflows(ids);
+    res.status(200).send(result);
+  }
+);
+
+export const bulkDuplicateWorkflows = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res
+        .status(400)
+        .send({ message: "Invalid workflow IDs provided for duplication" });
+    }
+    const user = (req as any).user?.id;
+    const result = await service.bulkDuplicateWorkflows(ids, user);
+    res.status(201).send(result);
+  }
+);
+
+const bulkCrud = buildBulkCrudRoutes({
+  model: Workflow,
+  nameField: "workflowName",
+  maxNameLength: 20,
+  createDtoClass: CreateWorkflowDto,
+  createOne: (payload, currentUser) =>
+    service.addWorkflow(payload, currentUser ?? ""),
+  updateOne: (id, payload, currentUser) =>
+    service.updateWorkflow(id, payload, currentUser ?? ""),
+  restore: (id, currentUser) => service.enableWorkflow(id, currentUser ?? "")
+});
+
+export const bulkCopyWorkflows = bulkCrud.bulkCopy;
+export const bulkUpdateWorkflows = bulkCrud.bulkUpdate;
+export const bulkRestoreWorkflows = bulkCrud.bulkRestore!;

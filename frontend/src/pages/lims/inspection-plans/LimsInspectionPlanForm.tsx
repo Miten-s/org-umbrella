@@ -1,0 +1,290 @@
+import { useMemo, useRef, useState } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslation } from "react-i18next";
+
+import Input from "@/components/common/form/input/InputField";
+import Label from "@/components/common/form/Label";
+import TextArea from "@/components/common/form/input/TextArea";
+import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
+import Button from "@/components/ui/button/Button";
+import AsyncSelect from "@/components/data/AsyncSelect";
+import SubFormGrid from "@/components/data/SubFormGrid";
+
+import { refId } from "@/lib/query/normalizeId";
+import { isPayloadEqual } from "@/lib/formChangeDetection";
+import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
+import { useLimsUserOptions } from "@/pages/lims/users/LimsUser.options";
+import { useLimsRoleOptions } from "@/pages/lims/roles/LimsRole.queries";
+import {
+  limsInspectionPlanSchema,
+  limsInspectionPlanCopySchema,
+  type LimsInspectionPlanFormValues
+} from "./LimsInspectionPlan.schema";
+import type {
+  LimsInspectionPlan,
+  LimsInspectionPlanPayload,
+  LimsRef,
+  LimsPersonnelRow
+} from "./LimsInspectionPlan.types";
+
+/** "copy" renders like "create" except the business ID starts blank (stays EDITABLE —
+ * `applyBusinessId` only mints when empty, otherwise honors what the user typed). */
+export type LimsInspectionPlanFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
+
+interface LimsInspectionPlanFormProps {
+  mode?: LimsInspectionPlanFormMode;
+  initialData?: LimsInspectionPlan | null;
+  onClose: () => void;
+  onUnchanged?: () => void;
+  onSubmit: (payload: LimsInspectionPlanPayload) => Promise<void> | void;
+  submitting?: boolean;
+  /** Overrides the submit button's label — CopyStepper uses this to say
+   * "Next" on every step but the last, where the batch actually saves. */
+  submitLabel?: string;
+  /** Grays out the submit button without a spinner — EditStepper uses
+   * this on the last step now that its own Save button lives outside it. */
+  disabled?: boolean;
+  /** Set on the `<form>` element so an outside button (CopyStepper's
+   * header Next/Save) can submit it via `<Button form={formId}>`. */
+  formId?: string;
+  /** " (2 of 5)" appended after the title when Copy is reviewing more
+   * than one record — undefined otherwise. */
+  stepLabel?: string;
+}
+
+/** Seeds a dropdown label from the record's nested ref — no extra fetch. */
+const seedOne = (ref: LimsRef | null | undefined) =>
+  ref?.id && ref.name ? [{ value: ref.id, label: ref.name }] : undefined;
+
+const LimsInspectionPlanForm = ({
+  mode = "create",
+  initialData,
+  onClose,
+  onUnchanged,
+  onSubmit,
+  submitting = false,
+  submitLabel,
+  disabled = false,
+  formId,
+  stepLabel
+}: LimsInspectionPlanFormProps) => {
+  const { t } = useTranslation();
+  const isReadOnly = mode === "view";
+  // The server returns person/role as nested `{ id, name }` refs, but a select cell needs
+  // the bare id — without this saved values silently render as "Select Person".
+  const initialPersonnelRef = useRef(
+    (initialData?.personnel ?? []).map((row) => ({
+      ...row,
+      person: refId(row.person),
+      role: refId(row.role)
+    }))
+  );
+  const [personnel, setPersonnel] = useState<LimsPersonnelRow[]>(
+    initialPersonnelRef.current
+  );
+
+  // Person/Role are FK references, not free text — fed to `type: "async-select"` columns
+  // (see SubFormGrid) instead of plain text inputs, which failed validation with "must be a UUID".
+  // Captured once per record — also the no-change baseline `submit` diffs
+  // against, so Save is a no-op when nothing actually differs from it.
+  const initialValues = useMemo<LimsInspectionPlanFormValues>(
+    () => ({
+      inspectionId: mode === "copy" ? "" : (initialData?.inspectionId ?? ""),
+      name: initialData?.name ?? "",
+      inspectionType: initialData?.inspectionType ?? "",
+      group: initialData?.group?.id ?? "",
+      description: initialData?.description ?? "",
+      details: initialData?.details ?? ""
+    }),
+    [initialData, mode]
+  );
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isSubmitting }
+  } = useForm<LimsInspectionPlanFormValues>({
+    resolver: zodResolver(
+      mode === "copy" ? limsInspectionPlanCopySchema : limsInspectionPlanSchema
+    ),
+    defaultValues: initialValues
+  });
+
+  const description = useWatch({ control, name: "description" });
+  const details = useWatch({ control, name: "details" });
+  const busy = submitting || isSubmitting;
+
+  const text = (
+    name: keyof LimsInspectionPlanFormValues,
+    label: string,
+    required = false,
+    type = "text",
+    forceDisabled = false
+  ) => (
+    <div className="min-w-0">
+      <Label required={required}>{label}</Label>
+      <Input
+        {...register(name)}
+        type={type}
+        disabled={isReadOnly || forceDisabled}
+        error={!!errors[name]}
+        hint={errors[name]?.message as string}
+        className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+      />
+    </div>
+  );
+
+  return (
+    <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+      <form
+        id={formId}
+        onSubmit={handleSubmit((values) => {
+          // Edit + nothing actually changed: skip the reason modal, update
+          // call, and audit entry entirely — a no-op Save just closes.
+          if (
+            (mode === "edit" || mode === "bulk-edit") &&
+            isPayloadEqual(values, initialValues) &&
+            isPayloadEqual(personnel, initialPersonnelRef.current)
+          ) {
+            (onUnchanged ?? onClose)();
+            return;
+          }
+          onSubmit({ ...values, personnel });
+        })}
+        className="min-w-0 space-y-4"
+      >
+        <h2 className="text-xl font-semibold">
+          {isReadOnly
+            ? t("view", { entity: t("limsInspectionPlan") })
+            : mode === "copy"
+              ? `${t("copyEntity", { entity: t("limsInspectionPlan") })}${stepLabel ?? ""}`
+              : initialData
+                ? `${t("update", { entity: t("limsInspectionPlan") })}${stepLabel ?? ""}`
+                : t("create", { entity: t("limsInspectionPlan") })}
+        </h2>
+
+        <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
+          {text("inspectionId", t("limsInspectionId"), true, "text")}
+          {text("name", t("name"), true, "text")}
+          <div className="min-w-0">
+            <Label>{t("limsInspectionType")}</Label>
+            <Controller
+              name="inspectionType"
+              control={control}
+              render={({ field }) => (
+                <SelectDropdown
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  options={[
+                    { label: "Round robin", value: "Round robin" },
+                    { label: "Linear", value: "Linear" }
+                  ]}
+                  placeholder={t("select", { entity: t("limsInspectionType") })}
+                />
+              )}
+            />
+          </div>
+          <div className="min-w-0">
+            <Label required={false}>{t("limsGroup")}</Label>
+            <Controller
+              name="group"
+              control={control}
+              render={({ field }) => (
+                <AsyncSelect
+                  useOptions={useLimsGroupOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={isReadOnly}
+                  placeholder={t("select", { entity: t("limsGroup") })}
+                  initialSelectedOptions={seedOne(initialData?.group)}
+                />
+              )}
+            />
+          </div>
+          <div className="col-span-full min-w-0">
+            <Label>{t("description")}</Label>
+            <TextArea
+              disabled={isReadOnly}
+              value={description || ""}
+              onChange={(val) =>
+                setValue("description", val, { shouldValidate: true })
+              }
+              className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+          <div className="col-span-full min-w-0">
+            <Label>{t("limsDetails")}</Label>
+            <TextArea
+              disabled={isReadOnly}
+              value={details || ""}
+              onChange={(val) =>
+                setValue("details", val, { shouldValidate: true })
+              }
+              className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+          <div className="col-span-full min-w-0">
+            <SubFormGrid<LimsPersonnelRow>
+              label={t("limsPersonnel")}
+              rows={personnel}
+              onChange={setPersonnel}
+              disabled={isReadOnly}
+              columns={[
+                {
+                  key: "inspectionType",
+                  header: t("limsInspectionEntryType"),
+                  type: "select",
+                  // Spec §B.13.h: the entry type decides whether the row names
+                  // a person or a role.
+                  options: [
+                    { label: t("limsPerson"), value: "User" },
+                    { label: t("limsRole"), value: "Role" }
+                  ]
+                },
+                {
+                  key: "person",
+                  header: t("limsPerson"),
+                  type: "async-select",
+                  useOptions: useLimsUserOptions
+                },
+                {
+                  key: "role",
+                  header: t("limsRole"),
+                  type: "async-select",
+                  useOptions: useLimsRoleOptions
+                }
+              ]}
+            />
+          </div>
+        </div>
+
+        <div className="mt-4 flex justify-end gap-2">
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
+            {t("cancel")}
+          </Button>
+          {!isReadOnly ? (
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
+              {submitLabel ?? t("save")}
+            </Button>
+          ) : null}
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default LimsInspectionPlanForm;

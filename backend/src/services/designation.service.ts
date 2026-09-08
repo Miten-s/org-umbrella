@@ -1,29 +1,239 @@
 import { Designation, IDesignation } from "../models/designation.model";
+import { PaginationOptions } from "../utils/pagination.util";
+import { Op } from "sequelize";
+import { sequelize } from "../configs/db.sequelize";
 
-const createDesignation = async (data: IDesignation) => {
-  const newDesignation = new Designation(data);
-  return await newDesignation.save();
+const formatDesignation = (desig: any) => {
+  if (!desig) return null;
+  const json = desig.toJSON ? desig.toJSON() : { ...desig };
+  json._id = json.id;
+  return json;
 };
 
-const getAllDesignations = async () => {
-  return await Designation.find().exec();
+const createDesignation = async (data: IDesignation) => {
+  const doc = await Designation.create(data as any);
+  return formatDesignation(doc);
+};
+
+const getAllDesignations = async (options: PaginationOptions) => {
+  const { page, limit, skip, search } = options;
+  const where: any = {};
+
+  if (search) {
+    const searchVal = `%${search}%`;
+    where[Op.or] = [
+      { designationName: { [Op.iLike]: searchVal } },
+      { description: { [Op.iLike]: searchVal } }
+    ];
+  }
+
+  const { count: totalCount, rows: data } = await Designation.findAndCountAll({
+    where,
+    offset: skip,
+    limit,
+    order: [["created_at", "DESC"]]
+  });
+
+  return {
+    designations: data.map(formatDesignation),
+    metadata: {
+      totalCount,
+      currentPage: page,
+      limit,
+      totalPages: Math.ceil(totalCount / limit)
+    }
+  };
 };
 
 const getDesignationById = async (_id: string) => {
-  return await Designation.findOne({ _id }).exec();
+  const doc = await Designation.findByPk(_id);
+  return formatDesignation(doc);
 };
 
 const updateDesignation = async (_id: string, data: Partial<IDesignation>) => {
-  return await Designation.findOneAndUpdate({ _id }, data, {
-    new: true
-  }).exec();
+  const designation = await Designation.findByPk(_id);
+  if (!designation) return null;
+  await designation.update(data);
+  return formatDesignation(designation);
 };
 
 const deleteDesignation = async (_id: string) => {
-  return await Designation.findByIdAndDelete(
-    { _id },
-    { deletedAt: new Date() }
-  ).exec();
+  const designation = await Designation.findByPk(_id);
+  if (!designation) return null;
+  await designation.destroy();
+  return formatDesignation(designation);
+};
+
+const bulkDeleteDesignations = async (ids: string[]) => {
+  return await Designation.destroy({
+    where: { id: ids }
+  });
+};
+
+const bulkDuplicateDesignations = async (ids: string[], user?: any) => {
+  const t = await sequelize.transaction();
+  try {
+    const sourceDesignations = await Designation.findAll({
+      where: { id: ids },
+      transaction: t
+    });
+    if (!sourceDesignations || sourceDesignations.length === 0) {
+      throw new Error("Designations not found");
+    }
+
+    const duplicatedDesignations = [];
+
+    for (const sourceDesignation of sourceDesignations) {
+      let baseName = sourceDesignation.designationName;
+      const nameMatch = baseName.match(/^(.*)-\((\d+)\)$/);
+      if (nameMatch) {
+        baseName = nameMatch[1];
+      }
+
+      const escapedBaseName = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regexStr = `^${escapedBaseName}(?:-\\(([0-9]+)\\))?$`;
+
+      const similarDesignationsResult = await Designation.findAll({
+        attributes: ["designationName"],
+        where: {
+          designationName: { [Op.iRegexp]: regexStr }
+        },
+        transaction: t
+      });
+
+      let maxIndex = 0;
+      similarDesignationsResult.forEach((desig: any) => {
+        const match = desig.designationName.match(new RegExp(regexStr, "i"));
+        if (match && match[1]) {
+          const index = parseInt(match[1], 10);
+          if (index > maxIndex) maxIndex = index;
+        }
+      });
+
+      const newName = `${baseName}-(${maxIndex + 1})`;
+
+      const savedDesignation = await Designation.create(
+        {
+          designationName: newName,
+          description: sourceDesignation.description,
+          status: sourceDesignation.status,
+          deletedAt: null,
+          modifiedOn: new Date(),
+          modifiedBy: user?.id || user?._id
+        } as any,
+        { transaction: t }
+      );
+
+      duplicatedDesignations.push(savedDesignation);
+    }
+
+    await t.commit();
+    return duplicatedDesignations.map(formatDesignation);
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
+};
+
+// The Copy flow's batched save — one request creates every reviewed record. A name
+// collision is warned, not rejected (same "-(N)" suffix logic as bulkDuplicateDesignations).
+const bulkCopyDesignations = async (
+  records: Record<string, any>[],
+  user?: any
+) => {
+  const t = await sequelize.transaction();
+  try {
+    const modifier = user?.id || user?._id;
+    const results: { id: string; warning?: string }[] = [];
+
+    for (const raw of records) {
+      let name = String(raw.designationName || "").trim();
+      let warning: string | undefined;
+
+      const collision = await Designation.findOne({
+        where: {
+          designationName: { [Op.iLike]: name.replace(/[%_\\]/g, "\\$&") }
+        },
+        transaction: t
+      });
+
+      if (collision) {
+        let baseName = name;
+        const nameMatch = baseName.match(/^(.*)-\((\d+)\)$/);
+        if (nameMatch) baseName = nameMatch[1];
+
+        const escapedBaseName = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const regexStr = `^${escapedBaseName}(?:-\\(([0-9]+)\\))?$`;
+
+        const similar = await Designation.findAll({
+          attributes: ["designationName"],
+          where: { designationName: { [Op.iRegexp]: regexStr } },
+          transaction: t
+        });
+
+        let maxIndex = 0;
+        similar.forEach((desig: any) => {
+          const match = desig.designationName.match(new RegExp(regexStr, "i"));
+          if (match && match[1])
+            maxIndex = Math.max(maxIndex, parseInt(match[1], 10));
+        });
+
+        const suffixed = `${baseName}-(${maxIndex + 1})`;
+        warning = `"${name}" is already in use — saved as "${suffixed}".`;
+        name = suffixed;
+      }
+
+      const created = await Designation.create(
+        {
+          ...raw,
+          designationName: name,
+          modifiedBy: modifier,
+          modifiedOn: new Date()
+        } as any,
+        { transaction: t }
+      );
+
+      results.push({ id: created.id, warning });
+    }
+
+    await t.commit();
+    return results;
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
+};
+
+// Bulk Edit's batched save — only the records the reviewer actually reviewed and changed.
+// A missing id (deleted by someone else meanwhile) is skipped, not fatal to the rest.
+const bulkUpdateDesignations = async (
+  updates: { id: string; payload: Record<string, any> }[],
+  user?: any
+) => {
+  const t = await sequelize.transaction();
+  try {
+    const modifier = user?.id || user?._id;
+    const results: { id: string; skipped?: boolean }[] = [];
+
+    for (const { id, payload } of updates) {
+      const existing = await Designation.findByPk(id, { transaction: t });
+      if (!existing) {
+        results.push({ id, skipped: true });
+        continue;
+      }
+      await existing.update(
+        { ...payload, modifiedBy: modifier, modifiedOn: new Date() } as any,
+        { transaction: t }
+      );
+      results.push({ id });
+    }
+
+    await t.commit();
+    return results;
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
 };
 
 export {
@@ -31,5 +241,9 @@ export {
   getAllDesignations,
   getDesignationById,
   updateDesignation,
-  deleteDesignation
+  deleteDesignation,
+  bulkDeleteDesignations,
+  bulkDuplicateDesignations,
+  bulkCopyDesignations,
+  bulkUpdateDesignations
 };

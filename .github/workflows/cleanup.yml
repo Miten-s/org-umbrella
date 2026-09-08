@@ -1,0 +1,22 @@
+﻿name: EC2 Docker Cleanup
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0'  # Optional: runs automatically every Sunday at midnight
+
+jobs:
+  docker-cleanup:
+    name: Cleanup Docker System Prune on EC2
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH and Prune Docker Resources
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "Starting Docker System Prune on EC2..."
+            docker system prune -af --volumes || true
+            echo "Docker System Prune completed successfully!"

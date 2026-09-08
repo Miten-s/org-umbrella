@@ -36,7 +36,8 @@ commonRouter.use(
 
 commonRouter.use(
   API_ROUTES.GXP_ASSIGNMENT_GROUPS,
-  authenticate, gxpAssignmentGroupsRouter
+  authenticate,
+  gxpAssignmentGroupsRouter
 );
 commonRouter.use(API_ROUTES.GXP_WORKFLOWS, authenticate, gxpWorkflowRouter);
 

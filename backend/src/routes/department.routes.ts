@@ -4,22 +4,37 @@ import {
   deleteDepartment,
   getAllDepartments,
   getDepartmentById,
-  updateDepartment
+  updateDepartment,
+  bulkDeleteDepartments,
+  bulkDuplicateDepartments,
+  bulkCopyDepartments,
+  bulkUpdateDepartments
 } from "../controllers/department.controller";
 import API_ROUTES from "../utils/routes";
-import { validateDto } from "../middlewares/validate-dto.middleware";
+import {
+  validateDto,
+  validateDtoArray
+} from "../middlewares/validate-dto.middleware";
 import {
   CreateDepartmentDto,
   UpdateDepartmentDto
 } from "../dtos/department.dto";
-import { IsValidParamsIdDto } from "../dtos/common.dto";
+import {
+  BulkCreateDto,
+  BulkUpdateDto,
+  IsValidParamsIdDto
+} from "../dtos/common.dto";
 import { checkPermissions } from "../middlewares/permission.middleware";
 
 const router = express.Router();
 
 // ---------------------------------------------------------------------------------------- GET Requests ----------------------------------------------------------------------------------------
 
-router.get(API_ROUTES.DEPARTMENTS, getAllDepartments);
+router.get(
+  API_ROUTES.DEPARTMENTS,
+  checkPermissions(["VIEW:DEPARTMENT"]),
+  getAllDepartments
+);
 
 router.get(
   API_ROUTES.DEPARTMENTS + API_ROUTES.PARAMS,
@@ -37,7 +52,37 @@ router.post(
   createDepartment
 );
 
+router.post(
+  API_ROUTES.DEPARTMENTS + API_ROUTES.BULK_DELETE,
+  checkPermissions(["DELETE:DEPARTMENT"]),
+  bulkDeleteDepartments
+);
+
+router.post(
+  API_ROUTES.DEPARTMENTS + API_ROUTES.BULK_DUPLICATE,
+  checkPermissions(["CREATE:DEPARTMENT"]),
+  bulkDuplicateDepartments
+);
+
+router.post(
+  API_ROUTES.DEPARTMENTS + API_ROUTES.BULK_COPY,
+  checkPermissions(["CREATE:DEPARTMENT"]),
+  validateDto(BulkCreateDto),
+  validateDtoArray(CreateDepartmentDto, "records"),
+  bulkCopyDepartments
+);
+
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
+
+// Registered BEFORE the single-record PARAMS patch below: both are one-segment PATCH
+// routes ("/bulk-update" vs "/:id"), so PARAMS going first would match "/bulk-update" as id="bulk-update".
+router.patch(
+  API_ROUTES.DEPARTMENTS + API_ROUTES.BULK_UPDATE,
+  checkPermissions(["UPDATE:DEPARTMENT"]),
+  validateDto(BulkUpdateDto),
+  validateDtoArray(UpdateDepartmentDto, "updates", "payload"),
+  bulkUpdateDepartments
+);
 
 router.patch(
   API_ROUTES.DEPARTMENTS + API_ROUTES.PARAMS,

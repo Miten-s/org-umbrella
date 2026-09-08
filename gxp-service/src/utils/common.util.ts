@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import crypto from "crypto";
 import { AppError } from "../types/common.types";
 
 export const CUSTOM_MESSAGES = {
@@ -14,7 +14,7 @@ export const CUSTOM_MESSAGES = {
   LOGOUT_SUCCESSFUL: "Logout successful",
   SOMETHING_WENT_WRONG: "Something went wrong",
   REFRESH_TOKEN_EXPRIED: "Authentication expired",
-  TOKEN_EXPIRED: "Token Expired",
+  TOKEN_EXPRIED: "Token Expired",
   USER_NOT_FOUND: "User not found",
   NOT_ACCESSIBLE: "This role has not access to this resource",
   BAD_REQUEST: "Bad Request",
@@ -49,6 +49,33 @@ export const convertMongooseError = (message: {
   }
 };
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** "supplier_name" -> "Supplier", "application_id" -> "Application". Never a raw DB column in a user-facing message. */
+const humanizeField = (raw: string): string => {
+  const label = raw.trim().replace(/_id$/i, "").replace(/[_-]+/g, " ").trim();
+  return label ? label.replace(/\b\w/g, (c) => c.toUpperCase()) : "record";
+};
+
+/** A friendly "already exists" message for a uniqueness conflict — never a raw
+ * snake_case column name or UUID. The value is shown only when it's something a user actually typed. */
+export const friendlyUniqueConflictMessage = (
+  fields: string[],
+  values: unknown[] = []
+): string => {
+  const fieldLabel =
+    fields.filter(Boolean).map(humanizeField).join(" + ") || "record";
+  const shown = values
+    .filter(
+      (v): v is string | number => v !== undefined && v !== null && v !== ""
+    )
+    .filter((v) => !UUID_RE.test(String(v)));
+  return shown.length
+    ? `A record with this ${fieldLabel} already exists: "${shown.join(", ")}".`
+    : `A record with this ${fieldLabel} already exists.`;
+};
+
 export const isAppError = (error: unknown): error is AppError => {
   return (
     typeof error === "object" &&
@@ -59,7 +86,7 @@ export const isAppError = (error: unknown): error is AppError => {
 };
 
 export const generateCustomId = (prefix: string) => {
-  const oid = new mongoose.Types.ObjectId().toHexString();
+  const oid = crypto.randomBytes(12).toString("hex");
   return `${prefix}~${oid}`;
 };
 

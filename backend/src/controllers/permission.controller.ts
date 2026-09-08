@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import permissionService from "../services/permission.service";
 import { CUSTOM_MESSAGES } from "../utils/common.util";
 import asyncHandler from "../middlewares/error.middleware";
+import { getPaginationOptions } from "../utils/pagination.util";
 
 export const createPermissions = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
@@ -22,12 +23,14 @@ export const updatePermissions = asyncHandler(
 );
 
 export const getPermissions = asyncHandler(
-  async (_req: Request, res: Response): Promise<void> => {
-    const { type } = _req.query;
-    const permissions = await permissionService.getPermissions(
-      type ? type?.toString() : 'default'
+  async (req: Request, res: Response): Promise<void> => {
+    const { type } = req.query;
+    const paginationOptions = getPaginationOptions(req.query);
+    const result = await permissionService.getPermissions(
+      paginationOptions,
+      type ? type?.toString() : "default"
     );
-    res.status(200).json({ permissions });
+    res.status(200).json(result);
   }
 );
 
@@ -37,5 +40,32 @@ export const deletePermissions = asyncHandler(
     res.status(201).json({
       message: CUSTOM_MESSAGES.ENTITY_DELETED.replace("{{ entity }}", "Role")
     });
+  }
+);
+
+export const bulkDeletePermissions = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      res.status(400).json({ message: "An array of ids is required" });
+      return;
+    }
+    const result = await permissionService.bulkDeletePermissions(ids);
+    res.status(200).json({ message: "Permissions deleted", result });
+  }
+);
+
+export const bulkDuplicatePermissions = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      res.status(400).json({ message: "An array of ids is required" });
+      return;
+    }
+    const result = await permissionService.bulkDuplicatePermissions(
+      ids,
+      req.user
+    );
+    res.status(201).json({ message: "Permissions duplicated", result });
   }
 );

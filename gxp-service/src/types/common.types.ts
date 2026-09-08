@@ -12,22 +12,48 @@ export enum STATUS {
   DISABLED = "disabled"
 }
 
-export type Ids = { _id: string; name: string }[];
+export type IdItem =
+  | string
+  | {
+      _id?: string;
+      name?: string;
+      moduleName?: string;
+      service?: string;
+      role?: string;
+      appGroup?: string;
+    };
 
-export interface UpdateApplication
-  extends Pick<
-    IApplication,
-    | "applicationName"
-    | "status"
-    | "createdOn"
-    | "createdBy"
-    | "modifiedOn"
-    | "modifiedBy"
-  > {
+export type Ids = IdItem[];
+
+export interface UpdateApplication extends Pick<
+  IApplication,
+  | "applicationName"
+  | "applicationType"
+  | "applicationId"
+  | "status"
+  | "createdOn"
+  | "createdBy"
+  | "modifiedOn"
+  | "modifiedBy"
+> {
+  applicationEnvironment?: string;
+  applicationEnvironmentId?: string | null;
+  group?: string;
+  assignmentGroup?: string;
+  assignmentGroupId?: string | null;
+  applicationWorkflow?: string;
+  applicationWorkflowId?: string | null;
+  applicationSystemOwner?: string;
+  applicationSystemOwnerId?: string | null;
+  applicationProcessOwner?: string;
+  applicationProcessOwnerId?: string | null;
+  supplier?: string;
+  supplierId?: string | null;
+  notes?: string;
   applicationRoles?: Ids;
   applicationGroups?: Ids;
   applicationServiceRequestTypes?: Ids;
   applicationModules?: Ids;
-  departments?: Ids;
+  departments?: string[];
   attachments?: string[];
 }

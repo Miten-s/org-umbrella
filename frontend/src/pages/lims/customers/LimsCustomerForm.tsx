@@ -1,0 +1,303 @@
+import { useMemo } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslation } from "react-i18next";
+
+import Input from "@/components/common/form/input/InputField";
+import Label from "@/components/common/form/Label";
+import TextArea from "@/components/common/form/input/TextArea";
+import Button from "@/components/ui/button/Button";
+import AsyncSelect from "@/components/data/AsyncSelect";
+import LimsAddressFields from "@/components/lims/LimsAddressFields";
+import LimsAttachmentsField from "@/components/lims/LimsAttachmentsField";
+import { useAttachments } from "@/hooks/useAttachments";
+import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
+import { useRatingOptions } from "@/pages/lims/phrases/LimsPhrase.queries";
+import { isPayloadEqual } from "@/lib/formChangeDetection";
+import {
+  limsCustomerSchema,
+  limsCustomerCopySchema,
+  type LimsCustomerFormValues
+} from "./LimsCustomer.schema";
+import type {
+  LimsRef,
+  LimsCustomer,
+  LimsCustomerPayload
+} from "./LimsCustomer.types";
+
+/** "copy" renders like "create" except the business ID starts blank (stays EDITABLE —
+ * `applyBusinessId` only mints when empty). Attachments hidden: the batch save is JSON-only. */
+export type LimsCustomerFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit";
+
+interface LimsCustomerFormProps {
+  mode?: LimsCustomerFormMode;
+  initialData?: LimsCustomer | null;
+  onClose: () => void;
+  onUnchanged?: () => void;
+  onSubmit: (
+    payload: LimsCustomerPayload,
+    files: File[]
+  ) => Promise<void> | void;
+  submitting?: boolean;
+  /** Overrides the submit button's label — CopyStepper uses this to say
+   * "Next" on every step but the last, where the batch actually saves. */
+  submitLabel?: string;
+  /** Grays out the submit button without a spinner — EditStepper uses
+   * this on the last step now that its own Save button lives outside it. */
+  disabled?: boolean;
+  /** Set on the `<form>` element so an outside button (CopyStepper's
+   * header Next/Save) can submit it via `<Button form={formId}>`. */
+  formId?: string;
+  /** " (2 of 5)" appended after the title when Copy is reviewing more
+   * than one record — undefined otherwise. */
+  stepLabel?: string;
+}
+
+const seedOne = (ref: LimsRef | null | undefined) =>
+  ref?.id && ref.name ? [{ value: ref.id, label: ref.name }] : undefined;
+
+const LimsCustomerForm = ({
+  mode = "create",
+  initialData,
+  onClose,
+  onUnchanged,
+  onSubmit,
+  submitting = false,
+  submitLabel,
+  disabled = false,
+  formId,
+  stepLabel
+}: LimsCustomerFormProps) => {
+  const { t } = useTranslation();
+  const isReadOnly = mode === "view";
+  const attachments = useAttachments(initialData?.attachments);
+
+  // Captured once per record — also the no-change baseline `submit` diffs
+  // against, so Save is a no-op when nothing actually differs from it.
+  const initialValues = useMemo<LimsCustomerFormValues>(
+    () => ({
+      customerId: mode === "copy" ? "" : (initialData?.customerId ?? ""),
+      customerName: initialData?.customerName ?? "",
+      description: initialData?.description ?? "",
+      group: initialData?.group?.id ?? "",
+      rating: initialData?.rating?.id ?? "",
+      website: initialData?.website ?? "",
+      contactName: initialData?.contactName ?? "",
+      contactPhone: initialData?.contactPhone ?? "",
+      email: initialData?.email ?? "",
+      otherInformation: initialData?.otherInformation ?? "",
+      address: {
+        line1: initialData?.address?.line1 ?? "",
+        line2: initialData?.address?.line2 ?? "",
+        town: initialData?.address?.town ?? "",
+        state: initialData?.address?.state ?? "",
+        zipcode: initialData?.address?.zipcode ?? "",
+        country: initialData?.address?.country ?? ""
+      }
+    }),
+    [initialData, mode]
+  );
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors, isSubmitting }
+  } = useForm<LimsCustomerFormValues>({
+    resolver: zodResolver(
+      mode === "copy" ? limsCustomerCopySchema : limsCustomerSchema
+    ),
+    defaultValues: initialValues
+  });
+
+  const description = useWatch({ control, name: "description" });
+  const otherInformation = useWatch({ control, name: "otherInformation" });
+  const busy = submitting || isSubmitting;
+
+  const text = (
+    name: keyof LimsCustomerFormValues,
+    label: string,
+    required = false,
+    forceDisabled = false
+  ) => (
+    <div className="min-w-0">
+      <Label required={required}>{label}</Label>
+      <Input
+        {...register(name)}
+        disabled={isReadOnly || forceDisabled}
+        error={!!errors[name]}
+        hint={errors[name]?.message as string}
+        className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+      />
+    </div>
+  );
+
+  return (
+    <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+      <form
+        id={formId}
+        onSubmit={handleSubmit((values) => {
+          // Edit + nothing actually changed: skip the reason modal, update
+          // call, and audit entry entirely — a no-op Save just closes.
+          if (
+            (mode === "edit" || mode === "bulk-edit") &&
+            !attachments.isDirty &&
+            isPayloadEqual(values, initialValues)
+          ) {
+            (onUnchanged ?? onClose)();
+            return;
+          }
+          onSubmit(
+            { ...values, keptAttachmentIds: attachments.keptIds },
+            attachments.newFiles
+          );
+        })}
+        className="min-w-0 space-y-4"
+      >
+        <h2 className="text-xl font-semibold">
+          {isReadOnly
+            ? t("view", { entity: t("limsCustomer") })
+            : mode === "copy"
+              ? `${t("copyEntity", { entity: t("limsCustomer") })}${stepLabel ?? ""}`
+              : initialData
+                ? `${t("update", { entity: t("limsCustomer") })}${stepLabel ?? ""}`
+                : t("create", { entity: t("limsCustomer") })}
+        </h2>
+
+        <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
+          {text("customerId", t("limsCustomerId"), true)}
+          {text("customerName", t("limsCustomerName"), true)}
+
+          <div className="min-w-0">
+            <Label>{t("limsGroup")}</Label>
+            <Controller
+              name="group"
+              control={control}
+              render={({ field }) => (
+                <AsyncSelect
+                  useOptions={useLimsGroupOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={isReadOnly}
+                  placeholder={t("select", { entity: t("limsGroup") })}
+                  initialSelectedOptions={seedOne(initialData?.group)}
+                />
+              )}
+            />
+          </div>
+
+          <div className="min-w-0">
+            <Label>{t("limsRating")}</Label>
+            <Controller
+              name="rating"
+              control={control}
+              render={({ field }) => (
+                <AsyncSelect
+                  useOptions={useRatingOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={isReadOnly}
+                  placeholder={t("select", { entity: t("limsRating") })}
+                  initialSelectedOptions={seedOne(initialData?.rating)}
+                />
+              )}
+            />
+          </div>
+
+          {text("website", t("limsWebsite"))}
+          {text("contactName", t("limsContactName"))}
+          {text("contactPhone", t("limsContactPhone"))}
+          {text("email", t("email"))}
+
+          <div className="col-span-full min-w-0">
+            <Label>{t("description")}</Label>
+            <TextArea
+              disabled={isReadOnly}
+              value={description || ""}
+              onChange={(val) =>
+                setValue("description", val, { shouldValidate: true })
+              }
+              error={!!errors.description}
+              hint={errors.description?.message}
+              className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+
+          <div className="col-span-full min-w-0">
+            {/* Derived from the Project side (Project.customer), not a Customer column — read-only, not a picker. */}
+            <Label>{t("limsLinkedProjects")}</Label>
+            <div className="flex min-h-11 flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 dark:border-gray-700 dark:bg-gray-800">
+              {(initialData?.linkedProjects ?? []).length ? (
+                (initialData?.linkedProjects ?? []).map((ref) => (
+                  <span
+                    key={ref.id}
+                    className="rounded-full bg-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-200"
+                  >
+                    {ref.name}
+                  </span>
+                ))
+              ) : (
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  —
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="col-span-full min-w-0">
+            <Label>{t("limsOtherInformation")}</Label>
+            <TextArea
+              disabled={isReadOnly}
+              value={otherInformation || ""}
+              onChange={(val) =>
+                setValue("otherInformation", val, { shouldValidate: true })
+              }
+              error={!!errors.otherInformation}
+              hint={errors.otherInformation?.message}
+              className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+
+          <LimsAddressFields
+            register={
+              register as unknown as (name: string) => Record<string, unknown>
+            }
+            disabled={isReadOnly}
+          />
+
+          {mode !== "copy" && mode !== "bulk-edit" && (
+            <LimsAttachmentsField
+              attachments={attachments}
+              disabled={isReadOnly}
+            />
+          )}
+        </div>
+
+        <div className="mt-4 flex justify-end gap-2">
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
+            {t("cancel")}
+          </Button>
+          {!isReadOnly ? (
+            <Button
+              type="submit"
+              variant="primary"
+              loading={busy}
+              disabled={busy || disabled}
+            >
+              {submitLabel ?? t("save")}
+            </Button>
+          ) : null}
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default LimsCustomerForm;

@@ -1,0 +1,98 @@
+name: Pull Request Checks
+
+on:
+  pull_request:
+    branches: [ "development" ]
+
+jobs:
+  validate-pr:
+    name: Typecheck, Prettier & Migration Validation
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: umbrella
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Service Dependencies
+        run: |
+          npm --prefix backend ci
+          npm --prefix gxp-service ci
+          npm --prefix lims-service ci
+          npm --prefix frontend ci
+
+      - name: Run Prettier Formatting Checks
+        run: |
+          npm --prefix backend run prettier:check
+          npm --prefix gxp-service run prettier:check
+          npm --prefix lims-service run prettier:check
+          npm --prefix frontend run prettier:check
+
+      - name: Run TypeScript Typechecks
+        run: |
+          npm --prefix backend run typecheck
+          npm --prefix gxp-service run typecheck
+          npm --prefix lims-service run typecheck
+          npm --prefix frontend run typecheck
+
+      - name: Build Services for Migration Validation
+        run: |
+          npm --prefix backend run build
+          npm --prefix gxp-service run build
+          npm --prefix lims-service run build
+
+#       - name: Validate Backend Database Migrations
+#         env:
+#           DB_HOST: localhost
+#           DB_PORT: 5432
+#           DB_USER: postgres
+#           DB_PASS: postgres
+#           DB_NAME: umbrella
+#           NODE_ENV: test
+#         run: |
+#           npm --prefix backend run db:migrate
+#           npm --prefix backend run db:migrate:check
+
+#       - name: Validate GxP Service Database Migrations
+#         env:
+#           DB_HOST: localhost
+#           DB_PORT: 5432
+#           DB_USER: postgres
+#           DB_PASS: postgres
+#           DB_NAME: umbrella
+#           NODE_ENV: test
+#         run: |
+#           npm --prefix gxp-service run db:migrate
+#           npm --prefix gxp-service run db:migrate:check
+# 
+#       - name: Validate LIMS Service Database Migrations
+#         env:
+#           DB_HOST: localhost
+#           DB_PORT: 5432
+#           DB_USER: postgres
+#           DB_PASS: postgres
+#           DB_NAME: umbrella
+#           NODE_ENV: test
+#         run: |
+#           npm --prefix lims-service run db:migrate
+#           npm --prefix lims-service run db:migrate:check
+

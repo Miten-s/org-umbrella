@@ -4,18 +4,26 @@ import {
   findUserByIdRepo,
   updateUserRepo,
   disableUserRepo,
-  enableUserRepo
+  enableUserRepo,
+  deleteUserRepo,
+  bulkDeleteUsersRepo
 } from "../repo/gxp-service-users.repo";
 import { fetchRolesFromAuthService } from "./inter-service-calls.service";
+import { PaginationOptions } from "../utils/pagination.util";
 
 export const createUserService = async (data: any) => {
   return await createUserRepo(data);
 };
 
-export const getAllUsersService = async () => {
-  const users = await findAllUsersRepo();
-  return await Promise.all(
-    users.map(async (user: any) => {
+export const getAllUsersService = async (
+  options: PaginationOptions,
+  includeDisabled = false
+) => {
+  const filter: any = {};
+  if (!includeDisabled) filter.status = "enabled";
+  const result = await findAllUsersRepo(filter, options);
+  const usersWithRoles = await Promise.all(
+    result.data.map(async (user: any) => {
       return {
         ...user,
         roles: await fetchRolesFromAuthService(
@@ -24,6 +32,20 @@ export const getAllUsersService = async () => {
       };
     })
   );
+  return { ...result, data: usersWithRoles };
+};
+
+export const getUserService = async (id: string) => {
+  const user = await findUserByIdRepo(id);
+  if (!user) return null;
+  return {
+    ...user,
+    roles: await fetchRolesFromAuthService(
+      Array.isArray((user as any).roles)
+        ? (user as any).roles
+        : [(user as any).roles]
+    )
+  };
 };
 
 export const updateUserService = async (id: string, data: any) => {
@@ -42,4 +64,14 @@ export const enableUserService = async (id: any, comments: any) => {
   const existing = await findUserByIdRepo(id);
   if (!existing) throw new Error("User not found");
   return await enableUserRepo(id, comments);
+};
+
+export const deleteUserService = async (id: string) => {
+  const existing = await findUserByIdRepo(id);
+  if (!existing) throw new Error("User not found");
+  return await deleteUserRepo(id);
+};
+
+export const bulkDeleteUsersService = async (ids: string[]) => {
+  return await bulkDeleteUsersRepo(ids);
 };

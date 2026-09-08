@@ -9,7 +9,7 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
   title,
   children,
   className = "",
-  desc = "",
+  desc = ""
 }) => {
   return (
     <div

@@ -27,6 +27,46 @@ export default defineConfig(({ mode }) => {
       strictPort: true, //  exit if port is already in use
       open: true, // automatically open the app in the browser on server start
     },
+    build: {
+      chunkSizeWarningLimit: 1200,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes("node_modules")) {
+              return undefined;
+            }
+
+            if (id.includes("ag-grid-community") || id.includes("ag-grid-react")) {
+              return "ag-grid";
+            }
+
+            if (
+              id.includes("react") ||
+              id.includes("react-dom") ||
+              id.includes("react-router-dom") ||
+              id.includes("@reduxjs/toolkit") ||
+              id.includes("react-redux")
+            ) {
+              return "react-vendor";
+            }
+
+            if (
+              id.includes("react-hook-form") ||
+              id.includes("@hookform") ||
+              id.includes("zod")
+            ) {
+              return "form-vendor";
+            }
+
+            if (id.includes("i18next") || id.includes("react-i18next")) {
+              return "i18n-vendor";
+            }
+
+            return undefined;
+          }
+        }
+      }
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'src'),
@@ -35,4 +75,3 @@ export default defineConfig(({ mode }) => {
     },
   }
 })
-

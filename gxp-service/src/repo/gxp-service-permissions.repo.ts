@@ -1,43 +1,53 @@
-import GxpServicePortalPermissions, {
-  IGxpServicePortalPermissions
+import GxpServicePortalPermission, {
+  IGxpServicePortalPermission
 } from "../models/gxp-service-permissions.model";
 
+const formatPermission = (perm: any) => {
+  if (!perm) return null;
+  const json = perm.toJSON ? perm.toJSON() : { ...perm };
+  json._id = json.id;
+  return json;
+};
+
 export const createPermission = async (
-  payload: Partial<IGxpServicePortalPermissions>
+  payload: Partial<IGxpServicePortalPermission>
 ) => {
-  const doc = new GxpServicePortalPermissions(payload);
-  return await doc.save();
+  const doc = await GxpServicePortalPermission.create(payload as any);
+  return formatPermission(doc);
 };
 
 export const getPermissions = async (
-  filter = {},
+  filter: any = {},
   projection = null,
   options = {}
 ) => {
-  return await GxpServicePortalPermissions.find(
-    filter,
-    projection,
-    options
-  ).lean();
+  const where = { ...filter };
+  if (where._id) {
+    where.id = where._id;
+    delete where._id;
+  }
+  const docs = await GxpServicePortalPermission.findAll({ where });
+  return docs.map(formatPermission);
 };
 
 export const getPermissionById = async (id: string) => {
-  return await GxpServicePortalPermissions.findById(id);
+  const doc = await GxpServicePortalPermission.findByPk(id);
+  return formatPermission(doc);
 };
 
 export const updatePermissionById = async (
   id: string,
-  updates: Partial<IGxpServicePortalPermissions>
+  updates: Partial<IGxpServicePortalPermission>
 ) => {
-  return await GxpServicePortalPermissions.findByIdAndUpdate(id, updates, {
-    new: true
-  });
+  const doc = await GxpServicePortalPermission.findByPk(id);
+  if (!doc) return null;
+  await doc.update(updates);
+  return formatPermission(doc);
 };
 
 export const deletePermission = async (id: string) => {
-  return await GxpServicePortalPermissions.findByIdAndUpdate(
-    id,
-    { status: "disabled" },
-    { new: true }
-  );
+  const doc = await GxpServicePortalPermission.findByPk(id);
+  if (!doc) return null;
+  await doc.destroy();
+  return formatPermission(doc);
 };

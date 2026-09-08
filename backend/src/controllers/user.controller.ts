@@ -3,20 +3,40 @@ import userService from "../services/user.service";
 import { CUSTOM_MESSAGES } from "../utils/common.util";
 import asyncHandler from "../middlewares/error.middleware";
 import { IUser } from "../models/user.model";
+import { getListFilters, getPaginationOptions } from "../utils/pagination.util";
 
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
-  const users = await userService.getUsers(req?.user);
-  res.status(200).json({ users });
+  const paginationOptions = getPaginationOptions(req.query);
+  const filters = getListFilters(req.query, ["status"]);
+  const result = await userService.getUsers(
+    paginationOptions,
+    req?.user,
+    filters
+  );
+  res.status(200).json(result);
 };
 
 export const getUserDetail = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const userId = (req.user as IUser)?._id;
+    const userId = (req.user as IUser)?.id;
     if (!userId) {
       res.status(401).json({ error: "Invalid token" });
       return;
     }
     const user = await userService.getUserDetail(String(userId));
+    res.status(200).json({ user });
+  }
+);
+
+// Fetches any user by id (not just the caller's own) — used by the bulk Edit/View
+// review steppers. Distinct from getUserDetail above, which only ever reads req.user.
+export const getUserById = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const user = await userService.getUserDetail(req.params.id as string);
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
     res.status(200).json({ user });
   }
 );
@@ -44,6 +64,33 @@ export const deleteUser = asyncHandler(
     await userService.deleteUser(req);
     res.status(201).json({
       message: CUSTOM_MESSAGES.ENTITY_DELETED.replace("{{ entity }}", "User")
+    });
+  }
+);
+
+export const bulkDeleteUsers = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      res.status(400).json({ message: "An array of ids is required" });
+      return;
+    }
+    const result = await userService.bulkDeleteUsers(
+      ids,
+      (req.user as IUser)?.id?.toString()
+    );
+    res.status(200).json({ message: "Users deleted", result });
+  }
+);
+
+export const bulkUpdateUsers = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { updates } = req.body;
+    const results = await userService.bulkUpdateUsers(updates, req.user);
+    res.status(200).json({
+      message: `${results.length} record(s) updated`,
+      count: results.length,
+      results
     });
   }
 );

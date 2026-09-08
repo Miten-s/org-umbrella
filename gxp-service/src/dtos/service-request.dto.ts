@@ -27,6 +27,10 @@ export class CreateServiceRequestDto {
 
   @IsString()
   @IsOptional()
+  groupLocation?: string;
+
+  @IsString()
+  @IsOptional()
   environment?: string;
 
   @IsString()
@@ -47,8 +51,6 @@ export class CreateServiceRequestDto {
   @IsString({ each: true })
   @IsOptional()
   notes?: string[];
-
-  // Attachments are handled by multer but we can validate if passed as strings? usually not in body.
 
   @IsString()
   @IsOptional()
@@ -84,6 +86,14 @@ export class UpdateServiceRequestDto {
 
   @IsString()
   @IsOptional()
+  location?: string;
+
+  @IsString()
+  @IsOptional()
+  groupLocation?: string;
+
+  @IsString()
+  @IsOptional()
   @IsEnum([
     "New",
     "In Progress",
@@ -98,6 +108,11 @@ export class UpdateServiceRequestDto {
   @IsString({ each: true })
   @IsOptional()
   comments?: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  roles?: string[];
 
   @IsString()
   @IsOptional()

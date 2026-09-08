@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode } from "react";
 
 export interface RouteProtection {
   required?: boolean;
@@ -30,12 +30,12 @@ export interface ProtectedRouteConfig {
   element: ReactNode;
   protection: RouteProtection;
   children?: ProtectedRouteConfig[];
-  meta?: AppRoute['meta'];
+  meta?: AppRoute["meta"];
 }
 
 export interface PublicRouteConfig {
   path: string;
   element: ReactNode;
   children?: PublicRouteConfig[];
-  meta?: AppRoute['meta'];
+  meta?: AppRoute["meta"];
 }

@@ -1,27 +1,43 @@
-import mongoose from "mongoose";
+import { Model, DataTypes } from "sequelize";
+import { sequelize } from "../configs/db.sequelize";
 
-const GxpServiceAppService = new mongoose.Schema(
+export interface IAppService {
+  id: string;
+  service: string;
+  active: boolean;
+}
+
+export class AppService extends Model<IAppService> implements IAppService {
+  public id!: string;
+  public service!: string;
+  public active!: boolean;
+  public readonly created_at!: Date;
+  public readonly updated_at!: Date;
+}
+
+AppService.init(
   {
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
     service: {
-      type: String,
-      required: true
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true
     },
     active: {
-      type: Boolean,
-      default: true
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true
     }
   },
   {
-    timestamps: true,
-    collection: "gxp-service-app-services"
+    sequelize,
+    tableName: "app_services",
+    underscored: true,
+    timestamps: true
   }
 );
-
-const GxpServiceAppServiceModel = mongoose.model(
-  "GxpServiceAppService",
-  GxpServiceAppService
-);
-
-GxpServiceAppService.index({ service: 1 }, { unique: true });
-
-export default GxpServiceAppServiceModel;
+export default AppService;

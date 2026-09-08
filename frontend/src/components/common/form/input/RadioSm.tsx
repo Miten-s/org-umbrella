@@ -15,7 +15,7 @@ const RadioSm: React.FC<RadioProps> = ({
   checked,
   label,
   onChange,
-  className = "",
+  className = ""
 }) => {
   return (
     <label

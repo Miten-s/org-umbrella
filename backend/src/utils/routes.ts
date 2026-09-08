@@ -19,7 +19,11 @@ const API_ROUTES = {
   LOGOUT: "/sign-out",
   HEALTH: "/health",
   ASSIGN_ROLE: "/assign-role",
-  PARAMS: "/:id"
+  PARAMS: "/:id",
+  BULK_DELETE: "/bulk-delete",
+  BULK_DUPLICATE: "/bulk-duplicate",
+  BULK_COPY: "/bulk-copy",
+  BULK_UPDATE: "/bulk-update"
 };
 
 export default API_ROUTES;

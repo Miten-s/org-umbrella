@@ -11,13 +11,13 @@ export const loginService = async ({
   email: string;
   password: string;
 }): Promise<string> => {
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ where: { email } });
   if (!user || !(await bcrypt.compare(password, user.password))) {
     throw new Error(CUSTOM_MESSAGES.INVALID_EMAIL_PASSWORD);
   }
 
   // Generating Non Expiring Token
-  const token = jwt.sign({ id: user._id, email: user.email }, ENV.JWT_SECRET!);
+  const token = jwt.sign({ id: user.id, email: user.email }, ENV.JWT_SECRET!);
 
   // Saving Last Login
   user.lastLogin = new Date();

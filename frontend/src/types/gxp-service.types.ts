@@ -8,12 +8,14 @@ export type EntityRef<TName extends string> =
 
 export type ServiceRequest = Omit<ServiceRequestFormOutput, "application"> & {
   _id: string;
+  serviceRequestId?: string;
   application: EntityRef<"applicationName">;
   requestTypes?:
     | string
     | { _id?: string; service?: string; name?: string }
     | Array<string | { _id?: string; service?: string; name?: string }>;
-  attachments?: string[] | Array<{ _id?: string; attachment?: string; filename?: string }>;
+  attachments?:
+    string[] | Array<{ _id?: string; attachment?: string; filename?: string }>;
   closedOn?: string;
   closedBy?: string;
   __v?: number;
@@ -40,6 +42,8 @@ export type Workflow = {
 export type ApplicationSoftwareModule = {
   _id: string;
   moduleName: string;
+  moduleId?: string;
+  application?: EntityRef<"applicationName">;
   status?: "enabled" | "disabled";
 };
 
@@ -92,6 +96,7 @@ export type Application = Omit<
   ApplicationFormOutput,
   | "applicationEnvironment"
   | "group"
+  | "assignmentGroup"
   | "applicationWorkflow"
   | "applicationSystemOwner"
   | "applicationProcessOwner"
@@ -105,6 +110,7 @@ export type Application = Omit<
   _id: string;
   applicationEnvironment?: EntityRef<"environmentName">;
   group?: EntityRef<"groupName">;
+  assignmentGroup?: EntityRef<"groupName">;
   applicationRoles?: ApplicationRole[];
   applicationGroups?: ApplicationGroup[];
   applicationServiceRequestTypes?: ApplicationServiceRequestType[];

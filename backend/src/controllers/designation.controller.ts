@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import * as designationService from "../services/designation.service";
 import asyncHandler from "../middlewares/error.middleware";
 import { CUSTOM_MESSAGES } from "../utils/common.util";
+import { getPaginationOptions } from "../utils/pagination.util";
 
 export const createDesignation = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
@@ -16,9 +17,11 @@ export const createDesignation = asyncHandler(
 );
 
 export const getAllDesignations = asyncHandler(
-  async (_req: Request, res: Response): Promise<any> => {
-    const designations = await designationService.getAllDesignations();
-    res.status(200).json({ designations });
+  async (req: Request, res: Response): Promise<any> => {
+    const paginationOptions = getPaginationOptions(req.query);
+    const result =
+      await designationService.getAllDesignations(paginationOptions);
+    res.status(200).json(result);
   }
 );
 
@@ -63,6 +66,59 @@ export const deleteDesignation = asyncHandler(
         "{{ entity }}",
         "Designation"
       )
+    });
+  }
+);
+
+export const bulkDeleteDesignations = asyncHandler(
+  async (req: Request, res: Response): Promise<any> => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0)
+      return res.status(400).json({ message: "An array of ids is required" });
+    const result = await designationService.bulkDeleteDesignations(ids);
+    res.status(200).json({ message: "Designations deleted", result });
+  }
+);
+
+export const bulkDuplicateDesignations = asyncHandler(
+  async (req: Request, res: Response): Promise<any> => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0)
+      return res.status(400).json({ message: "An array of ids is required" });
+    const result = await designationService.bulkDuplicateDesignations(
+      ids,
+      req.user
+    );
+    res.status(201).json({ message: "Designations duplicated", result });
+  }
+);
+
+export const bulkCopyDesignations = asyncHandler(
+  async (req: Request, res: Response): Promise<any> => {
+    const { records } = req.body;
+    const results = await designationService.bulkCopyDesignations(
+      records,
+      req.user
+    );
+    res.status(201).json({
+      message: `${results.length} record(s) copied`,
+      count: results.length,
+      results
+    });
+  }
+);
+
+export const bulkUpdateDesignations = asyncHandler(
+  async (req: Request, res: Response): Promise<any> => {
+    const { updates } = req.body;
+    const results = await designationService.bulkUpdateDesignations(
+      updates,
+      req.user
+    );
+    res.status(200).json({
+      message: `${results.length} record(s) updated`,
+      count: results.length,
+      results
     });
   }
 );

@@ -1,6 +1,12 @@
 import { Request, Response } from "express";
 import * as service from "../services/gxp-service-applications.service";
 import asyncHandler from "../middlewares/error.middleware";
+import { getPaginationOptions } from "../utils/pagination.util";
+import { buildBulkCrudRoutes } from "../utils/bulk-crud-factory";
+import Application from "../models/gxp-service-applications.model";
+import AppModule from "../models/gxp-service-application-modules.model";
+import { CreateApplicationDto } from "../dtos/application.dto";
+import { toObjectIdString } from "../services/mixed-id-resolution.service";
 
 export const createApplication = asyncHandler(
   async (req: Request, res: Response) => {
@@ -21,7 +27,11 @@ export const createApplication = asyncHandler(
 export const getApplications = asyncHandler(
   async (req: Request, res: Response) => {
     const includeDisabled = req.query.includeDisabled === "true";
-    const items = await service.getApplications(includeDisabled);
+    const paginationOptions = getPaginationOptions(req.query);
+    const items = await service.getApplications(
+      paginationOptions,
+      includeDisabled
+    );
     return res.status(200).send(items);
   }
 );
@@ -143,3 +153,84 @@ export const getApplicationRoles = asyncHandler(
     return res.status(200).send({ applicationRoles });
   }
 );
+
+export const bulkDeleteApplications = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: "An array of ids is required" });
+    }
+    const deleted = await service.bulkDeleteApplications(ids);
+    return res
+      .status(200)
+      .send({ message: "Applications deleted", applications: deleted });
+  }
+);
+
+export const bulkDuplicateApplications = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { ids } = req.body;
+    const currentUser = (req as any).user?.username;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: "An array of ids is required" });
+    }
+    const duplicated = await service.bulkDuplicateApplications(
+      ids,
+      currentUser ?? undefined
+    );
+    return res.status(201).json(duplicated);
+  }
+);
+
+// createApplication already resolves applicationGroups/departments/roles/services
+// from the reviewed payload itself, same as a normal create — but Module<->Application
+// is one-to-one, so reusing an ALREADY-OWNED module's id as-is would reassign (steal) it
+// onto the copy via resolveModuleIdsForApplication's id branch. Resolve only those to
+// plain NAMEs so they take the name branch instead, which clones a fresh module row
+// under the new application and leaves the owner's modules untouched. A module with no
+// owner yet isn't at risk of being stolen from anywhere — leave its id alone so it's
+// linked to the new application instead of spawning a duplicate.
+const cloneApplicationModulesByName = async (payload: any) => {
+  if (
+    !Array.isArray(payload.applicationModules) ||
+    !payload.applicationModules.length
+  ) {
+    return payload;
+  }
+  // A freshly-typed "Add on-demand" name (not a UUID yet, since it hasn't been created)
+  // must not reach this id lookup — Postgres rejects a non-UUID literal outright.
+  const ids = payload.applicationModules.filter(
+    (m: unknown): m is string =>
+      typeof m === "string" && toObjectIdString(m) !== undefined
+  );
+  const modules = ids.length
+    ? await AppModule.findAll({ where: { id: ids } })
+    : [];
+  const namesById = new Map(modules.map((m) => [m.id, m.moduleName]));
+  const ownedIds = new Set(
+    modules.filter((m) => m.applicationId).map((m) => m.id)
+  );
+  return {
+    ...payload,
+    applicationModules: payload.applicationModules.map((m: unknown) =>
+      typeof m === "string" && ownedIds.has(m) ? (namesById.get(m) ?? m) : m
+    )
+  };
+};
+
+const bulkCrud = buildBulkCrudRoutes({
+  model: Application,
+  nameField: "applicationName",
+  createDtoClass: CreateApplicationDto,
+  createOne: async (payload, currentUser) =>
+    service.createApplication(
+      await cloneApplicationModulesByName(payload),
+      currentUser
+    ),
+  updateOne: service.updateApplication,
+  restore: service.enableApplication
+});
+
+export const bulkCopyApplications = bulkCrud.bulkCopy;
+export const bulkUpdateApplications = bulkCrud.bulkUpdate;
+export const bulkRestoreApplications = bulkCrud.bulkRestore!;

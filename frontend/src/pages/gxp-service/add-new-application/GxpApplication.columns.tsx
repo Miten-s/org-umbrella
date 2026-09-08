@@ -1,0 +1,84 @@
+import { AvatarCell } from "@/components/data/cells/AvatarCell";
+import { TruncateCell } from "@/components/data/cells/TruncateCell";
+import { StatusToggleCell } from "@/components/data/cells/StatusToggleCell";
+import type { ColDef, ICellRendererParams } from "ag-grid-community";
+import type { TFunction } from "i18next";
+import type { GxpApplication } from "./GxpApplication.types";
+
+const refName = (v: any, key: string): string =>
+  v && typeof v === "object" ? String(v[key] ?? v.name ?? "") : "";
+
+interface Ctx {
+  t: TFunction;
+}
+
+/** Read from ag-grid's `context` (see List's `gridContext`), not closed over here —
+ * this keeps columnDefs referentially stable across per-row toggle state changes.
+ * Closing over it would give the cellRenderer a new function identity on every
+ * toggle click, forcing ag-grid to destroy/recreate the cell instead of just
+ * re-rendering it, which kills the Switch's CSS transition. */
+interface ToggleContext {
+  onToggleStatus: (app: GxpApplication) => void;
+  toggleDisabled?: boolean;
+  togglingId?: string;
+}
+
+export const getApplicationColumns = ({ t }: Ctx): ColDef<GxpApplication>[] => [
+  {
+    field: "applicationName",
+    headerName: t("applicationName"),
+    flex: 1,
+    minWidth: 220,
+    cellRenderer: (params: ICellRendererParams<GxpApplication>) =>
+      params.data ? (
+        <AvatarCell label={params.data.applicationName} fallbackInitial="A" />
+      ) : null
+  },
+  {
+    field: "applicationType",
+    headerName: t("applicationType"),
+    flex: 0,
+    minWidth: 130,
+    cellRenderer: (params: ICellRendererParams<GxpApplication>) => (
+      <TruncateCell value={params.data?.applicationType} />
+    )
+  },
+  {
+    field: "applicationEnvironment",
+    headerName: t("applicationEnvironment"),
+    flex: 1,
+    minWidth: 180,
+    sortable: false,
+    cellRenderer: (params: ICellRendererParams<GxpApplication>) => (
+      <TruncateCell
+        value={refName(params.data?.applicationEnvironment, "environmentName")}
+      />
+    )
+  },
+  {
+    field: "status",
+    headerName: t("status"),
+    flex: 0,
+    minWidth: 170,
+    maxWidth: 190,
+    sortable: false,
+    // Same escape hatch the actions column uses — without it, clicking the
+    // toggle also selects the row (ag-grid's click-to-select runs off its own
+    // internal flag, not DOM bubbling, so a plain stopPropagation can't stop it).
+    cellRendererParams: { suppressMouseEventHandling: () => true },
+    cellRenderer: (params: ICellRendererParams<GxpApplication>) => {
+      const data = params.data;
+      if (!data) return null;
+      const ctx = params.context as ToggleContext;
+      return (
+        <StatusToggleCell
+          checked={data.status === "enabled"}
+          label={data.status === "enabled" ? t("enabled") : t("disabled")}
+          disabled={ctx.toggleDisabled}
+          loading={ctx.togglingId === data.id}
+          onChange={() => ctx.onToggleStatus(data)}
+        />
+      );
+    }
+  }
+];

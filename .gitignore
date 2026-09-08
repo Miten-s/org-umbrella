@@ -1,4 +1,5 @@
 */node_modules
+node_modules
 */.env
 */dist
 */build
@@ -6,9 +7,21 @@
 .vscode
 redis
 */uploads
+dump.rdb
+*.rdb
 .agent
 .geminiignore
 .ecosystem.config.js
 deploy.sh
 
 */.env.*
+.agents
+
+# Internal working docs and deployment config — this repo is code only.
+# (Note: this supersedes the old `!deploy/.env.example` re-include below it —
+# once the whole `deploy/` directory is excluded by a directory-matching
+# pattern, git won't look inside it for negations at all, so that exception
+# would silently stop working if left in place.)
+docs/
+deploy/
+dump.rdb

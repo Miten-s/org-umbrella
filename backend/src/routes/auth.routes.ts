@@ -4,14 +4,21 @@ import API_ROUTES from "../utils/routes";
 import {
   createUser,
   deleteUser,
+  getUserById,
   getUserDetail,
   getUsers,
-  updateUser
+  updateUser,
+  bulkDeleteUsers,
+  bulkUpdateUsers
 } from "../controllers/user.controller";
 import { checkPermissions } from "../middlewares/permission.middleware";
 import { authenticate } from "../middlewares/auth.middleware";
-import { validateDto } from "../middlewares/validate-dto.middleware";
-import { CreateUserDTO } from "../dtos/user.dto";
+import {
+  validateDto,
+  validateDtoArray
+} from "../middlewares/validate-dto.middleware";
+import { CreateUserDTO, UpdateUserDto } from "../dtos/user.dto";
+import { BulkUpdateDto, IsValidParamsIdDto } from "../dtos/common.dto";
 import { upload } from "../middlewares/multer.middleware";
 
 const router: Router = Router();
@@ -27,6 +34,15 @@ router.get(
   authenticate,
   checkPermissions(["VIEW:USER"]),
   getUsers
+);
+
+// Fetch any user by id — used by the bulk Edit/View review steppers.
+router.get(
+  API_ROUTES.AUTH + API_ROUTES.USER + API_ROUTES.PARAMS,
+  authenticate,
+  checkPermissions(["VIEW:USER"]),
+  validateDto(IsValidParamsIdDto, "params"),
+  getUserById
 );
 
 // Define a GET route for user logout.
@@ -47,7 +63,28 @@ router.post(
   createUser
 );
 
+// Define a POST route for bulk deleting users.
+router.post(
+  API_ROUTES.AUTH + API_ROUTES.USER + API_ROUTES.BULK_DELETE,
+  authenticate,
+  checkPermissions(["DELETE:USER"]),
+  bulkDeleteUsers
+);
+
 // ---------------------------------------------------------------------------------------- PATCH Requests ----------------------------------------------------------------------------------------
+
+// Registered BEFORE the single-record PARAMS patch below: both are one-segment PATCH
+// routes ("/bulk-update" vs "/:id"), so PARAMS going first would match "/bulk-update" as id="bulk-update".
+router.patch(
+  API_ROUTES.AUTH + API_ROUTES.USER + API_ROUTES.BULK_UPDATE,
+  authenticate,
+  checkPermissions(["UPDATE:USER"]),
+  validateDto(BulkUpdateDto),
+  // whitelist:true strips anything not declared on UpdateUserDto (password, userType, …)
+  // before it ever reaches the service — bulk-update must not become a credential-reset path.
+  validateDtoArray(UpdateUserDto, "updates", "payload", { whitelist: true }),
+  bulkUpdateUsers
+);
 
 // Define a PATCH route for add users.
 router.patch(

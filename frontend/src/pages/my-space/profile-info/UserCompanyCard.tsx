@@ -1,7 +1,6 @@
 import { useAuth } from "@/context/AuthContext";
 
 export default function UserCompanyCard() {
-
   const { currentCompany } = useAuth();
   return (
     <>
@@ -23,7 +22,7 @@ export default function UserCompanyCard() {
 
               <div>
                 <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  Discription
+                  Description
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
                   {currentCompany?.description || "No description provided."}
@@ -33,7 +32,6 @@ export default function UserCompanyCard() {
           </div>
         </div>
       </div>
-
     </>
   );
 }

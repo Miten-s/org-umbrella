@@ -13,7 +13,7 @@ import { getImageUrl } from "@/services/utils.service";
 const companySchema = z.object({
   name: z.string().min(1, "Company name is required"),
   description: z.string().optional(),
-  logo: z.any().optional(),
+  logo: z.any().optional()
 });
 
 type CreateCompanyForm = z.infer<typeof companySchema>;
@@ -24,23 +24,29 @@ interface CreateCompanyModalProps {
   initialData?: Partial<CreateCompanyForm>;
 }
 
-const CreateCompanyModal = ({ onClose, initialData, onSubmit }: CreateCompanyModalProps) => {
+const CreateCompanyModal = ({
+  onClose,
+  initialData,
+  onSubmit
+}: CreateCompanyModalProps) => {
   const { t } = useTranslation();
-  const [logoPreview, setLogoPreview] = useState<string | null>(initialData?.logo || null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(
+    initialData?.logo || null
+  );
 
   const {
     register,
     handleSubmit,
     setValue,
     watch,
-    formState: { errors },
+    formState: { errors, isSubmitting }
   } = useForm<CreateCompanyForm>({
     resolver: zodResolver(companySchema),
     defaultValues: {
       name: initialData?.name || "",
       description: initialData?.description || "",
-      logo: initialData?.logo || undefined,
-    },
+      logo: initialData?.logo || undefined
+    }
   });
 
   const handleFileUpload = (files: File[]) => {
@@ -61,8 +67,8 @@ const CreateCompanyModal = ({ onClose, initialData, onSubmit }: CreateCompanyMod
     }
   }, [initialData?.logo, setValue]);
   return (
-    <div className="p-6 max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-xl">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <div className="modal-scrollbar max-h-[calc(100dvh-2rem)] overflow-y-auto overflow-x-hidden rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+      <form onSubmit={handleSubmit(onSubmit)} className="min-w-0 space-y-4">
         <h2 className="text-xl font-semibold">
           {t("update", { entity: t("company") })}
         </h2>
@@ -82,7 +88,9 @@ const CreateCompanyModal = ({ onClose, initialData, onSubmit }: CreateCompanyMod
             <Label>{t("description")}</Label>
             <TextArea
               value={watch("description") || ""}
-              onChange={(e) => setValue("description", e, { shouldValidate: true })}
+              onChange={(e) =>
+                setValue("description", e, { shouldValidate: true })
+              }
               error={!!errors.description}
               hint={errors.description?.message}
             />
@@ -105,16 +113,20 @@ const CreateCompanyModal = ({ onClose, initialData, onSubmit }: CreateCompanyMod
         </div>
 
         <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" type="button" onClick={onClose}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
             {t("cancel")}
           </Button>
-          <Button type="submit" variant="primary">
+          <Button type="submit" variant="primary" loading={isSubmitting}>
             {t("save")}
           </Button>
         </div>
       </form>
     </div>
-
   );
 };
 

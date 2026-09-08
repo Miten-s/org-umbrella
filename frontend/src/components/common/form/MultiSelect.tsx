@@ -1,15 +1,17 @@
 import Button from "@/components/ui/button/Button";
 import { t } from "i18next";
 import React, {
+  type CSSProperties,
   useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
-  useState,
+  useState
 } from "react";
+import { createPortal } from "react-dom";
 import CountWithTooltip, {
-  type TooltipPlacementInput,
+  type TooltipPlacementInput
 } from "@/components/common/CountWithTooltip";
 
 interface Option {
@@ -28,6 +30,9 @@ interface MultiSelectProps {
   error?: string;
   hint?: string;
   countTooltipPlacement?: TooltipPlacementInput;
+  portal?: boolean;
+  dropdownMaxHeight?: number;
+  listMaxHeight?: number;
 }
 
 const MultiSelect: React.FC<MultiSelectProps> = ({
@@ -40,20 +45,24 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   error,
   hint,
   countTooltipPlacement,
+  portal = false,
+  dropdownMaxHeight = 250,
+  listMaxHeight = 160
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLDivElement | null>(null);
   const chipsAreaRef = useRef<HTMLDivElement | null>(null);
   const caretRef = useRef<HTMLDivElement | null>(null);
 
-  const [selectedOptions, setSelectedOptions] = useState<string[]>(
-    defaultSelected,
-  );
+  const [selectedOptions, setSelectedOptions] =
+    useState<string[]>(defaultSelected);
   const [isOpen, setIsOpen] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [newOptionText, setNewOptionText] = useState("");
   const [internalOptions, setInternalOptions] = useState<Option[]>(options);
+  const [portalStyle, setPortalStyle] = useState<CSSProperties>();
 
   const [visibleCount, setVisibleCount] = useState<number>(0);
 
@@ -73,13 +82,20 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
       if (!containerRef.current) return;
 
       const target = event.target as Node;
-      if (!containerRef.current.contains(target)) {
+      const isInsideTrigger = containerRef.current.contains(target);
+      const isInsideDropdown = dropdownRef.current?.contains(target);
+
+      if (!isInsideTrigger && !isInsideDropdown) {
         setIsOpen(false);
       }
     };
 
     const handleEscape = (event: KeyboardEvent) => {
+      // Both this and the parent Modal listen on `document` — without
+      // stopImmediatePropagation the Modal's own Escape handler fires right
+      // after and closes the whole form too, discarding everything entered.
       if (event.key === "Escape") {
+        event.stopImmediatePropagation();
         setIsOpen(false);
       }
     };
@@ -97,6 +113,48 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
     if (!isOpen) setSearchTerm("");
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!portal || !isOpen) {
+      setPortalStyle(undefined);
+      return;
+    }
+
+    const updatePortalPosition = () => {
+      const triggerRect = inputRef.current?.getBoundingClientRect();
+      if (!triggerRect) return;
+
+      const viewportPadding = 16;
+      const availableBelow =
+        window.innerHeight - triggerRect.bottom - viewportPadding;
+      const availableAbove = triggerRect.top - viewportPadding;
+      const openAbove =
+        availableBelow < dropdownMaxHeight && availableAbove > availableBelow;
+      const maxHeight = Math.min(
+        dropdownMaxHeight,
+        Math.max(openAbove ? availableAbove : availableBelow, 160)
+      );
+
+      setPortalStyle({
+        left: triggerRect.left,
+        maxHeight,
+        top: openAbove ? undefined : triggerRect.bottom + 8,
+        bottom: openAbove
+          ? window.innerHeight - triggerRect.top + 8
+          : undefined,
+        width: triggerRect.width
+      });
+    };
+
+    updatePortalPosition();
+    window.addEventListener("resize", updatePortalPosition);
+    window.addEventListener("scroll", updatePortalPosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updatePortalPosition);
+      window.removeEventListener("scroll", updatePortalPosition, true);
+    };
+  }, [dropdownMaxHeight, isOpen, portal]);
+
   const toggleDropdown = useCallback(() => {
     if (disabled) return;
     setIsOpen((prev) => !prev);
@@ -113,7 +171,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
         return next;
       });
     },
-    [onChange],
+    [onChange]
   );
 
   const removeOption = useCallback(
@@ -124,7 +182,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
         return next;
       });
     },
-    [onChange],
+    [onChange]
   );
 
   const handleAddNewOption = useCallback(() => {
@@ -133,7 +191,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
 
     const newOption: Option = {
       value: rawText,
-      text: rawText,
+      text: rawText
     };
 
     setInternalOptions((prev) => [...prev, newOption]);
@@ -146,7 +204,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
     const term = searchTerm.trim().toLowerCase();
     if (!term) return internalOptions;
     return internalOptions.filter((opt) =>
-      opt.text.toLowerCase().includes(term),
+      opt.text.toLowerCase().includes(term)
     );
   }, [internalOptions, searchTerm]);
 
@@ -154,14 +212,15 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
     const map = new Map(internalOptions.map((o) => [o.value, o.text]));
     return selectedOptions.map((val) => ({
       value: val,
-      text: map.get(val) ?? val,
+      text: map.get(val) ?? val
     }));
   }, [selectedOptions, internalOptions]);
 
   // Canvas measurement (fast, accurate for font)
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const measureTextPx = useCallback((text: string, font: string) => {
-    if (!canvasRef.current) canvasRef.current = document.createElement("canvas");
+    if (!canvasRef.current)
+      canvasRef.current = document.createElement("canvas");
     const ctx = canvasRef.current.getContext("2d");
     if (!ctx) return text.length * 8;
     ctx.font = font;
@@ -218,10 +277,100 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
     return () => ro.disconnect();
   }, [selectedLabels, measureTextPx]);
 
-
   const visibleSelected = selectedLabels.slice(0, visibleCount);
   const hiddenSelected = selectedLabels.slice(visibleCount);
+
   const hiddenCount = hiddenSelected.length;
+  const dropdownContent = isOpen ? (
+    <div
+      ref={dropdownRef}
+      className={[
+        portal ? "fixed" : "absolute left-0 top-full",
+        "z-[1200] w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900"
+      ].join(" ")}
+      style={portal ? portalStyle : { maxHeight: dropdownMaxHeight }}
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+    >
+      {internalOptions.length > 0 && (
+        <div className="border-b border-gray-200 p-2 dark:border-gray-700">
+          <input
+            type="text"
+            placeholder="Search..."
+            className="w-full rounded-md border p-2 text-sm outline-hidden dark:bg-gray-800 dark:text-white/90"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
+            autoFocus
+          />
+        </div>
+      )}
+
+      <div
+        className={[
+          "flex flex-col overflow-y-auto overscroll-contain scroll-smooth no-scrollbar",
+          showAddButton ? "pb-10" : ""
+        ].join(" ")}
+        style={{ maxHeight: listMaxHeight }}
+      >
+        {filteredOptions.length === 0 ? (
+          <div className="p-2 text-center text-gray-500 dark:text-white/70">
+            No data found
+          </div>
+        ) : (
+          filteredOptions.map((option) => {
+            const isSelected = selectedOptions.includes(option.value);
+            return (
+              <div
+                key={option.value}
+                className="w-full cursor-pointer border-b border-gray-200 hover:bg-gray-100 last:border-b-0 dark:border-gray-700 dark:hover:bg-gray-800"
+                onClick={() => handleSelect(option.value)}
+                role="option"
+                aria-selected={isSelected}
+              >
+                <div
+                  className={[
+                    "flex items-center p-2 pl-2",
+                    isSelected ? "bg-primary/10" : ""
+                  ].join(" ")}
+                >
+                  <div className="mx-2 leading-6 text-gray-800 dark:text-white/90">
+                    {option.text}
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {showAddButton && (
+        <div className="sticky bottom-0 z-10 flex items-center gap-2 border-t border-gray-200 bg-white p-2 dark:border-gray-700 dark:bg-gray-900">
+          <input
+            value={newOptionText}
+            onChange={(e) => setNewOptionText(e.target.value)}
+            placeholder="Add new..."
+            className="flex-1 rounded-md border p-3 text-sm outline-hidden dark:bg-gray-800 dark:text-white/90"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation();
+                handleAddNewOption();
+              }
+            }}
+          />
+          <Button type="button" variant="primary" onClick={handleAddNewOption}>
+            {t("add")}
+          </Button>
+        </div>
+      )}
+    </div>
+  ) : null;
 
   return (
     <div className="w-full" ref={containerRef}>
@@ -240,7 +389,9 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                 "mb-2 flex h-11 rounded-lg border py-1.5 pl-3 pr-3 shadow-theme-xs outline-hidden transition",
                 "border-gray-300 focus:border-brand-300 focus:shadow-focus-ring dark:border-gray-700 dark:bg-gray-900 dark:focus:border-brand-300",
                 disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
-                error ? "border-red-500 focus:border-red-500 focus:shadow-none" : "",
+                error
+                  ? "border-red-500 focus:border-red-500 focus:shadow-none"
+                  : ""
               ].join(" ")}
               role="button"
               tabIndex={disabled ? -1 : 0}
@@ -264,17 +415,24 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                     {visibleSelected.map((opt) => (
                       <div
                         key={opt.value}
-                        className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 rounded px-2 py-1 min-w-0 max-w-[220px]"
+                        className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 rounded px-2 py-1 min-w-0"
                       >
                         <span className="truncate text-sm">{opt.text}</span>
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
+                            if (disabled) return;
                             removeOption(opt.value);
                           }}
-                          className="shrink-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 leading-none"
-                          aria-label={`Remove ${opt.text}`}
+                          disabled={disabled}
+                          className={[
+                            "shrink-0 leading-none",
+                            disabled
+                              ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                              : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                          ].join(" ")}
+                          aria-label="Remove selected option"
                         >
                           ✕
                         </button>
@@ -288,6 +446,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                         headerLabel={`Selected (${hiddenCount} more)`}
                         stopPropagation={true}
                         placement={countTooltipPlacement}
+                        portal
                       />
                     )}
                   </>
@@ -312,8 +471,9 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                   aria-hidden="true"
                 >
                   <svg
-                    className={`stroke-current transform transition-transform duration-200 ${isOpen ? "rotate-180" : ""
-                      }`}
+                    className={`stroke-current transform transition-transform duration-200 ${
+                      isOpen ? "rotate-180" : ""
+                    }`}
                     width="20"
                     height="20"
                     viewBox="0 0 20 20"
@@ -333,79 +493,16 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
           </div>
 
           {/* Dropdown */}
-          {isOpen && (
-            <div
-              className="absolute left-0 z-10 w-full overflow-y-auto bg-white rounded-lg shadow-lg top-full max-h-[250px] dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {internalOptions.length > 0 && (
-                <div className="p-2 border-b border-gray-200 dark:border-gray-700">
-                  <input
-                    type="text"
-                    placeholder="Search..."
-                    className="w-full p-2 text-sm border rounded-md outline-hidden dark:bg-gray-800 dark:text-white/90"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    autoFocus
-                  />
-                </div>
-              )}
-
-              <div className="flex flex-col max-h-[160px] overflow-auto no-scrollbar">
-                {filteredOptions.length === 0 ? (
-                  <div className="p-2 text-center text-gray-500 dark:text-white/70">
-                    No data found
-                  </div>
-                ) : (
-                  filteredOptions.map((option) => {
-                    const isSelected = selectedOptions.includes(option.value);
-                    return (
-                      <div
-                        key={option.value}
-                        className="hover:bg-gray-100 dark:hover:bg-gray-800 w-full cursor-pointer border-b border-gray-200 dark:border-gray-700 last:border-b-0"
-                        onClick={() => handleSelect(option.value)}
-                        role="option"
-                        aria-selected={isSelected}
-                      >
-                        <div
-                          className={[
-                            "flex items-center p-2 pl-2",
-                            isSelected ? "bg-primary/10" : "",
-                          ].join(" ")}
-                        >
-                          <div className="mx-2 leading-6 text-gray-800 dark:text-white/90">
-                            {option.text}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-
-              {showAddButton && (
-                <div className="flex items-center gap-2 p-2 border-t border-gray-200 dark:border-gray-700">
-                  <input
-                    value={newOptionText}
-                    onChange={(e) => setNewOptionText(e.target.value)}
-                    placeholder="Add new..."
-                    className="flex-1 p-3 text-sm border rounded-md dark:bg-gray-800 dark:text-white/90 outline-hidden"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleAddNewOption();
-                    }}
-                  />
-                  <Button type="button" variant="primary" onClick={handleAddNewOption}>
-                    {t("add")}
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
+          {portal && dropdownContent && typeof document !== "undefined"
+            ? createPortal(dropdownContent, document.body)
+            : dropdownContent}
         </div>
       </div>
 
       {(error || hint) && (
-        <p className={`mt-1 text-xs ${error ? "text-red-500" : "text-gray-500"}`}>
+        <p
+          className={`mt-1 text-xs ${error ? "text-red-500" : "text-gray-500"}`}
+        >
           {error || hint}
         </p>
       )}

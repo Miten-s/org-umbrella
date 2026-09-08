@@ -1,0 +1,23 @@
+{
+  "name": "org-umbrella",
+  "private": true,
+  "version": "1.0.0",
+  "description": "One-command local dev orchestration for all services.",
+  "scripts": {
+    "dev": "npm run dev:infra && concurrently -n backend,gxp,lims,frontend -c blue,green,yellow,magenta \"npm:dev:backend\" \"npm:dev:gxp\" \"npm:dev:lims\" \"npm:dev:frontend\"",
+    "dev:infra": "bash scripts/dev-infra.sh",
+    "dev:infra:down": "bash scripts/dev-infra-down.sh",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:gxp": "npm --prefix gxp-service run dev",
+    "dev:lims": "npm --prefix lims-service run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "typecheck": "npm --prefix backend run typecheck && npm --prefix gxp-service run typecheck && npm --prefix lims-service run typecheck && npm --prefix frontend run typecheck",
+    "prettier:check": "npm --prefix backend run prettier:check && npm --prefix gxp-service run prettier:check && npm --prefix lims-service run prettier:check && npm --prefix frontend run prettier:check",
+    "db:check": "npm --prefix backend run db:migrate:check && npm --prefix gxp-service run db:migrate:check && npm --prefix lims-service run db:migrate:check",
+    "start:postgres" : "infisical run --env=prod -- docker compose up -d postgres",
+    "start:redis" : "infisical run --env=prod -- docker compose up -d postgres"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

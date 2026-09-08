@@ -1,0 +1,11 @@
+# This monolithic workflow has been deprecated and replaced by individual service pipelines:
+# - .github/workflows/backend.yml
+# - .github/workflows/frontend.yml
+# - .github/workflows/gxp-service.yml
+# - .github/workflows/lims-service.yml
+#
+# Each service workflow now independently detects changes in its directory (`paths:`)
+# and builds/pushes with standard naming (backend, frontend, gxp-service, lims-service).
+name: CI/CD Pipeline (Disabled)
+on: []
+jobs: {}

@@ -1,7 +1,8 @@
 import { useAuth } from "@/context/AuthContext";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { SYSTEM_ROUTES } from "@/utils/common.constants";
 import { hasPermission } from "@/utils/permissions";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -11,24 +12,34 @@ interface ProtectedRouteProps {
   redirectTo?: string;
 }
 
-const LoadingSpinner = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-  </div>
-);
+const AccessDenied = () => {
+  const navigate = useNavigate();
 
-const AccessDenied = () => (
-  <div className="flex flex-col items-center justify-center min-h-screen">
-    <div className="text-red-500 text-xl font-semibold mb-2">Access Denied</div>
-    <div className="text-gray-600 mb-4">You don't have permission to access this page</div>
-    <button 
-      onClick={() => window.history.back()} 
-      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-    >
-      Go Back
-    </button>
-  </div>
-);
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen">
+      <div className="text-red-500 text-xl font-semibold mb-2">
+        Access Denied
+      </div>
+      <div className="text-gray-600 mb-4">
+        You don't have permission to access this page
+      </div>
+      <div className="flex gap-3">
+        <button
+          onClick={() => navigate(-1)}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Go Back
+        </button>
+        <button
+          onClick={() => navigate(SYSTEM_ROUTES.HOME, { replace: true })}
+          className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+        >
+          Go Home
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const ProtectedRoute = ({
   children,
@@ -66,4 +77,5 @@ const ProtectedRoute = ({
   return <>{children}</>;
 };
 
+export { LoadingSpinner };
 export default ProtectedRoute;

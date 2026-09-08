@@ -2,8 +2,9 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import ENV from "../utils/environment";
 import { IUser, User } from "../models/user.model";
+import { Role } from "../models/role.model";
+import { Permission } from "../models/permission.model";
 import API_ROUTES from "../utils/routes";
-// import { cacheResponse, getCachedResponse } from "../configs/redis.config";
 
 export const authenticate = async (
   req: Request,
@@ -27,34 +28,31 @@ export const authenticate = async (
 
   try {
     const decoded = jwt.verify(token, ENV.JWT_SECRET!) as IUser;
-
     const userId = decoded.id;
 
-    // Attempt to fetch the user from Redis
-    // const cachedUser = await getCachedResponse(userId);
-    // if (cachedUser) {
-    //   req.user = JSON.parse(cachedUser) as IUser;
-    //   return next();
-    // }
-    // const cachedUser = await getCachedResponse(userId);
-    // if (cachedUser) {
-    //   req.user = JSON.parse(cachedUser) as IUser;
-    //   return next();
-    // }
-
-    const fetchedUser = await User.findById(userId)
-      .populate("roles", ["permissions"])
-      .lean();
+    const fetchedUser = await User.findByPk(userId, {
+      include: [
+        {
+          model: Role,
+          as: "roles",
+          attributes: ["id", "name", "type"],
+          include: [
+            {
+              model: Permission,
+              as: "permissions",
+              attributes: ["id", "name"]
+            }
+          ]
+        }
+      ]
+    });
 
     if (!fetchedUser) {
       res.status(404).json({ error: "User not found" });
       return;
     }
 
-    // Cache the user data in Redis
-    // await cacheResponse({ key: userId, value: JSON.stringify(fetchedUser) });
-    req.user = fetchedUser as any;
-
+    req.user = fetchedUser.toJSON() as any;
     next();
   } catch {
     res.status(401).json({ error: "Invalid token" });

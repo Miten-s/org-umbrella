@@ -1,0 +1,259 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLimsAuditTrail } from "@/hooks/useLimsAuditTrail";
+import { useLimsRecordById } from "@/hooks/useLimsRecordById";
+import { invalidateAllLims } from "@/lib/query/invalidateLims";
+import { toast } from "@/lib/toast";
+import { useAsyncOptions } from "@/hooks/useAsyncOptions";
+import type { BulkSelection, ServerListParams } from "@/lib/query/listTypes";
+import {
+  bulkCloneLimsAnalysis,
+  bulkCopyLimsAnalysis,
+  bulkDeleteLimsAnalysis,
+  bulkRestoreLimsAnalysis,
+  bulkUpdateLimsAnalysis,
+  createLimsAnalysis,
+  fetchLimsAnalysisAudit,
+  fetchLimsAnalysisOptions,
+  restoreLimsAnalysis,
+  updateLimsAnalysis,
+  fetchLimsAnalysisById
+} from "./LimsAnalysis.api";
+import type {
+  LimsAnalysisPayload,
+  LimsComponentRow
+} from "./LimsAnalysis.types";
+
+export const limsAnalysisKeys = {
+  all: ["limsAnalysis"] as const,
+  list: (params: ServerListParams) => ["limsAnalysis", "list", params] as const,
+  audit: (id: string) => ["limsAnalysis", "audit", id] as const,
+  options: ["limsAnalysis", "options"] as const
+};
+
+/** Consumed by other modules selecting this entity. */
+export const useLimsAnalysisOptions = (args: {
+  search: string;
+  enabled?: boolean;
+  selectedValues?: string[];
+}) =>
+  useAsyncOptions({
+    queryKey: limsAnalysisKeys.options,
+    fetchPage: fetchLimsAnalysisOptions,
+    search: args.search,
+    enabled: args.enabled,
+    selectedValues: args.selectedValues
+  });
+
+export const useLimsAnalysisAudit = (id?: string) =>
+  useLimsAuditTrail({
+    queryKey: limsAnalysisKeys.audit(id ?? "none"),
+    fetchPage: fetchLimsAnalysisAudit,
+    id
+  });
+
+export const useLimsAnalysisById = (id?: string, enabled = true) =>
+  useLimsRecordById({
+    queryKey: limsAnalysisKeys.all,
+    fetchById: fetchLimsAnalysisById,
+    id,
+    enabled
+  });
+
+/** Components of ONE Analysis, scoped per-row to whichever Analysis that row's `analysisId`
+ * holds — fetches the whole (small) Analysis once and filters/pages `components[]` in memory. */
+export const useLimsAnalysisComponentOptions = (
+  args: { search: string; enabled?: boolean; selectedValues?: string[] },
+  row?: { analysisId?: string }
+) => {
+  const analysisId = row?.analysisId;
+  return useAsyncOptions({
+    queryKey: [...limsAnalysisKeys.all, "components", analysisId ?? "none"],
+    enabled: Boolean(analysisId) && (args.enabled ?? true),
+    search: args.search,
+    selectedValues: args.selectedValues,
+    fetchPage: async ({ search }) => {
+      if (!analysisId) return { options: [], nextPage: null };
+      const analysis = await fetchLimsAnalysisById(analysisId);
+      const term = search.trim().toLowerCase();
+      const options = (analysis?.components ?? [])
+        .filter((component: LimsComponentRow) =>
+          term
+            ? String(component.name ?? "")
+                .toLowerCase()
+                .includes(term)
+            : true
+        )
+        .map((component: LimsComponentRow) => ({
+          value: String(component.id ?? ""),
+          label: String(component.name ?? component.componentId ?? ""),
+          sublabel: component.unit ? String(component.unit) : undefined,
+          data: component
+        }))
+        .filter((option) => option.value);
+      return { options, nextPage: null };
+    }
+  });
+};
+
+const useInvalidate = () => {
+  const queryClient = useQueryClient();
+  return () => invalidateAllLims(queryClient);
+};
+
+// Rule 2: one SUCCESS toast per action here; never an onError toast.
+
+export const useCreateLimsAnalysis = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (payload: LimsAnalysisPayload) => createLimsAnalysis(payload),
+    onSuccess: () => {
+      toast("Record created successfully.", "success");
+      invalidate();
+    }
+  });
+};
+
+export const useUpdateLimsAnalysis = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload
+    }: {
+      id: string;
+      payload: LimsAnalysisPayload;
+    }) => updateLimsAnalysis(id, payload),
+    onSuccess: () => {
+      toast("Record updated successfully.", "success");
+      invalidate();
+    }
+  });
+};
+
+export const useBulkDeleteLimsAnalysis = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: ({
+      selection,
+      changeReason
+    }: {
+      selection: BulkSelection;
+      changeReason: string;
+    }) => bulkDeleteLimsAnalysis(selection, changeReason),
+    onSuccess: (_data, { selection }) => {
+      const count = selection.mode === "ids" ? selection.ids.length : undefined;
+      toast(
+        count && count > 1
+          ? `${count} records removed successfully.`
+          : "Record removed successfully.",
+        "success"
+      );
+      invalidate();
+    }
+  });
+};
+
+export const useBulkRestoreLimsAnalysis = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: ({
+      selection,
+      changeReason
+    }: {
+      selection: BulkSelection;
+      changeReason: string;
+    }) => bulkRestoreLimsAnalysis(selection, changeReason),
+    onSuccess: (_data, { selection }) => {
+      const count = selection.mode === "ids" ? selection.ids.length : undefined;
+      toast(
+        count && count > 1
+          ? `${count} records restored successfully.`
+          : "Record restored successfully.",
+        "success"
+      );
+      invalidate();
+    }
+  });
+};
+
+export const useBulkCloneLimsAnalysis = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (selection: BulkSelection) => bulkCloneLimsAnalysis(selection),
+    onSuccess: (_data, selection) => {
+      const count = selection.mode === "ids" ? selection.ids.length : undefined;
+      toast(
+        count && count > 1
+          ? `${count} records copied successfully.`
+          : "Record copied successfully.",
+        "success"
+      );
+      invalidate();
+    }
+  });
+};
+
+/** The Copy flow's batched save (CopyStepper): one request creates every reviewed record;
+ * collisions are warned, not rejected, per row since some may warn and others may not. */
+export const useBulkCopyLimsAnalysis = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (records: LimsAnalysisPayload[]) =>
+      bulkCopyLimsAnalysis(records),
+    onSuccess: (data) => {
+      const warnings = data.results.filter((r) => r.warning);
+      toast(
+        data.count > 1
+          ? `${data.count} records copied successfully.`
+          : "Record copied successfully.",
+        "success"
+      );
+      if (warnings.length) {
+        toast(
+          warnings.length === 1
+            ? warnings[0].warning!
+            : `${warnings.length} of ${data.count} kept their original name — renamed to stay unique.`,
+          "info",
+          { duration: 6000 }
+        );
+      }
+      invalidate();
+    }
+  });
+};
+
+/** Bulk Edit's batched save (EditStepper): one request updates every actually-changed record
+ * with the shared reason; a `skipped` id doesn't fail the rest. */
+export const useBulkUpdateLimsAnalysis = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: ({
+      updates,
+      changeReason
+    }: {
+      updates: { id: string; payload: LimsAnalysisPayload }[];
+      changeReason: string;
+    }) => bulkUpdateLimsAnalysis(updates, changeReason),
+    onSuccess: (data) => {
+      toast(
+        data.count > 1
+          ? `${data.count} records updated successfully.`
+          : "Record updated successfully.",
+        "success"
+      );
+      invalidate();
+    }
+  });
+};
+
+export const useRestoreLimsAnalysis = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: ({ id, changeReason }: { id: string; changeReason: string }) =>
+      restoreLimsAnalysis(id, changeReason),
+    onSuccess: () => {
+      toast("Record restored successfully.", "success");
+      invalidate();
+    }
+  });
+};

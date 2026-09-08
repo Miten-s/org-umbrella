@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import * as departmentService from "../services/department.service";
 import asyncHandler from "../middlewares/error.middleware";
 import { CUSTOM_MESSAGES } from "../utils/common.util";
+import { getPaginationOptions } from "../utils/pagination.util";
 
 export const createDepartment = asyncHandler(
   async (req: Request, res: Response): Promise<any> => {
@@ -16,9 +17,10 @@ export const createDepartment = asyncHandler(
 );
 
 export const getAllDepartments = asyncHandler(
-  async (_req: Request, res: Response): Promise<any> => {
-    const departments = await departmentService.getAllDepartments();
-    res.status(200).json({ departments });
+  async (req: Request, res: Response): Promise<any> => {
+    const paginationOptions = getPaginationOptions(req.query);
+    const result = await departmentService.getAllDepartments(paginationOptions);
+    res.status(200).json(result);
   }
 );
 
@@ -38,7 +40,7 @@ export const updateDepartment = asyncHandler(
     const department = await departmentService.updateDepartment(
       req.params.id as string,
       req.body,
-      req.user?._id
+      req.user?.id
     );
     if (!department)
       return res.status(404).json({ error: "Department not found" });
@@ -64,6 +66,59 @@ export const deleteDepartment = asyncHandler(
         "{{ entity }}",
         "Department"
       )
+    });
+  }
+);
+
+export const bulkDeleteDepartments = asyncHandler(
+  async (req: Request, res: Response): Promise<any> => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0)
+      return res.status(400).json({ message: "An array of ids is required" });
+    const result = await departmentService.bulkDeleteDepartments(ids);
+    res.status(200).json({ message: "Departments deleted", result });
+  }
+);
+
+export const bulkDuplicateDepartments = asyncHandler(
+  async (req: Request, res: Response): Promise<any> => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0)
+      return res.status(400).json({ message: "An array of ids is required" });
+    const result = await departmentService.bulkDuplicateDepartments(
+      ids,
+      req.user
+    );
+    res.status(201).json({ message: "Departments duplicated", result });
+  }
+);
+
+export const bulkCopyDepartments = asyncHandler(
+  async (req: Request, res: Response): Promise<any> => {
+    const { records } = req.body;
+    const results = await departmentService.bulkCopyDepartments(
+      records,
+      req.user
+    );
+    res.status(201).json({
+      message: `${results.length} record(s) copied`,
+      count: results.length,
+      results
+    });
+  }
+);
+
+export const bulkUpdateDepartments = asyncHandler(
+  async (req: Request, res: Response): Promise<any> => {
+    const { updates } = req.body;
+    const results = await departmentService.bulkUpdateDepartments(
+      updates,
+      req.user
+    );
+    res.status(200).json({
+      message: `${results.length} record(s) updated`,
+      count: results.length,
+      results
     });
   }
 );

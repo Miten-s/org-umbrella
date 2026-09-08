@@ -1,35 +1,57 @@
-import mongoose from "mongoose";
+import { Model, DataTypes } from "sequelize";
+import { sequelize } from "../configs/db.sequelize";
 
-const GxpServiceAppGroupSchema = new mongoose.Schema(
+export interface IAppGroup {
+  id: string;
+  applicationId: string;
+  appGroup: string;
+  active: boolean;
+  createdBy?: string;
+}
+
+export class AppGroup extends Model<IAppGroup> implements IAppGroup {
+  public id!: string;
+  public applicationId!: string;
+  public appGroup!: string;
+  public active!: boolean;
+  public createdBy!: string;
+  public readonly created_at!: Date;
+  public readonly updated_at!: Date;
+}
+
+AppGroup.init(
   {
-    appId: {
-      type: String,
-      ref: "GxpServiceApplication",
-      required: true
+    id: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    applicationId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      field: "application_id"
     },
     appGroup: {
-      type: String,
-      required: true
+      type: DataTypes.STRING,
+      allowNull: false,
+      field: "app_group"
     },
     active: {
-      type: Boolean,
-      default: true
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true
     },
     createdBy: {
-      type: String
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: "created_by"
     }
   },
   {
-    timestamps: true,
-    collection: "gxp-service-app-groups"
+    sequelize,
+    tableName: "app_groups",
+    underscored: true,
+    timestamps: true
   }
 );
-
-const GxpServiceAppGroupModel = mongoose.model(
-  "GxpServiceAppGroup",
-  GxpServiceAppGroupSchema
-);
-
-GxpServiceAppGroupSchema.index({ appId: 1, appGroup: 1 }, { unique: true });
-
-export default GxpServiceAppGroupModel;
+export default AppGroup;

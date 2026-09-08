@@ -12,6 +12,7 @@ export class CreateLocationDto {
   @IsString()
   readonly comments?: string;
 
+  @IsOptional()
   @IsString()
   readonly status?: "active" | "disabled";
 }
@@ -21,6 +22,7 @@ export class UpdateLocationDto {
   @IsString({ message: "Location name is required and must be a string." })
   readonly description?: string;
 
+  @IsOptional()
   @IsString({ message: "Comments is required and must be a string." })
   readonly comments?: string;
 
