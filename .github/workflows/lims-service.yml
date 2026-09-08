@@ -2,7 +2,7 @@ name: LIMS Service CI/CD
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "development" ]
     paths:
       - 'lims-service/**'
       - '.github/workflows/lims-service.yml'
@@ -52,7 +52,7 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/development'
     
     steps:
     - name: Deploy to EC2
@@ -68,9 +68,9 @@ jobs:
         script: |
           cd ~/org-umbrella
           git config --global --add safe.directory $(pwd)
-          git fetch origin main
-          git checkout main
-          git reset --hard origin/main
+          git fetch origin development
+          git checkout development
+          git reset --hard origin/development
           echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
           docker compose -f docker-compose.yml pull lims-service
           docker compose -f docker-compose.yml stop lims-service
