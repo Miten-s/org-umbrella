@@ -40,7 +40,7 @@ app.use(
   })
 );
 
-// import "./configs/redis.config";
+import "./configs/redis.config";
 
 app.use(cookierParser());
 

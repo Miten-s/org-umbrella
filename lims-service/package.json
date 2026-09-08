@@ -21,7 +21,6 @@
   },
   "author": "umbrella",
   "license": "ISC",
-
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.8",
@@ -58,6 +57,7 @@
     "multer": "^2.0.0",
     "pg": "^8.21.0",
     "pg-hstore": "^2.3.4",
+    "redis": "^6.2.1",
     "reflect-metadata": "^0.2.2",
     "sequelize": "^6.37.8",
     "winston": "^3.17.0",
