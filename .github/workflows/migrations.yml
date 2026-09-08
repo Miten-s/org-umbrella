@@ -1,7 +1,6 @@
-name: Database Migrations Management
+name: Database Migrations Management (Disabled)
 
-on:
-  workflow_dispatch:
+on: []
     inputs:
       service:
         description: 'Select service to run migrations for'

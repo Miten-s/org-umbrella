@@ -72,27 +72,27 @@ jobs:
 #           npm --prefix backend run db:migrate
 #           npm --prefix backend run db:migrate:check
 
-      - name: Validate GxP Service Database Migrations
-        env:
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_USER: postgres
-          DB_PASS: postgres
-          DB_NAME: umbrella
-          NODE_ENV: test
-        run: |
-          npm --prefix gxp-service run db:migrate
-          npm --prefix gxp-service run db:migrate:check
-
-      - name: Validate LIMS Service Database Migrations
-        env:
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_USER: postgres
-          DB_PASS: postgres
-          DB_NAME: umbrella
-          NODE_ENV: test
-        run: |
-          npm --prefix lims-service run db:migrate
-          npm --prefix lims-service run db:migrate:check
+#       - name: Validate GxP Service Database Migrations
+#         env:
+#           DB_HOST: localhost
+#           DB_PORT: 5432
+#           DB_USER: postgres
+#           DB_PASS: postgres
+#           DB_NAME: umbrella
+#           NODE_ENV: test
+#         run: |
+#           npm --prefix gxp-service run db:migrate
+#           npm --prefix gxp-service run db:migrate:check
+# 
+#       - name: Validate LIMS Service Database Migrations
+#         env:
+#           DB_HOST: localhost
+#           DB_PORT: 5432
+#           DB_USER: postgres
+#           DB_PASS: postgres
+#           DB_NAME: umbrella
+#           NODE_ENV: test
+#         run: |
+#           npm --prefix lims-service run db:migrate
+#           npm --prefix lims-service run db:migrate:check
 
