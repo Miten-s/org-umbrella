@@ -46,9 +46,8 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       AUTH_POSTGRES_URI: ${AUTH_POSTGRES_URI:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/auth-service}
       AUTH_MONGO_URI: ${AUTH_MONGO_URI:-}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_SERVER_URL: ${REDIS_SERVER_URL:-redis://redis:6379}
+      REDIS_SERVER_PASSWORD: ${REDIS_SERVER_PASSWORD:-}
     volumes:
       - backend_uploads:/app/uploads
     depends_on:
@@ -70,9 +69,8 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       GXP_POSTGRES_URI: ${GXP_POSTGRES_URI:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/gxp-service}
       AUTH_POSTGRES_URI: ${AUTH_POSTGRES_URI:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/auth-service}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_SERVER_URL: ${REDIS_SERVER_URL:-redis://redis:6379}
+      REDIS_SERVER_PASSWORD: ${REDIS_SERVER_PASSWORD:-}
     volumes:
       - gxp_uploads:/app/uploads
     depends_on:
@@ -95,9 +93,8 @@ services:
       KAFKA_BROKER: ${KAFKA_BROKER:-}
       KAFKA_CLIENT_ID: ${KAFKA_CLIENT_ID:-lims-service}
       KAFKA_GROUP_ID: ${KAFKA_GROUP_ID:-lims-group}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_SERVER_URL: ${REDIS_SERVER_URL:-redis://redis:6379}
+      REDIS_SERVER_PASSWORD: ${REDIS_SERVER_PASSWORD:-}
     volumes:
       - lims_uploads:/app/uploads
     depends_on:
