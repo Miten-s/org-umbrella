@@ -15,7 +15,7 @@
     "prettier:check": "npm --prefix backend run prettier:check && npm --prefix gxp-service run prettier:check && npm --prefix lims-service run prettier:check && npm --prefix frontend run prettier:check",
     "db:check": "npm --prefix backend run db:migrate:check && npm --prefix gxp-service run db:migrate:check && npm --prefix lims-service run db:migrate:check",
     "start:postgres" : "infisical run --env=prod -- docker compose up -d postgres",
-    "start:redis" : "infisical run --env=prod -- docker compose up -d postgres"
+    "start:redis" : "infisical run --env=prod -- docker compose up -d redis"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"
