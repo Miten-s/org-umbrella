@@ -37,7 +37,7 @@ export const sequelize = new Sequelize(
     "postgres://postgres:postgres@localhost:5433/gxp_workflow_db",
   {
     dialect: "postgres",
-    logging: (msg) => console.log(msg),
+    logging: false,
     pool: {
       max: 10,
       min: 2,
@@ -60,7 +60,7 @@ export const authSequelize = new Sequelize(
     "postgres://postgres:postgres@localhost:5433/umbrella_auth_db",
   {
     dialect: "postgres",
-    logging: (msg) => console.log(msg),
+    logging: false,
     dialectOptions: isLocalPostgres(authPostgresUri)
       ? undefined
       : { ssl: { require: true, rejectUnauthorized: false } },
