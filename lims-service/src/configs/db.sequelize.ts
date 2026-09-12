@@ -35,7 +35,7 @@ export const sequelize = new Sequelize(
     "postgres://postgres:postgres@localhost:5433/lims_service_db",
   {
     dialect: "postgres",
-    logging: ENV.NODE_ENV === "development" ? (msg) => console.log(msg) : false,
+    logging: false,
     dialectOptions: isLocalPostgres(ENV.LIMS_POSTGRES_URI)
       ? undefined
       : { ssl: { require: true, rejectUnauthorized: false } },
@@ -59,7 +59,7 @@ export const authSequelize = new Sequelize(
     "postgres://postgres:postgres@localhost:5433/umbrella_auth_db",
   {
     dialect: "postgres",
-    logging: ENV.NODE_ENV === "development" ? (msg) => console.log(msg) : false,
+    logging: false,
     dialectOptions: isLocalPostgres(ENV.AUTH_POSTGRES_URI)
       ? undefined
       : { ssl: { require: true, rejectUnauthorized: false } },
