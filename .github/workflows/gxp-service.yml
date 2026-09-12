@@ -51,12 +51,41 @@ jobs:
           ${{ secrets.DOCKERHUB_USERNAME }}/gxp-service:latest
           ${{ secrets.DOCKERHUB_USERNAME }}/gxp-service:${{ github.sha }}
 
-  deploy:
+  migrate:
     needs: build-and-push
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
 
-    
+    steps:
+    - name: Run GxP Service Database Migrations on EC2
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          cd ~/org-umbrella
+          git config --global --add safe.directory $(pwd)
+          git fetch origin development
+          git checkout development
+          git reset --hard origin/development
+          CONTAINER_ID=$(docker compose -f docker-compose.yml ps -q gxp-service)
+          if [ -z "$CONTAINER_ID" ]; then
+            echo "Error: Container for gxp-service is not running. Starting existing container..."
+            infisical run --env=prod --path=/gxp-service --recursive -- docker compose -f docker-compose.yml up -d --no-deps gxp-service
+            CONTAINER_ID=$(docker compose -f docker-compose.yml ps -q gxp-service)
+          fi
+          echo "===> Executing database migrations for gxp-service..."
+          infisical run --env=prod --path=/gxp-service --recursive -- docker exec -i $CONTAINER_ID npm run db:migrate
+          echo "===> Verifying database sync post-migration..."
+          infisical run --env=prod --path=/gxp-service --recursive -- docker exec -i $CONTAINER_ID npm run db:migrate:check
+          echo "===> GxP Service migration completed successfully!"
+
+  deploy:
+    needs: migrate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+
     steps:
     - name: Deploy to EC2
       env:
@@ -79,3 +108,5 @@ jobs:
           docker compose -f docker-compose.yml stop gxp-service
           docker compose -f docker-compose.yml rm -f gxp-service
           infisical run --env=prod --path=/gxp-service --recursive -- docker compose -f docker-compose.yml up -d --no-deps gxp-service
+
+
