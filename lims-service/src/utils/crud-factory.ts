@@ -1,4 +1,6 @@
 import {
+  col,
+  fn,
   IncludeOptions,
   Model,
   ModelStatic,
@@ -31,7 +33,13 @@ import {
 } from "../dtos/common.dto";
 import { authorize } from "../middlewares/authorize.middleware";
 import { LimsAction } from "./permissions";
-import { ChildConfig, readChildren, syncAllChildren } from "./nested-children";
+import {
+  attachOrCreateChild,
+  ChildConfig,
+  detachOrRemoveChild,
+  readChildren,
+  syncAllChildren
+} from "./nested-children";
 import {
   applyBusinessId,
   BusinessIdConfig,
@@ -322,6 +330,58 @@ const scopeSoftDeletableIncludes = (
     };
   });
 
+/**
+ * A `separate: true, limit: N` relation (see lot.routes.ts) caps its own array
+ * for payload/perf, but that leaves the list's "+N" overflow badge computed
+ * from a truncated array — a lot with 100k samples capped at 20 would show
+ * "+18" instead of "+99998". Runs one cheap GROUP BY per capped relation
+ * (indexed FK, ≤ a page of parent ids) and stamps the real total onto each
+ * row as `<as>Count`, so the frontend can show an accurate badge without
+ * ever fetching the full child set.
+ */
+const attachRelationCounts = async <M extends Model>(
+  parentModel: ModelStatic<M>,
+  rows: M[],
+  relations: IncludeOptions[]
+): Promise<void> => {
+  const cappedRelations = relations.filter((r) => r.separate && r.limit);
+  if (!cappedRelations.length || !rows.length) return;
+
+  const parentIds = rows.map((r) => r.get("id"));
+
+  await Promise.all(
+    cappedRelations.map(async (relation) => {
+      const as = relation.as as string;
+      const childModel = relation.model as ModelStatic<Model>;
+      const association = (parentModel as any).associations?.[as];
+      const foreignKey: string | undefined = association?.foreignKey;
+      if (!foreignKey) return;
+
+      const hasIsDeleted = "isDeleted" in childModel.getAttributes();
+      const counts = (await childModel.findAll({
+        attributes: [
+          foreignKey,
+          [fn("COUNT", col(childModel.primaryKeyAttribute)), "count"]
+        ],
+        where: {
+          [foreignKey]: parentIds,
+          ...(hasIsDeleted ? { isDeleted: false } : {})
+        } as WhereOptions,
+        group: [foreignKey],
+        raw: true
+      })) as unknown as Record<string, string>[];
+
+      const countByParentId = new Map(
+        counts.map((c) => [String(c[foreignKey]), Number(c.count)])
+      );
+      for (const row of rows) {
+        row.dataValues[`${as}Count`] =
+          countByParentId.get(String(row.get("id"))) ?? 0;
+      }
+    })
+  );
+};
+
 export const buildCrudRepo = <M extends Model>(config: CrudConfig<M>) => {
   const { model, searchFields, defaultSortBy = "createdAt" } = config;
   const relations = scopeSoftDeletableIncludes(config.relations ?? []);
@@ -359,7 +419,9 @@ export const buildCrudRepo = <M extends Model>(config: CrudConfig<M>) => {
       ...(config.baseWhere ?? {}),
       ...(includeRemoved ? { id } : { id, isDeleted: false })
     };
-    return model.findOne({ where, include: relations, transaction });
+    const row = await model.findOne({ where, include: relations, transaction });
+    if (row) await attachRelationCounts(model, [row], relations);
+    return row;
   };
 
   const findById = async (
@@ -371,11 +433,14 @@ export const buildCrudRepo = <M extends Model>(config: CrudConfig<M>) => {
     const base: WhereOptions = includeRemoved
       ? { id }
       : { id, isDeleted: false };
-    return model.findOne({
+    const row = await model.findOne({
       where: withGroupScope(model, scope, base),
       include: relations,
       transaction
     });
+    // Edit/View need the same true count as the list — same capped relation, same fix.
+    if (row) await attachRelationCounts(model, [row], relations);
+    return row;
   };
 
   const findAll = async (params: {
@@ -414,15 +479,37 @@ export const buildCrudRepo = <M extends Model>(config: CrudConfig<M>) => {
       sortBy && Object.keys(model.getAttributes()).includes(sortBy)
         ? sortBy
         : defaultSortBy;
+    const scopedWhere = withGroupScope(model, scope, where);
+    const order: [string, "ASC" | "DESC"][] = [[orderColumn, sortDir]];
 
-    return model.findAndCountAll({
-      where: withGroupScope(model, scope, where),
-      include: listRelations,
+    // Two round-trips instead of one findAndCountAll({ include, distinct }):
+    // for an all-belongsTo entity (no hasMany in listRelations, e.g. Sample),
+    // Sequelize's own heuristic leaves `subQuery` off, so every relation gets
+    // joined onto the *entire* matching set before ORDER BY/LIMIT/OFFSET runs
+    // (2s+ at 500k rows) — and forcing `subQuery: true` back on breaks
+    // findAndCountAll's own count query (`distinct` + `subQuery` + `include`
+    // is a known bad combination in Sequelize's count builder). Picking the
+    // page of ids first — cheap, index-backed — then joining only those rows
+    // sidesteps both problems. Safe because where/order/search
+    // (getSafeFilters, searchFields, orderColumn) only ever touch this
+    // model's own columns, never a joined one.
+    const { count, rows: idRows } = await model.findAndCountAll({
+      where: scopedWhere,
+      attributes: ["id"],
       offset: skip,
       limit,
-      order: [[orderColumn, sortDir]],
-      distinct: true
+      order,
+      subQuery: false
     });
+    if (!idRows.length) return { count, rows: [] };
+
+    const rows = await model.findAll({
+      where: { id: idRows.map((r) => r.get("id")) } as WhereOptions,
+      include: listRelations,
+      order
+    });
+    await attachRelationCounts(model, rows, listRelations);
+    return { count, rows };
   };
 
   const update = async (
@@ -1473,6 +1560,11 @@ export const buildCrudRouter = <M extends Model>(params: {
   businessId?: BusinessIdConfig;
   /** This entity's form carries `LimsAttachmentsField` — see buildCrudController. */
   hasAttachments?: boolean;
+  /** Same array passed as the entity's `children` config — enables one-item-at-a-time
+   * `.../:id/children/:field` attach/detach routes instead of only the full-collection
+   * resubmit `update` already does. Needed wherever a capped relation (see
+   * attachRelationCounts) has to stay editable without ever resending the full set. */
+  children?: ChildConfig[];
 }): Router => {
   const {
     service,
@@ -1482,7 +1574,8 @@ export const buildCrudRouter = <M extends Model>(params: {
     updateDto,
     model,
     businessId,
-    hasAttachments = false
+    hasAttachments = false,
+    children
   } = params;
   const controller = buildCrudController(service, entityName, hasAttachments);
   const router = Router();
@@ -1516,6 +1609,106 @@ export const buildCrudRouter = <M extends Model>(params: {
     can("VIEW"),
     controller.getAuditLogs
   );
+
+  // One-item-at-a-time relation management — see `children` doc above. Each call is its
+  // own transaction against just this one child, so a "manage" UI showing only a capped
+  // preview of a large relation can never accidentally wipe the rest on save.
+  for (const childConfig of children ?? []) {
+    const childBase = `${API_ROUTES.PARAMS}/children/${childConfig.field}`;
+
+    router.post(
+      childBase,
+      can("UPDATE"),
+      asyncHandler(async (req: Request, res: Response) => {
+        const id = req.params.id as string;
+        const ctx = contextFromRequest(req);
+        const parent = await service.getById(id, ctx);
+        if (!parent) {
+          throw Object.assign(new Error(`${entityName} not found`), {
+            statusCode: 404
+          });
+        }
+
+        const outcome = await sequelize.transaction(async (transaction) => {
+          const result = await attachOrCreateChild(
+            childConfig,
+            id,
+            req.body,
+            transaction,
+            parent,
+            ctx.scope
+          );
+          await writeAudit({
+            entityName,
+            entityId: id,
+            action: "UPDATE",
+            childChanges: { [childConfig.field]: { added: [result.data] } },
+            actor: ctx.actor,
+            transaction
+          });
+          return result;
+        });
+
+        // The child's own list/options (e.g. Samples) and this parent's cached rows
+        // (which embed the capped preview + count) both went stale.
+        await deleteCacheByPrefix(`lims:all:${childConfig.model.name}:`);
+        await deleteCacheByPrefix(`lims:all:${entityName}:`);
+
+        res.status(201).json({
+          message: `${childConfig.field} updated`,
+          data: outcome.data
+        });
+      })
+    );
+
+    router.delete(
+      `${childBase}/:childId`,
+      can("UPDATE"),
+      asyncHandler(async (req: Request, res: Response) => {
+        const id = req.params.id as string;
+        const childId = req.params.childId as string;
+        const ctx = contextFromRequest(req);
+        const parent = await service.getById(id, ctx);
+        if (!parent) {
+          throw Object.assign(new Error(`${entityName} not found`), {
+            statusCode: 404
+          });
+        }
+
+        const removed = await sequelize.transaction(async (transaction) => {
+          const ok = await detachOrRemoveChild(
+            childConfig,
+            id,
+            childId,
+            transaction
+          );
+          if (ok) {
+            await writeAudit({
+              entityName,
+              entityId: id,
+              action: "UPDATE",
+              childChanges: {
+                [childConfig.field]: { removed: [{ id: childId }] }
+              },
+              actor: ctx.actor,
+              transaction
+            });
+          }
+          return ok;
+        });
+
+        if (removed) {
+          await deleteCacheByPrefix(`lims:all:${childConfig.model.name}:`);
+          await deleteCacheByPrefix(`lims:all:${entityName}:`);
+        }
+
+        res.status(200).json({
+          message: removed ? `${childConfig.field} updated` : "Already not attached"
+        });
+      })
+    );
+  }
+
   router.get(API_ROUTES.ROOT, can("VIEW"), controller.getAll);
   router.get(API_ROUTES.PARAMS, can("VIEW"), controller.getById);
 

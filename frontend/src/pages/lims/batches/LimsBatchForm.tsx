@@ -3,15 +3,23 @@ import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
 
+import { useState } from "react";
 import Input from "@/components/common/form/input/InputField";
 import Label from "@/components/common/form/Label";
 import TextArea from "@/components/common/form/input/TextArea";
 import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
+import { TagListCell } from "@/components/data/cells/TagListCell";
+import { RelationManagerModal } from "@/components/data/cells/RelationManagerModal";
 import LimsAttachmentsField from "@/components/lims/LimsAttachmentsField";
 import { useAttachments } from "@/hooks/useAttachments";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsLotOptions } from "@/pages/lims/lots/LimsLot.queries";
+import { fetchLimsLotList } from "@/pages/lims/lots/LimsLot.api";
+import {
+  attachLimsBatchChild,
+  detachLimsBatchChild
+} from "./LimsBatch.api";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
 import {
   limsBatchSchema,
@@ -50,11 +58,6 @@ interface LimsBatchFormProps {
 const seedOne = (ref: LimsRef | null | undefined) =>
   ref?.id && ref.name ? [{ value: ref.id, label: ref.name }] : undefined;
 
-const seedMany = (refs: LimsRef[] | undefined) =>
-  (refs ?? [])
-    .filter((ref) => ref?.id && ref.name)
-    .map((ref) => ({ value: ref.id, label: String(ref.name) }));
-
 const LimsBatchForm = ({
   mode = "create",
   initialData,
@@ -70,6 +73,12 @@ const LimsBatchForm = ({
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
   const attachments = useAttachments(initialData?.attachments);
+  const [isManagingLots, setIsManagingLots] = useState(false);
+  // Lots is capped for display (see attachRelationCounts) and manageOnly on the
+  // backend — only edit/view can show it at all; create/copy get a disabled
+  // note instead (see lot.routes.ts's identical treatment for the reasoning).
+  const lotsAreManaged =
+    (mode === "edit" || mode === "view") && Boolean(initialData);
 
   // Captured once per record — also the no-change baseline `submit` diffs
   // against, so Save is a no-op when nothing actually differs from it.
@@ -135,8 +144,12 @@ const LimsBatchForm = ({
             (onUnchanged ?? onClose)();
             return;
           }
+          const { lots: _managedSeparately, ...rest } = values;
           onSubmit(
-            { ...values, keptAttachmentIds: attachments.keptIds },
+            {
+              ...(lotsAreManaged ? rest : values),
+              keptAttachmentIds: attachments.keptIds
+            },
             attachments.newFiles
           );
         })}
@@ -174,21 +187,89 @@ const LimsBatchForm = ({
           </div>
           <div className="min-w-0">
             <Label required={false}>{t("limsLots")}</Label>
-            <Controller
-              name="lots"
-              control={control}
-              render={({ field }) => (
-                <AsyncSelect
-                  multi
-                  useOptions={useLimsLotOptions}
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={isReadOnly}
-                  placeholder={t("select", { entity: t("limsLots") })}
-                  initialSelectedOptions={seedMany(initialData?.lots)}
-                />
-              )}
-            />
+            {lotsAreManaged ? (
+              <>
+                <div className="flex min-h-11 items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 dark:border-gray-700">
+                  <div className="min-w-0 flex-1">
+                    <TagListCell
+                      items={initialData?.lots}
+                      totalCount={initialData?.lotsCount}
+                      getLabel={(item) => item.name ?? ""}
+                      getKey={(item) => item.id}
+                      tooltipHeaderLabel={t("limsLots")}
+                      queryKey={["batches", initialData?.id, "lots"]}
+                      fetchPage={async ({ search, page }) => {
+                        const result = await fetchLimsLotList(false, {
+                          page,
+                          limit: 20,
+                          search: search || undefined,
+                          filters: { batchId: initialData?.id }
+                        });
+                        return {
+                          ...result,
+                          rows: result.rows.map((row) => ({
+                            id: row.id,
+                            name: row.lotName || row.lotId || ""
+                          }))
+                        };
+                      }}
+                    />
+                  </div>
+                  {!isReadOnly ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsManagingLots(true)}
+                    >
+                      {t("manage")}
+                    </Button>
+                  ) : null}
+                </div>
+                {!isReadOnly && initialData?.id ? (
+                  <RelationManagerModal
+                    isOpen={isManagingLots}
+                    onClose={() => setIsManagingLots(false)}
+                    title={t("limsLots")}
+                    totalCount={initialData.lotsCount ?? initialData.lots?.length ?? 0}
+                    getLabel={(item: { id: string; name: string }) => item.name}
+                    getKey={(item: { id: string; name: string }) => item.id}
+                    queryKey={["batches", initialData.id, "lots"]}
+                    fetchAttached={async ({ search, page }) => {
+                      const result = await fetchLimsLotList(false, {
+                        page,
+                        limit: 20,
+                        search: search || undefined,
+                        filters: { batchId: initialData.id }
+                      });
+                      return {
+                        ...result,
+                        rows: result.rows.map((row) => ({
+                          id: row.id,
+                          name: row.lotName || row.lotId || ""
+                        }))
+                      };
+                    }}
+                    useCandidateOptions={useLimsLotOptions}
+                    onAttach={(childId) =>
+                      attachLimsBatchChild(initialData.id, "lots", childId)
+                    }
+                    onDetach={(childId) =>
+                      detachLimsBatchChild(initialData.id, "lots", childId)
+                    }
+                  />
+                ) : null}
+              </>
+            ) : (
+              // Create/Copy: lots is `manageOnly` (see batch.routes.ts), so the
+              // backend silently ignores this field on every create/copy call —
+              // an interactive multi-select here would look functional and do
+              // nothing. Honest and disabled beats that.
+              <div className="flex min-h-11 items-center rounded-lg border border-dashed border-gray-200 px-3 py-2 text-sm text-gray-400 dark:border-gray-700">
+                {t("limsLotsAddAfterCreate", {
+                  defaultValue: "Add lots after creating this batch"
+                })}
+              </div>
+            )}
           </div>
           <div className="col-span-full min-w-0">
             <Label>{t("description")}</Label>

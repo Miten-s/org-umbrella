@@ -40,6 +40,26 @@ export const fetchLimsBatchList = async (
   );
 };
 
+/**
+ * One-item attach/detach against a capped, manageOnly relation (see
+ * batch.routes.ts's `lots` child config) — never resend the whole set.
+ */
+export const attachLimsBatchChild = async (
+  id: string,
+  field: string,
+  childId: string
+) => {
+  await limsApi.post(`${ROUTE}/${id}/children/${field}`, { id: childId });
+};
+
+export const detachLimsBatchChild = async (
+  id: string,
+  field: string,
+  childId: string
+) => {
+  await limsApi.delete(`${ROUTE}/${id}/children/${field}/${childId}`);
+};
+
 /** Options for other modules selecting this entity. */
 export const fetchLimsBatchOptions = async (
   args: { search: string; page: number },

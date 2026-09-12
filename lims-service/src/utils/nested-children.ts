@@ -25,6 +25,15 @@ export interface ChildConfig {
   /** Extra fixed WHERE on the replace-set's "before" lookup, for a child table two parents
    * both stamp rows into — without it, one parent's save would delete the other's rows. */
   scopeWhere?: Record<string, any>;
+  /**
+   * This relation is capped for display (`separate: true, limit: N` on the list/edit
+   * `include` — see attachRelationCounts) and MUST NOT be diffed as part of a normal
+   * create/update payload: the form was only ever shown the first N rows, so a full-set
+   * replace would silently detach/delete everything beyond that. `syncAllChildren` skips
+   * it entirely — even if a stale client still submits this field — leaving it changeable
+   * only through the dedicated one-item `.../:id/children/:field` attach/detach routes.
+   */
+  manageOnly?: boolean;
 }
 
 /** What changed in one child collection — the shape stored on the audit row. */
@@ -208,6 +217,78 @@ export const syncChildren = async (
   };
 };
 
+/**
+ * Attach (detachOnly) or create one child row against `parentId` — the same rule
+ * `syncChildren`'s per-item loop applies, lifted out so a single add can happen without
+ * diffing/resubmitting the whole collection. Backs the generic
+ * `POST .../:id/children/:field` route (see crud-factory.ts) that a capped relation's
+ * "manage" UI calls one item at a time, instead of the old "resend the visible list"
+ * shape that would have silently detached whatever the UI hadn't loaded.
+ */
+export const attachOrCreateChild = async (
+  config: ChildConfig,
+  parentId: string,
+  raw: Record<string, any>,
+  transaction?: Transaction,
+  parent: Record<string, any> = {},
+  scope?: ScopeCheck
+): Promise<{ action: "created" | "claimed"; data: Record<string, any> }> => {
+  if (config.detachOnly) {
+    const claimId = raw.id;
+    if (!claimId) {
+      throw Object.assign(new Error("id is required"), { statusCode: 400 });
+    }
+    await assertClaimInScope(config, claimId, scope, transaction);
+    await config.model.update({ [config.foreignKey]: parentId } as any, {
+      where: { id: claimId } as any,
+      transaction
+    });
+    return { action: "claimed", data: { id: claimId } };
+  }
+
+  const data = pick(raw, config.fields, config.relationFields);
+  const extra = config.extraFields ? config.extraFields(parent) : {};
+  const row = await config.model.create(
+    { ...data, ...extra, [config.foreignKey]: parentId } as any,
+    { transaction }
+  );
+  return { action: "created", data: row.toJSON() as Record<string, any> };
+};
+
+/**
+ * Detach (release the FK) or delete one child row — the counterpart to
+ * `attachOrCreateChild`, mirroring `syncChildren`'s orphan-cleanup rule. Only acts when
+ * `childId` currently belongs to `parentId`, so one caller can't detach a row that
+ * belongs to a different parent by guessing its id. Returns false (no-op) rather than
+ * throwing when it doesn't — the route treats that as "already not attached."
+ */
+export const detachOrRemoveChild = async (
+  config: ChildConfig,
+  parentId: string,
+  childId: string,
+  transaction?: Transaction
+): Promise<boolean> => {
+  const owned = await config.model.findOne({
+    where: {
+      id: childId,
+      [config.foreignKey]: parentId,
+      ...config.scopeWhere
+    } as any,
+    transaction
+  });
+  if (!owned) return false;
+
+  if (config.detachOnly) {
+    await config.model.update({ [config.foreignKey]: null } as any, {
+      where: { id: childId } as any,
+      transaction
+    });
+  } else {
+    await config.model.destroy({ where: { id: childId } as any, transaction });
+  }
+  return true;
+};
+
 /** Runs every child collection for one save and folds results into the audit snapshots —
  * full before/after arrays (the regulatory requirement) plus a readable per-collection delta. */
 export const syncAllChildren = async (
@@ -227,6 +308,10 @@ export const syncAllChildren = async (
   const deltas: Record<string, ChildDelta> = {};
 
   for (const config of children ?? []) {
+    // manageOnly relations are display-capped and can never be safely diffed against a
+    // form payload that was only ever shown the first N rows — see ChildConfig.manageOnly.
+    if (config.manageOnly) continue;
+
     const result = await syncChildren(
       config,
       parentId,

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
@@ -8,10 +8,19 @@ import Label from "@/components/common/form/Label";
 import TextArea from "@/components/common/form/input/TextArea";
 import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
+import { TagListCell } from "@/components/data/cells/TagListCell";
+import { RelationManagerModal } from "@/components/data/cells/RelationManagerModal";
 import LimsAttachmentsField from "@/components/lims/LimsAttachmentsField";
 import { useAttachments } from "@/hooks/useAttachments";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsSampleOptions } from "@/pages/lims/samples/LimsSample.queries";
+import {
+  fetchLimsSampleList
+} from "@/pages/lims/samples/LimsSample.api";
+import {
+  attachLimsLotChild,
+  detachLimsLotChild
+} from "./LimsLot.api";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
 import {
   limsLotSchema,
@@ -49,11 +58,6 @@ interface LimsLotFormProps {
 const seedOne = (ref: LimsRef | null | undefined) =>
   ref?.id && ref.name ? [{ value: ref.id, label: ref.name }] : undefined;
 
-const seedMany = (refs: LimsRef[] | undefined) =>
-  (refs ?? [])
-    .filter((ref) => ref?.id && ref.name)
-    .map((ref) => ({ value: ref.id, label: String(ref.name) }));
-
 const LimsLotForm = ({
   mode = "create",
   initialData,
@@ -69,6 +73,13 @@ const LimsLotForm = ({
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
   const attachments = useAttachments(initialData?.attachments);
+  const [isManagingSamples, setIsManagingSamples] = useState(false);
+  // Samples is capped for display (see attachRelationCounts) — only a brand-new
+  // record (create/copy) is safe to manage via the bulk multi-select, since it
+  // starts empty. An existing one is edited one item at a time (see
+  // RelationManagerModal) so Save is never a "here's the complete set" resend.
+  const samplesAreManaged =
+    (mode === "edit" || mode === "view") && Boolean(initialData);
 
   // Captured once per record — also the no-change baseline `submit` diffs
   // against, so Save is a no-op when nothing actually differs from it.
@@ -132,8 +143,12 @@ const LimsLotForm = ({
             (onUnchanged ?? onClose)();
             return;
           }
+          const { samples: _managedSeparately, ...rest } = values;
           onSubmit(
-            { ...values, keptAttachmentIds: attachments.keptIds },
+            {
+              ...(samplesAreManaged ? rest : values),
+              keptAttachmentIds: attachments.keptIds
+            },
             attachments.newFiles
           );
         })}
@@ -171,21 +186,89 @@ const LimsLotForm = ({
           </div>
           <div className="min-w-0">
             <Label required={false}>{t("limsSamples")}</Label>
-            <Controller
-              name="samples"
-              control={control}
-              render={({ field }) => (
-                <AsyncSelect
-                  multi
-                  useOptions={useLimsSampleOptions}
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={isReadOnly}
-                  placeholder={t("select", { entity: t("limsSamples") })}
-                  initialSelectedOptions={seedMany(initialData?.samples)}
-                />
-              )}
-            />
+            {samplesAreManaged ? (
+              <>
+                <div className="flex min-h-11 items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 dark:border-gray-700">
+                  <div className="min-w-0 flex-1">
+                    <TagListCell
+                      items={initialData?.samples}
+                      totalCount={initialData?.samplesCount}
+                      getLabel={(item) => item.name ?? ""}
+                      getKey={(item) => item.id}
+                      tooltipHeaderLabel={t("limsSamples")}
+                      queryKey={["lots", initialData?.id, "samples"]}
+                      fetchPage={async ({ search, page }) => {
+                        const result = await fetchLimsSampleList(false, {
+                          page,
+                          limit: 20,
+                          search: search || undefined,
+                          filters: { lotId: initialData?.id }
+                        });
+                        return {
+                          ...result,
+                          rows: result.rows.map((row) => ({
+                            id: row.id,
+                            name: row.sampleName || row.sampleId || ""
+                          }))
+                        };
+                      }}
+                    />
+                  </div>
+                  {!isReadOnly ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsManagingSamples(true)}
+                    >
+                      {t("manage")}
+                    </Button>
+                  ) : null}
+                </div>
+                {!isReadOnly && initialData?.id ? (
+                  <RelationManagerModal
+                    isOpen={isManagingSamples}
+                    onClose={() => setIsManagingSamples(false)}
+                    title={t("limsSamples")}
+                    totalCount={initialData.samplesCount ?? initialData.samples?.length ?? 0}
+                    getLabel={(item: { id: string; name: string }) => item.name}
+                    getKey={(item: { id: string; name: string }) => item.id}
+                    queryKey={["lots", initialData.id, "samples"]}
+                    fetchAttached={async ({ search, page }) => {
+                      const result = await fetchLimsSampleList(false, {
+                        page,
+                        limit: 20,
+                        search: search || undefined,
+                        filters: { lotId: initialData.id }
+                      });
+                      return {
+                        ...result,
+                        rows: result.rows.map((row) => ({
+                          id: row.id,
+                          name: row.sampleName || row.sampleId || ""
+                        }))
+                      };
+                    }}
+                    useCandidateOptions={useLimsSampleOptions}
+                    onAttach={(childId) =>
+                      attachLimsLotChild(initialData.id, "samples", childId)
+                    }
+                    onDetach={(childId) =>
+                      detachLimsLotChild(initialData.id, "samples", childId)
+                    }
+                  />
+                ) : null}
+              </>
+            ) : (
+              // Create/Copy: samples is `manageOnly` (see lot.routes.ts), so the
+              // backend now silently ignores this field on every create/copy
+              // call regardless — an interactive multi-select here would look
+              // functional and do nothing. Honest and disabled beats that.
+              <div className="flex min-h-11 items-center rounded-lg border border-dashed border-gray-200 px-3 py-2 text-sm text-gray-400 dark:border-gray-700">
+                {t("limsSamplesAddAfterCreate", {
+                  defaultValue: "Add samples after creating this lot"
+                })}
+              </div>
+            )}
           </div>
           <div className="col-span-full min-w-0">
             <Label>{t("description")}</Label>

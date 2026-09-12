@@ -19,6 +19,8 @@ export interface LimsLot {
   lotName?: string;
   group?: LimsRef | null;
   samples?: LimsRef[];
+  /** True total behind `samples`, which the list endpoint caps at 20. */
+  samplesCount?: number;
   description?: string;
   attachments?: LimsAttachment[];
   isRemoved?: boolean;

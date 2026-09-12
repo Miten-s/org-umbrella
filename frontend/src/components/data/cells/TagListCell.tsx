@@ -1,9 +1,33 @@
 import CountWithTooltip from "@/components/common/CountWithTooltip";
+import RelationPopover from "@/components/data/cells/RelationPopover";
 import type { ReactNode } from "react";
+import type { ListResult } from "@/lib/query/listTypes";
 
 interface TagListCellProps<T> {
-  /** Full list of items to render. */
+  /** Items to render — may already be capped server-side (see `totalCount`). */
   items: T[] | undefined | null;
+  /**
+   * True count of the full relation, when `items` is a server-side-capped
+   * sample of it rather than the complete list (e.g. a hasMany relation
+   * fetched with `separate: true, limit: N` — see lot.routes.ts). When set,
+   * the "+N" badge and tooltip header are computed from this instead of
+   * `items.length`, so a lot with 100k samples but only 20 returned still
+   * shows the true "+99,998" instead of an accidental "+18".
+   */
+  totalCount?: number;
+  /**
+   * Live, paginated, searchable fetch scoped to this one row's relation (e.g.
+   * `fetchLimsSampleList` filtered by `lotId`) — required to make the "+N"
+   * clickable and browsable when `totalCount` exceeds what's already loaded.
+   * Without it, a capped-but-large relation falls back to a static "showing
+   * first N" tooltip rather than a live popover. See RelationPopover.
+   */
+  fetchPage?: (
+    args: { search: string; page: number },
+    signal?: AbortSignal
+  ) => Promise<ListResult<T>>;
+  /** Query key prefix for `fetchPage`'s cache — typically `[entity, rowId, relationName]`. */
+  queryKey?: readonly unknown[];
   /** How many to show inline before collapsing the rest into "+N". Default 2. */
   max?: number;
   /** Text for an item — used for the default chip and the tooltip list. */
@@ -32,6 +56,9 @@ const defaultChip = (label: string) => (
  */
 export function TagListCell<T>({
   items,
+  totalCount,
+  fetchPage,
+  queryKey,
   max = 2,
   getLabel,
   getKey,
@@ -50,6 +77,8 @@ export function TagListCell<T>({
 
   const visible = list.slice(0, max);
   const overflow = list.slice(max);
+  const total = totalCount ?? list.length;
+  const overflowCount = totalCount != null ? total - visible.length : overflow.length;
 
   return (
     // Single-line (flex-nowrap) so the cell never grows taller than the row and
@@ -64,15 +93,35 @@ export function TagListCell<T>({
           {renderItem ? renderItem(item) : defaultChip(getLabel(item))}
         </span>
       ))}
-      {overflow.length ? (
+      {overflowCount > 0 ? (
         <div className="shrink-0">
-          <CountWithTooltip
-            count={overflow.length}
-            items={overflow.map(getLabel)}
-            headerLabel={tooltipHeaderLabel ?? `${list.length} total`}
-            className="self-center"
-            portal
-          />
+          {totalCount != null && totalCount > list.length && fetchPage ? (
+            // Capped and there's genuinely more than we loaded — a static
+            // tooltip would just show the same truncated array again, so
+            // this fetches the rest live, paginated and searchable, instead.
+            <RelationPopover
+              totalCount={totalCount}
+              fetchPage={fetchPage}
+              getLabel={getLabel}
+              getKey={(item) => (getKey ? getKey(item, 0) : getLabel(item))}
+              headerLabel={tooltipHeaderLabel ?? "Items"}
+              queryKey={queryKey ?? [tooltipHeaderLabel ?? "relation"]}
+              className="self-center"
+            />
+          ) : (
+            <CountWithTooltip
+              count={overflowCount}
+              items={overflow.map(getLabel)}
+              headerLabel={tooltipHeaderLabel ?? `${total} total`}
+              subLabel={
+                totalCount != null && totalCount > list.length
+                  ? `Showing first ${list.length}`
+                  : undefined
+              }
+              className="self-center"
+              portal
+            />
+          )}
         </div>
       ) : null}
     </div>

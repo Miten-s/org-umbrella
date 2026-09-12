@@ -21,6 +21,7 @@ import * as m019 from "./019-seed-initial-data";
 import * as m020 from "./020-add-timestamps-to-applications";
 import * as m021 from "./021-make-app-module-application-id-nullable";
 import * as m022 from "./022-add-service-request-record-status";
+import * as m023 from "./023-search-and-sort-indexes";
 
 export const migrations: Migration[] = [
   { name: "001-create-environments", up: m001.up },
@@ -44,6 +45,7 @@ export const migrations: Migration[] = [
   { name: "019-seed-initial-data", up: m019.up },
   { name: "020-add-timestamps-to-applications", up: m020.up },
   { name: "021-make-app-module-application-id-nullable", up: m021.up },
-  { name: "022-add-service-request-record-status", up: m022.up }
+  { name: "022-add-service-request-record-status", up: m022.up },
+  { name: "023-search-and-sort-indexes", up: m023.up }
 ];
 export { runMigrations, checkMigrations } from "./runner";
