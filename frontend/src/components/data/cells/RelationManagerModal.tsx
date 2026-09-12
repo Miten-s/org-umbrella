@@ -8,6 +8,7 @@ import type { UseAsyncOptionsParams } from "@/hooks/useAsyncOptions";
 import { useAsyncOptions } from "@/hooks/useAsyncOptions";
 import type { ListResult } from "@/lib/query/listTypes";
 import { CloseLineIcon } from "@/public/icons";
+import { invalidateAllLims } from "@/lib/query/invalidateLims";
 
 interface RelationManagerModalProps<T> {
   isOpen: boolean;
@@ -68,17 +69,29 @@ export function RelationManagerModal<T>({
   });
 
   const rows = attachedQuery.data?.pages.flatMap((p) => p.rows) ?? [];
+  const attachedIds = rows.map((item) => getKey(item));
 
   const refetchAll = () => {
     queryClient.invalidateQueries({ queryKey: [...queryKey, "manager-attached"] });
     // The row's own capped preview + count (list column / view) needs refreshing too.
     queryClient.invalidateQueries({ queryKey: queryKey.slice(0, -1) });
+    // Both sides of the relation have their own list table cached separately
+    // (e.g. Batches AND Lots) — a narrow invalidate of just this modal's own
+    // query key never touches either one, which is exactly why the Batches
+    // table kept showing "-" after attaching a Lot here. Every normal
+    // create/update mutation already sweeps with this; attach/detach need
+    // the same sweep, not a hand-rolled subset of it.
+    invalidateAllLims(queryClient);
   };
 
   const handleAttach = async (id: string) => {
     setPendingId(id);
     try {
       await onAttach(id);
+      // Clears the "current" filter so the freshly attached row is guaranteed
+      // to land in `rows` on refetch — otherwise a stale filter could hide it,
+      // making the AsyncSelect binding below (attachedIds) briefly wrong.
+      setSearch("");
       refetchAll();
     } finally {
       setPendingId(null);
@@ -107,10 +120,26 @@ export function RelationManagerModal<T>({
 
         <div className="mb-3">
           <AsyncSelect
+            multi
             useOptions={useCandidateOptions}
-            value=""
-            onChange={(id) => {
-              if (id) handleAttach(id);
+            value={attachedIds}
+            // `rows` already has real names (it's what the list below renders) — without
+            // this, AsyncSelect only resolves a chip's label via its own resolve-by-id
+            // fetch, which is gated on the dropdown being open, so a closed trigger
+            // (the default state) fell through to the raw id.
+            initialSelectedOptions={rows.map((item) => ({
+              value: getKey(item),
+              label: getLabel(item)
+            }))}
+            onChange={(ids) => {
+              // Multi mode never auto-closes on pick (single mode does — see
+              // AsyncSelect's handlePick), and bound to the real attached ids
+              // it also highlights/chips them like any other multi-select —
+              // a plain local toggle gave no feedback that a pick registered.
+              const added = ids.find((id) => !attachedIds.includes(id));
+              const removed = attachedIds.find((id) => !ids.includes(id));
+              if (added) handleAttach(added);
+              else if (removed) handleDetach(removed);
             }}
             placeholder="Search to add…"
           />

@@ -408,8 +408,9 @@ const LimsInstrumentList = () => {
             saving={bulkUpdate.isPending}
             entityLabel={t("limsInstrument")}
           />
-        ) : formMode !== "create" &&
-          (detailQuery.isLoading || detailQuery.isFetching) ? (
+        ) : formMode !== "create" && detailQuery.isLoading ? (
+          // isLoading only — isFetching would unmount this form (and any modal
+          // inside it, e.g. Manage) on every background refetch from invalidateAllLims.
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>

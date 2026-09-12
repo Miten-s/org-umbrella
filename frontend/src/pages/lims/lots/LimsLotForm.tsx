@@ -11,6 +11,7 @@ import AsyncSelect from "@/components/data/AsyncSelect";
 import { TagListCell } from "@/components/data/cells/TagListCell";
 import { RelationManagerModal } from "@/components/data/cells/RelationManagerModal";
 import LimsAttachmentsField from "@/components/lims/LimsAttachmentsField";
+import { ListIcon } from "@/public/icons";
 import { useAttachments } from "@/hooks/useAttachments";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsSampleOptions } from "@/pages/lims/samples/LimsSample.queries";
@@ -188,7 +189,7 @@ const LimsLotForm = ({
             <Label required={false}>{t("limsSamples")}</Label>
             {samplesAreManaged ? (
               <>
-                <div className="flex min-h-11 items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 dark:border-gray-700">
+                <div className="flex min-h-11 items-center gap-2 rounded-lg border border-gray-200 px-3 dark:border-gray-700">
                   <div className="min-w-0 flex-1">
                     <TagListCell
                       items={initialData?.samples}
@@ -218,9 +219,12 @@ const LimsLotForm = ({
                     <Button
                       type="button"
                       variant="outline"
+                      className="h-7 w-7 shrink-0 !p-0"
+                      title={t("manage")}
                       onClick={() => setIsManagingSamples(true)}
                     >
-                      {t("manage")}
+                      <ListIcon className="h-3.5 w-3.5" />
+                      <span className="sr-only">{t("manage")}</span>
                     </Button>
                   ) : null}
                 </div>
