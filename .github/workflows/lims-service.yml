@@ -50,6 +50,8 @@ jobs:
         tags: |
           ${{ secrets.DOCKERHUB_USERNAME }}/lims-service:latest
           ${{ secrets.DOCKERHUB_USERNAME }}/lims-service:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
 
   migrate:
     needs: build-and-push
@@ -58,27 +60,27 @@ jobs:
 
     steps:
     - name: Run LIMS Service Database Migrations on EC2
+      env:
+        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USERNAME }}
         key: ${{ secrets.EC2_SSH_KEY }}
+        envs: DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
         script: |
           cd ~/org-umbrella
           git config --global --add safe.directory $(pwd)
           git fetch origin development
           git checkout development
           git reset --hard origin/development
-          CONTAINER_ID=$(docker compose -f docker-compose.yml ps -q lims-service)
-          if [ -z "$CONTAINER_ID" ]; then
-            echo "Error: Container for lims-service is not running. Starting existing container..."
-            infisical run --env=prod --path=/lims-service --recursive -- docker compose -f docker-compose.yml up -d --no-deps lims-service
-            CONTAINER_ID=$(docker compose -f docker-compose.yml ps -q lims-service)
-          fi
-          echo "===> Executing database migrations for lims-service..."
-          infisical run --env=prod --path=/lims-service --recursive -- docker exec -i $CONTAINER_ID npm run db:migrate
+          echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+          docker compose -f docker-compose.yml pull lims-service
+          echo "===> Executing database migrations for lims-service with latest image..."
+          infisical run --env=prod --path=/lims-service --recursive -- docker compose -f docker-compose.yml run --rm lims-service npm run db:migrate
           echo "===> Verifying database sync post-migration..."
-          infisical run --env=prod --path=/lims-service --recursive -- docker exec -i $CONTAINER_ID npm run db:migrate:check
+          infisical run --env=prod --path=/lims-service --recursive -- docker compose -f docker-compose.yml run --rm lims-service npm run db:migrate:check
           echo "===> LIMS Service migration completed successfully!"
 
   deploy:
@@ -105,8 +107,7 @@ jobs:
           git reset --hard origin/development
           echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
           docker compose -f docker-compose.yml pull lims-service
-          docker compose -f docker-compose.yml stop lims-service
-          docker compose -f docker-compose.yml rm -f lims-service
           infisical run --env=prod --path=/lims-service --recursive -- docker compose -f docker-compose.yml up -d --no-deps lims-service
+
 
 
