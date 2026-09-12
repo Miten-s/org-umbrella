@@ -50,13 +50,44 @@ jobs:
         tags: |
           ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest
           ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
 
-  deploy:
+  migrate:
     needs: build-and-push
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
 
-    
+    steps:
+    - name: Run Backend Database Migrations on EC2
+      env:
+        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        envs: DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
+        script: |
+          cd ~/org-umbrella
+          git config --global --add safe.directory $(pwd)
+          git fetch origin development
+          git checkout development
+          git reset --hard origin/development
+          echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+          docker compose -f docker-compose.yml pull backend
+          echo "===> Executing database migrations for backend with latest image..."
+          infisical run --env=prod --path=/backend --recursive -- docker compose -f docker-compose.yml run --rm backend npm run db:migrate
+          echo "===> Verifying database sync post-migration..."
+          infisical run --env=prod --path=/backend --recursive -- docker compose -f docker-compose.yml run --rm backend npm run db:migrate:check
+          echo "===> Backend migration completed successfully!"
+
+  deploy:
+    needs: migrate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+
     steps:
     - name: Deploy to EC2
       env:
@@ -76,6 +107,7 @@ jobs:
           git reset --hard origin/development
           echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
           docker compose -f docker-compose.yml pull backend
-          docker compose -f docker-compose.yml stop backend
-          docker compose -f docker-compose.yml rm -f backend
           infisical run --env=prod --path=/backend --recursive -- docker compose -f docker-compose.yml up -d --no-deps backend
+
+
+

@@ -50,6 +50,8 @@ jobs:
           VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL || secrets.VITE_API_BASE || '/auth/v1/api' }}
           VITE_API_GXP_BASE_URL=${{ secrets.VITE_API_GXP_BASE_URL || secrets.GXP || '/gxp/v1/api' }}
           VITE_API_LIMS_BASE_URL=${{ secrets.VITE_API_LIMS_BASE_URL || secrets.LIMS || '/lims/v1/api' }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
 
   deploy:
     needs: build-and-push
@@ -76,6 +78,5 @@ jobs:
           git reset --hard origin/development
           echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
           docker compose -f docker-compose.yml pull frontend
-          docker compose -f docker-compose.yml stop frontend
-          docker compose -f docker-compose.yml rm -f frontend
           infisical run --env=prod --path=/frontend --recursive -- docker compose -f docker-compose.yml up -d --no-deps frontend
+
