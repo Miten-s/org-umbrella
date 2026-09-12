@@ -25,12 +25,14 @@ services:
     restart: unless-stopped
     ports:
       - "6379:6379"
-    command: redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    command: sh -c 'redis-server /usr/local/etc/redis/redis.conf ${REDIS_PASSWORD:+--requirepass "$REDIS_PASSWORD"}'
     volumes:
       - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD-SHELL", "redis-cli ping | grep -qE 'PONG|NOAUTH'"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -47,7 +49,7 @@ services:
       AUTH_POSTGRES_URI: ${AUTH_POSTGRES_URI:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/auth-service}
       AUTH_MONGO_URI: ${AUTH_MONGO_URI:-}
       REDIS_SERVER_URL: ${REDIS_SERVER_URL:-redis://redis:6379}
-      REDIS_SERVER_PASSWORD: ${REDIS_SERVER_PASSWORD:-}
+      REDIS_SERVER_PASSWORD: ${REDIS_PASSWORD:-}
     volumes:
       - backend_uploads:/app/uploads
     depends_on:
@@ -70,7 +72,7 @@ services:
       GXP_POSTGRES_URI: ${GXP_POSTGRES_URI:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/gxp-service}
       AUTH_POSTGRES_URI: ${AUTH_POSTGRES_URI:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/auth-service}
       REDIS_SERVER_URL: ${REDIS_SERVER_URL:-redis://redis:6379}
-      REDIS_SERVER_PASSWORD: ${REDIS_SERVER_PASSWORD:-}
+      REDIS_SERVER_PASSWORD: ${REDIS_PASSWORD:-}
     volumes:
       - gxp_uploads:/app/uploads
     depends_on:
@@ -94,7 +96,7 @@ services:
       KAFKA_CLIENT_ID: ${KAFKA_CLIENT_ID:-lims-service}
       KAFKA_GROUP_ID: ${KAFKA_GROUP_ID:-lims-group}
       REDIS_SERVER_URL: ${REDIS_SERVER_URL:-redis://redis:6379}
-      REDIS_SERVER_PASSWORD: ${REDIS_SERVER_PASSWORD:-}
+      REDIS_SERVER_PASSWORD: ${REDIS_PASSWORD:-}
     volumes:
       - lims_uploads:/app/uploads
     depends_on:
