@@ -6,6 +6,10 @@ const redisClient = createClient({
   password: ENV.REDIS_SERVER_PASSWORD // Use the same password set in redis.conf
 });
 
+redisClient.on("error", (err) => {
+  console.error("Redis Client Error:", err);
+});
+
 export const connectRedis = async (): Promise<void> => {
   if (redisClient.isOpen) return;
   try {
