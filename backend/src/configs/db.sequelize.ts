@@ -52,12 +52,21 @@ export const sequelize = new Sequelize(
   }
 );
 
-export const connectDB = async (): Promise<void> => {
-  try {
-    await sequelize.authenticate();
-    console.log("umbrella_auth_db (PostgreSQL) connected successfully!");
-  } catch (error) {
-    console.error("PostgreSQL connection error:", error);
-    process.exit(1);
+export const connectDB = async (retries = 5, delayMs = 3000): Promise<void> => {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      await sequelize.authenticate();
+      console.log("umbrella_auth_db (PostgreSQL) connected successfully!");
+      return;
+    } catch (error) {
+      console.error(
+        `PostgreSQL connection attempt ${attempt}/${retries} failed:`,
+        error
+      );
+      if (attempt === retries) {
+        process.exit(1);
+      }
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
   }
 };
