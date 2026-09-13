@@ -42,3 +42,13 @@ else
   echo "redis: not running, Docker Compose unavailable, and no local redis-server/redis.conf — see readme.md" >&2
   exit 1
 fi
+
+if port_open 9092; then
+  echo "kafka: already running on :9092"
+elif compose up -d kafka --wait; then
+  echo "kafka: started via docker compose"
+else
+  echo "kafka: not running and Docker Compose is unavailable — see readme.md" >&2
+  exit 1
+fi
+

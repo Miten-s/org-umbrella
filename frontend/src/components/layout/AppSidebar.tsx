@@ -26,6 +26,7 @@ import {
   GXP_ACCESS_PERMISSIONS,
   GXP_SETUP_PERMISSIONS,
   GXP_EXECUTION_PERMISSIONS,
+  CSV_PERMISSIONS,
   LIMS_PERMISSIONS,
   LIMS_ACCESS_PERMISSIONS,
   LIMS_SETUP_PERMISSIONS,
@@ -188,6 +189,15 @@ const AppSidebar: React.FC = () => {
               }
             ]
           }
+        ]
+      },
+      {
+        icon: <BoltIcon />,
+        name: "CSV Validation",
+        permissions: Object.values(CSV_PERMISSIONS),
+        subItems: [
+          { name: "Validation Projects", path: PageUrl.CSVProjects.path },
+          { name: "Periodic Reviews", path: PageUrl.CSVPeriodicReviews.path }
         ]
       },
       {

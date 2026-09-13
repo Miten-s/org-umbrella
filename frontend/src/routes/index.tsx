@@ -84,6 +84,15 @@ const GXPCreateNewServiceRequestPage = lazy(
   () => import("../pages/gxp-service/create-new-service-request")
 );
 
+// CSV Service
+const CSVProjectsPage = lazy(() => import("../pages/csv-service/projects"));
+const CSVProjectDetailPage = lazy(
+  () => import("../pages/csv-service/projects/detail")
+);
+const CSVPeriodicReviewsPage = lazy(
+  () => import("../pages/csv-service/periodic-reviews")
+);
+
 const LIMS_ROUTES: [
   url: (typeof PageUrl)[string],
   permission: string,
@@ -442,6 +451,46 @@ const routes: AppRoute[] = [
             meta: {
               title: "Create a new Service Request",
               icon: "create-new-service-request"
+            }
+          }
+        ]
+      },
+
+      // CSV Service
+      {
+        path: PageUrl.CSVService.path,
+        children: [
+          {
+            path: PageUrl.CSVProjects.path.replace(
+              `${PageUrl.CSVService.path}/`,
+              ""
+            ),
+            element: <CSVProjectsPage />,
+            meta: {
+              title: "Validation Projects",
+              icon: "projects"
+            }
+          },
+          {
+            path: PageUrl.CSVProjectDetails.path.replace(
+              `${PageUrl.CSVService.path}/`,
+              ""
+            ),
+            element: <CSVProjectDetailPage />,
+            meta: {
+              title: "Validation Project Details",
+              icon: "projects"
+            }
+          },
+          {
+            path: PageUrl.CSVPeriodicReviews.path.replace(
+              `${PageUrl.CSVService.path}/`,
+              ""
+            ),
+            element: <CSVPeriodicReviewsPage />,
+            meta: {
+              title: "Periodic Reviews",
+              icon: "schedulers"
             }
           }
         ]

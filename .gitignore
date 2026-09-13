@@ -22,6 +22,6 @@ deploy.sh
 # once the whole `deploy/` directory is excluded by a directory-matching
 # pattern, git won't look inside it for negations at all, so that exception
 # would silently stop working if left in place.)
-docs/
+.docs/*
 deploy/
 dump.rdb

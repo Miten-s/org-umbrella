@@ -162,6 +162,29 @@ export const PageUrl: PageUrlType = {
   },
   // #endregion
 
+  // #region CSV Service
+  CSVService: {
+    path: "/csv-service",
+    matchPattern: /^\/csv-service$/i,
+    pageTitle: "CSV Validation Service"
+  },
+  CSVProjects: {
+    path: "/csv-service/projects",
+    matchPattern: /^\/csv-service\/projects$/i,
+    pageTitle: "Validation Projects"
+  },
+  CSVProjectDetails: {
+    path: "/csv-service/projects/:id",
+    matchPattern: /^\/csv-service\/projects\/[^/]+$/i,
+    pageTitle: "Validation Project Details"
+  },
+  CSVPeriodicReviews: {
+    path: "/csv-service/periodic-reviews",
+    matchPattern: /^\/csv-service\/periodic-reviews$/i,
+    pageTitle: "Periodic Reviews"
+  },
+  // #endregion
+
   // #region LIMS
   LIMS: {
     path: "/lims",

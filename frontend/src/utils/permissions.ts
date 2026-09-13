@@ -94,6 +94,14 @@ export const GXP_PERMISSIONS = {
   DELETE_SERVICE_REQUEST: "GXP:DELETE:SERVICE_REQUEST"
 };
 
+export const CSV_PERMISSIONS = {
+  CREATE_PROJECT: "CSV:CREATE:PROJECT",
+  VIEW_PROJECT: "CSV:VIEW:PROJECT",
+  UPDATE_PROJECT: "CSV:UPDATE:PROJECT",
+  DELETE_PROJECT: "CSV:DELETE:PROJECT",
+  VIEW_PERIODIC_REVIEW: "CSV:VIEW:PERIODIC_REVIEW"
+};
+
 /** Any GXP Access permission (users/roles/permissions/assignment groups) — gates the GXP Access sidebar group. */
 export const GXP_ACCESS_PERMISSIONS = Object.entries(GXP_PERMISSIONS)
   .filter(([key]) => /_(PERMISSION|ROLE|USER|ASSIGNMENT_GROUP)$/.test(key))

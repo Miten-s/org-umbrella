@@ -35,6 +35,50 @@ services:
       timeout: 5s
       retries: 5
 
+  kafka:
+    image: apache/kafka:${KAFKA_IMAGE_TAG:-3.7.0}
+    restart: unless-stopped
+    ports:
+      - "${KAFKA_PORT:-9092}:9092"
+      - "${KAFKA_EXTERNAL_PORT:-9094}:9094"
+    environment:
+      KAFKA_NODE_ID: ${KAFKA_NODE_ID:-1}
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:9094,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://${KAFKA_HOST:-kafka}:9092,EXTERNAL://${KAFKA_EXTERNAL_HOST:-localhost}:9094
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@${KAFKA_HOST:-kafka}:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: ${KAFKA_REPLICATION_FACTOR:-1}
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: ${KAFKA_REPLICATION_FACTOR:-1}
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    volumes:
+      - kafka_data:/tmp/kraft-combined-logs
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:${KAFKA_UI_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    ports:
+      - "${KAFKA_UI_PORT:-8085}:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: ${KAFKA_CLUSTER_NAME:-local-cluster}
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: ${KAFKA_BROKER:-kafka:9092}
+      DYNAMIC_CONFIG_ENABLED: "true"
+      AUTH_TYPE: ${KAFKA_UI_AUTH_TYPE:-DISABLED}
+      SPRING_SECURITY_USER_NAME: ${KAFKA_UI_USERNAME:-}
+      SPRING_SECURITY_USER_PASSWORD: ${KAFKA_UI_PASSWORD:-}
+    depends_on:
+      kafka:
+        condition: service_healthy
+        
   backend:
     image: ${DOCKERHUB_USERNAME:-unknown}/backend:${IMAGE_TAG:-latest}
     restart: unless-stopped
@@ -70,13 +114,16 @@ services:
       GXP_POSTGRES_URI: ${GXP_POSTGRES_URI:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/gxp-service}
       AUTH_POSTGRES_URI: ${AUTH_POSTGRES_URI:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/auth-service}
       REDIS_SERVER_URL: ${REDIS_SERVER_URL:-redis://redis:6379}
-      REDIS_SERVER_PASSWORD: ${REDIS_SERVER_PASSWORD:-}
+      REDIS_SERVER_PASSWORD: ${REDIS_PASSWORD:-}
+      KAFKA_BROKER: ${KAFKA_BROKER:-kafka:9092}
     volumes:
       - gxp_uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
 
   lims-service:
@@ -90,7 +137,7 @@ services:
       LIMS_POSTGRES_URI: ${LIMS_POSTGRES_URI:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/lims-service}
       JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
-      KAFKA_BROKER: ${KAFKA_BROKER:-}
+      KAFKA_BROKER: ${KAFKA_BROKER:-kafka:9092}
       KAFKA_CLIENT_ID: ${KAFKA_CLIENT_ID:-lims-service}
       KAFKA_GROUP_ID: ${KAFKA_GROUP_ID:-lims-group}
       REDIS_SERVER_URL: ${REDIS_SERVER_URL:-redis://redis:6379}
@@ -102,6 +149,34 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  csv-service:
+    image: ${DOCKERHUB_USERNAME:-unknown}/csv-service:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    ports:
+      - "9003:9003"
+    environment:
+      PORT: ${CSV_PORT:-9003}
+      AUTH_POSTGRES_URI: ${AUTH_POSTGRES_URI:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/auth-service}
+      CSV_POSTGRES_URI: ${CSV_POSTGRES_URI:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/csv-service}
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      KAFKA_BROKER: ${KAFKA_BROKER:-kafka:9092}
+      KAFKA_CLIENT_ID: ${KAFKA_CLIENT_ID:-csv-service}
+      KAFKA_GROUP_ID: ${KAFKA_GROUP_ID:-csv-group}
+      REDIS_SERVER_URL: ${REDIS_SERVER_URL:-redis://redis:6379}
+      REDIS_SERVER_PASSWORD: ${REDIS_PASSWORD:-}
+    volumes:
+      - csv_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
 
   frontend:
     image: ${DOCKERHUB_USERNAME:-unknown}/frontend:${IMAGE_TAG:-latest}
@@ -112,10 +187,15 @@ services:
       - backend
       - gxp-service
       - lims-service
+      - csv-service
 
 volumes:
   umbrella_local_pgdata:
   redis_data:
+  kafka_data:
   backend_uploads:
   gxp_uploads:
   lims_uploads:
+  csv_uploads:
+
+
