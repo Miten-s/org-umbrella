@@ -1,13 +1,16 @@
+import { Router } from "express";
 import Role from "../models/role.model";
 import RoleEntry from "../models/role-entry.model";
 import Group from "../models/group.model";
 import {
   buildCrudRouter,
   buildCrudService,
-  CrudConfig
+  CrudConfig,
+  CrudContext
 } from "../utils/crud-factory";
 import { CreateRoleDto, UpdateRoleDto } from "../dtos/master-data.dto";
 import { invalidateAllUserContexts } from "../services/user-context.service";
+import { preventRoleEscalation } from "../middlewares/role-escalation.middleware";
 import {
   ACTION_COLUMN,
   LimsAction,
@@ -122,12 +125,84 @@ export const roleConfig: CrudConfig<Role> = {
   afterWrite: invalidateAllUserContexts
 };
 
-const service = buildCrudService(roleConfig);
+const base = buildCrudService(roleConfig);
 
-export default buildCrudRouter({
+const PROTECTED_ROLE_ID = "LIMS_MASTER_ADMIN";
+const PROTECTED_ROLE_MESSAGE =
+  '"LIMS Master Admin" is a protected system role and cannot be modified or deleted. ' +
+  "A genuinely new master role needs its own migration, not an edit of this one.";
+
+/** Mirrors backend/src/services/role.service.ts's PROTECTED_ROLE_NAMES — the LIMS-side half,
+ * since this role lives in LIMS's own database and the platform never sees it. */
+const assertNotProtected = (
+  roles: { id: string; roleId: string }[],
+  ids: string[]
+) => {
+  if (
+    roles.some(
+      (role) => ids.includes(role.id) && role.roleId === PROTECTED_ROLE_ID
+    )
+  ) {
+    throw Object.assign(new Error(PROTECTED_ROLE_MESSAGE), { statusCode: 403 });
+  }
+};
+
+const update = async (
+  id: string,
+  raw: Record<string, any>,
+  ctx: CrudContext,
+  files?: Express.Multer.File[]
+) => {
+  const existing = await Role.findByPk(id);
+  if (existing) assertNotProtected([existing], [id]);
+  return base.update(id, raw, ctx, files);
+};
+
+const remove = async (
+  id: string,
+  changeReason: string | undefined,
+  ctx: CrudContext
+) => {
+  const existing = await Role.findByPk(id);
+  if (existing) assertNotProtected([existing], [id]);
+  return base.remove(id, changeReason, ctx);
+};
+
+const bulkUpdate = async (
+  updates: { id: string; payload: Record<string, any> }[],
+  changeReason: string | undefined,
+  ctx: CrudContext
+) => {
+  const ids = updates.map((u) => u.id);
+  assertNotProtected(await Role.findAll({ where: { id: ids } }), ids);
+  return base.bulkUpdate(updates, changeReason, ctx);
+};
+
+const bulkDelete = async (
+  ids: string[],
+  changeReason: string | undefined,
+  ctx: CrudContext
+) => {
+  assertNotProtected(await Role.findAll({ where: { id: ids } }), ids);
+  return base.bulkDelete(ids, changeReason, ctx);
+};
+
+const service = { ...base, update, remove, bulkUpdate, bulkDelete };
+
+const roleCrudRouter = buildCrudRouter({
   service,
   entityName: roleConfig.entityName,
   permissionEntity: roleConfig.permissionEntity,
   createDto: CreateRoleDto,
   updateDto: UpdateRoleDto
 });
+
+// Escalation check runs independently of buildCrudRouter's own authorize("ROLE", ...) —
+// crud-factory's beforeCreate/beforeUpdate hooks don't carry the actor's own permission
+// set, so this re-resolves it directly rather than changing that shared factory's signature.
+const router = Router();
+router.post("/", preventRoleEscalation);
+router.patch("/:id", preventRoleEscalation);
+router.use(roleCrudRouter);
+
+export default router;

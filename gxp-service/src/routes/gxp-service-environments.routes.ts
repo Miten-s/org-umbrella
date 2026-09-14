@@ -28,29 +28,42 @@ import {
   BulkUpdateDto,
   BulkOperationDto
 } from "../dtos/common.dto";
+import { authorize } from "../middlewares/authorize.middleware";
 
 const router = Router();
+const can = (action: "VIEW" | "CREATE" | "UPDATE" | "DELETE") =>
+  authorize("ENVIRONMENT", action);
 
 // ---------------------------------------------------------------------------------------- GET Requests ----------------------------------------------------------------------------------------
 
-router.get(API_ROUTES.ENVIRONMENT.ROOT, getEnvironments);
+router.get(API_ROUTES.ENVIRONMENT.ROOT, can("VIEW"), getEnvironments);
 
-router.get(API_ROUTES.ENVIRONMENT.BY_ID, getEnvironmentById);
+router.get(API_ROUTES.ENVIRONMENT.BY_ID, can("VIEW"), getEnvironmentById);
 
 // ---------------------------------------------------------------------------------------- POST Requests ----------------------------------------------------------------------------------------
 
 router.post(
   API_ROUTES.ENVIRONMENT.ROOT,
+  can("CREATE"),
   validateDto(CreateEnvironmentDto),
   createEnvironment
 );
 
-router.post(API_ROUTES.ENVIRONMENT.BULK_DELETE, bulkDeleteEnvironments);
+router.post(
+  API_ROUTES.ENVIRONMENT.BULK_DELETE,
+  can("DELETE"),
+  bulkDeleteEnvironments
+);
 
-router.post(API_ROUTES.ENVIRONMENT.BULK_DUPLICATE, bulkDuplicateEnvironments);
+router.post(
+  API_ROUTES.ENVIRONMENT.BULK_DUPLICATE,
+  can("CREATE"),
+  bulkDuplicateEnvironments
+);
 
 router.post(
   API_ROUTES.ENVIRONMENT.BULK_COPY,
+  can("CREATE"),
   validateDto(BulkCreateDto),
   validateDtoArray(CreateEnvironmentDto, "records"),
   bulkCopyEnvironments
@@ -62,6 +75,7 @@ router.post(
 // path shape, and Express matches whichever is registered first.
 router.patch(
   API_ROUTES.ENVIRONMENT.BULK_UPDATE,
+  can("UPDATE"),
   validateDto(BulkUpdateDto),
   validateDtoArray(UpdateEnvironmentDto, "updates", "payload"),
   bulkUpdateEnvironments
@@ -69,22 +83,32 @@ router.patch(
 
 router.patch(
   API_ROUTES.ENVIRONMENT.BULK_RESTORE,
+  can("UPDATE"),
   validateDto(BulkOperationDto),
   bulkRestoreEnvironments
 );
 
 router.patch(
   API_ROUTES.ENVIRONMENT.BY_ID,
+  can("UPDATE"),
   validateDto(UpdateEnvironmentDto),
   updateEnvironment
 );
 
-router.patch(API_ROUTES.ENVIRONMENT.ENABLE_BY_ID, enableEnvironment);
+router.patch(
+  API_ROUTES.ENVIRONMENT.ENABLE_BY_ID,
+  can("UPDATE"),
+  enableEnvironment
+);
 
-router.patch(API_ROUTES.ENVIRONMENT.DISABLE_BY_ID, disableEnvironment);
+router.patch(
+  API_ROUTES.ENVIRONMENT.DISABLE_BY_ID,
+  can("UPDATE"),
+  disableEnvironment
+);
 
 // ---------------------------------------------------------------------------------------- DELETE Requests ----------------------------------------------------------------------------------------
 
-router.delete(API_ROUTES.ENVIRONMENT.BY_ID, deleteEnvironment);
+router.delete(API_ROUTES.ENVIRONMENT.BY_ID, can("DELETE"), deleteEnvironment);
 
 export default router;

@@ -50,8 +50,7 @@ export const updateAppplication = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
     const { data: payload } = req.body;
-    const currentUser =
-      (req as any).user?.username ?? (req.headers["x-user"] as string) ?? null;
+    const currentUser = (req as any).user?.id ?? null;
 
     const files = req.files as Express.Multer.File[];
     const attachments = files?.map((file) => file.filename) || [];
@@ -72,8 +71,7 @@ export const updateAppplication = asyncHandler(
 export const disableApplication = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const currentUser =
-      (req as any).user?.username ?? (req.headers["x-user"] as string) ?? null;
+    const currentUser = (req as any).user?.id ?? null;
     const disabled = await service.disableApplication(
       id as string,
       currentUser ?? undefined
@@ -89,8 +87,7 @@ export const disableApplication = asyncHandler(
 export const enableApplication = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const currentUser =
-      (req as any).user?.username ?? (req.headers["x-user"] as string) ?? null;
+    const currentUser = (req as any).user?.id ?? null;
     const restored = await service.enableApplication(
       id as string,
       currentUser ?? undefined
@@ -137,7 +134,7 @@ export const getApplicationGroups = asyncHandler(
 export const duplicateApplication = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const currentUser = (req as any).user?.username;
+    const currentUser = (req as any).user?.id;
 
     const duplicated = await service.duplicateApplication(
       id as string,
@@ -170,7 +167,7 @@ export const bulkDeleteApplications = asyncHandler(
 export const bulkDuplicateApplications = asyncHandler(
   async (req: Request, res: Response) => {
     const { ids } = req.body;
-    const currentUser = (req as any).user?.username;
+    const currentUser = (req as any).user?.id;
     if (!Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ message: "An array of ids is required" });
     }

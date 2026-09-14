@@ -43,11 +43,6 @@ export const ADMIN_PERMISSIONS = {
 };
 
 export const GXP_PERMISSIONS = {
-  CREATE_PERMISSION: "GXP:CREATE:PERMISSION",
-  VIEW_PERMISSION: "GXP:VIEW:PERMISSION",
-  UPDATE_PERMISSION: "GXP:UPDATE:PERMISSION",
-  DELETE_PERMISSION: "GXP:DELETE:PERMISSION",
-
   CREATE_ROLE: "GXP:CREATE:ROLE",
   VIEW_ROLE: "GXP:VIEW:ROLE",
   UPDATE_ROLE: "GXP:UPDATE:ROLE",
@@ -73,20 +68,25 @@ export const GXP_PERMISSIONS = {
   UPDATE_ENVIRONMENT: "GXP:UPDATE:ENVIRONMENT",
   DELETE_ENVIRONMENT: "GXP:DELETE:ENVIRONMENT",
 
-  CREATE_SUPPLIERS: "GXP:CREATE:SUPPLIERS",
-  VIEW_SUPPLIERS: "GXP:VIEW:SUPPLIERS",
-  UPDATE_SUPPLIERS: "GXP:UPDATE:SUPPLIERS",
-  DELETE_SUPPLIERS: "GXP:DELETE:SUPPLIERS",
+  // Values match gxp-service's actual entity codes (GXP_ENTITIES in
+  // gxp-service/src/utils/permissions.ts) — the keys keep their old names since every
+  // consumer references the key, not the string, but the codes themselves were renamed
+  // in backend/src/migrations/016-fix-gxp-permission-names.ts to match the real entities
+  // (Application/ApplicationModule/Supplier), not the stale SOFTWARE*/SUPPLIERS vocabulary.
+  CREATE_SUPPLIERS: "GXP:CREATE:SUPPLIER",
+  VIEW_SUPPLIERS: "GXP:VIEW:SUPPLIER",
+  UPDATE_SUPPLIERS: "GXP:UPDATE:SUPPLIER",
+  DELETE_SUPPLIERS: "GXP:DELETE:SUPPLIER",
 
-  CREATE_SOFTWARE_MODULES: "GXP:CREATE:SOFTWARE_MODULES",
-  VIEW_SOFTWARE_MODULES: "GXP:VIEW:SOFTWARE_MODULES",
-  UPDATE_SOFTWARE_MODULES: "GXP:UPDATE:SOFTWARE_MODULES",
-  DELETE_SOFTWARE_MODULES: "GXP:DELETE:SOFTWARE_MODULES",
+  CREATE_SOFTWARE_MODULES: "GXP:CREATE:APPLICATION_MODULE",
+  VIEW_SOFTWARE_MODULES: "GXP:VIEW:APPLICATION_MODULE",
+  UPDATE_SOFTWARE_MODULES: "GXP:UPDATE:APPLICATION_MODULE",
+  DELETE_SOFTWARE_MODULES: "GXP:DELETE:APPLICATION_MODULE",
 
-  CREATE_SOFTWARE: "GXP:CREATE:SOFTWARE",
-  VIEW_SOFTWARE: "GXP:VIEW:SOFTWARE",
-  UPDATE_SOFTWARE: "GXP:UPDATE:SOFTWARE",
-  DELETE_SOFTWARE: "GXP:DELETE:SOFTWARE",
+  CREATE_SOFTWARE: "GXP:CREATE:APPLICATION",
+  VIEW_SOFTWARE: "GXP:VIEW:APPLICATION",
+  UPDATE_SOFTWARE: "GXP:UPDATE:APPLICATION",
+  DELETE_SOFTWARE: "GXP:DELETE:APPLICATION",
 
   CREATE_SERVICE_REQUEST: "GXP:CREATE:SERVICE_REQUEST",
   VIEW_SERVICE_REQUEST: "GXP:VIEW:SERVICE_REQUEST",
@@ -94,7 +94,7 @@ export const GXP_PERMISSIONS = {
   DELETE_SERVICE_REQUEST: "GXP:DELETE:SERVICE_REQUEST"
 };
 
-/** Any GXP Access permission (users/roles/permissions/assignment groups) — gates the GXP Access sidebar group. */
+/** Any GXP Access permission (users/roles/assignment groups) — gates the GXP Access sidebar group. */
 export const GXP_ACCESS_PERMISSIONS = Object.entries(GXP_PERMISSIONS)
   .filter(([key]) => /_(PERMISSION|ROLE|USER|ASSIGNMENT_GROUP)$/.test(key))
   .map(([, value]) => value);
@@ -278,10 +278,14 @@ export const LIMS_SETUP_PERMISSIONS = Object.values(LIMS_PERMISSIONS).filter(
     !LIMS_EXECUTION_PERMISSIONS.includes(permission)
 );
 
+// Matches the Built_In roles' actual seeded `name` (backend/src/migrations/012-seed-initial-data.ts)
+// — these are compared against `role.name` in hasRole/hasAnyRole, so the strings must match exactly.
+// Super Admin should be checked via OPERATE:ALL (isSuperAdmin below), not by role name — the
+// name is not what grants the bypass, the permission is.
 export const ROLES = {
-  SUPER_ADMIN: "SUPER_ADMIN",
-  ADMIN: "ADMIN",
-  USER: "USER"
+  SUPER_ADMIN: "Super Admin",
+  ADMIN: "Admin",
+  USER: "User"
 };
 
 const getRoles = (user?: AuthenticatedUser | null): UserRole[] => {

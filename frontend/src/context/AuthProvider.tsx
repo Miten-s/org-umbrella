@@ -1,6 +1,12 @@
 import { setCurrentUser } from "@/redux/slices/userSlice";
 import { getCompany, getUserDetail } from "@/services/admin.service";
-import type { AuthenticatedUser, CurrentCompany } from "@/types/common.types";
+import gxpApi from "@/utils/gxp.axios.interceptor";
+import limsApi from "@/utils/lims.axios.interceptor";
+import type {
+  AuthenticatedUser,
+  CurrentCompany,
+  UserRole
+} from "@/types/common.types";
 import { SYSTEM_ROUTES } from "@/utils/common.constants";
 import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { useDispatch } from "react-redux";
@@ -12,6 +18,28 @@ type UserDetailResponse = {
 
 type CompanyResponse = {
   company?: CurrentCompany;
+};
+
+/** GXP/LIMS access is granted via each service's OWN Users screen (gxp_users.roles /
+ * lims_users+roles) — the platform's own /auth/me has no visibility into either, since
+ * they live in separate databases (see ROLES_AND_ACCESS_MANAGEMENT.md). Without this, the
+ * sidebar and route guards — which only ever read `user.roles` — would never reflect
+ * access granted through the new per-service model, no matter what either service's own
+ * backend actually allows. Folded into a synthetic `UserRole` so every existing permission
+ * check (getPermissions/hasPermission, entirely unaware any of this exists) keeps working
+ * unchanged. A failed fetch (service down, or genuinely no access) degrades to "no access
+ * there" rather than blocking login. */
+const fetchServiceRole = async (
+  label: string,
+  request: () => Promise<{ data?: { permissions?: string[] } }>
+): Promise<UserRole> => {
+  try {
+    const response = await request();
+    const permissions = response.data?.permissions ?? [];
+    return { name: label, permissions: permissions.map((name) => ({ name })) };
+  } catch {
+    return { name: label, permissions: [] };
+  }
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -31,6 +59,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!nextUser || Object.keys(nextUser).length === 0) {
         throw new Error("User not found");
       }
+
+      // Independent of the platform's own roles — see fetchServiceRole's comment.
+      const [gxpRole, limsRole] = await Promise.all([
+        fetchServiceRole("__gxp_service_access__", () => gxpApi.get("/gxp-me")),
+        fetchServiceRole("__lims_service_access__", () => limsApi.get("/me"))
+      ]);
+      nextUser.roles = [...(nextUser.roles ?? []), gxpRole, limsRole];
 
       setCurrentCompany(companyResponse.company ?? {});
       setUser(nextUser);

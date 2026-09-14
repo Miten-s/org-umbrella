@@ -12,6 +12,8 @@ import * as m010 from "./010-audit-action-cancel";
 import * as m011 from "./011-widen-lims-user-signature";
 import * as m012 from "./012-spec-limit-analysis-links";
 import * as m013 from "./013-search-and-sort-indexes";
+import * as m014 from "./014-seed-lims-master-admin-role";
+import * as m015 from "./015-fix-lims-master-admin-id-format";
 
 export const migrations: Migration[] = [
   { name: "001-create-audit-logs", up: m001.up },
@@ -26,7 +28,9 @@ export const migrations: Migration[] = [
   { name: "010-audit-action-cancel", up: m010.up },
   { name: "011-widen-lims-user-signature", up: m011.up },
   { name: "012-spec-limit-analysis-links", up: m012.up },
-  { name: "013-search-and-sort-indexes", up: m013.up }
+  { name: "013-search-and-sort-indexes", up: m013.up },
+  { name: "014-seed-lims-master-admin-role", up: m014.up },
+  { name: "015-fix-lims-master-admin-id-format", up: m015.up }
 ];
 
 export { runMigrations, checkMigrations } from "./runner";

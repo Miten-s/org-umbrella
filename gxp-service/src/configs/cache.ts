@@ -1,13 +1,13 @@
-/** Cache for the resolved per-user access context (four joins otherwise). Invalidation is
- * ON WRITE, not TTL — revoking access must take effect now. */
+/** Cache for the resolved per-user access context (a cross-database join otherwise).
+ * Invalidation is ON WRITE, not TTL — revoking access must take effect now. */
 import redisClient, { connectRedis } from "./redis.config";
 
 export interface CacheStore {
   get<T>(key: string): Promise<T | null>;
   /** `ttlSeconds` bounds staleness for data this service can't actively invalidate —
-   * e.g. platform Super Admin status, which changes on the platform's own Roles screen
-   * with no channel back into this cache. LIMS-native access (lims_users, roles, groups)
-   * is still invalidated immediately on write, not TTL-bound — omit ttlSeconds for those. */
+   * e.g. a Gxp_Service role's permissions, edited on the platform's own Roles screen,
+   * which has no channel back into gxp-service's cache. Per-user membership changes
+   * (made in gxp-service itself) are still invalidated immediately, not TTL-bound. */
   set<T>(key: string, value: T, ttlSeconds?: number): Promise<void>;
   del(key: string): Promise<void>;
   /** Drops every key starting with `prefix` — used for broad invalidations. */

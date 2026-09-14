@@ -9,10 +9,13 @@ import {
   bulkDeleteUsersRepo
 } from "../repo/gxp-service-users.repo";
 import { fetchRolesFromAuthService } from "./inter-service-calls.service";
+import { invalidateUserContext } from "./user-context.service";
 import { PaginationOptions } from "../utils/pagination.util";
 
 export const createUserService = async (data: any) => {
-  return await createUserRepo(data);
+  const created = await createUserRepo(data);
+  if (data.user?.id) await invalidateUserContext(data.user.id);
+  return created;
 };
 
 export const getAllUsersService = async (
@@ -51,27 +54,42 @@ export const getUserService = async (id: string) => {
 export const updateUserService = async (id: string, data: any) => {
   const existing = await findUserByIdRepo(id);
   if (!existing) throw new Error("User not found");
-  return await updateUserRepo(id, data);
+  const updated = await updateUserRepo(id, data);
+  await invalidateUserContext((existing as any).authUserId);
+  return updated;
 };
 
 export const disableUserService = async (id: any) => {
   const existing = await findUserByIdRepo(id);
   if (!existing) throw new Error("User not found");
-  return await disableUserRepo(id);
+  const result = await disableUserRepo(id);
+  await invalidateUserContext((existing as any).authUserId);
+  return result;
 };
 
 export const enableUserService = async (id: any, comments: any) => {
   const existing = await findUserByIdRepo(id);
   if (!existing) throw new Error("User not found");
-  return await enableUserRepo(id, comments);
+  const result = await enableUserRepo(id, comments);
+  await invalidateUserContext((existing as any).authUserId);
+  return result;
 };
 
 export const deleteUserService = async (id: string) => {
   const existing = await findUserByIdRepo(id);
   if (!existing) throw new Error("User not found");
-  return await deleteUserRepo(id);
+  const result = await deleteUserRepo(id);
+  await invalidateUserContext((existing as any).authUserId);
+  return result;
 };
 
 export const bulkDeleteUsersService = async (ids: string[]) => {
-  return await bulkDeleteUsersRepo(ids);
+  const existing = await Promise.all(ids.map((id) => findUserByIdRepo(id)));
+  const result = await bulkDeleteUsersRepo(ids);
+  await Promise.all(
+    existing
+      .filter(Boolean)
+      .map((user: any) => invalidateUserContext(user.authUserId))
+  );
+  return result;
 };

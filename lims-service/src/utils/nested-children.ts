@@ -114,7 +114,7 @@ const assertClaimInScope = async (
   scope: ScopeCheck | undefined,
   transaction?: Transaction
 ) => {
-  if (!scope || scope.operateAll) return;
+  if (!scope || scope.operateAll || scope.accessGroupIds.length === 0) return;
   const candidate = await config.model.findOne({
     where: { id: claimId } as any,
     transaction

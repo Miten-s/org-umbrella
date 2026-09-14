@@ -11,7 +11,11 @@ export const loginService = async ({
   email: string;
   password: string;
 }): Promise<string> => {
-  const user = await User.findOne({ where: { email } });
+  // Same normalization as the model's own `set()` — needed here too since a WHERE clause
+  // is a literal comparison, not a write, so the field setter never runs on it.
+  const user = await User.findOne({
+    where: { email: email?.trim().toLowerCase() }
+  });
   if (!user || !(await bcrypt.compare(password, user.password))) {
     throw new Error(CUSTOM_MESSAGES.INVALID_EMAIL_PASSWORD);
   }

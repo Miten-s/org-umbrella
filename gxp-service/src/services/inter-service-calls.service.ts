@@ -86,6 +86,45 @@ export const fetchDepartmentsFromAuthService = async (ids: string[]) => {
   }
 };
 
+/** Permission NAMES (e.g. "GXP:VIEW:APPLICATION") granted by a set of platform role ids —
+ * what the new authorize middleware actually needs to check against. Separate from
+ * `fetchRolesFromAuthService` below, which returns permission ids for display purposes. */
+export const fetchPermissionNamesForRoleIds = async (
+  roleIds: string[]
+): Promise<string[]> => {
+  if (!roleIds || roleIds.length === 0) return [];
+
+  const rows = await authSequelize.query<{ name: string }>(
+    `SELECT DISTINCT p.name
+       FROM roles r
+       JOIN role_permissions rp ON rp.role_id = r.id
+       JOIN permissions p ON p.id = rp.permission_id
+      WHERE r.id IN (:roleIds) AND r.deleted_at IS NULL AND p.deleted_at IS NULL`,
+    { replacements: { roleIds }, type: QueryTypes.SELECT }
+  );
+
+  return rows.map((row) => row.name);
+};
+
+/** Is this platform user Super Admin (holds OPERATE:ALL)? Super Admin has full access to
+ * every service without needing a GxpUser row (ROLES_AND_ACCESS_MANAGEMENT.md). */
+export const isPlatformSuperAdmin = async (
+  platformUserId: string
+): Promise<boolean> => {
+  const rows = await authSequelize.query<{ exists: boolean }>(
+    `SELECT EXISTS (
+       SELECT 1
+         FROM user_roles ur
+         JOIN role_permissions rp ON rp.role_id = ur.role_id
+         JOIN permissions p ON p.id = rp.permission_id
+        WHERE ur.user_id = :platformUserId AND p.name = 'OPERATE:ALL'
+     ) AS "exists"`,
+    { replacements: { platformUserId }, type: QueryTypes.SELECT }
+  );
+
+  return Boolean(rows[0]?.exists);
+};
+
 export const fetchRolesFromAuthService = async (
   ids: string[],
   project?: any

@@ -6,6 +6,7 @@ import Role from "../models/role.model";
 import RoleEntry from "../models/role-entry.model";
 import Group from "../models/group.model";
 import { ACTION_COLUMN, LimsAction } from "../utils/permissions";
+import { isPlatformSuperAdmin } from "./platform-access.service";
 
 /** Resolves the JWT's platform user id into everything the access layer needs — cached,
  * since it's four joins plus a recursive walk. */
@@ -26,6 +27,9 @@ export interface UserContext {
 
 const CACHE_PREFIX = "user-ctx:";
 const key = (platformUserId: string) => `${CACHE_PREFIX}${platformUserId}`;
+
+/** Bounds staleness of platform Super Admin status — see CacheStore's ttlSeconds doc. */
+const SUPER_ADMIN_STALENESS_TTL_SECONDS = 5 * 60;
 
 /** Cached shape — a Set does not survive JSON, so permissions travel as an array. */
 interface CachedContext extends Omit<UserContext, "permissions"> {
@@ -73,6 +77,22 @@ const permissionsFromRoles = (
   return { permissions, operateAll };
 };
 
+/** Resolves a set of Lab Role ids (as sent by a Lab User's `roles` field) to the permission
+ * codes they'd grant — used to check role *assignment* isn't itself an escalation, the same
+ * way role *definition* is checked in role-escalation.middleware.ts. */
+export const permissionCodesForRoleIds = async (
+  roleIds: string[]
+): Promise<{ permissions: Set<string>; operateAll: boolean }> => {
+  if (!roleIds.length) return { permissions: new Set(), operateAll: false };
+
+  const roles = (await Role.findAll({
+    where: { id: roleIds, isDeleted: false },
+    include: [{ model: RoleEntry, as: "entries", required: false }]
+  })) as (Role & { entries?: RoleEntry[] })[];
+
+  return permissionsFromRoles(roles);
+};
+
 /** Returns null when the platform user has no lims_users row — a valid platform token is
  * not by itself LIMS access. */
 export const getUserContext = async (
@@ -80,6 +100,25 @@ export const getUserContext = async (
 ): Promise<UserContext | null> => {
   const cached = await cache.get<CachedContext>(key(platformUserId));
   if (cached) return { ...cached, permissions: new Set(cached.permissions) };
+
+  // Super Admin has full access to every service without needing a lims_users row.
+  if (await isPlatformSuperAdmin(platformUserId)) {
+    const context: UserContext = {
+      limsUserId: "",
+      platformUserId,
+      userName: null,
+      homeGroupId: null,
+      accessGroupIds: [],
+      operateAll: true,
+      permissions: new Set()
+    };
+    await cache.set<CachedContext>(
+      key(platformUserId),
+      { ...context, permissions: [] },
+      SUPER_ADMIN_STALENESS_TTL_SECONDS
+    );
+    return context;
+  }
 
   const limsUser = (await LimsUser.findOne({
     where: { userId: platformUserId, isDeleted: false },

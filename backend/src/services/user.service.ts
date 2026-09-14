@@ -8,6 +8,7 @@ import { Designation } from "../models/designation.model";
 import { PaginationOptions } from "../utils/pagination.util";
 import { Op } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
+import { getSuperAdminUserIds } from "../utils/common.util";
 
 const formatUser = (user: any) => {
   if (!user) return null;
@@ -81,10 +82,9 @@ const getUsers = async (
   filters: Record<string, string | string[]> = {}
 ) => {
   const { page, limit, skip, search } = options;
+  const superAdminIds = await getSuperAdminUserIds();
   const where: any = {
-    fullName: {
-      [Op.notIn]: ["superadmin", user?.fullName || ""]
-    }
+    id: { [Op.notIn]: [...superAdminIds, user?.id ?? ""] }
   };
 
   // Canonical list filter: filter[status]=active|disabled (BACKEND_ASKS #2).
@@ -313,13 +313,13 @@ const getUserDetail = async (id: string) => {
 };
 
 const bulkDeleteUsers = async (ids: string[], requestingUserId?: string) => {
+  const superAdminIds = await getSuperAdminUserIds();
+  const excluded = requestingUserId
+    ? [...superAdminIds, requestingUserId]
+    : superAdminIds;
   const where: any = {
-    id: ids,
-    fullName: { [Op.ne]: "superadmin" }
+    id: { [Op.in]: ids, [Op.notIn]: excluded }
   };
-  if (requestingUserId) {
-    where.id = { [Op.in]: ids, [Op.ne]: requestingUserId };
-  }
   return await User.destroy({ where });
 };
 
@@ -332,12 +332,13 @@ const bulkUpdateUsers = async (
   const t = await sequelize.transaction();
   try {
     const results: { id: string; skipped?: boolean }[] = [];
+    const superAdminIds = await getSuperAdminUserIds();
 
     for (const { id, payload } of updates) {
       const user = await User.findByPk(id, { transaction: t });
-      // Same protection bulkDeleteUsers already gives superadmin — a bulk edit shouldn't
+      // Same protection bulkDeleteUsers already gives Super Admin — a bulk edit shouldn't
       // be able to touch it either.
-      if (!user || user.fullName === "superadmin") {
+      if (!user || superAdminIds.includes(id)) {
         results.push({ id, skipped: true });
         continue;
       }

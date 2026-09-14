@@ -29,12 +29,15 @@ import sampleRoutes from "./sample.routes";
 import testRoutes from "./test.routes";
 import resultRoutes from "./result.routes";
 import schedulerRoutes from "./scheduler.routes";
+import meRoutes from "./me.routes";
 
 const commonRouter: Router = Router();
 
 // All routes require authentication (spec NFR-1); each entity router additionally
 // carries `authorize(entity, action)`, which is what actually grants access.
 commonRouter.use(authenticate);
+
+commonRouter.use("/me", meRoutes);
 
 commonRouter.use(API_ROUTES.PERMISSIONS, permissionRoutes);
 // Files for every entity; permission is checked against the parent record.

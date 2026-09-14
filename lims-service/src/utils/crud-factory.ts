@@ -59,11 +59,15 @@ import {
  * contract) — endpoint shapes, audit writes, soft-delete, group filtering, bulk ops live here once.
  */
 
-/** The caller's access scope, resolved by `authorize` and carried on the request. */
+/** The caller's access scope, resolved by `authorize` and carried on the request.
+ * `resolved: false` marks the closed fallback used when `authorize` never ran (a route
+ * mounted without it) — distinct from a genuine member with zero groups assigned, which
+ * groupWhere/assertGroupInScope must treat as full access, not the fallback's deny-all. */
 export interface AccessScope {
   accessGroupIds: string[];
   homeGroupId: string | null;
   operateAll: boolean;
+  resolved: boolean;
 }
 
 /** Everything a mutation needs to know about who is asking. */
@@ -156,9 +160,15 @@ const contextFromRequest = (req: Request): CrudContext => ({
     ? {
         accessGroupIds: req.access.accessGroupIds,
         homeGroupId: req.access.homeGroupId,
-        operateAll: req.access.operateAll
+        operateAll: req.access.operateAll,
+        resolved: true
       }
-    : { accessGroupIds: [], homeGroupId: null, operateAll: false }
+    : {
+        accessGroupIds: [],
+        homeGroupId: null,
+        operateAll: false,
+        resolved: false
+      }
 });
 
 /** A multipart save's real payload is JSON-stringified under `req.body.data` (multer only
@@ -262,14 +272,22 @@ const toColumns = <M extends Model>(
   return data;
 };
 
-/** The group filter, applied to every read. A NULL `group_id` is global reference data
- * (Phrases), visible to everyone — only reference tables may be NULL. */
+/** The group filter, applied to every read. Only reached once `hasPermission` has already
+ * confirmed real membership + a granted role — so an empty `accessGroupIds` here means
+ * "no groups assigned to an otherwise-permitted user", which is a full-access signal
+ * (ROLES_AND_ACCESS_MANAGEMENT.md), not "no access". `operateAll` is the separate, role-level
+ * "ignore groups even if some are assigned" bypass — kept distinct from this. A NULL
+ * `group_id` is global reference data (Phrases), visible to everyone regardless. */
 const groupWhere = <M extends Model>(
   model: ModelStatic<M>,
   scope: AccessScope
 ): WhereOptions => {
   if (scope.operateAll) return {};
   if (!Object.keys(model.getAttributes()).includes("groupId")) return {};
+  // `!scope.resolved` is the closed fallback (authorize never ran) — must stay deny-all,
+  // never be read as "no groups = full access" (that rule only applies to a real member).
+  if (!scope.resolved) return { id: null } as WhereOptions;
+  if (scope.accessGroupIds.length === 0) return {};
 
   return {
     [Op.or]: [{ groupId: scope.accessGroupIds }, { groupId: null }]
@@ -282,6 +300,9 @@ const groupWhere = <M extends Model>(
  * on every read. */
 const assertGroupInScope = (groupId: unknown, scope: AccessScope) => {
   if (!groupId || scope.operateAll) return;
+  // No groups assigned = unrestricted, but only for a genuinely-resolved member (matches
+  // groupWhere's read-side rule) — the closed fallback must still reject every groupId.
+  if (scope.resolved && scope.accessGroupIds.length === 0) return;
   if (!scope.accessGroupIds.includes(groupId as string)) {
     throw Object.assign(new Error("That group is outside your access."), {
       statusCode: 403
@@ -1703,7 +1724,9 @@ export const buildCrudRouter = <M extends Model>(params: {
         }
 
         res.status(200).json({
-          message: removed ? `${childConfig.field} updated` : "Already not attached"
+          message: removed
+            ? `${childConfig.field} updated`
+            : "Already not attached"
         });
       })
     );

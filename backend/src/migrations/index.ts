@@ -13,6 +13,11 @@ import * as m011 from "./011-create-password-history";
 import * as m012 from "./012-seed-initial-data";
 import * as m013 from "./013-partial-unique-active-names";
 import * as m014 from "./014-add-users-list-indexes";
+import * as m015 from "./015-scope-admin-role-permissions";
+import * as m016 from "./016-fix-gxp-permission-names";
+import * as m017 from "./017-cleanup-obsolete-gxp-permissions";
+import * as m018 from "./018-seed-gxp-master-admin-role";
+import * as m019 from "./019-simplify-gxp-master-admin-role";
 
 export const migrations: Migration[] = [
   { name: "001-create-companies", up: m001.up },
@@ -28,6 +33,11 @@ export const migrations: Migration[] = [
   { name: "011-create-password-history", up: m011.up },
   { name: "012-seed-initial-data", up: m012.up },
   { name: "013-partial-unique-active-names", up: m013.up },
-  { name: "014-add-users-list-indexes", up: m014.up }
+  { name: "014-add-users-list-indexes", up: m014.up },
+  { name: "015-scope-admin-role-permissions", up: m015.up },
+  { name: "016-fix-gxp-permission-names", up: m016.up },
+  { name: "017-cleanup-obsolete-gxp-permissions", up: m017.up },
+  { name: "018-seed-gxp-master-admin-role", up: m018.up },
+  { name: "019-simplify-gxp-master-admin-role", up: m019.up }
 ];
 export { runMigrations, checkMigrations } from "./runner";

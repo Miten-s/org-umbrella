@@ -18,12 +18,22 @@ const router: Router = Router();
 // ---------------------------------------------------------------------------------------- GET Requests ----------------------------------------------------------------------------------------
 
 // Define a GET route for getting roles.
-router.get(API_ROUTES.ROLE, checkPermissions(["VIEW:ROLE"]), getRoles);
+// GXP:*:ROLE holders reach this same endpoint (role.service scopes them to
+// Custom + Gxp_Service roles and blocks granting permissions they don't hold).
+router.get(
+  API_ROUTES.ROLE,
+  checkPermissions(["VIEW:ROLE", "GXP:VIEW:ROLE"]),
+  getRoles
+);
 
 // ---------------------------------------------------------------------------------------- POST Requests ----------------------------------------------------------------------------------------
 
 // Define a POST route for creating a role.
-router.post(API_ROUTES.ROLE, checkPermissions(["CREATE:ROLE"]), createRole);
+router.post(
+  API_ROUTES.ROLE,
+  checkPermissions(["CREATE:ROLE", "GXP:CREATE:ROLE"]),
+  createRole
+);
 
 // Define a POST route for assigning a role to a user.
 router.post(
@@ -50,7 +60,7 @@ router.post(
 router.patch(
   API_ROUTES.ROLE + API_ROUTES.PARAMS,
   validateDto(IsValidParamsIdDto, "params"),
-  checkPermissions(["UPDATE:ROLE"]),
+  checkPermissions(["UPDATE:ROLE", "GXP:UPDATE:ROLE"]),
   updateRole
 );
 
@@ -59,7 +69,7 @@ router.patch(
 // Define a Delete route for updating a role.
 router.delete(
   API_ROUTES.ROLE + API_ROUTES.PARAMS,
-  checkPermissions(["DELETE:ROLE"]),
+  checkPermissions(["DELETE:ROLE", "GXP:DELETE:ROLE"]),
   validateDto(IsValidParamsIdDto, "params"),
   deleteRole
 );

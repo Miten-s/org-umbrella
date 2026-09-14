@@ -101,9 +101,10 @@ const updateAsNewVersion = async (
 
     if (!current) return null;
 
-    // Group scoping, same rule as every other read.
+    // Group scoping, same rule as every other read — no groups assigned is full access.
     if (
       !ctx.scope.operateAll &&
+      ctx.scope.accessGroupIds.length > 0 &&
       current.groupId &&
       !ctx.scope.accessGroupIds.includes(current.groupId)
     ) {
@@ -182,6 +183,7 @@ const getResultAuditLogs = async (
 
   if (
     !ctx.scope.operateAll &&
+    ctx.scope.accessGroupIds.length > 0 &&
     current.groupId &&
     !ctx.scope.accessGroupIds.includes(current.groupId)
   ) {
@@ -244,6 +246,7 @@ router.get(
     const scope = req.access!;
     if (
       !scope.operateAll &&
+      scope.accessGroupIds.length > 0 &&
       record.groupId &&
       !scope.accessGroupIds.includes(record.groupId)
     ) {

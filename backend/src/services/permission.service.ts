@@ -12,6 +12,22 @@ const formatPermission = (perm: any) => {
   return json;
 };
 
+/** The system-wide and service-scoped full-access sentinels — locked for everyone, Super
+ * Admin included, same as their matching roles in role.service.ts's PROTECTED_ROLE_NAMES.
+ * A new service's wildcard permission is a new migration, never an edit of an existing one. */
+const PROTECTED_PERMISSION_NAMES = new Set(["OPERATE:ALL", "GXP:OPERATE:ALL"]);
+
+const assertNotProtectedPermission = (name: string) => {
+  if (PROTECTED_PERMISSION_NAMES.has(name)) {
+    throw Object.assign(
+      new Error(
+        `"${name}" is a protected system permission and cannot be modified or deleted.`
+      ),
+      { statusCode: 403 }
+    );
+  }
+};
+
 const createPermission = async (req: Request) => {
   const doc = await Permission.create(req.body);
   return formatPermission(doc);
@@ -20,6 +36,7 @@ const createPermission = async (req: Request) => {
 const updatePermission = async (req: Request) => {
   const permission = await Permission.findByPk(req.params.id as string);
   if (!permission) return null;
+  assertNotProtectedPermission(permission.name);
   await permission.update(req.body);
   return formatPermission(permission);
 };
@@ -27,6 +44,7 @@ const updatePermission = async (req: Request) => {
 const deletePermission = async (req: Request) => {
   const permission = await Permission.findByPk(req.params.id as string);
   if (!permission) return null;
+  assertNotProtectedPermission(permission.name);
 
   const t = await sequelize.transaction();
   try {
@@ -96,20 +114,45 @@ const getPermissions = async (options: PaginationOptions, type?: string) => {
 const bulkDeletePermissions = async (ids: string[]) => {
   const t = await sequelize.transaction();
   try {
+    const protectedPermissions = await Permission.findAll({
+      where: { id: ids, name: [...PROTECTED_PERMISSION_NAMES] },
+      attributes: ["id", "name"],
+      transaction: t
+    });
+    const protectedIds = protectedPermissions.map(
+      (permission) => permission.id
+    );
+    const deletableIds = ids.filter((id) => !protectedIds.includes(id));
+
+    // A batch of ONLY protected permissions must be rejected outright, not silently
+    // no-op — an empty `deletableIds` would otherwise reach the raw `IN (:ids)` query
+    // below with nothing to interpolate, which is a SQL syntax error, not a clean failure.
+    if (deletableIds.length === 0 && ids.length > 0) {
+      const names = protectedPermissions.map((p) => `"${p.name}"`).join(", ");
+      throw Object.assign(
+        new Error(
+          `${names} ${protectedPermissions.length > 1 ? "are protected system permissions" : "is a protected system permission"} and cannot be modified or deleted.`
+        ),
+        { statusCode: 403 }
+      );
+    }
+
     // Soft delete permissions
     await Permission.destroy({
-      where: { id: ids },
+      where: { id: deletableIds },
       transaction: t
     });
 
-    // Cascade: remove deleted permission refs from all role_permissions
-    await sequelize.query(
-      `DELETE FROM role_permissions WHERE permission_id IN (:ids)`,
-      {
-        replacements: { ids },
-        transaction: t
-      }
-    );
+    if (deletableIds.length > 0) {
+      // Cascade: remove deleted permission refs from all role_permissions
+      await sequelize.query(
+        `DELETE FROM role_permissions WHERE permission_id IN (:ids)`,
+        {
+          replacements: { ids: deletableIds },
+          transaction: t
+        }
+      );
+    }
 
     await t.commit();
     return { success: true, message: "Permissions deleted successfully" };
@@ -126,6 +169,9 @@ const bulkDuplicatePermissions = async (ids: string[], user?: any) => {
       where: { id: ids },
       transaction: t
     });
+    for (const permission of sourcePermissions) {
+      assertNotProtectedPermission(permission.name);
+    }
     if (!sourcePermissions || sourcePermissions.length === 0) {
       throw new Error("Permissions not found");
     }

@@ -27,6 +27,14 @@ import type { BulkSelection } from "@/lib/query/listTypes";
 
 type RoleModalMode = "create" | "edit" | "view";
 
+// Mirrors backend/src/services/role.service.ts's PROTECTED_ROLE_NAMES (the GXP-relevant
+// entry) — kept in sync by hand since frontend and backend don't share constants, but this
+// is UI convenience only: the real enforcement is server-side regardless of this list.
+const PROTECTED_ROLE_NAMES = new Set(["GXP Master Admin"]);
+const PROTECTED_ROLE_TOOLTIP =
+  "This is a protected system role and cannot be viewed, edited, copied, or removed.";
+const isProtectedRole = (role: GxpRole) => PROTECTED_ROLE_NAMES.has(role.name);
+
 /** GXP Roles list — migrated structure-only; role form is the shared CreateRoleModal. */
 const RoleList = () => {
   const { t } = useTranslation();
@@ -95,6 +103,8 @@ const RoleList = () => {
         icon: TrashBinIcon,
         variant: "destructive",
         permission: GXP_PERMISSIONS.DELETE_ROLE,
+        disabled: (rows) => (rows as GxpRole[]).some(isProtectedRole),
+        disabledTooltip: () => PROTECTED_ROLE_TOOLTIP,
         onClick: (selection, count) => {
           setPendingDelete(selection);
           setDeleteCount(count);
@@ -117,6 +127,8 @@ const RoleList = () => {
         icon: EyeIcon,
         placement: "inline",
         permission: GXP_PERMISSIONS.VIEW_ROLE,
+        disabled: isProtectedRole,
+        tooltip: (role) => (isProtectedRole(role) ? PROTECTED_ROLE_TOOLTIP : ""),
         onClick: (role) => openForm("view", role)
       },
       {
@@ -125,6 +137,8 @@ const RoleList = () => {
         icon: PencilIcon,
         placement: "inline",
         permission: GXP_PERMISSIONS.UPDATE_ROLE,
+        disabled: isProtectedRole,
+        tooltip: (role) => (isProtectedRole(role) ? PROTECTED_ROLE_TOOLTIP : ""),
         onClick: (role) => openForm("edit", role)
       },
       {
@@ -134,6 +148,8 @@ const RoleList = () => {
         placement: "menu",
         tone: "danger",
         permission: GXP_PERMISSIONS.DELETE_ROLE,
+        disabled: isProtectedRole,
+        tooltip: (role) => (isProtectedRole(role) ? PROTECTED_ROLE_TOOLTIP : ""),
         onClick: (role) => {
           setPendingDelete({ mode: "ids", ids: [role.id] });
           setDeleteCount(1);

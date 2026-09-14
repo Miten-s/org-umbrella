@@ -27,8 +27,9 @@ const router = Router();
 const entityFromRequest = (req: Request): string | undefined =>
   (req.body?.entityName as string) ?? (req.query?.entityName as string);
 
-/** Same rule `withGroupScope` applies on every LIMS read: a record stamped with a group
- * outside the caller's own is not theirs to touch, unless they hold OPERATE:ALL. */
+/** Same rule `groupWhere` applies on every LIMS read: a record stamped with a group
+ * outside the caller's own is not theirs to touch, unless they hold OPERATE:ALL — or have
+ * no groups assigned at all, which is a full-access signal, not a restriction. */
 const inGroupScope = (
   groupId: string | null | undefined,
   scope?: { accessGroupIds: string[]; operateAll: boolean }
@@ -36,6 +37,7 @@ const inGroupScope = (
   !scope ||
   scope.operateAll ||
   !groupId ||
+  scope.accessGroupIds.length === 0 ||
   scope.accessGroupIds.includes(groupId);
 
 /** For `/:id` routes the parent isn't in the request — load the row first so `authorize`
