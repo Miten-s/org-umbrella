@@ -23,7 +23,11 @@ export const authorize = (entity: GxpEntity, action: GxpAction) => {
       return res.status(401).json({ message: "Authentication required" });
     }
 
-    const context = await getGxpUserContext(platformUserId);
+    // Reads may tolerate a stale grace-cache permission set during a backend outage;
+    // writes must not — see getGxpUserContext's `allowGrace` doc for why.
+    const context = await getGxpUserContext(platformUserId, {
+      allowGrace: action === "VIEW"
+    });
 
     // A valid platform token is not GXP access. No gxp_users row (and not Super Admin),
     // no entry.

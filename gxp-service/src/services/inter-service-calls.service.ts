@@ -1,5 +1,10 @@
 import { authSequelize } from "../configs/db.sequelize";
 import { QueryTypes } from "sequelize";
+import {
+  fetchPermissionsForUser,
+  fetchPermissionsForRoleIds,
+  PermissionsFetchResult
+} from "./backend-permissions.client";
 
 // Helper to convert ObjectId to deterministic UUID
 const toUUID = (id: string): string => {
@@ -88,41 +93,25 @@ export const fetchDepartmentsFromAuthService = async (ids: string[]) => {
 
 /** Permission NAMES (e.g. "GXP:VIEW:APPLICATION") granted by a set of platform role ids —
  * what the new authorize middleware actually needs to check against. Separate from
- * `fetchRolesFromAuthService` below, which returns permission ids for display purposes. */
-export const fetchPermissionNamesForRoleIds = async (
+ * `fetchRolesFromAuthService` below, which returns permission ids for display purposes.
+ * Resolved via backend's internal permissions API. Returns the raw `{ ok, permissions }`
+ * result rather than collapsing a failure to `[]` — callers here need to tell "confirmed
+ * empty" apart from "couldn't determine," since they fail closed differently: the role-
+ * escalation guard must BLOCK on `ok: false` (an unverifiable role must not be treated as
+ * granting nothing), while user-context.service.ts falls back to a cached grace value. */
+export const fetchPermissionNamesForRoleIds = (
   roleIds: string[]
-): Promise<string[]> => {
-  if (!roleIds || roleIds.length === 0) return [];
-
-  const rows = await authSequelize.query<{ name: string }>(
-    `SELECT DISTINCT p.name
-       FROM roles r
-       JOIN role_permissions rp ON rp.role_id = r.id
-       JOIN permissions p ON p.id = rp.permission_id
-      WHERE r.id IN (:roleIds) AND r.deleted_at IS NULL AND p.deleted_at IS NULL`,
-    { replacements: { roleIds }, type: QueryTypes.SELECT }
-  );
-
-  return rows.map((row) => row.name);
-};
+): Promise<PermissionsFetchResult> => fetchPermissionsForRoleIds(roleIds ?? []);
 
 /** Is this platform user Super Admin (holds OPERATE:ALL)? Super Admin has full access to
- * every service without needing a GxpUser row (ROLES_AND_ACCESS_MANAGEMENT.md). */
+ * every service without needing a GxpUser row (ROLES_AND_ACCESS_MANAGEMENT.md). Collapses
+ * to `false` on failure — a safe default for this simple flag; an outage just means a real
+ * Super Admin temporarily isn't treated as one, never the reverse. */
 export const isPlatformSuperAdmin = async (
   platformUserId: string
 ): Promise<boolean> => {
-  const rows = await authSequelize.query<{ exists: boolean }>(
-    `SELECT EXISTS (
-       SELECT 1
-         FROM user_roles ur
-         JOIN role_permissions rp ON rp.role_id = ur.role_id
-         JOIN permissions p ON p.id = rp.permission_id
-        WHERE ur.user_id = :platformUserId AND p.name = 'OPERATE:ALL'
-     ) AS "exists"`,
-    { replacements: { platformUserId }, type: QueryTypes.SELECT }
-  );
-
-  return Boolean(rows[0]?.exists);
+  const result = await fetchPermissionsForUser(platformUserId);
+  return result.ok && result.permissions.includes("OPERATE:ALL");
 };
 
 export const fetchRolesFromAuthService = async (

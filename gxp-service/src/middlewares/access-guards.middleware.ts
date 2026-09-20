@@ -59,8 +59,18 @@ export const preventRoleEscalation = async (
   if (roleIds.length === 0 || req.access?.isSuperAdmin) return next();
 
   const grantedNames = new Set(req.access?.permissions ?? []);
-  const requestedNames = await fetchPermissionNamesForRoleIds(roleIds);
-  const disallowed = requestedNames.filter((name) => !grantedNames.has(name));
+  const result = await fetchPermissionNamesForRoleIds(roleIds);
+
+  if (!result.ok) {
+    return res.status(503).json({
+      message:
+        "Unable to verify the requested role's permissions right now. Please try again."
+    });
+  }
+
+  const disallowed = result.permissions.filter(
+    (name) => !grantedNames.has(name)
+  );
 
   if (disallowed.length > 0) {
     return res.status(403).json({
