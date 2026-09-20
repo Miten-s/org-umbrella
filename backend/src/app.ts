@@ -16,6 +16,7 @@ import { errorHandler } from "./middlewares/error.middleware";
 import { securityHeaders } from "./middlewares/security.middleware";
 import { requestContext } from "./middlewares/request-context.middleware";
 import commonRouter from "./routes/common.router";
+import internalPermissionsRoutes from "./routes/internal-permissions.routes";
 import { CUSTOM_MESSAGES } from "./utils/common.util";
 
 const app: Application = express();
@@ -91,6 +92,15 @@ const userRateLimiter = rateLimit({
 });
 
 app.use(userRateLimiter);
+
+// Internal, service-to-service routes — guarded by a shared key, not end-user auth.
+// Deliberately mounted OUTSIDE API_ROUTES.VERSIONS.v1 (not under /v1/api at all): nginx's
+// /auth/v1/api/ location proxies everything under backend's /v1/api/* verbatim, so a route
+// living there would be reachable from the public internet through the existing gateway,
+// with only the internal-key check standing between it and an external caller. Mounting it
+// on a prefix no nginx location matches means it's unreachable through the gateway at all —
+// the key check is defense in depth, not the only boundary.
+app.use(API_ROUTES.INTERNAL, internalPermissionsRoutes);
 
 // Mount the authentication routes at /v1/auth
 

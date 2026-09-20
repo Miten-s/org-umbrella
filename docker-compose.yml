@@ -43,6 +43,7 @@ services:
     environment:
       PORT: ${BACKEND_PORT:-9000}
       JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       AUTH_POSTGRES_URI: ${AUTH_POSTGRES_URI:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/auth-service}
       AUTH_MONGO_URI: ${AUTH_MONGO_URI:-}
@@ -66,6 +67,8 @@ services:
       GXP_MONGO_URI: ${GXP_MONGO_URI}
       AUTH_MONGO_URI: ${AUTH_MONGO_URI}
       JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://backend:9000}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       GXP_POSTGRES_URI: ${GXP_POSTGRES_URI:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/gxp-service}
       AUTH_POSTGRES_URI: ${AUTH_POSTGRES_URI:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/auth-service}
@@ -89,6 +92,8 @@ services:
       AUTH_POSTGRES_URI: ${AUTH_POSTGRES_URI:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/auth-service}
       LIMS_POSTGRES_URI: ${LIMS_POSTGRES_URI:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/lims-service}
       JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://backend:9000}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       KAFKA_BROKER: ${KAFKA_BROKER:-}
       KAFKA_CLIENT_ID: ${KAFKA_CLIENT_ID:-lims-service}
