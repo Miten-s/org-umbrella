@@ -54,7 +54,13 @@ export const authenticate = async (
 
     req.user = fetchedUser.toJSON() as any;
     next();
-  } catch {
+  } catch (error) {
+    // The frontend interceptors branch on this exact message to decide whether a 401 is
+    // refreshable. An expired token has to be distinguishable from a forged one.
+    if (error instanceof jwt.TokenExpiredError) {
+      res.status(401).json({ message: "Token Expired" });
+      return;
+    }
     res.status(401).json({ error: "Invalid token" });
   }
 };
