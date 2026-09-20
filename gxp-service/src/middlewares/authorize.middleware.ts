@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import asyncHandler from "./error.middleware";
 import {
   getGxpUserContext,
   hasPermission
@@ -17,7 +18,7 @@ export const authorize = (entity: GxpEntity, action: GxpAction) => {
     throw new Error(`Unknown GXP entity "${entity}" passed to authorize().`);
   }
 
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const platformUserId = req.user?.id;
     if (!platformUserId) {
       return res.status(401).json({ message: "Authentication required" });
@@ -48,7 +49,7 @@ export const authorize = (entity: GxpEntity, action: GxpAction) => {
 
     req.access = context;
     next();
-  };
+  });
 };
 
 export default authorize;
