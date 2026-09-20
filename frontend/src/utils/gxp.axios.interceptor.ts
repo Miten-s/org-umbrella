@@ -7,7 +7,7 @@ import { getErrorMessage } from "./error.utils";
 // from this same value instead of re-declaring it — one env var to change
 // for a production deploy, not two things that can drift apart.
 export const BASE_URL =
-  import.meta.env.VITE_API_GXP_BASE_URL ?? "http://localhost:9001/v1/api";
+  import.meta.env.VITE_API_GXP_BASE_URL ?? "/gxp/v1/api";
 
 const gxpApi = axios.create({
   baseURL: BASE_URL,

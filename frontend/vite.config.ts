@@ -26,6 +26,26 @@ export default defineConfig(({ mode }) => {
       port,
       strictPort: true, //  exit if port is already in use
       open: true, // automatically open the app in the browser on server start
+      // Same routing contract as nginx in prod (frontend/nginx/app.conf): the app always
+      // talks to relative /auth, /gxp, /lims paths, and the prefix is stripped before the
+      // request reaches the service. Dev ports come from each service's own .env.
+      proxy: {
+        '/auth': {
+          target: `http://localhost:${process.env.REACT_APP_AUTH_PORT || 9001}`,
+          changeOrigin: true,
+          rewrite: (path: string) => path.replace(/^\/auth/, ''),
+        },
+        '/gxp': {
+          target: `http://localhost:${process.env.REACT_APP_GXP_PORT || 9002}`,
+          changeOrigin: true,
+          rewrite: (path: string) => path.replace(/^\/gxp/, ''),
+        },
+        '/lims': {
+          target: `http://localhost:${process.env.REACT_APP_LIMS_PORT || 9003}`,
+          changeOrigin: true,
+          rewrite: (path: string) => path.replace(/^\/lims/, ''),
+        },
+      },
     },
     build: {
       chunkSizeWarningLimit: 1200,

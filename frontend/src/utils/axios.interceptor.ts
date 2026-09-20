@@ -7,7 +7,7 @@ import { getErrorMessage } from "./error.utils";
 // this same value instead of re-declaring it — one env var to change for a
 // production deploy, not two things that can drift apart.
 export const BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:9002/v1/api";
+  import.meta.env.VITE_API_BASE_URL ?? "/auth/v1/api";
 
 const api = axios.create({
   baseURL: BASE_URL,
