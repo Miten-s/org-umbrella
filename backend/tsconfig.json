@@ -18,5 +18,5 @@
     "migrate-mongo-config.js",
     "migrate-mongo-config.js"
   ],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }
