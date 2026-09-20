@@ -18,7 +18,11 @@ const formatPermission = (perm: any) => {
 /** The system-wide and service-scoped full-access sentinels — locked for everyone, Super
  * Admin included, same as their matching roles in role.service.ts's PROTECTED_ROLE_NAMES.
  * A new service's wildcard permission is a new migration, never an edit of an existing one. */
-const PROTECTED_PERMISSION_NAMES = new Set(["OPERATE:ALL", "GXP:OPERATE:ALL"]);
+const PROTECTED_PERMISSION_NAMES = new Set([
+  "OPERATE:ALL",
+  "GXP:OPERATE:ALL",
+  "LIMS:OPERATE:ALL"
+]);
 
 const assertNotProtectedPermission = (name: string) => {
   if (PROTECTED_PERMISSION_NAMES.has(name)) {

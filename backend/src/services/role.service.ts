@@ -95,10 +95,14 @@ const assertRoleTypeAuthority = (
 /** The one seeded, fixed fixture per system-wide tier — locked for everyone, Super Admin
  * included, so it can't be weakened or deleted by accident. A genuinely new master role is a
  * new migration, not an edit of this one. GXP Master Admin is the service-level counterpart
- * (see backend/src/migrations/018-seed-gxp-master-admin-role.ts); LIMS Master Admin is
- * protected the same way inside lims-service's own role.routes.ts, since it lives in a
- * separate database this service never touches. */
-const PROTECTED_ROLE_NAMES = new Set(["Super Admin", "GXP Master Admin"]);
+ * (see backend/src/migrations/018-seed-gxp-master-admin-role.ts) and LIMS Master Admin is
+ * the LIMS one (022-seed-lims-master-admin-role.ts). lims-service also protects its own,
+ * separately-stored copy inside role.routes.ts until its cutover. */
+const PROTECTED_ROLE_NAMES = new Set([
+  "Super Admin",
+  "GXP Master Admin",
+  "LIMS Master Admin"
+]);
 
 const assertNotProtectedRole = (name: string) => {
   if (PROTECTED_ROLE_NAMES.has(name)) {
