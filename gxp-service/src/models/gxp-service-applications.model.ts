@@ -10,6 +10,7 @@ import { AppGroup } from "./gxp-service-application-groups.model";
 import { AppDepartment } from "./gxp-service-application-departments.model";
 import { AppRole } from "./gxp-service-application-roles.model";
 import { AppService } from "./gxp-service-application-services.model";
+import { Group } from "./gxp-service-group.model";
 
 export interface IApplication {
   id: string;
@@ -17,7 +18,14 @@ export interface IApplication {
   applicationId?: string;
   applicationType: "GxP" | "Non-GxP";
   applicationEnvironmentId?: string | null;
+  /** A location id, despite the name — unrelated to accessGroupId below. Kept as-is rather
+   * than renamed, to avoid touching every existing caller of this pre-existing field. */
   group: string;
+  /** The actual access-scoping group (see gxp-service-group.model.ts) — deliberately not
+   * named "group" or "groupId" to avoid colliding with the field above. Optional here even
+   * though the DB enforces NOT NULL (with a default): existing create call sites don't set
+   * this yet, and the DB default fills the gap — see the allowNull note in Application.init. */
+  accessGroupId?: string;
   assignmentGroupId?: string | null;
   applicationWorkflowId?: string | null;
   applicationSystemOwnerId?: string | null;
@@ -38,6 +46,7 @@ export class Application extends Model<IApplication> implements IApplication {
   public applicationType!: "GxP" | "Non-GxP";
   public applicationEnvironmentId!: string | null;
   public group!: string;
+  public accessGroupId!: string;
   public assignmentGroupId!: string | null;
   public applicationWorkflowId!: string | null;
   public applicationSystemOwnerId!: string | null;
@@ -84,6 +93,16 @@ Application.init(
     group: {
       type: DataTypes.STRING,
       allowNull: false
+    },
+    accessGroupId: {
+      type: DataTypes.UUID,
+      // The DB column is NOT NULL with a default (the "Unassigned" group — see migration
+      // 025), but this stays allowNull: true at the Sequelize level on purpose: existing
+      // create flows don't set this field yet (that's the deferred, separate phase), and
+      // `allowNull: false` here would make Sequelize reject those inserts client-side
+      // before the DB default ever gets a chance to apply.
+      allowNull: true,
+      field: "access_group_id"
     },
     assignmentGroupId: {
       type: DataTypes.UUID,
@@ -154,6 +173,10 @@ Application.init(
 Application.belongsTo(Environment, {
   foreignKey: "application_environment_id",
   as: "environment"
+});
+Application.belongsTo(Group, {
+  foreignKey: "access_group_id",
+  as: "accessGroup"
 });
 Application.belongsTo(AssignmentGroup, {
   foreignKey: "assignment_group_id",

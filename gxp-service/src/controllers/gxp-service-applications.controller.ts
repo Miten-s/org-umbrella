@@ -7,6 +7,7 @@ import Application from "../models/gxp-service-applications.model";
 import AppModule from "../models/gxp-service-application-modules.model";
 import { CreateApplicationDto } from "../dtos/application.dto";
 import { toObjectIdString } from "../services/mixed-id-resolution.service";
+import { contextToScope } from "../utils/access-scope.util";
 
 export const createApplication = asyncHandler(
   async (req: Request, res: Response) => {
@@ -28,9 +29,11 @@ export const getApplications = asyncHandler(
   async (req: Request, res: Response) => {
     const includeDisabled = req.query.includeDisabled === "true";
     const paginationOptions = getPaginationOptions(req.query);
+    const scope = contextToScope((req as any).access);
     const items = await service.getApplications(
       paginationOptions,
-      includeDisabled
+      includeDisabled,
+      scope
     );
     return res.status(200).send(items);
   }
@@ -39,7 +42,8 @@ export const getApplications = asyncHandler(
 export const getApplicationById = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const item = await service.getApplicationById(id as string);
+    const scope = contextToScope((req as any).access);
+    const item = await service.getApplicationById(id as string, scope);
     if (!item)
       return res.status(404).json({ message: "Application not found" });
     return res.status(200).send(item);

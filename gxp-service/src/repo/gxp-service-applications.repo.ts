@@ -14,6 +14,10 @@ import Application, {
 import { fetchUserBasedOnId } from "../services/inter-service-calls.service";
 import { PaginationOptions } from "../utils/pagination.util";
 import { Op } from "sequelize";
+import {
+  AccessScope,
+  withGroupScope
+} from "../utils/access-scope.util";
 
 const formatApplication = (app: any) => {
   if (!app) return null;
@@ -131,7 +135,8 @@ export const isApplicationNameTaken = async (
 
 export const getApplications = async (
   filter: any = {},
-  options?: Partial<PaginationOptions>
+  options?: Partial<PaginationOptions>,
+  scope?: AccessScope
 ) => {
   const { page = 1, limit = 10, skip = 0, search } = options || {};
   const where = { ...filter };
@@ -145,8 +150,14 @@ export const getApplications = async (
       { applicationId: { [Op.iLike]: `%${search}%` } }
     ];
   }
+  // scope is omitted (not just falsy) by every internal caller that needs to see across
+  // all applications regardless of group — e.g. the name-uniqueness checks in
+  // createApplication/duplicateApplication. Only the public list endpoint passes one.
+  const scopedWhere = scope
+    ? withGroupScope(Application, scope, where)
+    : where;
   const { count: totalCount, rows: data } = await Application.findAndCountAll({
-    where,
+    where: scopedWhere,
     distinct: true,
     include: [
       {
@@ -180,8 +191,13 @@ export const getApplications = async (
   };
 };
 
-export const findApplicationById = async (id: string) => {
-  const applicationDoc = await Application.findByPk(id, {
+export const findApplicationById = async (id: string, scope?: AccessScope) => {
+  // findByPk can't take an extra where clause, so a scoped lookup goes through findOne
+  // instead — an out-of-scope id resolves to null (the controller already 404s on null),
+  // same as "doesn't exist," rather than a distinguishable 403 that would leak whether the
+  // id is real.
+  const applicationDoc = await Application.findOne({
+    where: scope ? withGroupScope(Application, scope, { id }) : { id },
     include: [
       { model: Environment, as: "environment" },
       { model: AssignmentGroup, as: "assignmentGroup" },
