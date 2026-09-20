@@ -2,12 +2,30 @@ import app from "./app";
 import ENV from "./utils/environment";
 import { sequelize, authSequelize } from "./configs/db.sequelize";
 import { logError, logInfo } from "./configs/logger.config";
+import { startRbacInvalidationSubscriber } from "./services/rbac-invalidation.subscriber";
 
 const PORT = ENV.PORT || 9001;
 
 const server = app.listen(PORT, () => {
   logInfo(`Server running on http://localhost:${PORT}`);
 });
+
+// Listens for role/permission changes published by backend so revoked access takes effect
+// immediately instead of waiting out the cache TTL. A failure here is not fatal: the TTL
+// remains the safety net, so the service still starts and serves traffic.
+let invalidationSubscriber: Awaited<
+  ReturnType<typeof startRbacInvalidationSubscriber>
+> | null = null;
+
+void startRbacInvalidationSubscriber()
+  .then((subscriber) => {
+    invalidationSubscriber = subscriber;
+  })
+  .catch((error) =>
+    logError("Failed to subscribe to rbac invalidation — falling back to TTL", {
+      error: String(error)
+    })
+  );
 
 // A hung request with no timeout is the #1 cause of cascading failure. Fail fast.
 server.requestTimeout = 30_000; // 30s to receive the full request
@@ -31,7 +49,11 @@ const shutdown = async (signal: string) => {
 
   server.close(async () => {
     try {
-      await Promise.allSettled([sequelize.close(), authSequelize.close()]);
+      await Promise.allSettled([
+        sequelize.close(),
+        authSequelize.close(),
+        invalidationSubscriber?.quit() ?? Promise.resolve()
+      ]);
     } catch (e) {
       logError("Error closing DB pools during shutdown", { error: String(e) });
     }

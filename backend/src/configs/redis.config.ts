@@ -3,7 +3,13 @@ import ENV from "../utils/environment";
 
 const redisClient = createClient({
   url: ENV.REDIS_SERVER_URL,
-  password: ENV.REDIS_SERVER_PASSWORD // Use the same password set in redis.conf
+  password: ENV.REDIS_SERVER_PASSWORD, // Use the same password set in redis.conf
+  socket: {
+    // Explicit rather than the library default: back off to a 5s ceiling and keep
+    // retrying forever. Giving up would leave a subscriber permanently deaf to
+    // invalidation messages with nothing to signal it.
+    reconnectStrategy: (retries: number) => Math.min(retries * 200, 5000)
+  }
 });
 
 export const connectRedis = async (): Promise<void> => {

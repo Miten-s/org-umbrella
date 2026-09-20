@@ -6,6 +6,7 @@ import { isSuperAdmin, getUserPermissionNames } from "../utils/common.util";
 import { PaginationOptions } from "../utils/pagination.util";
 import { Op } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
+import { publishRbacInvalidation } from "./rbac-invalidation.publisher";
 
 /** A role editor can't grant permissions they don't themselves hold — otherwise a
  * CREATE:ROLE/UPDATE:ROLE grant alone becomes a path to self-escalation. Super Admin
@@ -115,6 +116,7 @@ const assignRole = async (req: Request) => {
   const role = await Role.findByPk(req.body.role);
   if (role) {
     await (user as any).addRole(role);
+    await publishRbacInvalidation({ scope: "user", platformUserId: user.id });
   }
   return user;
 };
@@ -130,6 +132,9 @@ const createRole = async (req: Request) => {
       await (role as any).setPermissions(permissions, { transaction: t });
     }
     await t.commit();
+    // After commit, never before — a subscriber that re-reads on this signal must not
+    // see pre-commit state.
+    await publishRbacInvalidation({ scope: "all" });
 
     const reloaded = await Role.findByPk(role.id, {
       include: ["permissions"]
@@ -158,6 +163,7 @@ const updateRole = async (req: Request) => {
       await (role as any).setPermissions(permissions, { transaction: t });
     }
     await t.commit();
+    await publishRbacInvalidation({ scope: "all" });
 
     const reloaded = await Role.findByPk(role.id, {
       include: ["permissions"]
@@ -191,6 +197,7 @@ const deleteRole = async (req: Request) => {
     });
 
     await t.commit();
+    await publishRbacInvalidation({ scope: "all" });
     return formatRole(role);
   } catch (error) {
     await t.rollback();
@@ -294,6 +301,7 @@ const bulkDeleteRoles = async (ids: string[]) => {
     }
 
     await t.commit();
+    await publishRbacInvalidation({ scope: "all" });
     return { success: true, message: "Roles deleted successfully" };
   } catch (err) {
     await t.rollback();
@@ -363,6 +371,7 @@ const bulkDuplicateRoles = async (ids: string[]) => {
     }
 
     await t.commit();
+    await publishRbacInvalidation({ scope: "all" });
 
     // Fetch duplicated roles with permissions populated
     const dupIds = duplicatedRoles.map((r) => r.id);

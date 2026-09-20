@@ -4,6 +4,7 @@ import { Role } from "../models/role.model";
 import { PaginationOptions } from "../utils/pagination.util";
 import { Op } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
+import { publishRbacInvalidation } from "./rbac-invalidation.publisher";
 
 const formatPermission = (perm: any) => {
   if (!perm) return null;
@@ -30,6 +31,7 @@ const assertNotProtectedPermission = (name: string) => {
 
 const createPermission = async (req: Request) => {
   const doc = await Permission.create(req.body);
+  await publishRbacInvalidation({ scope: "all" });
   return formatPermission(doc);
 };
 
@@ -38,6 +40,7 @@ const updatePermission = async (req: Request) => {
   if (!permission) return null;
   assertNotProtectedPermission(permission.name);
   await permission.update(req.body);
+  await publishRbacInvalidation({ scope: "all" });
   return formatPermission(permission);
 };
 
@@ -61,6 +64,7 @@ const deletePermission = async (req: Request) => {
     );
 
     await t.commit();
+    await publishRbacInvalidation({ scope: "all" });
     return formatPermission(permission);
   } catch (error) {
     await t.rollback();
@@ -155,6 +159,7 @@ const bulkDeletePermissions = async (ids: string[]) => {
     }
 
     await t.commit();
+    await publishRbacInvalidation({ scope: "all" });
     return { success: true, message: "Permissions deleted successfully" };
   } catch (err) {
     await t.rollback();
@@ -223,6 +228,7 @@ const bulkDuplicatePermissions = async (ids: string[], user?: any) => {
     }
 
     await t.commit();
+    await publishRbacInvalidation({ scope: "all" });
     return duplicatedPermissions.map(formatPermission);
   } catch (error) {
     await t.rollback();
