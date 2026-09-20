@@ -5,7 +5,8 @@ import { Permission } from "./permission.model";
 export enum RoleType {
   CUSTOM = "Custom",
   BUILT_IN = "Built_In",
-  GXP_SERVICE = "Gxp_Service"
+  GXP_SERVICE = "Gxp_Service",
+  LIMS_SERVICE = "Lims_Service"
 }
 
 export interface IRole {
@@ -38,7 +39,15 @@ Role.init(
       unique: true
     },
     type: {
-      type: DataTypes.ENUM("Custom", "Built_In", "Gxp_Service"),
+      // The underlying column is varchar, not a PG enum (003-create-roles.ts creates it
+      // with DataTypes.STRING and nothing alters it), so this list is Sequelize-side
+      // validation only — adding a value needs no migration.
+      type: DataTypes.ENUM(
+        "Custom",
+        "Built_In",
+        "Gxp_Service",
+        "Lims_Service"
+      ),
       allowNull: false,
       defaultValue: "Custom"
     },

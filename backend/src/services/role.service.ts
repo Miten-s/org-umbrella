@@ -44,7 +44,12 @@ const assertNoEscalation = async (
  * a plain platform CREATE:ROLE holder could touch the system's own Built_In roles. */
 const authorizedRoleTypes = (requester?: IUser): RoleType[] => {
   if (isSuperAdmin(requester)) {
-    return [RoleType.CUSTOM, RoleType.BUILT_IN, RoleType.GXP_SERVICE];
+    return [
+      RoleType.CUSTOM,
+      RoleType.BUILT_IN,
+      RoleType.GXP_SERVICE,
+      RoleType.LIMS_SERVICE
+    ];
   }
   const names = new Set(getUserPermissionNames(requester));
   const types: RoleType[] = [];
@@ -63,6 +68,14 @@ const authorizedRoleTypes = (requester?: IUser): RoleType[] => {
     names.has("GXP:VIEW:ROLE")
   ) {
     types.push(RoleType.GXP_SERVICE);
+  }
+  if (
+    names.has("LIMS:CREATE:ROLE") ||
+    names.has("LIMS:UPDATE:ROLE") ||
+    names.has("LIMS:DELETE:ROLE") ||
+    names.has("LIMS:VIEW:ROLE")
+  ) {
+    types.push(RoleType.LIMS_SERVICE);
   }
   return types;
 };
@@ -296,22 +309,37 @@ const getRoles = async (
 ) => {
   const { page, limit, skip, search } = options;
   let where: any = { type: RoleType.CUSTOM };
+  const permissionNames = getUserPermissionNames(user);
   const canManageGxpRoles =
-    isSuperAdmin(user) ||
-    getUserPermissionNames(user).includes("GXP:CREATE:ROLE");
+    isSuperAdmin(user) || permissionNames.includes("GXP:CREATE:ROLE");
+  const canManageLimsRoles =
+    isSuperAdmin(user) || permissionNames.includes("LIMS:CREATE:ROLE");
 
   if (type) {
     where = { type };
   } else if (isSuperAdmin(user)) {
     where = {
       type: {
-        [Op.in]: [RoleType.CUSTOM, RoleType.BUILT_IN, RoleType.GXP_SERVICE]
+        [Op.in]: [
+          RoleType.CUSTOM,
+          RoleType.BUILT_IN,
+          RoleType.GXP_SERVICE,
+          RoleType.LIMS_SERVICE
+        ]
       }
     };
-  } else if (canManageGxpRoles) {
-    // A GXP-side admin manages Gxp_Service roles here too — reusing the platform's
-    // Role/Permission tables (see plan) rather than a second, GXP-local role screen.
-    where = { type: { [Op.in]: [RoleType.CUSTOM, RoleType.GXP_SERVICE] } };
+  } else if (canManageGxpRoles || canManageLimsRoles) {
+    // A service-side admin manages their own service's roles here too — reusing the
+    // platform's Role/Permission tables rather than a second, service-local role screen.
+    where = {
+      type: {
+        [Op.in]: [
+          RoleType.CUSTOM,
+          ...(canManageGxpRoles ? [RoleType.GXP_SERVICE] : []),
+          ...(canManageLimsRoles ? [RoleType.LIMS_SERVICE] : [])
+        ]
+      }
+    };
   }
 
   if (search) {
