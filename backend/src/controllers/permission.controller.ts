@@ -3,6 +3,7 @@ import permissionService from "../services/permission.service";
 import { CUSTOM_MESSAGES } from "../utils/common.util";
 import asyncHandler from "../middlewares/error.middleware";
 import { getPaginationOptions } from "../utils/pagination.util";
+import { IUser } from "../models/user.model";
 
 export const createPermissions = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
@@ -50,7 +51,10 @@ export const bulkDeletePermissions = asyncHandler(
       res.status(400).json({ message: "An array of ids is required" });
       return;
     }
-    const result = await permissionService.bulkDeletePermissions(ids);
+    const result = await permissionService.bulkDeletePermissions(
+      ids,
+      req.user as IUser
+    );
     res.status(200).json({ message: "Permissions deleted", result });
   }
 );

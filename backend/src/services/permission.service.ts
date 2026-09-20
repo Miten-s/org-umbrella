@@ -5,6 +5,8 @@ import { PaginationOptions } from "../utils/pagination.util";
 import { Op } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 import { publishRbacInvalidation } from "./rbac-invalidation.publisher";
+import { recordRbacChange } from "./rbac-audit.service";
+import { IUser } from "../models/user.model";
 
 const formatPermission = (perm: any) => {
   if (!perm) return null;
@@ -30,18 +32,61 @@ const assertNotProtectedPermission = (name: string) => {
 };
 
 const createPermission = async (req: Request) => {
-  const doc = await Permission.create(req.body);
-  await publishRbacInvalidation({ scope: "all" });
-  return formatPermission(doc);
+  // Wrapped in a transaction purely so the audit row cannot be lost if it fails: an
+  // unlogged permission change is not acceptable in a regulated system.
+  const t = await sequelize.transaction();
+  try {
+    const doc = await Permission.create(req.body, { transaction: t });
+    await recordRbacChange(
+      {
+        actor: req.user as IUser,
+        action: "PERMISSION_CREATE",
+        targetType: "permission",
+        targetId: doc.id,
+        targetName: doc.name,
+        afterState: { name: doc.name },
+        reason: req.body.changeReason ?? null
+      },
+      t
+    );
+    await t.commit();
+    await publishRbacInvalidation({ scope: "all" });
+    return formatPermission(doc);
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
 };
 
 const updatePermission = async (req: Request) => {
   const permission = await Permission.findByPk(req.params.id as string);
   if (!permission) return null;
   assertNotProtectedPermission(permission.name);
-  await permission.update(req.body);
-  await publishRbacInvalidation({ scope: "all" });
-  return formatPermission(permission);
+
+  const beforeState = { name: permission.name };
+  const t = await sequelize.transaction();
+  try {
+    await permission.update(req.body, { transaction: t });
+    await recordRbacChange(
+      {
+        actor: req.user as IUser,
+        action: "PERMISSION_UPDATE",
+        targetType: "permission",
+        targetId: permission.id,
+        targetName: permission.name,
+        beforeState,
+        afterState: { name: permission.name },
+        reason: req.body.changeReason ?? null
+      },
+      t
+    );
+    await t.commit();
+    await publishRbacInvalidation({ scope: "all" });
+    return formatPermission(permission);
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
 };
 
 const deletePermission = async (req: Request) => {
@@ -61,6 +106,19 @@ const deletePermission = async (req: Request) => {
         replacements: { id: req.params.id },
         transaction: t
       }
+    );
+
+    await recordRbacChange(
+      {
+        actor: req.user as IUser,
+        action: "PERMISSION_DELETE",
+        targetType: "permission",
+        targetId: permission.id,
+        targetName: permission.name,
+        beforeState: { name: permission.name },
+        reason: (req.body?.changeReason as string) ?? null
+      },
+      t
     );
 
     await t.commit();
@@ -115,7 +173,7 @@ const getPermissions = async (options: PaginationOptions, type?: string) => {
   };
 };
 
-const bulkDeletePermissions = async (ids: string[]) => {
+const bulkDeletePermissions = async (ids: string[], actor?: IUser) => {
   const t = await sequelize.transaction();
   try {
     const protectedPermissions = await Permission.findAll({
@@ -141,11 +199,32 @@ const bulkDeletePermissions = async (ids: string[]) => {
       );
     }
 
+    // Read before destroying — the audit trail needs what was there.
+    const doomed = await Permission.findAll({
+      where: { id: deletableIds },
+      attributes: ["id", "name"],
+      transaction: t
+    });
+
     // Soft delete permissions
     await Permission.destroy({
       where: { id: deletableIds },
       transaction: t
     });
+
+    for (const permission of doomed) {
+      await recordRbacChange(
+        {
+          actor,
+          action: "PERMISSION_BULK_DELETE",
+          targetType: "permission",
+          targetId: permission.id,
+          targetName: permission.name,
+          beforeState: { name: permission.name }
+        },
+        t
+      );
+    }
 
     if (deletableIds.length > 0) {
       // Cascade: remove deleted permission refs from all role_permissions
@@ -225,6 +304,21 @@ const bulkDuplicatePermissions = async (ids: string[], user?: any) => {
       );
 
       duplicatedPermissions.push(savedPermission);
+
+      await recordRbacChange(
+        {
+          actor: user as IUser,
+          action: "PERMISSION_BULK_DUPLICATE",
+          targetType: "permission",
+          targetId: savedPermission.id,
+          targetName: savedPermission.name,
+          afterState: {
+            name: savedPermission.name,
+            duplicatedFrom: sourcePermission.id
+          }
+        },
+        t
+      );
     }
 
     await t.commit();

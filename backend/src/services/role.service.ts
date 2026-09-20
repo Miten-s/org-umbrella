@@ -7,6 +7,10 @@ import { PaginationOptions } from "../utils/pagination.util";
 import { Op } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 import { publishRbacInvalidation } from "./rbac-invalidation.publisher";
+import {
+  recordRbacChange,
+  permissionNamesOf
+} from "./rbac-audit.service";
 
 /** A role editor can't grant permissions they don't themselves hold — otherwise a
  * CREATE:ROLE/UPDATE:ROLE grant alone becomes a path to self-escalation. Super Admin
@@ -115,7 +119,26 @@ const assignRole = async (req: Request) => {
   if (!user) return null;
   const role = await Role.findByPk(req.body.role);
   if (role) {
-    await (user as any).addRole(role);
+    const t = await sequelize.transaction();
+    try {
+      await (user as any).addRole(role, { transaction: t });
+      await recordRbacChange(
+        {
+          actor: req.user as IUser,
+          action: "ROLE_ASSIGN",
+          targetType: "user_role",
+          targetId: user.id,
+          targetName: user.email,
+          afterState: { roleId: role.id, roleName: role.name },
+          reason: req.body.changeReason ?? null
+        },
+        t
+      );
+      await t.commit();
+    } catch (error) {
+      await t.rollback();
+      throw error;
+    }
     await publishRbacInvalidation({ scope: "user", platformUserId: user.id });
   }
   return user;
@@ -131,6 +154,22 @@ const createRole = async (req: Request) => {
     if (permissions && permissions.length > 0) {
       await (role as any).setPermissions(permissions, { transaction: t });
     }
+    await recordRbacChange(
+      {
+        actor: req.user as IUser,
+        action: "ROLE_CREATE",
+        targetType: "role",
+        targetId: role.id,
+        targetName: name,
+        afterState: {
+          name,
+          type: type ?? RoleType.CUSTOM,
+          permissions: permissionNamesOf(permissions)
+        },
+        reason: req.body.changeReason ?? null
+      },
+      t
+    );
     await t.commit();
     // After commit, never before — a subscriber that re-reads on this signal must not
     // see pre-commit state.
@@ -150,8 +189,16 @@ const updateRole = async (req: Request) => {
   const { name, permissions, type } = req.body;
   const t = await sequelize.transaction();
   try {
-    const role = await Role.findByPk(req.params.id as string);
+    const role = await Role.findByPk(req.params.id as string, {
+      include: ["permissions"],
+      transaction: t
+    });
     if (!role) throw new Error("Role not found");
+    const beforeState = {
+      name: role.name,
+      type: role.type,
+      permissions: permissionNamesOf((role as any).permissions)
+    };
     assertNotProtectedRole(role.name);
     assertRoleTypeAuthority(req.user as IUser, role.type);
     if (type && type !== role.type) {
@@ -162,6 +209,26 @@ const updateRole = async (req: Request) => {
     if (permissions !== undefined) {
       await (role as any).setPermissions(permissions, { transaction: t });
     }
+    await recordRbacChange(
+      {
+        actor: req.user as IUser,
+        action: "ROLE_UPDATE",
+        targetType: "role",
+        targetId: role.id,
+        targetName: name ?? role.name,
+        beforeState,
+        afterState: {
+          name: name ?? role.name,
+          type: type ?? role.type,
+          permissions:
+            permissions === undefined
+              ? beforeState.permissions
+              : permissionNamesOf(permissions)
+        },
+        reason: req.body.changeReason ?? null
+      },
+      t
+    );
     await t.commit();
     await publishRbacInvalidation({ scope: "all" });
 
@@ -195,6 +262,23 @@ const deleteRole = async (req: Request) => {
       replacements: { id: req.params.id },
       transaction: t
     });
+
+    await recordRbacChange(
+      {
+        actor: req.user as IUser,
+        action: "ROLE_DELETE",
+        targetType: "role",
+        targetId: role.id,
+        targetName: role.name,
+        beforeState: {
+          name: role.name,
+          type: role.type,
+          permissions: permissionNamesOf((role as any).permissions)
+        },
+        reason: (req.body?.changeReason as string) ?? null
+      },
+      t
+    );
 
     await t.commit();
     await publishRbacInvalidation({ scope: "all" });
@@ -254,7 +338,7 @@ const getRoles = async (
   };
 };
 
-const bulkDeleteRoles = async (ids: string[]) => {
+const bulkDeleteRoles = async (ids: string[], actor?: IUser) => {
   const t = await sequelize.transaction();
   try {
     const protectedRoles = await Role.findAll({
@@ -278,10 +362,35 @@ const bulkDeleteRoles = async (ids: string[]) => {
       );
     }
 
+    // Read before destroying — the audit trail needs what was there.
+    const doomedRoles = await Role.findAll({
+      where: { id: deletableIds },
+      include: ["permissions"],
+      transaction: t
+    });
+
     await Role.destroy({
       where: { id: deletableIds },
       transaction: t
     });
+
+    for (const role of doomedRoles) {
+      await recordRbacChange(
+        {
+          actor,
+          action: "ROLE_BULK_DELETE",
+          targetType: "role",
+          targetId: role.id,
+          targetName: role.name,
+          beforeState: {
+            name: role.name,
+            type: role.type,
+            permissions: permissionNamesOf((role as any).permissions)
+          }
+        },
+        t
+      );
+    }
 
     if (deletableIds.length > 0) {
       // Cascade: remove deleted role refs from all user_roles
@@ -309,7 +418,7 @@ const bulkDeleteRoles = async (ids: string[]) => {
   }
 };
 
-const bulkDuplicateRoles = async (ids: string[]) => {
+const bulkDuplicateRoles = async (ids: string[], actor?: IUser) => {
   const t = await sequelize.transaction();
   try {
     const sourceRoles = await Role.findAll({
@@ -368,6 +477,22 @@ const bulkDuplicateRoles = async (ids: string[]) => {
       }
 
       duplicatedRoles.push(savedRole);
+
+      await recordRbacChange(
+        {
+          actor,
+          action: "ROLE_BULK_DUPLICATE",
+          targetType: "role",
+          targetId: savedRole.id,
+          targetName: savedRole.name,
+          afterState: {
+            name: savedRole.name,
+            type: savedRole.type,
+            duplicatedFrom: sourceRole.id
+          }
+        },
+        t
+      );
     }
 
     await t.commit();

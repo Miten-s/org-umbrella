@@ -3,6 +3,7 @@ import userService from "../services/role.service";
 import { CUSTOM_MESSAGES } from "../utils/common.util";
 import asyncHandler from "../middlewares/error.middleware";
 import { getPaginationOptions } from "../utils/pagination.util";
+import { IUser } from "../models/user.model";
 
 export const createRole = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
@@ -59,7 +60,7 @@ export const bulkDeleteRoles = asyncHandler(
       res.status(400).json({ message: "An array of ids is required" });
       return;
     }
-    const result = await userService.bulkDeleteRoles(ids);
+    const result = await userService.bulkDeleteRoles(ids, req.user as IUser);
     res.status(200).json({ message: "Roles deleted", result });
   }
 );
@@ -71,7 +72,7 @@ export const bulkDuplicateRoles = asyncHandler(
       res.status(400).json({ message: "An array of ids is required" });
       return;
     }
-    const result = await userService.bulkDuplicateRoles(ids);
+    const result = await userService.bulkDuplicateRoles(ids, req.user as IUser);
     res.status(201).json({ message: "Roles duplicated", result });
   }
 );
