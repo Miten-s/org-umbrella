@@ -28,6 +28,11 @@ app.disable("x-powered-by");
 // as a nested object (query.filter = { field: value }), not a flat string.
 app.set("query parser", "extended");
 
+// Behind the nginx gateway every request arrives from the proxy, so req.ip was the
+// proxy's address and the rate limiter below bucketed ALL users into a single quota.
+// Trust one hop so it keys on the real client via X-Forwarded-For, which nginx sets.
+app.set("trust proxy", 1);
+
 // Security headers + per-request correlation id & structured access log.
 app.use(securityHeaders);
 app.use(requestContext);
