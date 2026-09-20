@@ -33,16 +33,18 @@ const router: Router = Router();
 const can = (action: "VIEW" | "CREATE" | "UPDATE" | "DELETE") =>
   authorize("USER", action);
 
-const selfFromParamId = preventSelfModification((req) => [
-  req.params.id as string
-]);
+// Each extractor returns `null` when the request is not in the shape it expects — the guard
+// denies on that, rather than treating "I couldn't find any ids" as "there are none".
+const selfFromParamId = preventSelfModification((req) =>
+  req.params.id ? [req.params.id as string] : null
+);
 const selfFromBodyIds = preventSelfModification((req) =>
-  Array.isArray(req.body?.ids) ? req.body.ids : []
+  Array.isArray(req.body?.ids) ? req.body.ids : null
 );
 const selfFromBulkUpdates = preventSelfModification((req) =>
   Array.isArray(req.body?.updates)
     ? req.body.updates.map((u: { id: string }) => u.id)
-    : []
+    : null
 );
 
 // ---------------------------------------------------------------------------------------- GET Requests ----------------------------------------------------------------------------------------

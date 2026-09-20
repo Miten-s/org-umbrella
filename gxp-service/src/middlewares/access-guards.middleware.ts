@@ -7,11 +7,21 @@ import { fetchPermissionNamesForRoleIds } from "../services/inter-service-calls.
  * permit it on others. Super Admin is the defined exception. Mirrors the intent of
  * lims-service's `assertNotSelf` (there, scoped to delete only; here, any access change). */
 export const preventSelfModification =
-  (extractTargetIds: (req: Request) => string[]) =>
+  (extractTargetIds: (req: Request) => string[] | null) =>
   async (req: Request, res: Response, next: NextFunction) => {
     if (req.access?.isSuperAdmin) return next();
 
-    const ids = extractTargetIds(req).filter(Boolean);
+    // `null` means the extractor could not find the shape it expects. That is not the same
+    // as a request that legitimately targets nobody: if we cannot see the targets but the
+    // controller still can, waving it through is how a self-modification slips past.
+    const extracted = extractTargetIds(req);
+    if (extracted === null) {
+      return res.status(400).json({
+        message: "Could not determine which GXP users this request targets."
+      });
+    }
+
+    const ids = extracted.filter(Boolean);
     if (ids.length === 0) return next();
 
     const targets = await GxpUser.findAll({ where: { id: ids } });
@@ -30,9 +40,10 @@ export const preventSelfModification =
   };
 
 /** Pulls every `roles` array out of a request body, whichever shape it's in — a single
- * record, a bulk-copy `records[]`, or a bulk-update `updates[].payload`. */
-const allRoleIdsIn = (body: Record<string, any> | undefined): string[] => {
-  if (!body) return [];
+ * record, a bulk-copy `records[]`, or a bulk-update `updates[].payload`. Returns `null` when
+ * there is no body at all, so an unreadable request is denied rather than silently passed. */
+const allRoleIdsIn = (body: Record<string, any> | undefined): string[] | null => {
+  if (!body) return null;
   const bodies: Record<string, any>[] = Array.isArray(body.records)
     ? body.records
     : Array.isArray(body.updates)
@@ -56,6 +67,14 @@ export const preventRoleEscalation = async (
   next: NextFunction
 ) => {
   const roleIds = allRoleIdsIn(req.body);
+  if (roleIds === null) {
+    return res.status(400).json({
+      message: "Could not read the roles being assigned by this request."
+    });
+  }
+
+  // An empty list here is genuine: a payload that changes only status or name grants no
+  // roles, so there is nothing to escalate with.
   if (roleIds.length === 0 || req.access?.isSuperAdmin) return next();
 
   const grantedNames = new Set(req.access?.permissions ?? []);
