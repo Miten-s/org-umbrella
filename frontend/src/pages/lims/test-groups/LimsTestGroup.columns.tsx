@@ -47,8 +47,8 @@ export const getLimsTestGroupColumns = ({
     cellRenderer: (params: ICellRendererParams<LimsTestGroup>) => (
       <TagListCell<LimsTestRow>
         items={params.data?.tests}
-        getLabel={(row) => String(row.testName ?? "")}
-        getKey={(row, index) => String(row.testName ?? index)}
+        getLabel={(row) => String(row.analysis?.name ?? "")}
+        getKey={(row, index) => String(row.analysisId ?? index)}
         tooltipHeaderLabel={t("limsTestList")}
       />
     )

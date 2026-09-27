@@ -202,6 +202,14 @@ const LimsRoleForm = ({
           <div className="min-w-0 md:col-span-2">
             <PermissionPicker
               allPermissions={rolePermissions.map((p) => p.name)}
+              entityLabels={Object.fromEntries(
+                rolePermissions
+                  .filter((p) => p.entity && p.entityLabel)
+                  .map((p) => [p.entity as string, p.entityLabel as string])
+              )}
+              permissionLabels={Object.fromEntries(
+                rolePermissions.map((p) => [p.name, p.label])
+              )}
               selected={selectedPermissions}
               onChange={setSelectedPermissions}
               disabled={isReadOnly}

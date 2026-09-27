@@ -10,8 +10,7 @@ import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import SubFormGrid from "@/components/data/SubFormGrid";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
-import { refId } from "@/lib/query/normalizeId";
-import { useLimsInstrumentOptions } from "@/pages/lims/instruments/LimsInstrument.queries";
+import { useLimsApprovedAnalysisOptions } from "@/pages/lims/analyses/LimsAnalysis.queries";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
 import {
   limsTestGroupSchema,
@@ -71,17 +70,18 @@ const LimsTestGroupForm = ({
 
   const identityLocked = isReadOnly;
 
-  // `instrument` arrives nested (`{id, name}` or just `instrumentId`); a select cell needs
-  // the bare id or it matches no option and renders blank.
-  const initialTestsRef = useRef(
-    (initialData?.tests ?? []).map((row) => ({
-      ...row,
-      instrument: refId(
-        row.instrument ?? (row as { instrumentId?: string }).instrumentId
-      )
-    }))
+  // Kept in saved order; the name rides along so a template that's no longer Approved
+  // (so absent from the picker's options) still shows its label.
+  const initialTestsRef = useRef<LimsTestRow[]>(
+    [...(initialData?.tests ?? [])]
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+      .map((row) => ({
+        analysisId: row.analysisId ?? row.analysis?.id,
+        analysisName: row.analysis?.name
+      }))
   );
   const [tests, setTests] = useState<LimsTestRow[]>(initialTestsRef.current);
+  const [testsError, setTestsError] = useState<string | undefined>();
 
   // Captured once per record — also the no-change baseline `submit` diffs
   // against, so Save is a no-op when nothing actually differs from it.
@@ -126,7 +126,32 @@ const LimsTestGroupForm = ({
             (onUnchanged ?? onClose)();
             return;
           }
-          onSubmit({ ...values, tests });
+          if (tests.some((row) => !row.analysisId)) {
+            setTestsError(t("limsTestTemplateRequired"));
+            return;
+          }
+          const seen = new Set<string>();
+          const duplicate = tests.find((row) => {
+            const dup = seen.has(row.analysisId!);
+            seen.add(row.analysisId!);
+            return dup;
+          });
+          if (duplicate) {
+            setTestsError(
+              t("limsTestTemplateDuplicate", {
+                name: duplicate.analysisName ?? ""
+              })
+            );
+            return;
+          }
+          setTestsError(undefined);
+          onSubmit({
+            ...values,
+            tests: tests.map((row, index) => ({
+              analysisId: row.analysisId,
+              sortOrder: index
+            }))
+          });
         })}
         className="min-w-0 space-y-4"
       >
@@ -206,27 +231,28 @@ const LimsTestGroupForm = ({
             <SubFormGrid<LimsTestRow>
               label={t("limsTestList")}
               rows={tests}
-              onChange={setTests}
+              onChange={(next) => {
+                setTests(next);
+                setTestsError(undefined);
+              }}
               disabled={isReadOnly}
-              addLabel={t("limsAddTest")}
+              addLabel={t("limsAddTestTemplate")}
               emptyLabel={t("limsNoTests")}
+              error={testsError}
               columns={[
-                { key: "testName", header: t("limsTestName") },
                 {
-                  key: "instrumentCategory",
-                  header: t("limsInstrumentCategory")
-                },
-                { key: "instrumentType", header: t("limsInstrumentType") },
-                {
-                  key: "instrument",
-                  header: t("limsInstrument"),
+                  key: "analysisId",
+                  header: t("limsTestTemplate"),
                   type: "async-select",
-                  useOptions: useLimsInstrumentOptions
-                },
-                {
-                  key: "replicateCount",
-                  header: t("limsReplicateCount"),
-                  type: "number"
+                  useOptions: useLimsApprovedAnalysisOptions,
+                  tooltip: t("limsApprovedTemplatesOnly"),
+                  onSelectOption: (_row, option) => ({
+                    analysisName: option.label
+                  }),
+                  selectedOption: (row) =>
+                    row.analysisId && row.analysisName
+                      ? { value: row.analysisId, label: row.analysisName }
+                      : undefined
                 }
               ]}
             />

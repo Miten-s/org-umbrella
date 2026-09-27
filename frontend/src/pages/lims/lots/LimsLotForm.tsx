@@ -22,7 +22,8 @@ import type { LimsLot, LimsLotPayload, LimsRef } from "./LimsLot.types";
 
 /** "copy" renders like "create" except the business ID starts blank (stays EDITABLE —
  * `applyBusinessId` only mints when empty). Attachments hidden: the batch save is JSON-only. */
-export type LimsLotFormMode = "create" | "edit" | "view" | "copy" | "bulk-edit";
+export type LimsLotFormMode =
+  "create" | "edit" | "view" | "copy" | "bulk-edit" | "bulk-create";
 
 interface LimsLotFormProps {
   mode?: LimsLotFormMode;
@@ -77,7 +78,12 @@ const LimsLotForm = ({
       lotId: mode === "copy" ? "" : (initialData?.lotId ?? ""),
       lotName: initialData?.lotName ?? "",
       group: initialData?.group?.id ?? "",
-      samples: (initialData?.samples ?? []).map((ref) => ref.id),
+      // A copy never inherits claimed samples: each belongs to one parent, and saving
+      // the copy would re-parent them off the original.
+      samples:
+        mode === "copy"
+          ? []
+          : (initialData?.samples ?? []).map((ref) => ref.id),
       description: initialData?.description ?? ""
     }),
     [initialData, mode]
@@ -90,7 +96,11 @@ const LimsLotForm = ({
     setValue,
     formState: { errors, isSubmitting }
   } = useForm<LimsLotFormValues>({
-    resolver: zodResolver(mode === "copy" ? limsLotCopySchema : limsLotSchema),
+    resolver: zodResolver(
+      mode === "copy" || mode === "bulk-create"
+        ? limsLotCopySchema
+        : limsLotSchema
+    ),
     defaultValues: initialValues
   });
 
@@ -142,11 +152,13 @@ const LimsLotForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsLot") })
-            : mode === "copy"
-              ? `${t("copyEntity", { entity: t("limsLot") })}${stepLabel ?? ""}`
-              : initialData
-                ? `${t("update", { entity: t("limsLot") })}${stepLabel ?? ""}`
-                : t("create", { entity: t("limsLot") })}
+            : mode === "bulk-create"
+              ? `${t("create", { entity: t("limsLot") })}${stepLabel ?? ""}`
+              : mode === "copy"
+                ? `${t("copyEntity", { entity: t("limsLot") })}${stepLabel ?? ""}`
+                : initialData
+                  ? `${t("update", { entity: t("limsLot") })}${stepLabel ?? ""}`
+                  : t("create", { entity: t("limsLot") })}
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
@@ -182,7 +194,9 @@ const LimsLotForm = ({
                   onChange={field.onChange}
                   disabled={isReadOnly}
                   placeholder={t("select", { entity: t("limsSamples") })}
-                  initialSelectedOptions={seedMany(initialData?.samples)}
+                  initialSelectedOptions={
+                    mode === "copy" ? undefined : seedMany(initialData?.samples)
+                  }
                 />
               )}
             />
@@ -198,12 +212,14 @@ const LimsLotForm = ({
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
-          {mode !== "copy" && mode !== "bulk-edit" && (
-            <LimsAttachmentsField
-              attachments={attachments}
-              disabled={isReadOnly}
-            />
-          )}
+          {mode !== "copy" &&
+            mode !== "bulk-edit" &&
+            mode !== "bulk-create" && (
+              <LimsAttachmentsField
+                attachments={attachments}
+                disabled={isReadOnly}
+              />
+            )}
         </div>
 
         <div className="mt-4 flex justify-end gap-2">

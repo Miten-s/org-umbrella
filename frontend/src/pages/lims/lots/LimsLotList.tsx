@@ -18,6 +18,9 @@ import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
 import { toast } from "@/lib/toast";
 import { idsSelection } from "@/lib/query/listTypes";
+import BulkCountDialog from "@/components/lims/BulkCountDialog";
+import { useBulkCreateFlow } from "@/hooks/useBulkCreateFlow";
+import { MAX_BULK_CREATE } from "@/lib/limsBulk";
 import {
   CopyIcon,
   EyeIcon,
@@ -32,6 +35,7 @@ import {
   limsLotKeys,
   useBulkCloneLimsLot,
   useBulkCopyLimsLot,
+  useBulkCreateLimsLot,
   useBulkDeleteLimsLot,
   useBulkUpdateLimsLot,
   useCreateLimsLot,
@@ -81,6 +85,9 @@ const LimsLotList = () => {
   const update = useUpdateLimsLot();
   const bulkClone = useBulkCloneLimsLot();
   const bulkCopy = useBulkCopyLimsLot();
+  const bulkCreate = useBulkCreateLimsLot();
+  const bulkFlow = useBulkCreateFlow<LimsLot>(fetchLimsLotById);
+  const { askCopy } = bulkFlow;
   const bulkDelete = useBulkDeleteLimsLot();
   const bulkUpdate = useBulkUpdateLimsLot();
   const restore = useRestoreLimsLot();
@@ -91,6 +98,7 @@ const LimsLotList = () => {
     update.isPending ||
     bulkClone.isPending ||
     bulkCopy.isPending ||
+    bulkCreate.isPending ||
     bulkDelete.isPending ||
     bulkUpdate.isPending ||
     restore.isPending ||
@@ -138,6 +146,22 @@ const LimsLotList = () => {
     setCopyIds(null);
     setViewIds(null);
     setEditIds(null);
+    bulkFlow.reset();
+  };
+
+  // "How many?" → 1 is the ordinary single form (keeps attachments); more opens the stepper.
+  const confirmCreateCount = (count: number) => {
+    if (count === 1) {
+      bulkFlow.reset();
+      openForm("create", null);
+      return;
+    }
+    bulkFlow.startCreate(count, {} as LimsLot);
+  };
+
+  const handleSaveCreated = async (payloads: LimsLotPayload[]) => {
+    await bulkCreate.mutateAsync(payloads);
+    handleCloseForm();
   };
 
   const handleSaveCopies = async (payloads: LimsLotPayload[]) => {
@@ -206,6 +230,12 @@ const LimsLotList = () => {
         permission: LIMS_PERMISSIONS.CREATE_LOT,
         onClick: async (selection) => {
           if (selection.mode === "ids") {
+            // One record selected → "How many copies?"; several → one copy each, as before.
+            if (selection.ids.length === 1) {
+              askCopy(selection.ids[0], t("limsLot"));
+              openModal();
+              return;
+            }
             openCopy(selection.ids);
             return;
           }
@@ -267,7 +297,17 @@ const LimsLotList = () => {
           )
       }
     ],
-    [bulkClone, compliance, openCopy, openEdit, openView, t, table]
+    [
+      askCopy,
+      bulkClone,
+      compliance,
+      openCopy,
+      openEdit,
+      openModal,
+      openView,
+      t,
+      table
+    ]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsLot>[]>(
@@ -302,7 +342,10 @@ const LimsLotList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_LOT,
-        onClick: (row) => openCopy([row.id])
+        onClick: (row) => {
+          askCopy(row.id, label(row));
+          openModal();
+        }
       },
       {
         key: "restore",
@@ -327,7 +370,7 @@ const LimsLotList = () => {
           ])
       }
     ],
-    [compliance, openCopy, openForm, t]
+    [askCopy, compliance, openForm, openModal, t]
   );
 
   return (
@@ -356,7 +399,10 @@ const LimsLotList = () => {
             icon: PlusIcon,
             variant: "primary",
             permission: LIMS_PERMISSIONS.CREATE_LOT,
-            onClick: () => openForm("create", null)
+            onClick: () => {
+              bulkFlow.askCreate();
+              openModal();
+            }
           }
         ]}
         emptyState={{ title: t("limsNoLots") }}
@@ -368,7 +414,47 @@ const LimsLotList = () => {
         className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
         disableOuterScroll
       >
-        {copyIds ? (
+        {bulkFlow.prompt?.kind === "create" ? (
+          <BulkCountDialog
+            title={t("limsHowManyCreate", { entity: t("limsLots") })}
+            countLabel={t("limsNumberOf", { entity: t("limsLots") })}
+            hint={t("limsHowManyHint", { max: MAX_BULK_CREATE })}
+            onCancel={handleCloseForm}
+            onConfirm={confirmCreateCount}
+          />
+        ) : bulkFlow.prompt?.kind === "copy" ? (
+          <BulkCountDialog
+            title={t("limsHowManyCopy", { name: bulkFlow.prompt.name })}
+            countLabel={t("limsNumberOfCopies")}
+            hint={t("limsHowManyCopyHint", { max: MAX_BULK_CREATE })}
+            onCancel={handleCloseForm}
+            onConfirm={(count) => {
+              if (bulkFlow.prompt?.kind === "copy")
+                bulkFlow.startCopy(bulkFlow.prompt.id, count);
+            }}
+          />
+        ) : bulkFlow.createIds ? (
+          <CopyStepper<LimsLot, LimsLotPayload, LimsLotFormMode>
+            ids={bulkFlow.createIds}
+            fetchById={bulkFlow.fetchNew}
+            FormComponent={LimsLotForm}
+            formMode="bulk-create"
+            onSaveAll={handleSaveCreated}
+            onClose={handleCloseForm}
+            saving={bulkCreate.isPending}
+            entityLabel={t("limsLot")}
+          />
+        ) : bulkFlow.copyIds ? (
+          <CopyStepper<LimsLot, LimsLotPayload>
+            ids={bulkFlow.copyIds}
+            fetchById={bulkFlow.fetchSource}
+            FormComponent={LimsLotForm}
+            onSaveAll={handleSaveCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending}
+            entityLabel={t("limsLot")}
+          />
+        ) : copyIds ? (
           <CopyStepper<LimsLot, LimsLotPayload>
             ids={copyIds}
             fetchById={fetchLimsLotById}

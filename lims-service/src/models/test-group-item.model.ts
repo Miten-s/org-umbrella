@@ -2,16 +2,13 @@ import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 
 /**
- * One test row inside a Test Group.
+ * One Test Template (Analysis) inside a Test Group. The instrument and replicates are
+ * decided by the method and at execution time, never by the group.
  */
 export interface ITestGroupItem {
   id?: string;
   testGroupId: string;
-  testName?: string | null;
-  instrumentCategory?: string | null;
-  instrumentType?: string | null;
-  instrumentId?: string | null;
-  replicateCount?: number | null;
+  analysisId: string;
   sortOrder?: number | null;
 }
 
@@ -21,11 +18,7 @@ export class TestGroupItem
 {
   public id!: string;
   public testGroupId!: string;
-  public testName!: string | null;
-  public instrumentCategory!: string | null;
-  public instrumentType!: string | null;
-  public instrumentId!: string | null;
-  public replicateCount!: number | null;
+  public analysisId!: string;
   public sortOrder!: number | null;
 }
 
@@ -41,30 +34,10 @@ TestGroupItem.init(
       allowNull: false,
       field: "test_group_id"
     },
-    testName: {
-      type: DataTypes.STRING(200),
-      allowNull: true,
-      field: "test_name"
-    },
-    instrumentCategory: {
-      type: DataTypes.STRING(150),
-      allowNull: true,
-      field: "instrument_category"
-    },
-    instrumentType: {
-      type: DataTypes.STRING(150),
-      allowNull: true,
-      field: "instrument_type"
-    },
-    instrumentId: {
+    analysisId: {
       type: DataTypes.UUID,
-      allowNull: true,
-      field: "instrument_id"
-    },
-    replicateCount: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      field: "replicate_count"
+      allowNull: false,
+      field: "analysis_id"
     },
     sortOrder: { type: DataTypes.INTEGER, allowNull: true, field: "sort_order" }
   },

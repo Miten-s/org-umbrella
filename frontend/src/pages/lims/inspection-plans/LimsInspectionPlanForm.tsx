@@ -58,6 +58,14 @@ interface LimsInspectionPlanFormProps {
 const seedOne = (ref: LimsRef | null | undefined) =>
   ref?.id && ref.name ? [{ value: ref.id, label: ref.name }] : undefined;
 
+/** A row names a person OR a role — drop whichever one its entry type doesn't use. */
+const keepChosenEntry = (row: LimsPersonnelRow): LimsPersonnelRow =>
+  row.inspectionType === "User"
+    ? { ...row, role: "" }
+    : row.inspectionType === "Role"
+      ? { ...row, person: "" }
+      : row;
+
 const LimsInspectionPlanForm = ({
   mode = "create",
   initialData,
@@ -153,7 +161,7 @@ const LimsInspectionPlanForm = ({
             (onUnchanged ?? onClose)();
             return;
           }
-          onSubmit({ ...values, personnel });
+          onSubmit({ ...values, personnel: personnel.map(keepChosenEntry) });
         })}
         className="min-w-0 space-y-4"
       >
@@ -243,19 +251,27 @@ const LimsInspectionPlanForm = ({
                   options: [
                     { label: t("limsPerson"), value: "User" },
                     { label: t("limsRole"), value: "Role" }
-                  ]
+                  ],
+                  onChangeValue: (_row, value) =>
+                    value === "User"
+                      ? { role: "" }
+                      : value === "Role"
+                        ? { person: "" }
+                        : {}
                 },
                 {
                   key: "person",
                   header: t("limsPerson"),
                   type: "async-select",
-                  useOptions: useLimsUserOptions
+                  useOptions: useLimsUserOptions,
+                  readOnly: (row) => row.inspectionType !== "User"
                 },
                 {
                   key: "role",
                   header: t("limsRole"),
                   type: "async-select",
-                  useOptions: useLimsRoleOptions
+                  useOptions: useLimsRoleOptions,
+                  readOnly: (row) => row.inspectionType !== "Role"
                 }
               ]}
             />

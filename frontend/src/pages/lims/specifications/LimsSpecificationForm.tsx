@@ -8,15 +8,10 @@ import Label from "@/components/common/form/Label";
 import TextArea from "@/components/common/form/input/TextArea";
 import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
-import SubFormGrid from "@/components/data/SubFormGrid";
+import SpecLimitsEditor from "./SpecLimitsEditor";
 import LimsAttachmentsField from "@/components/lims/LimsAttachmentsField";
 import { useAttachments } from "@/hooks/useAttachments";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
-import {
-  useLimsAnalysisComponentOptions,
-  useLimsAnalysisOptions
-} from "@/pages/lims/analyses/LimsAnalysis.queries";
-import type { LimsComponentRow } from "@/pages/lims/analyses/LimsAnalysis.types";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
 import {
   limsSpecificationSchema,
@@ -203,79 +198,11 @@ const LimsSpecificationForm = ({
             />
           </div>
           <div className="col-span-full min-w-0">
-            <SubFormGrid<LimsLimitRow>
-              label={t("limsLimits")}
+            <SpecLimitsEditor
               rows={limits}
               onChange={setLimits}
               disabled={isReadOnly}
               error={limitsError}
-              columns={[
-                {
-                  key: "analysisId",
-                  header: t("limsAnalysis"),
-                  type: "async-select",
-                  useOptions: useLimsAnalysisOptions,
-                  // Picking a new Analysis invalidates whichever Component
-                  // (and its Min/Max) had been picked for the old one.
-                  onSelectOption: (_row, option) => ({
-                    analysisName: option.label,
-                    componentId: undefined,
-                    componentName: undefined,
-                    min: undefined,
-                    max: undefined
-                  })
-                },
-                {
-                  key: "analysisName",
-                  header: t("limsAnalysisName"),
-                  readOnly: (row) => Boolean(row.analysisId)
-                },
-                {
-                  key: "componentId",
-                  header: t("limsComponent"),
-                  type: "async-select",
-                  // Scoped to whichever Analysis this row's `analysisId`
-                  // cell holds — see useLimsAnalysisComponentOptions.
-                  useOptions: useLimsAnalysisComponentOptions,
-                  onSelectOption: (_row, option) => {
-                    const component = option.data as
-                      LimsComponentRow | undefined;
-                    return {
-                      componentName: option.label,
-                      // min/max are STRING columns backend-side, not real numeric ones.
-                      min:
-                        component?.min !== undefined
-                          ? String(component.min)
-                          : undefined,
-                      max:
-                        component?.max !== undefined
-                          ? String(component.max)
-                          : undefined
-                    };
-                  }
-                },
-                {
-                  key: "componentName",
-                  header: t("limsComponentName"),
-                  readOnly: (row) => Boolean(row.componentId)
-                },
-                {
-                  key: "min",
-                  header: t("limsMin"),
-                  type: "numeric-text",
-                  readOnly: (row) => Boolean(row.componentId)
-                },
-                {
-                  key: "max",
-                  header: t("limsMax"),
-                  type: "numeric-text",
-                  readOnly: (row) => Boolean(row.componentId)
-                },
-                { key: "text", header: t("limsText") },
-                { key: "phrase", header: t("limsPhrase") },
-                { key: "boolean", header: t("limsBoolean") },
-                { key: "calculation", header: t("limsCalculation") }
-              ]}
             />
           </div>
           {mode !== "copy" && mode !== "bulk-edit" && (

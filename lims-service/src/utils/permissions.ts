@@ -20,6 +20,7 @@ export const LIMS_ENTITIES = [
   "RESULT",
   "ROLE",
   "SAMPLE",
+  "SAMPLE_TEMPLATE",
   "SCHEDULER",
   "SPECIFICATION",
   "STOCK",
@@ -62,7 +63,7 @@ export const ACTION_COLUMN: Record<
 /** Human labels for the Entry dropdown, so the UI never hard-codes them. */
 export const ENTITY_LABELS: Record<LimsEntity, string> = {
   ALIQUOT: "Aliquots",
-  ANALYSIS: "Analyses",
+  ANALYSIS: "Test Templates",
   BATCH: "Batches",
   CALIBRATION: "Calibrations",
   CUSTOMER: "Customers",
@@ -78,6 +79,7 @@ export const ENTITY_LABELS: Record<LimsEntity, string> = {
   RESULT: "Results",
   ROLE: "Lab Roles",
   SAMPLE: "Samples",
+  SAMPLE_TEMPLATE: "Sample Templates",
   SCHEDULER: "Schedulers",
   SPECIFICATION: "Specifications",
   STOCK: "Stock Items",

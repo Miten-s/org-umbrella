@@ -179,4 +179,40 @@ describe("SubFormGrid", () => {
       screen.getByRole("button", { name: "delete 1" })
     ).toBeInTheDocument();
   });
+  it("patches sibling cells via onChangeValue when a cell changes", () => {
+    const onChange = vi.fn();
+    render(
+      <SubFormGrid<Row>
+        label="Components"
+        columns={[
+          { key: "name", header: "Name" },
+          {
+            ...columns[3],
+            onChangeValue: (_row: Row, value: unknown) =>
+              value === "Text" ? { name: "" } : {}
+          }
+        ]}
+        rows={[{ name: "pH", type: "Numeric" }]}
+        onChange={onChange}
+      />
+    );
+
+    fireEvent.click(screen.getByLabelText("Type"));
+    fireEvent.click(screen.getByText("Text"));
+
+    expect(onChange).toHaveBeenCalledWith([{ name: "", type: "Text" }]);
+  });
+
+  it("locks a select cell per row via readOnly", () => {
+    render(
+      <SubFormGrid<Row>
+        label="Components"
+        columns={[{ ...columns[3], readOnly: (row: Row) => row.name === "pH" }]}
+        rows={[{ name: "pH", type: "Numeric" }]}
+        onChange={vi.fn()}
+      />
+    );
+
+    expect(screen.getByLabelText("Type")).toBeDisabled();
+  });
 });

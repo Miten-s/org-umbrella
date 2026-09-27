@@ -21,7 +21,10 @@
     "prettier:fix": "prettier src --write",
     "validate": "npm run typecheck && npm run eslint:ci && npm run test",
     "prepare": "husky",
-    "i18next": "npx i18next --config i18next-parser.config.ts"
+    "i18next": "npx i18next --config i18next-parser.config.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",
@@ -57,6 +60,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
+    "@playwright/test": "^1.63.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.3",

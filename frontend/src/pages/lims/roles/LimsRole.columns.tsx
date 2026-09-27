@@ -14,9 +14,12 @@ const refLabel = (ref: LimsRef | null | undefined) => ref?.name ?? "";
 
 /** Column factory (STANDARDS.md §8). */
 export const getLimsRoleColumns = ({
-  t
+  t,
+  permissionLabels = {}
 }: {
   t: TFunction;
+  /** Permission code → display name from the catalogue; codes are never shown as-is. */
+  permissionLabels?: Record<string, string>;
 }): ColDef<LimsRole>[] => [
   {
     field: "roleId",
@@ -44,10 +47,18 @@ export const getLimsRoleColumns = ({
     minWidth: 260,
     sortable: false,
     valueGetter: ({ data }) =>
-      data ? getLimsRolePermissionNames(data).join(", ") : "",
+      data
+        ? getLimsRolePermissionNames(data)
+            .map((code) => permissionLabels[code] ?? code)
+            .join(", ")
+        : "",
     // Rule from MIGRATION.md §3-6: multi-item arrays use TagListCell.
     cellRenderer: (params: ICellRendererParams<LimsRole>) => {
-      const names = params.data ? getLimsRolePermissionNames(params.data) : [];
+      const names = params.data
+        ? getLimsRolePermissionNames(params.data).map(
+            (code) => permissionLabels[code] ?? code
+          )
+        : [];
       return (
         <TagListCell
           items={names}

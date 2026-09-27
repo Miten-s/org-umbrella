@@ -70,6 +70,29 @@ export const fetchLimsAnalysisOptions = async (
   );
 };
 
+/** Only Approved analyses — for pickers that may only offer an approved method. */
+export const fetchApprovedLimsAnalysisOptions = async (
+  args: { search: string; page: number },
+  signal?: AbortSignal
+) => {
+  const params: ServerListParams = {
+    page: args.page,
+    limit: 20,
+    search: args.search || undefined,
+    filters: { approvalStatus: "Approved" }
+  };
+  const response = await limsApi.get(ROUTE, {
+    params: buildServerParams(params),
+    signal
+  });
+  return toOptionsPage<LimsAnalysis>(
+    response.data,
+    params,
+    (row) => String(row.name ?? ""),
+    DATA_KEYS
+  );
+};
+
 export const createLimsAnalysis = async (payload: LimsAnalysisPayload) => {
   const response = await limsApi.post(ROUTE, payload);
   return response.data;

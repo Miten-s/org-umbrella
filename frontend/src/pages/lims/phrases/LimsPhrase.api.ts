@@ -37,7 +37,8 @@ export const PHRASE_CODES = {
   CALIBRATION_STATUS: "CALIBRATION_STATUS",
   ANALYSIS_TYPE: "ANALYSIS_TYPE",
   APPROVAL_STATUS: "APPROVAL_STATUS",
-  SAMPLE_TYPE: "SAMPLE_TYPE"
+  SAMPLE_TYPE: "SAMPLE_TYPE",
+  UNIT: "UNIT"
 } as const;
 
 export type PhraseCode = (typeof PHRASE_CODES)[keyof typeof PHRASE_CODES];
@@ -90,6 +91,18 @@ export const fetchPhraseEntryOptions =
       (row) => String(row.name ?? row.phraseEntryId ?? ""),
       ["entries", "phraseEntries", "data"]
     );
+  };
+
+/** Same list, but each option's value is the entry name — for fields that store the
+ * text itself (e.g. `unit`) rather than a reference to the entry. */
+export const fetchPhraseEntryNameOptions =
+  (phrase: PhraseCode) =>
+  async (args: { search: string; page: number }, signal?: AbortSignal) => {
+    const page = await fetchPhraseEntryOptions(phrase)(args, signal);
+    return {
+      ...page,
+      options: page.options.map((o) => ({ ...o, value: o.label }))
+    };
   };
 
 export const createLimsPhrase = async (payload: LimsPhrasePayload) => {

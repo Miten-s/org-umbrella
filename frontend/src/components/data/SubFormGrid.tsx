@@ -1,5 +1,6 @@
 import Button from "@/components/ui/button/Button";
 import Label from "@/components/common/form/Label";
+import HelpTooltip from "@/components/common/HelpTooltip";
 import DateField from "@/components/common/form/input/DateField";
 import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
 import AsyncSelect from "@/components/data/AsyncSelect";
@@ -7,6 +8,7 @@ import type { useAsyncOptions } from "@/hooks/useAsyncOptions";
 import type { AsyncOption } from "@/lib/query/listTypes";
 import { PlusIcon, TrashBinIcon } from "@/public/icons";
 import { useTranslation } from "react-i18next";
+import type { ReactNode } from "react";
 
 /** "number" coerces to a real JS number, for an actual numeric DB column. "numeric-text" keeps
  * a plain string, for a loosely-typed STRING column (e.g. Spec Limit's `min`/`max`) — a real number there 400s. */
@@ -22,6 +24,8 @@ export type SubFormColumnType =
 export interface SubFormColumn<R> {
   key: keyof R & string;
   header: string;
+  /** Shows a "?" next to the header that reveals this text on hover. */
+  tooltip?: ReactNode;
   type?: SubFormColumnType;
   /** Required when `type` is "select" — a small, fixed set of choices. */
   options?: { label: string; value: string }[];
@@ -43,9 +47,15 @@ export interface SubFormColumn<R> {
   /** Only for "async-select": fires after a selection, alongside the normal write of
    * `column.key`, to populate other cells on the same row (e.g. a Component's Min/Max/Unit). */
   onSelectOption?: (row: R, option: AsyncOption) => Partial<R>;
+  /** Only for "async-select": the saved value's known label, so it shows even when that
+   * option isn't in the loaded (or filtered) option list. */
+  selectedOption?: (row: R) => AsyncOption | undefined;
   /** Locks this cell per-row, on top of the grid-wide `disabled` — e.g. only rows populated
    * via a picker are read-only; a manually-typed row's same columns stay editable. */
   readOnly?: (row: R) => boolean;
+  /** Extra cells to write alongside this one when its value changes — e.g. clearing a
+   * sibling cell that the new value makes irrelevant. */
+  onChangeValue?: (row: R, value: unknown) => Partial<R>;
 }
 
 export interface SubFormGridProps<R extends Record<string, unknown>> {
@@ -99,12 +109,16 @@ function SubFormGrid<R extends Record<string, unknown>>({
     layout === "stacked" ||
     (layout === "auto" && (columns.length > STACK_THRESHOLD || hasAsyncSelect));
 
-  const updateCell = (rowIndex: number, key: string, value: unknown) =>
+  const updateCell = (rowIndex: number, key: string, value: unknown) => {
+    const column = columns.find((c) => c.key === key);
     onChange(
       rows.map((row, index) =>
-        index === rowIndex ? { ...row, [key]: value } : row
+        index === rowIndex
+          ? { ...row, ...column?.onChangeValue?.(row, value), [key]: value }
+          : row
       )
     );
+  };
 
   const addRow = () => onChange([...rows, newRow ? newRow() : ({} as R)]);
 
@@ -113,6 +127,7 @@ function SubFormGrid<R extends Record<string, unknown>>({
 
   const renderCell = (row: R, rowIndex: number, column: SubFormColumn<R>) => {
     const value = row[column.key];
+    const cellDisabled = disabled || Boolean(column.readOnly?.(row));
 
     if (column.type === "async-select") {
       return (
@@ -138,7 +153,11 @@ function SubFormGrid<R extends Record<string, unknown>>({
           placeholder={
             column.placeholder ?? t("select", { entity: column.header })
           }
-          disabled={disabled}
+          disabled={cellDisabled}
+          initialSelectedOptions={(() => {
+            const known = column.selectedOption?.(row);
+            return known ? [known] : undefined;
+          })()}
         />
       );
     }
@@ -152,7 +171,7 @@ function SubFormGrid<R extends Record<string, unknown>>({
           placeholder={
             column.placeholder ?? t("select", { entity: column.header })
           }
-          disabled={disabled}
+          disabled={cellDisabled}
           ariaLabel={column.header}
           // Portal: a grid cell sits inside both the table's and modal's overflow containers, either would clip the menu.
           portal
@@ -166,7 +185,7 @@ function SubFormGrid<R extends Record<string, unknown>>({
           mode="date"
           value={String(value ?? "")}
           onChange={(next) => updateCell(rowIndex, column.key, next)}
-          disabled={disabled}
+          disabled={cellDisabled}
         />
       );
     }
@@ -178,7 +197,7 @@ function SubFormGrid<R extends Record<string, unknown>>({
           aria-label={column.header}
           className="h-4 w-4 rounded border-gray-300 dark:border-gray-700"
           checked={Boolean(value)}
-          disabled={disabled}
+          disabled={cellDisabled}
           onChange={(event) =>
             updateCell(rowIndex, column.key, event.target.checked)
           }
@@ -195,7 +214,7 @@ function SubFormGrid<R extends Record<string, unknown>>({
         className={inputClasses}
         placeholder={column.placeholder}
         value={String(value ?? "")}
-        disabled={disabled || Boolean(column.readOnly?.(row))}
+        disabled={cellDisabled}
         onChange={(event) =>
           updateCell(
             rowIndex,
@@ -244,6 +263,9 @@ function SubFormGrid<R extends Record<string, unknown>>({
               >
                 <span className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
                   {column.header}
+                  {column.tooltip ? (
+                    <HelpTooltip content={column.tooltip} />
+                  ) : null}
                 </span>
                 {renderCell(row, rowIndex, column)}
               </div>
@@ -291,6 +313,9 @@ function SubFormGrid<R extends Record<string, unknown>>({
                     className={`whitespace-nowrap px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300 ${column.className ?? ""}`}
                   >
                     {column.header}
+                    {column.tooltip ? (
+                      <HelpTooltip content={column.tooltip} />
+                    ) : null}
                   </th>
                 ))}
                 {editable ? (

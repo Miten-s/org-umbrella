@@ -13,6 +13,30 @@ import {
 } from "../utils/crud-factory";
 import { CreateStockDto, UpdateStockDto } from "../dtos/commercial.dto";
 
+const toNumber = (value: unknown): number | null =>
+  value === null || value === undefined || value === "" ? null : Number(value);
+
+/** Low amount is the reorder threshold, so it only makes sense below the target amount.
+ * On update a field left out of the payload is checked against its stored value. */
+const assertLowBelowTarget = (
+  payload: Record<string, any>,
+  existing?: Stock
+) => {
+  const target = toNumber(
+    "targetAmount" in payload ? payload.targetAmount : existing?.targetAmount
+  );
+  const low = toNumber(
+    "lowAmount" in payload ? payload.lowAmount : existing?.lowAmount
+  );
+  if (target !== null && low !== null && low >= target) {
+    throw Object.assign(
+      new Error("Low amount must be less than the target amount."),
+      { statusCode: 400 }
+    );
+  }
+  return payload;
+};
+
 /** Stock items — the definition of a consumable; physical material lives in Stock Batches.
  * `suppliers` arrives as bare ids from the multi-select; `normalizePayload` widens them to child rows. */
 export const stockConfig: CrudConfig<Stock> = {
@@ -83,6 +107,9 @@ export const stockConfig: CrudConfig<Stock> = {
 
   // The list renders nothing from Suppliers/Parameters (Edit/View-only); `preferredSupplier` is untouched.
   listExcludeRelations: ["suppliers", "parameters"],
+
+  beforeCreate: (payload) => assertLowBelowTarget(payload),
+  beforeUpdate: (payload, existing) => assertLowBelowTarget(payload, existing),
 
   normalizePayload: (payload) => {
     if (!Array.isArray(payload.suppliers)) return payload;

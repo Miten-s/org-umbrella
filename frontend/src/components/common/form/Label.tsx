@@ -1,14 +1,23 @@
 import { FC, ReactNode } from "react";
 import { twMerge } from "tailwind-merge";
+import HelpTooltip from "@/components/common/HelpTooltip";
 
 interface LabelProps {
   htmlFor?: string;
   children: ReactNode;
   className?: string;
   required?: boolean;
+  /** Shows a "?" after the label that reveals this text on hover. */
+  tooltip?: ReactNode;
 }
 
-const Label: FC<LabelProps> = ({ htmlFor, children, className, required }) => {
+const Label: FC<LabelProps> = ({
+  htmlFor,
+  children,
+  className,
+  required,
+  tooltip
+}) => {
   return (
     <label
       htmlFor={htmlFor}
@@ -19,6 +28,7 @@ const Label: FC<LabelProps> = ({ htmlFor, children, className, required }) => {
     >
       {children}
       {required && <span className="text-error-500 ml-0.5">*</span>}
+      {tooltip && <HelpTooltip content={tooltip} />}
     </label>
   );
 };

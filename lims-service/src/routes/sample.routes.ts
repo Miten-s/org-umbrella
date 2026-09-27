@@ -15,6 +15,8 @@ import {
 } from "../utils/crud-factory";
 import { CreateSampleDto, UpdateSampleDto } from "../dtos/execution.dto";
 import { attachCancelRoutes } from "../utils/cancel-routes";
+import Test from "../models/test.model";
+import { assignSampleTests } from "../services/sample-tests.service";
 
 /** Samples — 10k a day. `sampleId` is locked, always server-generated. Test Windows are NOT
  * nested — their own endpoint, since rewriting the whole grid on each save doesn't hold at volume. */
@@ -81,6 +83,21 @@ export const sampleConfig: CrudConfig<Sample> = {
       attributes: ["id", "stockBatchId", ["stock_batch_id", "name"]],
       required: false
     },
+    // Tests assigned at login, with their result rows — detail view only (see listExcludeRelations).
+    {
+      model: Test,
+      as: "tests",
+      required: false,
+      attributes: ["id", "testId", "testName", "status", "analysisId"],
+      include: [
+        {
+          model: TestWindow,
+          as: "components",
+          required: false,
+          attributes: ["id", "componentId", "componentName", "unit", "value"]
+        }
+      ]
+    },
     {
       model: TestWindow,
       as: "testWindows",
@@ -131,7 +148,10 @@ export const sampleConfig: CrudConfig<Sample> = {
 
   // The list table doesn't render anything from the Test windows grid —
   // Edit/View-only.
-  listExcludeRelations: ["testWindows"]
+  listExcludeRelations: ["testWindows", "tests"],
+
+  // `testTemplates: string[]` → one Test (+ result rows) per template, in this save's transaction.
+  afterSave: assignSampleTests
 };
 
 const service = buildCrudService(sampleConfig);

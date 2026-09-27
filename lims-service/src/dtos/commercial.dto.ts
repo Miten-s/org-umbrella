@@ -8,7 +8,9 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Max,
   MaxLength,
+  Min,
   ValidateNested
 } from "class-validator";
 import { Type } from "class-transformer";
@@ -223,9 +225,13 @@ export class CreateStockDto {
   @IsOptional() @IsUUID("4") preferredSupplier?: string;
   @IsOptional() @IsArray() @IsUUID("4", { each: true }) suppliers?: string[];
   @IsOptional() @IsString() @MaxLength(50) unit?: string;
-  @IsOptional() @IsNumber() targetAmount?: number;
-  @IsOptional() @IsNumber() lowAmount?: number;
-  @IsOptional() @IsNumber() lowPercentage?: number;
+  @IsOptional() @IsNumber() @Min(0) targetAmount?: number;
+  @IsOptional() @IsNumber() @Min(0) lowAmount?: number;
+  @IsOptional()
+  @IsNumber()
+  @Min(0, { message: "Low percentage must be between 0 and 100" })
+  @Max(100, { message: "Low percentage must be between 0 and 100" })
+  lowPercentage?: number;
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsString() details?: string;
 
@@ -246,9 +252,13 @@ export class UpdateStockDto {
   @IsOptional() @IsUUID("4") preferredSupplier?: string;
   @IsOptional() @IsArray() @IsUUID("4", { each: true }) suppliers?: string[];
   @IsOptional() @IsString() @MaxLength(50) unit?: string;
-  @IsOptional() @IsNumber() targetAmount?: number;
-  @IsOptional() @IsNumber() lowAmount?: number;
-  @IsOptional() @IsNumber() lowPercentage?: number;
+  @IsOptional() @IsNumber() @Min(0) targetAmount?: number;
+  @IsOptional() @IsNumber() @Min(0) lowAmount?: number;
+  @IsOptional()
+  @IsNumber()
+  @Min(0, { message: "Low percentage must be between 0 and 100" })
+  @Max(100, { message: "Low percentage must be between 0 and 100" })
+  lowPercentage?: number;
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsString() details?: string;
 
