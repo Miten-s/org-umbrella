@@ -39,7 +39,8 @@ import {
   useRestoreLimsRole,
   useBulkRestoreLimsRole,
   useUpdateLimsRole,
-  useLimsRoleById
+  useLimsRoleById,
+  useLimsRolePermissions
 } from "./LimsRole.queries";
 import LimsRoleForm, { type LimsRoleFormMode } from "./LimsRoleForm";
 import type { LimsRole, LimsRolePayload } from "./LimsRole.types";
@@ -97,7 +98,17 @@ const LimsRoleList = () => {
     restoreRole.isPending ||
     bulkRestoreRole.isPending;
 
-  const columnDefs = useMemo(() => getLimsRoleColumns({ t }), [t]);
+  const { data: permissionCatalogue = [] } = useLimsRolePermissions();
+  const columnDefs = useMemo(
+    () =>
+      getLimsRoleColumns({
+        t,
+        permissionLabels: Object.fromEntries(
+          permissionCatalogue.map((p) => [p.name, p.label])
+        )
+      }),
+    [permissionCatalogue, t]
+  );
 
   const openForm = useCallback(
     (mode: LimsRoleFormMode, role: LimsRole | null) => {

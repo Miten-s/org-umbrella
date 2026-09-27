@@ -266,6 +266,10 @@ const AppSidebar: React.FC = () => {
               {
                 name: t("limsSpecifications"),
                 path: PageUrl.LIMSSpecifications.path
+              },
+              {
+                name: t("limsSampleTemplates"),
+                path: PageUrl.LIMSSampleTemplates.path
               }
             ]
           },

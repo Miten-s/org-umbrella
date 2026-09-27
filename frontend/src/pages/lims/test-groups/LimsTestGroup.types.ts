@@ -5,13 +5,16 @@ export interface LimsRef {
   name?: string;
 }
 
-/** One row of the group's test list (spec §B.15.g). */
+/** One row of the group's test list — a Test Template (Analysis) and nothing else. */
 export interface LimsTestRow extends Record<string, unknown> {
-  testName?: string;
-  instrumentCategory?: string;
-  instrumentType?: string;
-  instrument?: string;
-  replicateCount?: number | string;
+  id?: string;
+  /** The Analysis row's UUID. */
+  analysisId?: string;
+  /** Display only — the picked template's name, so the cell shows it before any fetch. */
+  analysisName?: string;
+  sortOrder?: number;
+  /** As returned by the server. */
+  analysis?: { id: string; analysisId?: string; name?: string } | null;
 }
 
 export interface LimsTestGroup {

@@ -20,7 +20,8 @@ export const REQUIRED_PHRASE_CODES = [
   "CALIBRATION_STATUS",
   "ANALYSIS_TYPE",
   "APPROVAL_STATUS",
-  "SAMPLE_TYPE"
+  "SAMPLE_TYPE",
+  "UNIT"
 ] as const;
 
 export interface PhraseHealth {

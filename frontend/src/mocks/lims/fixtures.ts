@@ -373,13 +373,10 @@ const testGroups: MockRow[] = [
   group: ref(groupIds[index % 4], String(groups[index % 4].name)),
   tests: ["Assay", "Dissolution", "Water Content", "Appearance"]
     .slice(0, index + 1)
-    .map((testName) => ({
-      testName,
-      instrumentCategory: "Chromatography",
-      instrumentType: "HPLC",
-      instrument: "HPLC-01",
-      replicateCount: 2
-    })),
+    .map((name, sortOrder) => {
+      const analysisId = newId();
+      return { analysisId, analysis: { id: analysisId, name }, sortOrder };
+    }),
   isRemoved: false
 }));
 

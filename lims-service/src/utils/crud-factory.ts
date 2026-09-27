@@ -37,7 +37,7 @@ import {
   BusinessIdConfig,
   peekBusinessId
 } from "./business-id";
-import { registerEntity } from "./entity-registry";
+import { registerEntity, registerEntityAlias } from "./entity-registry";
 import Attachment from "../models/attachment.model";
 import { uploadAttachments } from "../middlewares/multer.middleware";
 import {
@@ -68,10 +68,16 @@ export interface CrudConfig<M extends Model> {
   model: ModelStatic<M>;
   /** Human label for messages/audit `entityName`, e.g. "Supplier". */
   entityName: string;
+  /** Names this entity's audit rows were written under before a rename — still read as
+   * its history, and shown under the current name. */
+  legacyEntityNames?: string[];
   /** Catalogue entity code used for permission checks, e.g. "SUPPLIER". */
   permissionEntity: string;
   /** Business-unique field used to suffix bulk-duplicate copies, e.g. "supplierId". */
   uniqueField?: string;
+  /** Other optional columns that must also be unique (case-insensitive), e.g. Project's `code`.
+   * Blank values are allowed; Copy auto-suffixes them like `uniqueField`. */
+  additionalUniqueFields?: string[];
   /** Human-readable business ID (`LOC-000001`), server-generated — an overridable suggestion
    * for master data, unconditionally for Sample/Test/Result (`locked: true`). */
   businessId?: BusinessIdConfig;
@@ -99,6 +105,25 @@ export interface CrudConfig<M extends Model> {
   /** Runs first on every create/update, before relation mapping — for accepting more than one
    * client shape for the same data (Role: grid `entries[]` vs. typed `permissions[]`). */
   normalizePayload?: (payload: Record<string, any>) => Record<string, any>;
+  /** Named `filter[key]=value` params that aren't plain columns — each maps the value to a
+   * WHERE fragment, e.g. Analysis `approvalStatus=Approved` → the matching phrase entry. */
+  customFilters?: Record<string, (value: string) => WhereOptions>;
+  /** Async checks on the full payload (children included) before any write, inside the
+   * transaction. `existing` is set on update. Throw with `statusCode: 400` to reject. */
+  validatePayload?: (
+    payload: Record<string, any>,
+    transaction: Transaction,
+    existing?: M
+  ) => Promise<void>;
+  /** Runs inside the create/update transaction after the record and its children are saved —
+   * for writes that must succeed or fail together with it (Sample → its Tests). */
+  afterSave?: (args: {
+    record: Record<string, any>;
+    payload: Record<string, any>;
+    ctx: CrudContext;
+    transaction: Transaction;
+    isCreate: boolean;
+  }) => Promise<void>;
   /** Runs after any successful mutation, outside the transaction — access-control entities use
    * it to drop cached permission contexts immediately, not on a TTL. */
   afterWrite?: () => Promise<void> | void;
@@ -403,6 +428,11 @@ export const buildCrudRepo = <M extends Model>(config: CrudConfig<M>) => {
       ...(includeRemoved ? {} : { isDeleted: false }),
       ...getSafeFilters(model, filters)
     };
+    for (const [key, toWhere] of Object.entries(config.customFilters ?? {})) {
+      const value = filters[key];
+      if (typeof value === "string" && value)
+        Object.assign(where, toWhere(value));
+    }
 
     if (search && searchFields.length) {
       (where as any)[Op.or] = searchFields.map((field) => ({
@@ -482,7 +512,11 @@ const trimIdentifiers = <M extends Model>(
   config: CrudConfig<M>,
   data: Record<string, any>
 ): Record<string, any> => {
-  for (const field of [config.uniqueField, config.businessId?.field]) {
+  for (const field of [
+    config.uniqueField,
+    config.businessId?.field,
+    ...(config.additionalUniqueFields ?? [])
+  ]) {
     if (field && typeof data[field] === "string")
       data[field] = data[field].trim();
   }
@@ -531,6 +565,39 @@ const assertUniqueCaseInsensitive = async (
         statusCode: 400
       }
     );
+  }
+};
+
+/** Bulk save (Copy, Create-N) only: a claimed child (Batch→Lot, Lot→Sample) that already belongs
+ * to another parent would be silently re-parented off it — so it's refused instead. A normal
+ * single edit can still move one deliberately. */
+const assertChildrenUnclaimed = async (
+  children: ChildConfig[] | undefined,
+  payload: Record<string, any>,
+  transaction: Transaction
+) => {
+  for (const child of children ?? []) {
+    if (!child.detachOnly || !Array.isArray(payload[child.field])) continue;
+    const ids = payload[child.field]
+      .map((row: unknown) =>
+        typeof row === "string" ? row : (row as { id?: string })?.id
+      )
+      .filter(Boolean);
+    if (!ids.length) continue;
+    const taken = await child.model.count({
+      where: {
+        id: { [Op.in]: ids },
+        [child.foreignKey]: { [Op.ne]: null }
+      } as any,
+      transaction
+    });
+    if (taken)
+      throw Object.assign(
+        new Error(
+          `${taken} of the selected ${child.field} already belong to another record — remove them from this copy, or move them with a normal edit.`
+        ),
+        { statusCode: 400 }
+      );
   }
 };
 
@@ -584,6 +651,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
   // rows under the same entityName this service uses, and can load/group-scope
   // the parent record it only knows by permission code.
   registerEntity(config.permissionEntity, config.entityName, config.model);
+  for (const legacy of config.legacyEntityNames ?? [])
+    registerEntityAlias(config.permissionEntity, legacy);
 
   const repo = buildCrudRepo(config);
   const {
@@ -603,11 +672,15 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     raw: Record<string, any>,
     ctx: CrudContext,
     transaction: Transaction,
-    opts?: { collisionMode?: "reject" | "warn" }
+    opts?: { collisionMode?: "reject" | "warn"; bulk?: boolean }
   ): Promise<{ result: any; warning?: string }> => {
     const payload = config.normalizePayload
       ? config.normalizePayload(raw)
       : raw;
+    if (config.validatePayload)
+      await config.validatePayload(payload, transaction);
+    if (opts?.bulk)
+      await assertChildrenUnclaimed(config.children, payload, transaction);
     const mapped = toColumns(config, payload);
 
     // Before `beforeCreate`, so anything deriving from it (Stock Batch's `batchNumber`) sees the settled value.
@@ -683,6 +756,35 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
       }
     }
 
+    for (const field of config.additionalUniqueFields ?? []) {
+      if (opts?.collisionMode === "warn") {
+        const collision = await findUniqueCollision(
+          model,
+          field,
+          data[field],
+          transaction
+        );
+        if (collision) {
+          const original = String(data[field]);
+          data[field] = await nextCopyValue(
+            model,
+            field,
+            original,
+            transaction
+          );
+          const note = `"${original}" is already in use — saved as "${data[field]}".`;
+          warning = warning ? `${warning} ${note}` : note;
+        }
+      } else {
+        await assertUniqueCaseInsensitive(
+          model,
+          field,
+          data[field],
+          transaction
+        );
+      }
+    }
+
     const created = await repo.create(data, transaction);
     const parentId = created!.get("id") as string;
 
@@ -695,6 +797,14 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
       created!.toJSON(),
       ctx.scope
     );
+    if (config.afterSave)
+      await config.afterSave({
+        record: created!.toJSON(),
+        payload,
+        ctx,
+        transaction,
+        isCreate: true
+      });
 
     await writeAudit({
       entityName,
@@ -736,7 +846,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
         const results: { id: string; warning?: string }[] = [];
         for (const raw of records) {
           const { result, warning } = await createOne(raw, ctx, transaction, {
-            collisionMode
+            collisionMode,
+            bulk: true
           });
           results.push({ id: result?.id ?? result?._id, warning });
         }
@@ -764,7 +875,10 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
         try {
           const { result, warning } = await sequelize.transaction(
             (transaction) =>
-              createOne(raw, ctx, transaction, { collisionMode: "reject" })
+              createOne(raw, ctx, transaction, {
+                collisionMode: "reject",
+                bulk: true
+              })
           );
           results.push({ id: result?.id ?? result?._id, warning });
         } catch (error: any) {
@@ -828,6 +942,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     // Scoped lookup: a record outside the caller's groups is not theirs to edit.
     const existing = await repo.findById(id, ctx.scope, transaction, true);
     if (!existing) return null;
+    if (config.validatePayload)
+      await config.validatePayload(payload, transaction, existing);
     const oldValue = existing.toJSON();
     const mapped = toColumns(config, payload);
 
@@ -857,6 +973,18 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
       );
     }
 
+    for (const field of config.additionalUniqueFields ?? []) {
+      if (data[field] !== undefined) {
+        await assertUniqueCaseInsensitive(
+          model,
+          field,
+          data[field],
+          transaction,
+          id
+        );
+      }
+    }
+
     const updated = await repo.update(
       id,
       { ...data, modifiedBy: ctx.actor.id },
@@ -871,6 +999,14 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
       { ...oldValue, ...updated!.toJSON() },
       ctx.scope
     );
+    if (config.afterSave)
+      await config.afterSave({
+        record: { ...oldValue, ...updated!.toJSON() },
+        payload,
+        ctx,
+        transaction,
+        isCreate: false
+      });
 
     // Reconciled here (same transaction, before the audit write) so an add/remove shows up
     // in this same audit row instead of vanishing silently. No-op for entities without attachments.
@@ -1135,6 +1271,16 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
               clone[nameField] = `${clone[nameField]}${suffix}`;
             }
           }
+          for (const field of config.additionalUniqueFields ?? []) {
+            if (typeof clone[field] === "string" && clone[field].trim()) {
+              clone[field] = await nextCopyValue(
+                model,
+                field,
+                clone[field],
+                transaction
+              );
+            }
+          }
           const prepared = beforeCreate ? await beforeCreate(clone) : clone;
 
           const row = await repo.create(prepared, transaction);
@@ -1219,7 +1365,10 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
 
     const AuditLog = (await import("../models/audit-log.model")).default;
     const { count, rows } = await AuditLog.findAndCountAll({
-      where: { entityName, entityId },
+      where: {
+        entityName: [entityName, ...(config.legacyEntityNames ?? [])],
+        entityId
+      },
       order: [["performedAt", "DESC"]],
       offset: (page - 1) * limit,
       limit
@@ -1228,6 +1377,7 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     const logs = (formatLimsEntity(rows) as Record<string, any>[]).map(
       (row) => ({
         ...row,
+        entityName,
         uniqueId: row.id,
         // Name only, never the raw id — a uuid tells a reader nothing; blank at least reads as "not recorded".
         who: row.performedByName ?? null,

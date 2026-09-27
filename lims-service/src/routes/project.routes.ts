@@ -15,6 +15,7 @@ export const projectConfig: CrudConfig<Project> = {
   entityName: "Project",
   permissionEntity: "PROJECT",
   uniqueField: "projectId",
+  additionalUniqueFields: ["code"],
   businessId: { field: "projectId", prefix: "PROJ" },
   searchFields: ["projectId", "name", "code", "details"],
   defaultSortBy: "name",

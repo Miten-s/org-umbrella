@@ -36,6 +36,8 @@ import SpecLimit from "./spec-limit.model";
 import Batch from "./batch.model";
 import Lot from "./lot.model";
 import Sample from "./sample.model";
+import SampleTemplate from "./sample-template.model";
+import SampleTemplateTest from "./sample-template-test.model";
 import Test from "./test.model";
 import Result from "./result.model";
 import Scheduler from "./scheduler.model";
@@ -313,9 +315,9 @@ export const registerAssociations = () => {
     foreignKey: "testGroupId",
     onDelete: "CASCADE"
   });
-  TestGroupItem.belongsTo(Instrument, {
-    as: "instrument",
-    foreignKey: "instrumentId"
+  TestGroupItem.belongsTo(Analysis, {
+    as: "analysis",
+    foreignKey: "analysisId"
   });
 
   Specification.belongsTo(Group, { as: "group", foreignKey: "groupId" });
@@ -399,6 +401,30 @@ export const registerAssociations = () => {
     foreignKey: "sampleTypeId"
   });
   Scheduler.belongsTo(LimsUser, { as: "owner", foreignKey: "ownerId" });
+
+  SampleTemplate.belongsTo(Group, { as: "group", foreignKey: "groupId" });
+  SampleTemplate.belongsTo(PhraseEntry, {
+    as: "sampleType",
+    foreignKey: "sampleTypeId"
+  });
+  SampleTemplate.belongsTo(Project, { as: "project", foreignKey: "projectId" });
+  SampleTemplate.belongsTo(Specification, {
+    as: "specification",
+    foreignKey: "specificationId"
+  });
+  SampleTemplate.belongsTo(Location, {
+    as: "location",
+    foreignKey: "locationId"
+  });
+  SampleTemplate.hasMany(SampleTemplateTest, {
+    as: "tests",
+    foreignKey: "sampleTemplateId",
+    onDelete: "CASCADE"
+  });
+  SampleTemplateTest.belongsTo(Analysis, {
+    as: "analysis",
+    foreignKey: "analysisId"
+  });
 };
 
 export default registerAssociations;

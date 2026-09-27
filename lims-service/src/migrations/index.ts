@@ -11,6 +11,9 @@ import * as m009 from "./009-create-executions";
 import * as m010 from "./010-audit-action-cancel";
 import * as m011 from "./011-widen-lims-user-signature";
 import * as m012 from "./012-spec-limit-analysis-links";
+import * as m016 from "./016-seed-unit-pick-list";
+import * as m017 from "./017-test-group-items-to-test-templates";
+import * as m018 from "./018-create-sample-templates";
 
 export const migrations: Migration[] = [
   { name: "001-create-audit-logs", up: m001.up },
@@ -24,7 +27,13 @@ export const migrations: Migration[] = [
   { name: "009-create-executions", up: m009.up },
   { name: "010-audit-action-cancel", up: m010.up },
   { name: "011-widen-lims-user-signature", up: m011.up },
-  { name: "012-spec-limit-analysis-links", up: m012.up }
+  { name: "012-spec-limit-analysis-links", up: m012.up },
+  { name: "016-seed-unit-pick-list", up: m016.up },
+  {
+    name: "017-test-group-items-to-test-templates",
+    up: m017.up
+  },
+  { name: "018-create-sample-templates", up: m018.up }
 ];
 
 export { runMigrations, checkMigrations } from "./runner";

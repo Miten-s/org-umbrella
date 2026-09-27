@@ -5,6 +5,7 @@ import { sequelize } from "../configs/db.sequelize";
 import { registerAssociations } from "../models/associations";
 import Phrase from "../models/phrase.model";
 import PhraseEntry from "../models/phrase-entry.model";
+import { UNIT_PHRASE, phraseEntryKey } from "../configs/pick-list-units";
 
 interface SeedPhrase {
   phrase: string;
@@ -168,15 +169,9 @@ const SYSTEM_PHRASES: SeedPhrase[] = [
       "Retain",
       "Calibration"
     ]
-  }
+  },
+  UNIT_PHRASE
 ];
-
-/** `LOCATION_TYPE` + "Freezer" → `LOCATION_TYPE_FREEZER`. */
-const entryKey = (phrase: string, value: string) =>
-  `${phrase}_${value
-    .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, "_")
-    .replace(/^_|_$/g, "")}`;
 
 const run = async () => {
   await sequelize.authenticate();
@@ -205,11 +200,11 @@ const run = async () => {
       const [, entryIsNew] = await PhraseEntry.findOrCreate({
         where: {
           phraseId: phrase.id,
-          phraseEntryId: entryKey(seed.phrase, value)
+          phraseEntryId: phraseEntryKey(seed.phrase, value)
         },
         defaults: {
           phraseId: phrase.id,
-          phraseEntryId: entryKey(seed.phrase, value),
+          phraseEntryId: phraseEntryKey(seed.phrase, value),
           name: value
         } as any
       });

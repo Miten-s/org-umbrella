@@ -14,7 +14,12 @@ import { Type } from "class-transformer";
  * permissive — which fields matter depends on the row's `type`. */
 
 export class ComponentRowDto {
-  @IsOptional() @IsString() @MaxLength(100) componentId?: string;
+  @IsString()
+  @IsNotEmpty({ message: "Every component needs a Component ID" })
+  @MaxLength(100)
+  componentId!: string;
+  // Name/Description are required per row by `validateComponents` — rows saved before
+  // component types existed are accepted untouched even without them.
   @IsOptional() @IsString() @MaxLength(200) name?: string;
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsString() @MaxLength(50) type?: string;
@@ -30,18 +35,16 @@ export class ComponentRowDto {
   @IsOptional() @IsInt() sortOrder?: number;
 }
 
+/** One Test Group row — nothing but the Test Template it includes. */
 export class TestRowDto {
-  @IsOptional() @IsString() @MaxLength(200) testName?: string;
-  @IsOptional() @IsString() @MaxLength(150) instrumentCategory?: string;
-  @IsOptional() @IsString() @MaxLength(150) instrumentType?: string;
-  /** The grid sends the picked instrument under its own name. */
-  @IsOptional() @IsUUID("4") instrument?: string;
-  @IsOptional() @IsUUID("4") instrumentId?: string;
-  @IsOptional() @IsInt() replicateCount?: number;
+  @IsUUID("4", { message: "Every test needs a Test Template" })
+  analysisId!: string;
   @IsOptional() @IsInt() sortOrder?: number;
 }
 
 export class LimitRowDto {
+  /** Echoed back for saved rows — how an unchanged legacy (free-text) row is recognised. */
+  @IsOptional() @IsUUID("4") id?: string;
   @IsOptional() @IsString() @MaxLength(200) analysisName?: string;
   @IsOptional() @IsString() @MaxLength(200) componentName?: string;
   // Set only when populated via the Limits grid's Analysis/Component picker.

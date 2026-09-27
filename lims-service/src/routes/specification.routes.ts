@@ -10,8 +10,9 @@ import {
   CreateSpecificationDto,
   UpdateSpecificationDto
 } from "../dtos/analytical.dto";
+import { validateSpecLimits } from "../services/spec-limits.service";
 
-/** Specifications and their limit rows. */
+/** Specifications and their limit rows — a snapshot of Test Template components. */
 export const specificationConfig: CrudConfig<Specification> = {
   model: Specification,
   entityName: "Specification",
@@ -29,6 +30,8 @@ export const specificationConfig: CrudConfig<Specification> = {
   // The list column only shows a count (LimsSpecification.columns.tsx:
   // `limits?.length`) — no row content needed for the list at all.
   listRelationAttributes: { limits: ["id"] },
+
+  validatePayload: validateSpecLimits,
 
   children: [
     {
@@ -48,7 +51,9 @@ export const specificationConfig: CrudConfig<Specification> = {
         "calculation",
         "sortOrder"
       ],
-      matchKey: "componentName"
+      // A component's UUID is unique; its name isn't (two templates can both have "Assay").
+      // Legacy free-text rows have none and fall back to their own row id.
+      matchKey: "componentId"
     }
   ]
 };

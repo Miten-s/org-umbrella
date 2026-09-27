@@ -10,13 +10,13 @@ import TextArea from "@/components/common/form/input/TextArea";
 import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import SubFormGrid from "@/components/data/SubFormGrid";
+import SampleTestsPicker, { type PendingTemplate } from "./SampleTestsPicker";
 import LimsAttachmentsField from "@/components/lims/LimsAttachmentsField";
 import { useAttachments } from "@/hooks/useAttachments";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
 import { useLimsProjectOptions } from "@/pages/lims/projects/LimsProject.queries";
 import { useSampleTypeOptions } from "@/pages/lims/phrases/LimsPhrase.queries";
 import { useLimsSpecificationOptions } from "@/pages/lims/specifications/LimsSpecification.queries";
-import { useLimsTestGroupOptions } from "@/pages/lims/test-groups/LimsTestGroup.queries";
 import { useLimsLocationOptions } from "@/pages/lims/locations/LimsLocation.queries";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsStockBatchOptions } from "@/pages/lims/stock-batches/LimsStockBatch.queries";
@@ -37,7 +37,7 @@ import type {
 /** "copy" renders like "create" — sampleId/idNumeric are locked/server-generated either way,
  * so unlike a businessId-driven module there's no editable ID field to blank. */
 export type LimsSampleFormMode =
-  "create" | "edit" | "view" | "copy" | "bulk-edit";
+  "create" | "edit" | "view" | "copy" | "bulk-edit" | "bulk-create";
 
 interface LimsSampleFormProps {
   mode?: LimsSampleFormMode;
@@ -93,6 +93,19 @@ const LimsSampleForm = ({
   const [testWindows, setTestWindows] = useState<LimsTestWindowRow[]>(
     initialTestWindowsRef.current
   );
+  // A copy (or a template-filled new sample) gets the source's non-cancelled tests as fresh picks.
+  const isNewRecord = mode === "copy" || mode === "bulk-create";
+  const [pendingTests, setPendingTests] = useState<PendingTemplate[]>(() =>
+    isNewRecord
+      ? (initialData?.tests ?? [])
+          .filter((test) => test.status !== "Cancelled" && test.analysisId)
+          .map((test) => ({
+            id: String(test.analysisId),
+            name: String(test.testName ?? ""),
+            componentCount: test.components?.length
+          }))
+      : []
+  );
 
   // Captured once per record — also the no-change baseline `submit` diffs
   // against, so Save is a no-op when nothing actually differs from it.
@@ -103,7 +116,6 @@ const LimsSampleForm = ({
       project: initialData?.project?.id ?? "",
       sampleType: initialData?.sampleType?.id ?? "",
       specification: initialData?.specification?.id ?? "",
-      testGroup: initialData?.testGroup?.id ?? "",
       location: initialData?.location?.id ?? "",
       group: initialData?.group?.id ?? "",
       stockBatch: initialData?.stockBatch?.id ?? "",
@@ -183,13 +195,19 @@ const LimsSampleForm = ({
             (mode === "edit" || mode === "bulk-edit") &&
             !attachments.isDirty &&
             isPayloadEqual(values, initialValues) &&
-            isPayloadEqual(testWindows, initialTestWindowsRef.current)
+            isPayloadEqual(testWindows, initialTestWindowsRef.current) &&
+            !pendingTests.length
           ) {
             (onUnchanged ?? onClose)();
             return;
           }
           onSubmit(
-            { ...values, testWindows, keptAttachmentIds: attachments.keptIds },
+            {
+              ...values,
+              testWindows,
+              testTemplates: pendingTests.map((tpl) => tpl.id),
+              keptAttachmentIds: attachments.keptIds
+            },
             attachments.newFiles
           );
         })}
@@ -198,11 +216,13 @@ const LimsSampleForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsSample") })
-            : mode === "copy"
-              ? `${t("copyEntity", { entity: t("limsSample") })}${stepLabel ?? ""}`
-              : initialData
-                ? `${t("update", { entity: t("limsSample") })}${stepLabel ?? ""}`
-                : t("create", { entity: t("limsSample") })}
+            : mode === "bulk-create"
+              ? `${t("create", { entity: t("limsSample") })}${stepLabel ?? ""}`
+              : mode === "copy"
+                ? `${t("copyEntity", { entity: t("limsSample") })}${stepLabel ?? ""}`
+                : initialData
+                  ? `${t("update", { entity: t("limsSample") })}${stepLabel ?? ""}`
+                  : t("create", { entity: t("limsSample") })}
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
@@ -210,13 +230,13 @@ const LimsSampleForm = ({
             {/* Server-locked (crud-factory drops any client value), same as idNumeric — blank on Copy. */}
             <Label>{t("limsSampleId")}</Label>
             <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-              {mode === "copy" ? "—" : (initialData?.sampleId ?? "—")}
+              {isNewRecord ? "—" : (initialData?.sampleId ?? "—")}
             </p>
           </div>
           <div className="min-w-0">
             <Label>{t("limsIdNumeric")}</Label>
             <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-              {mode === "copy" ? "—" : String(initialData?.idNumeric ?? "—")}
+              {isNewRecord ? "—" : String(initialData?.idNumeric ?? "—")}
             </p>
           </div>
           {text("idText", t("limsIdText"), false, "text")}
@@ -268,23 +288,6 @@ const LimsSampleForm = ({
                   disabled={isReadOnly}
                   placeholder={t("select", { entity: t("limsSpecification") })}
                   initialSelectedOptions={seedOne(initialData?.specification)}
-                />
-              )}
-            />
-          </div>
-          <div className="min-w-0">
-            <Label required={false}>{t("limsTestGroup")}</Label>
-            <Controller
-              name="testGroup"
-              control={control}
-              render={({ field }) => (
-                <AsyncSelect
-                  useOptions={useLimsTestGroupOptions}
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={isReadOnly}
-                  placeholder={t("select", { entity: t("limsTestGroup") })}
-                  initialSelectedOptions={seedOne(initialData?.testGroup)}
                 />
               )}
             />
@@ -369,6 +372,14 @@ const LimsSampleForm = ({
             />
           </div>
           <div className="col-span-full min-w-0">
+            <SampleTestsPicker
+              existing={isNewRecord ? [] : (initialData?.tests ?? [])}
+              pending={pendingTests}
+              onChange={setPendingTests}
+              disabled={isReadOnly}
+            />
+          </div>
+          <div className="col-span-full min-w-0">
             <SubFormGrid<LimsTestWindowRow>
               label={t("limsTestWindows")}
               rows={testWindows}
@@ -403,7 +414,8 @@ const LimsSampleForm = ({
               ]}
             />
           </div>
-          {mode !== "bulk-edit" && (
+          {/* Batch saves (Copy, Create-N) post JSON only — no file upload path. */}
+          {mode !== "bulk-edit" && !isNewRecord && (
             <LimsAttachmentsField
               attachments={attachments}
               disabled={isReadOnly}

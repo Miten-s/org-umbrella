@@ -14,6 +14,7 @@ import {
   createLimsAnalysis,
   fetchLimsAnalysisAudit,
   fetchLimsAnalysisOptions,
+  fetchApprovedLimsAnalysisOptions,
   restoreLimsAnalysis,
   updateLimsAnalysis,
   fetchLimsAnalysisById
@@ -27,7 +28,8 @@ export const limsAnalysisKeys = {
   all: ["limsAnalysis"] as const,
   list: (params: ServerListParams) => ["limsAnalysis", "list", params] as const,
   audit: (id: string) => ["limsAnalysis", "audit", id] as const,
-  options: ["limsAnalysis", "options"] as const
+  options: ["limsAnalysis", "options"] as const,
+  approvedOptions: ["limsAnalysis", "options", "approved"] as const
 };
 
 /** Consumed by other modules selecting this entity. */
@@ -39,6 +41,20 @@ export const useLimsAnalysisOptions = (args: {
   useAsyncOptions({
     queryKey: limsAnalysisKeys.options,
     fetchPage: fetchLimsAnalysisOptions,
+    search: args.search,
+    enabled: args.enabled,
+    selectedValues: args.selectedValues
+  });
+
+/** Approved analyses only — what a Test Group may include. */
+export const useLimsApprovedAnalysisOptions = (args: {
+  search: string;
+  enabled?: boolean;
+  selectedValues?: string[];
+}) =>
+  useAsyncOptions({
+    queryKey: limsAnalysisKeys.approvedOptions,
+    fetchPage: fetchApprovedLimsAnalysisOptions,
     search: args.search,
     enabled: args.enabled,
     selectedValues: args.selectedValues

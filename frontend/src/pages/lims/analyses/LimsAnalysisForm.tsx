@@ -8,7 +8,8 @@ import Label from "@/components/common/form/Label";
 import TextArea from "@/components/common/form/input/TextArea";
 import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
-import SubFormGrid from "@/components/data/SubFormGrid";
+import ComponentRowsEditor from "./ComponentRowsEditor";
+import { validateComponentRows } from "./componentTypes";
 
 import {
   useAnalysisTypeOptions,
@@ -148,16 +149,9 @@ const LimsAnalysisForm = ({
             (onUnchanged ?? onClose)();
             return;
           }
-          // A component saved with a blank Min/Max can never be fixed once picked
-          // elsewhere (Specifications copies it in read-only) — block it at the source.
-          const missingLimits = components.some(
-            (row) =>
-              !String(row.min ?? "").trim() || !String(row.max ?? "").trim()
-          );
-          if (missingLimits) {
-            setComponentsError(
-              "Every component needs both a Min and a Max value."
-            );
+          const componentProblem = validateComponentRows(components);
+          if (componentProblem) {
+            setComponentsError(componentProblem);
             return;
           }
           setComponentsError(undefined);
@@ -270,8 +264,7 @@ const LimsAnalysisForm = ({
             />
           </div>
           <div className="col-span-full min-w-0">
-            <SubFormGrid<LimsComponentRow>
-              label={t("limsComponents")}
+            <ComponentRowsEditor
               rows={components}
               onChange={(next) => {
                 setComponents(next);
@@ -279,29 +272,6 @@ const LimsAnalysisForm = ({
               }}
               disabled={isReadOnly}
               error={componentsError}
-              columns={[
-                { key: "componentId", header: t("limsComponentId") },
-                { key: "name", header: t("name") },
-                { key: "description", header: t("description") },
-                { key: "type", header: t("limsType") },
-                { key: "unit", header: t("limsUnit") },
-                { key: "calculation", header: t("limsCalculation") },
-                { key: "formula", header: t("limsFormula") },
-                { key: "option", header: t("limsOption") },
-                { key: "list", header: t("limsList") },
-                { key: "entity", header: t("limsEntity") },
-                { key: "entityCriteria", header: t("limsEntityCriteria") },
-                {
-                  key: "min",
-                  header: `${t("limsMin")} *`,
-                  type: "numeric-text"
-                },
-                {
-                  key: "max",
-                  header: `${t("limsMax")} *`,
-                  type: "numeric-text"
-                }
-              ]}
             />
           </div>
         </div>

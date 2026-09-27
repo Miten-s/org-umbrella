@@ -12,6 +12,7 @@ export interface LimsAttachment {
 }
 
 export interface LimsLimitRow extends Record<string, unknown> {
+  id?: string;
   analysisName?: string | number;
   componentName?: string | number;
   /** Set only when populated via the Analysis/Component picker — drives Min/Max rendering

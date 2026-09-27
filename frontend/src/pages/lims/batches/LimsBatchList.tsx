@@ -18,6 +18,9 @@ import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
 import { toast } from "@/lib/toast";
 import { idsSelection } from "@/lib/query/listTypes";
+import BulkCountDialog from "@/components/lims/BulkCountDialog";
+import { useBulkCreateFlow } from "@/hooks/useBulkCreateFlow";
+import { MAX_BULK_CREATE } from "@/lib/limsBulk";
 import {
   CopyIcon,
   EyeIcon,
@@ -32,6 +35,7 @@ import {
   limsBatchKeys,
   useBulkCloneLimsBatch,
   useBulkCopyLimsBatch,
+  useBulkCreateLimsBatch,
   useBulkDeleteLimsBatch,
   useBulkUpdateLimsBatch,
   useCreateLimsBatch,
@@ -81,6 +85,9 @@ const LimsBatchList = () => {
   const update = useUpdateLimsBatch();
   const bulkClone = useBulkCloneLimsBatch();
   const bulkCopy = useBulkCopyLimsBatch();
+  const bulkCreate = useBulkCreateLimsBatch();
+  const bulkFlow = useBulkCreateFlow<LimsBatch>(fetchLimsBatchById);
+  const { askCopy } = bulkFlow;
   const bulkDelete = useBulkDeleteLimsBatch();
   const bulkUpdate = useBulkUpdateLimsBatch();
   const restore = useRestoreLimsBatch();
@@ -91,6 +98,7 @@ const LimsBatchList = () => {
     update.isPending ||
     bulkClone.isPending ||
     bulkCopy.isPending ||
+    bulkCreate.isPending ||
     bulkDelete.isPending ||
     bulkUpdate.isPending ||
     restore.isPending ||
@@ -138,6 +146,22 @@ const LimsBatchList = () => {
     setCopyIds(null);
     setViewIds(null);
     setEditIds(null);
+    bulkFlow.reset();
+  };
+
+  // "How many?" → 1 is the ordinary single form (keeps attachments); more opens the stepper.
+  const confirmCreateCount = (count: number) => {
+    if (count === 1) {
+      bulkFlow.reset();
+      openForm("create", null);
+      return;
+    }
+    bulkFlow.startCreate(count, {} as LimsBatch);
+  };
+
+  const handleSaveCreated = async (payloads: LimsBatchPayload[]) => {
+    await bulkCreate.mutateAsync(payloads);
+    handleCloseForm();
   };
 
   const handleSaveCopies = async (payloads: LimsBatchPayload[]) => {
@@ -206,6 +230,12 @@ const LimsBatchList = () => {
         permission: LIMS_PERMISSIONS.CREATE_BATCH,
         onClick: async (selection) => {
           if (selection.mode === "ids") {
+            // One record selected → "How many copies?"; several → one copy each, as before.
+            if (selection.ids.length === 1) {
+              askCopy(selection.ids[0], t("limsBatch"));
+              openModal();
+              return;
+            }
             openCopy(selection.ids);
             return;
           }
@@ -267,7 +297,17 @@ const LimsBatchList = () => {
           )
       }
     ],
-    [bulkClone, compliance, openCopy, openEdit, openView, t, table]
+    [
+      askCopy,
+      bulkClone,
+      compliance,
+      openCopy,
+      openEdit,
+      openModal,
+      openView,
+      t,
+      table
+    ]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsBatch>[]>(
@@ -302,7 +342,10 @@ const LimsBatchList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_BATCH,
-        onClick: (row) => openCopy([row.id])
+        onClick: (row) => {
+          askCopy(row.id, label(row));
+          openModal();
+        }
       },
       {
         key: "restore",
@@ -327,7 +370,7 @@ const LimsBatchList = () => {
           ])
       }
     ],
-    [compliance, openCopy, openForm, t]
+    [askCopy, compliance, openForm, openModal, t]
   );
 
   return (
@@ -356,7 +399,10 @@ const LimsBatchList = () => {
             icon: PlusIcon,
             variant: "primary",
             permission: LIMS_PERMISSIONS.CREATE_BATCH,
-            onClick: () => openForm("create", null)
+            onClick: () => {
+              bulkFlow.askCreate();
+              openModal();
+            }
           }
         ]}
         emptyState={{ title: t("limsNoBatches") }}
@@ -368,7 +414,47 @@ const LimsBatchList = () => {
         className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
         disableOuterScroll
       >
-        {copyIds ? (
+        {bulkFlow.prompt?.kind === "create" ? (
+          <BulkCountDialog
+            title={t("limsHowManyCreate", { entity: t("limsBatches") })}
+            countLabel={t("limsNumberOf", { entity: t("limsBatches") })}
+            hint={t("limsHowManyHint", { max: MAX_BULK_CREATE })}
+            onCancel={handleCloseForm}
+            onConfirm={confirmCreateCount}
+          />
+        ) : bulkFlow.prompt?.kind === "copy" ? (
+          <BulkCountDialog
+            title={t("limsHowManyCopy", { name: bulkFlow.prompt.name })}
+            countLabel={t("limsNumberOfCopies")}
+            hint={t("limsHowManyCopyHint", { max: MAX_BULK_CREATE })}
+            onCancel={handleCloseForm}
+            onConfirm={(count) => {
+              if (bulkFlow.prompt?.kind === "copy")
+                bulkFlow.startCopy(bulkFlow.prompt.id, count);
+            }}
+          />
+        ) : bulkFlow.createIds ? (
+          <CopyStepper<LimsBatch, LimsBatchPayload, LimsBatchFormMode>
+            ids={bulkFlow.createIds}
+            fetchById={bulkFlow.fetchNew}
+            FormComponent={LimsBatchForm}
+            formMode="bulk-create"
+            onSaveAll={handleSaveCreated}
+            onClose={handleCloseForm}
+            saving={bulkCreate.isPending}
+            entityLabel={t("limsBatch")}
+          />
+        ) : bulkFlow.copyIds ? (
+          <CopyStepper<LimsBatch, LimsBatchPayload>
+            ids={bulkFlow.copyIds}
+            fetchById={bulkFlow.fetchSource}
+            FormComponent={LimsBatchForm}
+            onSaveAll={handleSaveCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending}
+            entityLabel={t("limsBatch")}
+          />
+        ) : copyIds ? (
           <CopyStepper<LimsBatch, LimsBatchPayload>
             ids={copyIds}
             fetchById={fetchLimsBatchById}

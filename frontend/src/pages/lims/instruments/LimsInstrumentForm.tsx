@@ -12,6 +12,7 @@ import AsyncSelect from "@/components/data/AsyncSelect";
 import { seedRefOption } from "@/utils/refLabel";
 import SubFormGrid from "@/components/data/SubFormGrid";
 import LimsAttachmentsField from "@/components/lims/LimsAttachmentsField";
+import InstrumentCalibrations from "./InstrumentCalibrations";
 import { useAttachments } from "@/hooks/useAttachments";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
 import {
@@ -393,6 +394,11 @@ const LimsInstrumentForm = ({
               ]}
             />
           </div>
+          {initialData?.id && (mode === "view" || mode === "edit") && (
+            <div className="col-span-full min-w-0">
+              <InstrumentCalibrations instrumentId={initialData.id} />
+            </div>
+          )}
           {mode !== "copy" && mode !== "bulk-edit" && (
             <LimsAttachmentsField
               attachments={attachments}

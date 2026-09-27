@@ -15,6 +15,7 @@ import {
   createLimsPhrase,
   fetchLimsPhraseAudit,
   fetchPhraseEntryOptions,
+  fetchPhraseEntryNameOptions,
   restoreLimsPhrase,
   updateLimsPhrase,
   type PhraseCode,
@@ -27,7 +28,9 @@ export const limsPhraseKeys = {
   list: (params: ServerListParams) => ["limsPhrase", "list", params] as const,
   audit: (id: string) => ["limsPhrase", "audit", id] as const,
   entryOptions: (phrase: PhraseCode) =>
-    ["limsPhrase", "entries", phrase] as const
+    ["limsPhrase", "entries", phrase] as const,
+  entryNameOptions: (phrase: PhraseCode) =>
+    ["limsPhrase", "entryNames", phrase] as const
 };
 
 /**
@@ -82,6 +85,20 @@ export const useApprovalStatusOptions = makePhraseOptionsHook(
 export const useSampleTypeOptions = makePhraseOptionsHook(
   PHRASE_CODES.SAMPLE_TYPE
 );
+
+/** Unit dropdown — its value is the unit text (`mg`), which is what `unit` columns store. */
+export const useUnitOptions = (args: {
+  search: string;
+  enabled?: boolean;
+  selectedValues?: string[];
+}) =>
+  useAsyncOptions({
+    queryKey: limsPhraseKeys.entryNameOptions(PHRASE_CODES.UNIT),
+    fetchPage: fetchPhraseEntryNameOptions(PHRASE_CODES.UNIT),
+    search: args.search,
+    enabled: args.enabled,
+    selectedValues: args.selectedValues
+  });
 
 export const useLimsPhraseAudit = (id?: string) =>
   useLimsAuditTrail({

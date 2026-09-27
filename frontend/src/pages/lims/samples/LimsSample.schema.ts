@@ -7,7 +7,6 @@ export const limsSampleSchema = z.object({
   project: z.string().max(500).optional(),
   sampleType: z.string().max(500).optional(),
   specification: z.string().max(500).optional(),
-  testGroup: z.string().max(500).optional(),
   location: z.string().max(500).optional(),
   group: z.string().max(500).optional(),
   stockBatch: z.string().max(500).optional(),
