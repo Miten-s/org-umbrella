@@ -19,6 +19,14 @@ export const registerEntity = (
   if (model) models.set(permissionEntity, model);
 };
 
+/** An old display name (pre-rename) that should still resolve to the same permission code. */
+export const registerEntityAlias = (
+  permissionEntity: string,
+  legacyName: string
+) => {
+  permissionEntities.set(legacyName, permissionEntity);
+};
+
 /** Falls back to the code itself for entities with no CRUD service yet. */
 export const auditNameFor = (permissionEntity: string): string =>
   auditNames.get(permissionEntity) ?? permissionEntity;

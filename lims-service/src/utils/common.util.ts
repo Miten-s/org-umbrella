@@ -24,7 +24,14 @@ const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** "test_id" -> "Test", "component_id" -> "Component". Never a raw DB column in a user-facing message. */
+/** Fields whose user-facing name differs from the column — Analysis is "Test Template" in the UI. */
+const FIELD_LABELS: Record<string, string> = {
+  analysisId: "Test Template ID",
+  analysis_id: "Test Template ID"
+};
+
 const humanizeField = (raw: string): string => {
+  if (FIELD_LABELS[raw.trim()]) return FIELD_LABELS[raw.trim()];
   const label = raw.trim().replace(/_id$/i, "").replace(/[_-]+/g, " ").trim();
   return label ? label.replace(/\b\w/g, (c) => c.toUpperCase()) : "record";
 };

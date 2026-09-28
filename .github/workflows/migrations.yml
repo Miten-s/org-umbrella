@@ -36,11 +36,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Execute Migrations on EC2
+        env:
+          INFISICAL_PROJECT_ID: ${{ vars.INFISICAL_PROJECT_ID }}
+          INFISICAL_MACHINE_IDENTITY_CLIENT_ID: ${{ secrets.INFISICAL_MACHINE_IDENTITY_CLIENT_ID || secrets.INFISICAL_CLIENT_ID }}
+          INFISICAL_MACHINE_IDENTITY_CLIENT_SECRET: ${{ secrets.INFISICAL_MACHINE_IDENTITY_CLIENT_SECRET || secrets.INFISICAL_CLIENT_SECRET }}
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          envs: INFISICAL_PROJECT_ID,INFISICAL_MACHINE_IDENTITY_CLIENT_ID,INFISICAL_MACHINE_IDENTITY_CLIENT_SECRET
           script: |
             cd ~/org-umbrella
             git config --global --add safe.directory $(pwd)
@@ -52,22 +57,24 @@ jobs:
             ACTION="${{ github.event.inputs.action }}"
             ENV_NAME="${{ github.event.inputs.environment }}"
             
+            export INFISICAL_TOKEN=$(infisical login --method=universal-auth --client-id="$INFISICAL_MACHINE_IDENTITY_CLIENT_ID" --client-secret="$INFISICAL_MACHINE_IDENTITY_CLIENT_SECRET" --plain --silent)
+            
             run_service_migration() {
               SVC=$1
               echo "===> Executing $ACTION for $SVC in $ENV_NAME environment..."
               CONTAINER_ID=$(docker compose -f docker-compose.yml ps -q $SVC)
               if [ -z "$CONTAINER_ID" ]; then
                 echo "Error: Container for $SVC is not running. Starting it now..."
-                infisical run --env=$ENV_NAME --path=/$SVC --recursive -- docker compose -f docker-compose.yml up -d --no-deps $SVC
+                infisical run --projectId="$INFISICAL_PROJECT_ID" --env=$ENV_NAME --path=/$SVC --recursive -- docker compose -f docker-compose.yml up -d --no-deps $SVC
                 CONTAINER_ID=$(docker compose -f docker-compose.yml ps -q $SVC)
               fi
               
               if [ "$ACTION" = "check" ]; then
-                infisical run --env=$ENV_NAME --path=/$SVC --recursive -- docker exec -i $CONTAINER_ID npm run db:migrate:check
+                infisical run --projectId="$INFISICAL_PROJECT_ID" --env=$ENV_NAME --path=/$SVC --recursive -- docker exec -i $CONTAINER_ID npm run db:migrate:check
               else
-                infisical run --env=$ENV_NAME --path=/$SVC --recursive -- docker exec -i $CONTAINER_ID npm run db:migrate
+                infisical run --projectId="$INFISICAL_PROJECT_ID" --env=$ENV_NAME --path=/$SVC --recursive -- docker exec -i $CONTAINER_ID npm run db:migrate
                 echo "===> Verifying database sync post-migration..."
-                infisical run --env=$ENV_NAME --path=/$SVC --recursive -- docker exec -i $CONTAINER_ID npm run db:migrate:check
+                infisical run --projectId="$INFISICAL_PROJECT_ID" --env=$ENV_NAME --path=/$SVC --recursive -- docker exec -i $CONTAINER_ID npm run db:migrate:check
               fi
               echo "===> Operation ($ACTION) for $SVC completed successfully!"
             }

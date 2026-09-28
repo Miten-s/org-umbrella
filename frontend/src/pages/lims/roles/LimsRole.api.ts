@@ -167,8 +167,22 @@ export const fetchLimsRolePermissions = async (
     params: { limit: 200 },
     signal
   });
-  // `code` (e.g. "LIMS:CREATE:ALIQUOT"), not `label`, is what groupPermissions parses via split(":").
-  return normalizeList<{ id?: string; _id?: string; code: string }>(
-    extractList(response.data, ["permissions"])
-  ).map((p) => ({ id: p.id, name: p.code }));
+  // `code` (e.g. "LIMS:CREATE:ALIQUOT") is what a role stores and groupPermissions parses;
+  // `label` / the entity's label are what users see.
+  const entities: { code: string; label: string }[] =
+    response.data?.data?.entities ?? response.data?.entities ?? [];
+  const entityLabel = new Map(entities.map((e) => [e.code, e.label]));
+  return normalizeList<{
+    id?: string;
+    _id?: string;
+    code: string;
+    label?: string;
+    entity?: string | null;
+  }>(extractList(response.data, ["permissions"])).map((p) => ({
+    id: p.id,
+    name: p.code,
+    label: p.label ?? p.code,
+    entity: p.entity ?? null,
+    entityLabel: p.entity ? entityLabel.get(p.entity) : undefined
+  }));
 };

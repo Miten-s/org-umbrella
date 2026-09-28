@@ -25,6 +25,22 @@ export interface LimsTestWindowRow extends Record<string, unknown> {
   stock?: string | number;
 }
 
+/** A Test assigned to the sample at login, with its result rows. */
+export interface LimsSampleTest {
+  id: string;
+  testId?: string;
+  testName?: string;
+  status?: string;
+  analysisId?: string;
+  components?: {
+    id: string;
+    componentId?: string;
+    componentName?: string;
+    unit?: string;
+    value?: string;
+  }[];
+}
+
 export interface LimsSample {
   id: string;
   /** @deprecated compatibility shim — read `id`. */
@@ -49,6 +65,7 @@ export interface LimsSample {
   description?: string;
   comments?: string;
   testWindows?: LimsTestWindowRow[];
+  tests?: LimsSampleTest[];
   attachments?: LimsAttachment[];
   isRemoved?: boolean;
   modifiedOn?: string | null;
@@ -74,6 +91,8 @@ export interface LimsSamplePayload {
   description?: string;
   comments?: string;
   testWindows?: LimsTestWindowRow[];
+  /** Test Templates to assign as new Tests. */
+  testTemplates?: string[];
   keptAttachmentIds?: string[];
   changeReason?: string;
 }

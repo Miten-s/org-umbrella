@@ -47,7 +47,14 @@ interface PermissionPickerProps {
   disabled?: boolean;
   label?: string;
   error?: string;
+  /** Entity code → display name from the backend catalogue (e.g. ANALYSIS → "Test Templates").
+   * Without it, the code itself is humanized. */
+  entityLabels?: Record<string, string>;
+  /** Permission code → display name, used for non-CRUD actions (e.g. OPERATE:ALL). */
+  permissionLabels?: Record<string, string>;
 }
+
+const CRUD_ACTIONS = ["VIEW", "CREATE", "UPDATE", "DELETE"];
 
 const PermissionPicker = ({
   allPermissions,
@@ -55,8 +62,20 @@ const PermissionPicker = ({
   onChange,
   disabled = false,
   label = "Permissions",
-  error
+  error,
+  entityLabels,
+  permissionLabels
 }: PermissionPickerProps) => {
+  // "OPERATE:ALL" parses as entity "ALL" — a whole-system switch, not an "All All" group.
+  const groupLabel = (entity: string) =>
+    entity === "ALL"
+      ? "Full access"
+      : `All ${entityLabels?.[entity] ?? humanizeEntity(entity)}`;
+  const itemLabel = (item: GroupedPermission) =>
+    !CRUD_ACTIONS.includes(item.action) && permissionLabels?.[item.key]
+      ? permissionLabels[item.key]
+      : item.action.charAt(0).toUpperCase() +
+        item.action.slice(1).toLowerCase();
   const groupedPermissions = groupPermissions(allPermissions);
 
   const togglePermission = (permission: string) => {
@@ -116,7 +135,7 @@ const PermissionPicker = ({
               className="min-w-0 rounded-lg border border-gray-200 bg-gray-50 p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900"
             >
               <Checkbox
-                label={`All ${humanizeEntity(entity)}`}
+                label={groupLabel(entity)}
                 checked={allSelected}
                 disabled={disabled}
                 onChange={() => toggleAllForGroup(entity)}
@@ -128,10 +147,7 @@ const PermissionPicker = ({
                 {items.map((item) => (
                   <Checkbox
                     key={item.key}
-                    label={
-                      item.action.charAt(0).toUpperCase() +
-                      item.action.slice(1).toLowerCase()
-                    }
+                    label={itemLabel(item)}
                     checked={selected.includes(item.key)}
                     disabled={disabled}
                     onChange={() => togglePermission(item.key)}

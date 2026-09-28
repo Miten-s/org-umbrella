@@ -7,6 +7,7 @@ on:
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend.yml'
+      - 'docker-compose*.yml'
 
 jobs:
   build-and-push:
@@ -49,6 +50,8 @@ jobs:
           VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL || secrets.VITE_API_BASE || '/auth/v1/api' }}
           VITE_API_GXP_BASE_URL=${{ secrets.VITE_API_GXP_BASE_URL || secrets.GXP || '/gxp/v1/api' }}
           VITE_API_LIMS_BASE_URL=${{ secrets.VITE_API_LIMS_BASE_URL || secrets.LIMS || '/lims/v1/api' }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
 
   deploy:
     needs: build-and-push
@@ -61,12 +64,15 @@ jobs:
       env:
         DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        INFISICAL_PROJECT_ID: ${{ vars.INFISICAL_PROJECT_ID }}
+        INFISICAL_MACHINE_IDENTITY_CLIENT_ID: ${{ secrets.INFISICAL_MACHINE_IDENTITY_CLIENT_ID || secrets.INFISICAL_CLIENT_ID }}
+        INFISICAL_MACHINE_IDENTITY_CLIENT_SECRET: ${{ secrets.INFISICAL_MACHINE_IDENTITY_CLIENT_SECRET || secrets.INFISICAL_CLIENT_SECRET }}
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USERNAME }}
         key: ${{ secrets.EC2_SSH_KEY }}
-        envs: DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
+        envs: DOCKERHUB_USERNAME,DOCKERHUB_TOKEN,INFISICAL_PROJECT_ID,INFISICAL_MACHINE_IDENTITY_CLIENT_ID,INFISICAL_MACHINE_IDENTITY_CLIENT_SECRET
         script: |
           cd ~/org-umbrella
           git config --global --add safe.directory $(pwd)
@@ -74,7 +80,7 @@ jobs:
           git checkout development
           git reset --hard origin/development
           echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+          export INFISICAL_TOKEN=$(infisical login --method=universal-auth --client-id="$INFISICAL_MACHINE_IDENTITY_CLIENT_ID" --client-secret="$INFISICAL_MACHINE_IDENTITY_CLIENT_SECRET" --plain --silent)
           docker compose -f docker-compose.yml pull frontend
-          docker compose -f docker-compose.yml stop frontend
-          docker compose -f docker-compose.yml rm -f frontend
-          infisical run --env=prod --path=/frontend --recursive -- docker compose -f docker-compose.yml up -d --no-deps frontend
+          infisical run --projectId="$INFISICAL_PROJECT_ID" --env=prod --path=/frontend --recursive -- docker compose -f docker-compose.yml up -d --no-deps frontend
+

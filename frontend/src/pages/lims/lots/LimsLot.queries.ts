@@ -190,6 +190,23 @@ export const useBulkCopyLimsLot = () => {
   });
 };
 
+/** Create-N's save: every form in the stepper created in one request (same endpoint as Copy). */
+export const useBulkCreateLimsLot = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (records: LimsLotPayload[]) => bulkCopyLimsLot(records),
+    onSuccess: (data) => {
+      toast(
+        data.count > 1
+          ? `${data.count} lots created successfully.`
+          : "Lot created successfully.",
+        "success"
+      );
+      invalidate();
+    }
+  });
+};
+
 export const useBulkUpdateLimsLot = () => {
   const invalidate = useInvalidate();
   return useMutation({

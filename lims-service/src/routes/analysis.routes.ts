@@ -9,11 +9,18 @@ import {
   CrudConfig
 } from "../utils/crud-factory";
 import { CreateAnalysisDto, UpdateAnalysisDto } from "../dtos/analytical.dto";
+import { approvalStatusWhere } from "../utils/approval-status";
+import {
+  normalizeComponents,
+  validateComponents
+} from "../services/test-template-components.service";
 
-/** Analyses, with the Component grid nested. */
+/** Test Templates (the `Analysis` model), with the Component grid nested. */
 export const analysisConfig: CrudConfig<Analysis> = {
   model: Analysis,
-  entityName: "Analysis",
+  entityName: "Test Template",
+  // Audit rows written before the rename still belong to this entity's history.
+  legacyEntityNames: ["Analysis"],
   permissionEntity: "ANALYSIS",
   uniqueField: "analysisId",
   businessId: { field: "analysisId", prefix: "ANL" },
@@ -47,6 +54,12 @@ export const analysisConfig: CrudConfig<Analysis> = {
     approvalStatus: "approvalStatusId",
     inspectionPlan: "inspectionPlanId"
   },
+
+  // `filter[approvalStatus]=Approved` — pickers that may only offer approved methods.
+  customFilters: { approvalStatus: approvalStatusWhere },
+
+  normalizePayload: normalizeComponents,
+  validatePayload: validateComponents,
 
   // The list column only shows a count (LimsAnalysis.columns.tsx:
   // `components?.length`) — no row content needed for the list at all.

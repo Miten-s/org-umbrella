@@ -37,7 +37,7 @@ export const sequelize = new Sequelize(
     "postgres://postgres:postgres@localhost:5433/gxp_workflow_db",
   {
     dialect: "postgres",
-    logging: (msg) => console.log(msg),
+    logging: false,
     pool: {
       max: 10,
       min: 2,
@@ -60,7 +60,7 @@ export const authSequelize = new Sequelize(
     "postgres://postgres:postgres@localhost:5433/umbrella_auth_db",
   {
     dialect: "postgres",
-    logging: (msg) => console.log(msg),
+    logging: false,
     dialectOptions: isLocalPostgres(authPostgresUri)
       ? undefined
       : { ssl: { require: true, rejectUnauthorized: false } },
@@ -77,17 +77,26 @@ export const authSequelize = new Sequelize(
   }
 );
 
-export const connectDB = async (): Promise<void> => {
-  try {
-    await sequelize.authenticate();
-    console.log("gxp_workflow_db (PostgreSQL) connected successfully!");
+export const connectDB = async (retries = 5, delayMs = 3000): Promise<void> => {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      await sequelize.authenticate();
+      console.log("gxp_workflow_db (PostgreSQL) connected successfully!");
 
-    await authSequelize.authenticate();
-    console.log(
-      "umbrella_auth_db secondary connection connected successfully!"
-    );
-  } catch (error) {
-    console.error("PostgreSQL connection error in gxp-service:", error);
-    process.exit(1);
+      await authSequelize.authenticate();
+      console.log(
+        "umbrella_auth_db secondary connection connected successfully!"
+      );
+      return;
+    } catch (error) {
+      console.error(
+        `PostgreSQL connection attempt ${attempt}/${retries} failed in gxp-service:`,
+        error
+      );
+      if (attempt === retries) {
+        process.exit(1);
+      }
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
   }
 };

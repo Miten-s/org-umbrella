@@ -17,7 +17,14 @@ import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
 import { toast } from "@/lib/toast";
-import { idsSelection } from "@/lib/query/listTypes";
+import BulkCountDialog from "@/components/lims/BulkCountDialog";
+import AsyncSelect from "@/components/data/AsyncSelect";
+import Label from "@/components/common/form/Label";
+import { useBulkCreateFlow } from "@/hooks/useBulkCreateFlow";
+import { MAX_BULK_CREATE } from "@/lib/limsBulk";
+import { fetchLimsSampleTemplateById } from "@/pages/lims/sample-templates/LimsSampleTemplate.api";
+import { useLimsSampleTemplateOptions } from "@/pages/lims/sample-templates/LimsSampleTemplate.queries";
+import type { LimsSampleTemplate } from "@/pages/lims/sample-templates/LimsSampleTemplate.types";
 import {
   CopyIcon,
   EyeIcon,
@@ -32,6 +39,7 @@ import {
   limsSampleKeys,
   useBulkCloneLimsSample,
   useBulkCopyLimsSample,
+  useBulkCreateLimsSample,
   useBulkDeleteLimsSample,
   useBulkUpdateLimsSample,
   useCreateLimsSample,
@@ -43,6 +51,32 @@ import {
 } from "./LimsSample.queries";
 import LimsSampleForm, { type LimsSampleFormMode } from "./LimsSampleForm";
 import type { LimsSample, LimsSamplePayload } from "./LimsSample.types";
+
+/** A Sample Template's values as a new sample's starting record (never linked back to it). */
+const sampleFromTemplate = (tpl: LimsSampleTemplate): LimsSample =>
+  ({
+    sampleType: tpl.sampleType ?? null,
+    project: tpl.project ?? null,
+    specification: tpl.specification ?? null,
+    location: tpl.location ?? null,
+    group: tpl.group ?? null,
+    lotNumber: tpl.lotNumber ?? "",
+    serialNumber: tpl.serialNumber ?? "",
+    loginDate: tpl.loginDate ?? "",
+    loginBy: tpl.loginBy ?? "",
+    sampleStartDate: tpl.sampleStartDate ?? "",
+    sampleStartBy: tpl.sampleStartBy ?? "",
+    description: tpl.description ?? "",
+    comments: tpl.comments ?? "",
+    tests: [...(tpl.tests ?? [])]
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+      .map((row) => ({
+        id: "",
+        analysisId: row.analysisId ?? row.analysis?.id,
+        testName: row.analysis?.name,
+        status: "Open"
+      }))
+  }) as unknown as LimsSample;
 
 /** LimsSample list — built to STANDARDS.md and the MIGRATION.md §5 definition of done. */
 const LimsSampleList = () => {
@@ -57,6 +91,10 @@ const LimsSampleList = () => {
   const [copyIds, setCopyIds] = useState<string[] | null>(null);
   const [viewIds, setViewIds] = useState<string[] | null>(null);
   const [editIds, setEditIds] = useState<string[] | null>(null);
+  const bulkFlow = useBulkCreateFlow<LimsSample>(fetchLimsSampleById);
+  const { askCopy } = bulkFlow;
+  const [templateId, setTemplateId] = useState("");
+  const [templateLoading, setTemplateLoading] = useState(false);
 
   const compliance = useLimsCompliance<LimsSample, LimsSamplePayload>();
   const auditQuery = useLimsSampleAudit(compliance.auditRow?.id);
@@ -81,6 +119,7 @@ const LimsSampleList = () => {
   const update = useUpdateLimsSample();
   const bulkClone = useBulkCloneLimsSample();
   const bulkCopy = useBulkCopyLimsSample();
+  const bulkCreate = useBulkCreateLimsSample();
   const bulkDelete = useBulkDeleteLimsSample();
   const bulkUpdate = useBulkUpdateLimsSample();
   const restore = useRestoreLimsSample();
@@ -91,6 +130,7 @@ const LimsSampleList = () => {
     update.isPending ||
     bulkClone.isPending ||
     bulkCopy.isPending ||
+    bulkCreate.isPending ||
     bulkDelete.isPending ||
     bulkUpdate.isPending ||
     restore.isPending ||
@@ -138,6 +178,35 @@ const LimsSampleList = () => {
     setCopyIds(null);
     setViewIds(null);
     setEditIds(null);
+    bulkFlow.reset();
+    setTemplateId("");
+  };
+
+  // "How many?" → 1 with no template is the ordinary single form (keeps attachments);
+  // anything else opens the stepper in bulk-create mode.
+  const confirmCreateCount = async (count: number) => {
+    if (count === 1 && !templateId) {
+      bulkFlow.reset();
+      openForm("create", null);
+      return;
+    }
+    let start = {} as LimsSample;
+    if (templateId) {
+      setTemplateLoading(true);
+      try {
+        start = sampleFromTemplate(
+          await fetchLimsSampleTemplateById(templateId)
+        );
+      } finally {
+        setTemplateLoading(false);
+      }
+    }
+    bulkFlow.startCreate(count, start);
+  };
+
+  const handleSaveCreated = async (payloads: LimsSamplePayload[]) => {
+    await bulkCreate.mutateAsync(payloads);
+    handleCloseForm();
   };
 
   const handleSaveCopies = async (payloads: LimsSamplePayload[]) => {
@@ -151,10 +220,6 @@ const LimsSampleList = () => {
   ) => {
     handleCloseForm();
     compliance.requestBulkUpdate(updates);
-  };
-
-  const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
-    await bulkClone.mutateAsync(idsSelection(unreviewedIds));
   };
 
   const handleSave = async (payload: LimsSamplePayload, files: File[]) => {
@@ -207,6 +272,12 @@ const LimsSampleList = () => {
         permission: LIMS_PERMISSIONS.CREATE_SAMPLE,
         onClick: async (selection) => {
           if (selection.mode === "ids") {
+            // One record selected → "How many copies?"; several → one copy each, as before.
+            if (selection.ids.length === 1) {
+              askCopy(selection.ids[0], t("limsSample"));
+              openModal();
+              return;
+            }
             openCopy(selection.ids);
             return;
           }
@@ -268,7 +339,17 @@ const LimsSampleList = () => {
           )
       }
     ],
-    [bulkClone, compliance, openCopy, openEdit, openView, t, table]
+    [
+      askCopy,
+      bulkClone,
+      compliance,
+      openCopy,
+      openEdit,
+      openModal,
+      openView,
+      t,
+      table
+    ]
   );
 
   const rowActions = useMemo<AppDataTableRowAction<LimsSample>[]>(
@@ -303,7 +384,10 @@ const LimsSampleList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_SAMPLE,
-        onClick: (row) => openCopy([row.id])
+        onClick: (row) => {
+          askCopy(row.id, label(row));
+          openModal();
+        }
       },
       {
         key: "restore",
@@ -328,7 +412,7 @@ const LimsSampleList = () => {
           ])
       }
     ],
-    [compliance, openCopy, openForm, t]
+    [askCopy, compliance, openModal, openForm, t]
   );
 
   return (
@@ -357,7 +441,10 @@ const LimsSampleList = () => {
             icon: PlusIcon,
             variant: "primary",
             permission: LIMS_PERMISSIONS.CREATE_SAMPLE,
-            onClick: () => openForm("create", null)
+            onClick: () => {
+              bulkFlow.askCreate();
+              openModal();
+            }
           }
         ]}
         emptyState={{ title: t("limsNoSamples") }}
@@ -369,13 +456,65 @@ const LimsSampleList = () => {
         className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
         disableOuterScroll
       >
-        {copyIds ? (
+        {bulkFlow.prompt?.kind === "create" ? (
+          <BulkCountDialog
+            title={t("limsHowManyCreate", { entity: t("limsSamples") })}
+            countLabel={t("limsNumberOf", { entity: t("limsSamples") })}
+            hint={t("limsHowManyHint", { max: MAX_BULK_CREATE })}
+            onCancel={handleCloseForm}
+            onConfirm={confirmCreateCount}
+            busy={templateLoading}
+          >
+            <div>
+              <Label tooltip={t("limsStartFromTemplateHint")}>
+                {t("limsStartFromTemplate")}
+              </Label>
+              <AsyncSelect
+                useOptions={useLimsSampleTemplateOptions}
+                value={templateId}
+                onChange={setTemplateId}
+                placeholder={t("select", { entity: t("limsSampleTemplate") })}
+              />
+            </div>
+          </BulkCountDialog>
+        ) : bulkFlow.prompt?.kind === "copy" ? (
+          <BulkCountDialog
+            title={t("limsHowManyCopy", { name: bulkFlow.prompt.name })}
+            countLabel={t("limsNumberOfCopies")}
+            hint={t("limsHowManyCopyHint", { max: MAX_BULK_CREATE })}
+            onCancel={handleCloseForm}
+            onConfirm={(count) => {
+              if (bulkFlow.prompt?.kind === "copy")
+                bulkFlow.startCopy(bulkFlow.prompt.id, count);
+            }}
+          />
+        ) : bulkFlow.createIds ? (
+          <CopyStepper<LimsSample, LimsSamplePayload, LimsSampleFormMode>
+            ids={bulkFlow.createIds}
+            fetchById={bulkFlow.fetchNew}
+            FormComponent={LimsSampleForm}
+            formMode="bulk-create"
+            onSaveAll={handleSaveCreated}
+            onClose={handleCloseForm}
+            saving={bulkCreate.isPending}
+            entityLabel={t("limsSample")}
+          />
+        ) : bulkFlow.copyIds ? (
+          <CopyStepper<LimsSample, LimsSamplePayload>
+            ids={bulkFlow.copyIds}
+            fetchById={bulkFlow.fetchSource}
+            FormComponent={LimsSampleForm}
+            onSaveAll={handleSaveCopies}
+            onClose={handleCloseForm}
+            saving={bulkCopy.isPending}
+            entityLabel={t("limsSample")}
+          />
+        ) : copyIds ? (
           <CopyStepper<LimsSample, LimsSamplePayload>
             ids={copyIds}
             fetchById={fetchLimsSampleById}
             FormComponent={LimsSampleForm}
             onSaveAll={handleSaveCopies}
-            onDuplicateUnreviewed={handleDuplicateUnreviewedCopies}
             onClose={handleCloseForm}
             saving={bulkCopy.isPending || bulkClone.isPending}
             entityLabel={t("limsSample")}

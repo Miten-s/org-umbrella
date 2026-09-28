@@ -32,7 +32,7 @@ import type { LimsBatch, LimsBatchPayload, LimsRef } from "./LimsBatch.types";
 /** "copy" renders like "create" except the business ID starts blank (stays EDITABLE —
  * `applyBusinessId` only mints when empty). Attachments hidden: the batch save is JSON-only. */
 export type LimsBatchFormMode =
-  "create" | "edit" | "view" | "copy" | "bulk-edit";
+  "create" | "edit" | "view" | "copy" | "bulk-edit" | "bulk-create";
 
 interface LimsBatchFormProps {
   mode?: LimsBatchFormMode;
@@ -88,7 +88,10 @@ const LimsBatchForm = ({
       batchId: mode === "copy" ? "" : (initialData?.batchId ?? ""),
       batchName: initialData?.batchName ?? "",
       group: initialData?.group?.id ?? "",
-      lots: (initialData?.lots ?? []).map((ref) => ref.id),
+      // A copy never inherits claimed lots: each belongs to one parent, and saving
+      // the copy would re-parent them off the original.
+      lots:
+        mode === "copy" ? [] : (initialData?.lots ?? []).map((ref) => ref.id),
       description: initialData?.description ?? ""
     }),
     [initialData, mode]
@@ -102,7 +105,9 @@ const LimsBatchForm = ({
     formState: { errors, isSubmitting }
   } = useForm<LimsBatchFormValues>({
     resolver: zodResolver(
-      mode === "copy" ? limsBatchCopySchema : limsBatchSchema
+      mode === "copy" || mode === "bulk-create"
+        ? limsBatchCopySchema
+        : limsBatchSchema
     ),
     defaultValues: initialValues
   });
@@ -159,11 +164,13 @@ const LimsBatchForm = ({
         <h2 className="text-xl font-semibold">
           {isReadOnly
             ? t("view", { entity: t("limsBatch") })
-            : mode === "copy"
-              ? `${t("copyEntity", { entity: t("limsBatch") })}${stepLabel ?? ""}`
-              : initialData
-                ? `${t("update", { entity: t("limsBatch") })}${stepLabel ?? ""}`
-                : t("create", { entity: t("limsBatch") })}
+            : mode === "bulk-create"
+              ? `${t("create", { entity: t("limsBatch") })}${stepLabel ?? ""}`
+              : mode === "copy"
+                ? `${t("copyEntity", { entity: t("limsBatch") })}${stepLabel ?? ""}`
+                : initialData
+                  ? `${t("update", { entity: t("limsBatch") })}${stepLabel ?? ""}`
+                  : t("create", { entity: t("limsBatch") })}
         </h2>
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
@@ -286,12 +293,14 @@ const LimsBatchForm = ({
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
-          {mode !== "copy" && mode !== "bulk-edit" && (
-            <LimsAttachmentsField
-              attachments={attachments}
-              disabled={isReadOnly}
-            />
-          )}
+          {mode !== "copy" &&
+            mode !== "bulk-edit" &&
+            mode !== "bulk-create" && (
+              <LimsAttachmentsField
+                attachments={attachments}
+                disabled={isReadOnly}
+              />
+            )}
         </div>
 
         <div className="mt-4 flex justify-end gap-2">

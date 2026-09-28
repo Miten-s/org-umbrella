@@ -112,6 +112,12 @@ export class CreateSampleDto {
   @ValidateNested({ each: true })
   @Type(() => TestWindowRowDto)
   testWindows?: TestWindowRowDto[];
+
+  /** Test Templates to add as Tests; ones already on the sample are skipped. */
+  @IsOptional()
+  @IsArray()
+  @IsUUID("4", { each: true })
+  testTemplates?: string[];
 }
 export class UpdateSampleDto extends CreateSampleDto {
   @IsOptional() @IsString() changeReason?: string;
@@ -221,5 +227,45 @@ export class CreateSchedulerDto {
   @IsOptional() @IsBoolean() isActive?: boolean;
 }
 export class UpdateSchedulerDto extends CreateSchedulerDto {
+  @IsOptional() @IsString() changeReason?: string;
+}
+
+// ─── Sample Templates ───────────────────────────────────────────────────────
+export class SampleTemplateTestRowDto {
+  @IsUUID("4", { message: "Every test needs a Test Template" })
+  analysisId!: string;
+  @IsOptional() @IsInt() sortOrder?: number;
+}
+
+/** Fields shared by create and update — everything optional; create adds the required name. */
+class SampleTemplateFieldsDto {
+  @IsOptional() @IsString() @MaxLength(100) sampleTemplateId?: string;
+  @IsOptional() @IsUUID("4") sampleType?: string;
+  @IsOptional() @IsUUID("4") project?: string;
+  @IsOptional() @IsUUID("4") specification?: string;
+  @IsOptional() @IsUUID("4") location?: string;
+  @IsOptional() @IsUUID("4") group?: string;
+  @IsOptional() @IsString() @MaxLength(150) lotNumber?: string;
+  @IsOptional() @IsString() @MaxLength(150) serialNumber?: string;
+  @IsOptional() @IsDateString() loginDate?: string;
+  @IsOptional() @IsString() @MaxLength(200) loginBy?: string;
+  @IsOptional() @IsDateString() sampleStartDate?: string;
+  @IsOptional() @IsString() @MaxLength(200) sampleStartBy?: string;
+  @IsOptional() @IsString() description?: string;
+  @IsOptional() @IsString() comments?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SampleTemplateTestRowDto)
+  tests?: SampleTemplateTestRowDto[];
+}
+
+export class CreateSampleTemplateDto extends SampleTemplateFieldsDto {
+  @IsString() @IsNotEmpty() @MaxLength(200) name!: string;
+}
+
+export class UpdateSampleTemplateDto extends SampleTemplateFieldsDto {
+  @IsOptional() @IsString() @MaxLength(200) name?: string;
   @IsOptional() @IsString() changeReason?: string;
 }

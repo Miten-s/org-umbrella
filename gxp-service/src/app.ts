@@ -11,6 +11,7 @@ import rateLimit from "express-rate-limit";
 dotenv.config();
 
 import { connectDB, sequelize } from "./configs/db.sequelize";
+import { connectRedis } from "./configs/redis.config";
 
 import API_ROUTES from "./utils/routes";
 import cors from "cors";
@@ -39,13 +40,11 @@ app.use(
   })
 );
 
-import "./configs/redis.config";
-
 app.use(cookierParser());
 
-// Connect to the database
-
+// Connect to the database and Redis
 connectDB();
+connectRedis();
 
 app.use(express.json());
 

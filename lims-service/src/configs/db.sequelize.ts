@@ -35,7 +35,7 @@ export const sequelize = new Sequelize(
     "postgres://postgres:postgres@localhost:5433/lims_service_db",
   {
     dialect: "postgres",
-    logging: ENV.NODE_ENV === "development" ? (msg) => console.log(msg) : false,
+    logging: false,
     dialectOptions: isLocalPostgres(ENV.LIMS_POSTGRES_URI)
       ? undefined
       : { ssl: { require: true, rejectUnauthorized: false } },
@@ -59,7 +59,7 @@ export const authSequelize = new Sequelize(
     "postgres://postgres:postgres@localhost:5433/umbrella_auth_db",
   {
     dialect: "postgres",
-    logging: ENV.NODE_ENV === "development" ? (msg) => console.log(msg) : false,
+    logging: false,
     dialectOptions: isLocalPostgres(ENV.AUTH_POSTGRES_URI)
       ? undefined
       : { ssl: { require: true, rejectUnauthorized: false } },
@@ -76,42 +76,48 @@ export const authSequelize = new Sequelize(
   }
 );
 
-export const connectDB = async (): Promise<void> => {
-  try {
-    await sequelize.authenticate();
-    console.log("lims_service_db (PostgreSQL) connected successfully!");
-
-    // Registered once, here, not at module load — circular by nature, so import order would otherwise matter.
-    const { registerAssociations } = await import("../models/associations");
-    registerAssociations();
-
-    // Mirror the code-defined permission vocabulary into lims_permissions so
-    // the catalogue can never describe permissions the code doesn't enforce.
+export const connectDB = async (retries = 5, delayMs = 3000): Promise<void> => {
+  for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const { seedPermissions } =
-        await import("../services/permission.service");
-      await seedPermissions();
-    } catch (err) {
-      console.warn(
-        "Skipping seedPermissions (run migrations first if table is missing):",
-        err
+      await sequelize.authenticate();
+      console.log("lims_service_db (PostgreSQL) connected successfully!");
+
+      // Registered once, here, not at module load — circular by nature, so import order would otherwise matter.
+      const { registerAssociations } = await import("../models/associations");
+      registerAssociations();
+
+      // Mirror the code-defined permission vocabulary into lims_permissions so
+      // the catalogue can never describe permissions the code doesn't enforce.
+      try {
+        const { seedPermissions } =
+          await import("../services/permission.service");
+        await seedPermissions();
+      } catch (err) {
+        console.warn(
+          "Skipping seedPermissions (run migrations first if table is missing):",
+          err
+        );
+      }
+
+      // Warn if a pick list is missing/empty; not auto-seeded, since values are a lab's own config.
+      const { reportPhraseHealth } =
+        await import("../services/phrase-health.service");
+      await reportPhraseHealth();
+
+      await authSequelize.authenticate();
+      console.log(
+        "umbrella_auth_db secondary connection connected successfully!"
       );
+      return;
+    } catch (error) {
+      console.error(
+        `PostgreSQL connection attempt ${attempt}/${retries} failed in lims-service:`,
+        error
+      );
+      if (attempt === retries) {
+        process.exit(1);
+      }
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
-
-    // Warn if a pick list is missing/empty; not auto-seeded, since values are a lab's own config.
-    const { reportPhraseHealth } =
-      await import("../services/phrase-health.service");
-    await reportPhraseHealth();
-
-    await authSequelize.authenticate();
-    console.log(
-      "umbrella_auth_db secondary connection connected successfully!"
-    );
-  } catch (error) {
-    console.error(
-      "PostgreSQL connection/migration error in lims-service:",
-      error
-    );
-    process.exit(1);
   }
 };

@@ -10,8 +10,13 @@ import { toast } from "@/lib/toast";
  * The module's own `Lims<Entity>Form`, rendered in `mode: "copy"` —
  * pointed at a source record instead of a blank one, ID field forced blank.
  */
-export interface CopyStepperFormProps<TRecord, TPayload> {
-  mode: "copy";
+export interface CopyStepperFormProps<
+  TRecord,
+  TPayload,
+  TMode extends string = "copy"
+> {
+  /** "copy" for Copy; a module can opt into another mode (e.g. "bulk-create") via `formMode`. */
+  mode: TMode;
   initialData: TRecord;
   onClose: () => void;
   // `files` is accepted for type compat with attachment-bearing forms, but unused —
@@ -25,12 +30,21 @@ export interface CopyStepperFormProps<TRecord, TPayload> {
   stepLabel?: string;
 }
 
-export interface CopyStepperProps<TRecord, TPayload> {
+export interface CopyStepperProps<
+  TRecord,
+  TPayload,
+  TMode extends string = "copy"
+> {
   /** IDs of the source records the user selected for Copy. */
   ids: string[];
   /** Fetches ONE full-detail source record — the same fetch the Edit modal already uses. */
   fetchById: (id: string, signal?: AbortSignal) => Promise<TRecord>;
-  FormComponent: React.ComponentType<CopyStepperFormProps<TRecord, TPayload>>;
+  FormComponent: React.ComponentType<
+    CopyStepperFormProps<TRecord, TPayload, TMode>
+  >;
+  /** The mode each step's form renders in — "copy" unless the caller says otherwise
+   * (Create-N passes "bulk-create": same stepper, blank or template-filled records). */
+  formMode?: TMode;
   // Fires once, on Save-all, with every REVIEWED record; never-opened records go through
   // `onDuplicateUnreviewed` (or are dropped, see `dropNeverOpened`) and are excluded here.
   onSaveAll: (payloads: TPayload[]) => void | Promise<void>;
@@ -52,16 +66,17 @@ export interface CopyStepperProps<TRecord, TPayload> {
  * Copy review flow: select N records → review/edit any subset → one Save sends all of them
  * together, each submitted through ITS OWN form first — a raw fetched source isn't a valid payload.
  */
-function CopyStepper<TRecord, TPayload>({
+function CopyStepper<TRecord, TPayload, TMode extends string = "copy">({
   ids,
   fetchById,
   FormComponent,
+  formMode,
   onSaveAll,
   onClose,
   saving = false,
   onDuplicateUnreviewed,
   dropNeverOpened = false
-}: CopyStepperProps<TRecord, TPayload>) {
+}: CopyStepperProps<TRecord, TPayload, TMode>) {
   const { t } = useTranslation();
   // Per-step id (`${formId}-${i}`): more than one step can be mounted at once, so a shared id would be invalid HTML.
   const formId = useId();
@@ -409,7 +424,7 @@ function CopyStepper<TRecord, TPayload>({
               <FormComponent
                 // A fresh, STABLE instance per record, never re-keyed — so its own edits and
                 // AsyncSelect labels survive navigating away and back.
-                mode="copy"
+                mode={(formMode ?? "copy") as TMode}
                 initialData={sources[i] as TRecord}
                 onClose={onClose}
                 onSubmit={(values, files) => handleStepSubmit(i, values, files)}

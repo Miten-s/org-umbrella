@@ -190,6 +190,23 @@ export const useBulkCopyLimsSample = () => {
   });
 };
 
+/** Create-N's save: every form in the stepper created in one request (same endpoint as Copy). */
+export const useBulkCreateLimsSample = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (records: LimsSamplePayload[]) => bulkCopyLimsSample(records),
+    onSuccess: (data) => {
+      toast(
+        data.count > 1
+          ? `${data.count} samples created successfully.`
+          : "Sample created successfully.",
+        "success"
+      );
+      invalidate();
+    }
+  });
+};
+
 export const useBulkUpdateLimsSample = () => {
   const invalidate = useInvalidate();
   return useMutation({

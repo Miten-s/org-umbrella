@@ -250,7 +250,7 @@ const LimsUserForm = ({
           </div>
 
           <div className="min-w-0">
-            <Label>{t("limsLocation")}</Label>
+            <Label>{t("location")}</Label>
             <Controller
               name="location"
               control={control}
@@ -260,7 +260,7 @@ const LimsUserForm = ({
                   value={field.value}
                   onChange={field.onChange}
                   disabled={isReadOnly}
-                  placeholder={t("select", { entity: t("limsLocation") })}
+                  placeholder={t("select", { entity: t("location") })}
                   initialSelectedOptions={seedOne(initialData?.location)}
                 />
               )}

@@ -11,6 +11,7 @@ import {
 } from "../utils/crud-factory";
 import { CreateTestDto, UpdateTestDto } from "../dtos/execution.dto";
 import { attachCancelRoutes } from "../utils/cancel-routes";
+import { TEST_BUSINESS_ID } from "../configs/business-ids";
 
 /** Tests — 100k a day. Not versioned, unlike Results. `components` reuses Sample's
  * `TestWindow` table via its `testId` column; `sampleId` is stamped via `extraFields` on create. */
@@ -19,7 +20,7 @@ export const testConfig: CrudConfig<Test> = {
   entityName: "Test",
   permissionEntity: "TEST",
   uniqueField: "testId",
-  businessId: { field: "testId", prefix: "TST", locked: true, pad: 10 },
+  businessId: TEST_BUSINESS_ID,
   searchFields: ["testId", "testName", "description"],
   defaultSortBy: "createdAt",
   relations: [

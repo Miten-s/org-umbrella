@@ -13,7 +13,10 @@ import SubFormGrid from "@/components/data/SubFormGrid";
 import LimsAttachmentsField from "@/components/lims/LimsAttachmentsField";
 import { useAttachments } from "@/hooks/useAttachments";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
-import { useStockTypeOptions } from "@/pages/lims/phrases/LimsPhrase.queries";
+import {
+  useStockTypeOptions,
+  useUnitOptions
+} from "@/pages/lims/phrases/LimsPhrase.queries";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsUserOptions } from "@/pages/lims/users/LimsUser.options";
 import { useLimsLocationOptions } from "@/pages/lims/locations/LimsLocation.queries";
@@ -288,7 +291,27 @@ const LimsStockForm = ({
               )}
             />
           </div>
-          {text("unit", t("limsUnit"), false, "text")}
+          <div className="min-w-0">
+            <Label required={false}>{t("limsUnit")}</Label>
+            <Controller
+              name="unit"
+              control={control}
+              render={({ field }) => (
+                <AsyncSelect
+                  useOptions={useUnitOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={isReadOnly}
+                  placeholder={t("select", { entity: t("limsUnit") })}
+                  initialSelectedOptions={
+                    initialData?.unit
+                      ? [{ value: initialData.unit, label: initialData.unit }]
+                      : undefined
+                  }
+                />
+              )}
+            />
+          </div>
           {text("targetAmount", t("limsTargetAmount"), false, "number")}
           {text("lowAmount", t("limsLowAmount"), false, "number")}
           {text("lowPercentage", t("limsLowPercentage"), false, "number")}

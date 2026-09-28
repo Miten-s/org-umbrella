@@ -12,6 +12,27 @@ export default defineConfig(({ mode }) => {
   const host = process.env.REACT_APP_HOST || 'localhost';
   const port = Number(process.env.REACT_APP_PORT || 3000);
 
+  // Same paths nginx forwards in prod (nginx/app.conf) — only /<service>/v1/api and
+  // /<service>/uploads. A bare "/lims" or "/gxp" key also caught page URLs like /lims/samples
+  // and /gxp-service/..., so reloading those pages hit the API ("Cannot GET").
+  const services = {
+    auth: process.env.REACT_APP_AUTH_PORT || 9001,
+    gxp: process.env.REACT_APP_GXP_PORT || 9002,
+    lims: process.env.REACT_APP_LIMS_PORT || 9003,
+  };
+  const proxy = Object.fromEntries(
+    Object.entries(services).flatMap(([service, servicePort]) =>
+      ['v1/api', 'uploads'].map((suffix) => [
+        `/${service}/${suffix}`,
+        {
+          target: `http://localhost:${servicePort}`,
+          changeOrigin: true,
+          rewrite: (p: string) => p.replace(new RegExp(`^/${service}`), ''),
+        },
+      ])
+    )
+  );
+
   return {
     plugins: [react(), svgr({
       svgrOptions: {

@@ -2,13 +2,7 @@ import { z } from "zod";
 
 /** Assignment Group schema — verbatim from lib/schema.ts#getAssignmentGroupSchema. */
 export const assignmentGroupSchema = z.object({
-  groupName: z
-    .string()
-    .min(1, "Group name is required")
-    .regex(
-      /^[A-Z]{2}-[A-Z]{3,}-[A-Z]{2,}-[A-Z]{2,}$/,
-      "Group Name must follow format like RD-APP-GXP-BUS-ADMIN"
-    ),
+  groupName: z.string().min(1, "Group name is required"),
   manager: z.object({
     userId: z.string().min(1, "Manager is required"),
     name: z.string().min(1, "Manager name is required")

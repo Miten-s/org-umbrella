@@ -38,7 +38,13 @@ export interface LimsRolePayload {
 /** A LIMS permission option {id, name} used to map picker selections (by name) → ids. */
 export interface LimsPermissionOption {
   id: string;
+  /** The code, e.g. "LIMS:VIEW:ANALYSIS" — what a role stores. */
   name: string;
+  /** Display name, e.g. "View Test Templates". */
+  label: string;
+  /** Entity code → display name, e.g. ANALYSIS → "Test Templates". */
+  entityLabel?: string;
+  entity?: string | null;
 }
 
 export const getLimsRolePermissionNames = (role: LimsRole): string[] =>

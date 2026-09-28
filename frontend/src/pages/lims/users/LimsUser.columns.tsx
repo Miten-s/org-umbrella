@@ -55,7 +55,7 @@ export const getLimsUserColumns = ({
   },
   {
     colId: "location",
-    headerName: t("limsLocation"),
+    headerName: t("location"),
     flex: 0.8,
     minWidth: 160,
     valueGetter: (params) => refLabel(params.data?.location),

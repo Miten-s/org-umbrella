@@ -190,6 +190,23 @@ export const useBulkCopyLimsBatch = () => {
   });
 };
 
+/** Create-N's save: every form in the stepper created in one request (same endpoint as Copy). */
+export const useBulkCreateLimsBatch = () => {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (records: LimsBatchPayload[]) => bulkCopyLimsBatch(records),
+    onSuccess: (data) => {
+      toast(
+        data.count > 1
+          ? `${data.count} batches created successfully.`
+          : "Batch created successfully.",
+        "success"
+      );
+      invalidate();
+    }
+  });
+};
+
 export const useBulkUpdateLimsBatch = () => {
   const invalidate = useInvalidate();
   return useMutation({

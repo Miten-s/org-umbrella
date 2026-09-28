@@ -47,6 +47,19 @@ export const inspectionPlanConfig: CrudConfig<InspectionPlan> = {
   ],
   relationFields: { group: "groupId" },
 
+  // A row names a person OR a role, never both — the entry type decides which one is kept.
+  normalizePayload: (payload) => {
+    if (!Array.isArray(payload.personnel)) return payload;
+    return {
+      ...payload,
+      personnel: payload.personnel.map((row: Record<string, any>) => {
+        if (row?.inspectionType === "User") return { ...row, role: null };
+        if (row?.inspectionType === "Role") return { ...row, person: null };
+        return row;
+      })
+    };
+  },
+
   // The list column only shows a count (`personnel?.length`) — no sub-relation is read.
   listRelationAttributes: { personnel: ["id"] },
 
