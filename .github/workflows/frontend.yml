@@ -80,6 +80,7 @@ jobs:
           git checkout development
           git reset --hard origin/development
           echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+          export INFISICAL_TOKEN=$(infisical login --method=universal-auth --client-id="$INFISICAL_MACHINE_IDENTITY_CLIENT_ID" --client-secret="$INFISICAL_MACHINE_IDENTITY_CLIENT_SECRET" --plain --silent)
           docker compose -f docker-compose.yml pull frontend
           infisical run --projectId="$INFISICAL_PROJECT_ID" --env=prod --path=/frontend --recursive -- docker compose -f docker-compose.yml up -d --no-deps frontend
 
