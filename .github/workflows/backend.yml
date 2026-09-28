@@ -63,12 +63,13 @@ jobs:
       env:
         DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        INFISICAL_PROJECT_ID: ${{ vars.INFISICAL_PROJECT_ID }}
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USERNAME }}
         key: ${{ secrets.EC2_SSH_KEY }}
-        envs: DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
+        envs: DOCKERHUB_USERNAME,DOCKERHUB_TOKEN,INFISICAL_PROJECT_ID
         script: |
           cd ~/org-umbrella
           git config --global --add safe.directory $(pwd)
@@ -78,9 +79,9 @@ jobs:
           echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
           docker compose -f docker-compose.yml pull backend
           echo "===> Executing database migrations for backend with latest image..."
-          infisical run --env=prod --path=/backend --recursive -- docker compose -f docker-compose.yml run --rm backend npm run db:migrate
+          infisical run --projectId="$INFISICAL_PROJECT_ID" --env=prod --path=/backend --recursive -- docker compose -f docker-compose.yml run --rm backend npm run db:migrate
           echo "===> Verifying database sync post-migration..."
-          infisical run --env=prod --path=/backend --recursive -- docker compose -f docker-compose.yml run --rm backend npm run db:migrate:check
+          infisical run --projectId="$INFISICAL_PROJECT_ID" --env=prod --path=/backend --recursive -- docker compose -f docker-compose.yml run --rm backend npm run db:migrate:check
           echo "===> Backend migration completed successfully!"
 
   deploy:
@@ -93,12 +94,13 @@ jobs:
       env:
         DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        INFISICAL_PROJECT_ID: ${{ vars.INFISICAL_PROJECT_ID }}
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USERNAME }}
         key: ${{ secrets.EC2_SSH_KEY }}
-        envs: DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
+        envs: DOCKERHUB_USERNAME,DOCKERHUB_TOKEN,INFISICAL_PROJECT_ID
         script: |
           cd ~/org-umbrella
           git config --global --add safe.directory $(pwd)
@@ -107,7 +109,7 @@ jobs:
           git reset --hard origin/development
           echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
           docker compose -f docker-compose.yml pull backend
-          infisical run --env=prod --path=/backend --recursive -- docker compose -f docker-compose.yml up -d --no-deps backend
+          infisical run --projectId="$INFISICAL_PROJECT_ID" --env=prod --path=/backend --recursive -- docker compose -f docker-compose.yml up -d --no-deps backend
 
 
 
