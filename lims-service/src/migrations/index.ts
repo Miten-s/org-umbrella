@@ -30,7 +30,13 @@ export const migrations: Migration[] = [
   { name: "009-create-executions", up: m009.up },
   { name: "010-audit-action-cancel", up: m010.up },
   { name: "011-widen-lims-user-signature", up: m011.up },
-  { name: "012-spec-limit-analysis-links", up: m012.up }
+  { name: "012-spec-limit-analysis-links", up: m012.up },
+  { name: "013-search-and-sort-indexes", up: m013.up },
+  { name: "014-seed-lims-master-admin-role", up: m014.up },
+  { name: "015-fix-lims-master-admin-id-format", up: m015.up },
+  { name: "016-seed-unit-pick-list", up: m016.up },
+  { name: "017-test-group-items-to-test-templates", up: m017.up },
+  { name: "018-create-sample-templates", up: m018.up }
 ];
 
 export { runMigrations, checkMigrations } from "./runner";
