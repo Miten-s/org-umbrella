@@ -57,6 +57,8 @@ jobs:
             ACTION="${{ github.event.inputs.action }}"
             ENV_NAME="${{ github.event.inputs.environment }}"
             
+            export INFISICAL_TOKEN=$(infisical login --method=universal-auth --client-id="$INFISICAL_MACHINE_IDENTITY_CLIENT_ID" --client-secret="$INFISICAL_MACHINE_IDENTITY_CLIENT_SECRET" --plain --silent)
+            
             run_service_migration() {
               SVC=$1
               echo "===> Executing $ACTION for $SVC in $ENV_NAME environment..."
