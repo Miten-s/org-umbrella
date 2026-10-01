@@ -10,6 +10,7 @@ import {
 } from "../utils/crud-factory";
 import { CreateRoleDto, UpdateRoleDto } from "../dtos/master-data.dto";
 import { invalidateAllUserContexts } from "../services/user-context.service";
+import { mirrorRolesToBackend } from "../services/role-mirror.service";
 import { preventRoleEscalation } from "../middlewares/role-escalation.middleware";
 import {
   ACTION_COLUMN,
@@ -120,6 +121,10 @@ export const roleConfig: CrudConfig<Role> = {
       ...entriesToPermissions(row.entries)
     ]
   }),
+
+  // Inside the write's transaction: backend holds what each role grants, so it has to
+  // follow every change made here. See role-mirror.service.ts for what a failure does.
+  beforeCommit: mirrorRolesToBackend,
 
   // A permission change must take effect on the very next request.
   afterWrite: invalidateAllUserContexts

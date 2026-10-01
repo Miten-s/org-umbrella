@@ -43,7 +43,7 @@ const buildReq = (type: string) =>
     user: { id: "actor-1", email: "admin@example.com" }
   }) as unknown as Request;
 
-describe("Lims_Service role type authority", () => {
+describe("Lims_Service roles are written only by lims-service", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     superAdmin = false;
@@ -59,45 +59,94 @@ describe("Lims_Service role type authority", () => {
     });
   });
 
-  it("lets a LIMS role admin create a Lims_Service role", async () => {
+  const MANAGED = /managed from the LIMS Roles screen/;
+
+  // LIMS mirrors its Lab Roles into backend. A role created or edited here would be
+  // invisible to LIMS's own screens and overwritten by the next sync — so nobody may.
+  it("refuses a LIMS role admin creating a Lims_Service role through the public API", async () => {
     currentPermissions = ["LIMS:CREATE:ROLE"];
 
-    await expect(
-      roleService.createRole(buildReq("Lims_Service"))
-    ).resolves.toBeDefined();
+    await expect(roleService.createRole(buildReq("Lims_Service"))).rejects.toThrow(MANAGED);
+    expect(Role.create).not.toHaveBeenCalled();
   });
 
-  // The type gate is the whole point: holding some ROLE permission must not be enough to
-  // reach another service's roles.
-  it("blocks a GXP-only admin from creating a Lims_Service role", async () => {
-    currentPermissions = ["GXP:CREATE:ROLE"];
-
-    await expect(
-      roleService.createRole(buildReq("Lims_Service"))
-    ).rejects.toThrow(/not authorized to manage Lims_Service roles/);
-  });
-
-  it("blocks a LIMS-only admin from creating a Gxp_Service role", async () => {
-    currentPermissions = ["LIMS:CREATE:ROLE"];
-
-    await expect(
-      roleService.createRole(buildReq("Gxp_Service"))
-    ).rejects.toThrow(/not authorized to manage Gxp_Service roles/);
-  });
-
-  it("blocks a LIMS-only admin from creating a platform Built_In role", async () => {
-    currentPermissions = ["LIMS:CREATE:ROLE"];
-
-    await expect(
-      roleService.createRole(buildReq("Built_In"))
-    ).rejects.toThrow(/not authorized to manage Built_In roles/);
-  });
-
-  it("lets a super admin create a Lims_Service role", async () => {
+  it("refuses even a super admin", async () => {
     superAdmin = true;
 
+    await expect(roleService.createRole(buildReq("Lims_Service"))).rejects.toThrow(MANAGED);
+  });
+
+  it("refuses editing an existing Lims_Service role", async () => {
+    superAdmin = true;
+    (Role.findByPk as jest.Mock).mockResolvedValue({
+      id: "role-1",
+      name: "Lab User",
+      type: "Lims_Service",
+      permissions: [],
+      update: jest.fn()
+    });
+
     await expect(
-      roleService.createRole(buildReq("Lims_Service"))
-    ).resolves.toBeDefined();
+      roleService.updateRole({
+        params: { id: "role-1" },
+        body: { name: "Renamed" },
+        user: { id: "actor-1" }
+      } as unknown as Request)
+    ).rejects.toThrow(MANAGED);
+  });
+
+  it("refuses retyping another role into Lims_Service", async () => {
+    superAdmin = true;
+    (Role.findByPk as jest.Mock).mockResolvedValue({
+      id: "role-1",
+      name: "Custom Role",
+      type: "Custom",
+      permissions: [],
+      update: jest.fn()
+    });
+
+    await expect(
+      roleService.updateRole({
+        params: { id: "role-1" },
+        body: { type: "Lims_Service" },
+        user: { id: "actor-1" }
+      } as unknown as Request)
+    ).rejects.toThrow(MANAGED);
+  });
+
+  it("refuses deleting a Lims_Service role", async () => {
+    superAdmin = true;
+    (Role.findByPk as jest.Mock).mockResolvedValue({
+      id: "role-1",
+      name: "Lab User",
+      type: "Lims_Service",
+      permissions: [],
+      destroy: jest.fn()
+    });
+
+    await expect(
+      roleService.deleteRole({
+        params: { id: "role-1" },
+        body: {},
+        user: { id: "actor-1" }
+      } as unknown as Request)
+    ).rejects.toThrow(MANAGED);
+  });
+
+  it("still lets a platform admin create an ordinary Custom role", async () => {
+    currentPermissions = ["CREATE:ROLE"];
+
+    await expect(roleService.createRole(buildReq("Custom"))).resolves.toBeDefined();
+  });
+
+  it("still blocks a LIMS-only admin from GXP and platform Built_In roles", async () => {
+    currentPermissions = ["LIMS:CREATE:ROLE"];
+
+    await expect(roleService.createRole(buildReq("Gxp_Service"))).rejects.toThrow(
+      /not authorized to manage Gxp_Service roles/
+    );
+    await expect(roleService.createRole(buildReq("Built_In"))).rejects.toThrow(
+      /not authorized to manage Built_In roles/
+    );
   });
 });

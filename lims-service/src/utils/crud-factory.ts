@@ -139,6 +139,13 @@ export interface CrudConfig<M extends Model> {
   /** Runs after any successful mutation, outside the transaction — access-control entities use
    * it to drop cached permission contexts immediately, not on a TTL. */
   afterWrite?: () => Promise<void> | void;
+  /** Runs at the end of every write, INSIDE its transaction — throwing rolls the write
+   * back. For changes that must not be saved unless something else also succeeds. */
+  beforeCommit?: (args: {
+    transaction: Transaction;
+    actor: AuditActor;
+    changeReason?: string;
+  }) => Promise<void>;
   defaultSortBy?: string;
   /** Mutate/derive the payload before create. Runs in the same transaction as the rest of
    * the create — pass it through to any atomic read-then-write (e.g. a per-parent counter). */
@@ -932,8 +939,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
   };
 
   const create = async (raw: Record<string, any>, ctx: CrudContext) => {
-    return sequelize
-      .transaction((transaction) => createOne(raw, ctx, transaction))
+    return inWrite(ctx, raw.changeReason)
+      .run((transaction) => createOne(raw, ctx, transaction))
       .then(async ({ result }) => {
         await afterWrite();
         return result;
@@ -950,7 +957,7 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     const collisionMode = config.strictCopyCollision ? "reject" : "warn";
 
     const attemptAll = () =>
-      sequelize.transaction(async (transaction) => {
+      inWrite(ctx, undefined).run(async (transaction) => {
         const results: { id: string; warning?: string }[] = [];
         for (const raw of records) {
           const { result, warning } = await createOne(raw, ctx, transaction, {
@@ -981,7 +988,7 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
       const results: { id?: string; warning?: string; error?: string }[] = [];
       for (const raw of records) {
         try {
-          const { result, warning } = await sequelize.transaction(
+          const { result, warning } = await inWrite(ctx, undefined).run(
             (transaction) =>
               createOne(raw, ctx, transaction, {
                 collisionMode: "reject",
@@ -997,6 +1004,23 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
       return results;
     }
   };
+
+  /** Every write goes through this instead of sequelize.transaction directly, so an
+   * entity's `beforeCommit` hook runs inside the same transaction as the write itself. */
+  const inWrite = (ctx: CrudContext, changeReason: string | undefined) => ({
+    run: <T>(work: (transaction: Transaction) => PromiseLike<T>): Promise<T> =>
+      sequelize.transaction(async (transaction) => {
+        const result = await work(transaction);
+        if (config.beforeCommit) {
+          await config.beforeCommit({
+            transaction,
+            actor: ctx.actor,
+            changeReason
+          });
+        }
+        return result;
+      })
+  });
 
   const afterWrite = async () => {
     if (config.afterWrite) await config.afterWrite();
@@ -1175,8 +1199,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     ctx: CrudContext,
     files?: Express.Multer.File[]
   ) => {
-    return sequelize
-      .transaction((transaction) => updateOne(id, raw, ctx, transaction, files))
+    return inWrite(ctx, raw.changeReason)
+      .run((transaction) => updateOne(id, raw, ctx, transaction, files))
       .then(async (result) => {
         await afterWrite();
         return result;
@@ -1190,8 +1214,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     changeReason: string | undefined,
     ctx: CrudContext
   ) => {
-    return sequelize
-      .transaction(async (transaction) => {
+    return inWrite(ctx, changeReason)
+      .run(async (transaction) => {
         const results: { id: string; skipped?: boolean }[] = [];
         for (const { id, payload } of updates) {
           const updated = await updateOne(
@@ -1215,8 +1239,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     changeReason: string | undefined,
     ctx: CrudContext
   ) => {
-    return sequelize
-      .transaction(async (transaction) => {
+    return inWrite(ctx, changeReason)
+      .run(async (transaction) => {
         const existing = await repo.findById(id, ctx.scope, transaction);
         if (!existing) return null;
         await repo.softDelete([id], ctx.actor.id, transaction);
@@ -1242,8 +1266,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     changeReason: string | undefined,
     ctx: CrudContext
   ) => {
-    return sequelize
-      .transaction(async (transaction) => {
+    return inWrite(ctx, changeReason)
+      .run(async (transaction) => {
         // Filter to the ids actually in scope, so a bulk call can't be used to
         // delete records the caller could not have seen one at a time. One batched
         // lookup instead of N sequential round trips.
@@ -1283,8 +1307,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     changeReason: string | undefined,
     ctx: CrudContext
   ) => {
-    return sequelize
-      .transaction(async (transaction) => {
+    return inWrite(ctx, changeReason)
+      .run(async (transaction) => {
         // Same permitted-ids filter as bulkDelete, PLUS: only rows actually removed right
         // now — restoring an already-active row would write a bogus "RESTORE" audit entry
         // for something that never happened. One batched lookup instead of N round trips.
@@ -1320,8 +1344,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
   };
 
   const bulkDuplicate = async (ids: string[], ctx: CrudContext) => {
-    return sequelize
-      .transaction(async (transaction) => {
+    return inWrite(ctx, undefined)
+      .run(async (transaction) => {
         const created: any[] = [];
         // One batched lookup for every permitted source row, instead of a findById per id.
         const permittedSources = await model.findAll({
@@ -1439,8 +1463,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     changeReason: string | undefined,
     ctx: CrudContext
   ) => {
-    return sequelize
-      .transaction(async (transaction) => {
+    return inWrite(ctx, changeReason)
+      .run(async (transaction) => {
         const existing = await repo.findById(id, ctx.scope, transaction, true);
         if (!existing) return null;
         const restored = await repo.restore(id, transaction);

@@ -104,6 +104,18 @@ const PROTECTED_ROLE_NAMES = new Set([
   "LIMS Master Admin"
 ]);
 
+/** Lims_Service roles are mirrored from LIMS (see lims-role-sync.service.ts): lims-service
+ * is the only writer. Editing one here would be overwritten by the next sync, and LIMS's own
+ * screens would not show the change — so the public API refuses, for everyone. */
+const assertNotLimsManaged = (type: RoleType | string | undefined) => {
+  if (type === RoleType.LIMS_SERVICE) {
+    throw Object.assign(
+      new Error("LIMS roles are managed from the LIMS Roles screen and cannot be changed here."),
+      { statusCode: 403 }
+    );
+  }
+};
+
 const assertNotProtectedRole = (name: string) => {
   if (PROTECTED_ROLE_NAMES.has(name)) {
     throw Object.assign(
@@ -163,6 +175,7 @@ const assignRole = async (req: Request) => {
 
 const createRole = async (req: Request) => {
   const { name, permissions, type } = req.body;
+  assertNotLimsManaged(type);
   assertRoleTypeAuthority(req.user as IUser, type ?? RoleType.CUSTOM);
   await assertNoEscalation(req.user as IUser, permissions);
   const t = await sequelize.transaction();
@@ -217,6 +230,8 @@ const updateRole = async (req: Request) => {
       permissions: permissionNamesOf((role as any).permissions)
     };
     assertNotProtectedRole(role.name);
+    assertNotLimsManaged(role.type);
+    assertNotLimsManaged(type);
     assertRoleTypeAuthority(req.user as IUser, role.type);
     if (type && type !== role.type) {
       assertRoleTypeAuthority(req.user as IUser, type);
@@ -267,6 +282,7 @@ const deleteRole = async (req: Request) => {
     });
     if (!role) return null;
     assertNotProtectedRole(role.name);
+    assertNotLimsManaged(role.type);
     assertRoleTypeAuthority(req.user as IUser, role.type);
     await role.destroy({ transaction: t });
 
@@ -400,6 +416,7 @@ const bulkDeleteRoles = async (ids: string[], actor?: IUser) => {
       include: ["permissions"],
       transaction: t
     });
+    for (const role of doomedRoles) assertNotLimsManaged(role.type);
 
     await Role.destroy({
       where: { id: deletableIds },
@@ -461,7 +478,10 @@ const bulkDuplicateRoles = async (ids: string[], actor?: IUser) => {
     if (!sourceRoles || sourceRoles.length === 0) {
       throw new Error("Roles not found");
     }
-    for (const role of sourceRoles) assertNotProtectedRole(role.name);
+    for (const role of sourceRoles) {
+      assertNotProtectedRole(role.name);
+      assertNotLimsManaged(role.type);
+    }
 
     const duplicatedRoles = [];
 
