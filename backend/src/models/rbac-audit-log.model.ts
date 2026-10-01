@@ -12,7 +12,10 @@ export type RbacAuditAction =
   | "PERMISSION_UPDATE"
   | "PERMISSION_DELETE"
   | "PERMISSION_BULK_DELETE"
-  | "PERMISSION_BULK_DUPLICATE";
+  | "PERMISSION_BULK_DUPLICATE"
+  | "LIMS_ROLE_MIGRATE"
+  | "LIMS_ROLE_SYNC"
+  | "LIMS_MIGRATION_ROLLBACK";
 
 export type RbacAuditTargetType = "role" | "permission" | "user_role";
 

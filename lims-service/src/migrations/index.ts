@@ -17,6 +17,7 @@ import * as m015 from "./015-fix-lims-master-admin-id-format";
 import * as m016 from "./016-seed-unit-pick-list";
 import * as m017 from "./017-test-group-items-to-test-templates";
 import * as m018 from "./018-create-sample-templates";
+import * as m019 from "./019-add-backend-role-id-to-lims-roles";
 
 export const migrations: Migration[] = [
   { name: "001-create-audit-logs", up: m001.up },
@@ -36,7 +37,8 @@ export const migrations: Migration[] = [
   { name: "015-fix-lims-master-admin-id-format", up: m015.up },
   { name: "016-seed-unit-pick-list", up: m016.up },
   { name: "017-test-group-items-to-test-templates", up: m017.up },
-  { name: "018-create-sample-templates", up: m018.up }
+  { name: "018-create-sample-templates", up: m018.up },
+  { name: "019-add-backend-role-id-to-lims-roles", up: m019.up }
 ];
 
 export { runMigrations, checkMigrations } from "./runner";

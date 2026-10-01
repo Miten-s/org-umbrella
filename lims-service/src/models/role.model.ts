@@ -11,6 +11,8 @@ export interface IRole {
   groupId?: string | null;
   /** Grants OPERATE:ALL — bypasses group filtering entirely. */
   operateAll?: boolean;
+  /** Its copy in backend's roles table — see migration 019. */
+  backendRoleId?: string | null;
   isDeleted?: boolean;
   deletedAt?: Date | null;
   deletedBy?: string | null;
@@ -24,6 +26,7 @@ export class Role extends Model<IRole> implements IRole {
   public description!: string | null;
   public groupId!: string | null;
   public operateAll!: boolean;
+  public backendRoleId!: string | null;
   public isDeleted!: boolean;
   public deletedAt!: Date | null;
   public deletedBy!: string | null;
@@ -46,6 +49,11 @@ Role.init(
     name: { type: DataTypes.STRING(200), allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
+    backendRoleId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: "backend_role_id"
+    },
     operateAll: {
       type: DataTypes.BOOLEAN,
       allowNull: false,

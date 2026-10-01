@@ -21,6 +21,7 @@ import * as m019 from "./019-simplify-gxp-master-admin-role";
 import * as m020 from "./020-create-rbac-audit-log";
 import * as m021 from "./021-seed-lims-permission-catalog";
 import * as m022 from "./022-seed-lims-master-admin-role";
+import * as m023 from "./023-create-lims-role-migration-map";
 
 export const migrations: Migration[] = [
   { name: "001-create-companies", up: m001.up },
@@ -44,6 +45,7 @@ export const migrations: Migration[] = [
   { name: "019-simplify-gxp-master-admin-role", up: m019.up },
   { name: "020-create-rbac-audit-log", up: m020.up },
   { name: "021-seed-lims-permission-catalog", up: m021.up },
-  { name: "022-seed-lims-master-admin-role", up: m022.up }
+  { name: "022-seed-lims-master-admin-role", up: m022.up },
+  { name: "023-create-lims-role-migration-map", up: m023.up }
 ];
 export { runMigrations, checkMigrations } from "./runner";
