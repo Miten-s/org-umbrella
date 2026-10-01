@@ -27,8 +27,9 @@ export const up = async (queryInterface: QueryInterface) => {
       {
         id: unassignedGroupId,
         name: UNASSIGNED_GROUP_NAME,
+        // gxp_groups.description is STRING(200) — keep this within it.
         description:
-          "Default group created when group-based scoping was introduced — every application/service request and user that existed at the time landed here. Not a real access boundary; pending a compliance-reviewed segmentation.",
+          "Default group from when group scoping was introduced: every application, service request and user that existed then landed here. Not a real access boundary.",
         parent_group_id: null,
         status: "enabled",
         created_at: new Date(),
@@ -37,56 +38,43 @@ export const up = async (queryInterface: QueryInterface) => {
     ]);
   }
 
-  // ─── applications.access_group_id ─────────────────────────────────────────
-  const applicationsTable = await queryInterface.describeTable("applications");
-  if (!applicationsTable.access_group_id) {
-    await queryInterface.addColumn("applications", "access_group_id", {
-      type: DataTypes.UUID,
-      allowNull: true,
-      references: { model: "gxp_groups", key: "id" },
-      onUpdate: "CASCADE",
-      onDelete: "SET NULL"
-    });
-    await sequelize.query(
-      `UPDATE applications SET access_group_id = :id WHERE access_group_id IS NULL`,
-      { replacements: { id: unassignedGroupId } }
-    );
-    // NOT NULL with a default going forward — a newly created application should land in
-    // Unassigned automatically too, not slip through ungrouped.
-    await queryInterface.changeColumn("applications", "access_group_id", {
-      type: DataTypes.UUID,
-      allowNull: false,
-      defaultValue: unassignedGroupId,
-      references: { model: "gxp_groups", key: "id" },
-      onUpdate: "CASCADE",
-      onDelete: "SET NULL"
-    });
-  }
+  // ─── applications / service_requests .access_group_id ─────────────────────
+  // Every step is safe to repeat: this runner does not wrap a migration in a transaction,
+  // so a failure part-way must be recoverable by simply running it again.
+  const scopeTable = async (table: "applications" | "service_requests") => {
+    const columns = await queryInterface.describeTable(table);
+    if (!columns.access_group_id) {
+      // RESTRICT, not SET NULL: the column ends up NOT NULL, so a group that still has
+      // records cannot be deleted either way — this just says so honestly.
+      await queryInterface.addColumn(table, "access_group_id", {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: { model: "gxp_groups", key: "id" },
+        onUpdate: "CASCADE",
+        onDelete: "RESTRICT"
+      });
+    }
 
-  // ─── service_requests.access_group_id ─────────────────────────────────────
-  const serviceRequestsTable =
-    await queryInterface.describeTable("service_requests");
-  if (!serviceRequestsTable.access_group_id) {
-    await queryInterface.addColumn("service_requests", "access_group_id", {
-      type: DataTypes.UUID,
-      allowNull: true,
-      references: { model: "gxp_groups", key: "id" },
-      onUpdate: "CASCADE",
-      onDelete: "SET NULL"
-    });
     await sequelize.query(
-      `UPDATE service_requests SET access_group_id = :id WHERE access_group_id IS NULL`,
+      `UPDATE ${table} SET access_group_id = :id WHERE access_group_id IS NULL`,
       { replacements: { id: unassignedGroupId } }
     );
-    await queryInterface.changeColumn("service_requests", "access_group_id", {
-      type: DataTypes.UUID,
-      allowNull: false,
-      defaultValue: unassignedGroupId,
-      references: { model: "gxp_groups", key: "id" },
-      onUpdate: "CASCADE",
-      onDelete: "SET NULL"
-    });
-  }
+
+    // NOT NULL with a default going forward — a newly created record should land in
+    // Unassigned automatically too, not slip through ungrouped. Plain SQL rather than
+    // changeColumn: with a default and `references` together, Sequelize emits invalid
+    // SQL on Postgres ('syntax error at or near "REFERENCES"').
+    await sequelize.query(
+      `ALTER TABLE ${table} ALTER COLUMN access_group_id SET DEFAULT :id`,
+      { replacements: { id: unassignedGroupId } }
+    );
+    await sequelize.query(
+      `ALTER TABLE ${table} ALTER COLUMN access_group_id SET NOT NULL`
+    );
+  };
+
+  await scopeTable("applications");
+  await scopeTable("service_requests");
 
   // ─── every existing gxp user: home group + explicit access grant ──────────
   await sequelize.query(
