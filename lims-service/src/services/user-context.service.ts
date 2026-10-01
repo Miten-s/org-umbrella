@@ -41,9 +41,27 @@ const key = (platformUserId: string) => `${CACHE_PREFIX}${platformUserId}`;
 /** Bounds staleness of platform Super Admin status — see CacheStore's ttlSeconds doc. */
 const SUPER_ADMIN_STALENESS_TTL_SECONDS = 5 * 60;
 
-/** In dual mode, bounds how long a missed rbac:invalidate message can leave the comparison
- * looking at a stale view of backend. Local changes are still invalidated on write. */
-const DUAL_READ_RECHECK_TTL_SECONDS = 5 * 60;
+/** Whenever backend is consulted, bounds how long a missed rbac:invalidate message can
+ * leave a cached context stale. Local changes are still invalidated on write. */
+const BACKEND_STALENESS_TTL_SECONDS = 5 * 60;
+
+/** The last backend-confirmed context, kept longer than the primary entry so reads can
+ * ride out a backend outage. Same budget and rule as gxp-service: reads only, 30 minutes. */
+const GRACE_CACHE_PREFIX = "user-ctx-grace:";
+const graceKey = (platformUserId: string) =>
+  `${GRACE_CACHE_PREFIX}${platformUserId}`;
+const GRACE_TTL_SECONDS = 30 * 60;
+
+/** Backend holds what roles grant, and it cannot be reached. Deliberately not a 403: the
+ * user may well have access, LIMS just cannot confirm it right now. */
+export class PermissionsUnavailable extends Error {
+  statusCode = 503;
+  constructor() {
+    super(
+      "LIMS permissions are temporarily unavailable. Please try again shortly."
+    );
+  }
+}
 
 let warnedAboutSource = false;
 
@@ -124,10 +142,16 @@ export const permissionCodesForRoleIds = async (
 };
 
 /** Returns null when the platform user has no lims_users row — a valid platform token is
- * not by itself LIMS access. */
+ * not by itself LIMS access.
+ *
+ * `allowGrace` (default true) only matters in "backend" mode, when backend is unreachable:
+ * a read may then use the last backend-confirmed permissions for up to GRACE_TTL_SECONDS;
+ * a write may not, and gets PermissionsUnavailable. authorize() passes it per action. */
 export const getUserContext = async (
-  platformUserId: string
+  platformUserId: string,
+  options: { allowGrace?: boolean } = {}
 ): Promise<UserContext | null> => {
+  const { allowGrace = true } = options;
   const cached = await cache.get<CachedContext>(key(platformUserId));
   if (cached) return { ...cached, permissions: new Set(cached.permissions) };
 
@@ -171,9 +195,57 @@ export const getUserContext = async (
 
   if (!limsUser) return null;
 
-  const { permissions, operateAll } = permissionsFromRoles(
-    (limsUser.roles ?? []) as (Role & { entries?: RoleEntry[] })[]
-  );
+  const source = permissionSource();
+  const assignedRoles = (limsUser.roles ?? []) as (Role & {
+    entries?: RoleEntry[];
+  })[];
+  const local = permissionsFromRoles(assignedRoles);
+  let { permissions, operateAll } = local;
+
+  if (source === "backend") {
+    // Only roles with a backend copy can grant anything here. One without it is a gap in
+    // the mirror — it must not silently fall back to LIMS's own definition.
+    const unmigrated = assignedRoles.filter((role) => !role.backendRoleId);
+    if (unmigrated.length) {
+      logError(
+        "LIMS role(s) with no backend copy grant nothing in backend mode",
+        { platformUserId, roles: unmigrated.map((role) => role.name) },
+        "getUserContext"
+      );
+    }
+
+    const backend = await resolveViaBackend(
+      assignedRoles
+        .filter((role) => role.backendRoleId)
+        .map((role) => ({ name: role.name, backendRoleId: role.backendRoleId }))
+    );
+
+    if (backend.status !== "resolved") {
+      logWarn(
+        `LIMS: backend unreachable while resolving permissions (allowGrace=${allowGrace})`,
+        { platformUserId },
+        "getUserContext"
+      );
+      if (allowGrace) {
+        const grace = await cache.get<CachedContext>(graceKey(platformUserId));
+        if (grace) return { ...grace, permissions: new Set(grace.permissions) };
+      }
+      throw new PermissionsUnavailable();
+    }
+
+    // LIMS's own calculation is no longer enforced, but it still exists — a difference
+    // means the mirror has fallen behind.
+    const parity = comparePermissions(local, backend.permissions);
+    if (!parity.match) {
+      logWarn(
+        "LIMS permission mismatch",
+        { platformUserId, ...parity },
+        "getUserContext"
+      );
+    }
+
+    ({ permissions, operateAll } = backend.permissions);
+  }
 
   // The home group is implicitly accessible — you can always see what you make.
   const directGroupIds = [
@@ -191,13 +263,23 @@ export const getUserContext = async (
     permissions
   };
 
-  const source = permissionSource();
+  const cachedShape: CachedContext = {
+    ...context,
+    permissions: [...permissions]
+  };
 
   await cache.set<CachedContext>(
     key(platformUserId),
-    { ...context, permissions: [...permissions] },
-    source === "dual" ? DUAL_READ_RECHECK_TTL_SECONDS : undefined
+    cachedShape,
+    source === "local" ? undefined : BACKEND_STALENESS_TTL_SECONDS
   );
+  if (source === "backend") {
+    await cache.set<CachedContext>(
+      graceKey(platformUserId),
+      cachedShape,
+      GRACE_TTL_SECONDS
+    );
+  }
 
   // Enforcement above used LIMS's own data; this only observes. Deliberately not awaited:
   // it must never add latency to the request or fail it, even if backend is down.
@@ -205,7 +287,7 @@ export const getUserContext = async (
     void compareWithBackend(
       platformUserId,
       { permissions, operateAll },
-      (limsUser.roles ?? []).map((role) => ({
+      assignedRoles.map((role) => ({
         name: role.name,
         backendRoleId: role.backendRoleId ?? null
       }))
@@ -231,14 +313,19 @@ export type BackendResolution =
 export const resolveViaBackend = async (
   roles: AssignedRole[]
 ): Promise<BackendResolution> => {
-  const unmigrated = roles.filter((role) => !role.backendRoleId).map((role) => role.name);
+  const unmigrated = roles
+    .filter((role) => !role.backendRoleId)
+    .map((role) => role.name);
   if (unmigrated.length) return { status: "unmigrated", roleNames: unmigrated };
 
   const result = await fetchPermissionsForRoleIds(
     roles.map((role) => role.backendRoleId as string)
   );
   if (!result.ok) return { status: "unreachable" };
-  return { status: "resolved", permissions: fromBackendPermissions(result.permissions) };
+  return {
+    status: "resolved",
+    permissions: fromBackendPermissions(result.permissions)
+  };
 };
 
 /** The C6 dual-read. Resolves the same user through backend and logs whether the two
@@ -272,7 +359,11 @@ export const compareWithBackend = async (
 
     const parity = comparePermissions(local, backend.permissions);
     if (parity.match) {
-      logInfo("LIMS permission parity ok", { platformUserId }, "compareWithBackend");
+      logInfo(
+        "LIMS permission parity ok",
+        { platformUserId },
+        "compareWithBackend"
+      );
     } else {
       logWarn(
         "LIMS permission mismatch",
@@ -302,11 +393,19 @@ export const hasPermission = (
 
 /** One user's access changed (their lims_users row, roles or access groups). */
 export const invalidateUserContext = async (platformUserId: string) => {
-  await cache.del(key(platformUserId));
+  // The grace copy too — otherwise a failed refresh right after a revocation could still
+  // serve the pre-change permissions from it.
+  await Promise.all([
+    cache.del(key(platformUserId)),
+    cache.del(graceKey(platformUserId))
+  ]);
 };
 
 /** A role/group changed, unknown users affected — drops every cached context; roles/groups
  * change rarely, and recomputing a few costs far less than serving a stale permission. */
 export const invalidateAllUserContexts = async () => {
-  await cache.delPrefix(CACHE_PREFIX);
+  await Promise.all([
+    cache.delPrefix(CACHE_PREFIX),
+    cache.delPrefix(GRACE_CACHE_PREFIX)
+  ]);
 };

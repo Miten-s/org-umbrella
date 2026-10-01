@@ -29,26 +29,33 @@ export class RoleMirrorUnavailable extends Error {
 
 const pushRoles = async (body: unknown): Promise<SyncResponse> => {
   if (!ENV.INTERNAL_API_KEY || !ENV.BACKEND_INTERNAL_URL) {
-    throw new RoleMirrorUnavailable("INTERNAL_API_KEY/BACKEND_INTERNAL_URL not configured");
+    throw new RoleMirrorUnavailable(
+      "INTERNAL_API_KEY/BACKEND_INTERNAL_URL not configured"
+    );
   }
 
   let response: Response;
   try {
-    response = await fetch(`${ENV.BACKEND_INTERNAL_URL}/internal/lims-roles/sync`, {
-      method: "PUT",
-      headers: {
-        "content-type": "application/json",
-        "x-internal-api-key": ENV.INTERNAL_API_KEY
-      },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(PUSH_TIMEOUT_MS)
-    });
+    response = await fetch(
+      `${ENV.BACKEND_INTERNAL_URL}/internal/lims-roles/sync`,
+      {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+          "x-internal-api-key": ENV.INTERNAL_API_KEY
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(PUSH_TIMEOUT_MS)
+      }
+    );
   } catch (error) {
     throw new RoleMirrorUnavailable(`backend unreachable: ${String(error)}`);
   }
 
   if (response.status === 409) {
-    const payload = (await response.json().catch(() => ({}))) as { error?: string };
+    const payload = (await response.json().catch(() => ({}))) as {
+      error?: string;
+    };
     throw new RoleMirrorRejected(
       payload.error ?? "Backend rejected this role change."
     );
@@ -70,7 +77,8 @@ export const mirrorRolesToBackend = async ({
 }): Promise<void> => {
   // "local" is the mode with no dependency on backend at all; migrate-lims-roles.ts
   // catches backend up if mirroring is switched back on later.
-  if (parsePermissionSource(ENV.LIMS_PERMISSION_SOURCE) === "local") return;
+  const source = parsePermissionSource(ENV.LIMS_PERMISSION_SOURCE);
+  if (source === "local") return;
 
   // Read through the write's own transaction, so this is the state about to be committed.
   // Every role is sent, deleted ones included: backend converges on the whole set.
@@ -108,6 +116,14 @@ export const mirrorRolesToBackend = async ({
     // A conflict fails the edit in any mode — it would never resolve on its own.
     if (error instanceof RoleMirrorRejected) throw error;
 
+    // Once backend is what LIMS enforces, a change that didn't reach it would be saved but
+    // have no effect — or, for a revocation, leave access in place. So the edit fails.
+    if (source === "backend") {
+      throw new RoleMirrorUnavailable(
+        "This role change could not be applied to access control, so nothing was saved. Please try again shortly."
+      );
+    }
+
     // While LIMS still enforces its own roles, a backend outage must not stop lab managers
     // editing them: the next successful push (or migrate-lims-roles.ts) carries this change
     // across, and the parity check shows the gap meanwhile.
@@ -119,11 +135,16 @@ export const mirrorRolesToBackend = async ({
     return;
   }
 
-  const pointers = new Map(result.pointers.map((p) => [p.limsRoleId, p.backendRoleId]));
+  const pointers = new Map(
+    result.pointers.map((p) => [p.limsRoleId, p.backendRoleId])
+  );
   for (const role of roles) {
     const backendRoleId = pointers.get(role.id);
     if (backendRoleId && backendRoleId !== role.backendRoleId) {
-      await Role.update({ backendRoleId }, { where: { id: role.id }, transaction });
+      await Role.update(
+        { backendRoleId },
+        { where: { id: role.id }, transaction }
+      );
     }
   }
 };

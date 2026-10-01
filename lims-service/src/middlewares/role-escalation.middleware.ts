@@ -41,7 +41,8 @@ export const preventRoleEscalation = async (
   if (!platformUserId)
     return res.status(401).json({ message: "Authentication required" });
 
-  const context = await getUserContext(platformUserId);
+  // Guards a write, so never on grace-cached permissions.
+  const context = await getUserContext(platformUserId, { allowGrace: false });
   if (!context) {
     return res.status(403).json({ message: "You do not have access to LIMS." });
   }
@@ -88,7 +89,8 @@ export const preventRoleAssignmentEscalation = async (
   ];
   if (roleIds.length === 0) return next();
 
-  const context = await getUserContext(platformUserId);
+  // Guards a write, so never on grace-cached permissions.
+  const context = await getUserContext(platformUserId, { allowGrace: false });
   if (!context) {
     return res.status(403).json({ message: "You do not have access to LIMS." });
   }

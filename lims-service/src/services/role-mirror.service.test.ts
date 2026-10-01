@@ -1,6 +1,9 @@
 const mockEnv: Record<string, string | undefined> = {};
 
-jest.mock("../utils/environment", () => ({ __esModule: true, default: mockEnv }));
+jest.mock("../utils/environment", () => ({
+  __esModule: true,
+  default: mockEnv
+}));
 jest.mock("../configs/logger.config", () => ({
   logInfo: jest.fn(),
   logWarn: jest.fn(),
@@ -10,11 +13,18 @@ jest.mock("../models/role.model", () => ({
   __esModule: true,
   default: { findAll: jest.fn(), update: jest.fn() }
 }));
-jest.mock("../models/role-entry.model", () => ({ __esModule: true, default: {} }));
+jest.mock("../models/role-entry.model", () => ({
+  __esModule: true,
+  default: {}
+}));
 
 import Role from "../models/role.model";
 import { logError } from "../configs/logger.config";
-import { RoleMirrorRejected, mirrorRolesToBackend } from "./role-mirror.service";
+import {
+  RoleMirrorRejected,
+  RoleMirrorUnavailable,
+  mirrorRolesToBackend
+} from "./role-mirror.service";
 
 const mockedFindAll = Role.findAll as jest.Mock;
 const mockedUpdate = Role.update as jest.Mock;
@@ -36,7 +46,13 @@ const LAB_USER = {
   deletedAt: null,
   backendRoleId: null,
   entries: [
-    { entry: "SAMPLE", canView: true, canCreate: false, canEdit: false, canRemove: false }
+    {
+      entry: "SAMPLE",
+      canView: true,
+      canCreate: false,
+      canEdit: false,
+      canRemove: false
+    }
   ]
 };
 const DELETED_ROLE = {
@@ -51,7 +67,11 @@ const DELETED_ROLE = {
 };
 
 const answer = (status: number, body: unknown) =>
-  ({ ok: status >= 200 && status < 300, status, json: async () => body }) as Response;
+  ({
+    ok: status >= 200 && status < 300,
+    status,
+    json: async () => body
+  }) as Response;
 
 describe("mirrorRolesToBackend", () => {
   beforeEach(() => {
@@ -80,12 +100,21 @@ describe("mirrorRolesToBackend", () => {
     expect(url).toBe("http://backend:9000/internal/lims-roles/sync");
     expect(init.method).toBe("PUT");
     expect(init.headers["x-internal-api-key"]).toBe("secret");
-    expect(body.roles.map((r: any) => [r.id, r.roleCode, r.isDeleted])).toEqual([
-      ["lims-role-1", "LAB_USER", false],
-      ["lims-role-2", "OLD", true]
-    ]);
+    expect(body.roles.map((r: any) => [r.id, r.roleCode, r.isDeleted])).toEqual(
+      [
+        ["lims-role-1", "LAB_USER", false],
+        ["lims-role-2", "OLD", true]
+      ]
+    );
     expect(body.entries).toEqual([
-      { roleId: "lims-role-1", entry: "SAMPLE", canView: true, canCreate: false, canEdit: false, canRemove: false }
+      {
+        roleId: "lims-role-1",
+        entry: "SAMPLE",
+        canView: true,
+        canCreate: false,
+        canEdit: false,
+        canRemove: false
+      }
     ]);
     expect(body.actor).toEqual({ id: "actor-1" });
     expect(body.changeReason).toBe("added sample access");
@@ -113,11 +142,18 @@ describe("mirrorRolesToBackend", () => {
   // A conflict never resolves on its own, so the edit has to fail and say why — in any mode.
   it("fails the edit when backend rejects the change", async () => {
     fetchMock.mockResolvedValue(
-      answer(409, { error: 'LIMS role "Auditor" collides with an existing backend Custom role.' })
+      answer(409, {
+        error:
+          'LIMS role "Auditor" collides with an existing backend Custom role.'
+      })
     );
 
-    await expect(mirrorRolesToBackend(ARGS)).rejects.toBeInstanceOf(RoleMirrorRejected);
-    await expect(mirrorRolesToBackend(ARGS)).rejects.toThrow(/collides with an existing/);
+    await expect(mirrorRolesToBackend(ARGS)).rejects.toBeInstanceOf(
+      RoleMirrorRejected
+    );
+    await expect(mirrorRolesToBackend(ARGS)).rejects.toThrow(
+      /collides with an existing/
+    );
     expect(mockedUpdate).not.toHaveBeenCalled();
   });
 
@@ -156,5 +192,20 @@ describe("mirrorRolesToBackend", () => {
 
     expect(mockedFindAll).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  // Once backend is what LIMS enforces, a change that didn't reach it would be saved but
+  // have no effect — or, for a revocation, leave access in place.
+  it("fails the edit on an outage once backend is what LIMS enforces", async () => {
+    mockEnv.LIMS_PERMISSION_SOURCE = "backend";
+    fetchMock.mockRejectedValue(new Error("ECONNREFUSED"));
+
+    await expect(mirrorRolesToBackend(ARGS)).rejects.toBeInstanceOf(
+      RoleMirrorUnavailable
+    );
+    await expect(mirrorRolesToBackend(ARGS)).rejects.toMatchObject({
+      statusCode: 503
+    });
+    expect(mockedUpdate).not.toHaveBeenCalled();
   });
 });

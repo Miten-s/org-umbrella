@@ -3,7 +3,7 @@
 
 export const LIMS_OPERATE_ALL = "LIMS:OPERATE:ALL";
 
-export type PermissionSource = "local" | "dual";
+export type PermissionSource = "local" | "dual" | "backend";
 
 export interface ResolvedPermissions {
   permissions: Set<string>;
@@ -18,10 +18,16 @@ export interface ParityResult {
   onlyBackend: string[];
 }
 
-/** Defaults to "dual". Anything unrecognised — including a premature "backend" — falls back
- * to "local", the one mode with no dependency on backend at all. */
-export const parsePermissionSource = (raw: string | undefined): PermissionSource => {
+/** - "local":   LIMS enforces its own roles and never contacts backend.
+ *  - "dual":    LIMS enforces its own roles and compares with backend in the background.
+ *  - "backend": LIMS enforces what backend says the assigned roles grant.
+ * Defaults to "dual". Anything unrecognised falls back to "local", the one mode with no
+ * dependency on backend at all. */
+export const parsePermissionSource = (
+  raw: string | undefined
+): PermissionSource => {
   if (raw === undefined || raw === "" || raw === "dual") return "dual";
+  if (raw === "backend") return "backend";
   return "local";
 };
 
@@ -29,7 +35,9 @@ export const parsePermissionSource = (raw: string | undefined): PermissionSource
  * Only LIMS ones count here, and the namespaced wildcard is LIMS's operate_all. The bare
  * platform OPERATE:ALL is deliberately not treated as operate_all: platform Super Admin is
  * handled on its own path before either resolution runs. */
-export const fromBackendPermissions = (names: string[]): ResolvedPermissions => {
+export const fromBackendPermissions = (
+  names: string[]
+): ResolvedPermissions => {
   const lims = names.filter((name) => name.startsWith("LIMS:"));
   return {
     operateAll: lims.includes(LIMS_OPERATE_ALL),
@@ -44,8 +52,12 @@ export const comparePermissions = (
   local: ResolvedPermissions,
   backend: ResolvedPermissions
 ): ParityResult => {
-  const onlyLocal = [...local.permissions].filter((p) => !backend.permissions.has(p)).sort();
-  const onlyBackend = [...backend.permissions].filter((p) => !local.permissions.has(p)).sort();
+  const onlyLocal = [...local.permissions]
+    .filter((p) => !backend.permissions.has(p))
+    .sort();
+  const onlyBackend = [...backend.permissions]
+    .filter((p) => !local.permissions.has(p))
+    .sort();
 
   const bothWildcard = local.operateAll && backend.operateAll;
   const match =

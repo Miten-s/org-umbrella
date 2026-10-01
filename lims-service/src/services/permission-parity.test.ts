@@ -19,7 +19,10 @@ describe("fromBackendPermissions", () => {
   });
 
   it("reads LIMS:OPERATE:ALL as operate_all and drops it from the list", () => {
-    const result = fromBackendPermissions(["LIMS:OPERATE:ALL", "LIMS:VIEW:SAMPLE"]);
+    const result = fromBackendPermissions([
+      "LIMS:OPERATE:ALL",
+      "LIMS:VIEW:SAMPLE"
+    ]);
 
     expect(result.operateAll).toBe(true);
     expect([...result.permissions]).toEqual(["LIMS:VIEW:SAMPLE"]);
@@ -44,8 +47,14 @@ describe("comparePermissions", () => {
 
   it("reports what each side has that the other lacks", () => {
     const result = comparePermissions(
-      { permissions: set("LIMS:VIEW:SAMPLE", "LIMS:CREATE:SAMPLE"), operateAll: false },
-      { permissions: set("LIMS:VIEW:SAMPLE", "LIMS:DELETE:SAMPLE"), operateAll: false }
+      {
+        permissions: set("LIMS:VIEW:SAMPLE", "LIMS:CREATE:SAMPLE"),
+        operateAll: false
+      },
+      {
+        permissions: set("LIMS:VIEW:SAMPLE", "LIMS:DELETE:SAMPLE"),
+        operateAll: false
+      }
     );
 
     expect(result.match).toBe(false);
@@ -92,10 +101,15 @@ describe("parsePermissionSource", () => {
     expect(parsePermissionSource("local")).toBe("local");
   });
 
-  // "backend" is the post-flip mode, which isn't built yet. Setting it early must not
-  // quietly hand enforcement to something that doesn't exist.
-  it("falls back to local for anything unrecognised, including a premature backend", () => {
-    expect(parsePermissionSource("backend")).toBe("local");
+  it("honours backend, the mode where backend's answer is enforced", () => {
+    expect(parsePermissionSource("backend")).toBe("backend");
+  });
+
+  // A typo must never silently hand enforcement somewhere unexpected: "local" is the one
+  // mode with no dependency on backend.
+  it("falls back to local for anything unrecognised", () => {
     expect(parsePermissionSource("DUAL")).toBe("local");
+    expect(parsePermissionSource("Backend")).toBe("local");
+    expect(parsePermissionSource("remote")).toBe("local");
   });
 });
