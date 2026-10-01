@@ -5,10 +5,10 @@
   "main": "dist/server.js",
   "scripts": {
     "start": "node dist/server.js",
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "dev": "concurrently \"npm run watch\" \"npm run serve\"",
     "serve": "nodemon dist/server.js",
-    "watch": "tsc --watch",
+    "watch": "tsc -p tsconfig.build.json --watch",
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "prettier:check": "prettier --check \"src/**/*.{js,ts,json,md}\"",
