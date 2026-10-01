@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { useInfiniteQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useQueryClient,
+  keepPreviousData
+} from "@tanstack/react-query";
 import { Modal } from "@/components/ui/modal";
 import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
@@ -60,7 +64,10 @@ export function RelationManagerModal<T>({
   const attachedQuery = useInfiniteQuery({
     queryKey: [...queryKey, "manager-attached", debouncedSearch],
     queryFn: ({ pageParam, signal }) =>
-      fetchAttached({ search: debouncedSearch, page: pageParam as number }, signal),
+      fetchAttached(
+        { search: debouncedSearch, page: pageParam as number },
+        signal
+      ),
     initialPageParam: 1,
     getNextPageParam: (last) =>
       last.page < last.totalPages ? last.page + 1 : undefined,
@@ -72,7 +79,9 @@ export function RelationManagerModal<T>({
   const attachedIds = rows.map((item) => getKey(item));
 
   const refetchAll = () => {
-    queryClient.invalidateQueries({ queryKey: [...queryKey, "manager-attached"] });
+    queryClient.invalidateQueries({
+      queryKey: [...queryKey, "manager-attached"]
+    });
     // The row's own capped preview + count (list column / view) needs refreshing too.
     queryClient.invalidateQueries({ queryKey: queryKey.slice(0, -1) });
     // Both sides of the relation have their own list table cached separately
@@ -154,7 +163,9 @@ export function RelationManagerModal<T>({
 
         <div className="max-h-72 overflow-y-auto rounded-lg border border-gray-100 dark:border-gray-800">
           {attachedQuery.isLoading ? (
-            <div className="py-8 text-center text-sm text-gray-400">Loading…</div>
+            <div className="py-8 text-center text-sm text-gray-400">
+              Loading…
+            </div>
           ) : rows.length ? (
             <ul className="divide-y divide-gray-100 dark:divide-gray-800">
               {rows.map((item) => {
@@ -181,7 +192,9 @@ export function RelationManagerModal<T>({
               })}
             </ul>
           ) : (
-            <div className="py-8 text-center text-sm text-gray-400">No matches</div>
+            <div className="py-8 text-center text-sm text-gray-400">
+              No matches
+            </div>
           )}
 
           {attachedQuery.hasNextPage ? (

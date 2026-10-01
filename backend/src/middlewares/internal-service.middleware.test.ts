@@ -11,7 +11,8 @@ const mockedEnv = ENV as { INTERNAL_API_KEY: string | undefined };
 
 const buildReqRes = (headerValue?: string) => {
   const req = {
-    headers: headerValue === undefined ? {} : { "x-internal-api-key": headerValue }
+    headers:
+      headerValue === undefined ? {} : { "x-internal-api-key": headerValue }
   } as unknown as Request;
 
   const res = {
@@ -76,7 +77,11 @@ describe("authenticateInternalService", () => {
     expectRejected(noHeader.res, noHeader.next);
 
     const someHeader = buildReqRes("anything");
-    authenticateInternalService(someHeader.req, someHeader.res, someHeader.next);
+    authenticateInternalService(
+      someHeader.req,
+      someHeader.res,
+      someHeader.next
+    );
     expectRejected(someHeader.res, someHeader.next);
   });
 });

@@ -18,9 +18,27 @@ import Designation from "../models/designation.model";
 import User from "../models/user.model";
 import Role from "../models/role.model";
 
-const LOCATIONS = ["Receiving Bay", "Cold Storage Room", "QC Bench 1", "Microbiology Suite", "Sample Archive"];
-const DEPARTMENTS = ["Quality Control", "Quality Assurance", "Microbiology", "Warehouse", "Regulatory Affairs"];
-const DESIGNATIONS = ["Lab Analyst", "Senior Analyst", "Lab Technician", "QA Officer", "Lab Supervisor"];
+const LOCATIONS = [
+  "Receiving Bay",
+  "Cold Storage Room",
+  "QC Bench 1",
+  "Microbiology Suite",
+  "Sample Archive"
+];
+const DEPARTMENTS = [
+  "Quality Control",
+  "Quality Assurance",
+  "Microbiology",
+  "Warehouse",
+  "Regulatory Affairs"
+];
+const DESIGNATIONS = [
+  "Lab Analyst",
+  "Senior Analyst",
+  "Lab Technician",
+  "QA Officer",
+  "Lab Supervisor"
+];
 
 const USERS = [
   { name: "Priya Sharma", email: "priya.sharma@demo.local" },
@@ -37,7 +55,9 @@ const run = async () => {
 
   const userRole = await Role.findOne({ where: { name: "User" } });
   if (!userRole) {
-    throw new Error('"User" role not found — migration 012-seed-initial-data.ts must run first.');
+    throw new Error(
+      '"User" role not found — migration 012-seed-initial-data.ts must run first.'
+    );
   }
 
   const locations = [];
@@ -95,11 +115,15 @@ const run = async () => {
       { replacements: { userId: user.id, roleId: userRole.id } }
     );
 
-    console.log(`${created ? "Created" : "Already existed"}: ${u.email} (id ${user.id})`);
+    console.log(
+      `${created ? "Created" : "Already existed"}: ${u.email} (id ${user.id})`
+    );
   }
 
   console.log(`\nDemo password for all 5 lab users: ${DEMO_PASSWORD}`);
-  console.log("Next: run lims-service's seed-demo-data.ts to grant these users LIMS access.");
+  console.log(
+    "Next: run lims-service's seed-demo-data.ts to grant these users LIMS access."
+  );
 
   await sequelize.close();
 };

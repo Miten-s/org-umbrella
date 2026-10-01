@@ -66,14 +66,18 @@ describe("Lims_Service roles are written only by lims-service", () => {
   it("refuses a LIMS role admin creating a Lims_Service role through the public API", async () => {
     currentPermissions = ["LIMS:CREATE:ROLE"];
 
-    await expect(roleService.createRole(buildReq("Lims_Service"))).rejects.toThrow(MANAGED);
+    await expect(
+      roleService.createRole(buildReq("Lims_Service"))
+    ).rejects.toThrow(MANAGED);
     expect(Role.create).not.toHaveBeenCalled();
   });
 
   it("refuses even a super admin", async () => {
     superAdmin = true;
 
-    await expect(roleService.createRole(buildReq("Lims_Service"))).rejects.toThrow(MANAGED);
+    await expect(
+      roleService.createRole(buildReq("Lims_Service"))
+    ).rejects.toThrow(MANAGED);
   });
 
   it("refuses editing an existing Lims_Service role", async () => {
@@ -136,15 +140,17 @@ describe("Lims_Service roles are written only by lims-service", () => {
   it("still lets a platform admin create an ordinary Custom role", async () => {
     currentPermissions = ["CREATE:ROLE"];
 
-    await expect(roleService.createRole(buildReq("Custom"))).resolves.toBeDefined();
+    await expect(
+      roleService.createRole(buildReq("Custom"))
+    ).resolves.toBeDefined();
   });
 
   it("still blocks a LIMS-only admin from GXP and platform Built_In roles", async () => {
     currentPermissions = ["LIMS:CREATE:ROLE"];
 
-    await expect(roleService.createRole(buildReq("Gxp_Service"))).rejects.toThrow(
-      /not authorized to manage Gxp_Service roles/
-    );
+    await expect(
+      roleService.createRole(buildReq("Gxp_Service"))
+    ).rejects.toThrow(/not authorized to manage Gxp_Service roles/);
     await expect(roleService.createRole(buildReq("Built_In"))).rejects.toThrow(
       /not authorized to manage Built_In roles/
     );

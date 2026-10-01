@@ -56,9 +56,7 @@ describe("getGxpUserContext — backend-unreachable fallback", () => {
 
     expect(context).not.toBeNull();
     expect(context?.isSuperAdmin).toBe(false);
-    expect([...(context?.permissions ?? [])]).toEqual([
-      "GXP:VIEW:APPLICATION"
-    ]);
+    expect([...(context?.permissions ?? [])]).toEqual(["GXP:VIEW:APPLICATION"]);
   });
 
   it("writes (allowGrace: false) deny immediately even though a valid grace cache entry exists", async () => {
@@ -74,9 +72,7 @@ describe("getGxpUserContext — backend-unreachable fallback", () => {
   it("defaults to allowGrace: true when no options are passed (e.g. the /gxp-me read endpoint)", async () => {
     const context = await getGxpUserContext("platform-user-1");
 
-    expect([...(context?.permissions ?? [])]).toEqual([
-      "GXP:VIEW:APPLICATION"
-    ]);
+    expect([...(context?.permissions ?? [])]).toEqual(["GXP:VIEW:APPLICATION"]);
   });
 
   it("denies (no gxpUser access at all) when there is no grace cache to fall back to, regardless of allowGrace", async () => {

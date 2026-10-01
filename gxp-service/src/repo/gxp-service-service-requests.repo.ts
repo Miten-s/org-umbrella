@@ -16,10 +16,7 @@ import AppGroup from "../models/gxp-service-application-groups.model";
 import AppAttachment from "../models/gxp-service-application-attachments.model";
 import ServiceRequestCounter from "../models/gxp-service-service-request-counters.model";
 import ServiceRequestComment from "../models/gxp-service-service-request-comments.model";
-import {
-  AccessScope,
-  withGroupScope
-} from "../utils/access-scope.util";
+import { AccessScope, withGroupScope } from "../utils/access-scope.util";
 
 /**
  * Split a service-request payload into (a) plain model columns, (b) the M2M

@@ -15,13 +15,8 @@ import { ListIcon } from "@/public/icons";
 import { useAttachments } from "@/hooks/useAttachments";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsSampleOptions } from "@/pages/lims/samples/LimsSample.queries";
-import {
-  fetchLimsSampleList
-} from "@/pages/lims/samples/LimsSample.api";
-import {
-  attachLimsLotChild,
-  detachLimsLotChild
-} from "./LimsLot.api";
+import { fetchLimsSampleList } from "@/pages/lims/samples/LimsSample.api";
+import { attachLimsLotChild, detachLimsLotChild } from "./LimsLot.api";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
 import {
   limsLotSchema,
@@ -245,7 +240,11 @@ const LimsLotForm = ({
                     isOpen={isManagingSamples}
                     onClose={() => setIsManagingSamples(false)}
                     title={t("limsSamples")}
-                    totalCount={initialData.samplesCount ?? initialData.samples?.length ?? 0}
+                    totalCount={
+                      initialData.samplesCount ??
+                      initialData.samples?.length ??
+                      0
+                    }
                     getLabel={(item: { id: string; name: string }) => item.name}
                     getKey={(item: { id: string; name: string }) => item.id}
                     queryKey={["lots", initialData.id, "samples"]}

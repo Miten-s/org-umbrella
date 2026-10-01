@@ -15,18 +15,52 @@ interface TableIndexSpec {
 }
 
 const SPECS: TableIndexSpec[] = [
-  { table: "app_modules", sortColumn: "created_at", searchColumns: ["module_name"] },
-  { table: "applications", sortColumn: "created_at", searchColumns: ["application_name", "application_id"] },
-  { table: "assignment_groups", sortColumn: "created_at", searchColumns: ["group_name", "description"] },
-  { table: "environments", sortColumn: "created_at", searchColumns: ["environment_name", "description"] },
-  { table: "service_requests", sortColumn: "created_at", searchColumns: ["service_request_id", "short_description", "description"] },
-  { table: "suppliers", sortColumn: "created_at", searchColumns: ["supplier_name", "description"] },
-  { table: "gxp_users", sortColumn: "created_at", searchColumns: ["user_name", "description"] },
-  { table: "workflows", sortColumn: "created_at", searchColumns: ["workflow_name", "description"] }
+  {
+    table: "app_modules",
+    sortColumn: "created_at",
+    searchColumns: ["module_name"]
+  },
+  {
+    table: "applications",
+    sortColumn: "created_at",
+    searchColumns: ["application_name", "application_id"]
+  },
+  {
+    table: "assignment_groups",
+    sortColumn: "created_at",
+    searchColumns: ["group_name", "description"]
+  },
+  {
+    table: "environments",
+    sortColumn: "created_at",
+    searchColumns: ["environment_name", "description"]
+  },
+  {
+    table: "service_requests",
+    sortColumn: "created_at",
+    searchColumns: ["service_request_id", "short_description", "description"]
+  },
+  {
+    table: "suppliers",
+    sortColumn: "created_at",
+    searchColumns: ["supplier_name", "description"]
+  },
+  {
+    table: "gxp_users",
+    sortColumn: "created_at",
+    searchColumns: ["user_name", "description"]
+  },
+  {
+    table: "workflows",
+    sortColumn: "created_at",
+    searchColumns: ["workflow_name", "description"]
+  }
 ];
 
 export const up = async (queryInterface: QueryInterface) => {
-  await queryInterface.sequelize.query(`CREATE EXTENSION IF NOT EXISTS pg_trgm`);
+  await queryInterface.sequelize.query(
+    `CREATE EXTENSION IF NOT EXISTS pg_trgm`
+  );
 
   for (const { table, sortColumn, searchColumns } of SPECS) {
     await queryInterface.sequelize.query(

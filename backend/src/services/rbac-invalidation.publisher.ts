@@ -6,8 +6,7 @@ export const RBAC_INVALIDATE_CHANNEL = "rbac:invalidate";
  * changed). `all` is for changes whose affected users are unknown from here — editing a
  * role's permissions touches everyone holding it. */
 export type RbacInvalidationMessage =
-  | { scope: "user"; platformUserId: string }
-  | { scope: "all" };
+  { scope: "user"; platformUserId: string } | { scope: "all" };
 
 /** Tells other services to drop cached permissions now rather than waiting out their TTL.
  * Deliberately never throws: a mutation must not fail because a notification did not go

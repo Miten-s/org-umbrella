@@ -57,9 +57,7 @@ export const getPermissionsForRoles = asyncHandler(
     const roles = await Role.findAll({
       where: { id: roleIds },
       attributes: ["id"],
-      include: [
-        { model: Permission, as: "permissions", attributes: ["name"] }
-      ]
+      include: [{ model: Permission, as: "permissions", attributes: ["name"] }]
     });
 
     const permissions = new Set<string>();

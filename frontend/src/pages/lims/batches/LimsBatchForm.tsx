@@ -17,10 +17,7 @@ import { useAttachments } from "@/hooks/useAttachments";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsLotOptions } from "@/pages/lims/lots/LimsLot.queries";
 import { fetchLimsLotList } from "@/pages/lims/lots/LimsLot.api";
-import {
-  attachLimsBatchChild,
-  detachLimsBatchChild
-} from "./LimsBatch.api";
+import { attachLimsBatchChild, detachLimsBatchChild } from "./LimsBatch.api";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
 import {
   limsBatchSchema,
@@ -241,7 +238,9 @@ const LimsBatchForm = ({
                     isOpen={isManagingLots}
                     onClose={() => setIsManagingLots(false)}
                     title={t("limsLots")}
-                    totalCount={initialData.lotsCount ?? initialData.lots?.length ?? 0}
+                    totalCount={
+                      initialData.lotsCount ?? initialData.lots?.length ?? 0
+                    }
                     getLabel={(item: { id: string; name: string }) => item.name}
                     getKey={(item: { id: string; name: string }) => item.id}
                     queryKey={["batches", initialData.id, "lots"]}

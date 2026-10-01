@@ -7,10 +7,7 @@ import { PaginationOptions } from "../utils/pagination.util";
 import { Op } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 import { publishRbacInvalidation } from "./rbac-invalidation.publisher";
-import {
-  recordRbacChange,
-  permissionNamesOf
-} from "./rbac-audit.service";
+import { recordRbacChange, permissionNamesOf } from "./rbac-audit.service";
 
 /** A role editor can't grant permissions they don't themselves hold — otherwise a
  * CREATE:ROLE/UPDATE:ROLE grant alone becomes a path to self-escalation. Super Admin
@@ -110,7 +107,9 @@ const PROTECTED_ROLE_NAMES = new Set([
 const assertNotLimsManaged = (type: RoleType | string | undefined) => {
   if (type === RoleType.LIMS_SERVICE) {
     throw Object.assign(
-      new Error("LIMS roles are managed from the LIMS Roles screen and cannot be changed here."),
+      new Error(
+        "LIMS roles are managed from the LIMS Roles screen and cannot be changed here."
+      ),
       { statusCode: 403 }
     );
   }

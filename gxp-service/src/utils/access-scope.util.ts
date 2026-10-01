@@ -26,8 +26,7 @@ export const contextToScope = (
 
   return {
     accessGroupIds: [...context.accessGroupIds],
-    bypass:
-      context.isSuperAdmin || context.permissions.has("GXP:OPERATE:ALL"),
+    bypass: context.isSuperAdmin || context.permissions.has("GXP:OPERATE:ALL"),
     resolved: true
   };
 };

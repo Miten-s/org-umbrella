@@ -23,7 +23,8 @@ const ENTITIES = ["SAMPLE", "RESULT", "USER"];
 
 const allPermissions = () => {
   const names = [LIMS_OPERATE_ALL];
-  for (const e of ENTITIES) for (const a of LIMS_ACTIONS) names.push(`LIMS:${a}:${e}`);
+  for (const e of ENTITIES)
+    for (const a of LIMS_ACTIONS) names.push(`LIMS:${a}:${e}`);
   return new Map(names.map((n, i) => [n, `perm-${i}`]));
 };
 
@@ -92,7 +93,9 @@ describe("ACTION_COLUMN parity with lims-service", () => {
   // backend importing it, so compare against lims-service's actual source instead.
   it("matches lims-service/src/utils/permissions.ts exactly", () => {
     const source = fs.readFileSync(LIMS_PERMISSIONS_SOURCE, "utf8");
-    const block = source.match(/export const ACTION_COLUMN[\s\S]*?=\s*\{([\s\S]*?)\};/);
+    const block = source.match(
+      /export const ACTION_COLUMN[\s\S]*?=\s*\{([\s\S]*?)\};/
+    );
     expect(block).not.toBeNull();
 
     const lims = Object.fromEntries(
@@ -131,7 +134,13 @@ describe("permission conversion", () => {
 describe("operate_all", () => {
   it("becomes the namespaced LIMS wildcard, never the platform one", () => {
     const plan = buildMigrationPlan(
-      [role({ name: "LIMS Administrator", roleCode: "LIMS_ADMIN", operateAll: true })],
+      [
+        role({
+          name: "LIMS Administrator",
+          roleCode: "LIMS_ADMIN",
+          operateAll: true
+        })
+      ],
       [],
       backend()
     );
@@ -148,7 +157,11 @@ describe("operate_all", () => {
 
 describe("creating roles", () => {
   it("creates a new role with a deterministic id and asks for its LIMS pointer", () => {
-    const plan = buildMigrationPlan([role()], [entry({ canView: true })], backend());
+    const plan = buildMigrationPlan(
+      [role()],
+      [entry({ canView: true })],
+      backend()
+    );
 
     expect(plan.roles[0]).toMatchObject({
       action: "create",
@@ -202,7 +215,10 @@ describe("LIMS Master Admin", () => {
       backend([], { alreadyMigrated: new Map([["lma", "seeded-master"]]) })
     );
 
-    expect(plan.roles[0]).toMatchObject({ action: "in_sync", pointerWrite: false });
+    expect(plan.roles[0]).toMatchObject({
+      action: "in_sync",
+      pointerWrite: false
+    });
   });
 
   it("blocks the run if the seeded role is missing", () => {
@@ -220,7 +236,15 @@ describe("collisions are detected before anything is written", () => {
     const plan = buildMigrationPlan(
       [role()],
       [],
-      backend([{ id: "x", name: "Lab User", type: "Custom", deleted: false, permissions: [] }])
+      backend([
+        {
+          id: "x",
+          name: "Lab User",
+          type: "Custom",
+          deleted: false,
+          permissions: []
+        }
+      ])
     );
 
     expect(plan.blockers.map((b) => b.kind)).toEqual(["name_collision"]);
@@ -232,7 +256,15 @@ describe("collisions are detected before anything is written", () => {
     const plan = buildMigrationPlan(
       [role()],
       [],
-      backend([{ id: "x", name: "Lab User", type: "Custom", deleted: true, permissions: [] }])
+      backend([
+        {
+          id: "x",
+          name: "Lab User",
+          type: "Custom",
+          deleted: true,
+          permissions: []
+        }
+      ])
     );
 
     expect(plan.blockers.map((b) => b.kind)).toEqual(["name_collision"]);
@@ -267,7 +299,10 @@ describe("syncing roles already migrated", () => {
       migratedBackend()
     );
 
-    expect(plan.roles[0]).toMatchObject({ action: "in_sync", pointerWrite: false });
+    expect(plan.roles[0]).toMatchObject({
+      action: "in_sync",
+      pointerWrite: false
+    });
   });
 
   // Without this the dual-read could never reach zero: any edit a lab manager makes in
@@ -293,7 +328,10 @@ describe("syncing roles already migrated", () => {
       migratedBackend()
     );
 
-    expect(plan.roles[0].changes?.rename).toEqual({ from: "Lab User", to: "Lab Analyst" });
+    expect(plan.roles[0].changes?.rename).toEqual({
+      from: "Lab User",
+      to: "Lab Analyst"
+    });
   });
 
   it("blocks a rename onto a name another backend role already holds", () => {
@@ -317,7 +355,13 @@ describe("syncing roles already migrated", () => {
 
   it("soft-deletes the backend copy when the LIMS role is deleted", () => {
     const plan = buildMigrationPlan(
-      [role({ isDeleted: true, deletedAt: new Date(), backendRoleId: MIGRATED_ID })],
+      [
+        role({
+          isDeleted: true,
+          deletedAt: new Date(),
+          backendRoleId: MIGRATED_ID
+        })
+      ],
       [entry({ canView: true })],
       migratedBackend()
     );
@@ -352,7 +396,10 @@ describe("syncing roles already migrated", () => {
       migratedBackend()
     );
 
-    expect(plan.roles[0]).toMatchObject({ action: "in_sync", pointerWrite: true });
+    expect(plan.roles[0]).toMatchObject({
+      action: "in_sync",
+      pointerWrite: true
+    });
   });
 });
 

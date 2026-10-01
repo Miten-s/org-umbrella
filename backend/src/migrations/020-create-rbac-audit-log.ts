@@ -56,9 +56,13 @@ export const up = async (queryInterface: QueryInterface) => {
     }
   });
 
-  await queryInterface.addIndex("rbac_audit_log", ["target_type", "target_id"], {
-    name: "rbac_audit_log_target_idx"
-  });
+  await queryInterface.addIndex(
+    "rbac_audit_log",
+    ["target_type", "target_id"],
+    {
+      name: "rbac_audit_log_target_idx"
+    }
+  );
 
   await queryInterface.addIndex("rbac_audit_log", ["created_at"], {
     name: "rbac_audit_log_created_at_idx"

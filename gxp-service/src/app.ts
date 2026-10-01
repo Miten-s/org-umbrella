@@ -68,7 +68,6 @@ app.get("/readyz", async (_req, res) => {
 
 // Rate limiter: 50 requests per 1 minute per user
 
-
 // Behind the nginx gateway every request arrives from the proxy, so req.ip was the
 // proxy's address and the rate limiter below bucketed ALL users into a single quota.
 // Trust one hop so it keys on the real client via X-Forwarded-For, which nginx sets.

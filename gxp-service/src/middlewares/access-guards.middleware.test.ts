@@ -55,10 +55,9 @@ describe("preventRoleEscalation", () => {
       permissions: ["GXP:VIEW:APPLICATION", "GXP:DELETE:APPLICATION"]
     });
 
-    const { req, res, next } = buildReqRes(
-      { roles: ["role-with-delete"] },
-      ["GXP:VIEW:APPLICATION"]
-    );
+    const { req, res, next } = buildReqRes({ roles: ["role-with-delete"] }, [
+      "GXP:VIEW:APPLICATION"
+    ]);
 
     await preventRoleEscalation(req, res, next);
 
@@ -72,10 +71,9 @@ describe("preventRoleEscalation", () => {
       permissions: ["GXP:VIEW:APPLICATION"]
     });
 
-    const { req, res, next } = buildReqRes(
-      { roles: ["role-view-only"] },
-      ["GXP:VIEW:APPLICATION"]
-    );
+    const { req, res, next } = buildReqRes({ roles: ["role-view-only"] }, [
+      "GXP:VIEW:APPLICATION"
+    ]);
 
     await preventRoleEscalation(req, res, next);
 

@@ -50,7 +50,8 @@ export const expandGroupIds = async (groupIds: string[]): Promise<string[]> => {
 const CACHE_PREFIX = "gxp-user-ctx:";
 const GRACE_CACHE_PREFIX = "gxp-user-ctx-grace:";
 const key = (platformUserId: string) => `${CACHE_PREFIX}${platformUserId}`;
-const graceKey = (platformUserId: string) => `${GRACE_CACHE_PREFIX}${platformUserId}`;
+const graceKey = (platformUserId: string) =>
+  `${GRACE_CACHE_PREFIX}${platformUserId}`;
 
 /** Bounds staleness of a Gxp_Service role's permissions, which change on the platform's
  * own Roles screen with no invalidation channel back here — membership changes made in
@@ -157,9 +158,16 @@ export const getGxpUserContext = async (
     accessGroupIds: await expandGroupIds([...new Set(directGroupIds)])
   };
 
-  const cachedShape: CachedContext = { ...context, permissions: [...permissions] };
+  const cachedShape: CachedContext = {
+    ...context,
+    permissions: [...permissions]
+  };
   await Promise.all([
-    cache.set(key(platformUserId), cachedShape, PERMISSION_STALENESS_TTL_SECONDS),
+    cache.set(
+      key(platformUserId),
+      cachedShape,
+      PERMISSION_STALENESS_TTL_SECONDS
+    ),
     cache.set(graceKey(platformUserId), cachedShape, GRACE_TTL_SECONDS)
   ]);
 

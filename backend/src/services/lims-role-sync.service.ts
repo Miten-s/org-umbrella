@@ -20,8 +20,16 @@ import {
  * both callers: the one-off/repair script (migrate-lims-roles.ts) and the live mirror
  * lims-service pushes through the internal API on every role change. */
 
-const select = <T extends object>(sql: string, replacements = {}, transaction?: Transaction) =>
-  sequelize.query<T>(sql, { type: QueryTypes.SELECT, replacements, transaction });
+const select = <T extends object>(
+  sql: string,
+  replacements = {},
+  transaction?: Transaction
+) =>
+  sequelize.query<T>(sql, {
+    type: QueryTypes.SELECT,
+    replacements,
+    transaction
+  });
 
 export const mapTableExists = async () => {
   const [row] = await select<{ t: string | null }>(
@@ -77,7 +85,9 @@ export const loadBackendState = async (
     permissionIdsByName: new Map(permissions.map((p) => [p.name, p.id])),
     rolesByName: new Map(all.map((r) => [r.name, r])),
     rolesById: new Map(all.map((r) => [r.id, r])),
-    alreadyMigrated: new Map(migrated.map((m) => [m.lims_role_id, m.backend_role_id]))
+    alreadyMigrated: new Map(
+      migrated.map((m) => [m.lims_role_id, m.backend_role_id])
+    )
   };
 };
 
@@ -111,7 +121,10 @@ export const applyPlan = async (
     for (const name of names) {
       await sequelize.query(
         `INSERT INTO role_permissions (role_id, permission_id) VALUES (:roleId, :permissionId)`,
-        { transaction: t, replacements: { roleId, permissionId: permissionIds.get(name) } }
+        {
+          transaction: t,
+          replacements: { roleId, permissionId: permissionIds.get(name) }
+        }
       );
     }
   };
@@ -128,7 +141,12 @@ export const applyPlan = async (
        VALUES (:id, :runId, :limsId, :label, :backendRoleId, :disposition, :now)`,
       {
         transaction: t,
-        replacements: { id: crypto.randomUUID(), runId: options.runId, now, ...row }
+        replacements: {
+          id: crypto.randomUUID(),
+          runId: options.runId,
+          now,
+          ...row
+        }
       }
     );
 
@@ -213,7 +231,10 @@ export const applyPlan = async (
           `DELETE FROM role_permissions
             WHERE role_id = :roleId
               AND permission_id IN (SELECT id FROM permissions WHERE name IN (:names))`,
-          { transaction: t, replacements: { roleId: role.backendRoleId, names: c.revoke } }
+          {
+            transaction: t,
+            replacements: { roleId: role.backendRoleId, names: c.revoke }
+          }
         );
       }
       await grant(role.backendRoleId, c.grant);
@@ -264,7 +285,11 @@ export const syncLimsRoles = async (
   const t = await sequelize.transaction();
   let plan: MigrationPlan;
   try {
-    plan = buildMigrationPlan(input.roles, input.entries, await loadBackendState(true, t));
+    plan = buildMigrationPlan(
+      input.roles,
+      input.entries,
+      await loadBackendState(true, t)
+    );
     if (plan.blockers.length) throw new LimsRoleSyncBlocked(plan.blockers);
 
     await applyPlan(
@@ -291,6 +316,9 @@ export const syncLimsRoles = async (
       limsRoleId: r.limsRoleId,
       backendRoleId: r.backendRoleId
     })),
-    changed: changed.map((r) => ({ limsRoleId: r.limsRoleId, action: r.action }))
+    changed: changed.map((r) => ({
+      limsRoleId: r.limsRoleId,
+      action: r.action
+    }))
   };
 };

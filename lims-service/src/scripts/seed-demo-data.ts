@@ -32,9 +32,27 @@ const DEMO_USERS = [
   { name: "Ananya Iyer", email: "ananya.iyer@demo.local" }
 ];
 
-const LOCATIONS = ["Receiving Bay", "Cold Storage Room", "QC Bench 1", "Microbiology Suite", "Sample Archive"];
-const CUSTOMERS = ["Acme Pharma", "Northwind Biotech", "Contoso Labs", "Globex Life Sciences", "Initech Diagnostics"];
-const SUPPLIERS = ["Sigma Reagents", "VWR Supplies", "Merck Chemicals", "Thermo Instruments", "Avantor Materials"];
+const LOCATIONS = [
+  "Receiving Bay",
+  "Cold Storage Room",
+  "QC Bench 1",
+  "Microbiology Suite",
+  "Sample Archive"
+];
+const CUSTOMERS = [
+  "Acme Pharma",
+  "Northwind Biotech",
+  "Contoso Labs",
+  "Globex Life Sciences",
+  "Initech Diagnostics"
+];
+const SUPPLIERS = [
+  "Sigma Reagents",
+  "VWR Supplies",
+  "Merck Chemicals",
+  "Thermo Instruments",
+  "Avantor Materials"
+];
 
 const DEMO_GROUP_ID = "DEMO_LAB";
 const LAB_USER_ROLE_ID = "LAB_USER";
@@ -60,7 +78,8 @@ const run = async () => {
     defaults: {
       roleId: LAB_USER_ROLE_ID,
       name: "Lab User",
-      description: "Standard lab user: can view, create and edit records, cannot delete or bypass groups.",
+      description:
+        "Standard lab user: can view, create and edit records, cannot delete or bypass groups.",
       groupId: demoGroup.id,
       operateAll: false
     } as any
@@ -87,7 +106,9 @@ const run = async () => {
       { replacements: { email: demoUser.email }, type: QueryTypes.SELECT }
     );
     if (!platformUsers.length) {
-      throw new Error(`Platform user ${demoUser.email} not found — run backend's seed-demo-data.ts first.`);
+      throw new Error(
+        `Platform user ${demoUser.email} not found — run backend's seed-demo-data.ts first.`
+      );
     }
     const platformUserId = platformUsers[0].id;
 
@@ -151,7 +172,9 @@ const run = async () => {
   console.log(
     "\nSeeded: Demo Lab group, Lab User role, 5 linked lab users, 5 locations, 5 customers, 5 suppliers."
   );
-  console.log("Restart the service (the access cache is in-memory) before testing logins.");
+  console.log(
+    "Restart the service (the access cache is in-memory) before testing logins."
+  );
 
   await sequelize.close();
 };

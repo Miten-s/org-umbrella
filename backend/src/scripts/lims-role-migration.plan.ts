@@ -167,7 +167,9 @@ export const buildMigrationPlan = (
   }
 
   for (const role of limsRoles) {
-    const entryPermissions = permissionsForEntries(entriesByRole.get(role.id) ?? []);
+    const entryPermissions = permissionsForEntries(
+      entriesByRole.get(role.id) ?? []
+    );
     const permissions = role.operateAll
       ? [LIMS_OPERATE_ALL, ...entryPermissions].sort()
       : entryPermissions;
@@ -209,7 +211,9 @@ export const buildMigrationPlan = (
       }
       roles.push({
         ...base,
-        action: backend.alreadyMigrated.has(role.id) ? "in_sync" : "map_to_master_admin",
+        action: backend.alreadyMigrated.has(role.id)
+          ? "in_sync"
+          : "map_to_master_admin",
         backendRoleId: seeded.id,
         deletedAt: null,
         permissions: [LIMS_OPERATE_ALL],

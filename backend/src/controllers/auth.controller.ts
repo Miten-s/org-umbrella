@@ -47,7 +47,10 @@ export const logout = async (
 ): Promise<void> => {
   try {
     // Same attributes as when it was set — a mismatch leaves the cookie in place.
-    res.clearCookie("accessToken", { ...ACCESS_COOKIE_OPTIONS, maxAge: undefined });
+    res.clearCookie("accessToken", {
+      ...ACCESS_COOKIE_OPTIONS,
+      maxAge: undefined
+    });
     logInfo(CUSTOM_MESSAGES.LOGOUT_SUCCESSFUL, null, "auth.controller/logout");
     res.json({ message: CUSTOM_MESSAGES.LOGOUT_SUCCESSFUL });
   } catch (error) {

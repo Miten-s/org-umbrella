@@ -112,7 +112,6 @@ const userRateLimiter = rateLimit({
 
 app.use(userRateLimiter);
 
-
 // Mount the authentication routes at /v1/auth
 
 app.use(API_ROUTES.VERSIONS.v1, commonRouter);

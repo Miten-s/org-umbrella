@@ -78,7 +78,8 @@ export function TagListCell<T>({
   const visible = list.slice(0, max);
   const overflow = list.slice(max);
   const total = totalCount ?? list.length;
-  const overflowCount = totalCount != null ? total - visible.length : overflow.length;
+  const overflowCount =
+    totalCount != null ? total - visible.length : overflow.length;
 
   return (
     // Single-line (flex-nowrap) so the cell never grows taller than the row and

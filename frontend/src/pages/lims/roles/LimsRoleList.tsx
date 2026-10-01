@@ -307,7 +307,8 @@ const LimsRoleList = () => {
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_ROLE,
         disabled: isProtectedRole,
-        tooltip: (role) => (isProtectedRole(role) ? PROTECTED_ROLE_TOOLTIP : ""),
+        tooltip: (role) =>
+          isProtectedRole(role) ? PROTECTED_ROLE_TOOLTIP : "",
         onClick: (role) => openForm("view", role)
       },
       {
@@ -317,7 +318,8 @@ const LimsRoleList = () => {
         placement: "inline",
         permission: LIMS_PERMISSIONS.UPDATE_ROLE,
         disabled: isProtectedRole,
-        tooltip: (role) => (isProtectedRole(role) ? PROTECTED_ROLE_TOOLTIP : ""),
+        tooltip: (role) =>
+          isProtectedRole(role) ? PROTECTED_ROLE_TOOLTIP : "",
         onClick: (role) => openForm("edit", role)
       },
       {
@@ -335,7 +337,8 @@ const LimsRoleList = () => {
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_ROLE,
         disabled: isProtectedRole,
-        tooltip: (role) => (isProtectedRole(role) ? PROTECTED_ROLE_TOOLTIP : ""),
+        tooltip: (role) =>
+          isProtectedRole(role) ? PROTECTED_ROLE_TOOLTIP : "",
         onClick: (role) => openCopy([role.id])
       },
       {
@@ -346,7 +349,8 @@ const LimsRoleList = () => {
         permission: LIMS_PERMISSIONS.UPDATE_ROLE,
         hidden: (role: LimsRole) => !role.isRemoved,
         disabled: isProtectedRole,
-        tooltip: (role) => (isProtectedRole(role) ? PROTECTED_ROLE_TOOLTIP : ""),
+        tooltip: (role) =>
+          isProtectedRole(role) ? PROTECTED_ROLE_TOOLTIP : "",
         onClick: (role) => compliance.requestRestore(role)
       },
       {
@@ -358,7 +362,8 @@ const LimsRoleList = () => {
         permission: LIMS_PERMISSIONS.DELETE_ROLE,
         hidden: (role: LimsRole) => Boolean(role.isRemoved),
         disabled: isProtectedRole,
-        tooltip: (role) => (isProtectedRole(role) ? PROTECTED_ROLE_TOOLTIP : ""),
+        tooltip: (role) =>
+          isProtectedRole(role) ? PROTECTED_ROLE_TOOLTIP : "",
         onClick: (role) =>
           compliance.requestDelete({ mode: "ids", ids: [role.id] }, 1, [
             role.name

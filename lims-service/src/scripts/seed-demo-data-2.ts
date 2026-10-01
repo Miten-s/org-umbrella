@@ -52,7 +52,13 @@ import Scheduler from "../models/scheduler.model";
 // up here by the userName lims-service's own seed-demo-data.ts stamped on
 // their lims_users row, since the platform id itself is a random UUIDV4 and
 // can't be recomputed.
-const DEMO_NAMES = ["Priya Sharma", "Arjun Mehta", "Sneha Reddy", "Vikram Rao", "Ananya Iyer"];
+const DEMO_NAMES = [
+  "Priya Sharma",
+  "Arjun Mehta",
+  "Sneha Reddy",
+  "Vikram Rao",
+  "Ananya Iyer"
+];
 
 const run = async () => {
   await sequelize.authenticate();
@@ -60,13 +66,18 @@ const run = async () => {
 
   const demoGroup = await Group.findOne({ where: { groupId: "DEMO_LAB" } });
   if (!demoGroup) {
-    throw new Error("Demo Lab group not found — run lims-service's seed-demo-data.ts first.");
+    throw new Error(
+      "Demo Lab group not found — run lims-service's seed-demo-data.ts first."
+    );
   }
 
   const labUsers = [];
   for (const name of DEMO_NAMES) {
     const limsUser = await LimsUser.findOne({ where: { userName: name } });
-    if (!limsUser) throw new Error(`Lab user "${name}" not found — run seed-demo-data.ts first.`);
+    if (!limsUser)
+      throw new Error(
+        `Lab user "${name}" not found — run seed-demo-data.ts first.`
+      );
     labUsers.push(limsUser);
   }
 
@@ -75,11 +86,19 @@ const run = async () => {
   const locations = [];
   for (let i = 1; i <= 5; i++) {
     const n = String(i).padStart(3, "0");
-    const customer = await Customer.findOne({ where: { customerId: `CUST-${n}` } });
-    const supplier = await Supplier.findOne({ where: { supplierId: `SUP-${n}` } });
-    const location = await Location.findOne({ where: { locationId: `LOC-${n}` } });
+    const customer = await Customer.findOne({
+      where: { customerId: `CUST-${n}` }
+    });
+    const supplier = await Supplier.findOne({
+      where: { supplierId: `SUP-${n}` }
+    });
+    const location = await Location.findOne({
+      where: { locationId: `LOC-${n}` }
+    });
     if (!customer || !supplier || !location) {
-      throw new Error("Core master data not found — run lims-service's seed-demo-data.ts first.");
+      throw new Error(
+        "Core master data not found — run lims-service's seed-demo-data.ts first."
+      );
     }
     customers.push(customer);
     suppliers.push(supplier);
@@ -88,15 +107,28 @@ const run = async () => {
 
   /** e.g. entryId("STOCK_TYPE", "Reagent") — same recipe as seed-phrases.ts. */
   const entryKey = (phrase: string, value: string) =>
-    `${phrase}_${value.toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_|_$/g, "")}`;
+    `${phrase}_${value
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, "_")
+      .replace(/^_|_$/g, "")}`;
 
-  const phraseEntryId = async (phraseCode: string, entryName: string): Promise<string> => {
+  const phraseEntryId = async (
+    phraseCode: string,
+    entryName: string
+  ): Promise<string> => {
     const phrase = await Phrase.findOne({ where: { phrase: phraseCode } });
-    if (!phrase) throw new Error(`Phrase ${phraseCode} not found — run seed-phrases.ts first.`);
+    if (!phrase)
+      throw new Error(
+        `Phrase ${phraseCode} not found — run seed-phrases.ts first.`
+      );
     const entry = await PhraseEntry.findOne({
-      where: { phraseId: phrase.id, phraseEntryId: entryKey(phraseCode, entryName) }
+      where: {
+        phraseId: phrase.id,
+        phraseEntryId: entryKey(phraseCode, entryName)
+      }
     });
-    if (!entry) throw new Error(`Phrase entry ${phraseCode}/${entryName} not found.`);
+    if (!entry)
+      throw new Error(`Phrase entry ${phraseCode}/${entryName} not found.`);
     return entry.id;
   };
 
@@ -194,7 +226,13 @@ const run = async () => {
   }
 
   // ─── Stock Batches (one per stock) ───────────────────────────────────────
-  const BATCH_STATUSES = ["Available", "Quarantine", "In Use", "Expired", "Depleted"];
+  const BATCH_STATUSES = [
+    "Available",
+    "Quarantine",
+    "In Use",
+    "Expired",
+    "Depleted"
+  ];
   const stockBatches = [];
   for (let i = 0; i < stocks.length; i++) {
     const [row] = await StockBatch.findOrCreate({
@@ -243,11 +281,36 @@ const run = async () => {
 
   // ─── Instruments ─────────────────────────────────────────────────────────
   const INSTRUMENTS = [
-    { name: "HPLC System 1", type: "HPLC", measurement: "Chromatographic", status: "Operational" },
-    { name: "GC System 1", type: "GC", measurement: "Chromatographic", status: "Operational" },
-    { name: "UV-Vis Spectrophotometer 1", type: "UV-Vis Spectrophotometer", measurement: "Spectroscopic", status: "Operational" },
-    { name: "Analytical Balance 1", type: "Balance", measurement: "Gravimetric", status: "Operational" },
-    { name: "pH Meter 1", type: "pH Meter", measurement: "Electrochemical", status: "Under Maintenance" }
+    {
+      name: "HPLC System 1",
+      type: "HPLC",
+      measurement: "Chromatographic",
+      status: "Operational"
+    },
+    {
+      name: "GC System 1",
+      type: "GC",
+      measurement: "Chromatographic",
+      status: "Operational"
+    },
+    {
+      name: "UV-Vis Spectrophotometer 1",
+      type: "UV-Vis Spectrophotometer",
+      measurement: "Spectroscopic",
+      status: "Operational"
+    },
+    {
+      name: "Analytical Balance 1",
+      type: "Balance",
+      measurement: "Gravimetric",
+      status: "Operational"
+    },
+    {
+      name: "pH Meter 1",
+      type: "pH Meter",
+      measurement: "Electrochemical",
+      status: "Under Maintenance"
+    }
   ];
   const instruments = [];
   for (let i = 0; i < INSTRUMENTS.length; i++) {
@@ -258,7 +321,10 @@ const run = async () => {
         instrumentId: `INST-${String(i + 1).padStart(3, "0")}`,
         name: ins.name,
         typeId: await phraseEntryId("INSTRUMENT_TYPE", ins.type),
-        measurementTypeId: await phraseEntryId("MEASUREMENT_TYPE", ins.measurement),
+        measurementTypeId: await phraseEntryId(
+          "MEASUREMENT_TYPE",
+          ins.measurement
+        ),
         statusId: await phraseEntryId("INSTRUMENT_STATUS", ins.status),
         locationId: locations[i].id,
         supplierId: suppliers[i].id,
@@ -272,7 +338,13 @@ const run = async () => {
   }
 
   // ─── Instrument Parts (one per instrument) ──────────────────────────────
-  const PARTS = ["Column - C18", "Injector Needle", "Deuterium Lamp", "Load Cell", "pH Electrode"];
+  const PARTS = [
+    "Column - C18",
+    "Injector Needle",
+    "Deuterium Lamp",
+    "Load Cell",
+    "pH Electrode"
+  ];
   const instrumentParts = [];
   for (let i = 0; i < PARTS.length; i++) {
     const [row] = await InstrumentPart.findOrCreate({
@@ -291,7 +363,13 @@ const run = async () => {
   }
 
   // ─── Calibrations (one per instrument) ──────────────────────────────────
-  const CAL_TYPES = ["Internal", "External", "Preventive Maintenance", "Qualification", "Verification"];
+  const CAL_TYPES = [
+    "Internal",
+    "External",
+    "Preventive Maintenance",
+    "Qualification",
+    "Verification"
+  ];
   const CAL_STATUSES = ["Scheduled", "Due", "Passed", "Passed", "Scheduled"];
   for (let i = 0; i < instruments.length; i++) {
     await Calibration.findOrCreate({
@@ -300,7 +378,10 @@ const run = async () => {
         calibrationId: `CAL-${String(i + 1).padStart(3, "0")}`,
         calibrationName: `Annual Calibration — ${instruments[i].name}`,
         instrumentId: instruments[i].id,
-        calibrationTypeId: await phraseEntryId("CALIBRATION_TYPE", CAL_TYPES[i]),
+        calibrationTypeId: await phraseEntryId(
+          "CALIBRATION_TYPE",
+          CAL_TYPES[i]
+        ),
         statusId: await phraseEntryId("CALIBRATION_STATUS", CAL_STATUSES[i]),
         plan: "Yearly",
         ownerId: labUsers[i].id,
@@ -371,7 +452,11 @@ const run = async () => {
   for (let i = 0; i < TEST_GROUPS.length; i++) {
     const [row] = await TestGroup.findOrCreate({
       where: { testGroupId: `TG-${String(i + 1).padStart(3, "0")}` },
-      defaults: { testGroupId: `TG-${String(i + 1).padStart(3, "0")}`, name: TEST_GROUPS[i], groupId }
+      defaults: {
+        testGroupId: `TG-${String(i + 1).padStart(3, "0")}`,
+        name: TEST_GROUPS[i],
+        groupId
+      }
     });
     testGroups.push(row);
   }
@@ -388,13 +473,23 @@ const run = async () => {
   for (let i = 0; i < SPECIFICATIONS.length; i++) {
     const [row] = await Specification.findOrCreate({
       where: { specId: `SPEC-${String(i + 1).padStart(3, "0")}` },
-      defaults: { specId: `SPEC-${String(i + 1).padStart(3, "0")}`, name: SPECIFICATIONS[i], groupId }
+      defaults: {
+        specId: `SPEC-${String(i + 1).padStart(3, "0")}`,
+        name: SPECIFICATIONS[i],
+        groupId
+      }
     });
     specifications.push(row);
   }
 
   // ─── Batches → Lots → Samples → Tests → Results ─────────────────────────
-  const SAMPLE_TYPES = ["Raw Material", "In-Process", "Finished Product", "Stability", "Retain"];
+  const SAMPLE_TYPES = [
+    "Raw Material",
+    "In-Process",
+    "Finished Product",
+    "Stability",
+    "Retain"
+  ];
   const batches = [];
   const lots = [];
   const samples = [];
@@ -404,13 +499,24 @@ const run = async () => {
 
     const [batch] = await Batch.findOrCreate({
       where: { batchId: `BATCH-${n}` },
-      defaults: { batchId: `BATCH-${n}`, batchName: `Batch 2026-${n}`, status: "Open", groupId }
+      defaults: {
+        batchId: `BATCH-${n}`,
+        batchName: `Batch 2026-${n}`,
+        status: "Open",
+        groupId
+      }
     });
     batches.push(batch);
 
     const [lot] = await Lot.findOrCreate({
       where: { lotId: `LOT-${n}` },
-      defaults: { lotId: `LOT-${n}`, lotName: `Lot 2026-${n}-A`, batchId: batch.id, status: "Open", groupId }
+      defaults: {
+        lotId: `LOT-${n}`,
+        lotName: `Lot 2026-${n}-A`,
+        batchId: batch.id,
+        status: "Open",
+        groupId
+      }
     });
     lots.push(lot);
 

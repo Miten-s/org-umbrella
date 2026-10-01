@@ -14,10 +14,7 @@ import Application, {
 import { fetchUserBasedOnId } from "../services/inter-service-calls.service";
 import { PaginationOptions } from "../utils/pagination.util";
 import { Op } from "sequelize";
-import {
-  AccessScope,
-  withGroupScope
-} from "../utils/access-scope.util";
+import { AccessScope, withGroupScope } from "../utils/access-scope.util";
 
 const formatApplication = (app: any) => {
   if (!app) return null;
@@ -153,9 +150,7 @@ export const getApplications = async (
   // scope is omitted (not just falsy) by every internal caller that needs to see across
   // all applications regardless of group — e.g. the name-uniqueness checks in
   // createApplication/duplicateApplication. Only the public list endpoint passes one.
-  const scopedWhere = scope
-    ? withGroupScope(Application, scope, where)
-    : where;
+  const scopedWhere = scope ? withGroupScope(Application, scope, where) : where;
   const { count: totalCount, rows: data } = await Application.findAndCountAll({
     where: scopedWhere,
     distinct: true,

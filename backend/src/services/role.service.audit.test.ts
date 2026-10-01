@@ -8,7 +8,11 @@ jest.mock("../configs/db.sequelize", () => ({
 }));
 jest.mock("../models/role.model", () => ({
   Role: { create: jest.fn(), findByPk: jest.fn(), findAll: jest.fn() },
-  RoleType: { CUSTOM: "Custom", BUILT_IN: "Built_In", GXP_SERVICE: "Gxp_Service" }
+  RoleType: {
+    CUSTOM: "Custom",
+    BUILT_IN: "Built_In",
+    GXP_SERVICE: "Gxp_Service"
+  }
 }));
 jest.mock("../models/user.model", () => ({ User: { findOne: jest.fn() } }));
 jest.mock("../models/permission.model", () => ({
@@ -49,7 +53,10 @@ const buildReq = () =>
 describe("createRole — audit is part of the mutation, not a side effect", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockedRoleCreate.mockResolvedValue({ id: "role-1", name: "Analyst" } as any);
+    mockedRoleCreate.mockResolvedValue({
+      id: "role-1",
+      name: "Analyst"
+    } as any);
     (Role.findByPk as jest.Mock).mockResolvedValue({
       id: "role-1",
       name: "Analyst",

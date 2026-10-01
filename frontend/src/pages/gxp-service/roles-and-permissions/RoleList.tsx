@@ -128,7 +128,8 @@ const RoleList = () => {
         placement: "inline",
         permission: GXP_PERMISSIONS.VIEW_ROLE,
         disabled: isProtectedRole,
-        tooltip: (role) => (isProtectedRole(role) ? PROTECTED_ROLE_TOOLTIP : ""),
+        tooltip: (role) =>
+          isProtectedRole(role) ? PROTECTED_ROLE_TOOLTIP : "",
         onClick: (role) => openForm("view", role)
       },
       {
@@ -138,7 +139,8 @@ const RoleList = () => {
         placement: "inline",
         permission: GXP_PERMISSIONS.UPDATE_ROLE,
         disabled: isProtectedRole,
-        tooltip: (role) => (isProtectedRole(role) ? PROTECTED_ROLE_TOOLTIP : ""),
+        tooltip: (role) =>
+          isProtectedRole(role) ? PROTECTED_ROLE_TOOLTIP : "",
         onClick: (role) => openForm("edit", role)
       },
       {
@@ -149,7 +151,8 @@ const RoleList = () => {
         tone: "danger",
         permission: GXP_PERMISSIONS.DELETE_ROLE,
         disabled: isProtectedRole,
-        tooltip: (role) => (isProtectedRole(role) ? PROTECTED_ROLE_TOOLTIP : ""),
+        tooltip: (role) =>
+          isProtectedRole(role) ? PROTECTED_ROLE_TOOLTIP : "",
         onClick: (role) => {
           setPendingDelete({ mode: "ids", ids: [role.id] });
           setDeleteCount(1);

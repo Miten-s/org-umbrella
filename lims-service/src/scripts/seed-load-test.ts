@@ -30,7 +30,8 @@ const run = async () => {
   const groupId = demoGroup.id;
 
   const [lots]: any = await sequelize.query(`SELECT id FROM lims_lots LIMIT 5`);
-  if (!lots.length) throw new Error("No lots found — run seed-demo-data-2.ts first.");
+  if (!lots.length)
+    throw new Error("No lots found — run seed-demo-data-2.ts first.");
 
   const now = new Date().toISOString();
   let inserted = 0;

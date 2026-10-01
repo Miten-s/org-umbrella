@@ -48,12 +48,16 @@ const REPORT_PATH =
         .toISOString()
         .replace(/[:.]/g, "-")}.md`;
 
-const select = <T extends object>(db: Sequelize, sql: string, replacements = {}) =>
-  db.query<T>(sql, { type: QueryTypes.SELECT, replacements });
+const select = <T extends object>(
+  db: Sequelize,
+  sql: string,
+  replacements = {}
+) => db.query<T>(sql, { type: QueryTypes.SELECT, replacements });
 
 const connectLims = () => {
   const uri = process.env.LIMS_POSTGRES_URI;
-  if (!uri) throw new Error("LIMS_POSTGRES_URI is required (lims-service's database).");
+  if (!uri)
+    throw new Error("LIMS_POSTGRES_URI is required (lims-service's database).");
   return new Sequelize(uri, { logging: false });
 };
 
@@ -71,27 +75,23 @@ const loadLims = async (lims: Sequelize) => {
   );
 
   return {
-    roles: roles.map(
-      (r): LimsRoleRow => ({
-        id: r.id,
-        roleCode: r.role_id,
-        name: r.name,
-        operateAll: !!r.operate_all,
-        isDeleted: !!r.is_deleted,
-        deletedAt: r.deleted_at,
-        backendRoleId: r.backend_role_id
-      })
-    ),
-    entries: entries.map(
-      (e): LimsEntryRow => ({
-        roleId: e.role_id,
-        entry: e.entry,
-        canView: !!e.can_view,
-        canCreate: !!e.can_create,
-        canEdit: !!e.can_edit,
-        canRemove: !!e.can_remove
-      })
-    )
+    roles: roles.map((r): LimsRoleRow => ({
+      id: r.id,
+      roleCode: r.role_id,
+      name: r.name,
+      operateAll: !!r.operate_all,
+      isDeleted: !!r.is_deleted,
+      deletedAt: r.deleted_at,
+      backendRoleId: r.backend_role_id
+    })),
+    entries: entries.map((e): LimsEntryRow => ({
+      roleId: e.role_id,
+      entry: e.entry,
+      canView: !!e.can_view,
+      canCreate: !!e.can_create,
+      canEdit: !!e.can_edit,
+      canRemove: !!e.can_remove
+    }))
   };
 };
 
@@ -111,7 +111,12 @@ const describeChanges = (plan: MigrationPlan["roles"][number]) => {
 
 const renderReport = (
   plan: MigrationPlan,
-  meta: { runId: string; mode: string; hasMapTable: boolean; limsRoleCount: number }
+  meta: {
+    runId: string;
+    mode: string;
+    hasMapTable: boolean;
+    limsRoleCount: number;
+  }
 ) => {
   const by = (a: string) => plan.roles.filter((r) => r.action === a);
   const created = by("create");
@@ -190,7 +195,13 @@ const writePointers = async (lims: Sequelize, plan: MigrationPlan) => {
     for (const r of pending) {
       await lims.query(
         `UPDATE lims_roles SET backend_role_id = :backendRoleId WHERE id = :limsRoleId`,
-        { transaction: t, replacements: { backendRoleId: r.backendRoleId, limsRoleId: r.limsRoleId } }
+        {
+          transaction: t,
+          replacements: {
+            backendRoleId: r.backendRoleId,
+            limsRoleId: r.limsRoleId
+          }
+        }
       );
     }
     await t.commit();
@@ -245,7 +256,11 @@ const migrate = async () => {
     try {
       await applyPlan(
         plan,
-        { runId, reason: `LIMS role migration run ${runId}`, action: "LIMS_ROLE_MIGRATE" },
+        {
+          runId,
+          reason: `LIMS role migration run ${runId}`,
+          action: "LIMS_ROLE_MIGRATE"
+        },
         t
       );
       await t.commit();
@@ -258,7 +273,9 @@ const migrate = async () => {
     // A separate database, so this cannot share the transaction above. Idempotent: if it
     // fails, backend is already correct and a re-run writes the pointers.
     const pointers = await writePointers(lims, plan);
-    console.log(`\nApplied. Run id ${runId}. ${pointers} LIMS pointer(s) written.`);
+    console.log(
+      `\nApplied. Run id ${runId}. ${pointers} LIMS pointer(s) written.`
+    );
   } finally {
     await lims.close();
   }
@@ -305,9 +322,12 @@ const rollback = async (runId: string) => {
         )
       : [];
     const holders = [
-      ...platformHolders.map((h) => `platform user \`${h.user_id}\` holds "${h.name}"`),
+      ...platformHolders.map(
+        (h) => `platform user \`${h.user_id}\` holds "${h.name}"`
+      ),
       ...limsHolders.map(
-        (h) => `LIMS user \`${h.lims_user_id}\` is assigned backend role \`${h.role_id}\``
+        (h) =>
+          `LIMS user \`${h.lims_user_id}\` is assigned backend role \`${h.role_id}\``
       )
     ];
 
@@ -339,7 +359,9 @@ const rollback = async (runId: string) => {
       return;
     }
     if (!APPLY) {
-      console.log("\nDry run — nothing removed. Re-run with --apply to roll back.");
+      console.log(
+        "\nDry run — nothing removed. Re-run with --apply to roll back."
+      );
       return;
     }
 
@@ -347,10 +369,13 @@ const rollback = async (runId: string) => {
     try {
       const reason = `Rollback of LIMS role migration run ${runId}`;
       for (const r of created) {
-        await sequelize.query(`DELETE FROM role_permissions WHERE role_id = :id`, {
-          transaction: t,
-          replacements: { id: r.backend_role_id }
-        });
+        await sequelize.query(
+          `DELETE FROM role_permissions WHERE role_id = :id`,
+          {
+            transaction: t,
+            replacements: { id: r.backend_role_id }
+          }
+        );
         await sequelize.query(`DELETE FROM roles WHERE id = :id`, {
           transaction: t,
           replacements: { id: r.backend_role_id }
@@ -367,10 +392,13 @@ const rollback = async (runId: string) => {
         );
       }
       // The audit rows written by the original run stay — the trail is append-only.
-      await sequelize.query(`DELETE FROM lims_role_migration_map WHERE run_id = :runId`, {
-        transaction: t,
-        replacements: { runId }
-      });
+      await sequelize.query(
+        `DELETE FROM lims_role_migration_map WHERE run_id = :runId`,
+        {
+          transaction: t,
+          replacements: { runId }
+        }
+      );
       await t.commit();
     } catch (error) {
       await t.rollback();

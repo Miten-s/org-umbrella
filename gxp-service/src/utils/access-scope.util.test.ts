@@ -165,8 +165,8 @@ describe("groupWhere / withGroupScope — migration 025 no-op guarantee", () => 
       resolved: true
     };
 
-    expect(
-      withGroupScope(Application, superAdminScope, searchWhere)
-    ).toEqual(searchWhere);
+    expect(withGroupScope(Application, superAdminScope, searchWhere)).toEqual(
+      searchWhere
+    );
   });
 });

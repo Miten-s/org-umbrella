@@ -46,14 +46,20 @@ export const syncLimsRolesHandler = asyncHandler(
           }))
         },
         {
-          actor: isUuidLike(actor?.id) ? { id: actor.id, email: actor.email } : undefined,
-          reason: changeReason ? String(changeReason) : "Lab Role changed in LIMS"
+          actor: isUuidLike(actor?.id)
+            ? { id: actor.id, email: actor.email }
+            : undefined,
+          reason: changeReason
+            ? String(changeReason)
+            : "Lab Role changed in LIMS"
         }
       );
       res.status(200).json(result);
     } catch (error) {
       if (error instanceof LimsRoleSyncBlocked) {
-        res.status(409).json({ error: error.message, blockers: error.blockers });
+        res
+          .status(409)
+          .json({ error: error.message, blockers: error.blockers });
         return;
       }
       throw error;

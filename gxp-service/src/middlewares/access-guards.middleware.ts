@@ -42,7 +42,9 @@ export const preventSelfModification =
 /** Pulls every `roles` array out of a request body, whichever shape it's in — a single
  * record, a bulk-copy `records[]`, or a bulk-update `updates[].payload`. Returns `null` when
  * there is no body at all, so an unreadable request is denied rather than silently passed. */
-const allRoleIdsIn = (body: Record<string, any> | undefined): string[] | null => {
+const allRoleIdsIn = (
+  body: Record<string, any> | undefined
+): string[] | null => {
   if (!body) return null;
   const bodies: Record<string, any>[] = Array.isArray(body.records)
     ? body.records

@@ -32,7 +32,10 @@ export interface IRbacAuditLog {
   reason?: string | null;
 }
 
-export class RbacAuditLog extends Model<IRbacAuditLog> implements IRbacAuditLog {
+export class RbacAuditLog
+  extends Model<IRbacAuditLog>
+  implements IRbacAuditLog
+{
   public id!: string;
   public actorUserId!: string | null;
   public actorEmail!: string | null;

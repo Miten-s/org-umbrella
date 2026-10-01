@@ -31,7 +31,9 @@ const run = async (body: unknown) => {
 };
 
 const validBody = () => ({
-  roles: [{ id: ROLE_ID, roleCode: "LAB_USER", name: "Lab User", operateAll: false }],
+  roles: [
+    { id: ROLE_ID, roleCode: "LAB_USER", name: "Lab User", operateAll: false }
+  ],
   entries: [{ roleId: ROLE_ID, entry: "SAMPLE", canView: true }],
   actor: { id: ACTOR_ID, email: "manager@example.com" },
   changeReason: "added sample access"
@@ -48,12 +50,28 @@ describe("PUT /internal/lims-roles/sync", () => {
     expect(res.status).toHaveBeenCalledWith(200);
     expect(mockedSync).toHaveBeenCalledWith(
       {
-        roles: [expect.objectContaining({ id: ROLE_ID, name: "Lab User", isDeleted: false })],
+        roles: [
+          expect.objectContaining({
+            id: ROLE_ID,
+            name: "Lab User",
+            isDeleted: false
+          })
+        ],
         entries: [
-          { roleId: ROLE_ID, entry: "SAMPLE", canView: true, canCreate: false, canEdit: false, canRemove: false }
+          {
+            roleId: ROLE_ID,
+            entry: "SAMPLE",
+            canView: true,
+            canCreate: false,
+            canEdit: false,
+            canRemove: false
+          }
         ]
       },
-      { actor: { id: ACTOR_ID, email: "manager@example.com" }, reason: "added sample access" }
+      {
+        actor: { id: ACTOR_ID, email: "manager@example.com" },
+        reason: "added sample access"
+      }
     );
   });
 
@@ -62,7 +80,11 @@ describe("PUT /internal/lims-roles/sync", () => {
   it("answers 409 with the blockers when the sync is blocked", async () => {
     mockedSync.mockRejectedValue(
       new LimsRoleSyncBlocked([
-        { kind: "name_collision", detail: 'LIMS role "Auditor" collides with an existing backend Custom role.' } as any
+        {
+          kind: "name_collision",
+          detail:
+            'LIMS role "Auditor" collides with an existing backend Custom role.'
+        } as any
       ])
     );
 
@@ -70,7 +92,9 @@ describe("PUT /internal/lims-roles/sync", () => {
 
     expect(res.status).toHaveBeenCalledWith(409);
     expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ blockers: [expect.objectContaining({ kind: "name_collision" })] })
+      expect.objectContaining({
+        blockers: [expect.objectContaining({ kind: "name_collision" })]
+      })
     );
   });
 
@@ -82,7 +106,10 @@ describe("PUT /internal/lims-roles/sync", () => {
   });
 
   it("rejects a role with no usable id", async () => {
-    const { res } = await run({ roles: [{ id: "not-a-uuid", name: "X" }], entries: [] });
+    const { res } = await run({
+      roles: [{ id: "not-a-uuid", name: "X" }],
+      entries: []
+    });
 
     expect(res.status).toHaveBeenCalledWith(400);
     expect(mockedSync).not.toHaveBeenCalled();

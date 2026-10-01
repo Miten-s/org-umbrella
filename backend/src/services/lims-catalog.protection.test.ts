@@ -69,9 +69,9 @@ describe("LIMS catalogue fixtures are protected", () => {
       destroy: jest.fn()
     });
 
-    await expect(
-      permissionService.deletePermission(asReq())
-    ).rejects.toThrow(/protected system permission/);
+    await expect(permissionService.deletePermission(asReq())).rejects.toThrow(
+      /protected system permission/
+    );
   });
 
   it("refuses to update the LIMS Master Admin role", async () => {

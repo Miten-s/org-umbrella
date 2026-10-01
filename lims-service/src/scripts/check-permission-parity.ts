@@ -50,12 +50,17 @@ const main = async () => {
     const roles = user.roles ?? [];
     const local = permissionsFromRoles(roles);
     const backend = await resolveViaBackend(
-      roles.map((role) => ({ name: role.name, backendRoleId: role.backendRoleId ?? null }))
+      roles.map((role) => ({
+        name: role.name,
+        backendRoleId: role.backendRoleId ?? null
+      }))
     );
 
     if (backend.status === "unreachable") {
       unanswered++;
-      console.log(`| ${user.userName} | \`${user.userId}\` | NO ANSWER | backend unreachable |`);
+      console.log(
+        `| ${user.userName} | \`${user.userId}\` | NO ANSWER | backend unreachable |`
+      );
       continue;
     }
     if (backend.status === "unmigrated") {
@@ -71,7 +76,9 @@ const main = async () => {
       const summary = local.operateAll
         ? "operate_all on both"
         : `${local.permissions.size} permission(s)`;
-      console.log(`| ${user.userName} | \`${user.userId}\` | match | ${summary} |`);
+      console.log(
+        `| ${user.userName} | \`${user.userId}\` | match | ${summary} |`
+      );
       continue;
     }
 
@@ -80,12 +87,18 @@ const main = async () => {
       parity.localOperateAll !== parity.backendOperateAll
         ? `operate_all local=${parity.localOperateAll} backend=${parity.backendOperateAll}`
         : null,
-      parity.onlyLocal.length ? `only in LIMS: ${parity.onlyLocal.join(", ")}` : null,
-      parity.onlyBackend.length ? `only in backend: ${parity.onlyBackend.join(", ")}` : null
+      parity.onlyLocal.length
+        ? `only in LIMS: ${parity.onlyLocal.join(", ")}`
+        : null,
+      parity.onlyBackend.length
+        ? `only in backend: ${parity.onlyBackend.join(", ")}`
+        : null
     ]
       .filter(Boolean)
       .join("; ");
-    console.log(`| ${user.userName} | \`${user.userId}\` | **MISMATCH** | ${detail} |`);
+    console.log(
+      `| ${user.userName} | \`${user.userId}\` | **MISMATCH** | ${detail} |`
+    );
   }
 
   console.log(

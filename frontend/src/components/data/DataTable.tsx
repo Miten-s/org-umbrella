@@ -532,7 +532,9 @@ export function DataTable<T extends { id: string }>({
                       size="sm"
                       disabled={busy || isDisabled}
                       tooltipMessage={
-                        isDisabled ? action.disabledTooltip?.(selectedRows) : undefined
+                        isDisabled
+                          ? action.disabledTooltip?.(selectedRows)
+                          : undefined
                       }
                       loading={runningBulkKey === action.key}
                       permission={action.permission}

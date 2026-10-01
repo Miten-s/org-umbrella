@@ -96,7 +96,8 @@ export const fetchPermissionsForUser = (
 export const fetchPermissionsForRoleIds = (
   roleIds: string[]
 ): Promise<PermissionsFetchResult> => {
-  if (roleIds.length === 0) return Promise.resolve({ ok: true, permissions: [] });
+  if (roleIds.length === 0)
+    return Promise.resolve({ ok: true, permissions: [] });
   const query = roleIds.map(encodeURIComponent).join(",");
   return callBackend(`/internal/permissions/by-roles?roleIds=${query}`);
 };

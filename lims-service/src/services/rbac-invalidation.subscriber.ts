@@ -7,8 +7,7 @@ import {
 export const RBAC_INVALIDATE_CHANNEL = "rbac:invalidate";
 
 type RbacInvalidationMessage =
-  | { scope: "user"; platformUserId: string }
-  | { scope: "all" };
+  { scope: "user"; platformUserId: string } | { scope: "all" };
 
 /** Exported for tests — the routing decision is the part worth pinning down. An
  * unrecognised message drops every context rather than being ignored: over-invalidating
@@ -19,7 +18,9 @@ export const handleInvalidationMessage = async (raw: string): Promise<void> => {
   try {
     message = JSON.parse(raw);
   } catch {
-    console.error("rbac invalidation: unparseable message, dropping all contexts");
+    console.error(
+      "rbac invalidation: unparseable message, dropping all contexts"
+    );
     await invalidateAllUserContexts();
     return;
   }
