@@ -49,6 +49,15 @@ export function logInfo(
   logger.info(message, { context, functionName, fileName });
 }
 
+export function logWarn(
+  message: string,
+  context?: object | null,
+  functionName?: string,
+  fileName?: string
+) {
+  logger.warn(message, { context, functionName, fileName });
+}
+
 export function logError(
   message: string,
   context?: object | null,

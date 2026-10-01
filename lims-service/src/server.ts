@@ -2,12 +2,29 @@ import app from "./app";
 import ENV from "./utils/environment";
 import { sequelize, authSequelize } from "./configs/db.sequelize";
 import { logError, logInfo } from "./configs/logger.config";
+import { startRbacInvalidationSubscriber } from "./services/rbac-invalidation.subscriber";
 
 const PORT = ENV.PORT || 9003;
 
 const server = app.listen(PORT, () => {
   logInfo(`Server running on http://localhost:${PORT}`);
 });
+
+// Drops cached user contexts when backend changes a role or permission. Not fatal if it
+// can't start: the dual-read cache TTL is the fallback, and enforcement doesn't use backend.
+let invalidationSubscriber: Awaited<
+  ReturnType<typeof startRbacInvalidationSubscriber>
+> | null = null;
+
+void startRbacInvalidationSubscriber()
+  .then((subscriber) => {
+    invalidationSubscriber = subscriber;
+  })
+  .catch((error) =>
+    logError("Failed to subscribe to rbac invalidation — falling back to TTL", {
+      error: String(error)
+    })
+  );
 
 // A hung request with no timeout is the #1 cause of cascading failure. Fail fast.
 server.requestTimeout = 30_000; // 30s to receive the full request
@@ -31,7 +48,11 @@ const shutdown = async (signal: string) => {
 
   server.close(async () => {
     try {
-      await Promise.allSettled([sequelize.close(), authSequelize.close()]);
+      await Promise.allSettled([
+        sequelize.close(),
+        authSequelize.close(),
+        invalidationSubscriber?.quit() ?? Promise.resolve()
+      ]);
     } catch (e) {
       logError("Error closing DB pools during shutdown", { error: String(e) });
     }

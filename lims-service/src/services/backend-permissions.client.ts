@@ -90,3 +90,13 @@ export const fetchPermissionsForUser = (
   userId: string
 ): Promise<PermissionsFetchResult> =>
   callBackend(`/internal/permissions/user/${encodeURIComponent(userId)}`);
+
+/** Union of permissions granted by a set of backend role ids — how LIMS resolves the roles
+ * assigned in lims_user_roles, the same way gxp-service resolves gxp_users.roles. */
+export const fetchPermissionsForRoleIds = (
+  roleIds: string[]
+): Promise<PermissionsFetchResult> => {
+  if (roleIds.length === 0) return Promise.resolve({ ok: true, permissions: [] });
+  const query = roleIds.map(encodeURIComponent).join(",");
+  return callBackend(`/internal/permissions/by-roles?roleIds=${query}`);
+};

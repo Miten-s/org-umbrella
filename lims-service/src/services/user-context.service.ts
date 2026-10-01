@@ -6,7 +6,17 @@ import Role from "../models/role.model";
 import RoleEntry from "../models/role-entry.model";
 import Group from "../models/group.model";
 import { ACTION_COLUMN, LimsAction } from "../utils/permissions";
+import ENV from "../utils/environment";
+import { logError, logInfo, logWarn } from "../configs/logger.config";
 import { isPlatformSuperAdmin } from "./platform-access.service";
+import { fetchPermissionsForRoleIds } from "./backend-permissions.client";
+import {
+  PermissionSource,
+  ResolvedPermissions,
+  comparePermissions,
+  fromBackendPermissions,
+  parsePermissionSource
+} from "./permission-parity";
 
 /** Resolves the JWT's platform user id into everything the access layer needs — cached,
  * since it's four joins plus a recursive walk. */
@@ -30,6 +40,26 @@ const key = (platformUserId: string) => `${CACHE_PREFIX}${platformUserId}`;
 
 /** Bounds staleness of platform Super Admin status — see CacheStore's ttlSeconds doc. */
 const SUPER_ADMIN_STALENESS_TTL_SECONDS = 5 * 60;
+
+/** In dual mode, bounds how long a missed rbac:invalidate message can leave the comparison
+ * looking at a stale view of backend. Local changes are still invalidated on write. */
+const DUAL_READ_RECHECK_TTL_SECONDS = 5 * 60;
+
+let warnedAboutSource = false;
+
+const permissionSource = (): PermissionSource => {
+  const raw = ENV.LIMS_PERMISSION_SOURCE;
+  const source = parsePermissionSource(raw);
+  if (raw && raw !== source && !warnedAboutSource) {
+    warnedAboutSource = true;
+    logError(
+      `Unrecognised LIMS_PERMISSION_SOURCE "${raw}" — using "local"`,
+      null,
+      "permissionSource"
+    );
+  }
+  return source;
+};
 
 /** Cached shape — a Set does not survive JSON, so permissions travel as an array. */
 interface CachedContext extends Omit<UserContext, "permissions"> {
@@ -58,7 +88,7 @@ export const expandGroupIds = async (groupIds: string[]): Promise<string[]> => {
 };
 
 /** Turns a role's entry rows into permission codes, unioned across roles. */
-const permissionsFromRoles = (
+export const permissionsFromRoles = (
   roles: (Role & { entries?: RoleEntry[] })[]
 ): { permissions: Set<string>; operateAll: boolean } => {
   const permissions = new Set<string>();
@@ -161,12 +191,102 @@ export const getUserContext = async (
     permissions
   };
 
-  await cache.set<CachedContext>(key(platformUserId), {
-    ...context,
-    permissions: [...permissions]
-  });
+  const source = permissionSource();
+
+  await cache.set<CachedContext>(
+    key(platformUserId),
+    { ...context, permissions: [...permissions] },
+    source === "dual" ? DUAL_READ_RECHECK_TTL_SECONDS : undefined
+  );
+
+  // Enforcement above used LIMS's own data; this only observes. Deliberately not awaited:
+  // it must never add latency to the request or fail it, even if backend is down.
+  if (source === "dual") {
+    void compareWithBackend(
+      platformUserId,
+      { permissions, operateAll },
+      (limsUser.roles ?? []).map((role) => ({
+        name: role.name,
+        backendRoleId: role.backendRoleId ?? null
+      }))
+    );
+  }
 
   return context;
+};
+
+export interface AssignedRole {
+  name: string;
+  backendRoleId: string | null;
+}
+
+export type BackendResolution =
+  | { status: "unmigrated"; roleNames: string[] }
+  | { status: "unreachable" }
+  | { status: "resolved"; permissions: ResolvedPermissions };
+
+/** What the user's LIMS-assigned roles grant according to backend — the way gxp-service
+ * resolves gxp_users.roles. Assignments stay in LIMS; only the definitions come from
+ * backend, found through lims_roles.backend_role_id. */
+export const resolveViaBackend = async (
+  roles: AssignedRole[]
+): Promise<BackendResolution> => {
+  const unmigrated = roles.filter((role) => !role.backendRoleId).map((role) => role.name);
+  if (unmigrated.length) return { status: "unmigrated", roleNames: unmigrated };
+
+  const result = await fetchPermissionsForRoleIds(
+    roles.map((role) => role.backendRoleId as string)
+  );
+  if (!result.ok) return { status: "unreachable" };
+  return { status: "resolved", permissions: fromBackendPermissions(result.permissions) };
+};
+
+/** The C6 dual-read. Resolves the same user through backend and logs whether the two
+ * agree. Matches are logged too, so "zero mismatches" is evidence rather than silence. */
+export const compareWithBackend = async (
+  platformUserId: string,
+  local: ResolvedPermissions,
+  roles: AssignedRole[]
+): Promise<void> => {
+  try {
+    const backend = await resolveViaBackend(roles);
+
+    if (backend.status === "unreachable") {
+      logWarn(
+        "LIMS dual-read: backend unreachable, comparison skipped",
+        { platformUserId },
+        "compareWithBackend"
+      );
+      return;
+    }
+    // After the cutover a role with no backend copy would grant nothing — a real
+    // difference, so it counts as a mismatch rather than being skipped.
+    if (backend.status === "unmigrated") {
+      logWarn(
+        "LIMS permission mismatch",
+        { platformUserId, unmigratedRoles: backend.roleNames },
+        "compareWithBackend"
+      );
+      return;
+    }
+
+    const parity = comparePermissions(local, backend.permissions);
+    if (parity.match) {
+      logInfo("LIMS permission parity ok", { platformUserId }, "compareWithBackend");
+    } else {
+      logWarn(
+        "LIMS permission mismatch",
+        { platformUserId, ...parity },
+        "compareWithBackend"
+      );
+    }
+  } catch (error) {
+    logError(
+      "LIMS dual-read comparison failed",
+      { platformUserId, error: String(error) },
+      "compareWithBackend"
+    );
+  }
 };
 
 export const hasPermission = (
