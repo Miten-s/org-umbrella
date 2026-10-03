@@ -241,6 +241,7 @@ const LimsInspectionPlanForm = ({
               rows={personnel}
               onChange={setPersonnel}
               disabled={isReadOnly}
+              layout="table"
               columns={[
                 {
                   key: "inspectionType",

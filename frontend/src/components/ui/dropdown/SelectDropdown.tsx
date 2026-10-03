@@ -129,10 +129,13 @@ export const SelectDropdown: React.FC<SelectDropdownProps> = ({
           setOpen((prev) => !prev);
         }}
       >
-        <span className="flex flex-wrap gap-2 items-center">
+        <span className="flex min-w-0 items-center gap-2 overflow-hidden">
           {selectedOption ? (
-            <span className="inline-flex items-center gap-2 rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-1 text-sm text-gray-900 dark:text-gray-100">
-              {selectedOption.label}
+            <span
+              className="inline-flex max-w-full items-center gap-2 rounded-full bg-gray-100 px-2 py-1 text-sm text-gray-900 dark:bg-gray-700 dark:text-gray-100"
+              title={selectedOption.label}
+            >
+              <span className="truncate">{selectedOption.label}</span>
             </span>
           ) : (
             <span className="text-gray-500">{placeholder}</span>

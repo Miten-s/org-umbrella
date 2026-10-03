@@ -62,6 +62,7 @@ const LimsAnalysisList = () => {
   const [copyIds, setCopyIds] = useState<string[] | null>(null);
   const [viewIds, setViewIds] = useState<string[] | null>(null);
   const [editIds, setEditIds] = useState<string[] | null>(null);
+  const [editTitles, setEditTitles] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsAnalysis, LimsAnalysisPayload>();
   const auditQuery = useLimsAnalysisAudit(compliance.auditRow?.id);
@@ -131,8 +132,9 @@ const LimsAnalysisList = () => {
   );
 
   const openEdit = useCallback(
-    (ids: string[]) => {
+    (ids: string[], titles?: string[]) => {
       setEditIds(ids);
+      setEditTitles(titles ?? null);
       openModal();
     },
     [openModal]
@@ -145,6 +147,7 @@ const LimsAnalysisList = () => {
     setCopyIds(null);
     setViewIds(null);
     setEditIds(null);
+    setEditTitles(null);
   };
 
   const handleSaveCopies = async (payloads: LimsAnalysisPayload[]) => {
@@ -233,7 +236,12 @@ const LimsAnalysisList = () => {
             toast(t("editBulkFilterUnsupported"), "error");
             return;
           }
-          openEdit(selection.ids);
+          openEdit(
+            selection.ids,
+            selection.ids.map(
+              (id) => table.rows.find((r) => r.id === id)?.name || ""
+            )
+          );
         }
       },
       {
@@ -399,6 +407,7 @@ const LimsAnalysisList = () => {
         ) : editIds ? (
           <EditStepper<LimsAnalysis, LimsAnalysisPayload>
             ids={editIds}
+            titles={editTitles || undefined}
             fetchById={fetchLimsAnalysisById}
             FormComponent={LimsAnalysisForm}
             onSaveAll={handleSaveEdits}

@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import Button from "@/components/ui/button/Button";
 import Label from "@/components/common/form/Label";
 import HelpTooltip from "@/components/common/HelpTooltip";
@@ -120,7 +121,14 @@ function SubFormGrid<R extends Record<string, unknown>>({
     );
   };
 
-  const addRow = () => onChange([...rows, newRow ? newRow() : ({} as R)]);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  
+  const addRow = () => {
+    onChange([...rows, newRow ? newRow() : ({} as R)]);
+    setTimeout(() => {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 100);
+  };
 
   const removeRow = (rowIndex: number) =>
     onChange(rows.filter((_, index) => index !== rowIndex));
@@ -362,6 +370,7 @@ function SubFormGrid<R extends Record<string, unknown>>({
       )}
 
       {error ? <p className="mt-1 text-xs text-red-500">{error}</p> : null}
+      <div ref={bottomRef} />
     </div>
   );
 }

@@ -55,6 +55,7 @@ interface LimsAnalysisFormProps {
   /** " (2 of 5)" appended after the title when Copy is reviewing more
    * than one record — undefined otherwise. */
   stepLabel?: string;
+  headerControls?: React.ReactNode;
 }
 
 /** Seeds a dropdown label from the record's nested ref — no extra fetch. */
@@ -71,7 +72,8 @@ const LimsAnalysisForm = ({
   submitLabel,
   disabled = false,
   formId,
-  stepLabel
+  stepLabel,
+  headerControls
 }: LimsAnalysisFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
@@ -136,7 +138,7 @@ const LimsAnalysisForm = ({
   );
 
   return (
-    <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+    <div className="modal-scrollbar relative flex max-h-[calc(100dvh-5rem)] flex-col overflow-y-auto rounded-3xl bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100">
       <form
         id={formId}
         onSubmit={handleSubmit((values) => {
@@ -157,19 +159,27 @@ const LimsAnalysisForm = ({
           setComponentsError(undefined);
           onSubmit({ ...values, components });
         })}
-        className="min-w-0 space-y-4"
+        className="flex min-h-full min-w-0 flex-col"
       >
-        <h2 className="text-xl font-semibold">
-          {isReadOnly
-            ? `${t("view", { entity: t("limsAnalysis") })}${stepLabel ?? ""}`
-            : mode === "copy"
-              ? `${t("copyEntity", { entity: t("limsAnalysis") })}${stepLabel ?? ""}`
-              : initialData
-                ? `${t("update", { entity: t("limsAnalysis") })}${stepLabel ?? ""}`
-                : t("create", { entity: t("limsAnalysis") })}
-        </h2>
+        <div className="sticky top-0 z-20 flex min-h-[72px] shrink-0 items-center justify-between border-b border-gray-200 bg-white/95 px-6 py-4 backdrop-blur-xs dark:border-gray-800 dark:bg-gray-900/95">
+          <h2 className="text-xl font-semibold truncate pr-4">
+            {isReadOnly
+              ? `${t("view", { entity: t("limsAnalysis") })}${stepLabel ?? ""}`
+              : mode === "copy"
+                ? `${t("copyEntity", { entity: t("limsAnalysis") })}${stepLabel ?? ""}`
+                : initialData
+                  ? `${t("update", { entity: t("limsAnalysis") })}${stepLabel ?? ""}`
+                  : t("create", { entity: t("limsAnalysis") })}
+          </h2>
+          {headerControls && (
+            <div className="flex shrink-0 items-center gap-2 pr-8 sm:pr-12">
+              {headerControls}
+            </div>
+          )}
+        </div>
 
-        <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="space-y-4 px-6 pb-2 pt-4">
+          <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
           {text("analysisId", t("limsAnalysisId"), true, "text")}
           {text("name", t("name"), true, "text")}
           <div className="min-w-0">
@@ -274,9 +284,10 @@ const LimsAnalysisForm = ({
               error={componentsError}
             />
           </div>
+          </div>
         </div>
 
-        <div className="mt-4 flex justify-end gap-2">
+        <div className="sticky bottom-0 z-20 mt-auto flex justify-end gap-2 border-t border-gray-100 bg-white/95 px-6 py-4 backdrop-blur-xs dark:border-gray-800 dark:bg-gray-900/95">
           <Button
             variant="outline"
             type="button"
@@ -285,6 +296,16 @@ const LimsAnalysisForm = ({
           >
             {t("cancel")}
           </Button>
+          {(mode === "bulk-edit" || mode === "copy") && (
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => (onUnchanged ?? onClose)()}
+              disabled={busy}
+            >
+              Next
+            </Button>
+          )}
           {!isReadOnly ? (
             <Button
               type="submit"
@@ -292,7 +313,7 @@ const LimsAnalysisForm = ({
               loading={busy}
               disabled={busy || disabled}
             >
-              {submitLabel ?? t("save")}
+              {submitLabel ?? "Save"}
             </Button>
           ) : null}
         </div>

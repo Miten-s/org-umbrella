@@ -3,7 +3,7 @@ import { flushSync } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { ChevronLeftIcon } from "@/public/icons";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
-import Button from "@/components/ui/button/Button";
+import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
 import { toast } from "@/lib/toast";
 
 /**
@@ -23,11 +23,14 @@ export interface EditStepperFormProps<TRecord, TPayload> {
   disabled?: boolean;
   formId?: string;
   stepLabel?: string;
+  headerControls?: React.ReactNode;
 }
 
 export interface EditStepperProps<TRecord, TPayload> {
   /** IDs of the records the user selected for Bulk Edit. */
   ids: string[];
+  /** Pre-fetched titles of the records, matching the order of `ids`. Falls back to `Step N` if omitted. */
+  titles?: string[];
   /** Fetches ONE full-detail record — the same fetch the Edit modal already uses. */
   fetchById: (id: string, signal?: AbortSignal) => Promise<TRecord>;
   FormComponent: React.ComponentType<EditStepperFormProps<TRecord, TPayload>>;
@@ -47,6 +50,7 @@ export interface EditStepperProps<TRecord, TPayload> {
  */
 function EditStepper<TRecord, TPayload>({
   ids,
+  titles,
   fetchById,
   FormComponent,
   onSaveAll,
@@ -73,10 +77,6 @@ function EditStepper<TRecord, TPayload>({
   const sweepRef = useRef<number[] | null>(null);
   const sweepTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [autoSubmitting, setAutoSubmitting] = useState(false);
-  const [sweepProgress, setSweepProgress] = useState<{
-    current: number;
-    total: number;
-  } | null>(null);
 
   const clearSweep = () => {
     sweepRef.current = null;
@@ -85,7 +85,6 @@ function EditStepper<TRecord, TPayload>({
       sweepTimeoutRef.current = null;
     }
     setAutoSubmitting(false);
-    setSweepProgress(null);
   };
 
   // Same `flushSync` reasoning as CopyStepper's `loadSource` — the sweep needs `sources[i]`
@@ -201,25 +200,32 @@ function EditStepper<TRecord, TPayload>({
           clearTimeout(sweepTimeoutRef.current);
           sweepTimeoutRef.current = null;
         }
-        setSweepProgress(null);
         try {
           await finalize();
         } finally {
           setAutoSubmitting(false);
         }
       } else {
-        setSweepProgress((prev) =>
-          prev
-            ? {
-                current: Math.min(
-                  prev.total - remaining.length + 1,
-                  prev.total
-                ),
-                total: prev.total
-              }
-            : prev
-        );
         runSweepStep(remaining[0]);
+      }
+      return;
+    }
+
+    if (i === total - 1) {
+      const uncommitted = visited.filter(
+        (vi) => vi !== i && payloadsRef.current[vi] === undefined
+      );
+      if (uncommitted.length > 0) {
+        setAutoSubmitting(true);
+        sweepRef.current = uncommitted;
+        runSweepStep(uncommitted[0]);
+      } else {
+        setAutoSubmitting(true);
+        try {
+          await finalize();
+        } finally {
+          setAutoSubmitting(false);
+        }
       }
       return;
     }
@@ -233,43 +239,10 @@ function EditStepper<TRecord, TPayload>({
 
   // Every VISITED step is re-swept (current one unconditionally, to catch a live unsaved
   // edit); a never-visited step was never fetched and needs no sweep at all.
-  const handleSaveAllClick = () => {
-    if (busy) return;
-    const uncommitted = visited.filter(
-      (i) => i !== index && payloadsRef.current[i] === undefined
-    );
-    const toSubmit = [index, ...uncommitted];
-    setAutoSubmitting(true);
-    setSweepProgress({ current: 1, total: toSubmit.length });
-    sweepRef.current = toSubmit;
-    runSweepStep(toSubmit[0]);
-  };
 
   return (
-    <div className="relative">
-      {isMulti && (
-        <div className="absolute right-14 top-3 z-20 flex items-center gap-1 sm:right-20 sm:top-6">
-          <button
-            type="button"
-            aria-label={t("previous")}
-            disabled={index === 0 || busy}
-            onClick={() => goTo(index - 1)}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
-          >
-            <ChevronLeftIcon className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            aria-label={t("next")}
-            disabled={isLast || busy}
-            onClick={() => goTo(index + 1)}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
-          >
-            <ChevronLeftIcon className="h-4 w-4 rotate-180" />
-          </button>
-        </div>
-      )}
-      <div className="relative">
+    <div className="relative h-full flex flex-col">
+      <div className="relative flex-1 min-h-0">
         {visited.map((i) => (
           <div
             key={i}
@@ -295,13 +268,53 @@ function EditStepper<TRecord, TPayload>({
                 submitting={
                   (saving && total === 1) || (autoSubmitting && i === index)
                 }
-                submitLabel={isMulti ? t("next") : undefined}
-                disabled={isMulti && i === total - 1}
+                submitLabel={isMulti ? (i === total - 1 ? t("save") : "Save and Next") : undefined}
+                disabled={busy}
                 formId={`${formId}-${i}`}
                 stepLabel={
                   isMulti
                     ? ` ${t("editStep", { current: i + 1, total })}`
                     : undefined
+                }
+                headerControls={
+                  isMulti ? (
+                    <>
+                      <div className="w-48">
+                        <SelectDropdown
+                          options={Array.from({ length: total }, (_, optIndex) => ({
+                            value: String(optIndex),
+                            label: titles?.[optIndex] || (sources[optIndex] as any)?.name || `Step ${optIndex + 1}`
+                          }))}
+                          value={String(index)}
+                          onChange={(val) => goTo(Number(val))}
+                          placeholder="Select template"
+                          ariaLabel="Select template"
+                          disabled={busy}
+                          portal
+                        />
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          aria-label={t("previous")}
+                          disabled={index === 0 || busy}
+                          onClick={() => goTo(index - 1)}
+                          className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+                        >
+                          <ChevronLeftIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={t("next")}
+                          disabled={isLast || busy}
+                          onClick={() => goTo(index + 1)}
+                          className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+                        >
+                          <ChevronLeftIcon className="h-4 w-4 rotate-180" />
+                        </button>
+                      </div>
+                    </>
+                  ) : undefined
                 }
               />
             )}
@@ -313,45 +326,6 @@ function EditStepper<TRecord, TPayload>({
           </div>
         )}
       </div>
-      {isMulti && (
-        <div className="flex items-center justify-between gap-3 rounded-b-3xl border-t border-gray-100 bg-white px-10 py-3 dark:border-gray-800 dark:bg-gray-900 sm:px-14">
-          <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
-            {Array.from({ length: total }, (_, i) => {
-              const isCurrent = i === index;
-              const isCommitted = payloads[i] !== undefined;
-              return (
-                <button
-                  key={i}
-                  type="button"
-                  aria-label={t("editGoToStep", { current: i + 1, total })}
-                  aria-current={isCurrent || undefined}
-                  disabled={busy}
-                  onClick={() => goTo(i)}
-                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                    isCurrent
-                      ? "bg-brand-500 text-white"
-                      : isCommitted
-                        ? "bg-brand-50 text-brand-600 ring-1 ring-inset ring-brand-300 hover:bg-brand-100 dark:bg-brand-500/10 dark:text-brand-400 dark:ring-brand-500/40"
-                        : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              );
-            })}
-          </div>
-          <Button
-            className="shrink-0"
-            onClick={handleSaveAllClick}
-            loading={busy}
-            disabled={busy}
-          >
-            {sweepProgress
-              ? t("editReviewingProgress", sweepProgress)
-              : t("editSaveAll")}
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
