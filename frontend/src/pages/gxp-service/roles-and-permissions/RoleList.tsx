@@ -11,7 +11,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 // Shared, read-only dependency (also used by access-management's own roles page).
 import CreateRoleModal from "@/pages/access-management/roles-and-permissions/CreateRoleModal";
-import { PermissionType, RoleType } from "@/utils/common.constants";
+import { PermissionType } from "@/utils/common.constants";
 import { GXP_PERMISSIONS } from "@/utils/permissions";
 import {
   roleKeys,
@@ -84,8 +84,7 @@ const RoleList = () => {
       .filter((id): id is string => Boolean(id));
     const payload = {
       name: data.roleName.trim(),
-      permissions: permissionIds,
-      type: RoleType.GXP_SERVICE
+      permissions: permissionIds
     };
     if (active) {
       await updateRole.mutateAsync({ id: active.id, payload });

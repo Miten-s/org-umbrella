@@ -1,5 +1,6 @@
 import { Router } from "express";
 import gxpUserRouter from "./gxp-service-users.router";
+import gxpRolesRouter from "./gxp-service-roles.routes";
 import gxpSupplierRouter from "./gxp-service-suppliers.routes";
 import gxpEnvironmentRouter from "./gxp-service-environments.routes";
 import gxpApplicationRouter from "./gxp-service-applications.routes";
@@ -16,6 +17,8 @@ const commonRouter: Router = Router();
 commonRouter.use("/gxp-me", authenticate, gxpMeRouter);
 
 commonRouter.use(API_ROUTES.GXP_USERS, authenticate, gxpUserRouter);
+
+commonRouter.use(API_ROUTES.GXP_ROLES, authenticate, gxpRolesRouter);
 
 commonRouter.use(API_ROUTES.GXP_SUPPLIERS, authenticate, gxpSupplierRouter);
 

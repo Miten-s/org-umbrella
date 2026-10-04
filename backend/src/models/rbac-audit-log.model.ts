@@ -5,6 +5,7 @@ export type RbacAuditAction =
   | "ROLE_CREATE"
   | "ROLE_UPDATE"
   | "ROLE_DELETE"
+  | "ROLE_RESTORE"
   | "ROLE_BULK_DELETE"
   | "ROLE_BULK_DUPLICATE"
   | "ROLE_ASSIGN"

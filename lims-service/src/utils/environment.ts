@@ -10,9 +10,6 @@ const ENV = {
   JWT_SECRET: envConfig.JWT_SECRET,
   INTERNAL_API_KEY: envConfig.INTERNAL_API_KEY,
   BACKEND_INTERNAL_URL: envConfig.BACKEND_INTERNAL_URL,
-  // "dual" (default): enforce LIMS's own permissions, compare with backend's in the
-  // background and log differences. "local": never consult backend. See user-context.service.
-  LIMS_PERMISSION_SOURCE: envConfig.LIMS_PERMISSION_SOURCE,
   CORS_ORIGINS: envConfig.CORS_ORIGINS,
   NODE_ENV: envConfig.NODE_ENV,
   KAFKA_BROKER: envConfig.KAFKA_BROKER,

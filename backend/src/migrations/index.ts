@@ -1,51 +1,10 @@
 import { Migration } from "./runner";
-import * as m001 from "./001-create-companies";
-import * as m002 from "./002-create-permissions";
-import * as m003 from "./003-create-roles";
-import * as m004 from "./004-create-role-permissions";
-import * as m005 from "./005-create-locations";
-import * as m006 from "./006-create-departments";
-import * as m007 from "./007-create-designations";
-import * as m008 from "./008-create-users";
-import * as m009 from "./009-add-circular-constraints";
-import * as m010 from "./010-create-user-roles";
-import * as m011 from "./011-create-password-history";
-import * as m012 from "./012-seed-initial-data";
-import * as m013 from "./013-partial-unique-active-names";
-import * as m014 from "./014-add-users-list-indexes";
-import * as m015 from "./015-scope-admin-role-permissions";
-import * as m016 from "./016-fix-gxp-permission-names";
-import * as m017 from "./017-cleanup-obsolete-gxp-permissions";
-import * as m018 from "./018-seed-gxp-master-admin-role";
-import * as m019 from "./019-simplify-gxp-master-admin-role";
-import * as m020 from "./020-create-rbac-audit-log";
-import * as m021 from "./021-seed-lims-permission-catalog";
-import * as m022 from "./022-seed-lims-master-admin-role";
-import * as m023 from "./023-create-lims-role-migration-map";
+import * as m001 from "./001-initial-schema";
+import * as m002 from "./002-seed-reference-data";
 
 export const migrations: Migration[] = [
-  { name: "001-create-companies", up: m001.up },
-  { name: "002-create-permissions", up: m002.up },
-  { name: "003-create-roles", up: m003.up },
-  { name: "004-create-role-permissions", up: m004.up },
-  { name: "005-create-locations", up: m005.up },
-  { name: "006-create-departments", up: m006.up },
-  { name: "007-create-designations", up: m007.up },
-  { name: "008-create-users", up: m008.up },
-  { name: "009-add-circular-constraints", up: m009.up },
-  { name: "010-create-user-roles", up: m010.up },
-  { name: "011-create-password-history", up: m011.up },
-  { name: "012-seed-initial-data", up: m012.up },
-  { name: "013-partial-unique-active-names", up: m013.up },
-  { name: "014-add-users-list-indexes", up: m014.up },
-  { name: "015-scope-admin-role-permissions", up: m015.up },
-  { name: "016-fix-gxp-permission-names", up: m016.up },
-  { name: "017-cleanup-obsolete-gxp-permissions", up: m017.up },
-  { name: "018-seed-gxp-master-admin-role", up: m018.up },
-  { name: "019-simplify-gxp-master-admin-role", up: m019.up },
-  { name: "020-create-rbac-audit-log", up: m020.up },
-  { name: "021-seed-lims-permission-catalog", up: m021.up },
-  { name: "022-seed-lims-master-admin-role", up: m022.up },
-  { name: "023-create-lims-role-migration-map", up: m023.up }
+  { name: "001-initial-schema", up: m001.up },
+  { name: "002-seed-reference-data", up: m002.up }
 ];
+
 export { runMigrations, checkMigrations } from "./runner";

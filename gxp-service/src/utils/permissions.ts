@@ -1,6 +1,6 @@
 /** GXP's permission catalogue — codes are rows in the platform's own `permissions` table
  * (type: 'gxp_service'), not a second local catalogue. See ROLES_AND_ACCESS_MANAGEMENT.md
- * and backend/src/migrations/012-seed-initial-data.ts / 016-fix-gxp-permission-names.ts. */
+ * and backend/src/migrations/002-seed-reference-data.ts. */
 
 export const GXP_ENTITIES = [
   "APPLICATION",
@@ -10,7 +10,8 @@ export const GXP_ENTITIES = [
   "SERVICE_REQUEST",
   "WORKFLOW",
   "ASSIGNMENT_GROUP",
-  "USER"
+  "USER",
+  "ROLE"
 ] as const;
 
 export type GxpEntity = (typeof GXP_ENTITIES)[number];

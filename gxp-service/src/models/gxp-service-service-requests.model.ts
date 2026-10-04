@@ -101,7 +101,7 @@ ServiceRequest.init(
     accessGroupId: {
       type: DataTypes.UUID,
       // Same reasoning as Application.accessGroupId — NOT NULL with a default at the DB
-      // level (migration 025), but permissive here so existing create flows that don't
+      // level, but permissive here so existing create flows that don't
       // set this yet aren't rejected client-side before the DB default can apply.
       allowNull: true,
       field: "access_group_id"

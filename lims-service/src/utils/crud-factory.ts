@@ -213,7 +213,7 @@ const payloadFromRequest = (req: Request): Record<string, any> => {
 };
 
 /** Shaped for the frontend's `toExistingAttachments`. Attachment has no real FK to its parent
- * (migration 005) — just this polymorphic `entityName` + `entityId` pair. */
+ * — just this polymorphic `entityName` + `entityId` pair. */
 const attachmentsFor = async (
   entityName: string,
   entityId: string,

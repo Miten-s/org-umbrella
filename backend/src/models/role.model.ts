@@ -13,6 +13,8 @@ export interface IRole {
   id?: string;
   name: string;
   type: RoleType;
+  code?: string | null;
+  description?: string | null;
   deletedAt?: Date | null;
 }
 
@@ -20,6 +22,8 @@ export class Role extends Model<IRole> implements IRole {
   public id!: string;
   public name!: string;
   public type!: RoleType;
+  public code!: string | null;
+  public description!: string | null;
   public deletedAt!: Date | null;
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
@@ -45,6 +49,14 @@ Role.init(
       type: DataTypes.ENUM("Custom", "Built_In", "Gxp_Service", "Lims_Service"),
       allowNull: false,
       defaultValue: "Custom"
+    },
+    code: {
+      type: DataTypes.STRING(100),
+      allowNull: true
+    },
+    description: {
+      type: DataTypes.TEXT,
+      allowNull: true
     },
     deletedAt: {
       type: DataTypes.DATE,

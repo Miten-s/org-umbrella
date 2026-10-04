@@ -91,27 +91,28 @@ const assertRoleTypeAuthority = (
 
 /** The one seeded, fixed fixture per system-wide tier — locked for everyone, Super Admin
  * included, so it can't be weakened or deleted by accident. A genuinely new master role is a
- * new migration, not an edit of this one. GXP Master Admin is the service-level counterpart
- * (see backend/src/migrations/018-seed-gxp-master-admin-role.ts) and LIMS Master Admin is
- * the LIMS one (022-seed-lims-master-admin-role.ts). lims-service also protects its own,
- * separately-stored copy inside role.routes.ts until its cutover. */
+ * new migration, not an edit of this one. GXP Master Admin and LIMS Master Admin are the
+ * service-level counterparts; all are seeded by migrations/002-seed-reference-data.ts. */
 const PROTECTED_ROLE_NAMES = new Set([
   "Super Admin",
   "GXP Master Admin",
   "LIMS Master Admin"
 ]);
 
-/** Lims_Service roles are mirrored from LIMS (see lims-role-sync.service.ts): lims-service
- * is the only writer. Editing one here would be overwritten by the next sync, and LIMS's own
- * screens would not show the change — so the public API refuses, for everyone. */
-const assertNotLimsManaged = (type: RoleType | string | undefined) => {
-  if (type === RoleType.LIMS_SERVICE) {
-    throw Object.assign(
-      new Error(
-        "LIMS roles are managed from the LIMS Roles screen and cannot be changed here."
-      ),
-      { statusCode: 403 }
-    );
+/** Lims_Service and Gxp_Service roles are changed only through their own service
+ * (internal service-roles API), which applies that service's permission, escalation and
+ * group checks. The public API would bypass those, so it refuses, for everyone. */
+const SERVICE_ROLE_SCREENS: Partial<Record<string, string>> = {
+  [RoleType.LIMS_SERVICE]:
+    "LIMS roles are managed from the LIMS Roles screen and cannot be changed here.",
+  [RoleType.GXP_SERVICE]:
+    "GXP roles are managed from the GXP Roles and Permissions screen and cannot be changed here."
+};
+
+const assertNotServiceManaged = (type: RoleType | string | undefined) => {
+  const message = type ? SERVICE_ROLE_SCREENS[type] : undefined;
+  if (message) {
+    throw Object.assign(new Error(message), { statusCode: 403 });
   }
 };
 
@@ -174,7 +175,7 @@ const assignRole = async (req: Request) => {
 
 const createRole = async (req: Request) => {
   const { name, permissions, type } = req.body;
-  assertNotLimsManaged(type);
+  assertNotServiceManaged(type);
   assertRoleTypeAuthority(req.user as IUser, type ?? RoleType.CUSTOM);
   await assertNoEscalation(req.user as IUser, permissions);
   const t = await sequelize.transaction();
@@ -229,8 +230,8 @@ const updateRole = async (req: Request) => {
       permissions: permissionNamesOf((role as any).permissions)
     };
     assertNotProtectedRole(role.name);
-    assertNotLimsManaged(role.type);
-    assertNotLimsManaged(type);
+    assertNotServiceManaged(role.type);
+    assertNotServiceManaged(type);
     assertRoleTypeAuthority(req.user as IUser, role.type);
     if (type && type !== role.type) {
       assertRoleTypeAuthority(req.user as IUser, type);
@@ -281,7 +282,7 @@ const deleteRole = async (req: Request) => {
     });
     if (!role) return null;
     assertNotProtectedRole(role.name);
-    assertNotLimsManaged(role.type);
+    assertNotServiceManaged(role.type);
     assertRoleTypeAuthority(req.user as IUser, role.type);
     await role.destroy({ transaction: t });
 
@@ -415,7 +416,7 @@ const bulkDeleteRoles = async (ids: string[], actor?: IUser) => {
       include: ["permissions"],
       transaction: t
     });
-    for (const role of doomedRoles) assertNotLimsManaged(role.type);
+    for (const role of doomedRoles) assertNotServiceManaged(role.type);
 
     await Role.destroy({
       where: { id: deletableIds },
@@ -479,7 +480,7 @@ const bulkDuplicateRoles = async (ids: string[], actor?: IUser) => {
     }
     for (const role of sourceRoles) {
       assertNotProtectedRole(role.name);
-      assertNotLimsManaged(role.type);
+      assertNotServiceManaged(role.type);
     }
 
     const duplicatedRoles = [];

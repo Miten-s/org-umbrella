@@ -96,8 +96,8 @@ Application.init(
     },
     accessGroupId: {
       type: DataTypes.UUID,
-      // The DB column is NOT NULL with a default (the "Unassigned" group — see migration
-      // 025), but this stays allowNull: true at the Sequelize level on purpose: existing
+      // The DB column is NOT NULL with a default (the "Unassigned" group — see
+      // migrations/default-ids.ts), but this stays allowNull: true at the Sequelize level on purpose: existing
       // create flows don't set this field yet (that's the deferred, separate phase), and
       // `allowNull: false` here would make Sequelize reject those inserts client-side
       // before the DB default ever gets a chance to apply.

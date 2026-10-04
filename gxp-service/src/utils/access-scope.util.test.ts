@@ -53,7 +53,7 @@ const postMigrationUserScope: AccessScope = {
   resolved: true
 };
 
-describe("groupWhere / withGroupScope — migration 025 no-op guarantee", () => {
+describe("groupWhere / withGroupScope — default-group no-op guarantee", () => {
   it("before/after: a post-migration user sees the exact same rows with enforcement on as with it off", () => {
     const unfiltered = postMigrationRows; // "enforcement off" — no where clause at all
 

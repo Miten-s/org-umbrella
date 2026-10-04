@@ -4,7 +4,7 @@ import { sequelize } from "./configs/db.sequelize";
 import { logError, logInfo } from "./configs/logger.config";
 import { startRbacInvalidationSubscriber } from "./services/rbac-invalidation.subscriber";
 import { invalidateAllUserContexts } from "./services/user-context.service";
-import { startRoleMirrorCatchUp } from "./services/role-mirror.service";
+import { registerPermissionsWithBackend } from "./services/permission.service";
 import { deleteCacheByPrefix, onRedisRecovered } from "./configs/redis.config";
 
 const PORT = ENV.PORT || 9003;
@@ -14,7 +14,7 @@ const server = app.listen(PORT, () => {
 });
 
 // Drops cached user contexts when backend changes a role or permission. Not fatal if it
-// can't start: the dual-read cache TTL is the fallback, and enforcement doesn't use backend.
+// can't start: the 5-minute cache TTL is the fallback.
 let invalidationSubscriber: Awaited<
   ReturnType<typeof startRbacInvalidationSubscriber>
 > | null = null;
@@ -29,8 +29,8 @@ void startRbacInvalidationSubscriber()
     })
   );
 
-// Repairs Lab Role changes that were saved while backend was unreachable.
-startRoleMirrorCatchUp();
+// Backend stores every service's permissions; LIMS's are defined in its code.
+void registerPermissionsWithBackend();
 
 // Changes made while Redis was down could not clear what was cached before it went down.
 onRedisRecovered(async () => {

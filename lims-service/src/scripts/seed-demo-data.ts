@@ -3,8 +3,8 @@
  * and seed the core master data they'll see: a Demo Lab group, a Lab User
  * role, 5 locations, 5 customers, 5 suppliers.
  *
- * Run AFTER backend/src/scripts/seed-demo-data.ts, with backend running (platform users
- * are looked up through its internal API).
+ * Run AFTER backend/src/scripts/seed-demo-data.ts, with backend running (platform users and
+ * the Lab User role are read and written through its internal API).
  * Idempotent: safe to re-run.
  *
  *   npx ts-node src/scripts/seed-demo-data.ts
@@ -14,8 +14,7 @@ import { sequelize } from "../configs/db.sequelize";
 import ENV from "../utils/environment";
 import { registerAssociations } from "../models/associations";
 import Group from "../models/group.model";
-import Role from "../models/role.model";
-import RoleEntry from "../models/role-entry.model";
+import RoleGroup from "../models/role-group.model";
 import LimsUser from "../models/lims-user.model";
 import UserAccessGroup from "../models/user-access-group.model";
 import UserRole from "../models/user-role.model";
@@ -23,6 +22,7 @@ import Location from "../models/location.model";
 import Customer from "../models/customer.model";
 import Supplier from "../models/supplier.model";
 import { LIMS_ENTITIES } from "../utils/permissions";
+import { ensureRole } from "../services/backend-roles.client";
 
 // Same 5 platform users backend/src/scripts/seed-demo-data.ts creates.
 const DEMO_USERS = [
@@ -93,31 +93,16 @@ const run = async () => {
   });
 
   // ─── Lab User role — view/create/edit on every entity, no delete, no bypass ───
-  const [labUserRole] = await Role.findOrCreate({
-    where: { roleId: LAB_USER_ROLE_ID },
-    defaults: {
-      roleId: LAB_USER_ROLE_ID,
-      name: "Lab User",
-      description:
-        "Standard lab user: can view, create and edit records, cannot delete or bypass groups.",
-      groupId: demoGroup.id,
-      operateAll: false
-    } as any
+  // Stored in backend, like every Lab Role; LIMS records its lab group.
+  const labUserRole = await ensureRole(LAB_USER_ROLE_ID, {
+    name: "Lab User",
+    description:
+      "Standard lab user: can view, create and edit records, cannot delete or bypass groups.",
+    permissions: LIMS_ENTITIES.flatMap((entity) =>
+      ["VIEW", "CREATE", "UPDATE"].map((action) => `LIMS:${action}:${entity}`)
+    )
   });
-
-  for (const entity of LIMS_ENTITIES) {
-    await RoleEntry.findOrCreate({
-      where: { roleId: labUserRole.id, entry: entity },
-      defaults: {
-        roleId: labUserRole.id,
-        entry: entity,
-        canView: true,
-        canCreate: true,
-        canEdit: true,
-        canRemove: false
-      } as any
-    });
-  }
+  await RoleGroup.upsert({ roleId: labUserRole.id, groupId: demoGroup.id });
 
   // ─── Link the 5 demo platform users into LIMS ───────────────────────────
   for (const demoUser of DEMO_USERS) {

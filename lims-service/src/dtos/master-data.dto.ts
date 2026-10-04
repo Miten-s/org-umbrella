@@ -281,10 +281,11 @@ export class CreateLimsUserDto {
   accessGroups?: string[];
 
   @IsArray()
-  @IsUUID("4", { each: true })
+  // Backend role ids; its seeded master roles' ids aren't version-4.
+  @IsUUID("all", { each: true })
   roles!: string[];
 
-  // No @MaxLength: carries the signature pad's full base64 data URI (see migration 011).
+  // No @MaxLength: carries the signature pad's full base64 data URI (the column is TEXT).
   @IsOptional()
   @IsString()
   signature?: string;
@@ -319,10 +320,10 @@ export class UpdateLimsUserDto {
 
   @IsOptional()
   @IsArray()
-  @IsUUID("4", { each: true })
+  @IsUUID("all", { each: true })
   roles?: string[];
 
-  // No @MaxLength: carries the signature pad's full base64 data URI (see migration 011).
+  // No @MaxLength: carries the signature pad's full base64 data URI (the column is TEXT).
   @IsOptional()
   @IsString()
   signature?: string;

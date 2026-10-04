@@ -2,8 +2,8 @@ import { Model, ModelStatic, Op, WhereOptions } from "sequelize";
 import { GxpUserContext } from "../services/user-context.service";
 
 /** Mirrors lims-service's AccessScope/groupWhere/withGroupScope (src/utils/crud-factory.ts)
- * — same semantics, ported to gxp's column name (`accessGroupId`, not `groupId` — see
- * migration 025's naming note) and context shape. Backend-only for now: nothing in gxp's
+ * — same semantics, ported to gxp's column name (`accessGroupId`, not `groupId`, because
+ * `applications.group` already holds an unrelated location id) and context shape. Backend-only for now: nothing in gxp's
  * create/update payloads sets accessGroupId yet (no group selector in any form), so there
  * is deliberately no write-side `assertGroupInScope` counterpart here yet — add one only
  * once a group selector actually exists for a caller to misuse. */

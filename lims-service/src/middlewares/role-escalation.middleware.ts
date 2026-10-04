@@ -29,9 +29,8 @@ const requestedCodes = (
 };
 
 /** A Lab Role editor cannot grant permissions (or OPERATE:ALL) they don't themselves hold —
- * otherwise UPDATE:ROLE/CREATE:ROLE alone is a path to self-escalation. Runs independently
- * of the CRUD router's own `authorize("ROLE", ...)` check, since crud-factory's hooks don't
- * carry the actor's own permission set. */
+ * otherwise UPDATE:ROLE/CREATE:ROLE alone is a path to self-escalation. Covers a single
+ * record and a bulk copy (`records[]`) or bulk edit (`updates[].payload`). */
 export const preventRoleEscalation = async (
   req: Request,
   res: Response,
@@ -48,7 +47,17 @@ export const preventRoleEscalation = async (
   }
   if (context.operateAll) return next();
 
-  const { codes, operateAll } = requestedCodes(req.body ?? {});
+  // One record, or every record of a bulk copy / bulk edit.
+  const bodies: Record<string, any>[] = Array.isArray(req.body?.records)
+    ? req.body.records
+    : Array.isArray(req.body?.updates)
+      ? req.body.updates.map(
+          (u: { payload?: Record<string, any> }) => u.payload ?? {}
+        )
+      : [req.body ?? {}];
+  const requested = bodies.map(requestedCodes);
+  const codes = [...new Set(requested.flatMap((r) => r.codes))];
+  const operateAll = requested.some((r) => r.operateAll);
 
   if (operateAll) {
     return res.status(403).json({
@@ -69,7 +78,8 @@ export const preventRoleEscalation = async (
 /** A Lab User admin cannot assign a Lab Role that grants permissions (or OPERATE:ALL) they
  * don't themselves hold — the assignment-side counterpart to `preventRoleEscalation` above,
  * which guards role *definition* rather than a user's role *assignment*. Accepts either a
- * single record's `roles: string[]` or a bulk-update's `updates[].payload.roles`. */
+ * single record's `roles: string[]`, a bulk copy's `records[].roles` or a bulk-update's
+ * `updates[].payload.roles`. */
 export const preventRoleAssignmentEscalation = async (
   req: Request,
   res: Response,
@@ -79,11 +89,13 @@ export const preventRoleAssignmentEscalation = async (
   if (!platformUserId)
     return res.status(401).json({ message: "Authentication required" });
 
-  const bodies: Record<string, any>[] = Array.isArray(req.body?.updates)
-    ? req.body.updates.map(
-        (u: { payload?: Record<string, any> }) => u.payload ?? {}
-      )
-    : [req.body ?? {}];
+  const bodies: Record<string, any>[] = Array.isArray(req.body?.records)
+    ? req.body.records
+    : Array.isArray(req.body?.updates)
+      ? req.body.updates.map(
+          (u: { payload?: Record<string, any> }) => u.payload ?? {}
+        )
+      : [req.body ?? {}];
   const roleIds = [
     ...new Set(bodies.flatMap((b) => (Array.isArray(b.roles) ? b.roles : [])))
   ];

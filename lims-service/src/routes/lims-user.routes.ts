@@ -3,7 +3,6 @@ import LimsUser from "../models/lims-user.model";
 import UserAccessGroup from "../models/user-access-group.model";
 import UserRole from "../models/user-role.model";
 import Group from "../models/group.model";
-import Role from "../models/role.model";
 import Location from "../models/location.model";
 import {
   buildCrudRouter,
@@ -13,6 +12,7 @@ import {
 } from "../utils/crud-factory";
 import { CreateLimsUserDto, UpdateLimsUserDto } from "../dtos/master-data.dto";
 import { invalidateAllUserContexts } from "../services/user-context.service";
+import { labRoleRefs } from "../services/lab-role.service";
 import { preventRoleAssignmentEscalation } from "../middlewares/role-escalation.middleware";
 import API_ROUTES from "../utils/routes";
 
@@ -49,17 +49,17 @@ export const limsUserConfig: CrudConfig<LimsUser> = {
       through: { attributes: [] },
       required: false
     },
+    // Role ids only: the roles themselves live in backend (see withRoles below).
     {
-      model: Role,
-      as: "roles",
-      attributes: ["id", "roleId", "name"],
-      through: { attributes: [] },
+      model: UserRole,
+      as: "roleLinks",
+      attributes: ["roleId"],
       required: false
     }
   ],
   relationFields: { group: "groupId", location: "locationId" },
 
-  // `roles` stays in the list query — LimsUser.columns.tsx renders it.
+  // `roleLinks` stays in the list query — LimsUser.columns.tsx renders the roles.
   // `accessGroups` doesn't appear anywhere on the list, only Edit/View.
   listExcludeRelations: ["accessGroups"],
 
@@ -201,7 +201,39 @@ const bulkUpdate = async (
   return base.bulkUpdate(updates, changeReason, ctx);
 };
 
-const service = { ...base, remove, bulkDelete, update, bulkUpdate };
+/** `roles: [{ id, roleId, name }]`, as the screens expect, from the stored role ids. */
+const withRoles = async <T>(users: T): Promise<T> => {
+  const rows = (Array.isArray(users) ? users : [users]).filter(
+    Boolean
+  ) as Record<string, any>[];
+  const ids = rows.flatMap((row) =>
+    (row.roleLinks ?? []).map((link: { roleId: string }) => link.roleId)
+  );
+  const refs = await labRoleRefs(ids);
+  for (const row of rows) {
+    row.roles = (row.roleLinks ?? []).map((link: { roleId: string }) =>
+      refs.get(link.roleId)!
+    );
+    delete row.roleLinks;
+  }
+  return users;
+};
+
+const service: typeof base = {
+  ...base,
+  remove,
+  bulkDelete,
+  update: async (...args) => withRoles(await update(...args)),
+  bulkUpdate,
+  getAll: async (...args) => {
+    const result = await base.getAll(...args);
+    await withRoles(result.rows);
+    return result;
+  },
+  getById: async (...args) => withRoles(await base.getById(...args)),
+  create: async (...args) => withRoles(await base.create(...args)),
+  restore: async (...args) => withRoles(await base.restore(...args))
+};
 
 const limsUserCrudRouter = buildCrudRouter({
   service,
@@ -215,6 +247,7 @@ const limsUserCrudRouter = buildCrudRouter({
 // that grants more than their own permission set, checked before the CRUD router runs.
 const router = Router();
 router.post("/", preventRoleAssignmentEscalation);
+router.post(API_ROUTES.BULK_COPY, preventRoleAssignmentEscalation);
 // Registered before "/:id" — both are one-segment PATCH routes, same ordering concern
 // buildCrudRouter itself documents for BULK_UPDATE vs PARAMS.
 router.patch(API_ROUTES.BULK_UPDATE, preventRoleAssignmentEscalation);

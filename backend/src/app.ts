@@ -18,8 +18,8 @@ import { requestContext } from "./middlewares/request-context.middleware";
 import { userRateLimiter } from "./middlewares/rate-limit.middleware";
 import commonRouter from "./routes/common.router";
 import internalPermissionsRoutes from "./routes/internal-permissions.routes";
-import internalLimsRolesRoutes from "./routes/internal-lims-roles.routes";
 import internalDirectoryRoutes from "./routes/internal-directory.routes";
+import internalServiceRolesRoutes from "./routes/internal-service-roles.routes";
 import { CUSTOM_MESSAGES } from "./utils/common.util";
 
 const app: Application = express();
@@ -96,8 +96,8 @@ app.get("/readyz", async (_req, res) => {
 // gxp-service or lims-service arrives from that one service's address — behind it, all of a
 // service's permission lookups would share a single per-address quota.
 app.use(API_ROUTES.INTERNAL, internalPermissionsRoutes);
-app.use(API_ROUTES.INTERNAL, internalLimsRolesRoutes);
 app.use(API_ROUTES.INTERNAL, internalDirectoryRoutes);
+app.use(API_ROUTES.INTERNAL, internalServiceRolesRoutes);
 
 app.use(userRateLimiter);
 

@@ -70,8 +70,8 @@ export const GXP_PERMISSIONS = {
 
   // Values match gxp-service's actual entity codes (GXP_ENTITIES in
   // gxp-service/src/utils/permissions.ts) — the keys keep their old names since every
-  // consumer references the key, not the string, but the codes themselves were renamed
-  // in backend/src/migrations/016-fix-gxp-permission-names.ts to match the real entities
+  // consumer references the key, not the string, but the codes themselves are named after
+  // the real entities in backend/src/migrations/002-seed-reference-data.ts
   // (Application/ApplicationModule/Supplier), not the stale SOFTWARE*/SUPPLIERS vocabulary.
   CREATE_SUPPLIERS: "GXP:CREATE:SUPPLIER",
   VIEW_SUPPLIERS: "GXP:VIEW:SUPPLIER",
@@ -283,7 +283,7 @@ export const LIMS_SETUP_PERMISSIONS = Object.values(LIMS_PERMISSIONS).filter(
     !LIMS_EXECUTION_PERMISSIONS.includes(permission)
 );
 
-// Matches the Built_In roles' actual seeded `name` (backend/src/migrations/012-seed-initial-data.ts)
+// Matches the Built_In roles' actual seeded `name` (backend/src/migrations/002-seed-reference-data.ts)
 // — these are compared against `role.name` in hasRole/hasAnyRole, so the strings must match exactly.
 // Super Admin should be checked via OPERATE:ALL (isSuperAdmin below), not by role name — the
 // name is not what grants the bypass, the permission is.

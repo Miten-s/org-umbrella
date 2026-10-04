@@ -3,7 +3,7 @@
  * hang off) for client testing.
  *
  * Idempotent: safe to re-run. Doesn't touch the superadmin — migration
- * 012-seed-initial-data.ts already creates that on boot.
+ * 002-seed-reference-data.ts already creates that on boot.
  *
  * Next step after this: run lims-service's seed-demo-data.ts to link these
  * platform users into LIMS.
@@ -56,7 +56,7 @@ const run = async () => {
   const userRole = await Role.findOne({ where: { name: "User" } });
   if (!userRole) {
     throw new Error(
-      '"User" role not found — migration 012-seed-initial-data.ts must run first.'
+      '"User" role not found — migration 002-seed-reference-data.ts must run first.'
     );
   }
 

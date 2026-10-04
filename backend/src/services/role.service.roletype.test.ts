@@ -150,7 +150,7 @@ describe("Lims_Service roles are written only by lims-service", () => {
 
     await expect(
       roleService.createRole(buildReq("Gxp_Service"))
-    ).rejects.toThrow(/not authorized to manage Gxp_Service roles/);
+    ).rejects.toThrow(/managed from the GXP Roles and Permissions screen/);
     await expect(roleService.createRole(buildReq("Built_In"))).rejects.toThrow(
       /not authorized to manage Built_In roles/
     );

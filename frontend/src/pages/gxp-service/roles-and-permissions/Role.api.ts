@@ -1,4 +1,4 @@
-import api from "@/utils/axios.interceptor";
+import gxpApi from "@/utils/gxp.axios.interceptor";
 import {
   buildServerParams,
   toListResult,
@@ -8,7 +8,6 @@ import { normalizeList } from "@/lib/query/normalizeId";
 import { extractList, extractPaginationMetadata } from "@/utils/listResponse";
 import { bulkSelectionToBody, type BulkSelection } from "@/lib/query/listTypes";
 import type { ServerListParams } from "@/lib/query/listTypes";
-import { RoleType, PermissionType } from "@/utils/common.constants";
 import type {
   GxpPermissionOption,
   GxpRole,
@@ -16,18 +15,18 @@ import type {
 } from "./Role.types";
 
 /**
- * GXP Role API — same admin `/roles` + `/permissions` endpoints the pre-migration
- * code used, scoped to type = GXP_SERVICE. `.api` is pure HTTP (toasts in queries).
+ * GXP Role API — gxp-service's `/gxp-roles`, which checks the user's GXP permissions and
+ * stores roles in backend. `.api` is pure HTTP (toasts in queries).
  */
-const ROLES = "/roles";
-const PERMISSIONS = "/permissions";
+const ROLES = "/gxp-roles";
+const PERMISSIONS = "/gxp-roles/permissions";
 
 export const fetchRoleList = async (
   params: ServerListParams,
   signal?: AbortSignal
 ) => {
-  const response = await api.get(ROLES, {
-    params: buildServerParams({ ...params, type: RoleType.GXP_SERVICE }),
+  const response = await gxpApi.get(ROLES, {
+    params: buildServerParams(params),
     signal
   });
   return toListResult<GxpRole>(response.data, params, ["roles"]);
@@ -42,8 +41,8 @@ export const fetchRolePermissions = async (
   let page = 1;
   let totalPages = 1;
   do {
-    const response = await api.get(PERMISSIONS, {
-      params: { type: PermissionType.GXP_SERVICE, limit, page },
+    const response = await gxpApi.get(PERMISSIONS, {
+      params: { limit, page },
       signal
     });
     permissions.push(
@@ -68,10 +67,9 @@ export const fetchGxpRoleOptions = async (
   const params: ServerListParams = {
     page: args.page,
     limit: 20,
-    search: args.search || undefined,
-    type: RoleType.GXP_SERVICE
+    search: args.search || undefined
   };
-  const response = await api.get(ROLES, {
+  const response = await gxpApi.get(ROLES, {
     params: buildServerParams(params),
     signal
   });
@@ -81,17 +79,17 @@ export const fetchGxpRoleOptions = async (
 };
 
 export const createRole = async (payload: GxpRolePayload) => {
-  const response = await api.post(ROLES, payload);
+  const response = await gxpApi.post(ROLES, payload);
   return response.data;
 };
 
 export const updateRole = async (id: string, payload: GxpRolePayload) => {
-  const response = await api.patch(`${ROLES}/${id}`, payload);
+  const response = await gxpApi.patch(`${ROLES}/${id}`, payload);
   return response.data;
 };
 
 export const bulkDeleteRole = async (selection: BulkSelection) => {
-  const response = await api.post(
+  const response = await gxpApi.post(
     `${ROLES}/bulk-delete`,
     bulkSelectionToBody(selection)
   );

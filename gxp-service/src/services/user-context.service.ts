@@ -174,7 +174,7 @@ export const getGxpUserContext = async (
 
 /** `GXP:OPERATE:ALL` is a service-scoped wildcard — full GXP access without being the
  * platform's Super Admin (which is `OPERATE:ALL`, a distinct string, checked separately
- * via `isSuperAdmin`). See backend/src/migrations/018-seed-gxp-master-admin-role.ts. */
+ * via `isSuperAdmin`). Seeded by backend/src/migrations/002-seed-reference-data.ts. */
 export const hasPermission = (context: GxpUserContext, code: string): boolean =>
   context.isSuperAdmin ||
   context.permissions.has("GXP:OPERATE:ALL") ||

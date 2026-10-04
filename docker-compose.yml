@@ -51,6 +51,9 @@ services:
       AUTH_MONGO_URI: ${AUTH_MONGO_URI:-}
       REDIS_SERVER_URL: ${REDIS_SERVER_URL:-redis://redis:6379}
       REDIS_SERVER_PASSWORD: ${REDIS_PASSWORD:-}
+      # Read once, by the seed migration that creates the first Super Admin.
+      SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL:-}
+      SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD:-}
     volumes:
       - backend_uploads:/app/uploads
     depends_on:
@@ -73,7 +76,6 @@ services:
       BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://backend:9000}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       GXP_POSTGRES_URI: ${GXP_POSTGRES_URI:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/gxp-service}
-      AUTH_POSTGRES_URI: ${AUTH_POSTGRES_URI:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/auth-service}
       REDIS_SERVER_URL: ${REDIS_SERVER_URL:-redis://redis:6379}
       REDIS_SERVER_PASSWORD: ${REDIS_PASSWORD:-}
     volumes:
@@ -91,7 +93,6 @@ services:
       - "9002:9002"
     environment:
       PORT: ${LIMS_PORT:-9002}
-      AUTH_POSTGRES_URI: ${AUTH_POSTGRES_URI:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/auth-service}
       LIMS_POSTGRES_URI: ${LIMS_POSTGRES_URI:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/lims-service}
       JWT_SECRET: ${JWT_SECRET}
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}

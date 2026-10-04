@@ -11,7 +11,7 @@ router.get(
   "/",
   authorize("ROLE", "VIEW"),
   asyncHandler(async (_req: Request, res: Response) => {
-    res.status(200).json({ data: await getPermissionCatalogue() });
+    res.status(200).json({ data: getPermissionCatalogue() });
   })
 );
 

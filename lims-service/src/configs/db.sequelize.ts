@@ -62,19 +62,6 @@ export const connectDB = async (retries = 5, delayMs = 3000): Promise<void> => {
       const { registerAssociations } = await import("../models/associations");
       registerAssociations();
 
-      // Mirror the code-defined permission vocabulary into lims_permissions so
-      // the catalogue can never describe permissions the code doesn't enforce.
-      try {
-        const { seedPermissions } =
-          await import("../services/permission.service");
-        await seedPermissions();
-      } catch (err) {
-        console.warn(
-          "Skipping seedPermissions (run migrations first if table is missing):",
-          err
-        );
-      }
-
       // Warn if a pick list is missing/empty; not auto-seeded, since values are a lab's own config.
       const { reportPhraseHealth } =
         await import("../services/phrase-health.service");
