@@ -78,17 +78,16 @@ const toContext = (cached: CachedContext): GxpUserContext => ({
   permissions: new Set(cached.permissions)
 });
 
-const emptyContext = (
-  gxpUser: GxpUser,
-  platformUserId: string
-): GxpUserContext => ({
-  gxpUserId: gxpUser.id,
-  platformUserId,
-  userName: gxpUser.userName ?? null,
-  isSuperAdmin: false,
-  permissions: new Set(),
-  accessGroupIds: []
-});
+/** Backend holds what GXP roles grant, and it cannot be reached. Deliberately not a 403:
+ * the user may well have access, GXP just cannot confirm it right now. */
+export class PermissionsUnavailable extends Error {
+  statusCode = 503;
+  constructor() {
+    super(
+      "GXP permissions are temporarily unavailable. Please try again shortly."
+    );
+  }
+}
 
 /** Returns null when the platform user has neither Super Admin nor a gxp_users row — a
  * valid platform token is not by itself GXP access (same rule as LIMS).
@@ -133,8 +132,7 @@ export const getGxpUserContext = async (
       if (grace) return toContext(grace);
     }
 
-    if (!gxpUser) return null;
-    return emptyContext(gxpUser, platformUserId);
+    throw new PermissionsUnavailable();
   }
 
   const superAdmin = superAdminResult.permissions.includes("OPERATE:ALL");

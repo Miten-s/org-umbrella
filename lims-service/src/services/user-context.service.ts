@@ -8,7 +8,7 @@ import Group from "../models/group.model";
 import { ACTION_COLUMN, LimsAction } from "../utils/permissions";
 import ENV from "../utils/environment";
 import { logError, logInfo, logWarn } from "../configs/logger.config";
-import { isPlatformSuperAdmin } from "./platform-access.service";
+import { platformSuperAdminStatus } from "./platform-access.service";
 import { fetchPermissionsForRoleIds } from "./backend-permissions.client";
 import {
   PermissionSource,
@@ -156,7 +156,16 @@ export const getUserContext = async (
   if (cached) return { ...cached, permissions: new Set(cached.permissions) };
 
   // Super Admin has full access to every service without needing a lims_users row.
-  if (await isPlatformSuperAdmin(platformUserId)) {
+  const superAdmin = await platformSuperAdminStatus(platformUserId);
+  if (superAdmin === "unknown" && allowGrace) {
+    // Only a Super Admin's grace copy is used here, and only for reads. A write falls
+    // through: in dual mode a Super Admin who is also a lab user keeps their own roles.
+    const grace = await cache.get<CachedContext>(graceKey(platformUserId));
+    if (grace?.operateAll && !grace.limsUserId) {
+      return { ...grace, permissions: new Set(grace.permissions) };
+    }
+  }
+  if (superAdmin === "yes") {
     const context: UserContext = {
       limsUserId: "",
       platformUserId,
@@ -166,11 +175,15 @@ export const getUserContext = async (
       operateAll: true,
       permissions: new Set()
     };
-    await cache.set<CachedContext>(
-      key(platformUserId),
-      { ...context, permissions: [] },
-      SUPER_ADMIN_STALENESS_TTL_SECONDS
-    );
+    const cachedShape: CachedContext = { ...context, permissions: [] };
+    await Promise.all([
+      cache.set(
+        key(platformUserId),
+        cachedShape,
+        SUPER_ADMIN_STALENESS_TTL_SECONDS
+      ),
+      cache.set(graceKey(platformUserId), cachedShape, GRACE_TTL_SECONDS)
+    ]);
     return context;
   }
 
@@ -193,7 +206,11 @@ export const getUserContext = async (
     ]
   })) as (LimsUser & { roles?: Role[]; accessGroups?: Group[] }) | null;
 
-  if (!limsUser) return null;
+  if (!limsUser) {
+    // Without backend there is no telling whether this is a Super Admin.
+    if (superAdmin === "unknown") throw new PermissionsUnavailable();
+    return null;
+  }
 
   const source = permissionSource();
   const assignedRoles = (limsUser.roles ?? []) as (Role & {

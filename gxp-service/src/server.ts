@@ -1,8 +1,10 @@
 import app from "./app";
 import ENV from "./utils/environment";
-import { sequelize, authSequelize } from "./configs/db.sequelize";
+import { sequelize } from "./configs/db.sequelize";
 import { logError, logInfo } from "./configs/logger.config";
 import { startRbacInvalidationSubscriber } from "./services/rbac-invalidation.subscriber";
+import { invalidateAllUserContexts } from "./services/user-context.service";
+import { deleteCacheByPrefix, onRedisRecovered } from "./configs/redis.config";
 
 const PORT = ENV.PORT || 9001;
 
@@ -26,6 +28,12 @@ void startRbacInvalidationSubscriber()
       error: String(error)
     })
   );
+
+// Changes made while Redis was down could not clear what was cached before it went down.
+onRedisRecovered(async () => {
+  await invalidateAllUserContexts();
+  await deleteCacheByPrefix("gxp:");
+});
 
 // A hung request with no timeout is the #1 cause of cascading failure. Fail fast.
 server.requestTimeout = 30_000; // 30s to receive the full request
@@ -51,7 +59,6 @@ const shutdown = async (signal: string) => {
     try {
       await Promise.allSettled([
         sequelize.close(),
-        authSequelize.close(),
         invalidationSubscriber?.quit() ?? Promise.resolve()
       ]);
     } catch (e) {

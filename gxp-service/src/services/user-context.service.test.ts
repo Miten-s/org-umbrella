@@ -4,7 +4,10 @@ import {
   fetchPermissionsForUser,
   fetchPermissionsForRoleIds
 } from "./backend-permissions.client";
-import { getGxpUserContext } from "./user-context.service";
+import {
+  getGxpUserContext,
+  PermissionsUnavailable
+} from "./user-context.service";
 
 jest.mock("../configs/cache");
 jest.mock("../models/gxp-service-users.model");
@@ -59,14 +62,10 @@ describe("getGxpUserContext — backend-unreachable fallback", () => {
     expect([...(context?.permissions ?? [])]).toEqual(["GXP:VIEW:APPLICATION"]);
   });
 
-  it("writes (allowGrace: false) deny immediately even though a valid grace cache entry exists", async () => {
-    const context = await getGxpUserContext("platform-user-1", {
-      allowGrace: false
-    });
-
-    expect(context).not.toBeNull();
-    expect(context?.isSuperAdmin).toBe(false);
-    expect([...(context?.permissions ?? [])]).toEqual([]);
+  it("writes (allowGrace: false) are refused as unavailable even though a valid grace cache entry exists", async () => {
+    await expect(
+      getGxpUserContext("platform-user-1", { allowGrace: false })
+    ).rejects.toBeInstanceOf(PermissionsUnavailable);
   });
 
   it("defaults to allowGrace: true when no options are passed (e.g. the /gxp-me read endpoint)", async () => {
@@ -75,14 +74,20 @@ describe("getGxpUserContext — backend-unreachable fallback", () => {
     expect([...(context?.permissions ?? [])]).toEqual(["GXP:VIEW:APPLICATION"]);
   });
 
-  it("denies (no gxpUser access at all) when there is no grace cache to fall back to, regardless of allowGrace", async () => {
+  it("is refused as unavailable, not as no-access, when there is no grace cache to fall back to", async () => {
     mockedCache.get.mockResolvedValue(null);
 
-    const context = await getGxpUserContext("platform-user-1", {
-      allowGrace: true
-    });
+    await expect(
+      getGxpUserContext("platform-user-1", { allowGrace: true })
+    ).rejects.toBeInstanceOf(PermissionsUnavailable);
+  });
 
-    expect(context).not.toBeNull();
-    expect([...(context?.permissions ?? [])]).toEqual([]);
+  it("is refused as unavailable for a user with no gxp_users row, who may be Super Admin", async () => {
+    mockedCache.get.mockResolvedValue(null);
+    mockedGxpUserFindOne.mockResolvedValue(null);
+
+    await expect(getGxpUserContext("platform-user-1")).rejects.toBeInstanceOf(
+      PermissionsUnavailable
+    );
   });
 });

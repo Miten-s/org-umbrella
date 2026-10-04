@@ -1,7 +1,6 @@
 import { Sequelize } from "sequelize";
 
 const gxpPostgresUri = process.env.GXP_POSTGRES_URI;
-const authPostgresUri = process.env.AUTH_POSTGRES_URI;
 
 // Managed providers (Neon, Supabase) require SSL; local dev doesn't.
 // NOTE: don't detect this via `?sslmode=require` in the URI — pg's own
@@ -54,39 +53,11 @@ export const sequelize = new Sequelize(
   }
 );
 
-// Secondary Auth Database Connection (Read-only reference)
-export const authSequelize = new Sequelize(
-  sanitizePgUri(authPostgresUri) ||
-    "postgres://postgres:postgres@localhost:5433/umbrella_auth_db",
-  {
-    dialect: "postgres",
-    logging: false,
-    dialectOptions: isLocalPostgres(authPostgresUri)
-      ? undefined
-      : { ssl: { require: true, rejectUnauthorized: false } },
-    pool: {
-      max: 5,
-      min: 1,
-      acquire: 30000,
-      idle: 10000
-    },
-    define: {
-      underscored: true,
-      timestamps: true
-    }
-  }
-);
-
 export const connectDB = async (retries = 5, delayMs = 3000): Promise<void> => {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       await sequelize.authenticate();
       console.log("gxp_workflow_db (PostgreSQL) connected successfully!");
-
-      await authSequelize.authenticate();
-      console.log(
-        "umbrella_auth_db secondary connection connected successfully!"
-      );
       return;
     } catch (error) {
       console.error(

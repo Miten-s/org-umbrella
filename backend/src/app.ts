@@ -1,6 +1,5 @@
 import express, { Application } from "express";
 import dotenv from "dotenv";
-import rateLimit from "express-rate-limit";
 import path from "path";
 import fs from "fs";
 
@@ -16,9 +15,11 @@ import cookierParser from "cookie-parser";
 import { errorHandler } from "./middlewares/error.middleware";
 import { securityHeaders } from "./middlewares/security.middleware";
 import { requestContext } from "./middlewares/request-context.middleware";
+import { userRateLimiter } from "./middlewares/rate-limit.middleware";
 import commonRouter from "./routes/common.router";
 import internalPermissionsRoutes from "./routes/internal-permissions.routes";
 import internalLimsRolesRoutes from "./routes/internal-lims-roles.routes";
+import internalDirectoryRoutes from "./routes/internal-directory.routes";
 import { CUSTOM_MESSAGES } from "./utils/common.util";
 
 const app: Application = express();
@@ -91,24 +92,12 @@ app.get("/readyz", async (_req, res) => {
 // on a prefix no nginx location matches means it's unreachable through the gateway at all —
 // the key check is defense in depth, not the only boundary.
 //
-// Mounted BEFORE the rate limiter below: that limiter is per IP, and every call from
+// Mounted BEFORE the rate limiter below: it counts calls with no user token per IP, and every call from
 // gxp-service or lims-service arrives from that one service's address — behind it, all of a
-// service's permission lookups would share a single 50/min quota.
+// service's permission lookups would share a single per-address quota.
 app.use(API_ROUTES.INTERNAL, internalPermissionsRoutes);
 app.use(API_ROUTES.INTERNAL, internalLimsRolesRoutes);
-
-// Rate limiter: 20 requests per 1 minute per user
-
-const userRateLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000,
-  max: 50,
-  keyGenerator: (req) => {
-    return req.ip!;
-  },
-  handler: (_req, res) => {
-    return res.status(429).json({ message: CUSTOM_MESSAGES.TOO_MANY_REQUESTS });
-  }
-});
+app.use(API_ROUTES.INTERNAL, internalDirectoryRoutes);
 
 app.use(userRateLimiter);
 

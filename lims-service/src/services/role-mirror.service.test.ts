@@ -9,6 +9,14 @@ jest.mock("../configs/logger.config", () => ({
   logWarn: jest.fn(),
   logError: jest.fn()
 }));
+jest.mock("../configs/db.sequelize", () => ({
+  sequelize: {
+    query: jest.fn(),
+    transaction: jest.fn((run: (t: unknown) => unknown) =>
+      run({ id: "catch-up" })
+    )
+  }
+}));
 jest.mock("../models/role.model", () => ({
   __esModule: true,
   default: { findAll: jest.fn(), update: jest.fn() }
@@ -20,9 +28,11 @@ jest.mock("../models/role-entry.model", () => ({
 
 import Role from "../models/role.model";
 import { logError } from "../configs/logger.config";
+import { sequelize } from "../configs/db.sequelize";
 import {
   RoleMirrorRejected,
   RoleMirrorUnavailable,
+  catchUpRolesWithBackend,
   mirrorRolesToBackend
 } from "./role-mirror.service";
 
@@ -207,5 +217,60 @@ describe("mirrorRolesToBackend", () => {
       statusCode: 503
     });
     expect(mockedUpdate).not.toHaveBeenCalled();
+  });
+});
+
+describe("pushes are serialized and missed changes are caught up", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.useFakeTimers();
+    mockEnv.LIMS_PERMISSION_SOURCE = "dual";
+    mockEnv.INTERNAL_API_KEY = "key";
+    mockEnv.BACKEND_INTERNAL_URL = "http://backend";
+    global.fetch = fetchMock as any;
+    mockedFindAll.mockResolvedValue([LAB_USER]);
+  });
+
+  afterEach(() => jest.useRealTimers());
+
+  it("takes the mirror lock in the write's transaction before reading roles", async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ pointers: [] })
+    });
+
+    await mirrorRolesToBackend(ARGS);
+
+    const lockCall = (sequelize.query as jest.Mock).mock.calls[0];
+    expect(lockCall[0]).toContain("pg_advisory_xact_lock");
+    expect(lockCall[1].transaction).toBe(TXN);
+  });
+
+  it("schedules a catch-up when an edit could not be mirrored in dual mode", async () => {
+    fetchMock.mockRejectedValueOnce(new Error("ECONNREFUSED"));
+    await mirrorRolesToBackend(ARGS);
+
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ pointers: [], changed: [{ limsRoleId: "x" }] })
+    });
+    await jest.advanceTimersByTimeAsync(30_000);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("reports failure without throwing when backend is still down", async () => {
+    fetchMock.mockRejectedValue(new Error("ECONNREFUSED"));
+
+    await expect(catchUpRolesWithBackend()).resolves.toBe(false);
+  });
+
+  it("does nothing in local mode", async () => {
+    mockEnv.LIMS_PERMISSION_SOURCE = "local";
+
+    await expect(catchUpRolesWithBackend()).resolves.toBe(true);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

@@ -3,14 +3,15 @@
  * and seed the core master data they'll see: a Demo Lab group, a Lab User
  * role, 5 locations, 5 customers, 5 suppliers.
  *
- * Run AFTER backend/src/scripts/seed-demo-data.ts.
+ * Run AFTER backend/src/scripts/seed-demo-data.ts, with backend running (platform users
+ * are looked up through its internal API).
  * Idempotent: safe to re-run.
  *
  *   npx ts-node src/scripts/seed-demo-data.ts
  */
 import "dotenv/config";
-import { QueryTypes } from "sequelize";
-import { sequelize, authSequelize } from "../configs/db.sequelize";
+import { sequelize } from "../configs/db.sequelize";
+import ENV from "../utils/environment";
 import { registerAssociations } from "../models/associations";
 import Group from "../models/group.model";
 import Role from "../models/role.model";
@@ -57,9 +58,28 @@ const SUPPLIERS = [
 const DEMO_GROUP_ID = "DEMO_LAB";
 const LAB_USER_ROLE_ID = "LAB_USER";
 
+const findPlatformUsersByEmail = async (
+  email: string
+): Promise<{ id: string }[]> => {
+  const response = await fetch(
+    `${ENV.BACKEND_INTERNAL_URL}/internal/directory/users`,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-internal-api-key": ENV.INTERNAL_API_KEY as string
+      },
+      body: JSON.stringify({ emails: [email] })
+    }
+  );
+  if (!response.ok) {
+    throw new Error(`backend directory API returned ${response.status}`);
+  }
+  return ((await response.json()) as { users: { id: string }[] }).users;
+};
+
 const run = async () => {
   await sequelize.authenticate();
-  await authSequelize.authenticate();
   registerAssociations();
 
   // ─── Demo Lab group ──────────────────────────────────────────────────────
@@ -101,10 +121,7 @@ const run = async () => {
 
   // ─── Link the 5 demo platform users into LIMS ───────────────────────────
   for (const demoUser of DEMO_USERS) {
-    const platformUsers = await authSequelize.query<{ id: string }>(
-      `SELECT id FROM users WHERE email = :email`,
-      { replacements: { email: demoUser.email }, type: QueryTypes.SELECT }
-    );
+    const platformUsers = await findPlatformUsersByEmail(demoUser.email);
     if (!platformUsers.length) {
       throw new Error(
         `Platform user ${demoUser.email} not found — run backend's seed-demo-data.ts first.`

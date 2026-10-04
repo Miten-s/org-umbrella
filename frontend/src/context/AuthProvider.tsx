@@ -42,6 +42,26 @@ const fetchServiceRole = async (
   }
 };
 
+/** Rate limits, server errors and dropped connections are not a signed-out user — retried
+ * briefly instead of sending someone with a valid session back to the sign-in page. */
+const isTransient = (error: unknown) => {
+  const status = (error as { response?: { status?: number } })?.response
+    ?.status;
+  return status === undefined || status === 429 || status >= 500;
+};
+
+const getUserDetailWithRetry = async () => {
+  const delaysMs = [1000, 3000, 6000];
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await getUserDetail();
+    } catch (error) {
+      if (!isTransient(error) || attempt >= delaysMs.length) throw error;
+      await new Promise((resolve) => setTimeout(resolve, delaysMs[attempt]));
+    }
+  }
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthenticatedUser>({});
   const [currentCompany, setCurrentCompany] = useState<CurrentCompany>({});
@@ -52,7 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchUser = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = (await getUserDetail()) as UserDetailResponse;
+      const response = (await getUserDetailWithRetry()) as UserDetailResponse;
       const companyResponse = (await getCompany()) as CompanyResponse;
       const nextUser = response.user ?? {};
 

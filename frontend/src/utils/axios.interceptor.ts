@@ -89,11 +89,11 @@ api.interceptors.response.use(
       }
     }
 
-    if (
-      error.response?.status !== 404 &&
-      (error.response?.data as { message?: string })?.message !==
-        "Token not found"
-    ) {
+    // No token just means "not signed in yet" — the sign-in redirect handles it.
+    const data = error.response?.data as { message?: string; error?: string };
+    const isMissingToken =
+      error.response?.status === 401 && data?.error === "Token not found";
+    if (error.response?.status !== 404 && !isMissingToken) {
       toast(getErrorMessage(error), "error");
     }
     return Promise.reject(error);

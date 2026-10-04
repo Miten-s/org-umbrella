@@ -9,7 +9,7 @@
  * mismatch, or if backend could not answer for someone — an unanswered user is not proof
  * of parity.
  */
-import { sequelize, authSequelize } from "../configs/db.sequelize";
+import { sequelize } from "../configs/db.sequelize";
 import LimsUser from "../models/lims-user.model";
 import Role from "../models/role.model";
 import RoleEntry from "../models/role-entry.model";
@@ -118,6 +118,6 @@ main()
     process.exitCode = 1;
   })
   .finally(async () => {
-    await Promise.allSettled([sequelize.close(), authSequelize.close()]);
+    await sequelize.close();
     process.exit(process.exitCode ?? 0);
   });

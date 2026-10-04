@@ -133,16 +133,32 @@ const AppSidebar: React.FC = () => {
         icon: <UserManagement />,
         name: t("systemITAdministration"),
         permissions: [
-          ADMIN_PERMISSIONS.CREATE_USER,
           ADMIN_PERMISSIONS.VIEW_USER,
-          ADMIN_PERMISSIONS.UPDATE_USER,
-          ADMIN_PERMISSIONS.DELETE_USER
+          ADMIN_PERMISSIONS.VIEW_DESIGNATION,
+          ADMIN_PERMISSIONS.VIEW_LOCATION,
+          ADMIN_PERMISSIONS.VIEW_DEPARTMENT
         ],
         subItems: [
-          { name: t("users"), path: PageUrl.Users.path },
-          { name: t("designations"), path: PageUrl.Designations.path },
-          { name: t("locationsGroups"), path: PageUrl.LocationsGroups.path },
-          { name: t("departments"), path: PageUrl.Departments.path }
+          {
+            name: t("users"),
+            path: PageUrl.Users.path,
+            permissions: [ADMIN_PERMISSIONS.VIEW_USER]
+          },
+          {
+            name: t("designations"),
+            path: PageUrl.Designations.path,
+            permissions: [ADMIN_PERMISSIONS.VIEW_DESIGNATION]
+          },
+          {
+            name: t("locationsGroups"),
+            path: PageUrl.LocationsGroups.path,
+            permissions: [ADMIN_PERMISSIONS.VIEW_LOCATION]
+          },
+          {
+            name: t("departments"),
+            path: PageUrl.Departments.path,
+            permissions: [ADMIN_PERMISSIONS.VIEW_DEPARTMENT]
+          }
         ]
       },
       {
@@ -353,7 +369,8 @@ const AppSidebar: React.FC = () => {
               },
               {
                 name: t("limsSampleTemplates"),
-                path: PageUrl.LIMSSampleTemplates.path
+                path: PageUrl.LIMSSampleTemplates.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_SAMPLE_TEMPLATE]
               }
             ]
           },

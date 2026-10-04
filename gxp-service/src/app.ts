@@ -6,7 +6,6 @@
 import "reflect-metadata";
 import express, { Application } from "express";
 import dotenv from "dotenv";
-import rateLimit from "express-rate-limit";
 
 dotenv.config();
 
@@ -20,6 +19,7 @@ import cookierParser from "cookie-parser";
 import { errorHandler } from "./middlewares/error.middleware";
 import { securityHeaders } from "./middlewares/security.middleware";
 import { requestContext } from "./middlewares/request-context.middleware";
+import { userRateLimiter } from "./middlewares/rate-limit.middleware";
 import commonRouter from "./routes/common.router";
 import { CUSTOM_MESSAGES } from "./utils/common.util";
 
@@ -72,17 +72,6 @@ app.get("/readyz", async (_req, res) => {
 // proxy's address and the rate limiter below bucketed ALL users into a single quota.
 // Trust one hop so it keys on the real client via X-Forwarded-For, which nginx sets.
 app.set("trust proxy", 1);
-
-const userRateLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000,
-  max: 50,
-  keyGenerator: (req) => {
-    return req.ip!;
-  },
-  handler: (_req, res) => {
-    return res.status(429).json({ message: CUSTOM_MESSAGES.TOO_MANY_REQUESTS });
-  }
-});
 
 app.use(userRateLimiter);
 

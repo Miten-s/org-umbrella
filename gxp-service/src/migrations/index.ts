@@ -24,6 +24,7 @@ import * as m022 from "./022-add-service-request-record-status";
 import * as m023 from "./023-search-and-sort-indexes";
 import * as m024 from "./024-create-gxp-groups";
 import * as m025 from "./025-add-default-gxp-access-group";
+import * as m026 from "./026-default-gxp-user-home-group";
 
 export const migrations: Migration[] = [
   { name: "001-create-environments", up: m001.up },
@@ -50,6 +51,7 @@ export const migrations: Migration[] = [
   { name: "022-add-service-request-record-status", up: m022.up },
   { name: "023-search-and-sort-indexes", up: m023.up },
   { name: "024-create-gxp-groups", up: m024.up },
-  { name: "025-add-default-gxp-access-group", up: m025.up }
+  { name: "025-add-default-gxp-access-group", up: m025.up },
+  { name: "026-default-gxp-user-home-group", up: m026.up }
 ];
 export { runMigrations, checkMigrations } from "./runner";

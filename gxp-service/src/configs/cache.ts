@@ -15,39 +15,84 @@ export interface CacheStore {
   clear(): Promise<void>;
 }
 
+/** A Redis failure is a cache miss, never a request failure: permissions are then
+ * resolved from their source on every request until Redis is back. */
+const tolerate = async <T>(
+  operation: string,
+  run: () => Promise<T>,
+  fallback: T
+): Promise<T> => {
+  if (!redisClient.isReady) {
+    await connectRedis();
+    return fallback;
+  }
+  try {
+    return await run();
+  } catch (error) {
+    console.error(
+      `cache ${operation} failed, continuing without cache:`,
+      error
+    );
+    return fallback;
+  }
+};
+
 class RedisCache implements CacheStore {
   async get<T>(key: string): Promise<T | null> {
-    await connectRedis();
-    const data = await redisClient.get(key);
-    return data ? JSON.parse(data) : null;
+    return tolerate(
+      "get",
+      async () => {
+        const data = await redisClient.get(key);
+        return data ? (JSON.parse(data) as T) : null;
+      },
+      null
+    );
   }
 
   async set<T>(key: string, value: T, ttlSeconds?: number): Promise<void> {
-    await connectRedis();
     const json = JSON.stringify(value);
-    if (ttlSeconds) {
-      await redisClient.set(key, json, { EX: ttlSeconds });
-    } else {
-      await redisClient.set(key, json);
-    }
+    await tolerate(
+      "set",
+      async () => {
+        if (ttlSeconds) {
+          await redisClient.set(key, json, { EX: ttlSeconds });
+        } else {
+          await redisClient.set(key, json);
+        }
+      },
+      undefined
+    );
   }
 
   async del(key: string): Promise<void> {
-    await connectRedis();
-    await redisClient.del(key);
+    await tolerate(
+      "del",
+      async () => {
+        await redisClient.del(key);
+      },
+      undefined
+    );
   }
 
   async delPrefix(prefix: string): Promise<void> {
-    await connectRedis();
-    const keys = await redisClient.keys(`${prefix}*`);
-    if (keys.length > 0) {
-      await redisClient.del(keys);
-    }
+    await tolerate(
+      "delPrefix",
+      async () => {
+        const keys = await redisClient.keys(`${prefix}*`);
+        if (keys.length > 0) await redisClient.del(keys);
+      },
+      undefined
+    );
   }
 
   async clear(): Promise<void> {
-    await connectRedis();
-    await redisClient.flushDb();
+    await tolerate(
+      "clear",
+      async () => {
+        await redisClient.flushDb();
+      },
+      undefined
+    );
   }
 }
 

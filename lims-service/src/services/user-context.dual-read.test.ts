@@ -32,7 +32,7 @@ jest.mock("../models/role-entry.model", () => ({
 }));
 jest.mock("../models/group.model", () => ({ __esModule: true, default: {} }));
 jest.mock("./platform-access.service", () => ({
-  isPlatformSuperAdmin: jest.fn().mockResolvedValue(false)
+  platformSuperAdminStatus: jest.fn().mockResolvedValue("no")
 }));
 jest.mock("./backend-permissions.client", () => ({
   fetchPermissionsForRoleIds: jest.fn()
@@ -42,6 +42,7 @@ import cache from "../configs/cache";
 import LimsUser from "../models/lims-user.model";
 import { logError, logInfo, logWarn } from "../configs/logger.config";
 import { fetchPermissionsForRoleIds } from "./backend-permissions.client";
+import { platformSuperAdminStatus } from "./platform-access.service";
 import {
   PermissionsUnavailable,
   compareWithBackend,
@@ -410,5 +411,75 @@ describe("invalidation", () => {
 
     expect(cache.del).toHaveBeenCalledWith("user-ctx:platform-1");
     expect(cache.del).toHaveBeenCalledWith("user-ctx-grace:platform-1");
+  });
+});
+
+describe("getUserContext when backend cannot say whether this is Super Admin", () => {
+  const SUPER_ADMIN_GRACE = {
+    limsUserId: "",
+    platformUserId: "super-admin",
+    userName: null,
+    homeGroupId: null,
+    accessGroupIds: [],
+    operateAll: true,
+    permissions: []
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockEnv.LIMS_PERMISSION_SOURCE = "dual";
+    (platformSuperAdminStatus as jest.Mock).mockResolvedValue("unknown");
+    mockedFindOne.mockResolvedValue(null);
+  });
+
+  afterAll(() => {
+    (platformSuperAdminStatus as jest.Mock).mockResolvedValue("no");
+  });
+
+  const graceOnly = (value: unknown) =>
+    (cache.get as jest.Mock).mockImplementation(async (key: string) =>
+      key.startsWith("user-ctx-grace:") ? value : null
+    );
+
+  it("lets a Super Admin read from the grace copy", async () => {
+    graceOnly(SUPER_ADMIN_GRACE);
+
+    const context = await getUserContext("super-admin");
+
+    expect(context?.operateAll).toBe(true);
+  });
+
+  it("refuses a Super Admin write as unavailable", async () => {
+    graceOnly(SUPER_ADMIN_GRACE);
+
+    await expect(
+      getUserContext("super-admin", { allowGrace: false })
+    ).rejects.toBeInstanceOf(PermissionsUnavailable);
+  });
+
+  it("lets a Super Admin who is also a lab user write with their own roles in dual mode", async () => {
+    graceOnly(SUPER_ADMIN_GRACE);
+    mockedFindOne.mockResolvedValue(LAB_USER);
+
+    const context = await getUserContext("super-admin", { allowGrace: false });
+
+    expect([...(context?.permissions ?? [])]).toEqual(["LIMS:VIEW:SAMPLE"]);
+  });
+
+  it("answers unavailable, not no-access, for a user with no lab user row", async () => {
+    graceOnly(null);
+
+    await expect(getUserContext("someone")).rejects.toBeInstanceOf(
+      PermissionsUnavailable
+    );
+  });
+
+  it("still resolves a lab user from LIMS's own roles in dual mode", async () => {
+    graceOnly(null);
+    mockedFindOne.mockResolvedValue(LAB_USER);
+
+    const context = await getUserContext("lab-user");
+
+    expect([...(context?.permissions ?? [])]).toEqual(["LIMS:VIEW:SAMPLE"]);
   });
 });

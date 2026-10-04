@@ -7,7 +7,6 @@ const envConfig = process.env;
 const ENV = {
   PORT: envConfig.PORT,
   LIMS_POSTGRES_URI: envConfig.LIMS_POSTGRES_URI,
-  AUTH_POSTGRES_URI: envConfig.AUTH_POSTGRES_URI,
   JWT_SECRET: envConfig.JWT_SECRET,
   INTERNAL_API_KEY: envConfig.INTERNAL_API_KEY,
   BACKEND_INTERNAL_URL: envConfig.BACKEND_INTERNAL_URL,
