@@ -28,72 +28,92 @@ module.exports = {
     ];
 
     // 1. Insert Permissions
-    const insertedPermissions = await db.collection("permissions").insertMany(
-      permissions.map((permission) => ({
-        ...permission,
+    const permissionOperations = permissions.map((permission) => ({
+      updateOne: {
+        filter: { name: permission.name },
+        update: {
+          $setOnInsert: {
+            ...permission,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            deletedAt: null
+          }
+        },
+        upsert: true
+      }
+    }));
+    await db.collection("permissions").bulkWrite(permissionOperations);
+
+    console.log("Permissions inserted or already exist");
+
+    const operateAllPermission = await db.collection("permissions").findOne({ name: "OPERATE:ALL" });
+    if (!operateAllPermission) {
+      throw new Error("OPERATE:ALL permission not found");
+    }
+    const operateAllPermissionId = operateAllPermission._id;
+
+    // 2. Create Super Admin Role
+    const existingRole = await db.collection("roles").findOne({ name: "Super Admin", type: "Built_In" });
+    let superAdminRoleId;
+    if (!existingRole) {
+      const roleInsertResult = await db.collection("roles").insertOne({
+        name: "Super Admin", // This field is used in frontend for checking if user is super admin or not so do not change it
+        type: "Built_In",
+        permissions: [operateAllPermissionId],
         createdAt: new Date(),
         updatedAt: new Date(),
         deletedAt: null
-      }))
-    );
-
-    console.log("Permissions inserted");
-
-    const operateAllPermissionId = Object.values(
-      insertedPermissions.insertedIds
-    ).find((_id, index) => permissions[index].name === "OPERATE:ALL");
-
-    if (!operateAllPermissionId) {
-      throw new Error("OPERATE:ALL permission not found");
+      });
+      superAdminRoleId = roleInsertResult.insertedId;
+      console.log("Super Admin role created");
+    } else {
+      superAdminRoleId = existingRole._id;
+      console.log("Super Admin role already exists");
     }
 
-    // 2. Create Super Admin Role
-    const roleInsertResult = await db.collection("roles").insertOne({
-      name: "Super Admin", // This field is used in frontend for checking if user is super admin or not so do not change it
-      type: "Built_In",
-      permissions: [operateAllPermissionId],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      deletedAt: null
-    });
-
-    const superAdminRoleId = roleInsertResult.insertedId;
-
-    console.log("Super Admin role created");
-
     // 3. Create Super Admin User
-    const password = await bcrypt.hash("SuperAdmin@123", 10);
+    const existingUser = await db.collection("users").findOne({ email: "superadmin@example.com" });
+    if (!existingUser) {
+      const password = await bcrypt.hash("SuperAdmin@123", 10);
 
-    await db.collection("users").insertOne({
-      fullName: "superadmin",
-      email: "superadmin@example.com",
-      name: "Super Admin",
-      password,
-      roles: [superAdminRoleId],
-      deletedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      createdBy: null
-    });
+      await db.collection("users").insertOne({
+        fullName: "superadmin",
+        email: "superadmin@example.com",
+        name: "Super Admin",
+        password,
+        roles: [superAdminRoleId],
+        deletedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: null
+      });
 
-    console.log("Super Admin user created");
+      console.log("Super Admin user created");
+    } else {
+      console.log("Super Admin user already exists");
+    }
 
-    await db.collection("company").insertOne({
-      name: "Super Admin Company",
-      logo: null,
-      description: "Super Admin Company",
-      createdAt: new Date(),
-      updatedAt: new Date()
-    });
+    const existingCompany = await db.collection("company").findOne({ name: "Super Admin Company" });
+    if (!existingCompany) {
+      await db.collection("company").insertOne({
+        name: "Super Admin Company",
+        logo: null,
+        description: "Super Admin Company",
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      console.log("Company created");
+    } else {
+      console.log("Company already exists");
+    }
 
-    db.users.createIndex(
+    await db.collection("users").createIndex(
       { email: 1 },
       {
         unique: true,
         partialFilterExpression: { deletedAt: null }
       }
     );
-    console.log("Company created");
   },
 
   async down(db) {

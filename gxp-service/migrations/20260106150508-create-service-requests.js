@@ -19,14 +19,18 @@ module.exports = {
 
     await db.collection("gxp-service-app-services").bulkWrite(
       requestTypes.map((service) => ({
-        insertOne: {
-          document: {
-            service,
-            active: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            __v: 0
-          }
+        updateOne: {
+          filter: { service },
+          update: {
+            $setOnInsert: {
+              service,
+              active: true,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              __v: 0
+            }
+          },
+          upsert: true
         }
       }))
     );

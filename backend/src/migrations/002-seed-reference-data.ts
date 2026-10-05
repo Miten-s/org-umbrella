@@ -1,4 +1,4 @@
-import { QueryInterface } from "sequelize";
+import { QueryInterface, QueryTypes } from "sequelize";
 import { randomUUID } from "crypto";
 import bcrypt from "bcrypt";
 
@@ -130,35 +130,53 @@ export const up = async (queryInterface: QueryInterface) => {
   ];
   for (const [type, rows] of permissionGroups) {
     for (const [name, description] of rows) {
-      const id = randomUUID();
-      permissionIds.set(name, id);
-      await db.query(
-        `INSERT INTO permissions (id, name, description, type, created_at, updated_at)
-         VALUES (:id, :name, :description, :type, now(), now())`,
-        { replacements: { id, name, description, type } }
+      const existing = await db.query<{ id: string }>(
+        `SELECT id FROM permissions WHERE name = :name`,
+        { replacements: { name }, type: QueryTypes.SELECT }
       );
+      let id = existing[0]?.id;
+      if (!id) {
+        id = randomUUID();
+        await db.query(
+          `INSERT INTO permissions (id, name, description, type, created_at, updated_at)
+           VALUES (:id, :name, :description, :type, now(), now())
+           ON CONFLICT (name) DO NOTHING`,
+          { replacements: { id, name, description, type } }
+        );
+      }
+      permissionIds.set(name, id);
     }
   }
 
   const roleIds = new Map<string, string>();
   for (const role of ROLES) {
-    const id = randomUUID();
-    roleIds.set(role.name, id);
-    await db.query(
-      `INSERT INTO roles (id, name, type, code, created_at, updated_at)
-       VALUES (:id, :name, :type, :code, now(), now())`,
-      {
-        replacements: {
-          id,
-          name: role.name,
-          type: role.type,
-          code: role.code ?? null
-        }
-      }
+    const existing = await db.query<{ id: string }>(
+      `SELECT id FROM roles WHERE name = :name`,
+      { replacements: { name: role.name }, type: QueryTypes.SELECT }
     );
+    let id = existing[0]?.id;
+    if (!id) {
+      id = randomUUID();
+      await db.query(
+        `INSERT INTO roles (id, name, type, code, created_at, updated_at)
+         VALUES (:id, :name, :type, :code, now(), now())
+         ON CONFLICT (name) DO NOTHING`,
+        {
+          replacements: {
+            id,
+            name: role.name,
+            type: role.type,
+            code: role.code ?? null
+          }
+        }
+      );
+    }
+    roleIds.set(role.name, id);
+
     for (const permission of role.permissions) {
       await db.query(
-        `INSERT INTO role_permissions (role_id, permission_id) VALUES (:roleId, :permissionId)`,
+        `INSERT INTO role_permissions (role_id, permission_id) VALUES (:roleId, :permissionId)
+         ON CONFLICT (role_id, permission_id) DO NOTHING`,
         {
           replacements: {
             roleId: id,
@@ -169,26 +187,42 @@ export const up = async (queryInterface: QueryInterface) => {
     }
   }
 
-  await db.query(
-    `INSERT INTO companies (id, name, description, created_at, updated_at)
-     VALUES (:id, 'Super Admin Company', 'Super Admin Company', now(), now())`,
-    { replacements: { id: randomUUID() } }
+  const existingCompany = await db.query<{ id: string }>(
+    `SELECT id FROM companies LIMIT 1`,
+    { type: QueryTypes.SELECT }
   );
+  if (existingCompany.length === 0) {
+    await db.query(
+      `INSERT INTO companies (id, name, description, created_at, updated_at)
+       VALUES (:id, 'Super Admin Company', 'Super Admin Company', now(), now())`,
+      { replacements: { id: randomUUID() } }
+    );
+  }
 
-  const userId = randomUUID();
-  await db.query(
-    `INSERT INTO users (id, email, name, full_name, password, user_type, status, current_language, modifiable, training_completed, created_at, updated_at)
-     VALUES (:id, :email, 'Super Admin', 'Super Admin', :password, 'User', 'active', 'en', true, false, now(), now())`,
-    {
-      replacements: {
-        id: userId,
-        email,
-        password: await bcrypt.hash(password, 10)
-      }
-    }
+  const existingUser = await db.query<{ id: string }>(
+    `SELECT id FROM users WHERE email = :email`,
+    { replacements: { email }, type: QueryTypes.SELECT }
   );
+  let userId = existingUser[0]?.id;
+  if (!userId) {
+    userId = randomUUID();
+    await db.query(
+      `INSERT INTO users (id, email, name, full_name, password, user_type, status, current_language, modifiable, training_completed, created_at, updated_at)
+       VALUES (:id, :email, 'Super Admin', 'Super Admin', :password, 'User', 'active', 'en', true, false, now(), now())
+       ON CONFLICT (email) DO NOTHING`,
+      {
+        replacements: {
+          id: userId,
+          email,
+          password: await bcrypt.hash(password, 10)
+        }
+      }
+    );
+  }
+
   await db.query(
-    `INSERT INTO user_roles (user_id, role_id) VALUES (:userId, :roleId)`,
+    `INSERT INTO user_roles (user_id, role_id) VALUES (:userId, :roleId)
+     ON CONFLICT (user_id, role_id) DO NOTHING`,
     { replacements: { userId, roleId: roleIds.get("Super Admin") } }
   );
 };

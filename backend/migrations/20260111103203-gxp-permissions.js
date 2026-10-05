@@ -109,17 +109,24 @@ module.exports = {
     );
 
     // 1. Insert Permissions
-    await db.collection("permissions").insertMany(
-      permissions.map((permission) => ({
-        ...permission,
-        type: "gxp_service",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        deletedAt: null
-      }))
-    );
+    const permissionOperations = permissions.map((permission) => ({
+      updateOne: {
+        filter: { name: permission.name },
+        update: {
+          $setOnInsert: {
+            ...permission,
+            type: "gxp_service",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            deletedAt: null
+          }
+        },
+        upsert: true
+      }
+    }));
+    await db.collection("permissions").bulkWrite(permissionOperations);
 
-    console.log("Permissions inserted");
+    console.log("Permissions inserted or already exist");
   },
 
   async down(db) {
