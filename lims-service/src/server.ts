@@ -1,12 +1,41 @@
 import app from "./app";
 import ENV from "./utils/environment";
-import { sequelize, authSequelize } from "./configs/db.sequelize";
+import { sequelize } from "./configs/db.sequelize";
 import { logError, logInfo } from "./configs/logger.config";
+import { startRbacInvalidationSubscriber } from "./services/rbac-invalidation.subscriber";
+import { invalidateAllUserContexts } from "./services/user-context.service";
+import { registerPermissionsWithBackend } from "./services/permission.service";
+import { deleteCacheByPrefix, onRedisRecovered } from "./configs/redis.config";
 
 const PORT = ENV.PORT || 9003;
 
 const server = app.listen(PORT, () => {
   logInfo(`Server running on http://localhost:${PORT}`);
+});
+
+// Drops cached user contexts when backend changes a role or permission. Not fatal if it
+// can't start: the 5-minute cache TTL is the fallback.
+let invalidationSubscriber: Awaited<
+  ReturnType<typeof startRbacInvalidationSubscriber>
+> | null = null;
+
+void startRbacInvalidationSubscriber()
+  .then((subscriber) => {
+    invalidationSubscriber = subscriber;
+  })
+  .catch((error) =>
+    logError("Failed to subscribe to rbac invalidation — falling back to TTL", {
+      error: String(error)
+    })
+  );
+
+// Backend stores every service's permissions; LIMS's are defined in its code.
+void registerPermissionsWithBackend();
+
+// Changes made while Redis was down could not clear what was cached before it went down.
+onRedisRecovered(async () => {
+  await invalidateAllUserContexts();
+  await deleteCacheByPrefix("lims:all:");
 });
 
 // A hung request with no timeout is the #1 cause of cascading failure. Fail fast.
@@ -31,7 +60,10 @@ const shutdown = async (signal: string) => {
 
   server.close(async () => {
     try {
-      await Promise.allSettled([sequelize.close(), authSequelize.close()]);
+      await Promise.allSettled([
+        sequelize.close(),
+        invalidationSubscriber?.quit() ?? Promise.resolve()
+      ]);
     } catch (e) {
       logError("Error closing DB pools during shutdown", { error: String(e) });
     }

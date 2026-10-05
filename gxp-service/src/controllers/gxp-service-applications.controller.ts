@@ -7,6 +7,7 @@ import Application from "../models/gxp-service-applications.model";
 import AppModule from "../models/gxp-service-application-modules.model";
 import { CreateApplicationDto } from "../dtos/application.dto";
 import { toObjectIdString } from "../services/mixed-id-resolution.service";
+import { contextToScope } from "../utils/access-scope.util";
 
 export const createApplication = asyncHandler(
   async (req: Request, res: Response) => {
@@ -28,9 +29,11 @@ export const getApplications = asyncHandler(
   async (req: Request, res: Response) => {
     const includeDisabled = req.query.includeDisabled === "true";
     const paginationOptions = getPaginationOptions(req.query);
+    const scope = contextToScope((req as any).access);
     const items = await service.getApplications(
       paginationOptions,
-      includeDisabled
+      includeDisabled,
+      scope
     );
     return res.status(200).send(items);
   }
@@ -39,7 +42,8 @@ export const getApplications = asyncHandler(
 export const getApplicationById = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const item = await service.getApplicationById(id as string);
+    const scope = contextToScope((req as any).access);
+    const item = await service.getApplicationById(id as string, scope);
     if (!item)
       return res.status(404).json({ message: "Application not found" });
     return res.status(200).send(item);
@@ -50,8 +54,7 @@ export const updateAppplication = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
     const { data: payload } = req.body;
-    const currentUser =
-      (req as any).user?.username ?? (req.headers["x-user"] as string) ?? null;
+    const currentUser = (req as any).user?.id ?? null;
 
     const files = req.files as Express.Multer.File[];
     const attachments = files?.map((file) => file.filename) || [];
@@ -72,8 +75,7 @@ export const updateAppplication = asyncHandler(
 export const disableApplication = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const currentUser =
-      (req as any).user?.username ?? (req.headers["x-user"] as string) ?? null;
+    const currentUser = (req as any).user?.id ?? null;
     const disabled = await service.disableApplication(
       id as string,
       currentUser ?? undefined
@@ -89,8 +91,7 @@ export const disableApplication = asyncHandler(
 export const enableApplication = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const currentUser =
-      (req as any).user?.username ?? (req.headers["x-user"] as string) ?? null;
+    const currentUser = (req as any).user?.id ?? null;
     const restored = await service.enableApplication(
       id as string,
       currentUser ?? undefined
@@ -137,7 +138,7 @@ export const getApplicationGroups = asyncHandler(
 export const duplicateApplication = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const currentUser = (req as any).user?.username;
+    const currentUser = (req as any).user?.id;
 
     const duplicated = await service.duplicateApplication(
       id as string,
@@ -170,7 +171,7 @@ export const bulkDeleteApplications = asyncHandler(
 export const bulkDuplicateApplications = asyncHandler(
   async (req: Request, res: Response) => {
     const { ids } = req.body;
-    const currentUser = (req as any).user?.username;
+    const currentUser = (req as any).user?.id;
     if (!Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ message: "An array of ids is required" });
     }

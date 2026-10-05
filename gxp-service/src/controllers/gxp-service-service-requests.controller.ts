@@ -4,6 +4,7 @@ import asyncHandler from "../middlewares/error.middleware";
 import { getPaginationOptions } from "../utils/pagination.util";
 import { buildBulkCrudRoutes } from "../utils/bulk-crud-factory";
 import { CreateServiceRequestDto } from "../dtos/service-request.dto";
+import { contextToScope } from "../utils/access-scope.util";
 
 export const createServiceRequest = asyncHandler(
   async (req: Request, res: Response) => {
@@ -27,7 +28,8 @@ export const createServiceRequest = asyncHandler(
 export const getAllSeviceRequests = asyncHandler(
   async (req: Request, res: Response) => {
     const paginationOptions = getPaginationOptions(req.query);
-    const result = await service.fetchAllRequests(paginationOptions);
+    const scope = contextToScope((req as any).access);
+    const result = await service.fetchAllRequests(paginationOptions, scope);
     res.status(200).send(result);
   }
 );
@@ -35,7 +37,8 @@ export const getAllSeviceRequests = asyncHandler(
 export const getServiceRequestById = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const result = await service.fetchRequestById(id as string);
+    const scope = contextToScope((req as any).access);
+    const result = await service.fetchRequestById(id as string, scope);
     if (!result) return res.status(404).json({ message: "Not Found" });
     res.status(200).send(result);
   }

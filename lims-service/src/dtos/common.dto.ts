@@ -13,7 +13,14 @@ export class BulkOperationDto {
   @IsArray()
   @ArrayNotEmpty()
   @ArrayMaxSize(200)
-  @IsUUID("4", { each: true })
+  // Custom message: the default ("each value in ids must be a UUID") reads as a client bug
+  // report, but the far more common real cause is a stale selection — a record's id changed
+  // or it was removed since the list was last loaded — which the user can actually act on.
+  @IsUUID("4", {
+    each: true,
+    message:
+      "One or more selected records are out of date — refresh the page and try again."
+  })
   ids!: string[];
 
   @IsOptional()

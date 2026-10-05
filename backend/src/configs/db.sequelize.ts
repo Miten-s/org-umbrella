@@ -1,5 +1,7 @@
+import "dotenv/config";
 import { Sequelize } from "sequelize";
 
+// Loaded here too because `npm run db:migrate` starts from this file, not server.ts.
 const postgresUri = process.env.AUTH_POSTGRES_URI;
 
 // Managed providers (Neon, Supabase) require SSL; local dev doesn't.

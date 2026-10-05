@@ -1,4 +1,6 @@
 import {
+  col,
+  fn,
   IncludeOptions,
   Model,
   ModelStatic,
@@ -31,7 +33,13 @@ import {
 } from "../dtos/common.dto";
 import { authorize } from "../middlewares/authorize.middleware";
 import { LimsAction } from "./permissions";
-import { ChildConfig, readChildren, syncAllChildren } from "./nested-children";
+import {
+  attachOrCreateChild,
+  ChildConfig,
+  detachOrRemoveChild,
+  readChildren,
+  syncAllChildren
+} from "./nested-children";
 import {
   applyBusinessId,
   BusinessIdConfig,
@@ -51,11 +59,15 @@ import {
  * contract) — endpoint shapes, audit writes, soft-delete, group filtering, bulk ops live here once.
  */
 
-/** The caller's access scope, resolved by `authorize` and carried on the request. */
+/** The caller's access scope, resolved by `authorize` and carried on the request.
+ * `resolved: false` marks the closed fallback used when `authorize` never ran (a route
+ * mounted without it) — distinct from a genuine member with zero groups assigned, which
+ * groupWhere/assertGroupInScope must treat as full access, not the fallback's deny-all. */
 export interface AccessScope {
   accessGroupIds: string[];
   homeGroupId: string | null;
   operateAll: boolean;
+  resolved: boolean;
 }
 
 /** Everything a mutation needs to know about who is asking. */
@@ -127,6 +139,13 @@ export interface CrudConfig<M extends Model> {
   /** Runs after any successful mutation, outside the transaction — access-control entities use
    * it to drop cached permission contexts immediately, not on a TTL. */
   afterWrite?: () => Promise<void> | void;
+  /** Runs at the end of every write, INSIDE its transaction — throwing rolls the write
+   * back. For changes that must not be saved unless something else also succeeds. */
+  beforeCommit?: (args: {
+    transaction: Transaction;
+    actor: AuditActor;
+    changeReason?: string;
+  }) => Promise<void>;
   defaultSortBy?: string;
   /** Mutate/derive the payload before create. Runs in the same transaction as the rest of
    * the create — pass it through to any atomic read-then-write (e.g. a per-parent counter). */
@@ -173,9 +192,15 @@ const contextFromRequest = (req: Request): CrudContext => ({
     ? {
         accessGroupIds: req.access.accessGroupIds,
         homeGroupId: req.access.homeGroupId,
-        operateAll: req.access.operateAll
+        operateAll: req.access.operateAll,
+        resolved: true
       }
-    : { accessGroupIds: [], homeGroupId: null, operateAll: false }
+    : {
+        accessGroupIds: [],
+        homeGroupId: null,
+        operateAll: false,
+        resolved: false
+      }
 });
 
 /** A multipart save's real payload is JSON-stringified under `req.body.data` (multer only
@@ -188,7 +213,7 @@ const payloadFromRequest = (req: Request): Record<string, any> => {
 };
 
 /** Shaped for the frontend's `toExistingAttachments`. Attachment has no real FK to its parent
- * (migration 005) — just this polymorphic `entityName` + `entityId` pair. */
+ * — just this polymorphic `entityName` + `entityId` pair. */
 const attachmentsFor = async (
   entityName: string,
   entityId: string,
@@ -279,14 +304,22 @@ const toColumns = <M extends Model>(
   return data;
 };
 
-/** The group filter, applied to every read. A NULL `group_id` is global reference data
- * (Phrases), visible to everyone — only reference tables may be NULL. */
+/** The group filter, applied to every read. Only reached once `hasPermission` has already
+ * confirmed real membership + a granted role — so an empty `accessGroupIds` here means
+ * "no groups assigned to an otherwise-permitted user", which is a full-access signal
+ * (ROLES_AND_ACCESS_MANAGEMENT.md), not "no access". `operateAll` is the separate, role-level
+ * "ignore groups even if some are assigned" bypass — kept distinct from this. A NULL
+ * `group_id` is global reference data (Phrases), visible to everyone regardless. */
 const groupWhere = <M extends Model>(
   model: ModelStatic<M>,
   scope: AccessScope
 ): WhereOptions => {
   if (scope.operateAll) return {};
   if (!Object.keys(model.getAttributes()).includes("groupId")) return {};
+  // `!scope.resolved` is the closed fallback (authorize never ran) — must stay deny-all,
+  // never be read as "no groups = full access" (that rule only applies to a real member).
+  if (!scope.resolved) return { id: null } as WhereOptions;
+  if (scope.accessGroupIds.length === 0) return {};
 
   return {
     [Op.or]: [{ groupId: scope.accessGroupIds }, { groupId: null }]
@@ -299,6 +332,9 @@ const groupWhere = <M extends Model>(
  * on every read. */
 const assertGroupInScope = (groupId: unknown, scope: AccessScope) => {
   if (!groupId || scope.operateAll) return;
+  // No groups assigned = unrestricted, but only for a genuinely-resolved member (matches
+  // groupWhere's read-side rule) — the closed fallback must still reject every groupId.
+  if (scope.resolved && scope.accessGroupIds.length === 0) return;
   if (!scope.accessGroupIds.includes(groupId as string)) {
     throw Object.assign(new Error("That group is outside your access."), {
       statusCode: 403
@@ -347,6 +383,58 @@ const scopeSoftDeletableIncludes = (
     };
   });
 
+/**
+ * A `separate: true, limit: N` relation (see lot.routes.ts) caps its own array
+ * for payload/perf, but that leaves the list's "+N" overflow badge computed
+ * from a truncated array — a lot with 100k samples capped at 20 would show
+ * "+18" instead of "+99998". Runs one cheap GROUP BY per capped relation
+ * (indexed FK, ≤ a page of parent ids) and stamps the real total onto each
+ * row as `<as>Count`, so the frontend can show an accurate badge without
+ * ever fetching the full child set.
+ */
+const attachRelationCounts = async <M extends Model>(
+  parentModel: ModelStatic<M>,
+  rows: M[],
+  relations: IncludeOptions[]
+): Promise<void> => {
+  const cappedRelations = relations.filter((r) => r.separate && r.limit);
+  if (!cappedRelations.length || !rows.length) return;
+
+  const parentIds = rows.map((r) => r.get("id"));
+
+  await Promise.all(
+    cappedRelations.map(async (relation) => {
+      const as = relation.as as string;
+      const childModel = relation.model as ModelStatic<Model>;
+      const association = (parentModel as any).associations?.[as];
+      const foreignKey: string | undefined = association?.foreignKey;
+      if (!foreignKey) return;
+
+      const hasIsDeleted = "isDeleted" in childModel.getAttributes();
+      const counts = (await childModel.findAll({
+        attributes: [
+          foreignKey,
+          [fn("COUNT", col(childModel.primaryKeyAttribute)), "count"]
+        ],
+        where: {
+          [foreignKey]: parentIds,
+          ...(hasIsDeleted ? { isDeleted: false } : {})
+        } as WhereOptions,
+        group: [foreignKey],
+        raw: true
+      })) as unknown as Record<string, string>[];
+
+      const countByParentId = new Map(
+        counts.map((c) => [String(c[foreignKey]), Number(c.count)])
+      );
+      for (const row of rows) {
+        row.dataValues[`${as}Count`] =
+          countByParentId.get(String(row.get("id"))) ?? 0;
+      }
+    })
+  );
+};
+
 export const buildCrudRepo = <M extends Model>(config: CrudConfig<M>) => {
   const { model, searchFields, defaultSortBy = "createdAt" } = config;
   const relations = scopeSoftDeletableIncludes(config.relations ?? []);
@@ -384,7 +472,9 @@ export const buildCrudRepo = <M extends Model>(config: CrudConfig<M>) => {
       ...(config.baseWhere ?? {}),
       ...(includeRemoved ? { id } : { id, isDeleted: false })
     };
-    return model.findOne({ where, include: relations, transaction });
+    const row = await model.findOne({ where, include: relations, transaction });
+    if (row) await attachRelationCounts(model, [row], relations);
+    return row;
   };
 
   const findById = async (
@@ -396,11 +486,14 @@ export const buildCrudRepo = <M extends Model>(config: CrudConfig<M>) => {
     const base: WhereOptions = includeRemoved
       ? { id }
       : { id, isDeleted: false };
-    return model.findOne({
+    const row = await model.findOne({
       where: withGroupScope(model, scope, base),
       include: relations,
       transaction
     });
+    // Edit/View need the same true count as the list — same capped relation, same fix.
+    if (row) await attachRelationCounts(model, [row], relations);
+    return row;
   };
 
   const findAll = async (params: {
@@ -444,15 +537,37 @@ export const buildCrudRepo = <M extends Model>(config: CrudConfig<M>) => {
       sortBy && Object.keys(model.getAttributes()).includes(sortBy)
         ? sortBy
         : defaultSortBy;
+    const scopedWhere = withGroupScope(model, scope, where);
+    const order: [string, "ASC" | "DESC"][] = [[orderColumn, sortDir]];
 
-    return model.findAndCountAll({
-      where: withGroupScope(model, scope, where),
-      include: listRelations,
+    // Two round-trips instead of one findAndCountAll({ include, distinct }):
+    // for an all-belongsTo entity (no hasMany in listRelations, e.g. Sample),
+    // Sequelize's own heuristic leaves `subQuery` off, so every relation gets
+    // joined onto the *entire* matching set before ORDER BY/LIMIT/OFFSET runs
+    // (2s+ at 500k rows) — and forcing `subQuery: true` back on breaks
+    // findAndCountAll's own count query (`distinct` + `subQuery` + `include`
+    // is a known bad combination in Sequelize's count builder). Picking the
+    // page of ids first — cheap, index-backed — then joining only those rows
+    // sidesteps both problems. Safe because where/order/search
+    // (getSafeFilters, searchFields, orderColumn) only ever touch this
+    // model's own columns, never a joined one.
+    const { count, rows: idRows } = await model.findAndCountAll({
+      where: scopedWhere,
+      attributes: ["id"],
       offset: skip,
       limit,
-      order: [[orderColumn, sortDir]],
-      distinct: true
+      order,
+      subQuery: false
     });
+    if (!idRows.length) return { count, rows: [] };
+
+    const rows = await model.findAll({
+      where: { id: idRows.map((r) => r.get("id")) } as WhereOptions,
+      include: listRelations,
+      order
+    });
+    await attachRelationCounts(model, rows, listRelations);
+    return { count, rows };
   };
 
   const update = async (
@@ -824,8 +939,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
   };
 
   const create = async (raw: Record<string, any>, ctx: CrudContext) => {
-    return sequelize
-      .transaction((transaction) => createOne(raw, ctx, transaction))
+    return inWrite(ctx, raw.changeReason)
+      .run((transaction) => createOne(raw, ctx, transaction))
       .then(async ({ result }) => {
         await afterWrite();
         return result;
@@ -842,7 +957,7 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     const collisionMode = config.strictCopyCollision ? "reject" : "warn";
 
     const attemptAll = () =>
-      sequelize.transaction(async (transaction) => {
+      inWrite(ctx, undefined).run(async (transaction) => {
         const results: { id: string; warning?: string }[] = [];
         for (const raw of records) {
           const { result, warning } = await createOne(raw, ctx, transaction, {
@@ -873,7 +988,7 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
       const results: { id?: string; warning?: string; error?: string }[] = [];
       for (const raw of records) {
         try {
-          const { result, warning } = await sequelize.transaction(
+          const { result, warning } = await inWrite(ctx, undefined).run(
             (transaction) =>
               createOne(raw, ctx, transaction, {
                 collisionMode: "reject",
@@ -889,6 +1004,23 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
       return results;
     }
   };
+
+  /** Every write goes through this instead of sequelize.transaction directly, so an
+   * entity's `beforeCommit` hook runs inside the same transaction as the write itself. */
+  const inWrite = (ctx: CrudContext, changeReason: string | undefined) => ({
+    run: <T>(work: (transaction: Transaction) => PromiseLike<T>): Promise<T> =>
+      sequelize.transaction(async (transaction) => {
+        const result = await work(transaction);
+        if (config.beforeCommit) {
+          await config.beforeCommit({
+            transaction,
+            actor: ctx.actor,
+            changeReason
+          });
+        }
+        return result;
+      })
+  });
 
   const afterWrite = async () => {
     if (config.afterWrite) await config.afterWrite();
@@ -1067,8 +1199,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     ctx: CrudContext,
     files?: Express.Multer.File[]
   ) => {
-    return sequelize
-      .transaction((transaction) => updateOne(id, raw, ctx, transaction, files))
+    return inWrite(ctx, raw.changeReason)
+      .run((transaction) => updateOne(id, raw, ctx, transaction, files))
       .then(async (result) => {
         await afterWrite();
         return result;
@@ -1082,8 +1214,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     changeReason: string | undefined,
     ctx: CrudContext
   ) => {
-    return sequelize
-      .transaction(async (transaction) => {
+    return inWrite(ctx, changeReason)
+      .run(async (transaction) => {
         const results: { id: string; skipped?: boolean }[] = [];
         for (const { id, payload } of updates) {
           const updated = await updateOne(
@@ -1107,8 +1239,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     changeReason: string | undefined,
     ctx: CrudContext
   ) => {
-    return sequelize
-      .transaction(async (transaction) => {
+    return inWrite(ctx, changeReason)
+      .run(async (transaction) => {
         const existing = await repo.findById(id, ctx.scope, transaction);
         if (!existing) return null;
         await repo.softDelete([id], ctx.actor.id, transaction);
@@ -1134,8 +1266,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     changeReason: string | undefined,
     ctx: CrudContext
   ) => {
-    return sequelize
-      .transaction(async (transaction) => {
+    return inWrite(ctx, changeReason)
+      .run(async (transaction) => {
         // Filter to the ids actually in scope, so a bulk call can't be used to
         // delete records the caller could not have seen one at a time. One batched
         // lookup instead of N sequential round trips.
@@ -1175,8 +1307,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     changeReason: string | undefined,
     ctx: CrudContext
   ) => {
-    return sequelize
-      .transaction(async (transaction) => {
+    return inWrite(ctx, changeReason)
+      .run(async (transaction) => {
         // Same permitted-ids filter as bulkDelete, PLUS: only rows actually removed right
         // now — restoring an already-active row would write a bogus "RESTORE" audit entry
         // for something that never happened. One batched lookup instead of N round trips.
@@ -1212,8 +1344,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
   };
 
   const bulkDuplicate = async (ids: string[], ctx: CrudContext) => {
-    return sequelize
-      .transaction(async (transaction) => {
+    return inWrite(ctx, undefined)
+      .run(async (transaction) => {
         const created: any[] = [];
         // One batched lookup for every permitted source row, instead of a findById per id.
         const permittedSources = await model.findAll({
@@ -1331,8 +1463,8 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     changeReason: string | undefined,
     ctx: CrudContext
   ) => {
-    return sequelize
-      .transaction(async (transaction) => {
+    return inWrite(ctx, changeReason)
+      .run(async (transaction) => {
         const existing = await repo.findById(id, ctx.scope, transaction, true);
         if (!existing) return null;
         const restored = await repo.restore(id, transaction);
@@ -1623,6 +1755,11 @@ export const buildCrudRouter = <M extends Model>(params: {
   businessId?: BusinessIdConfig;
   /** This entity's form carries `LimsAttachmentsField` — see buildCrudController. */
   hasAttachments?: boolean;
+  /** Same array passed as the entity's `children` config — enables one-item-at-a-time
+   * `.../:id/children/:field` attach/detach routes instead of only the full-collection
+   * resubmit `update` already does. Needed wherever a capped relation (see
+   * attachRelationCounts) has to stay editable without ever resending the full set. */
+  children?: ChildConfig[];
 }): Router => {
   const {
     service,
@@ -1632,7 +1769,8 @@ export const buildCrudRouter = <M extends Model>(params: {
     updateDto,
     model,
     businessId,
-    hasAttachments = false
+    hasAttachments = false,
+    children
   } = params;
   const controller = buildCrudController(service, entityName, hasAttachments);
   const router = Router();
@@ -1666,6 +1804,108 @@ export const buildCrudRouter = <M extends Model>(params: {
     can("VIEW"),
     controller.getAuditLogs
   );
+
+  // One-item-at-a-time relation management — see `children` doc above. Each call is its
+  // own transaction against just this one child, so a "manage" UI showing only a capped
+  // preview of a large relation can never accidentally wipe the rest on save.
+  for (const childConfig of children ?? []) {
+    const childBase = `${API_ROUTES.PARAMS}/children/${childConfig.field}`;
+
+    router.post(
+      childBase,
+      can("UPDATE"),
+      asyncHandler(async (req: Request, res: Response) => {
+        const id = req.params.id as string;
+        const ctx = contextFromRequest(req);
+        const parent = await service.getById(id, ctx);
+        if (!parent) {
+          throw Object.assign(new Error(`${entityName} not found`), {
+            statusCode: 404
+          });
+        }
+
+        const outcome = await sequelize.transaction(async (transaction) => {
+          const result = await attachOrCreateChild(
+            childConfig,
+            id,
+            req.body,
+            transaction,
+            parent,
+            ctx.scope
+          );
+          await writeAudit({
+            entityName,
+            entityId: id,
+            action: "UPDATE",
+            childChanges: { [childConfig.field]: { added: [result.data] } },
+            actor: ctx.actor,
+            transaction
+          });
+          return result;
+        });
+
+        // The child's own list/options (e.g. Samples) and this parent's cached rows
+        // (which embed the capped preview + count) both went stale.
+        await deleteCacheByPrefix(`lims:all:${childConfig.model.name}:`);
+        await deleteCacheByPrefix(`lims:all:${entityName}:`);
+
+        res.status(201).json({
+          message: `${childConfig.field} updated`,
+          data: outcome.data
+        });
+      })
+    );
+
+    router.delete(
+      `${childBase}/:childId`,
+      can("UPDATE"),
+      asyncHandler(async (req: Request, res: Response) => {
+        const id = req.params.id as string;
+        const childId = req.params.childId as string;
+        const ctx = contextFromRequest(req);
+        const parent = await service.getById(id, ctx);
+        if (!parent) {
+          throw Object.assign(new Error(`${entityName} not found`), {
+            statusCode: 404
+          });
+        }
+
+        const removed = await sequelize.transaction(async (transaction) => {
+          const ok = await detachOrRemoveChild(
+            childConfig,
+            id,
+            childId,
+            transaction
+          );
+          if (ok) {
+            await writeAudit({
+              entityName,
+              entityId: id,
+              action: "UPDATE",
+              childChanges: {
+                [childConfig.field]: { removed: [{ id: childId }] }
+              },
+              actor: ctx.actor,
+              transaction
+            });
+          }
+          return ok;
+        });
+
+        if (removed) {
+          await deleteCacheByPrefix(`lims:all:${childConfig.model.name}:`);
+          await deleteCacheByPrefix(`lims:all:${entityName}:`);
+        }
+
+        res.status(200).json({
+          message: removed
+            ? `${childConfig.field} updated`
+            : "Already not attached"
+        });
+      })
+    );
+  }
+
   router.get(API_ROUTES.ROOT, can("VIEW"), controller.getAll);
   router.get(API_ROUTES.PARAMS, can("VIEW"), controller.getById);
 

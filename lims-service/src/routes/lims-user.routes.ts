@@ -1,8 +1,8 @@
+import { Router } from "express";
 import LimsUser from "../models/lims-user.model";
 import UserAccessGroup from "../models/user-access-group.model";
 import UserRole from "../models/user-role.model";
 import Group from "../models/group.model";
-import Role from "../models/role.model";
 import Location from "../models/location.model";
 import {
   buildCrudRouter,
@@ -12,6 +12,9 @@ import {
 } from "../utils/crud-factory";
 import { CreateLimsUserDto, UpdateLimsUserDto } from "../dtos/master-data.dto";
 import { invalidateAllUserContexts } from "../services/user-context.service";
+import { labRoleRefs } from "../services/lab-role.service";
+import { preventRoleAssignmentEscalation } from "../middlewares/role-escalation.middleware";
+import API_ROUTES from "../utils/routes";
 
 /** Lab Users — LIMS never creates a person, this grants an existing platform user access.
  * `accessGroups`/`roles` arrive as id arrays, expanded into child rows for replace-set
@@ -46,17 +49,17 @@ export const limsUserConfig: CrudConfig<LimsUser> = {
       through: { attributes: [] },
       required: false
     },
+    // Role ids only: the roles themselves live in backend (see withRoles below).
     {
-      model: Role,
-      as: "roles",
-      attributes: ["id", "roleId", "name"],
-      through: { attributes: [] },
+      model: UserRole,
+      as: "roleLinks",
+      attributes: ["roleId"],
       required: false
     }
   ],
   relationFields: { group: "groupId", location: "locationId" },
 
-  // `roles` stays in the list query — LimsUser.columns.tsx renders it.
+  // `roleLinks` stays in the list query — LimsUser.columns.tsx renders the roles.
   // `accessGroups` doesn't appear anywhere on the list, only Edit/View.
   listExcludeRelations: ["accessGroups"],
 
@@ -124,12 +127,38 @@ const SELF_REMOVAL_MESSAGE =
   "You cannot remove your own Lab User record — it would lock you out of LIMS " +
   "with no way to undo it yourself. Ask another administrator to do it.";
 
+const SELF_ACCESS_CHANGE_MESSAGE =
+  "You cannot change your own role, groups, or home group. Ask another " +
+  "administrator to do it.";
+
 /** Removing your own Lab User record is a total, self-inflicted lockout — recovery needs
  * direct database access. Guards both single-row and bulk paths via `ctx.actor.id`. */
 const assertNotSelf = async (ids: string[], ctx: CrudContext) => {
   const targets = await LimsUser.findAll({ where: { id: ids } as any });
   if (targets.some((target) => target.userId === ctx.actor.id)) {
     throw Object.assign(new Error(SELF_REMOVAL_MESSAGE), { statusCode: 400 });
+  }
+};
+
+// Fields that change what a Lab User can do or see — self-service escalation surface.
+const ACCESS_FIELDS = ["roles", "accessGroups", "group", "groupId"];
+
+/** A service Admin (Super Admin exempt, per req. 10) must not be able to grant themself
+ * broader access by editing their own Lab User's role/group assignment, even though they
+ * hold UPDATE:USER — deletion already has this guard above, updates didn't. */
+const assertNoSelfAccessChange = async (
+  id: string,
+  payload: Record<string, any>,
+  ctx: CrudContext
+) => {
+  if (ctx.scope.operateAll) return;
+  if (!ACCESS_FIELDS.some((field) => field in payload)) return;
+
+  const target = await LimsUser.findByPk(id);
+  if (target?.userId === ctx.actor.id) {
+    throw Object.assign(new Error(SELF_ACCESS_CHANGE_MESSAGE), {
+      statusCode: 403
+    });
   }
 };
 
@@ -151,12 +180,78 @@ const bulkDelete = async (
   return base.bulkDelete(ids, changeReason, ctx);
 };
 
-const service = { ...base, remove, bulkDelete };
+const update = async (
+  id: string,
+  raw: Record<string, any>,
+  ctx: CrudContext,
+  files?: Express.Multer.File[]
+) => {
+  await assertNoSelfAccessChange(id, raw, ctx);
+  return base.update(id, raw, ctx, files);
+};
 
-export default buildCrudRouter({
+const bulkUpdate = async (
+  updates: { id: string; payload: Record<string, any> }[],
+  changeReason: string | undefined,
+  ctx: CrudContext
+) => {
+  await Promise.all(
+    updates.map(({ id, payload }) => assertNoSelfAccessChange(id, payload, ctx))
+  );
+  return base.bulkUpdate(updates, changeReason, ctx);
+};
+
+/** `roles: [{ id, roleId, name }]`, as the screens expect, from the stored role ids. */
+const withRoles = async <T>(users: T): Promise<T> => {
+  const rows = (Array.isArray(users) ? users : [users]).filter(
+    Boolean
+  ) as Record<string, any>[];
+  const ids = rows.flatMap((row) =>
+    (row.roleLinks ?? []).map((link: { roleId: string }) => link.roleId)
+  );
+  const refs = await labRoleRefs(ids);
+  for (const row of rows) {
+    row.roles = (row.roleLinks ?? []).map((link: { roleId: string }) =>
+      refs.get(link.roleId)!
+    );
+    delete row.roleLinks;
+  }
+  return users;
+};
+
+const service: typeof base = {
+  ...base,
+  remove,
+  bulkDelete,
+  update: async (...args) => withRoles(await update(...args)),
+  bulkUpdate,
+  getAll: async (...args) => {
+    const result = await base.getAll(...args);
+    await withRoles(result.rows);
+    return result;
+  },
+  getById: async (...args) => withRoles(await base.getById(...args)),
+  create: async (...args) => withRoles(await base.create(...args)),
+  restore: async (...args) => withRoles(await base.restore(...args))
+};
+
+const limsUserCrudRouter = buildCrudRouter({
   service,
   entityName: limsUserConfig.entityName,
   permissionEntity: limsUserConfig.permissionEntity,
   createDto: CreateLimsUserDto,
   updateDto: UpdateLimsUserDto
 });
+
+// Same independent-check pattern as role.routes.ts: an admin can't assign a Lab Role
+// that grants more than their own permission set, checked before the CRUD router runs.
+const router = Router();
+router.post("/", preventRoleAssignmentEscalation);
+router.post(API_ROUTES.BULK_COPY, preventRoleAssignmentEscalation);
+// Registered before "/:id" — both are one-segment PATCH routes, same ordering concern
+// buildCrudRouter itself documents for BULK_UPDATE vs PARAMS.
+router.patch(API_ROUTES.BULK_UPDATE, preventRoleAssignmentEscalation);
+router.patch("/:id", preventRoleAssignmentEscalation);
+router.use(limsUserCrudRouter);
+
+export default router;

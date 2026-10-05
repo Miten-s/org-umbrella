@@ -333,7 +333,7 @@ const LimsAliquotList = () => {
   );
 
   return (
-    <div className="flex flex-col lg:h-[calc(100dvh-132px)] lg:min-h-0">
+    <div className="flex flex-col h-[calc(100dvh-132px)] min-h-0">
       <DataTable<LimsAliquot>
         table={table}
         columnDefs={columnDefs}
@@ -399,8 +399,9 @@ const LimsAliquotList = () => {
             saving={bulkUpdate.isPending}
             entityLabel={t("limsAliquot")}
           />
-        ) : formMode !== "create" &&
-          (detailQuery.isLoading || detailQuery.isFetching) ? (
+        ) : formMode !== "create" && detailQuery.isLoading ? (
+          // isLoading only — isFetching would unmount this form (and any modal
+          // inside it, e.g. Manage) on every background refetch from invalidateAllLims.
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>

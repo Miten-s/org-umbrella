@@ -52,30 +52,6 @@ export const sequelize = new Sequelize(
   }
 );
 
-// Secondary auth database — read-only reference for resolving platform users onto LIMS
-// records (LIMS never creates users, only grants access).
-export const authSequelize = new Sequelize(
-  sanitizePgUri(ENV.AUTH_POSTGRES_URI) ||
-    "postgres://postgres:postgres@localhost:5433/umbrella_auth_db",
-  {
-    dialect: "postgres",
-    logging: false,
-    dialectOptions: isLocalPostgres(ENV.AUTH_POSTGRES_URI)
-      ? undefined
-      : { ssl: { require: true, rejectUnauthorized: false } },
-    pool: {
-      max: 5,
-      min: 1,
-      acquire: 30000,
-      idle: 10000
-    },
-    define: {
-      underscored: true,
-      timestamps: true
-    }
-  }
-);
-
 export const connectDB = async (retries = 5, delayMs = 3000): Promise<void> => {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -86,28 +62,10 @@ export const connectDB = async (retries = 5, delayMs = 3000): Promise<void> => {
       const { registerAssociations } = await import("../models/associations");
       registerAssociations();
 
-      // Mirror the code-defined permission vocabulary into lims_permissions so
-      // the catalogue can never describe permissions the code doesn't enforce.
-      try {
-        const { seedPermissions } =
-          await import("../services/permission.service");
-        await seedPermissions();
-      } catch (err) {
-        console.warn(
-          "Skipping seedPermissions (run migrations first if table is missing):",
-          err
-        );
-      }
-
       // Warn if a pick list is missing/empty; not auto-seeded, since values are a lab's own config.
       const { reportPhraseHealth } =
         await import("../services/phrase-health.service");
       await reportPhraseHealth();
-
-      await authSequelize.authenticate();
-      console.log(
-        "umbrella_auth_db secondary connection connected successfully!"
-      );
       return;
     } catch (error) {
       console.error(

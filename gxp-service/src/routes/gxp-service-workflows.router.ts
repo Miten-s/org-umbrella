@@ -24,27 +24,40 @@ import {
   BulkUpdateDto,
   BulkOperationDto
 } from "../dtos/common.dto";
+import { authorize } from "../middlewares/authorize.middleware";
 
 const router: Router = Router();
+const can = (action: "VIEW" | "CREATE" | "UPDATE" | "DELETE") =>
+  authorize("WORKFLOW", action);
 
 // ---------------------------------------------------------------------------------------- GET Requests ----------------------------------------------------------------------------------------
 
-router.get(API_ROUTES.WORKFLOWS.ROOT, getAllWorkflows);
+router.get(API_ROUTES.WORKFLOWS.ROOT, can("VIEW"), getAllWorkflows);
 
-router.get(API_ROUTES.WORKFLOWS.BY_ID, getWorkflowById);
+router.get(API_ROUTES.WORKFLOWS.BY_ID, can("VIEW"), getWorkflowById);
 
 // ---------------------------------------------------------------------------------------- POST Requests ----------------------------------------------------------------------------------------
 
 router.post(
   API_ROUTES.WORKFLOWS.ROOT,
+  can("CREATE"),
   validateDto(CreateWorkflowDto),
   createWorkflow
 );
 
-router.post(API_ROUTES.WORKFLOWS.BULK_DELETE, bulkDeleteWorkflows);
-router.post(API_ROUTES.WORKFLOWS.BULK_DUPLICATE, bulkDuplicateWorkflows);
+router.post(
+  API_ROUTES.WORKFLOWS.BULK_DELETE,
+  can("DELETE"),
+  bulkDeleteWorkflows
+);
+router.post(
+  API_ROUTES.WORKFLOWS.BULK_DUPLICATE,
+  can("CREATE"),
+  bulkDuplicateWorkflows
+);
 router.post(
   API_ROUTES.WORKFLOWS.BULK_COPY,
+  can("CREATE"),
   validateDto(BulkCreateDto),
   validateDtoArray(CreateWorkflowDto, "records"),
   bulkCopyWorkflows
@@ -56,6 +69,7 @@ router.post(
 // one-segment path shape, and Express matches whichever is registered first.
 router.patch(
   API_ROUTES.WORKFLOWS.BULK_UPDATE,
+  can("UPDATE"),
   validateDto(BulkUpdateDto),
   validateDtoArray(UpdateWorkflowDto, "updates", "payload"),
   bulkUpdateWorkflows
@@ -63,22 +77,28 @@ router.patch(
 
 router.patch(
   API_ROUTES.WORKFLOWS.BULK_RESTORE,
+  can("UPDATE"),
   validateDto(BulkOperationDto),
   bulkRestoreWorkflows
 );
 
-router.patch(API_ROUTES.WORKFLOWS.ENABLE_BY_ID, enableWorkflow);
+router.patch(API_ROUTES.WORKFLOWS.ENABLE_BY_ID, can("UPDATE"), enableWorkflow);
 
-router.patch(API_ROUTES.WORKFLOWS.DISABLE_BY_ID, disableWorkflow);
+router.patch(
+  API_ROUTES.WORKFLOWS.DISABLE_BY_ID,
+  can("UPDATE"),
+  disableWorkflow
+);
 
 router.patch(
   API_ROUTES.WORKFLOWS.BY_ID,
+  can("UPDATE"),
   validateDto(UpdateWorkflowDto),
   updateWorkflow
 );
 
 // ---------------------------------------------------------------------------------------- DELETE Requests ----------------------------------------------------------------------------------------
 
-router.delete(API_ROUTES.WORKFLOWS.BY_ID, deleteWorkflow);
+router.delete(API_ROUTES.WORKFLOWS.BY_ID, can("DELETE"), deleteWorkflow);
 
 export default router;

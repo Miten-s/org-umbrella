@@ -25,7 +25,7 @@ export class MaintenanceRowDto {
 export class PersonnelRowDto {
   @IsOptional() @IsString() @MaxLength(50) inspectionType?: string;
   @IsOptional() @IsUUID("4") person?: string;
-  @IsOptional() @IsUUID("4") role?: string;
+  @IsOptional() @IsUUID("all") role?: string;
 }
 
 // ─── Instruments ────────────────────────────────────────────────────────────

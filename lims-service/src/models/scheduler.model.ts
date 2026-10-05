@@ -3,7 +3,7 @@ import { sequelize } from "../configs/db.sequelize";
 
 /**
  * A Scheduler — raises Samples/Tests/Results on a plan. The runner sweeps
- * `nextRunDate` (partial index in migration 009).
+ * `nextRunDate` (it has a partial index).
  */
 export interface IScheduler {
   id?: string;

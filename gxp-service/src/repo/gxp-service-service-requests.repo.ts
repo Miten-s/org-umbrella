@@ -16,6 +16,7 @@ import AppGroup from "../models/gxp-service-application-groups.model";
 import AppAttachment from "../models/gxp-service-application-attachments.model";
 import ServiceRequestCounter from "../models/gxp-service-service-request-counters.model";
 import ServiceRequestComment from "../models/gxp-service-service-request-comments.model";
+import { AccessScope, withGroupScope } from "../utils/access-scope.util";
 
 /**
  * Split a service-request payload into (a) plain model columns, (b) the M2M
@@ -217,7 +218,10 @@ export const getNextServiceRequestSequence = async (applicationId: string) => {
   return counter.seq;
 };
 
-export const getAllServiceRequests = async (options: PaginationOptions) => {
+export const getAllServiceRequests = async (
+  options: PaginationOptions,
+  scope?: AccessScope
+) => {
   const { page, limit, skip, search } = options;
   const where: any = {};
   if (search) {
@@ -227,9 +231,12 @@ export const getAllServiceRequests = async (options: PaginationOptions) => {
       { description: { [Op.iLike]: `%${search}%` } }
     ];
   }
+  const scopedWhere = scope
+    ? withGroupScope(ServiceRequest, scope, where)
+    : where;
   const { count: totalCount, rows: data } =
     await ServiceRequest.findAndCountAll({
-      where,
+      where: scopedWhere,
       include: [
         {
           model: Application,
@@ -252,8 +259,15 @@ export const getAllServiceRequests = async (options: PaginationOptions) => {
   };
 };
 
-export const getServiceRequestById = async (id: string) => {
-  const doc = await ServiceRequest.findByPk(id, {
+export const getServiceRequestById = async (
+  id: string,
+  scope?: AccessScope
+) => {
+  // findByPk can't take an extra where clause, so a scoped lookup goes through findOne
+  // instead — an out-of-scope id resolves to null (same 404 the caller already gives a
+  // truly-missing id), not a distinguishable 403 that would leak whether the id is real.
+  const doc = await ServiceRequest.findOne({
+    where: scope ? withGroupScope(ServiceRequest, scope, { id }) : { id },
     include: [
       {
         model: AssignmentGroup,

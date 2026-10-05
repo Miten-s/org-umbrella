@@ -25,29 +25,42 @@ import {
   BulkUpdateDto,
   BulkOperationDto
 } from "../dtos/common.dto";
+import { authorize } from "../middlewares/authorize.middleware";
 
 const router = Router();
+const can = (action: "VIEW" | "CREATE" | "UPDATE" | "DELETE") =>
+  authorize("SUPPLIER", action);
 
 // ---------------------------------------------------------------------------------------- GET Requests ----------------------------------------------------------------------------------------
 
-router.get(API_ROUTES.SUPPLIER.ROOT, getSuppliers);
+router.get(API_ROUTES.SUPPLIER.ROOT, can("VIEW"), getSuppliers);
 
-router.get(API_ROUTES.SUPPLIER.BY_ID, getSupplierById);
+router.get(API_ROUTES.SUPPLIER.BY_ID, can("VIEW"), getSupplierById);
 
 // ---------------------------------------------------------------------------------------- POST Requests ----------------------------------------------------------------------------------------
 
 router.post(
   API_ROUTES.SUPPLIER.ROOT,
+  can("CREATE"),
   validateDto(CreateSupplierDto),
   createSupplier
 );
 
-router.post(API_ROUTES.SUPPLIER.BULK_DELETE, bulkDeleteSuppliers);
+router.post(
+  API_ROUTES.SUPPLIER.BULK_DELETE,
+  can("DELETE"),
+  bulkDeleteSuppliers
+);
 
-router.post(API_ROUTES.SUPPLIER.BULK_DUPLICATE, bulkDuplicateSuppliers);
+router.post(
+  API_ROUTES.SUPPLIER.BULK_DUPLICATE,
+  can("CREATE"),
+  bulkDuplicateSuppliers
+);
 
 router.post(
   API_ROUTES.SUPPLIER.BULK_COPY,
+  can("CREATE"),
   validateDto(BulkCreateDto),
   validateDtoArray(CreateSupplierDto, "records"),
   bulkCopySuppliers
@@ -59,6 +72,7 @@ router.post(
 // path shape, and Express matches whichever is registered first.
 router.patch(
   API_ROUTES.SUPPLIER.BULK_UPDATE,
+  can("UPDATE"),
   validateDto(BulkUpdateDto),
   validateDtoArray(UpdateSupplierDto, "updates", "payload"),
   bulkUpdateSuppliers
@@ -66,22 +80,24 @@ router.patch(
 
 router.patch(
   API_ROUTES.SUPPLIER.BULK_RESTORE,
+  can("UPDATE"),
   validateDto(BulkOperationDto),
   bulkRestoreSuppliers
 );
 
 router.patch(
   API_ROUTES.SUPPLIER.BY_ID,
+  can("UPDATE"),
   validateDto(UpdateSupplierDto),
   updateSupplier
 );
 
-router.patch(API_ROUTES.SUPPLIER.DISABLE_BY_ID, disableSupplier);
+router.patch(API_ROUTES.SUPPLIER.DISABLE_BY_ID, can("UPDATE"), disableSupplier);
 
-router.patch(API_ROUTES.SUPPLIER.ENABLE_BY_ID, enableSupplier);
+router.patch(API_ROUTES.SUPPLIER.ENABLE_BY_ID, can("UPDATE"), enableSupplier);
 
 // ---------------------------------------------------------------------------------------- DELETE Requests ----------------------------------------------------------------------------------------
 
-router.delete(API_ROUTES.SUPPLIER.BY_ID, deleteSupplier);
+router.delete(API_ROUTES.SUPPLIER.BY_ID, can("DELETE"), deleteSupplier);
 
 export default router;

@@ -20,6 +20,7 @@ import {
 import { CreateUserDTO, UpdateUserDto } from "../dtos/user.dto";
 import { BulkUpdateDto, IsValidParamsIdDto } from "../dtos/common.dto";
 import { upload } from "../middlewares/multer.middleware";
+import { signInRateLimiter } from "../middlewares/rate-limit.middleware";
 
 const router: Router = Router();
 
@@ -51,7 +52,7 @@ router.post(API_ROUTES.AUTH + API_ROUTES.LOGOUT, logout);
 // ---------------------------------------------------------------------------------------- POST Requests ----------------------------------------------------------------------------------------
 
 // Define a POST route for user login using the LOGIN route from API_ROUTES.
-router.post(API_ROUTES.AUTH + API_ROUTES.LOGIN, login);
+router.post(API_ROUTES.AUTH + API_ROUTES.LOGIN, signInRateLimiter, login);
 
 // Define a POST route for add users.
 router.post(

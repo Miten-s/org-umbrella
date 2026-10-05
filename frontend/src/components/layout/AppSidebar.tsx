@@ -33,7 +33,17 @@ import {
 } from "@/utils/permissions";
 import { useTranslation } from "react-i18next";
 
-type SubItem = { name: string; path: string; pro?: boolean; new?: boolean };
+/** `permissions` is optional and defaults to "always visible once its parent group/item
+ * unlocks" — most groups are still one indivisible feature. Set it on entries whose group
+ * is a broad OR-check (e.g. Lab Executions covers six different entities) so a user with
+ * only one of those entity's permissions doesn't see links to the other five. */
+type SubItem = {
+  name: string;
+  path: string;
+  pro?: boolean;
+  new?: boolean;
+  permissions?: string[];
+};
 
 /** A second-level group (Access / Setup / Execution) nested under a service's parent route. */
 type NavGroup = {
@@ -123,16 +133,32 @@ const AppSidebar: React.FC = () => {
         icon: <UserManagement />,
         name: t("systemITAdministration"),
         permissions: [
-          ADMIN_PERMISSIONS.CREATE_USER,
           ADMIN_PERMISSIONS.VIEW_USER,
-          ADMIN_PERMISSIONS.UPDATE_USER,
-          ADMIN_PERMISSIONS.DELETE_USER
+          ADMIN_PERMISSIONS.VIEW_DESIGNATION,
+          ADMIN_PERMISSIONS.VIEW_LOCATION,
+          ADMIN_PERMISSIONS.VIEW_DEPARTMENT
         ],
         subItems: [
-          { name: t("users"), path: PageUrl.Users.path },
-          { name: t("designations"), path: PageUrl.Designations.path },
-          { name: t("locationsGroups"), path: PageUrl.LocationsGroups.path },
-          { name: t("departments"), path: PageUrl.Departments.path }
+          {
+            name: t("users"),
+            path: PageUrl.Users.path,
+            permissions: [ADMIN_PERMISSIONS.VIEW_USER]
+          },
+          {
+            name: t("designations"),
+            path: PageUrl.Designations.path,
+            permissions: [ADMIN_PERMISSIONS.VIEW_DESIGNATION]
+          },
+          {
+            name: t("locationsGroups"),
+            path: PageUrl.LocationsGroups.path,
+            permissions: [ADMIN_PERMISSIONS.VIEW_LOCATION]
+          },
+          {
+            name: t("departments"),
+            path: PageUrl.Departments.path,
+            permissions: [ADMIN_PERMISSIONS.VIEW_DEPARTMENT]
+          }
         ]
       },
       {
@@ -145,14 +171,20 @@ const AppSidebar: React.FC = () => {
             name: t("gxpAccess"),
             permissions: GXP_ACCESS_PERMISSIONS,
             subItems: [
-              { name: t("users"), path: PageUrl.GXPUsers.path },
+              {
+                name: t("users"),
+                path: PageUrl.GXPUsers.path,
+                permissions: [GXP_PERMISSIONS.VIEW_USER]
+              },
               {
                 name: t("gxpRolesAndPermissions"),
-                path: PageUrl.GXPRolesAndPermissions.path
+                path: PageUrl.GXPRolesAndPermissions.path,
+                permissions: [GXP_PERMISSIONS.VIEW_ROLE]
               },
               {
                 name: t("gxpAssignmentGroups"),
-                path: PageUrl.GXPAssignmentGroups.path
+                path: PageUrl.GXPAssignmentGroups.path,
+                permissions: [GXP_PERMISSIONS.VIEW_ASSIGNMENT_GROUP]
               }
             ]
           },
@@ -163,18 +195,29 @@ const AppSidebar: React.FC = () => {
             subItems: [
               {
                 name: t("gxpAddNewApplication"),
-                path: PageUrl.GXPAddNewApplication.path
+                path: PageUrl.GXPAddNewApplication.path,
+                permissions: [GXP_PERMISSIONS.VIEW_SOFTWARE]
               },
               {
                 name: t("gxpApplicationSoftwareModule"),
-                path: PageUrl.GXPApplicationSoftwareModule.path
+                path: PageUrl.GXPApplicationSoftwareModule.path,
+                permissions: [GXP_PERMISSIONS.VIEW_SOFTWARE_MODULES]
               },
-              { name: t("gxpSuppliers"), path: PageUrl.GXPSuppliers.path },
+              {
+                name: t("gxpSuppliers"),
+                path: PageUrl.GXPSuppliers.path,
+                permissions: [GXP_PERMISSIONS.VIEW_SUPPLIERS]
+              },
               {
                 name: t("gxpEnvironments"),
-                path: PageUrl.GXPEnvironments.path
+                path: PageUrl.GXPEnvironments.path,
+                permissions: [GXP_PERMISSIONS.VIEW_ENVIRONMENT]
               },
-              { name: t("gxpWorkflows"), path: PageUrl.GXPWorkflows.path }
+              {
+                name: t("gxpWorkflows"),
+                path: PageUrl.GXPWorkflows.path,
+                permissions: [GXP_PERMISSIONS.VIEW_WORKFLOW]
+              }
             ]
           },
           {
@@ -184,7 +227,8 @@ const AppSidebar: React.FC = () => {
             subItems: [
               {
                 name: t("gxpCreateNewServiceRequest"),
-                path: PageUrl.GXPCreateNewServiceRequest.path
+                path: PageUrl.GXPCreateNewServiceRequest.path,
+                permissions: [GXP_PERMISSIONS.VIEW_SERVICE_REQUEST]
               }
             ]
           }
@@ -202,9 +246,21 @@ const AppSidebar: React.FC = () => {
             // Setup order: a group exists first, then a role, then the user
             // that is assigned both.
             subItems: [
-              { name: t("limsGroups"), path: PageUrl.LIMSGroups.path },
-              { name: t("limsRoles"), path: PageUrl.LIMSRoles.path },
-              { name: t("limsUsers"), path: PageUrl.LIMSUsers.path }
+              {
+                name: t("limsGroups"),
+                path: PageUrl.LIMSGroups.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_GROUP]
+              },
+              {
+                name: t("limsRoles"),
+                path: PageUrl.LIMSRoles.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_ROLE]
+              },
+              {
+                name: t("limsUsers"),
+                path: PageUrl.LIMSUsers.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_USER]
+              }
             ]
           },
           {
@@ -215,61 +271,106 @@ const AppSidebar: React.FC = () => {
             // depends on ones above it.
             subItems: [
               // Reference data — every dropdown in LIMS reads from it.
-              { name: t("limsPhrases"), path: PageUrl.LIMSPhrases.path },
+              {
+                name: t("limsPhrases"),
+                path: PageUrl.LIMSPhrases.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_PHRASE]
+              },
 
               // Commercial: a project belongs to a customer, a study to a project.
-              { name: t("limsCustomers"), path: PageUrl.LIMSCustomers.path },
-              { name: t("limsSuppliers"), path: PageUrl.LIMSSuppliers.path },
-              { name: t("limsProjects"), path: PageUrl.LIMSProjects.path },
-              { name: t("limsStudies"), path: PageUrl.LIMSStudies.path },
+              {
+                name: t("limsCustomers"),
+                path: PageUrl.LIMSCustomers.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_CUSTOMER]
+              },
+              {
+                name: t("limsSuppliers"),
+                path: PageUrl.LIMSSuppliers.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_SUPPLIER]
+              },
+              {
+                name: t("limsProjects"),
+                path: PageUrl.LIMSProjects.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_PROJECT]
+              },
+              {
+                name: t("limsStudies"),
+                path: PageUrl.LIMSStudies.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_STUDY]
+              },
 
               // Materials: where things live, then the stock, its batches, and
               // the aliquots split off them.
-              { name: t("limsLocations"), path: PageUrl.LIMSLocations.path },
+              {
+                name: t("limsLocations"),
+                path: PageUrl.LIMSLocations.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_LOCATION]
+              },
               {
                 name: t("limsParameters"),
-                path: PageUrl.LIMSParameters.path
+                path: PageUrl.LIMSParameters.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_PARAMETER]
               },
-              { name: t("limsStocks"), path: PageUrl.LIMSStocks.path },
+              {
+                name: t("limsStocks"),
+                path: PageUrl.LIMSStocks.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_STOCK]
+              },
               {
                 name: t("limsStockBatches"),
-                path: PageUrl.LIMSStockBatches.path
+                path: PageUrl.LIMSStockBatches.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_STOCK_BATCH]
               },
-              { name: t("limsAliquots"), path: PageUrl.LIMSAliquots.path },
+              {
+                name: t("limsAliquots"),
+                path: PageUrl.LIMSAliquots.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_ALIQUOT]
+              },
 
               // Equipment: an instrument, its parts, and its calibration
               // schedule.
               {
                 name: t("limsInstruments"),
-                path: PageUrl.LIMSInstruments.path
+                path: PageUrl.LIMSInstruments.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_INSTRUMENT]
               },
               {
                 name: t("limsInstrumentParts"),
-                path: PageUrl.LIMSInstrumentParts.path
+                path: PageUrl.LIMSInstrumentParts.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_INSTRUMENT_PART]
               },
               {
                 name: t("limsCalibrations"),
-                path: PageUrl.LIMSCalibrations.path
+                path: PageUrl.LIMSCalibrations.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_CALIBRATION]
               },
 
               // Methods: who reviews, what is measured, what is run together,
               // and the limits results are judged against.
               {
                 name: t("limsInspectionPlans"),
-                path: PageUrl.LIMSInspectionPlans.path
+                path: PageUrl.LIMSInspectionPlans.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_INSPECTION_PLAN]
               },
-              { name: t("limsAnalyses"), path: PageUrl.LIMSAnalyses.path },
+              {
+                name: t("limsAnalyses"),
+                path: PageUrl.LIMSAnalyses.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_ANALYSIS]
+              },
               {
                 name: t("limsTestGroups"),
-                path: PageUrl.LIMSTestGroups.path
+                path: PageUrl.LIMSTestGroups.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_TEST_GROUP]
               },
               {
                 name: t("limsSpecifications"),
+                permissions: [LIMS_PERMISSIONS.VIEW_SPECIFICATION],
                 path: PageUrl.LIMSSpecifications.path
               },
               {
                 name: t("limsSampleTemplates"),
-                path: PageUrl.LIMSSampleTemplates.path
+                path: PageUrl.LIMSSampleTemplates.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_SAMPLE_TEMPLATE]
               }
             ]
           },
@@ -280,14 +381,35 @@ const AppSidebar: React.FC = () => {
             // The material's own journey: batch → lot → sample → test → result.
             // Schedulers last: a tool that raises this work, not a step in it.
             subItems: [
-              { name: t("limsBatches"), path: PageUrl.LIMSBatches.path },
-              { name: t("limsLots"), path: PageUrl.LIMSLots.path },
-              { name: t("limsSamples"), path: PageUrl.LIMSSamples.path },
-              { name: t("limsTests"), path: PageUrl.LIMSTests.path },
-              { name: t("limsResults"), path: PageUrl.LIMSResults.path },
+              {
+                name: t("limsBatches"),
+                path: PageUrl.LIMSBatches.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_BATCH]
+              },
+              {
+                name: t("limsLots"),
+                path: PageUrl.LIMSLots.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_LOT]
+              },
+              {
+                name: t("limsSamples"),
+                path: PageUrl.LIMSSamples.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_SAMPLE]
+              },
+              {
+                name: t("limsTests"),
+                path: PageUrl.LIMSTests.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_TEST]
+              },
+              {
+                name: t("limsResults"),
+                path: PageUrl.LIMSResults.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_RESULT]
+              },
               {
                 name: t("limsSchedulers"),
-                path: PageUrl.LIMSSchedulers.path
+                path: PageUrl.LIMSSchedulers.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_SCHEDULER]
               }
             ]
           }
@@ -311,6 +433,20 @@ const AppSidebar: React.FC = () => {
     [t]
   );
 
+  // A subItem with no `permissions` of its own is always visible once its parent
+  // group/item has already unlocked (the pre-existing, still-common case).
+  const filterSubItems = useCallback(
+    (subItems: SubItem[]) =>
+      subItems.filter(
+        (subItem) =>
+          !subItem.permissions ||
+          subItem.permissions.some((permission) =>
+            hasPermission(user, permission)
+          )
+      ),
+    [user]
+  );
+
   const restrictedFilteredNavItems = useMemo(() => {
     if (!user) return [];
 
@@ -321,23 +457,33 @@ const AppSidebar: React.FC = () => {
       if (!hasAccess) return acc;
 
       // A parent with groups only shows the groups this user actually holds
-      // permissions for (e.g. Access but not Setup).
+      // permissions for (e.g. Access but not Setup), and within each surviving
+      // group, only the specific entities this user actually holds permissions for.
       if (!item.groups) {
-        acc.push(item);
+        acc.push(
+          item.subItems
+            ? { ...item, subItems: filterSubItems(item.subItems) }
+            : item
+        );
         return acc;
       }
 
       acc.push({
         ...item,
-        groups: item.groups.filter((group) =>
-          group.permissions?.some((permission) =>
-            hasPermission(user, permission)
+        groups: item.groups
+          .filter((group) =>
+            group.permissions?.some((permission) =>
+              hasPermission(user, permission)
+            )
           )
-        )
+          .map((group) => ({
+            ...group,
+            subItems: filterSubItems(group.subItems)
+          }))
       });
       return acc;
     }, []);
-  }, [user, navItems]);
+  }, [user, navItems, filterSubItems]);
 
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: "main" | "others";

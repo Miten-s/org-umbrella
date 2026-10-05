@@ -1,6 +1,5 @@
 import Group from "./group.model";
-import Role from "./role.model";
-import RoleEntry from "./role-entry.model";
+import RoleGroup from "./role-group.model";
 import LimsUser from "./lims-user.model";
 import UserAccessGroup from "./user-access-group.model";
 import UserRole from "./user-role.model";
@@ -56,16 +55,8 @@ export const registerAssociations = () => {
   Group.belongsTo(Group, { as: "parentGroup", foreignKey: "parentGroupId" });
   Group.hasMany(Group, { as: "childGroups", foreignKey: "parentGroupId" });
 
-  // Role → owning group (an ownership tag, not an access scope).
-  Role.belongsTo(Group, { as: "group", foreignKey: "groupId" });
-
-  // Role → its permission grants, returned nested as `entries[]`.
-  Role.hasMany(RoleEntry, {
-    as: "entries",
-    foreignKey: "roleId",
-    onDelete: "CASCADE"
-  });
-  RoleEntry.belongsTo(Role, { as: "role", foreignKey: "roleId" });
+  // Lab Role (stored in backend) → the lab group it belongs to.
+  RoleGroup.belongsTo(Group, { as: "group", foreignKey: "groupId" });
 
   // LimsUser → home group.
   LimsUser.belongsTo(Group, { as: "group", foreignKey: "groupId" });
@@ -84,19 +75,8 @@ export const registerAssociations = () => {
     otherKey: "limsUserId"
   });
 
-  // LimsUser → roles (permissions are the UNION across all of them).
-  LimsUser.belongsToMany(Role, {
-    as: "roles",
-    through: UserRole,
-    foreignKey: "limsUserId",
-    otherKey: "roleId"
-  });
-  Role.belongsToMany(LimsUser, {
-    as: "users",
-    through: UserRole,
-    foreignKey: "roleId",
-    otherKey: "limsUserId"
-  });
+  // LimsUser → the backend role ids they hold (permissions are the UNION across them).
+  LimsUser.hasMany(UserRole, { as: "roleLinks", foreignKey: "limsUserId" });
 
   // LimsUser → home location.
   LimsUser.belongsTo(Location, { as: "location", foreignKey: "locationId" });
@@ -282,7 +262,6 @@ export const registerAssociations = () => {
     as: "person",
     foreignKey: "personId"
   });
-  InspectionPersonnel.belongsTo(Role, { as: "role", foreignKey: "roleId" });
 
   // ─── Analytical definitions ──────────────────────────────────────────────
 

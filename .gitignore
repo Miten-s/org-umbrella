@@ -25,3 +25,5 @@ deploy.sh
 docs/
 deploy/
 dump.rdb
+# Output of backend/src/scripts/migrate-lims-roles.ts — contains user names and ids
+lims-role-migration-*.md

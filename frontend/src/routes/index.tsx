@@ -2,7 +2,11 @@ import { lazy } from "react";
 import AppLayout from "../components/layout/AppLayout";
 import Login from "@/components/sign-in/Login";
 import { PageUrl } from "@/types/utils.types";
-import { ADMIN_PERMISSIONS, LIMS_PERMISSIONS } from "@/utils/permissions";
+import {
+  ADMIN_PERMISSIONS,
+  GXP_PERMISSIONS,
+  LIMS_PERMISSIONS
+} from "@/utils/permissions";
 import type { AppRoute } from "./types";
 
 // Dashboard & Access Management
@@ -333,7 +337,7 @@ const routes: AppRoute[] = [
             ),
             element: <GXPUsersPage />,
             protection: {
-              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
+              requiredPermission: GXP_PERMISSIONS.VIEW_USER
             },
             meta: {
               title: "Users",
@@ -347,7 +351,7 @@ const routes: AppRoute[] = [
             ),
             element: <GXPRolesAndPermissionsPage />,
             protection: {
-              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
+              requiredPermission: GXP_PERMISSIONS.VIEW_ROLE
             },
             meta: {
               title: "Roles and Permissions",
@@ -361,7 +365,7 @@ const routes: AppRoute[] = [
             ),
             element: <GXPWorkflowsPage />,
             protection: {
-              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
+              requiredPermission: GXP_PERMISSIONS.VIEW_WORKFLOW
             },
             meta: {
               title: "Workflows",
@@ -375,7 +379,7 @@ const routes: AppRoute[] = [
             ),
             element: <GXPAssignmentGroupsPage />,
             protection: {
-              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
+              requiredPermission: GXP_PERMISSIONS.VIEW_ASSIGNMENT_GROUP
             },
             meta: {
               title: "Assignment Groups",
@@ -389,7 +393,7 @@ const routes: AppRoute[] = [
             ),
             element: <GXPEnvironmentsPage />,
             protection: {
-              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
+              requiredPermission: GXP_PERMISSIONS.VIEW_ENVIRONMENT
             },
             meta: {
               title: "Environments",
@@ -403,7 +407,7 @@ const routes: AppRoute[] = [
             ),
             element: <GXPSuppliersPage />,
             protection: {
-              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
+              requiredPermission: GXP_PERMISSIONS.VIEW_SUPPLIERS
             },
             meta: {
               title: "Suppliers",
@@ -417,7 +421,7 @@ const routes: AppRoute[] = [
             ),
             element: <GXPApplicationSoftwareModulePage />,
             protection: {
-              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
+              requiredPermission: GXP_PERMISSIONS.VIEW_SOFTWARE_MODULES
             },
             meta: {
               title: "Application/Software Module",
@@ -431,7 +435,7 @@ const routes: AppRoute[] = [
             ),
             element: <GXPAddNewApplicationPage />,
             protection: {
-              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
+              requiredPermission: GXP_PERMISSIONS.VIEW_SOFTWARE
             },
             meta: {
               title: "Add a new GxP Portal Application/Software form",
@@ -445,7 +449,7 @@ const routes: AppRoute[] = [
             ),
             element: <GXPCreateNewServiceRequestPage />,
             protection: {
-              requiredPermission: ADMIN_PERMISSIONS.VIEW_DASHBOARD
+              requiredPermission: GXP_PERMISSIONS.VIEW_SERVICE_REQUEST
             },
             meta: {
               title: "Create a new Service Request",

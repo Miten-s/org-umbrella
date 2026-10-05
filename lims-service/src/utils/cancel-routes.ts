@@ -40,6 +40,7 @@ export const attachCancelRoutes = <M extends Model>(
       ) as string | null | undefined;
       if (
         !scope.operateAll &&
+        scope.accessGroupIds.length > 0 &&
         groupId &&
         !scope.accessGroupIds.includes(groupId)
       ) {

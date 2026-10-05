@@ -52,6 +52,12 @@ export interface DataTableBulkAction {
    * request) over an all-active selection. Checked against currently-loaded rows only —
    * for a "select all matching" filter selection this can't be known, so the action stays visible. */
   hidden?: (selectedRows: Array<{ isRemoved?: boolean }>) => boolean;
+  /** Disables (rather than hides) the action for the current selection — e.g. a protected
+   * system row that should still be visible/selectable, just not actionable. Checked against
+   * currently-loaded rows only, same caveat as `hidden`. */
+  disabled?: (selectedRows: unknown[]) => boolean;
+  /** Shown on hover when `disabled` returns true for the current selection. */
+  disabledTooltip?: (selectedRows: unknown[]) => string;
   /** Receives the scalable BulkSelection (ids OR filter) + the selected count. */
   onClick: (selection: BulkSelection, count: number) => void | Promise<void>;
 }
@@ -516,11 +522,20 @@ export function DataTable<T extends { id: string }>({
                 })
                 .map((action) => {
                   const Icon = action.icon;
+                  const selectedRows = table.rows.filter((row) =>
+                    table.selectedIds.has(table.getRowId(row))
+                  );
+                  const isDisabled = action.disabled?.(selectedRows) ?? false;
                   return (
                     <Button
                       key={action.key}
                       size="sm"
-                      disabled={busy}
+                      disabled={busy || isDisabled}
+                      tooltipMessage={
+                        isDisabled
+                          ? action.disabledTooltip?.(selectedRows)
+                          : undefined
+                      }
                       loading={runningBulkKey === action.key}
                       permission={action.permission}
                       permissionLogic={action.permissionLogic}

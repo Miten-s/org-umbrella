@@ -55,7 +55,7 @@ LimsUser.init(
     },
     groupId: { type: DataTypes.UUID, allowNull: true, field: "group_id" },
     locationId: { type: DataTypes.UUID, allowNull: true, field: "location_id" },
-    // TEXT, not a short filename column — the signature pad sends a full base64 data URI (migration 011).
+    // TEXT, not a short filename column — the signature pad sends a full base64 data URI.
     signature: { type: DataTypes.TEXT, allowNull: true },
     description: { type: DataTypes.TEXT, allowNull: true },
     trainingCompleted: {

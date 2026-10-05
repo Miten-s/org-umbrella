@@ -86,7 +86,13 @@ User.init(
       type: DataTypes.STRING,
       allowNull: false,
       unique: true,
-      validate: { isEmail: true }
+      validate: { isEmail: true },
+      // Emails are case-insensitive by convention — normalize on every write so login's
+      // lookup (a plain equality match) doesn't depend on which case someone typed at
+      // signup vs. sign-in. Runs on any assignment (create, instance.email = x, update).
+      set(value: string) {
+        this.setDataValue("email", value?.trim().toLowerCase());
+      }
     },
     name: {
       type: DataTypes.STRING,

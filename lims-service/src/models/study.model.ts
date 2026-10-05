@@ -3,7 +3,7 @@ import { sequelize } from "../configs/db.sequelize";
 
 /**
  * A Study under a Project. `projectDetails` is a snapshot taken when the
- * project was selected, not a live join — see migration 006.
+ * project was selected, not a live join.
  */
 export interface IStudy {
   id?: string;

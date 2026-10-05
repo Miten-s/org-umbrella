@@ -13,8 +13,7 @@ import {
 
 export const createSupplier = asyncHandler(
   async (req: Request, res: Response) => {
-    const currentUser =
-      (req as any).user?.username ?? (req.headers["x-user"] as string) ?? null;
+    const currentUser = (req as any).user?.id ?? null;
     const payload = req.body;
     const created = await service.createSupplier(
       payload,
@@ -57,8 +56,7 @@ export const updateSupplier = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
     const payload = req.body;
-    const currentUser =
-      (req as any).user?.username ?? (req.headers["x-user"] as string) ?? null;
+    const currentUser = (req as any).user?.id ?? null;
     const updated = await service.updateSupplier(
       id as string,
       payload,
@@ -75,8 +73,7 @@ export const updateSupplier = asyncHandler(
 export const disableSupplier = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const currentUser =
-      (req as any).user?.username ?? (req.headers["x-user"] as string) ?? null;
+    const currentUser = (req as any).user?.id ?? null;
     const disabled = await service.disableSupplier(
       id as string,
       currentUser ?? undefined
@@ -93,8 +90,7 @@ export const enableSupplier = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
     const comments = req.body?.comments ?? null;
-    const currentUser =
-      (req as any).user?.username ?? (req.headers["x-user"] as string) ?? null;
+    const currentUser = (req as any).user?.id ?? null;
     const restored = await service.enableSupplier(
       id as string,
       currentUser ?? undefined
@@ -138,8 +134,7 @@ export const bulkDeleteSuppliers = asyncHandler(
 export const bulkDuplicateSuppliers = asyncHandler(
   async (req: Request, res: Response) => {
     const { ids } = req.body;
-    const currentUser =
-      (req as any).user?.username ?? (req.headers["x-user"] as string) ?? null;
+    const currentUser = (req as any).user?.id ?? null;
     if (!Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ message: "An array of ids is required" });
     }

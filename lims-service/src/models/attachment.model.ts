@@ -2,8 +2,8 @@ import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
 
 /**
- * A file attached to any entity. Polymorphic by `entityName` + `entityId` —
- * see migration 005 for why there is no foreign key to the parent.
+ * A file attached to any entity. Polymorphic by `entityName` + `entityId`, so there
+ * is no foreign key to the parent.
  */
 export interface IAttachment {
   id?: string;

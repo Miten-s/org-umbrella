@@ -27,7 +27,12 @@ export const batchConfig: CrudConfig<Batch> = {
       model: Lot,
       as: "lots",
       attributes: ["id", "lotId", "lotName", ["lot_name", "name"]],
-      required: false
+      required: false,
+      // Same shape as Lot's own `samples` relation one level down — capped
+      // there after one lot with 100k+ samples took ~9s to join. `separate`
+      // runs this as its own per-batch query instead of a join.
+      separate: true,
+      limit: 20
     }
   ],
   relationFields: { group: "groupId" },
@@ -49,7 +54,11 @@ export const batchConfig: CrudConfig<Batch> = {
       foreignKey: "batchId",
       fields: ["id"],
       matchKey: "id",
-      detachOnly: true
+      detachOnly: true,
+      // Capped to 20 for display (see the `lots` relation above) — a normal
+      // save must never diff this against the real count, only the dedicated
+      // .../children/lots attach/detach routes may change it.
+      manageOnly: true
     }
   ]
 };
@@ -64,7 +73,8 @@ const router = buildCrudRouter({
   updateDto: UpdateBatchDto,
   model: Batch,
   businessId: batchConfig.businessId,
-  hasAttachments: true
+  hasAttachments: true,
+  children: batchConfig.children
 });
 
 export default attachCancelRoutes(router, {

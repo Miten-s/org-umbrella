@@ -24,6 +24,7 @@ import { resolveIds, toObjectIdString } from "./mixed-id-resolution.service";
 import { sequelize } from "../configs/db.sequelize";
 import { Op } from "sequelize";
 import crypto from "crypto";
+import { AccessScope } from "../utils/access-scope.util";
 
 const getIdString = (doc: any) => {
   return doc?.id || "";
@@ -323,15 +324,16 @@ export const createApplication = async (
 
 export const getApplications = async (
   options: PaginationOptions,
-  includeDisabled = false
+  includeDisabled = false,
+  scope?: AccessScope
 ) => {
   const filter: any = {};
   if (!includeDisabled) filter.status = "enabled";
-  return await repo.getApplications(filter, options);
+  return await repo.getApplications(filter, options, scope);
 };
 
-export const getApplicationById = async (id: string) => {
-  const application = await repo.findApplicationById(id);
+export const getApplicationById = async (id: string, scope?: AccessScope) => {
+  const application = await repo.findApplicationById(id, scope);
   if (!application) return null;
 
   return {

@@ -333,7 +333,7 @@ const GxpApplicationList = () => {
     formMode === "create" || (!!detail.data && !detail.isFetching);
 
   return (
-    <div className="flex flex-col lg:h-[calc(100dvh-132px)] lg:min-h-0">
+    <div className="flex flex-col h-[calc(100dvh-132px)] min-h-0">
       <DataTable<GxpApplication>
         table={table}
         columnDefs={columnDefs}

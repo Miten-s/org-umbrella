@@ -7,11 +7,17 @@ import { Workflow } from "./gxp-service-workflows.model";
 import { AppService } from "./gxp-service-application-services.model";
 import { AppModule } from "./gxp-service-application-modules.model";
 import { AppRole } from "./gxp-service-application-roles.model";
+import { Group } from "./gxp-service-group.model";
 
 export interface IServiceRequest {
   id: string;
   priority: "Very High" | "High" | "Medium" | "Low";
   applicationId: string;
+  /** The access-scoping group (see gxp-service-group.model.ts) — distinct from `location`
+   * below, which is a plain display string, not an access boundary. Optional here even
+   * though the DB enforces NOT NULL (with a default): existing create call sites don't set
+   * this yet, and the DB default fills the gap — see the allowNull note in ServiceRequest.init. */
+  accessGroupId?: string;
   assignmentGroupId?: string | null;
   location?: string;
   environmentId?: string | null;
@@ -45,6 +51,7 @@ export class ServiceRequest
   public id!: string; // Custom string id: "SR_..."
   public priority!: "Very High" | "High" | "Medium" | "Low";
   public applicationId!: string;
+  public accessGroupId!: string;
   public assignmentGroupId!: string | null;
   public location!: string;
   public environmentId!: string | null;
@@ -90,6 +97,14 @@ ServiceRequest.init(
       allowNull: false,
       field: "application_id",
       references: { model: "applications", key: "id" }
+    },
+    accessGroupId: {
+      type: DataTypes.UUID,
+      // Same reasoning as Application.accessGroupId — NOT NULL with a default at the DB
+      // level, but permissive here so existing create flows that don't
+      // set this yet aren't rejected client-side before the DB default can apply.
+      allowNull: true,
+      field: "access_group_id"
     },
     assignmentGroupId: {
       type: DataTypes.UUID,
@@ -190,6 +205,10 @@ ServiceRequest.init(
 ServiceRequest.belongsTo(Application, {
   foreignKey: "application_id",
   as: "applicationDetails"
+});
+ServiceRequest.belongsTo(Group, {
+  foreignKey: "access_group_id",
+  as: "accessGroup"
 });
 ServiceRequest.belongsTo(AssignmentGroup, {
   foreignKey: "assignment_group_id",

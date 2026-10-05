@@ -9,6 +9,9 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "typeRoots": ["./src/types", "./node_modules/@types"],
+    // Named explicitly: TypeScript 6 (what VS Code bundles) no longer loads every @types
+    // package automatically, and nothing imports jest's globals — test files just use them.
+    "types": ["node", "jest"],
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
