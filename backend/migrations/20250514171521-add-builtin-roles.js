@@ -45,7 +45,7 @@ module.exports = {
       Boolean
     );
 
-    // Insert Admin and User roles
+    // Insert or Update Admin and User roles
     const roles = [
       {
         name: "Admin",
@@ -65,8 +65,18 @@ module.exports = {
       }
     ];
 
-    await db.collection("roles").insertMany(roles);
-    console.log("Built-in Admin and User roles created with permissions");
+    const roleOperations = roles.map((role) => ({
+      updateOne: {
+        filter: { name: role.name, type: role.type },
+        update: {
+          $setOnInsert: role
+        },
+        upsert: true
+      }
+    }));
+
+    await db.collection("roles").bulkWrite(roleOperations);
+    console.log("Built-in Admin and User roles created or already exist");
   },
 
   async down(db) {

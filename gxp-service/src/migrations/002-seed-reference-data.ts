@@ -1,4 +1,4 @@
-import { QueryInterface } from "sequelize";
+import { QueryInterface, QueryTypes } from "sequelize";
 import { randomUUID } from "crypto";
 import { UNASSIGNED_GROUP_ID } from "./default-ids";
 
@@ -20,16 +20,23 @@ export const up = async (queryInterface: QueryInterface) => {
   const db = queryInterface.sequelize;
 
   for (const service of REQUEST_TYPES) {
-    await db.query(
-      `INSERT INTO app_services (id, service, active, created_at, updated_at)
-       VALUES (:id, :service, true, now(), now())`,
-      { replacements: { id: randomUUID(), service } }
+    const existing = await db.query<{ id: string }>(
+      `SELECT id FROM app_services WHERE service = :service`,
+      { replacements: { service }, type: QueryTypes.SELECT }
     );
+    if (existing.length === 0) {
+      await db.query(
+        `INSERT INTO app_services (id, service, active, created_at, updated_at)
+         VALUES (:id, :service, true, now(), now())`,
+        { replacements: { id: randomUUID(), service } }
+      );
+    }
   }
 
   await db.query(
     `INSERT INTO gxp_groups (id, name, description, parent_group_id, status, created_at, updated_at)
-     VALUES (:id, 'Unassigned', :description, NULL, 'enabled', now(), now())`,
+     VALUES (:id, 'Unassigned', :description, NULL, 'enabled', now(), now())
+     ON CONFLICT (id) DO NOTHING`,
     {
       replacements: {
         id: UNASSIGNED_GROUP_ID,
