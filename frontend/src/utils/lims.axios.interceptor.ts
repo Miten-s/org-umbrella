@@ -10,7 +10,7 @@ import { AUTH_TOKEN_KEY } from "./common.constants";
  * deploy, not two things that can drift apart.
  */
 export const BASE_URL =
-  import.meta.env.VITE_API_LIMS_BASE_URL ?? "http://localhost:9003/v1/api";
+  import.meta.env.VITE_API_LIMS_BASE_URL ?? "/lims/v1/api";
 
 const limsApi = axios.create({
   baseURL: BASE_URL,

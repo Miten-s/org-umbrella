@@ -1,17 +1,18 @@
 /** Bootstraps the first administrator offline (breaks the chicken-and-egg: no CREATE:USER
- * exists yet on an empty database). Idempotent. `npx ts-node src/scripts/bootstrap-admin.ts <platformUserId> [full name]` */
+ * exists yet on an empty database). Idempotent; needs backend running (roles live there).
+ * `npx ts-node src/scripts/bootstrap-admin.ts <platformUserId> [full name]` */
 import "dotenv/config";
 import { sequelize } from "../configs/db.sequelize";
 import { registerAssociations } from "../models/associations";
 import Group from "../models/group.model";
-import Role from "../models/role.model";
 import LimsUser from "../models/lims-user.model";
 import UserAccessGroup from "../models/user-access-group.model";
 import UserRole from "../models/user-role.model";
-import { seedPermissions } from "../services/permission.service";
+import { ensureRole } from "../services/backend-roles.client";
 
 const ROOT_GROUP_ID = "LIMS_ROOT";
-const ADMIN_ROLE_ID = "LIMS_ADMIN";
+/** Seeded by backend (migrations/002-seed-reference-data.ts) and protected: full LIMS access. */
+const ADMIN_ROLE_CODE = "LIMS_MASTER_ADMIN";
 
 const run = async () => {
   const platformUserId = process.argv[2];
@@ -27,7 +28,6 @@ const run = async () => {
 
   await sequelize.authenticate();
   registerAssociations();
-  await seedPermissions();
 
   // Root group — the top of the hierarchy. Everything else hangs off it, so
   // access to it cascades to every group created later.
@@ -48,18 +48,11 @@ const run = async () => {
     await rootGroup.update({ ownedBy: platformUserId, ownedByName: fullName });
   }
 
-  // Admin role. operateAll bypasses group filtering — every use of it lands on
-  // the separate bypass audit stream.
-  const [adminRole] = await Role.findOrCreate({
-    where: { roleId: ADMIN_ROLE_ID },
-    defaults: {
-      roleId: ADMIN_ROLE_ID,
-      name: "LIMS Administrator",
-      description:
-        "Full access. Bypasses group filtering; every use is audited.",
-      groupId: rootGroup.id,
-      operateAll: true
-    }
+  // Admin role, stored in backend. Its LIMS:OPERATE:ALL bypasses group filtering — every
+  // use of it lands on the separate bypass audit stream.
+  const adminRole = await ensureRole(ADMIN_ROLE_CODE, {
+    name: "LIMS Master Admin",
+    permissions: ["LIMS:OPERATE:ALL"]
   });
 
   const [limsUser, userCreated] = await LimsUser.findOrCreate({
@@ -91,7 +84,7 @@ const run = async () => {
       `  platform user : ${platformUserId} (${fullName})`,
       `  lims_users.id : ${limsUser.id}`,
       `  root group    : ${ROOT_GROUP_ID} (${rootGroup.id})`,
-      `  role          : ${ADMIN_ROLE_ID} — operateAll=true`,
+      `  role          : ${ADMIN_ROLE_CODE} — operateAll=true`,
       "",
       "Restart the service (the access cache is in-memory) and this user can sign in.",
       ""

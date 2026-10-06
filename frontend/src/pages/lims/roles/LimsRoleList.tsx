@@ -45,6 +45,15 @@ import {
 import LimsRoleForm, { type LimsRoleFormMode } from "./LimsRoleForm";
 import type { LimsRole, LimsRolePayload } from "./LimsRole.types";
 
+// Mirrors lims-service/src/routes/role.routes.ts's PROTECTED_ROLE_ID — kept in sync by hand
+// since frontend and backend don't share constants, but this is UI convenience only: the
+// real enforcement is server-side regardless of this list.
+const PROTECTED_ROLE_ID = "LIMS_MASTER_ADMIN";
+const PROTECTED_ROLE_TOOLTIP =
+  "This is a protected system role and cannot be viewed, edited, copied, or removed.";
+const isProtectedRole = (role: { roleId?: string }) =>
+  role.roleId === PROTECTED_ROLE_ID;
+
 /** LIMS Lab Roles — permissions are a seeded, read-only catalog; roles only assign a subset
  * of it via PermissionPicker. */
 const LimsRoleList = () => {
@@ -199,6 +208,8 @@ const LimsRoleList = () => {
         icon: EyeIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.VIEW_ROLE,
+        disabled: (rows) => (rows as LimsRole[]).some(isProtectedRole),
+        disabledTooltip: () => PROTECTED_ROLE_TOOLTIP,
         onClick: (selection) => {
           if (selection.mode !== "ids") {
             toast(t("viewBulkFilterUnsupported"), "error");
@@ -213,6 +224,8 @@ const LimsRoleList = () => {
         icon: CopyIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.CREATE_ROLE,
+        disabled: (rows) => (rows as LimsRole[]).some(isProtectedRole),
+        disabledTooltip: () => PROTECTED_ROLE_TOOLTIP,
         onClick: async (selection) => {
           if (selection.mode === "ids") {
             openCopy(selection.ids);
@@ -228,6 +241,8 @@ const LimsRoleList = () => {
         icon: PencilIcon,
         variant: "outline",
         permission: LIMS_PERMISSIONS.UPDATE_ROLE,
+        disabled: (rows) => (rows as LimsRole[]).some(isProtectedRole),
+        disabledTooltip: () => PROTECTED_ROLE_TOOLTIP,
         onClick: (selection) => {
           if (selection.mode !== "ids") {
             toast(t("editBulkFilterUnsupported"), "error");
@@ -245,6 +260,8 @@ const LimsRoleList = () => {
         // Only offered when the current selection actually has something removed —
         // an all-active selection would otherwise fire a no-op restore request.
         hidden: (rows) => !rows.some((row) => row.isRemoved),
+        disabled: (rows) => (rows as LimsRole[]).some(isProtectedRole),
+        disabledTooltip: () => PROTECTED_ROLE_TOOLTIP,
         onClick: (selection) => {
           if (selection.mode !== "ids") {
             toast(t("editBulkFilterUnsupported"), "error");
@@ -264,6 +281,8 @@ const LimsRoleList = () => {
         icon: TrashBinIcon,
         variant: "destructive",
         permission: LIMS_PERMISSIONS.DELETE_ROLE,
+        disabled: (rows) => (rows as LimsRole[]).some(isProtectedRole),
+        disabledTooltip: () => PROTECTED_ROLE_TOOLTIP,
         onClick: (selection, count) =>
           compliance.requestDelete(
             selection,
@@ -287,6 +306,9 @@ const LimsRoleList = () => {
         icon: EyeIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_ROLE,
+        disabled: isProtectedRole,
+        tooltip: (role) =>
+          isProtectedRole(role) ? PROTECTED_ROLE_TOOLTIP : "",
         onClick: (role) => openForm("view", role)
       },
       {
@@ -295,6 +317,9 @@ const LimsRoleList = () => {
         icon: PencilIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.UPDATE_ROLE,
+        disabled: isProtectedRole,
+        tooltip: (role) =>
+          isProtectedRole(role) ? PROTECTED_ROLE_TOOLTIP : "",
         onClick: (role) => openForm("edit", role)
       },
       {
@@ -311,6 +336,9 @@ const LimsRoleList = () => {
         icon: CopyIcon,
         placement: "menu",
         permission: LIMS_PERMISSIONS.CREATE_ROLE,
+        disabled: isProtectedRole,
+        tooltip: (role) =>
+          isProtectedRole(role) ? PROTECTED_ROLE_TOOLTIP : "",
         onClick: (role) => openCopy([role.id])
       },
       {
@@ -320,6 +348,9 @@ const LimsRoleList = () => {
         placement: "menu",
         permission: LIMS_PERMISSIONS.UPDATE_ROLE,
         hidden: (role: LimsRole) => !role.isRemoved,
+        disabled: isProtectedRole,
+        tooltip: (role) =>
+          isProtectedRole(role) ? PROTECTED_ROLE_TOOLTIP : "",
         onClick: (role) => compliance.requestRestore(role)
       },
       {
@@ -330,6 +361,9 @@ const LimsRoleList = () => {
         tone: "danger",
         permission: LIMS_PERMISSIONS.DELETE_ROLE,
         hidden: (role: LimsRole) => Boolean(role.isRemoved),
+        disabled: isProtectedRole,
+        tooltip: (role) =>
+          isProtectedRole(role) ? PROTECTED_ROLE_TOOLTIP : "",
         onClick: (role) =>
           compliance.requestDelete({ mode: "ids", ids: [role.id] }, 1, [
             role.name
@@ -340,7 +374,7 @@ const LimsRoleList = () => {
   );
 
   return (
-    <div className="flex flex-col lg:h-[calc(100dvh-132px)] lg:min-h-0">
+    <div className="flex flex-col h-[calc(100dvh-132px)] min-h-0">
       <DataTable<LimsRole>
         table={table}
         columnDefs={columnDefs}
@@ -406,8 +440,9 @@ const LimsRoleList = () => {
             saving={bulkUpdate.isPending}
             entityLabel={t("limsRole")}
           />
-        ) : formMode !== "create" &&
-          (detailQuery.isLoading || detailQuery.isFetching) ? (
+        ) : formMode !== "create" && detailQuery.isLoading ? (
+          // isLoading only — isFetching would unmount this form (and any modal
+          // inside it, e.g. Manage) on every background refetch from invalidateAllLims.
           <div className="flex min-h-[300px] items-center justify-center p-10">
             <LoadingSpinner fullScreen={false} />
           </div>

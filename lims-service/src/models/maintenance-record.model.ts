@@ -3,7 +3,7 @@ import { sequelize } from "../configs/db.sequelize";
 
 /**
  * A maintenance row. Belongs to exactly one of instrument / instrument part —
- * enforced by a CHECK constraint, see migration 007.
+ * enforced by a CHECK constraint in the database.
  */
 export interface IMaintenanceRecord {
   id?: string;

@@ -2,12 +2,16 @@ import app from "./app";
 import ENV from "./utils/environment";
 import { sequelize } from "./configs/db.sequelize";
 import { logError, logInfo } from "./configs/logger.config";
+import { deleteCacheByPrefix, onRedisRecovered } from "./configs/redis.config";
 
 const PORT = ENV.PORT || 9000;
 
 const server = app.listen(PORT, () => {
   logInfo(`Server running on http://localhost:${PORT}`);
 });
+
+// Writes made while Redis was down could not clear what was cached before it went down.
+onRedisRecovered(() => deleteCacheByPrefix("locations:all:"));
 
 // A hung request with no timeout is the #1 cause of cascading failure. Fail fast.
 server.requestTimeout = 30_000; // 30s to receive the full request

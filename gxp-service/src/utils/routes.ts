@@ -4,6 +4,7 @@ const API_ROUTES = {
     v1: "/v1/api"
   },
   GXP_USERS: "/gxp-users",
+  GXP_ROLES: "/gxp-roles",
   GXP_SUPPLIERS: "/gxp-suppliers",
   GXP_ENVIRONMENTS: "/gxp-environments",
   GXP_APPLICATIONS: "/gxp-applications",

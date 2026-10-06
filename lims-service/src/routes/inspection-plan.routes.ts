@@ -2,7 +2,7 @@ import InspectionPlan from "../models/inspection-plan.model";
 import InspectionPersonnel from "../models/inspection-personnel.model";
 import Group from "../models/group.model";
 import LimsUser from "../models/lims-user.model";
-import Role from "../models/role.model";
+import { labRoleRefs } from "../services/lab-role.service";
 import {
   buildCrudRouter,
   buildCrudService,
@@ -34,12 +34,6 @@ export const inspectionPlanConfig: CrudConfig<InspectionPlan> = {
           model: LimsUser,
           as: "person",
           attributes: ["id", "userName", ["user_name", "name"]],
-          required: false
-        },
-        {
-          model: Role,
-          as: "role",
-          attributes: ["id", "roleId", "name"],
           required: false
         }
       ]
@@ -75,7 +69,27 @@ export const inspectionPlanConfig: CrudConfig<InspectionPlan> = {
   ]
 };
 
-const service = buildCrudService(inspectionPlanConfig);
+const base = buildCrudService(inspectionPlanConfig);
+
+/** A personnel row's Lab Role lives in backend, so its name is looked up there. */
+const withRoles = async <T>(plan: T): Promise<T> => {
+  const personnel = (plan as any)?.personnel as
+    Record<string, any>[] | undefined;
+  if (!personnel?.length) return plan;
+  const refs = await labRoleRefs(personnel.map((row) => row.roleId));
+  for (const row of personnel) {
+    row.role = row.roleId ? (refs.get(row.roleId) ?? null) : null;
+  }
+  return plan;
+};
+
+const service: typeof base = {
+  ...base,
+  getById: async (...args) => withRoles(await base.getById(...args)),
+  create: async (...args) => withRoles(await base.create(...args)),
+  update: async (...args) => withRoles(await base.update(...args)),
+  restore: async (...args) => withRoles(await base.restore(...args))
+};
 
 export default buildCrudRouter({
   service,

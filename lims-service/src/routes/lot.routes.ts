@@ -31,7 +31,13 @@ export const lotConfig: CrudConfig<Lot> = {
       model: Sample,
       as: "samples",
       attributes: ["id", "sampleId", "sampleName", ["sample_name", "name"]],
-      required: false
+      required: false,
+      // Joined in-line this could return (and JSON-serialize) every sample
+      // in the lot — one lot with 100k+ samples took ~9s. The list only
+      // ever renders a few as tags plus a "+N" overflow badge, so cap it;
+      // `separate` runs this as its own per-lot query instead of a join.
+      separate: true,
+      limit: 20
     }
   ],
   relationFields: { group: "groupId", batch: "batchId" },
@@ -51,7 +57,11 @@ export const lotConfig: CrudConfig<Lot> = {
       foreignKey: "lotId",
       fields: ["id"],
       matchKey: "id",
-      detachOnly: true
+      detachOnly: true,
+      // Capped to 20 for display (see the `samples` relation above) — a normal
+      // save must never diff this against the real count, only the dedicated
+      // .../children/samples attach/detach routes may change it.
+      manageOnly: true
     }
   ]
 };
@@ -66,7 +76,8 @@ const router = buildCrudRouter({
   updateDto: UpdateLotDto,
   model: Lot,
   businessId: lotConfig.businessId,
-  hasAttachments: true
+  hasAttachments: true,
+  children: lotConfig.children
 });
 
 export default attachCancelRoutes(router, {

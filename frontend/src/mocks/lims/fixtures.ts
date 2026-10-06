@@ -316,7 +316,7 @@ const studies: MockRow[] = [
 
 // --- Permissions — seeded, read-only catalog served by /lims-permissions --------
 // Mirrors how the real backend would seed this table (see
-// backend/src/migrations/012-seed-initial-data.ts for the pattern): one row per
+// backend/src/migrations/002-seed-reference-data.ts for the pattern): one row per
 // LIMS_PERMISSIONS entry. Roles only ever pick a subset of it; nothing here is
 // created or edited from the UI.
 export const limsPermissionCatalog: MockRow[] = Object.values(

@@ -1,5 +1,7 @@
 import { Model, DataTypes } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
+import { Group } from "./gxp-service-group.model";
+import { UserAccessGroup } from "./gxp-service-user-access-group.model";
 
 export interface IGxpUser {
   id: string;
@@ -12,6 +14,8 @@ export interface IGxpUser {
   modifiedBy?: string;
   status: "enabled" | "disabled";
   trainingCompleted: boolean;
+  /** Home group — the group implicitly stamped on records this user creates. */
+  groupId?: string | null;
 }
 
 export class GxpUser extends Model<IGxpUser> implements IGxpUser {
@@ -25,8 +29,10 @@ export class GxpUser extends Model<IGxpUser> implements IGxpUser {
   public modifiedBy!: string;
   public status!: "enabled" | "disabled";
   public trainingCompleted!: boolean;
+  public groupId!: string | null;
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
+  public accessGroups?: Group[];
 }
 
 GxpUser.init(
@@ -80,6 +86,11 @@ GxpUser.init(
       type: DataTypes.STRING,
       allowNull: true,
       field: "modified_by"
+    },
+    groupId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: "group_id"
     }
   },
   {
@@ -89,4 +100,27 @@ GxpUser.init(
     timestamps: true
   }
 );
+
+// Home group
+GxpUser.belongsTo(Group, { foreignKey: "group_id", as: "homeGroup" });
+Group.hasMany(GxpUser, { foreignKey: "group_id", as: "usersWithHomeGroup" });
+
+// Explicit access grants beyond the home group
+GxpUser.belongsToMany(Group, {
+  through: UserAccessGroup,
+  foreignKey: "gxp_user_id",
+  otherKey: "group_id",
+  as: "accessGroups"
+});
+Group.belongsToMany(GxpUser, {
+  through: UserAccessGroup,
+  foreignKey: "group_id",
+  otherKey: "gxp_user_id",
+  as: "usersWithAccess"
+});
+
+// Group hierarchy — access to a parent cascades to descendants (see expandGroupIds()).
+Group.belongsTo(Group, { as: "parentGroup", foreignKey: "parent_group_id" });
+Group.hasMany(Group, { as: "childGroups", foreignKey: "parent_group_id" });
+
 export default GxpUser;

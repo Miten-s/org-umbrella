@@ -51,7 +51,11 @@ export const authorize = (
       return res.status(401).json({ message: "Authentication required" });
     }
 
-    const context = await getUserContext(platformUserId);
+    // During a backend outage a read may use the last confirmed permissions; a write may
+    // not — see getUserContext's `allowGrace`.
+    const context = await getUserContext(platformUserId, {
+      allowGrace: action === "VIEW"
+    });
 
     // A valid platform token is not LIMS access. No lims_users row, no entry.
     if (!context) {

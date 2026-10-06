@@ -1,12 +1,9 @@
 import { Request, Response, NextFunction } from "express";
-import { isSuperAdmin } from "../utils/common.util";
+import { isSuperAdmin, getUserPermissionNames } from "../utils/common.util";
 
 export const checkPermissions = (requiredPermissions: string[] = []): any => {
   return (req: Request, res: Response, next: NextFunction) => {
-    const roles: any[] = (req.user as any)?.roles ?? [];
-    const userPermissions = roles.flatMap((role: any) =>
-      (role.permissions ?? []).map((permission: any) => permission.name)
-    );
+    const userPermissions = getUserPermissionNames(req.user as any);
 
     const hasSome = requiredPermissions.some((p) =>
       userPermissions.includes(p)
@@ -17,4 +14,17 @@ export const checkPermissions = (requiredPermissions: string[] = []): any => {
 
     next();
   };
+};
+
+/** Company setup has no dedicated permission code — treat it as Super-Admin-only,
+ * matching what the sidebar already assumes (gated behind OPERATE:ALL). */
+export const requireSuperAdmin = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  if (!isSuperAdmin(req.user as any)) {
+    return res.status(403).json({ error: "permission denied" });
+  }
+  next();
 };

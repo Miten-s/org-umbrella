@@ -1,10 +1,9 @@
 import { useAuth } from "@/context/AuthContext";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export default function UserMetaCard() {
   const { user } = useAuth();
-  const isSuperAdmin = user.roles?.some((role) =>
-    role.permissions?.some((permission) => permission.name === "OPERATE:ALL")
-  );
+  const { isSuperAdmin } = usePermissions();
 
   return (
     <>

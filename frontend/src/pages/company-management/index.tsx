@@ -8,6 +8,7 @@ import { Company } from "@/types/common.types";
 import CreateCompanyModal from "./CreateCompanyModal";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/lib/toast";
+import { ADMIN_PERMISSIONS } from "@/utils/permissions";
 
 const CompanyManagement = () => {
   const { refreshAuth } = useAuth();
@@ -58,7 +59,7 @@ const CompanyManagement = () => {
           </div>
           <div className="flex gap-2">
             <Button
-              permission="OPERATE:ALL"
+              permission={ADMIN_PERMISSIONS.OPERATE_ALL}
               onClick={() => {
                 setActiveCompany(companies || null);
                 openModal();

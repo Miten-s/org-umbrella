@@ -1,5 +1,5 @@
-/** GXP Role types (STANDARDS.md §1). Roles live on the admin `/roles` endpoint,
- *  filtered/created with type = RoleType.GXP_SERVICE. */
+/** GXP Role types (STANDARDS.md §1). Roles are served by gxp-service's `/gxp-roles`
+ *  and stored in backend. */
 export type RolePermissionRef =
   { id?: string; _id?: string; name?: string } | string;
 
@@ -15,7 +15,6 @@ export interface GxpRolePayload {
   name: string;
   /** permission ids */
   permissions: string[];
-  type: string;
 }
 
 /** A GXP permission option {id, name} used to map role permission names → ids. */

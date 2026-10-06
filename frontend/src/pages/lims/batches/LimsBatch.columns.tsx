@@ -2,6 +2,7 @@ import { AvatarCell } from "@/components/data/cells/AvatarCell";
 import { StatusPill } from "@/components/data/cells/StatusPill";
 import { TagListCell } from "@/components/data/cells/TagListCell";
 import { TruncateCell } from "@/components/data/cells/TruncateCell";
+import { fetchLimsLotList } from "@/pages/lims/lots/LimsLot.api";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import type { TFunction } from "i18next";
 import type { LimsBatch, LimsRef } from "./LimsBatch.types";
@@ -56,9 +57,26 @@ export const getLimsBatchColumns = ({
     cellRenderer: (params: ICellRendererParams<LimsBatch>) => (
       <TagListCell<LimsRef>
         items={params.data?.lots}
+        totalCount={params.data?.lotsCount}
         getLabel={(item) => refLabel(item)}
         getKey={(item) => item.id}
         tooltipHeaderLabel={t("limsLots")}
+        queryKey={["batches", params.data?.id, "lots"]}
+        fetchPage={async ({ search, page }) => {
+          const result = await fetchLimsLotList(false, {
+            page,
+            limit: 20,
+            search: search || undefined,
+            filters: { batchId: params.data?.id }
+          });
+          return {
+            ...result,
+            rows: result.rows.map((row) => ({
+              id: row.id,
+              name: row.lotName || row.lotId || ""
+            }))
+          };
+        }}
       />
     )
   },

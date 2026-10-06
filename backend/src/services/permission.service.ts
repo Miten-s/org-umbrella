@@ -4,6 +4,9 @@ import { Role } from "../models/role.model";
 import { PaginationOptions } from "../utils/pagination.util";
 import { Op } from "sequelize";
 import { sequelize } from "../configs/db.sequelize";
+import { publishRbacInvalidation } from "./rbac-invalidation.publisher";
+import { recordRbacChange } from "./rbac-audit.service";
+import { IUser } from "../models/user.model";
 
 const formatPermission = (perm: any) => {
   if (!perm) return null;
@@ -12,21 +15,88 @@ const formatPermission = (perm: any) => {
   return json;
 };
 
+/** The system-wide and service-scoped full-access sentinels — locked for everyone, Super
+ * Admin included, same as their matching roles in role.service.ts's PROTECTED_ROLE_NAMES.
+ * A new service's wildcard permission is a new migration, never an edit of an existing one. */
+const PROTECTED_PERMISSION_NAMES = new Set([
+  "OPERATE:ALL",
+  "GXP:OPERATE:ALL",
+  "LIMS:OPERATE:ALL"
+]);
+
+const assertNotProtectedPermission = (name: string) => {
+  if (PROTECTED_PERMISSION_NAMES.has(name)) {
+    throw Object.assign(
+      new Error(
+        `"${name}" is a protected system permission and cannot be modified or deleted.`
+      ),
+      { statusCode: 403 }
+    );
+  }
+};
+
 const createPermission = async (req: Request) => {
-  const doc = await Permission.create(req.body);
-  return formatPermission(doc);
+  // Wrapped in a transaction purely so the audit row cannot be lost if it fails: an
+  // unlogged permission change is not acceptable in a regulated system.
+  const t = await sequelize.transaction();
+  try {
+    const doc = await Permission.create(req.body, { transaction: t });
+    await recordRbacChange(
+      {
+        actor: req.user as IUser,
+        action: "PERMISSION_CREATE",
+        targetType: "permission",
+        targetId: doc.id,
+        targetName: doc.name,
+        afterState: { name: doc.name },
+        reason: req.body.changeReason ?? null
+      },
+      t
+    );
+    await t.commit();
+    await publishRbacInvalidation({ scope: "all" });
+    return formatPermission(doc);
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
 };
 
 const updatePermission = async (req: Request) => {
   const permission = await Permission.findByPk(req.params.id as string);
   if (!permission) return null;
-  await permission.update(req.body);
-  return formatPermission(permission);
+  assertNotProtectedPermission(permission.name);
+
+  const beforeState = { name: permission.name };
+  const t = await sequelize.transaction();
+  try {
+    await permission.update(req.body, { transaction: t });
+    await recordRbacChange(
+      {
+        actor: req.user as IUser,
+        action: "PERMISSION_UPDATE",
+        targetType: "permission",
+        targetId: permission.id,
+        targetName: permission.name,
+        beforeState,
+        afterState: { name: permission.name },
+        reason: req.body.changeReason ?? null
+      },
+      t
+    );
+    await t.commit();
+    await publishRbacInvalidation({ scope: "all" });
+    return formatPermission(permission);
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
 };
 
 const deletePermission = async (req: Request) => {
   const permission = await Permission.findByPk(req.params.id as string);
   if (!permission) return null;
+  assertNotProtectedPermission(permission.name);
 
   const t = await sequelize.transaction();
   try {
@@ -42,7 +112,21 @@ const deletePermission = async (req: Request) => {
       }
     );
 
+    await recordRbacChange(
+      {
+        actor: req.user as IUser,
+        action: "PERMISSION_DELETE",
+        targetType: "permission",
+        targetId: permission.id,
+        targetName: permission.name,
+        beforeState: { name: permission.name },
+        reason: (req.body?.changeReason as string) ?? null
+      },
+      t
+    );
+
     await t.commit();
+    await publishRbacInvalidation({ scope: "all" });
     return formatPermission(permission);
   } catch (error) {
     await t.rollback();
@@ -93,25 +177,72 @@ const getPermissions = async (options: PaginationOptions, type?: string) => {
   };
 };
 
-const bulkDeletePermissions = async (ids: string[]) => {
+const bulkDeletePermissions = async (ids: string[], actor?: IUser) => {
   const t = await sequelize.transaction();
   try {
-    // Soft delete permissions
-    await Permission.destroy({
-      where: { id: ids },
+    const protectedPermissions = await Permission.findAll({
+      where: { id: ids, name: [...PROTECTED_PERMISSION_NAMES] },
+      attributes: ["id", "name"],
+      transaction: t
+    });
+    const protectedIds = protectedPermissions.map(
+      (permission) => permission.id
+    );
+    const deletableIds = ids.filter((id) => !protectedIds.includes(id));
+
+    // A batch of ONLY protected permissions must be rejected outright, not silently
+    // no-op — an empty `deletableIds` would otherwise reach the raw `IN (:ids)` query
+    // below with nothing to interpolate, which is a SQL syntax error, not a clean failure.
+    if (deletableIds.length === 0 && ids.length > 0) {
+      const names = protectedPermissions.map((p) => `"${p.name}"`).join(", ");
+      throw Object.assign(
+        new Error(
+          `${names} ${protectedPermissions.length > 1 ? "are protected system permissions" : "is a protected system permission"} and cannot be modified or deleted.`
+        ),
+        { statusCode: 403 }
+      );
+    }
+
+    // Read before destroying — the audit trail needs what was there.
+    const doomed = await Permission.findAll({
+      where: { id: deletableIds },
+      attributes: ["id", "name"],
       transaction: t
     });
 
-    // Cascade: remove deleted permission refs from all role_permissions
-    await sequelize.query(
-      `DELETE FROM role_permissions WHERE permission_id IN (:ids)`,
-      {
-        replacements: { ids },
-        transaction: t
-      }
-    );
+    // Soft delete permissions
+    await Permission.destroy({
+      where: { id: deletableIds },
+      transaction: t
+    });
+
+    for (const permission of doomed) {
+      await recordRbacChange(
+        {
+          actor,
+          action: "PERMISSION_BULK_DELETE",
+          targetType: "permission",
+          targetId: permission.id,
+          targetName: permission.name,
+          beforeState: { name: permission.name }
+        },
+        t
+      );
+    }
+
+    if (deletableIds.length > 0) {
+      // Cascade: remove deleted permission refs from all role_permissions
+      await sequelize.query(
+        `DELETE FROM role_permissions WHERE permission_id IN (:ids)`,
+        {
+          replacements: { ids: deletableIds },
+          transaction: t
+        }
+      );
+    }
 
     await t.commit();
+    await publishRbacInvalidation({ scope: "all" });
     return { success: true, message: "Permissions deleted successfully" };
   } catch (err) {
     await t.rollback();
@@ -126,6 +257,9 @@ const bulkDuplicatePermissions = async (ids: string[], user?: any) => {
       where: { id: ids },
       transaction: t
     });
+    for (const permission of sourcePermissions) {
+      assertNotProtectedPermission(permission.name);
+    }
     if (!sourcePermissions || sourcePermissions.length === 0) {
       throw new Error("Permissions not found");
     }
@@ -174,9 +308,25 @@ const bulkDuplicatePermissions = async (ids: string[], user?: any) => {
       );
 
       duplicatedPermissions.push(savedPermission);
+
+      await recordRbacChange(
+        {
+          actor: user as IUser,
+          action: "PERMISSION_BULK_DUPLICATE",
+          targetType: "permission",
+          targetId: savedPermission.id,
+          targetName: savedPermission.name,
+          afterState: {
+            name: savedPermission.name,
+            duplicatedFrom: sourcePermission.id
+          }
+        },
+        t
+      );
     }
 
     await t.commit();
+    await publishRbacInvalidation({ scope: "all" });
     return duplicatedPermissions.map(formatPermission);
   } catch (error) {
     await t.rollback();

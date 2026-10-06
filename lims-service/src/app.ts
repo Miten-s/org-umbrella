@@ -3,7 +3,6 @@
 import "reflect-metadata";
 import express, { Application } from "express";
 import dotenv from "dotenv";
-import rateLimit from "express-rate-limit";
 
 dotenv.config();
 
@@ -17,6 +16,7 @@ import cookieParser from "cookie-parser";
 import { errorHandler } from "./middlewares/error.middleware";
 import { securityHeaders } from "./middlewares/security.middleware";
 import { requestContext } from "./middlewares/request-context.middleware";
+import { userRateLimiter } from "./middlewares/rate-limit.middleware";
 import commonRouter from "./routes/common.router";
 import { CUSTOM_MESSAGES } from "./utils/common.util";
 
@@ -28,6 +28,11 @@ app.disable("x-powered-by");
 // `filter[field]=value` (spec §3) needs the extended query parser so it lands
 // as a nested object (query.filter = { field: value }), not a flat string.
 app.set("query parser", "extended");
+
+// Behind the nginx gateway every request arrives from the proxy, so req.ip was the
+// proxy's address and the rate limiter below bucketed ALL users into a single quota.
+// Trust one hop so it keys on the real client via X-Forwarded-For, which nginx sets.
+app.set("trust proxy", 1);
 
 // Security headers + per-request correlation id & structured access log.
 app.use(securityHeaders);
@@ -73,14 +78,6 @@ app.get("/readyz", async (_req, res) => {
 
 // Rate limiter: 200 requests per minute per IP — LIMS pages fan out to more
 // endpoints per view (dropdown option fetches) than a typical CRUD screen.
-const userRateLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000,
-  max: 200,
-  keyGenerator: (req) => req.ip!,
-  handler: (_req, res) => {
-    return res.status(429).json({ message: CUSTOM_MESSAGES.TOO_MANY_REQUESTS });
-  }
-});
 
 app.use(userRateLimiter);
 

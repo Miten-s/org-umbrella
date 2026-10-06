@@ -35,6 +35,26 @@ export const fetchLimsLotList = async (
   return toListResult<LimsLot>(response.data, params, DATA_KEYS, RELATION_KEYS);
 };
 
+/**
+ * One-item attach/detach against a capped, manageOnly relation (see
+ * lot.routes.ts's `samples` child config) — never resend the whole set.
+ */
+export const attachLimsLotChild = async (
+  id: string,
+  field: string,
+  childId: string
+) => {
+  await limsApi.post(`${ROUTE}/${id}/children/${field}`, { id: childId });
+};
+
+export const detachLimsLotChild = async (
+  id: string,
+  field: string,
+  childId: string
+) => {
+  await limsApi.delete(`${ROUTE}/${id}/children/${field}/${childId}`);
+};
+
 /** Options for other modules selecting this entity. */
 export const fetchLimsLotOptions = async (
   args: { search: string; page: number },

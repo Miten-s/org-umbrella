@@ -4,6 +4,7 @@ import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { useAuth } from "@/context/AuthContext";
+import { usePermissions } from "@/hooks/usePermissions";
 import { updateUser } from "@/services/admin.service";
 import { toast } from "@/lib/toast";
 import { useGlobalContext } from "@/context";
@@ -34,9 +35,7 @@ export default function UserInfoCard() {
   console.log("user", user);
   const { t } = useTranslation();
   const { setReFetch, reFetch } = useGlobalContext();
-  const isSuperAdmin = user.roles?.some((role) =>
-    role.permissions?.some((permission) => permission.name === "OPERATE:ALL")
-  );
+  const { isSuperAdmin } = usePermissions();
   const {
     register,
     handleSubmit,

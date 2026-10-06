@@ -35,7 +35,13 @@ export const authenticate = async (
     };
 
     next();
-  } catch {
+  } catch (error) {
+    // Must match backend's wording exactly — the frontend interceptors branch on this
+    // string to tell a refreshable 401 from a fatal one.
+    if (error instanceof jwt.TokenExpiredError) {
+      res.status(401).json({ message: "Token Expired" });
+      return;
+    }
     res.status(401).json({ message: "Invalid or expired token" });
   }
 };

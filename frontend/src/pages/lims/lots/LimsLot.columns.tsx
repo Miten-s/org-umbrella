@@ -2,6 +2,7 @@ import { AvatarCell } from "@/components/data/cells/AvatarCell";
 import { StatusPill } from "@/components/data/cells/StatusPill";
 import { TagListCell } from "@/components/data/cells/TagListCell";
 import { TruncateCell } from "@/components/data/cells/TruncateCell";
+import { fetchLimsSampleList } from "@/pages/lims/samples/LimsSample.api";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import type { TFunction } from "i18next";
 import type { LimsLot, LimsRef } from "./LimsLot.types";
@@ -56,9 +57,29 @@ export const getLimsLotColumns = ({
     cellRenderer: (params: ICellRendererParams<LimsLot>) => (
       <TagListCell<LimsRef>
         items={params.data?.samples}
+        totalCount={params.data?.samplesCount}
         getLabel={(item) => refLabel(item)}
         getKey={(item) => item.id}
         tooltipHeaderLabel={t("limsSamples")}
+        queryKey={["lots", params.data?.id, "samples"]}
+        fetchPage={async ({ search, page }) => {
+          const result = await fetchLimsSampleList(false, {
+            page,
+            limit: 20,
+            search: search || undefined,
+            filters: { lotId: params.data?.id }
+          });
+          // Normalize to the same { id, name } shape as the capped preview
+          // (`samples`) so one `getLabel` works for both — the full Sample
+          // record uses `sampleName`, not `name`.
+          return {
+            ...result,
+            rows: result.rows.map((row) => ({
+              id: row.id,
+              name: row.sampleName || row.sampleId || ""
+            }))
+          };
+        }}
       />
     )
   },

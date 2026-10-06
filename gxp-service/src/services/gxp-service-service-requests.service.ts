@@ -10,6 +10,7 @@ import GxpServiceAppServiceModel from "../models/gxp-service-application-service
 import { resolveIds } from "./mixed-id-resolution.service";
 import GxpServiceApplicationModel from "../models/gxp-service-applications.model";
 import { PaginationOptions } from "../utils/pagination.util";
+import { AccessScope } from "../utils/access-scope.util";
 
 const extractSingleId = (field: unknown): string | undefined => {
   if (!field) return undefined;
@@ -207,15 +208,18 @@ export const createServiceRequest = async (
   return await repo.getServiceRequestById(newRequest.id);
 };
 
-export const fetchAllRequests = async (options: PaginationOptions) => {
-  return await repo.getAllServiceRequests(options);
+export const fetchAllRequests = async (
+  options: PaginationOptions,
+  scope?: AccessScope
+) => {
+  return await repo.getAllServiceRequests(options, scope);
 };
 
-export const fetchRequestById = async (id: string) => {
-  const serviceRequest = (await repo.getServiceRequestById(id)) as Record<
-    string,
-    any
-  > | null;
+export const fetchRequestById = async (id: string, scope?: AccessScope) => {
+  const serviceRequest = (await repo.getServiceRequestById(
+    id,
+    scope
+  )) as Record<string, any> | null;
   if (!serviceRequest) throw new Error("Service Request not found");
 
   // Ensure frontend always receives request type details under application.

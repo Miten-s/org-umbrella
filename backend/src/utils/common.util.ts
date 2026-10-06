@@ -1,5 +1,7 @@
+import { QueryTypes } from "sequelize";
 import { IUser } from "../models/user.model";
 import { AppError } from "../types/common.types";
+import { sequelize } from "../configs/db.sequelize";
 
 export const CUSTOM_MESSAGES = {
   ENTITY_CREATED: "{{ entity }} created successfully",
@@ -49,9 +51,35 @@ export const convertMongooseError = (message: {
   }
 };
 
+/** Every permission name across a user's roles, flattened. */
+export const getUserPermissionNames = (user?: any): string[] =>
+  (user?.roles ?? []).flatMap((role: any) =>
+    (role.permissions ?? []).map((permission: any) => permission.name)
+  );
+
+/** Super Admin is the `OPERATE:ALL` permission, not an account name — a renamed or
+ * re-emailed account must not lose (or a coincidentally-named one gain) the bypass. */
 export const isSuperAdmin = (user?: IUser) => {
   if (!user) return false;
-  return user.fullName === "superadmin";
+  return getUserPermissionNames(user).includes("OPERATE:ALL");
+};
+
+/** Every platform user id holding OPERATE:ALL — the query-level equivalent of `isSuperAdmin`,
+ * for filtering/protecting Super Admin accounts in list/bulk operations (e.g. excluding them
+ * from a manageable-users list, or refusing to bulk-delete/edit them) without relying on a
+ * display name. That protection previously matched on `fullName === "superadmin"`, which
+ * broke the moment the account was renamed — same bug `isSuperAdmin` above already fixed. */
+export const getSuperAdminUserIds = async (): Promise<string[]> => {
+  const rows = await sequelize.query<{ id: string }>(
+    `SELECT DISTINCT u.id
+       FROM users u
+       JOIN user_roles ur ON ur.user_id = u.id
+       JOIN role_permissions rp ON rp.role_id = ur.role_id
+       JOIN permissions p ON p.id = rp.permission_id
+      WHERE p.name = 'OPERATE:ALL'`,
+    { type: QueryTypes.SELECT }
+  );
+  return rows.map((row) => row.id);
 };
 
 export const isAppError = (error: unknown): error is AppError => {

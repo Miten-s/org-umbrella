@@ -19,6 +19,8 @@ export interface LimsBatch {
   batchName?: string;
   group?: LimsRef | null;
   lots?: LimsRef[];
+  /** True total behind `lots`, which the list endpoint caps at 20. */
+  lotsCount?: number;
   description?: string;
   attachments?: LimsAttachment[];
   isRemoved?: boolean;

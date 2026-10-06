@@ -6,8 +6,7 @@ import { getErrorMessage } from "./error.utils";
 // Exported so `getImageUrl` (utils.service.ts) derives attachment URLs from
 // this same value instead of re-declaring it — one env var to change for a
 // production deploy, not two things that can drift apart.
-export const BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:9002/v1/api";
+export const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/auth/v1/api";
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -90,11 +89,11 @@ api.interceptors.response.use(
       }
     }
 
-    if (
-      error.response?.status !== 404 &&
-      (error.response?.data as { message?: string })?.message !==
-        "Token not found"
-    ) {
+    // No token just means "not signed in yet" — the sign-in redirect handles it.
+    const data = error.response?.data as { message?: string; error?: string };
+    const isMissingToken =
+      error.response?.status === 401 && data?.error === "Token not found";
+    if (error.response?.status !== 404 && !isMissingToken) {
       toast(getErrorMessage(error), "error");
     }
     return Promise.reject(error);

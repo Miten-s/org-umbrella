@@ -23,29 +23,47 @@ import {
   BulkUpdateDto,
   BulkOperationDto
 } from "../dtos/common.dto";
+import { authorize } from "../middlewares/authorize.middleware";
 
 const router = Router();
+const can = (action: "VIEW" | "CREATE" | "UPDATE" | "DELETE") =>
+  authorize("APPLICATION_MODULE", action);
 
 // ---------------------------------------------------------------------------------------- GET Requests ----------------------------------------------------------------------------------------
 
-router.get(API_ROUTES.APPLICATION_MODULES.ROOT, getApplicationModules);
+router.get(
+  API_ROUTES.APPLICATION_MODULES.ROOT,
+  can("VIEW"),
+  getApplicationModules
+);
 
-router.get(API_ROUTES.APPLICATION_MODULES.BY_ID, getApplicationModuleById);
+router.get(
+  API_ROUTES.APPLICATION_MODULES.BY_ID,
+  can("VIEW"),
+  getApplicationModuleById
+);
 
 // ---------------------------------------------------------------------------------------- POST Requests ----------------------------------------------------------------------------------------
 
-router.post(API_ROUTES.APPLICATION_MODULES.ROOT, createApplicationModule);
+router.post(
+  API_ROUTES.APPLICATION_MODULES.ROOT,
+  can("CREATE"),
+  createApplicationModule
+);
 
 router.post(
   API_ROUTES.APPLICATION_MODULES.BULK_DELETE,
+  can("DELETE"),
   bulkDeleteApplicationModules
 );
 router.post(
   API_ROUTES.APPLICATION_MODULES.BULK_DUPLICATE,
+  can("CREATE"),
   bulkDuplicateApplicationModules
 );
 router.post(
   API_ROUTES.APPLICATION_MODULES.BULK_COPY,
+  can("CREATE"),
   validateDto(BulkCreateDto),
   validateDtoArray(CreateAppModuleDto, "records"),
   bulkCopyApplicationModules
@@ -59,24 +77,35 @@ router.post(
 // also runs unvalidated; only the batch-size cap applies here.
 router.patch(
   API_ROUTES.APPLICATION_MODULES.BULK_UPDATE,
+  can("UPDATE"),
   validateDto(BulkUpdateDto),
   bulkUpdateApplicationModules
 );
 router.patch(
   API_ROUTES.APPLICATION_MODULES.BULK_RESTORE,
+  can("UPDATE"),
   validateDto(BulkOperationDto),
   bulkRestoreApplicationModules
 );
 
-router.patch(API_ROUTES.APPLICATION_MODULES.BY_ID, updateAppplicationModule);
+router.patch(
+  API_ROUTES.APPLICATION_MODULES.BY_ID,
+  can("UPDATE"),
+  updateAppplicationModule
+);
 
 router.patch(
   API_ROUTES.APPLICATION_MODULES.STATUS_BY_ID,
+  can("UPDATE"),
   updateApplicationModuleStatus
 );
 
 // ---------------------------------------------------------------------------------------- DELETE Requests ----------------------------------------------------------------------------------------
 
-router.delete(API_ROUTES.APPLICATION_MODULES.BY_ID, deleteApplicationModule);
+router.delete(
+  API_ROUTES.APPLICATION_MODULES.BY_ID,
+  can("DELETE"),
+  deleteApplicationModule
+);
 
 export default router;
