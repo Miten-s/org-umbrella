@@ -73,7 +73,7 @@ export const reportPhraseHealth = async (): Promise<void> => {
         missing,
         empty,
         healthy,
-        fix: "npx ts-node src/scripts/seed-phrases.ts"
+        fix: "npm run db:migrate (migration 005-seed-system-pick-lists)"
       }
     );
   } catch (error) {

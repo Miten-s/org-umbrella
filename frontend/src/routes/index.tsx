@@ -64,6 +64,9 @@ const LIMSSpecificationsPage = lazy(
 const LIMSBatchesPage = lazy(() => import("../pages/lims/batches"));
 const LIMSLotsPage = lazy(() => import("../pages/lims/lots"));
 const LIMSSamplesPage = lazy(() => import("../pages/lims/samples"));
+const LIMSSamplesBulkPage = lazy(
+  () => import("../pages/lims/samples/LimsSampleBulkPage")
+);
 const LIMSTestsPage = lazy(() => import("../pages/lims/tests"));
 const LIMSResultsPage = lazy(() => import("../pages/lims/results"));
 const LIMSSchedulersPage = lazy(() => import("../pages/lims/schedulers"));
@@ -169,6 +172,11 @@ const LIMS_ROUTES: [
   [PageUrl.LIMSBatches, LIMS_PERMISSIONS.VIEW_BATCH, <LIMSBatchesPage />],
   [PageUrl.LIMSLots, LIMS_PERMISSIONS.VIEW_LOT, <LIMSLotsPage />],
   [PageUrl.LIMSSamples, LIMS_PERMISSIONS.VIEW_SAMPLE, <LIMSSamplesPage />],
+  [
+    PageUrl.LIMSSamplesBulk,
+    LIMS_PERMISSIONS.VIEW_SAMPLE,
+    <LIMSSamplesBulkPage />
+  ],
   [PageUrl.LIMSTests, LIMS_PERMISSIONS.VIEW_TEST, <LIMSTestsPage />],
   [PageUrl.LIMSResults, LIMS_PERMISSIONS.VIEW_RESULT, <LIMSResultsPage />],
   [

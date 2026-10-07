@@ -1,13 +1,12 @@
 import { useCallback, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { PageUrl } from "@/types/utils.types";
 import { useTranslation } from "react-i18next";
 
 import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
-import CopyStepper from "@/components/data/CopyStepper";
-import ViewStepper from "@/components/data/ViewStepper";
-import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
@@ -22,9 +21,7 @@ import AsyncSelect from "@/components/data/AsyncSelect";
 import Label from "@/components/common/form/Label";
 import { useBulkCreateFlow } from "@/hooks/useBulkCreateFlow";
 import { MAX_BULK_CREATE } from "@/lib/limsBulk";
-import { fetchLimsSampleTemplateById } from "@/pages/lims/sample-templates/LimsSampleTemplate.api";
 import { useLimsSampleTemplateOptions } from "@/pages/lims/sample-templates/LimsSampleTemplate.queries";
-import type { LimsSampleTemplate } from "@/pages/lims/sample-templates/LimsSampleTemplate.types";
 import {
   CopyIcon,
   EyeIcon,
@@ -53,30 +50,6 @@ import LimsSampleForm, { type LimsSampleFormMode } from "./LimsSampleForm";
 import type { LimsSample, LimsSamplePayload } from "./LimsSample.types";
 
 /** A Sample Template's values as a new sample's starting record (never linked back to it). */
-const sampleFromTemplate = (tpl: LimsSampleTemplate): LimsSample =>
-  ({
-    sampleType: tpl.sampleType ?? null,
-    project: tpl.project ?? null,
-    specification: tpl.specification ?? null,
-    location: tpl.location ?? null,
-    group: tpl.group ?? null,
-    lotNumber: tpl.lotNumber ?? "",
-    serialNumber: tpl.serialNumber ?? "",
-    loginDate: tpl.loginDate ?? "",
-    loginBy: tpl.loginBy ?? "",
-    sampleStartDate: tpl.sampleStartDate ?? "",
-    sampleStartBy: tpl.sampleStartBy ?? "",
-    description: tpl.description ?? "",
-    comments: tpl.comments ?? "",
-    tests: [...(tpl.tests ?? [])]
-      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-      .map((row) => ({
-        id: "",
-        analysisId: row.analysisId ?? row.analysis?.id,
-        testName: row.analysis?.name,
-        status: "Open"
-      }))
-  }) as unknown as LimsSample;
 
 /** LimsSample list — built to STANDARDS.md and the MIGRATION.md §5 definition of done. */
 const LimsSampleList = () => {
@@ -87,14 +60,10 @@ const LimsSampleList = () => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<LimsSampleFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
-  // Set instead of activeId/formMode while the Copy review flow is open.
-  const [copyIds, setCopyIds] = useState<string[] | null>(null);
-  const [viewIds, setViewIds] = useState<string[] | null>(null);
-  const [editIds, setEditIds] = useState<string[] | null>(null);
+  const navigate = useNavigate();
   const bulkFlow = useBulkCreateFlow<LimsSample>(fetchLimsSampleById);
   const { askCopy } = bulkFlow;
   const [templateId, setTemplateId] = useState("");
-  const [templateLoading, setTemplateLoading] = useState(false);
 
   const compliance = useLimsCompliance<LimsSample, LimsSamplePayload>();
   const auditQuery = useLimsSampleAudit(compliance.auditRow?.id);
@@ -147,79 +116,68 @@ const LimsSampleList = () => {
     [openModal]
   );
 
+  const bulkPage = (query: string) =>
+    navigate(`${PageUrl.LIMSSamplesBulk.path}?${query}`);
+
   const openCopy = useCallback(
-    (ids: string[]) => {
-      setCopyIds(ids);
-      openModal();
-    },
-    [openModal]
+    (ids: string[]) =>
+      navigate(
+        `${PageUrl.LIMSSamplesBulk.path}?mode=copy&ids=${ids.join(",")}`
+      ),
+    [navigate]
   );
 
   const openView = useCallback(
     (ids: string[]) => {
-      setViewIds(ids);
+      // Several samples open side by side on their own page; one keeps the modal.
+      if (ids.length > 1) {
+        navigate(
+          `${PageUrl.LIMSSamplesBulk.path}?mode=view&ids=${ids.join(",")}`
+        );
+        return;
+      }
+      setFormMode("view");
+      setActiveId(ids[0]);
       openModal();
     },
-    [openModal]
+    [openModal, navigate]
   );
 
   const openEdit = useCallback(
     (ids: string[]) => {
-      setEditIds(ids);
+      // Several samples open side by side on their own page; one keeps the modal.
+      if (ids.length > 1) {
+        navigate(
+          `${PageUrl.LIMSSamplesBulk.path}?mode=edit&ids=${ids.join(",")}`
+        );
+        return;
+      }
+      setFormMode("edit");
+      setActiveId(ids[0]);
       openModal();
     },
-    [openModal]
+    [openModal, navigate]
   );
 
   const handleCloseForm = () => {
     closeModal();
     setActiveId(null);
     setFormMode("create");
-    setCopyIds(null);
-    setViewIds(null);
-    setEditIds(null);
     bulkFlow.reset();
     setTemplateId("");
   };
 
   // "How many?" → 1 with no template is the ordinary single form (keeps attachments);
-  // anything else opens the stepper in bulk-create mode.
-  const confirmCreateCount = async (count: number) => {
+  // anything else opens the full-page grid with that many new rows.
+  const confirmCreateCount = (count: number) => {
     if (count === 1 && !templateId) {
       bulkFlow.reset();
       openForm("create", null);
       return;
     }
-    let start = {} as LimsSample;
-    if (templateId) {
-      setTemplateLoading(true);
-      try {
-        start = sampleFromTemplate(
-          await fetchLimsSampleTemplateById(templateId)
-        );
-      } finally {
-        setTemplateLoading(false);
-      }
-    }
-    bulkFlow.startCreate(count, start);
-  };
-
-  const handleSaveCreated = async (payloads: LimsSamplePayload[]) => {
-    await bulkCreate.mutateAsync(payloads);
+    const template = templateId ? `&template=${templateId}` : "";
     handleCloseForm();
-  };
-
-  const handleSaveCopies = async (payloads: LimsSamplePayload[]) => {
-    await bulkCopy.mutateAsync(payloads);
-    handleCloseForm();
-    table.clearSelection();
-  };
-
-  const handleSaveEdits = (
-    updates: { id: string; payload: LimsSamplePayload }[]
-  ) => {
-    handleCloseForm();
-    compliance.requestBulkUpdate(updates);
+    bulkPage(`mode=create&count=${count}${template}`);
   };
 
   const handleSave = async (payload: LimsSamplePayload, files: File[]) => {
@@ -463,7 +421,6 @@ const LimsSampleList = () => {
             hint={t("limsHowManyHint", { max: MAX_BULK_CREATE })}
             onCancel={handleCloseForm}
             onConfirm={confirmCreateCount}
-            busy={templateLoading}
           >
             <div>
               <Label tooltip={t("limsStartFromTemplateHint")}>
@@ -484,58 +441,11 @@ const LimsSampleList = () => {
             hint={t("limsHowManyCopyHint", { max: MAX_BULK_CREATE })}
             onCancel={handleCloseForm}
             onConfirm={(count) => {
-              if (bulkFlow.prompt?.kind === "copy")
-                bulkFlow.startCopy(bulkFlow.prompt.id, count);
+              if (bulkFlow.prompt?.kind !== "copy") return;
+              const id = bulkFlow.prompt.id;
+              handleCloseForm();
+              bulkPage(`mode=copy&ids=${Array(count).fill(id).join(",")}`);
             }}
-          />
-        ) : bulkFlow.createIds ? (
-          <CopyStepper<LimsSample, LimsSamplePayload, LimsSampleFormMode>
-            ids={bulkFlow.createIds}
-            fetchById={bulkFlow.fetchNew}
-            FormComponent={LimsSampleForm}
-            formMode="bulk-create"
-            onSaveAll={handleSaveCreated}
-            onClose={handleCloseForm}
-            saving={bulkCreate.isPending}
-            entityLabel={t("limsSample")}
-          />
-        ) : bulkFlow.copyIds ? (
-          <CopyStepper<LimsSample, LimsSamplePayload>
-            ids={bulkFlow.copyIds}
-            fetchById={bulkFlow.fetchSource}
-            FormComponent={LimsSampleForm}
-            onSaveAll={handleSaveCopies}
-            onClose={handleCloseForm}
-            saving={bulkCopy.isPending}
-            entityLabel={t("limsSample")}
-          />
-        ) : copyIds ? (
-          <CopyStepper<LimsSample, LimsSamplePayload>
-            ids={copyIds}
-            fetchById={fetchLimsSampleById}
-            FormComponent={LimsSampleForm}
-            onSaveAll={handleSaveCopies}
-            onClose={handleCloseForm}
-            saving={bulkCopy.isPending || bulkClone.isPending}
-            entityLabel={t("limsSample")}
-          />
-        ) : viewIds ? (
-          <ViewStepper<LimsSample>
-            ids={viewIds}
-            fetchById={fetchLimsSampleById}
-            FormComponent={LimsSampleForm}
-            onClose={handleCloseForm}
-            entityLabel={t("limsSample")}
-          />
-        ) : editIds ? (
-          <EditStepper<LimsSample, LimsSamplePayload>
-            ids={editIds}
-            fetchById={fetchLimsSampleById}
-            FormComponent={LimsSampleForm}
-            onSaveAll={handleSaveEdits}
-            onClose={handleCloseForm}
-            saving={bulkUpdate.isPending}
-            entityLabel={t("limsSample")}
           />
         ) : formMode !== "create" && detailQuery.isLoading ? (
           // isLoading only — isFetching would unmount this form (and any modal

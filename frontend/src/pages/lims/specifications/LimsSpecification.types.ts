@@ -20,6 +20,9 @@ export interface LimsLimitRow extends Record<string, unknown> {
    */
   analysisId?: string;
   componentId?: string;
+  /** The Test Group this limit was added through; unset for a template added on its own. */
+  sourceTestGroupId?: string | null;
+  sourceTestGroup?: { id: string; name?: string } | null;
   min?: string | number;
   max?: string | number;
   text?: string | number;

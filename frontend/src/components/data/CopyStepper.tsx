@@ -28,6 +28,8 @@ export interface CopyStepperFormProps<
   /** " (2 of 5)" appended to the form's own "Copy <Entity>" title when
    * there's more than one record — undefined for a single-record copy. */
   stepLabel?: string;
+  /** This record's position in the selection, for forms that share state across steps. */
+  stepIndex?: number;
 }
 
 export interface CopyStepperProps<
@@ -51,6 +53,9 @@ export interface CopyStepperProps<
   onClose: () => void;
   saving?: boolean;
   entityLabel: string;
+  /** Loads and mounts every step (hidden), e.g. while a cross-record editor changes steps
+   * the user never opened — Save all then sweeps them like visited ones. */
+  mountAll?: boolean;
   // Fast path for never-opened records: skip fetch+form+flatten and send their ids straight
   // to the module's existing server-side bulkDuplicate instead. Omit to always fetch+review.
   onDuplicateUnreviewed?: (ids: string[]) => Promise<void>;
@@ -75,7 +80,8 @@ function CopyStepper<TRecord, TPayload, TMode extends string = "copy">({
   onClose,
   saving = false,
   onDuplicateUnreviewed,
-  dropNeverOpened = false
+  dropNeverOpened = false,
+  mountAll = false
 }: CopyStepperProps<TRecord, TPayload, TMode>) {
   const { t } = useTranslation();
   // Per-step id (`${formId}-${i}`): more than one step can be mounted at once, so a shared id would be invalid HTML.
@@ -192,6 +198,29 @@ function CopyStepper<TRecord, TPayload, TMode extends string = "copy">({
 
   // Don't leave a stray timer behind if the modal closes mid-sweep.
   useEffect(() => () => clearSweep(), []);
+
+  useEffect(() => {
+    if (!mountAll) return;
+    let cancelled = false;
+    const all = Array.from({ length: total }, (_, i) => i);
+    Promise.allSettled(
+      all.map((i) =>
+        loadSource(i).catch(() => {
+          setSourceErrors((prev) => (prev.includes(i) ? prev : [...prev, i]));
+        })
+      )
+    ).then(() => {
+      if (!cancelled)
+        setVisited((prev) => [
+          ...prev,
+          ...all.filter((i) => !prev.includes(i))
+        ]);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mountAll, ids.join(",")]);
 
   const isMulti = total > 1;
   const isLast = index === total - 1;
@@ -368,7 +397,15 @@ function CopyStepper<TRecord, TPayload, TMode extends string = "copy">({
   };
 
   return (
-    <div className="relative">
+    // Each form caps its own height at the viewport; with the step footer below it the modal
+    // reached both screen edges, so a multi-step form's scroll area is shortened by the footer.
+    <div
+      className={
+        isMulti
+          ? "relative [&_.modal-scrollbar]:max-h-[calc(100dvh-12rem)]"
+          : "relative"
+      }
+    >
       {isMulti && (
         // Prev/Next chevrons, styled like the Modal's own close button; jumping to a
         // specific record lives in the numbered row down by Save all instead.
@@ -433,6 +470,7 @@ function CopyStepper<TRecord, TPayload, TMode extends string = "copy">({
                 }
                 submitLabel={isMulti ? t("next") : undefined}
                 formId={`${formId}-${i}`}
+                stepIndex={i}
                 stepLabel={
                   isMulti
                     ? ` ${t("copyStep", { current: i + 1, total })}`

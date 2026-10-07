@@ -10,6 +10,7 @@ export interface ISpecLimit {
   componentName?: string | null;
   analysisId?: string | null;
   componentId?: string | null;
+  sourceTestGroupId?: string | null;
   min?: string | null;
   max?: string | null;
   text?: string | null;
@@ -26,6 +27,7 @@ export class SpecLimit extends Model<ISpecLimit> implements ISpecLimit {
   public componentName!: string | null;
   public analysisId!: string | null;
   public componentId!: string | null;
+  public sourceTestGroupId!: string | null;
   public min!: string | null;
   public max!: string | null;
   public text!: string | null;
@@ -62,6 +64,11 @@ SpecLimit.init(
       type: DataTypes.UUID,
       allowNull: true,
       field: "component_id"
+    },
+    sourceTestGroupId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: "source_test_group_id"
     },
     min: { type: DataTypes.STRING(100), allowNull: true },
     max: { type: DataTypes.STRING(100), allowNull: true },

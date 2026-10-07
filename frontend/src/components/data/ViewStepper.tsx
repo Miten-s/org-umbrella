@@ -77,7 +77,15 @@ function ViewStepper<TRecord>({
     setIndex(Math.max(0, Math.min(total - 1, next)));
 
   return (
-    <div className="relative">
+    // Each form caps its own height at the viewport; with the step footer below it the modal
+    // reached both screen edges, so a multi-step form's scroll area is shortened by the footer.
+    <div
+      className={
+        isMulti
+          ? "relative [&_.modal-scrollbar]:max-h-[calc(100dvh-12rem)]"
+          : "relative"
+      }
+    >
       {isMulti && (
         <div className="absolute right-14 top-3 z-20 flex items-center gap-1 sm:right-20 sm:top-6">
           <button

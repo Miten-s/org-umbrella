@@ -32,6 +32,10 @@ export interface LimsSampleTest {
   testName?: string;
   status?: string;
   analysisId?: string;
+  sourceTestGroupId?: string | null;
+  sourceTestGroup?: { id: string; testGroupId?: string; name?: string } | null;
+  /** Returned instead of `components` on the sample detail; those load when a test is opened. */
+  componentCount?: number;
   components?: {
     id: string;
     componentId?: string;
@@ -92,7 +96,11 @@ export interface LimsSamplePayload {
   comments?: string;
   testWindows?: LimsTestWindowRow[];
   /** Test Templates to assign as new Tests. */
-  testTemplates?: string[];
+  testTemplates?: {
+    analysisId: string;
+    sourceTestGroupId?: string;
+    values?: Record<string, string>;
+  }[];
   keptAttachmentIds?: string[];
   changeReason?: string;
 }

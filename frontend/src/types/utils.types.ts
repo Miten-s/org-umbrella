@@ -287,6 +287,11 @@ export const PageUrl: PageUrlType = {
     matchPattern: /^\/lims\/samples$/i,
     pageTitle: "Samples"
   },
+  LIMSSamplesBulk: {
+    path: "/lims/samples/bulk",
+    matchPattern: /^\/lims\/samples\/bulk$/i,
+    pageTitle: "Samples"
+  },
   LIMSTests: {
     path: "/lims/tests",
     matchPattern: /^\/lims\/tests$/i,

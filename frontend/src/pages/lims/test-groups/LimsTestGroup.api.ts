@@ -6,6 +6,7 @@ import {
 } from "@/lib/query/listAdapter";
 import { bulkSelectionToBody, type BulkSelection } from "@/lib/query/listTypes";
 import type { ServerListParams } from "@/lib/query/listTypes";
+import type { LimsComponentRow } from "@/pages/lims/analyses/LimsAnalysis.types";
 import type {
   LimsTestGroup,
   LimsTestGroupPayload
@@ -161,4 +162,34 @@ export const fetchLimsTestGroupAudit = async (
     signal
   });
   return response.data;
+};
+
+export interface ExpandedTemplate {
+  id: string;
+  analysisId: string;
+  name: string;
+  componentCount: number;
+  approved: boolean;
+  /** Only with `includeComponents`. */
+  components?: LimsComponentRow[];
+}
+
+export interface ExpandedTestSources {
+  groups: {
+    id: string;
+    testGroupId: string;
+    name: string;
+    templates: ExpandedTemplate[];
+  }[];
+  templates: ExpandedTemplate[];
+}
+
+/** Picked Test Groups and Templates → their templates with component counts, in one request. */
+export const expandLimsTestSources = async (body: {
+  testGroupIds: string[];
+  analysisIds: string[];
+  includeComponents?: boolean;
+}) => {
+  const response = await limsApi.post(`${ROUTE}/expand`, body);
+  return response.data.data as ExpandedTestSources;
 };
