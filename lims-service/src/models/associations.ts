@@ -305,6 +305,11 @@ export const registerAssociations = () => {
     foreignKey: "specificationId",
     onDelete: "CASCADE"
   });
+  SpecLimit.belongsTo(TestGroup, {
+    as: "sourceTestGroup",
+    foreignKey: "sourceTestGroupId",
+    constraints: false
+  });
 
   // ─── Lab executions ──────────────────────────────────────────────────────
   // Batch → Lot → Sample → Test → Result.
@@ -343,6 +348,11 @@ export const registerAssociations = () => {
   Test.belongsTo(Group, { as: "group", foreignKey: "groupId" });
   Test.belongsTo(Sample, { as: "sample", foreignKey: "sampleId" });
   Test.belongsTo(Analysis, { as: "analysis", foreignKey: "analysisId" });
+  Test.belongsTo(TestGroup, {
+    as: "sourceTestGroup",
+    foreignKey: "sourceTestGroupId",
+    constraints: false
+  });
   Test.belongsTo(Instrument, { as: "instrument", foreignKey: "instrumentId" });
   Test.hasMany(Result, { as: "results", foreignKey: "testId" });
   // Test's own result-entry grid — reuses TestWindow (see test.routes.ts).

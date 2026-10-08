@@ -1,5 +1,7 @@
 import {
+  ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -50,6 +52,7 @@ export class LimitRowDto {
   // Set only when populated via the Limits grid's Analysis/Component picker.
   @IsOptional() @IsUUID("4") analysisId?: string;
   @IsOptional() @IsUUID("4") componentId?: string;
+  @IsOptional() @IsUUID("4") sourceTestGroupId?: string;
   @IsOptional() @IsString() @MaxLength(100) min?: string;
   @IsOptional() @IsString() @MaxLength(100) max?: string;
   @IsOptional() @IsString() @MaxLength(255) text?: string;
@@ -162,4 +165,23 @@ export class UpdateSpecificationDto {
   @IsArray()
   @IsString({ each: true })
   keptAttachmentIds?: string[];
+}
+
+/** Test Groups and/or Test Templates to expand for a sample's test picker. */
+export class ExpandTestSourcesDto {
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(1000)
+  @IsUUID("4", { each: true })
+  testGroupIds?: string[];
+
+  // Higher than groups: a Specification's editor resolves every template it already carries.
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(5000)
+  @IsUUID("4", { each: true })
+  analysisIds?: string[];
+
+  /** Also return each template's components (type, unit, list, default limits). */
+  @IsOptional() @IsBoolean() includeComponents?: boolean;
 }

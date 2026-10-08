@@ -27,3 +27,6 @@ deploy/
 dump.rdb
 # Output of backend/src/scripts/migrate-lims-roles.ts — contains user names and ids
 lims-role-migration-*.md
+
+# Browser-automation scratch output (console logs, snapshots, screenshots)
+.playwright-mcp/

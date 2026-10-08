@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
@@ -10,7 +10,9 @@ import TextArea from "@/components/common/form/input/TextArea";
 import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import SubFormGrid from "@/components/data/SubFormGrid";
-import SampleTestsPicker, { type PendingTemplate } from "./SampleTestsPicker";
+import SampleTestsPicker from "./SampleTestsPicker";
+import type { PendingTemplate } from "./sampleTests";
+import { useBulkStep, useSampleBulkTests } from "./sampleBulkStore";
 import LimsAttachmentsField from "@/components/lims/LimsAttachmentsField";
 import { useAttachments } from "@/hooks/useAttachments";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
@@ -58,6 +60,8 @@ interface LimsSampleFormProps {
   /** " (2 of 5)" appended after the title when Copy is reviewing more
    * than one record — undefined otherwise. */
   stepLabel?: string;
+  /** Position in a bulk stepper — ties this form's tests to the cross-sample compare grid. */
+  stepIndex?: number;
 }
 
 /** Seeds a dropdown label from the record's nested ref — no extra fetch. */
@@ -74,7 +78,8 @@ const LimsSampleForm = ({
   submitLabel,
   disabled = false,
   formId,
-  stepLabel
+  stepLabel,
+  stepIndex
 }: LimsSampleFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
@@ -95,16 +100,19 @@ const LimsSampleForm = ({
   );
   // A copy (or a template-filled new sample) gets the source's non-cancelled tests as fresh picks.
   const isNewRecord = mode === "copy" || mode === "bulk-create";
-  const [pendingTests, setPendingTests] = useState<PendingTemplate[]>(() =>
-    isNewRecord
-      ? (initialData?.tests ?? [])
-          .filter((test) => test.status !== "Cancelled" && test.analysisId)
-          .map((test) => ({
-            id: String(test.analysisId),
-            name: String(test.testName ?? ""),
-            componentCount: test.components?.length
-          }))
-      : []
+  const [localPendingTests, setLocalPendingTests] = useState<PendingTemplate[]>(
+    () =>
+      isNewRecord
+        ? (initialData?.tests ?? [])
+            .filter((test) => test.status !== "Cancelled" && test.analysisId)
+            .map((test) => ({
+              id: String(test.analysisId),
+              name: String(test.testName ?? ""),
+              componentCount: test.componentCount ?? test.components?.length,
+              sourceGroupId: test.sourceTestGroupId ?? undefined,
+              sourceGroupName: test.sourceTestGroup?.name
+            }))
+        : []
   );
 
   // Captured once per record — also the no-change baseline `submit` diffs
@@ -136,11 +144,35 @@ const LimsSampleForm = ({
     control,
     handleSubmit,
     setValue,
+    getValues,
     formState: { errors, isSubmitting }
   } = useForm<LimsSampleFormValues>({
     resolver: zodResolver(limsSampleSchema),
     defaultValues: initialValues
   });
+
+  // In a bulk stepper the tests live in a shared store, so the compare grid can edit them too.
+  const bulk = useSampleBulkTests();
+  const bulkStep = useBulkStep(bulk, stepIndex);
+  const existingTests = useMemo(
+    () => (isNewRecord ? [] : (initialData?.tests ?? [])),
+    [isNewRecord, initialData]
+  );
+  useEffect(() => {
+    if (!bulk || stepIndex === undefined) return;
+    bulk.store.register(
+      stepIndex,
+      { existing: existingTests, pending: localPendingTests },
+      () => getValues("sampleName")
+    );
+    // Registers once; the store owns this step's tests from then on.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bulk, stepIndex]);
+  const pendingTests = bulkStep?.pending ?? localPendingTests;
+  const setPendingTests = (next: PendingTemplate[]) =>
+    bulk && stepIndex !== undefined && bulkStep
+      ? bulk.store.setPending(new Map([[stepIndex, next]]))
+      : setLocalPendingTests(next);
 
   const description = useWatch({ control, name: "description" });
   const comments = useWatch({ control, name: "comments" });
@@ -205,7 +237,10 @@ const LimsSampleForm = ({
             {
               ...values,
               testWindows,
-              testTemplates: pendingTests.map((tpl) => tpl.id),
+              testTemplates: pendingTests.map((tpl) => ({
+                analysisId: tpl.id,
+                sourceTestGroupId: tpl.sourceGroupId
+              })),
               keptAttachmentIds: attachments.keptIds
             },
             attachments.newFiles
@@ -373,10 +408,22 @@ const LimsSampleForm = ({
           </div>
           <div className="col-span-full min-w-0">
             <SampleTestsPicker
-              existing={isNewRecord ? [] : (initialData?.tests ?? [])}
+              existing={existingTests}
               pending={pendingTests}
               onChange={setPendingTests}
               disabled={isReadOnly}
+              actions={
+                bulk && bulk.total > 1 && !isReadOnly ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-10.5 whitespace-nowrap"
+                    onClick={bulk.openCompare}
+                  >
+                    {t("limsCompareTests", { count: bulk.total })}
+                  </Button>
+                ) : null
+              }
             />
           </div>
           <div className="col-span-full min-w-0">

@@ -1,5 +1,5 @@
-/** The UNIT pick list: starting pharma/QC units, shared by `seed-phrases` and migration 002-seed-reference-data
- * so both paths insert identical `phrase_entry_id` keys. Labs can add their own afterwards. */
+/** The UNIT pick list: starting pharma/QC units, shared by migrations 002 and 005 and `seed-phrases`
+ * so every path inserts identical `phrase_entry_id` keys. Labs can add their own afterwards. */
 export const UNIT_PHRASE = {
   phrase: "UNIT",
   name: "Unit",

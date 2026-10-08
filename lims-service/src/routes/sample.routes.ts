@@ -13,10 +13,18 @@ import {
   buildCrudService,
   CrudConfig
 } from "../utils/crud-factory";
-import { CreateSampleDto, UpdateSampleDto } from "../dtos/execution.dto";
+import {
+  CreateSampleDto,
+  SampleComponentsQueryDto,
+  UpdateSampleDto
+} from "../dtos/execution.dto";
+import { authorize } from "../middlewares/authorize.middleware";
+import { validateDto } from "../middlewares/validate-dto.middleware";
+import { listSampleComponents } from "../services/test-components.service";
 import { attachCancelRoutes } from "../utils/cancel-routes";
 import Test from "../models/test.model";
 import { assignSampleTests } from "../services/sample-tests.service";
+import { sequelize } from "../configs/db.sequelize";
 
 /** Samples — 10k a day. `sampleId` is locked, always server-generated. Test Windows are NOT
  * nested — their own endpoint, since rewriting the whole grid on each save doesn't hold at volume. */
@@ -83,18 +91,32 @@ export const sampleConfig: CrudConfig<Sample> = {
       attributes: ["id", "stockBatchId", ["stock_batch_id", "name"]],
       required: false
     },
-    // Tests assigned at login, with their result rows — detail view only (see listExcludeRelations).
+    // Tests assigned at login — counts only; a test's result rows load when it's opened, so a
+    // sample with thousands of tests stays a small payload. Detail view only (listExcludeRelations).
     {
       model: Test,
       as: "tests",
       required: false,
-      attributes: ["id", "testId", "testName", "status", "analysisId"],
+      attributes: [
+        "id",
+        "testId",
+        "testName",
+        "status",
+        "analysisId",
+        "sourceTestGroupId",
+        [
+          sequelize.literal(
+            `(SELECT count(*)::int FROM lims_test_windows w WHERE w.test_id = "tests"."id")`
+          ),
+          "componentCount"
+        ]
+      ],
       include: [
         {
-          model: TestWindow,
-          as: "components",
+          model: TestGroup,
+          as: "sourceTestGroup",
           required: false,
-          attributes: ["id", "componentId", "componentName", "unit", "value"]
+          attributes: ["id", "testGroupId", "name"]
         }
       ]
     },
@@ -150,7 +172,7 @@ export const sampleConfig: CrudConfig<Sample> = {
   // Edit/View-only.
   listExcludeRelations: ["testWindows", "tests"],
 
-  // `testTemplates: string[]` → one Test (+ result rows) per template, in this save's transaction.
+  // `testTemplates: {analysisId, sourceTestGroupId?}[]` → one Test (+ result rows) per template, in this save's transaction.
   afterSave: assignSampleTests
 };
 
@@ -164,6 +186,14 @@ const router = buildCrudRouter({
   updateDto: UpdateSampleDto,
   hasAttachments: true
 });
+
+// Before the cancel routes so "/components" never reads as an id.
+router.post(
+  "/components",
+  authorize("SAMPLE", "VIEW"),
+  validateDto(SampleComponentsQueryDto),
+  listSampleComponents
+);
 
 export default attachCancelRoutes(router, {
   model: Sample,

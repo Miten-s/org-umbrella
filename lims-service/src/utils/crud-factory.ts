@@ -186,7 +186,7 @@ const applyPostFormat = (
 
 /** Fallback scope is CLOSED (no groups, no bypass) so a route accidentally mounted
  * without `authorize` returns nothing rather than everything. */
-const contextFromRequest = (req: Request): CrudContext => ({
+export const contextFromRequest = (req: Request): CrudContext => ({
   actor: { id: req.user?.id ?? "system", fullName: req.user?.fullName },
   scope: req.access
     ? {
@@ -310,7 +310,7 @@ const toColumns = <M extends Model>(
  * (ROLES_AND_ACCESS_MANAGEMENT.md), not "no access". `operateAll` is the separate, role-level
  * "ignore groups even if some are assigned" bypass — kept distinct from this. A NULL
  * `group_id` is global reference data (Phrases), visible to everyone regardless. */
-const groupWhere = <M extends Model>(
+export const groupWhere = <M extends Model>(
   model: ModelStatic<M>,
   scope: AccessScope
 ): WhereOptions => {

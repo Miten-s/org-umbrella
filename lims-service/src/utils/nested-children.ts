@@ -132,6 +132,13 @@ const assertClaimInScope = async (
   }
 };
 
+/** Keeps each multi-row statement well under Postgres' 65,535 bind-parameter limit. */
+const CHUNK = 1000;
+const chunks = <T>(items: T[]): T[][] =>
+  Array.from({ length: Math.ceil(items.length / CHUNK) }, (_, i) =>
+    items.slice(i * CHUNK, (i + 1) * CHUNK)
+  );
+
 /** Applies the incoming child set and returns what changed. `undefined` means "not
  * mentioned" — left alone. An empty array means "delete them all", a real instruction. */
 export const syncChildren = async (
@@ -153,6 +160,7 @@ export const syncChildren = async (
   const seen = new Set<string>();
 
   const delta: ChildDelta = { added: [], removed: [], changed: [] };
+  const toCreate: Record<string, any>[] = [];
 
   for (const raw of incoming) {
     const data = pick(raw, config.fields, config.relationFields);
@@ -185,30 +193,31 @@ export const syncChildren = async (
       }
     } else {
       const extra = config.extraFields ? config.extraFields(parent) : {};
-      await config.model.create(
-        { ...data, ...extra, [config.foreignKey]: parentId } as any,
-        { transaction }
-      );
+      toCreate.push({ ...data, ...extra, [config.foreignKey]: parentId });
       delta.added.push(data);
     }
   }
 
+  // Removed before inserting, and both in chunks — a grid can carry thousands of rows.
   const orphans = before.filter((row) => !seen.has(keyOf(row, config)));
-  for (const orphan of orphans) {
+  for (const ids of chunks(orphans.map((orphan) => orphan.id))) {
     if (config.detachOnly) {
       // Release, don't destroy — the record outlives this parent.
       await config.model.update({ [config.foreignKey]: null } as any, {
-        where: { id: orphan.id } as any,
+        where: { id: ids } as any,
         transaction
       });
     } else {
-      await config.model.destroy({
-        where: { id: orphan.id } as any,
-        transaction
-      });
+      await config.model.destroy({ where: { id: ids } as any, transaction });
     }
-    delta.removed.push(pick(orphan, config.fields, config.relationFields));
   }
+  for (const orphan of orphans)
+    delta.removed.push(pick(orphan, config.fields, config.relationFields));
+  for (const rows of chunks(toCreate))
+    await config.model.bulkCreate(rows as any[], {
+      transaction,
+      validate: true
+    });
 
   return {
     before,

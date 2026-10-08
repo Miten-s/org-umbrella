@@ -1,5 +1,7 @@
 import {
+  ArrayMaxSize,
   IsArray,
+  IsObject,
   IsBoolean,
   IsDateString,
   IsInt,
@@ -65,6 +67,14 @@ export class UpdateLotDto {
   keptAttachmentIds?: string[];
 }
 
+/** A Test Template to assign, and the Test Group it was picked through (if any). */
+export class TestAssignmentDto {
+  @IsUUID("4") analysisId!: string;
+  @IsOptional() @IsUUID("4") sourceTestGroupId?: string;
+  /** Initial result values by component ID, entered before the test existed. */
+  @IsOptional() @IsObject() values?: Record<string, string>;
+}
+
 /** One row of the result-entry grid on a Sample. Every field a client may send must be
  * declared — `whitelist: true` drops undeclared properties silently. */
 export class TestWindowRowDto {
@@ -116,8 +126,9 @@ export class CreateSampleDto {
   /** Test Templates to add as Tests; ones already on the sample are skipped. */
   @IsOptional()
   @IsArray()
-  @IsUUID("4", { each: true })
-  testTemplates?: string[];
+  @ValidateNested({ each: true })
+  @Type(() => TestAssignmentDto)
+  testTemplates?: TestAssignmentDto[];
 }
 export class UpdateSampleDto extends CreateSampleDto {
   @IsOptional() @IsString() changeReason?: string;
@@ -268,4 +279,33 @@ export class CreateSampleTemplateDto extends SampleTemplateFieldsDto {
 export class UpdateSampleTemplateDto extends SampleTemplateFieldsDto {
   @IsOptional() @IsString() @MaxLength(200) name?: string;
   @IsOptional() @IsString() changeReason?: string;
+}
+
+// ─── Test components across samples (bulk page) ─────────────────────────────
+export class SampleComponentsQueryDto {
+  @IsArray()
+  @ArrayMaxSize(100)
+  @IsUUID("4", { each: true })
+  sampleIds!: string[];
+}
+
+/** One test component's edited cells; only the keys sent are changed. */
+export class ComponentChangeDto {
+  @IsUUID("4") id!: string;
+  @IsOptional() @IsString() value?: string;
+  @IsOptional() @IsString() @MaxLength(50) unit?: string;
+  @IsOptional() @IsBoolean() outOfRange?: boolean;
+  @IsOptional() @IsDateString() enteredOn?: string;
+  @IsOptional() @IsString() @MaxLength(200) enteredBy?: string;
+  @IsOptional() @IsUUID("4") instrumentId?: string;
+}
+
+export class BulkComponentChangesDto {
+  @IsArray()
+  @ArrayMaxSize(50000)
+  @ValidateNested({ each: true })
+  @Type(() => ComponentChangeDto)
+  changes!: ComponentChangeDto[];
+
+  @IsString() @IsNotEmpty() changeReason!: string;
 }

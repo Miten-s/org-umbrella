@@ -74,7 +74,7 @@ module.exports = {
     // 3. Create Super Admin User
     const existingUser = await db.collection("users").findOne({ email: "superadmin@example.com" });
     if (!existingUser) {
-      const password = await bcrypt.hash("SuperAdmin@123", 10);
+      const password = await bcrypt.hash("SuperAdmin@1209", 10);
 
       await db.collection("users").insertOne({
         fullName: "superadmin",

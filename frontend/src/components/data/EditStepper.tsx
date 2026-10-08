@@ -23,6 +23,8 @@ export interface EditStepperFormProps<TRecord, TPayload> {
   disabled?: boolean;
   formId?: string;
   stepLabel?: string;
+  /** This record's position in the selection, for forms that share state across steps. */
+  stepIndex?: number;
 }
 
 export interface EditStepperProps<TRecord, TPayload> {
@@ -39,6 +41,9 @@ export interface EditStepperProps<TRecord, TPayload> {
   onClose: () => void;
   saving?: boolean;
   entityLabel: string;
+  /** Loads and mounts every step (hidden), e.g. while a cross-record editor changes steps
+   * the user never opened — Save all then sweeps them like visited ones. */
+  mountAll?: boolean;
 }
 
 /**
@@ -51,7 +56,8 @@ function EditStepper<TRecord, TPayload>({
   FormComponent,
   onSaveAll,
   onClose,
-  saving = false
+  saving = false,
+  mountAll = false
 }: EditStepperProps<TRecord, TPayload>) {
   const { t } = useTranslation();
   const formId = useId();
@@ -129,6 +135,25 @@ function EditStepper<TRecord, TPayload>({
   }, [index, sources]);
 
   useEffect(() => () => clearSweep(), []);
+
+  useEffect(() => {
+    if (!mountAll) return;
+    let cancelled = false;
+    const all = Array.from({ length: total }, (_, i) => i);
+    Promise.allSettled(
+      all.map((i) => loadSource(i).catch(() => undefined))
+    ).then(() => {
+      if (!cancelled)
+        setVisited((prev) => [
+          ...prev,
+          ...all.filter((i) => !prev.includes(i))
+        ]);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mountAll, ids.join(",")]);
 
   const isMulti = total > 1;
   const isLast = index === total - 1;
@@ -246,7 +271,15 @@ function EditStepper<TRecord, TPayload>({
   };
 
   return (
-    <div className="relative">
+    // Each form caps its own height at the viewport; with the step footer below it the modal
+    // reached both screen edges, so a multi-step form's scroll area is shortened by the footer.
+    <div
+      className={
+        isMulti
+          ? "relative [&_.modal-scrollbar]:max-h-[calc(100dvh-12rem)]"
+          : "relative"
+      }
+    >
       {isMulti && (
         <div className="absolute right-14 top-3 z-20 flex items-center gap-1 sm:right-20 sm:top-6">
           <button
@@ -298,6 +331,7 @@ function EditStepper<TRecord, TPayload>({
                 submitLabel={isMulti ? t("next") : undefined}
                 disabled={isMulti && i === total - 1}
                 formId={`${formId}-${i}`}
+                stepIndex={i}
                 stepLabel={
                   isMulti
                     ? ` ${t("editStep", { current: i + 1, total })}`

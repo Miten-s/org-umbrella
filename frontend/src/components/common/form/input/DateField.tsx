@@ -113,7 +113,13 @@ const DateField: FC<DateFieldProps> = ({
         onCalendarOpen={handleCalendarOpen}
         onCalendarClose={handleCalendarClose}
         disabled={disabled}
-        dateFormat={fmt.display}
+        // Day-first with any separator — the app shows dates as dd-mm-yyyy elsewhere, and a
+        // typed "07-10-2026" must not fall back to US month-first parsing.
+        dateFormat={
+          mode === "date"
+            ? [fmt.display, "dd-MM-yyyy", "dd.MM.yyyy"]
+            : fmt.display
+        }
         placeholderText={fmt.placeholder}
         className={inputClasses}
         autoComplete="off"

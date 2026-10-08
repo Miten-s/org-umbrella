@@ -150,7 +150,12 @@ const LimsSpecificationForm = ({
             return;
           }
           onSubmit(
-            { ...values, limits, keptAttachmentIds: attachments.keptIds },
+            {
+              ...values,
+              // The group's name is display-only; only its id is saved.
+              limits: limits.map(({ sourceTestGroup: _group, ...row }) => row),
+              keptAttachmentIds: attachments.keptIds
+            },
             attachments.newFiles
           );
         })}

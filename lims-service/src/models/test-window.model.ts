@@ -15,6 +15,9 @@ export interface ITestWindow {
   description?: string | null;
   value?: string | null;
   unit?: string | null;
+  componentType?: string | null;
+  componentList?: string | null;
+  componentOption?: string | null;
   outOfRange: boolean;
   enteredOn?: Date | string | null;
   enteredBy?: string | null;
@@ -32,6 +35,9 @@ export class TestWindow extends Model<ITestWindow> implements ITestWindow {
   public description!: string | null;
   public value!: string | null;
   public unit!: string | null;
+  public componentType!: string | null;
+  public componentList!: string | null;
+  public componentOption!: string | null;
   public outOfRange!: boolean;
   public enteredOn!: Date | string | null;
   public enteredBy!: string | null;
@@ -66,6 +72,22 @@ TestWindow.init(
     description: { type: DataTypes.TEXT, allowNull: true },
     value: { type: DataTypes.TEXT, allowNull: true },
     unit: { type: DataTypes.STRING(50), allowNull: true },
+    // Snapshot of the template component at assignment — drives the value editor.
+    componentType: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      field: "component_type"
+    },
+    componentList: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      field: "component_list"
+    },
+    componentOption: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      field: "component_option"
+    },
     outOfRange: {
       type: DataTypes.BOOLEAN,
       allowNull: false,

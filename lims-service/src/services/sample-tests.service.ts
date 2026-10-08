@@ -4,11 +4,23 @@ import AnalysisComponent from "../models/analysis-component.model";
 import PhraseEntry from "../models/phrase-entry.model";
 import Test from "../models/test.model";
 import TestWindow from "../models/test-window.model";
-import { applyBusinessId } from "../utils/business-id";
-import { writeAudit } from "../utils/audit.util";
+import { nextBusinessIds } from "../utils/business-id";
+import AuditLog from "../models/audit-log.model";
 import { APPROVED_ENTRY_KEY } from "../utils/approval-status";
 import { TEST_BUSINESS_ID } from "../configs/business-ids";
 import type { CrudContext } from "../utils/crud-factory";
+
+/** Keeps each multi-row INSERT well under Postgres' 65,535 bind-parameter limit. */
+const CHUNK = 1000;
+const chunks = <T>(items: T[]): T[][] =>
+  Array.from({ length: Math.ceil(items.length / CHUNK) }, (_, i) =>
+    items.slice(i * CHUNK, (i + 1) * CHUNK)
+  );
+
+const textOrNull = (value: unknown) =>
+  value === undefined || value === null || String(value).trim() === ""
+    ? null
+    : String(value);
 
 const reject = (message: string) =>
   Object.assign(new Error(message), { statusCode: 400 });
@@ -30,9 +42,19 @@ export const assignSampleTests = async ({
   ctx: CrudContext;
   transaction: Transaction;
 }) => {
-  const requested: string[] = Array.isArray(payload.testTemplates)
-    ? [...new Set<string>(payload.testTemplates.filter(Boolean))]
-    : [];
+  // First occurrence wins, so a template picked through two groups keeps the first one.
+  const sourceGroupOf = new Map<string, string | null>();
+  const valuesOf = new Map<string, Record<string, unknown>>();
+  for (const item of Array.isArray(payload.testTemplates)
+    ? payload.testTemplates
+    : []) {
+    if (item?.analysisId && !sourceGroupOf.has(item.analysisId)) {
+      sourceGroupOf.set(item.analysisId, item.sourceTestGroupId ?? null);
+      if (item.values && typeof item.values === "object")
+        valuesOf.set(item.analysisId, item.values);
+    }
+  }
+  const requested = [...sourceGroupOf.keys()];
   if (!requested.length) return;
 
   const already = new Set(
@@ -76,52 +98,80 @@ export const assignSampleTests = async ({
       );
   }
 
-  for (const id of toAdd) {
-    const analysis = byId.get(id)!;
-    const data = await applyBusinessId(
-      Test,
-      "TEST",
-      TEST_BUSINESS_ID,
-      {
-        testName: analysis.name,
-        sampleId: record.id,
-        analysisId: analysis.id,
-        groupId: record.groupId ?? null,
-        loginDate: record.loginDate ?? null,
-        loginBy: record.loginBy ?? null,
-        status: "Open"
-      },
-      transaction
-    );
-    const test = await Test.create(data as any, { transaction });
+  // Batched — a sample can get thousands of tests from hundreds of groups in one save.
+  const testIds = await nextBusinessIds(
+    Test,
+    "TEST",
+    TEST_BUSINESS_ID,
+    toAdd.length,
+    transaction
+  );
+  const tests = await Test.bulkCreate(
+    toAdd.map((id, index) => ({
+      testId: testIds[index],
+      testName: byId.get(id)!.name,
+      sampleId: record.id,
+      analysisId: id,
+      sourceTestGroupId: sourceGroupOf.get(id) ?? null,
+      groupId: record.groupId ?? null,
+      loginDate: record.loginDate ?? null,
+      loginBy: record.loginBy ?? null,
+      status: "Open"
+    })) as any[],
+    { transaction, returning: true }
+  );
 
-    const components = [
-      ...(((analysis as any).components ?? []) as AnalysisComponent[])
-    ].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
-    const rows = await TestWindow.bulkCreate(
-      components.map((component) => ({
+  const rowsByTest = new Map<string, TestWindow[]>();
+  const pendingRows = tests.flatMap((test) => {
+    const analysis = byId.get(test.analysisId!)!;
+    return [...(((analysis as any).components ?? []) as AnalysisComponent[])]
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+      .map((component) => ({
         sampleId: record.id,
         testId: test.id,
         analysisName: analysis.name,
         componentId: component.componentId,
         componentName: component.name,
         description: component.description,
-        unit: component.unit
+        unit: component.unit,
+        // Values typed on the bulk page before this test existed.
+        value: textOrNull(
+          valuesOf.get(analysis.id)?.[String(component.componentId)]
+        ),
+        componentType: component.type,
+        componentList: component.list,
+        componentOption: component.option
+      }));
+  });
+  for (const chunk of chunks(pendingRows)) {
+    for (const row of await TestWindow.bulkCreate(chunk as any[], {
+      transaction,
+      returning: true
+    })) {
+      const list = rowsByTest.get(row.testId!) ?? [];
+      list.push(row);
+      rowsByTest.set(row.testId!, list);
+    }
+  }
+
+  const changeReason = `Assigned to sample ${record.sampleId ?? ""}`.trim();
+  for (const chunk of chunks(tests)) {
+    await AuditLog.bulkCreate(
+      chunk.map((test) => ({
+        entityName: "Test",
+        entityId: test.id,
+        action: "CREATE",
+        oldValue: null,
+        newValue: {
+          ...test.toJSON(),
+          components: (rowsByTest.get(test.id) ?? []).map((row) => row.toJSON())
+        },
+        childChanges: null,
+        changeReason,
+        performedBy: ctx.actor.id,
+        performedByName: ctx.actor.fullName ?? null
       })) as any[],
       { transaction }
     );
-
-    await writeAudit({
-      entityName: "Test",
-      entityId: test.id,
-      action: "CREATE",
-      newValue: {
-        ...test.toJSON(),
-        components: rows.map((row) => row.toJSON())
-      },
-      changeReason: `Assigned to sample ${record.sampleId ?? ""}`.trim(),
-      actor: ctx.actor,
-      transaction
-    });
   }
 };

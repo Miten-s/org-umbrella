@@ -1,6 +1,7 @@
 import Specification from "../models/specification.model";
 import SpecLimit from "../models/spec-limit.model";
 import Group from "../models/group.model";
+import TestGroup from "../models/test-group.model";
 import {
   buildCrudRouter,
   buildCrudService,
@@ -23,7 +24,35 @@ export const specificationConfig: CrudConfig<Specification> = {
   defaultSortBy: "name",
   relations: [
     { model: Group, as: "group", attributes: ["id", "name"], required: false },
-    { model: SpecLimit, as: "limits", required: false }
+    {
+      model: SpecLimit,
+      as: "limits",
+      required: false,
+      // Only what the editor needs — a specification can carry ~11,000 limits.
+      attributes: [
+        "id",
+        "analysisName",
+        "componentName",
+        "analysisId",
+        "componentId",
+        "sourceTestGroupId",
+        "min",
+        "max",
+        "text",
+        "phrase",
+        "boolean",
+        "calculation",
+        "sortOrder"
+      ],
+      include: [
+        {
+          model: TestGroup,
+          as: "sourceTestGroup",
+          required: false,
+          attributes: ["id", "name"]
+        }
+      ]
+    }
   ],
   relationFields: { group: "groupId" },
 
@@ -43,6 +72,7 @@ export const specificationConfig: CrudConfig<Specification> = {
         "componentName",
         "analysisId",
         "componentId",
+        "sourceTestGroupId",
         "min",
         "max",
         "text",

@@ -159,6 +159,15 @@ export const SelectDropdown: React.FC<SelectDropdownProps> = ({
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter" || !search || !filteredOptions.length)
+                    return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onChange(filteredOptions[0].value);
+                  setOpen(false);
+                }}
+                autoFocus
                 placeholder="Search..."
                 className="w-full rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-2 py-2 text-sm text-gray-800 dark:text-gray-100 outline-none"
               />

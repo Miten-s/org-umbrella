@@ -105,6 +105,32 @@ export const validateSpecLimits = async (
   });
   const analysisById = new Map(analyses.map((a) => [a.id, a]));
 
+  // Every LIST answer checked in one query rather than one per row.
+  const listAnswers = linked.filter(
+    (row) =>
+      text(componentById.get(row.componentId)?.type) === "LIST" &&
+      text(row.phrase)
+  );
+  const validAnswers = new Set<string>();
+  if (listAnswers.length) {
+    const entries = await PhraseEntry.findAll({
+      where: {
+        phraseEntryId: {
+          [Op.in]: [...new Set(listAnswers.map((row) => text(row.phrase)))]
+        }
+      },
+      attributes: ["phraseEntryId"],
+      include: [
+        { model: Phrase, as: "phrase", attributes: ["phrase"], required: true }
+      ],
+      transaction
+    });
+    for (const entry of entries)
+      validAnswers.add(
+        `${(entry as any).phrase.phrase}|${entry.phraseEntryId}`
+      );
+  }
+
   for (const row of linked) {
     const component = componentById.get(row.componentId);
     const analysis = component && analysisById.get(component.analysisId);
@@ -148,22 +174,12 @@ export const validateSpecLimits = async (
         throw reject(`${label}: Min can't be greater than Max.`);
     }
 
-    if (type === "LIST" && text(row.phrase)) {
-      const entry = await PhraseEntry.findOne({
-        where: { phraseEntryId: text(row.phrase) },
-        include: [
-          {
-            model: Phrase,
-            as: "phrase",
-            where: { phrase: text(component.list) },
-            required: true
-          }
-        ],
-        transaction
-      });
-      if (!entry)
-        throw reject(`${label}: the acceptable answer isn't in that List.`);
-    }
+    if (
+      type === "LIST" &&
+      text(row.phrase) &&
+      !validAnswers.has(`${text(component.list)}|${text(row.phrase)}`)
+    )
+      throw reject(`${label}: the acceptable answer isn't in that List.`);
 
     if (
       type === "BOOLEAN" &&

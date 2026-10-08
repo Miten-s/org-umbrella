@@ -59,7 +59,9 @@ app.use(cookieParser());
 connectDB();
 connectRedis();
 
-app.use(express.json());
+// Above the 100kb default: a sample or specification with hundreds of Test Groups sends
+// thousands of rows (~11,000 spec limits is ~3 MB).
+app.use(express.json({ limit: "10mb" }));
 
 // Liveness — is the process up (no dependencies checked).
 app.get(API_ROUTES.HEALTH, (_req, res) => {

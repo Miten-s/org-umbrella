@@ -11,6 +11,7 @@ export interface ITest {
   testName?: string | null;
   sampleId: string;
   analysisId?: string | null;
+  sourceTestGroupId?: string | null;
   instrumentId?: string | null;
   replicateCount?: number | null;
   loginDate?: Date | string | null;
@@ -32,6 +33,7 @@ export class Test extends Model<ITest> implements ITest {
   public testName!: string | null;
   public sampleId!: string;
   public analysisId!: string | null;
+  public sourceTestGroupId!: string | null;
   public instrumentId!: string | null;
   public replicateCount!: number | null;
   public loginDate!: Date | string | null;
@@ -67,6 +69,11 @@ Test.init(
     },
     sampleId: { type: DataTypes.UUID, allowNull: false, field: "sample_id" },
     analysisId: { type: DataTypes.UUID, allowNull: true, field: "analysis_id" },
+    sourceTestGroupId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: "source_test_group_id"
+    },
     instrumentId: {
       type: DataTypes.UUID,
       allowNull: true,

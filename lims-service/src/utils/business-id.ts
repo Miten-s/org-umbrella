@@ -78,6 +78,51 @@ export const nextBusinessId = async <M extends Model>(
   );
 };
 
+/** `count` fresh business IDs in one counter bump plus one collision check; a number already
+ * taken by a hand-entered ID is replaced through the one-at-a-time path. */
+export const nextBusinessIds = async <M extends Model>(
+  model: ModelStatic<M>,
+  entity: string,
+  config: BusinessIdConfig,
+  count: number,
+  transaction?: Transaction
+): Promise<string[]> => {
+  if (count <= 0) return [];
+  const [row] = await sequelize.query<{ last_value: string }>(
+    `INSERT INTO lims_id_sequences (entity, prefix, last_value, created_at, updated_at)
+     VALUES (:entity, :prefix, :count, NOW(), NOW())
+     ON CONFLICT (entity) DO UPDATE
+       SET last_value = lims_id_sequences.last_value + :count, updated_at = NOW()
+     RETURNING last_value`,
+    {
+      replacements: { entity, prefix: config.prefix, count },
+      type: QueryTypes.SELECT,
+      transaction
+    }
+  );
+  const first = Number(row.last_value) - count + 1;
+  const candidates = Array.from({ length: count }, (_, i) =>
+    formatBusinessId(config.prefix, first + i, config.pad)
+  );
+
+  const taken = new Set(
+    (
+      await model.findAll({
+        where: { [config.field]: candidates } as any,
+        attributes: [config.field],
+        transaction,
+        paranoid: false,
+        raw: true
+      })
+    ).map((r) => (r as unknown as Record<string, string>)[config.field])
+  );
+  for (let i = 0; i < candidates.length; i += 1) {
+    if (taken.has(candidates[i]))
+      candidates[i] = await nextBusinessId(model, entity, config, transaction);
+  }
+  return candidates;
+};
+
 /** The value the create form should pre-fill, without consuming it — two users opening the
  * form at once may see the same suggestion; a resulting 409 beats gaps from unclaimed forms. */
 export const peekBusinessId = async <M extends Model>(
