@@ -14,6 +14,8 @@ export interface ITest {
   sourceTestGroupId?: string | null;
   instrumentId?: string | null;
   replicateCount?: number | null;
+  /** 1 for a template's first test on a sample, 2+ for its repeats (Avg Wt/2). */
+  repeatNumber?: number;
   loginDate?: Date | string | null;
   loginBy?: string | null;
   description?: string | null;
@@ -36,6 +38,7 @@ export class Test extends Model<ITest> implements ITest {
   public sourceTestGroupId!: string | null;
   public instrumentId!: string | null;
   public replicateCount!: number | null;
+  public repeatNumber!: number;
   public loginDate!: Date | string | null;
   public loginBy!: string | null;
   public description!: string | null;
@@ -83,6 +86,12 @@ Test.init(
       type: DataTypes.INTEGER,
       allowNull: true,
       field: "replicate_count"
+    },
+    repeatNumber: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 1,
+      field: "repeat_number"
     },
     loginDate: { type: DataTypes.DATE, allowNull: true, field: "login_date" },
     loginBy: {

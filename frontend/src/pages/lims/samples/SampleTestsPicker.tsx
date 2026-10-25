@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import Label from "@/components/common/form/Label";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import Button from "@/components/ui/button/Button";
-import { ChevronDownIcon, TrashBinIcon } from "@/public/icons";
+import { ChevronDownIcon, PlusIcon, TrashBinIcon } from "@/public/icons";
 import { toast } from "@/lib/toast";
 import {
   GROUP_PREFIX,
@@ -16,7 +16,15 @@ import { expandLimsTestSources } from "@/pages/lims/test-groups/LimsTestGroup.ap
 import { fetchLimsTestById } from "@/pages/lims/tests/LimsTest.api";
 import type { LimsResultRow } from "@/pages/lims/tests/LimsTest.types";
 import type { LimsSampleTest } from "./LimsSample.types";
-import { applyExpansion, type PendingTemplate } from "./sampleTests";
+import {
+  addRepeat,
+  applyExpansion,
+  runLabel,
+  slotOfPending,
+  type PendingTemplate
+} from "./sampleTests";
+import { displayValue } from "@/pages/lims/analyses/componentValueText";
+import { usePickLists } from "@/pages/lims/analyses/usePickListOptions";
 
 const BADGE_TONES = {
   success:
@@ -53,6 +61,8 @@ interface SampleTestsPickerProps {
   markNew?: boolean;
   /** Shown beside the label, e.g. the bulk flows' "Compare tests across samples". */
   actions?: React.ReactNode;
+  /** Offer "+ Repeat" to run a template again on this sample (Avg Wt/2). */
+  allowRepeats?: boolean;
 }
 
 const INDIVIDUAL = "__individual";
@@ -87,9 +97,11 @@ const SampleTestsPicker = ({
   onChange,
   disabled = false,
   markNew = true,
-  actions
+  actions,
+  allowRepeats = false
 }: SampleTestsPickerProps) => {
   const { t } = useTranslation();
+  const { data: pickLists } = usePickLists();
   const [staged, setStaged] = useState<string[]>([]);
   const [adding, setAdding] = useState(false);
   const [search, setSearch] = useState("");
@@ -128,6 +140,32 @@ const SampleTestsPicker = ({
     byKey.delete(INDIVIDUAL);
     return individual ? [...byKey.values(), individual] : [...byKey.values()];
   }, [existing, pending, t]);
+
+  // Templates with more than one run show every run numbered: Avg Wt/1, Avg Wt/2.
+  const repeated = useMemo(() => {
+    const runs = new Map<string, number>();
+    for (const id of [
+      ...existing
+        .filter((test) => test.status !== "Cancelled")
+        .map((test) => String(test.analysisId ?? "")),
+      ...pending.map((tpl) => tpl.id)
+    ])
+      runs.set(id, (runs.get(id) ?? 0) + 1);
+    return new Set([...runs].filter(([, n]) => n > 1).map(([id]) => id));
+  }, [existing, pending]);
+  const repeatOf = (template: Omit<PendingTemplate, "repeatNumber">) =>
+    onChange(addRepeat(existing, pending, template).pending);
+  const repeatButton = (template: Omit<PendingTemplate, "repeatNumber">) =>
+    allowRepeats && !disabled ? (
+      <button
+        type="button"
+        title={t("limsAddRepeatHint")}
+        onClick={() => repeatOf(template)}
+        className="inline-flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 text-xs text-brand-600 hover:bg-brand-50 dark:text-brand-400"
+      >
+        <PlusIcon className="h-3 w-3" /> {t("limsAddRepeat")}
+      </button>
+    ) : null;
 
   const totals = useMemo(() => {
     const activeExisting = existing.filter(
@@ -193,7 +231,7 @@ const SampleTestsPicker = ({
           });
       }
       for (const tpl of tpls)
-        out.push({ kind: "pending", key: `p:${tpl.id}`, tpl });
+        out.push({ kind: "pending", key: `p:${slotOfPending(tpl)}`, tpl });
     }
     return out;
   }, [buckets, search, groupOpen, openTests, loaded, totals.tests, t]);
@@ -262,13 +300,16 @@ const SampleTestsPicker = ({
       const result = applyExpansion(existing, pending, expansion);
       if (result.added) onChange(result.pending);
       setStaged([]);
-      toast(
-        t("limsTestsAddedSummary", {
-          count: result.added,
-          duplicates: result.duplicates
-        }),
-        result.added ? "success" : "info"
-      );
+      if (!result.added && result.duplicates && allowRepeats)
+        toast(t("limsAlreadyOnSampleUseRepeat"), "info", { duration: 6000 });
+      else
+        toast(
+          t("limsTestsAddedSummary", {
+            count: result.added,
+            duplicates: result.duplicates
+          }),
+          result.added ? "success" : "info"
+        );
       if (result.skipped.length)
         toast(
           t("limsSkippedNotApproved", { names: result.skipped.join(", ") }),
@@ -283,8 +324,8 @@ const SampleTestsPicker = ({
   };
 
   const removeBucket = (bucket: Bucket) => {
-    const ids = new Set(bucket.pending.map((tpl) => tpl.id));
-    onChange(pending.filter((tpl) => !ids.has(tpl.id)));
+    const slots = new Set(bucket.pending.map(slotOfPending));
+    onChange(pending.filter((tpl) => !slots.has(slotOfPending(tpl))));
   };
 
   const renderRow = (row: Row) => {
@@ -342,26 +383,43 @@ const SampleTestsPicker = ({
       case "existing": {
         const { test, open } = row;
         return (
-          <button
-            type="button"
-            aria-expanded={open}
-            onClick={() => toggleTest(test)}
-            className="flex h-full w-full items-center gap-3 border-b border-gray-100 pl-8 pr-3 text-left text-sm dark:border-gray-800"
-          >
-            <ChevronDownIcon
-              className={`h-3.5 w-3.5 shrink-0 text-gray-400 transition-transform ${open ? "" : "-rotate-90"}`}
-            />
-            <span className="shrink-0 font-medium">{test.testId}</span>
-            <span className="flex-1 truncate">{test.testName}</span>
-            <span className="shrink-0 text-xs text-gray-500">
-              {t("limsComponentsCount", {
-                count: componentCountOf(test)
-              })}
-            </span>
+          <div className="flex h-full w-full items-center gap-2 border-b border-gray-100 pr-3 text-sm dark:border-gray-800">
+            <button
+              type="button"
+              aria-expanded={open}
+              onClick={() => toggleTest(test)}
+              className="flex h-full min-w-0 flex-1 items-center gap-3 pl-8 text-left"
+            >
+              <ChevronDownIcon
+                className={`h-3.5 w-3.5 shrink-0 text-gray-400 transition-transform ${open ? "" : "-rotate-90"}`}
+              />
+              <span className="shrink-0 font-medium">{test.testId}</span>
+              <span className="flex-1 truncate">
+                {runLabel(
+                  String(test.testName ?? ""),
+                  test.repeatNumber,
+                  repeated.has(String(test.analysisId ?? ""))
+                )}
+              </span>
+              <span className="shrink-0 text-xs text-gray-500">
+                {t("limsComponentsCount", {
+                  count: componentCountOf(test)
+                })}
+              </span>
+            </button>
             <Badge tone={test.status === "Cancelled" ? "error" : "neutral"}>
               {test.status}
             </Badge>
-          </button>
+            {test.status !== "Cancelled" && test.analysisId
+              ? repeatButton({
+                  id: String(test.analysisId),
+                  name: String(test.testName ?? ""),
+                  componentCount: componentCountOf(test),
+                  sourceGroupId: test.sourceTestGroupId ?? undefined,
+                  sourceGroupName: test.sourceTestGroup?.name
+                })
+              : null}
+          </div>
         );
       }
       case "pending": {
@@ -369,17 +427,32 @@ const SampleTestsPicker = ({
         return (
           <div className="flex h-full items-center gap-3 border-b border-gray-100 pl-8 pr-3 text-sm dark:border-gray-800">
             {markNew ? <Badge tone="success">{t("limsNewTest")}</Badge> : null}
-            <span className="flex-1 truncate">{tpl.name}</span>
+            <span className="flex-1 truncate">
+              {runLabel(tpl.name, tpl.repeatNumber, repeated.has(tpl.id))}
+            </span>
             {tpl.componentCount !== undefined ? (
               <span className="shrink-0 text-xs text-gray-500">
                 {t("limsComponentsCount", { count: tpl.componentCount })}
               </span>
             ) : null}
+            {repeatButton({
+              id: tpl.id,
+              name: tpl.name,
+              componentCount: tpl.componentCount,
+              sourceGroupId: tpl.sourceGroupId,
+              sourceGroupName: tpl.sourceGroupName
+            })}
             {!disabled ? (
               <button
                 type="button"
                 aria-label={`${t("delete")} ${tpl.name}`}
-                onClick={() => onChange(pending.filter((p) => p.id !== tpl.id))}
+                onClick={() =>
+                  onChange(
+                    pending.filter(
+                      (p) => slotOfPending(p) !== slotOfPending(tpl)
+                    )
+                  )
+                }
                 className="rounded p-1 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
               >
                 <TrashBinIcon className="h-4 w-4" />
@@ -403,7 +476,17 @@ const SampleTestsPicker = ({
             </span>
             <span className="truncate">{component.componentName}</span>
             <span className="truncate text-gray-500">{component.unit}</span>
-            <span className="truncate">{component.value || "—"}</span>
+            <span className="truncate">
+              {displayValue(
+                {
+                  type: component.componentType as string | null,
+                  list: component.componentList as string | null,
+                  option: component.componentOption as string | null
+                },
+                String(component.value ?? ""),
+                pickLists
+              ) || "—"}
+            </span>
           </div>
         );
       }

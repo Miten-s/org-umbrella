@@ -190,17 +190,19 @@ const formatWhen = (value?: string | null) => {
     : parsed.toLocaleString();
 };
 
-/** Read-only audit trail for a single record, shared by every LIMS module. */
-const AuditTrailDialog = ({
-  isOpen,
-  onClose,
-  recordLabel,
+type AuditTrailTableProps = Omit<
+  AuditTrailDialogProps,
+  "isOpen" | "onClose" | "recordLabel"
+>;
+
+/** The audit entries table on its own — the dialog uses it, and so does the sample workspace. */
+export const AuditTrailTable = ({
   entries,
   loading = false,
   hasNextPage = false,
   isFetchingNextPage = false,
   onLoadMore
-}: AuditTrailDialogProps) => {
+}: AuditTrailTableProps) => {
   const { t } = useTranslation();
 
   const headers = [
@@ -213,6 +215,85 @@ const AuditTrailDialog = ({
     t("limsAuditWhy")
   ];
 
+  if (loading) return <TableSkeleton rows={5} columns={headers.length} />;
+  if (!entries.length) return <EmptyState title={t("limsNoAuditEntries")} />;
+  return (
+    <>
+      {/* Bounded so the table scrolls internally rather than growing the modal past the viewport. */}
+      <div className="max-h-[380px] overflow-auto">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800">
+            <tr>
+              {headers.map((header) => (
+                <th
+                  key={header}
+                  className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300"
+                >
+                  {header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-900">
+            {entries.flatMap((entry) =>
+              diffEntry(entry).map((row, index) => (
+                <tr key={row.key}>
+                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                    {index === 0 ? (entry.who ?? "") : ""}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                    {index === 0 ? formatWhen(entry.when) : ""}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                    {index === 0 ? entry.action : ""}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                    {row.field}
+                  </td>
+                  <td className="max-w-xs px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                    <ClampedText value={row.oldValue} />
+                  </td>
+                  <td className="max-w-xs px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                    <ClampedText value={row.newValue} />
+                  </td>
+                  <td className="max-w-xs px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                    {index === 0 ? (
+                      <ClampedText value={entry.changeReason ?? ""} />
+                    ) : (
+                      ""
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+      {hasNextPage ? (
+        <div className="flex justify-center pt-3">
+          <Button
+            variant="outline"
+            size="sm"
+            loading={isFetchingNextPage}
+            disabled={isFetchingNextPage}
+            onClick={() => onLoadMore?.()}
+          >
+            {t("limsAuditLoadMore")}
+          </Button>
+        </div>
+      ) : null}
+    </>
+  );
+};
+
+/** Read-only audit trail for a single record, shared by every LIMS module. */
+const AuditTrailDialog = ({
+  isOpen,
+  onClose,
+  recordLabel,
+  ...table
+}: AuditTrailDialogProps) => {
+  const { t } = useTranslation();
   return (
     <Modal
       isOpen={isOpen}
@@ -223,78 +304,7 @@ const AuditTrailDialog = ({
         <h2 className="mb-4 text-xl font-semibold">
           {t("limsAuditFor", { name: recordLabel ?? "" })}
         </h2>
-
-        {loading ? (
-          <TableSkeleton rows={5} columns={headers.length} />
-        ) : entries.length ? (
-          <>
-            {/* Bounded so the table scrolls internally rather than growing the modal past the viewport. */}
-            <div className="max-h-[380px] overflow-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800">
-                  <tr>
-                    {headers.map((header) => (
-                      <th
-                        key={header}
-                        className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300"
-                      >
-                        {header}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-900">
-                  {entries.flatMap((entry) =>
-                    diffEntry(entry).map((row, index) => (
-                      <tr key={row.key}>
-                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
-                          {index === 0 ? (entry.who ?? "") : ""}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                          {index === 0 ? formatWhen(entry.when) : ""}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                          {index === 0 ? entry.action : ""}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                          {row.field}
-                        </td>
-                        <td className="max-w-xs px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                          <ClampedText value={row.oldValue} />
-                        </td>
-                        <td className="max-w-xs px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                          <ClampedText value={row.newValue} />
-                        </td>
-                        <td className="max-w-xs px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                          {index === 0 ? (
-                            <ClampedText value={entry.changeReason ?? ""} />
-                          ) : (
-                            ""
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-            {hasNextPage ? (
-              <div className="flex justify-center pt-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  loading={isFetchingNextPage}
-                  disabled={isFetchingNextPage}
-                  onClick={() => onLoadMore?.()}
-                >
-                  {t("limsAuditLoadMore")}
-                </Button>
-              </div>
-            ) : null}
-          </>
-        ) : (
-          <EmptyState title={t("limsNoAuditEntries")} />
-        )}
+        <AuditTrailTable {...table} />
       </div>
     </Modal>
   );

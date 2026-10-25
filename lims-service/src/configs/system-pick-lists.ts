@@ -165,5 +165,17 @@ export const SYSTEM_PHRASES: SeedPhrase[] = [
       "Calibration"
     ]
   },
+  {
+    phrase: "BOOLEAN_ANSWERS",
+    name: "Boolean Answers",
+    description:
+      'Answer pairs for Boolean test components, written as "true answer / false answer"',
+    entries: [
+      "Yes / No",
+      "Pass / Fail",
+      "Complies / Does not comply",
+      "Present / Absent"
+    ]
+  },
   UNIT_PHRASE
 ];

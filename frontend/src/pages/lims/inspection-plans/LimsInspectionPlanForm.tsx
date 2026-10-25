@@ -10,6 +10,7 @@ import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
 import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import SubFormGrid from "@/components/data/SubFormGrid";
+import FormHeader from "@/components/data/FormHeader";
 
 import { refId } from "@/lib/query/normalizeId";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
@@ -165,15 +166,17 @@ const LimsInspectionPlanForm = ({
         })}
         className="min-w-0 space-y-4"
       >
-        <h2 className="text-xl font-semibold">
-          {isReadOnly
-            ? t("view", { entity: t("limsInspectionPlan") })
-            : mode === "copy"
-              ? `${t("copyEntity", { entity: t("limsInspectionPlan") })}${stepLabel ?? ""}`
-              : initialData
-                ? `${t("update", { entity: t("limsInspectionPlan") })}${stepLabel ?? ""}`
-                : t("create", { entity: t("limsInspectionPlan") })}
-        </h2>
+        <FormHeader
+          title={
+            isReadOnly
+              ? t("view", { entity: t("limsInspectionPlan") })
+              : mode === "copy"
+                ? `${t("copyEntity", { entity: t("limsInspectionPlan") })}${stepLabel ?? ""}`
+                : initialData
+                  ? `${t("update", { entity: t("limsInspectionPlan") })}${stepLabel ?? ""}`
+                  : t("create", { entity: t("limsInspectionPlan") })
+          }
+        />
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
           {text("inspectionId", t("limsInspectionId"), true, "text")}

@@ -257,6 +257,11 @@ export const PageUrl: PageUrlType = {
     matchPattern: /^\/lims\/analyses$/i,
     pageTitle: "Analyses"
   },
+  LIMSAnalysisWorkspace: {
+    path: "/lims/analyses/:id",
+    matchPattern: /^\/lims\/analyses\/[^/]+$/i,
+    pageTitle: "Analyses"
+  },
   LIMSTestGroups: {
     path: "/lims/test-groups",
     matchPattern: /^\/lims\/test-groups$/i,
@@ -285,6 +290,11 @@ export const PageUrl: PageUrlType = {
   LIMSSamples: {
     path: "/lims/samples",
     matchPattern: /^\/lims\/samples$/i,
+    pageTitle: "Samples"
+  },
+  LIMSSampleWorkspace: {
+    path: "/lims/samples/:id",
+    matchPattern: /^\/lims\/samples\/(?!bulk$)[^/]+$/i,
     pageTitle: "Samples"
   },
   LIMSSamplesBulk: {

@@ -8,7 +8,7 @@ import Stock from "../models/stock.model";
 import Batch from "../models/batch.model";
 import Analysis from "../models/analysis.model";
 import {
-  BOOLEAN_OPTIONS,
+  BOOLEAN_ANSWERS_PHRASE,
   COMPONENT_ENTITIES,
   COMPONENT_TYPES,
   ComponentType,
@@ -139,11 +139,18 @@ export const validateComponents = async (
   const rows: Row[] = payload.components;
 
   const seenIds = new Set<string>();
+  const seenNames = new Set<string>();
   for (const row of rows) {
     const id = text(row.componentId);
     if (seenIds.has(id))
       throw reject(`Component ID "${id}" is used more than once.`);
     seenIds.add(id);
+    const name = text(row.name).toLowerCase();
+    if (name && seenNames.has(name))
+      throw reject(
+        `Component name "${text(row.name)}" is used more than once.`
+      );
+    seenNames.add(name);
   }
 
   const stored = existing
@@ -235,8 +242,24 @@ export const validateComponents = async (
     }
 
     if (row.type === "BOOLEAN") {
-      if (!(BOOLEAN_OPTIONS as readonly string[]).includes(text(row.option)))
-        throw reject(`${label(row)}: pick an answer pair for this Boolean.`);
+      const pair = text(row.option)
+        ? await PhraseEntry.findOne({
+            where: { phraseEntryId: text(row.option) },
+            include: [
+              {
+                model: Phrase,
+                as: "phrase",
+                where: { phrase: BOOLEAN_ANSWERS_PHRASE, isDeleted: false },
+                required: true
+              }
+            ],
+            transaction
+          })
+        : null;
+      if (!pair)
+        throw reject(
+          `${label(row)}: pick an answer pair from the Boolean Answers pick list.`
+        );
     }
 
     if (row.type === "ENTITY") {

@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import { analysisWorkspaceUrl, NEW_ANALYSIS } from "./analysisRoutes";
 
 import DataTable, {
   type DataTableBulkAction
@@ -52,6 +54,7 @@ import type { LimsAnalysis, LimsAnalysisPayload } from "./LimsAnalysis.types";
 /** LimsAnalysis list — built to STANDARDS.md and the MIGRATION.md §5 definition of done. */
 const LimsAnalysisList = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { isOpen, openModal, closeModal } = useModal();
 
   // Full record (incl. attachments) is fetched fresh from this id, not the list row.
@@ -105,37 +108,41 @@ const LimsAnalysisList = () => {
 
   const columnDefs = useMemo(() => getLimsAnalysisColumns({ t }), [t]);
 
-  const openForm = useCallback(
-    (mode: LimsAnalysisFormMode, row: LimsAnalysis | null) => {
-      setFormMode(mode);
-      setActiveId(row?.id ?? null);
-      openModal();
-    },
-    [openModal]
-  );
-
+  // One template opens on its own page; several are reviewed side by side in the modal.
   const openCopy = useCallback(
     (ids: string[]) => {
+      if (ids.length === 1) {
+        navigate(`${analysisWorkspaceUrl(NEW_ANALYSIS)}?copyFrom=${ids[0]}`);
+        return;
+      }
       setCopyIds(ids);
       openModal();
     },
-    [openModal]
+    [openModal, navigate]
   );
 
   const openView = useCallback(
     (ids: string[]) => {
+      if (ids.length === 1) {
+        navigate(`${analysisWorkspaceUrl(ids[0])}?mode=view`);
+        return;
+      }
       setViewIds(ids);
       openModal();
     },
-    [openModal]
+    [openModal, navigate]
   );
 
   const openEdit = useCallback(
     (ids: string[]) => {
+      if (ids.length === 1) {
+        navigate(analysisWorkspaceUrl(ids[0]));
+        return;
+      }
       setEditIds(ids);
       openModal();
     },
-    [openModal]
+    [openModal, navigate]
   );
 
   const handleCloseForm = () => {
@@ -287,7 +294,7 @@ const LimsAnalysisList = () => {
         icon: EyeIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_ANALYSIS,
-        onClick: (row) => openForm("view", row)
+        onClick: (row) => openView([row.id])
       },
       {
         key: "edit",
@@ -295,7 +302,7 @@ const LimsAnalysisList = () => {
         icon: PencilIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.UPDATE_ANALYSIS,
-        onClick: (row) => openForm("edit", row)
+        onClick: (row) => openEdit([row.id])
       },
       {
         key: "audit",
@@ -336,7 +343,7 @@ const LimsAnalysisList = () => {
           ])
       }
     ],
-    [compliance, openCopy, openForm, t]
+    [compliance, openCopy, openEdit, openView, t]
   );
 
   return (
@@ -365,7 +372,7 @@ const LimsAnalysisList = () => {
             icon: PlusIcon,
             variant: "primary",
             permission: LIMS_PERMISSIONS.CREATE_ANALYSIS,
-            onClick: () => openForm("create", null)
+            onClick: () => navigate(analysisWorkspaceUrl(NEW_ANALYSIS))
           }
         ]}
         emptyState={{ title: t("limsNoAnalyses") }}

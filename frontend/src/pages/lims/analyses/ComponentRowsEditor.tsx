@@ -1,22 +1,31 @@
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import Button from "@/components/ui/button/Button";
 import Label from "@/components/common/form/Label";
+import Button from "@/components/ui/button/Button";
+import { useFormHeaderAction } from "@/components/data/formHeaderContext";
+import TextArea from "@/components/common/form/input/TextArea";
 import HelpTooltip from "@/components/common/HelpTooltip";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
-import { PlusIcon, TrashBinIcon } from "@/public/icons";
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  PlusIcon,
+  TrashBinIcon
+} from "@/public/icons";
 import { fetchLimsPhraseList } from "@/pages/lims/phrases/LimsPhrase.api";
 import { useUnitOptions } from "@/pages/lims/phrases/LimsPhrase.queries";
 import type { LimsComponentRow } from "./LimsAnalysis.types";
+import FormulaBuilder from "./FormulaBuilder";
 import {
-  BOOLEAN_OPTIONS,
+  BOOLEAN_ANSWERS_LIST,
   COMPONENT_ENTITIES,
   COMPONENT_TYPES,
   TYPE_FIELDS,
   TYPE_LABELS,
   TYPE_SPECIFIC_KEYS,
+  duplicateRows,
   isLegacy,
   isTyped,
   parseCriteria,
@@ -31,7 +40,9 @@ interface ComponentRowsEditorProps {
 }
 
 const inputClasses =
-  "h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-900 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 disabled:bg-gray-100 disabled:text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90 dark:disabled:bg-gray-900";
+  "h-10 w-full rounded-lg border bg-transparent px-3 text-sm text-gray-900 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 disabled:bg-gray-100 disabled:text-gray-500 dark:bg-gray-800 dark:text-white/90 dark:disabled:bg-gray-900";
+const okBorder = "border-gray-300 dark:border-gray-700";
+const errorBorder = "border-red-500 dark:border-red-500";
 
 const typeOptions = COMPONENT_TYPES.map((value) => ({
   value,
@@ -103,6 +114,33 @@ const ComponentRowsEditor = ({
       }))
       .filter((option) => option.value) ?? [];
 
+  const duplicates = useMemo(() => duplicateRows(rows), [rows]);
+  const addRow = () =>
+    onChange([...rows, { componentId: "", name: "", description: "" }]);
+  useFormHeaderAction(
+    disabled ? null : { label: t("limsAddComponent"), onClick: addRow }
+  );
+  // A row added from the modal header lands at the bottom — bring it into view.
+  const listRef = useRef<HTMLDivElement>(null);
+  const rowCount = useRef(rows.length);
+  useEffect(() => {
+    if (rows.length > rowCount.current)
+      listRef.current?.lastElementChild?.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
+    rowCount.current = rows.length;
+  }, [rows.length]);
+  const [builderRow, setBuilderRow] = useState<number | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+  const toggleExpanded = (key: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+
   const patchRow = (index: number, patch: Partial<LimsComponentRow>) =>
     onChange(rows.map((row, i) => (i === index ? { ...row, ...patch } : row)));
 
@@ -116,9 +154,6 @@ const ComponentRowsEditor = ({
   const removeRow = (index: number) =>
     onChange(rows.filter((_, i) => i !== index));
 
-  const addRow = () =>
-    onChange([...rows, { componentId: "", name: "", description: "" }]);
-
   const textCell = (
     row: LimsComponentRow,
     index: number,
@@ -126,12 +161,18 @@ const ComponentRowsEditor = ({
     label: string,
     width: string,
     locked: boolean,
-    extra?: { placeholder?: string; tooltip?: ReactNode; inputMode?: "decimal" }
+    extra?: {
+      placeholder?: string;
+      tooltip?: ReactNode;
+      inputMode?: "decimal";
+      invalid?: boolean;
+    }
   ) => (
     <Cell key={key} label={label} width={width} tooltip={extra?.tooltip}>
       <input
         aria-label={label}
-        className={inputClasses}
+        aria-invalid={extra?.invalid || undefined}
+        className={`${inputClasses} ${extra?.invalid ? errorBorder : okBorder}`}
         value={str(row[key])}
         placeholder={extra?.placeholder}
         inputMode={extra?.inputMode}
@@ -165,17 +206,37 @@ const ComponentRowsEditor = ({
           </Cell>
         );
       case "formula":
-        return textCell(
-          row,
-          index,
-          "formula",
-          t("limsFormula"),
-          "w-72",
-          false,
-          {
-            placeholder: "{TITRE} * {FACTOR} / {WEIGHT} * 100",
-            tooltip: t("limsFormulaHint")
-          }
+        return (
+          <Cell
+            key={field}
+            label={t("limsFormula")}
+            width="w-80"
+            tooltip={t("limsFormulaHint")}
+          >
+            <div className="flex gap-1">
+              <input
+                aria-label={t("limsFormula")}
+                className={`${inputClasses} ${okBorder} font-mono`}
+                value={str(row.formula)}
+                placeholder="{TITRE} * {FACTOR} / {WEIGHT} * 100"
+                disabled={disabled}
+                onChange={(event) =>
+                  patchRow(index, { formula: event.target.value })
+                }
+              />
+              {!disabled ? (
+                <button
+                  type="button"
+                  aria-label={t("limsBuildFormula")}
+                  title={t("limsBuildFormula")}
+                  onClick={() => setBuilderRow(index)}
+                  className="shrink-0 rounded-lg border border-gray-300 px-2.5 text-sm font-semibold italic text-brand-600 hover:bg-brand-50 dark:border-gray-700 dark:text-brand-400 dark:hover:bg-brand-500/10"
+                >
+                  ƒx
+                </button>
+              ) : null}
+            </div>
+          </Cell>
         );
       case "min":
         return textCell(row, index, "min", t("limsMin"), "w-24", false, {
@@ -203,7 +264,7 @@ const ComponentRowsEditor = ({
         return row.type === "BOOLEAN" ? (
           <Cell key={field} label={t("limsAnswers")} width="w-56">
             <SelectDropdown
-              options={BOOLEAN_OPTIONS}
+              options={entryOptionsFor(BOOLEAN_ANSWERS_LIST)}
               value={str(row.option)}
               onChange={(value) => patchRow(index, { option: value })}
               placeholder={t("select", { entity: t("limsAnswers") })}
@@ -305,7 +366,12 @@ const ComponentRowsEditor = ({
                   }
                 />
               ) : (
-                <input className={inputClasses} disabled value="" readOnly />
+                <input
+                  className={`${inputClasses} ${okBorder}`}
+                  disabled
+                  value=""
+                  readOnly
+                />
               )}
             </Cell>
           </div>
@@ -349,12 +415,16 @@ const ComponentRowsEditor = ({
       </div>
 
       {rows.length ? (
-        <div className="space-y-2">
+        <div ref={listRef} className="space-y-2">
           {rows.map((row, index) => {
             const legacy = isLegacy(row);
+            const rowKey = row.id ?? `new-${index}`;
+            const isExpanded = expanded.has(rowKey);
+            const duplicateId = duplicates.ids.has(index);
+            const duplicateName = duplicates.names.has(index);
             return (
               <div
-                key={row.id ?? `new-${index}`}
+                key={rowKey}
                 className="rounded-lg border border-gray-200 dark:border-gray-700"
               >
                 {/* One line per component; scrolls sideways rather than wrapping. */}
@@ -368,7 +438,8 @@ const ComponentRowsEditor = ({
                     "componentId",
                     `${t("limsComponentId")} *`,
                     "w-32",
-                    legacy
+                    legacy,
+                    { invalid: duplicateId }
                   )}
                   {textCell(
                     row,
@@ -376,16 +447,36 @@ const ComponentRowsEditor = ({
                     "name",
                     `${t("name")} *`,
                     "w-44",
-                    legacy
+                    legacy,
+                    { invalid: duplicateName }
                   )}
-                  {textCell(
-                    row,
-                    index,
-                    "description",
-                    `${t("description")} *`,
-                    "w-56",
-                    legacy
-                  )}
+                  <Cell label={`${t("description")} *`} width="w-64">
+                    <div className="flex gap-1">
+                      <input
+                        aria-label={t("description")}
+                        className={`${inputClasses} ${okBorder}`}
+                        value={str(row.description)}
+                        disabled={disabled || legacy}
+                        onChange={(event) =>
+                          patchRow(index, { description: event.target.value })
+                        }
+                      />
+                      <button
+                        type="button"
+                        aria-label={t("limsExpandDescription")}
+                        aria-expanded={isExpanded}
+                        title={t("limsExpandDescription")}
+                        onClick={() => toggleExpanded(rowKey)}
+                        className="shrink-0 rounded-lg border border-gray-300 px-2 text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-white/5"
+                      >
+                        {isExpanded ? (
+                          <ChevronUpIcon className="h-4 w-4" />
+                        ) : (
+                          <ChevronDownIcon className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </Cell>
                   <Cell
                     label={`${t("limsType")} *`}
                     width="w-40"
@@ -416,6 +507,29 @@ const ComponentRowsEditor = ({
                     </button>
                   ) : null}
                 </div>
+                {isExpanded ? (
+                  <div className="px-3 pb-3 pl-11">
+                    <TextArea
+                      rows={8}
+                      value={str(row.description)}
+                      disabled={disabled || legacy}
+                      onChange={(value) =>
+                        patchRow(index, { description: value })
+                      }
+                      className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    />
+                  </div>
+                ) : null}
+                {duplicateId || duplicateName ? (
+                  <p className="px-3 pb-2 pl-11 text-xs text-red-500">
+                    {[
+                      duplicateId && t("limsDuplicateComponentId"),
+                      duplicateName && t("limsDuplicateComponentName")
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                ) : null}
                 {legacy ? (
                   <div className="flex items-center gap-2 border-t border-dashed border-gray-200 px-3 py-2 text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400">
                     <span className="rounded bg-warning-100 px-1.5 py-0.5 font-semibold text-warning-800 dark:bg-warning-500/15 dark:text-warning-300">
@@ -438,6 +552,22 @@ const ComponentRowsEditor = ({
       )}
 
       {error ? <p className="mt-1 text-xs text-red-500">{error}</p> : null}
+
+      {builderRow !== null && rows[builderRow] ? (
+        <FormulaBuilder
+          formula={str(rows[builderRow].formula)}
+          selfId={str(rows[builderRow].componentId).trim()}
+          selfName={
+            str(rows[builderRow].name) || str(rows[builderRow].componentId)
+          }
+          rows={rows}
+          onApply={(formula) => {
+            patchRow(builderRow, { formula });
+            setBuilderRow(null);
+          }}
+          onClose={() => setBuilderRow(null)}
+        />
+      ) : null}
     </div>
   );
 };

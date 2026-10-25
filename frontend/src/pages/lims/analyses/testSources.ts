@@ -42,3 +42,26 @@ export const useTestSourceOptions = (args: {
       };
     }
   });
+
+/** Approved Test Templates only — for Specification limits, where groups aren't offered. */
+export const useTemplateSourceOptions = (args: {
+  search: string;
+  enabled?: boolean;
+  selectedValues?: string[];
+}) =>
+  useAsyncOptions({
+    queryKey: ["limsAnalysis", "template-sources"],
+    search: args.search,
+    enabled: args.enabled,
+    selectedValues: args.selectedValues,
+    fetchPage: async (page, signal) => {
+      const templates = await fetchApprovedLimsAnalysisOptions(page, signal);
+      return {
+        options: templates.options.map((o) => ({
+          ...o,
+          value: `${TEMPLATE_PREFIX}${o.value}`
+        })),
+        nextPage: templates.nextPage
+      };
+    }
+  });

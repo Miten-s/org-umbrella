@@ -39,13 +39,16 @@ export const TYPE_SPECIFIC_FIELDS = [
   "max"
 ];
 
-/** Boolean answers come as a fixed wording pair — the first word is the "true" answer. */
-export const BOOLEAN_OPTIONS = [
-  "YES_NO",
-  "PASS_FAIL",
-  "COMPLIES",
-  "PRESENT_ABSENT"
-] as const;
+/** Pick list of Boolean answer pairs. Each entry's name is "true answer / false answer". */
+export const BOOLEAN_ANSWERS_PHRASE = "BOOLEAN_ANSWERS";
+
+/** "Pass / Fail" → ["Pass", "Fail"]; null unless it is exactly two non-empty answers. */
+export const splitBooleanPair = (name: string): [string, string] | null => {
+  const parts = name.split("/").map((part) => part.trim());
+  return parts.length === 2 && parts[0] && parts[1]
+    ? [parts[0], parts[1]]
+    : null;
+};
 
 export type CriteriaSource =
   { phrase: string } | { entity: "GROUP" | "LOCATION" | "STOCK" | "BATCH" };

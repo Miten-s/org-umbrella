@@ -9,6 +9,7 @@ import TextArea from "@/components/common/form/input/TextArea";
 import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import SubFormGrid from "@/components/data/SubFormGrid";
+import FormHeader from "@/components/data/FormHeader";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { useLimsApprovedAnalysisOptions } from "@/pages/lims/analyses/LimsAnalysis.queries";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
@@ -155,15 +156,17 @@ const LimsTestGroupForm = ({
         })}
         className="min-w-0 space-y-4"
       >
-        <h2 className="text-xl font-semibold">
-          {isReadOnly
-            ? t("view", { entity: t("limsTestGroup") })
-            : mode === "copy"
-              ? `${t("copyEntity", { entity: t("limsTestGroup") })}${stepLabel ?? ""}`
-              : initialData
-                ? `${t("update", { entity: t("limsTestGroup") })}${stepLabel ?? ""}`
-                : t("create", { entity: t("limsTestGroup") })}
-        </h2>
+        <FormHeader
+          title={
+            isReadOnly
+              ? t("view", { entity: t("limsTestGroup") })
+              : mode === "copy"
+                ? `${t("copyEntity", { entity: t("limsTestGroup") })}${stepLabel ?? ""}`
+                : initialData
+                  ? `${t("update", { entity: t("limsTestGroup") })}${stepLabel ?? ""}`
+                  : t("create", { entity: t("limsTestGroup") })
+          }
+        />
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
           <div className="min-w-0">

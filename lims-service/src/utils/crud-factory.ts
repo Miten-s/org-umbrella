@@ -127,6 +127,13 @@ export interface CrudConfig<M extends Model> {
     transaction: Transaction,
     existing?: M
   ) => Promise<void>;
+  /** Async rewrite of the validated payload (children included) before it is diffed and saved,
+   * so derived child values land in the same audit entry. `existing` is set on update. */
+  preparePayload?: (
+    payload: Record<string, any>,
+    transaction: Transaction,
+    existing?: M
+  ) => Promise<Record<string, any>>;
   /** Runs inside the create/update transaction after the record and its children are saved —
    * for writes that must succeed or fail together with it (Sample → its Tests). */
   afterSave?: (args: {
@@ -789,11 +796,14 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     transaction: Transaction,
     opts?: { collisionMode?: "reject" | "warn"; bulk?: boolean }
   ): Promise<{ result: any; warning?: string }> => {
-    const payload = config.normalizePayload
+    const normalized = config.normalizePayload
       ? config.normalizePayload(raw)
       : raw;
     if (config.validatePayload)
-      await config.validatePayload(payload, transaction);
+      await config.validatePayload(normalized, transaction);
+    const payload = config.preparePayload
+      ? await config.preparePayload(normalized, transaction)
+      : normalized;
     if (opts?.bulk)
       await assertChildrenUnclaimed(config.children, payload, transaction);
     const mapped = toColumns(config, payload);
@@ -1067,7 +1077,7 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     transaction: Transaction,
     files?: Express.Multer.File[]
   ) => {
-    const payload = config.normalizePayload
+    const normalized = config.normalizePayload
       ? config.normalizePayload(raw)
       : raw;
 
@@ -1075,7 +1085,10 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     const existing = await repo.findById(id, ctx.scope, transaction, true);
     if (!existing) return null;
     if (config.validatePayload)
-      await config.validatePayload(payload, transaction, existing);
+      await config.validatePayload(normalized, transaction, existing);
+    const payload = config.preparePayload
+      ? await config.preparePayload(normalized, transaction, existing)
+      : normalized;
     const oldValue = existing.toJSON();
     const mapped = toColumns(config, payload);
 

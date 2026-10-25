@@ -5,6 +5,9 @@ import * as m003 from "./003-test-source-group";
 import * as m004 from "./004-spec-limit-source-group";
 import * as m005 from "./005-seed-system-pick-lists";
 import * as m006 from "./006-result-row-component-type";
+import * as m007 from "./007-boolean-answers-pick-list";
+import * as m008 from "./008-calculation-formula-snapshot";
+import * as m009 from "./009-test-repeat-number";
 
 export const migrations: Migration[] = [
   { name: "001-initial-schema", up: m001.up },
@@ -12,7 +15,10 @@ export const migrations: Migration[] = [
   { name: "003-test-source-group", up: m003.up },
   { name: "004-spec-limit-source-group", up: m004.up },
   { name: "005-seed-system-pick-lists", up: m005.up },
-  { name: "006-result-row-component-type", up: m006.up }
+  { name: "006-result-row-component-type", up: m006.up },
+  { name: "007-boolean-answers-pick-list", up: m007.up },
+  { name: "008-calculation-formula-snapshot", up: m008.up },
+  { name: "009-test-repeat-number", up: m009.up }
 ];
 
 export { runMigrations, checkMigrations } from "./runner";

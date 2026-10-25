@@ -8,6 +8,7 @@ import Label from "@/components/common/form/Label";
 import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import SubFormGrid from "@/components/data/SubFormGrid";
+import FormHeader from "@/components/data/FormHeader";
 
 import { useLimsStockBatchOptions } from "@/pages/lims/stock-batches/LimsStockBatch.queries";
 import { seedRefOption } from "@/utils/refLabel";
@@ -132,15 +133,17 @@ const LimsAliquotForm = ({
         })}
         className="min-w-0 space-y-4"
       >
-        <h2 className="text-xl font-semibold">
-          {isReadOnly
-            ? t("view", { entity: t("limsAliquot") })
-            : mode === "copy"
-              ? `${t("copyEntity", { entity: t("limsAliquot") })}${stepLabel ?? ""}`
-              : initialData
-                ? `${t("update", { entity: t("limsAliquot") })}${stepLabel ?? ""}`
-                : t("create", { entity: t("limsAliquot") })}
-        </h2>
+        <FormHeader
+          title={
+            isReadOnly
+              ? t("view", { entity: t("limsAliquot") })
+              : mode === "copy"
+                ? `${t("copyEntity", { entity: t("limsAliquot") })}${stepLabel ?? ""}`
+                : initialData
+                  ? `${t("update", { entity: t("limsAliquot") })}${stepLabel ?? ""}`
+                  : t("create", { entity: t("limsAliquot") })
+          }
+        />
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
           {text("aliquotSetId", t("limsAliquotSetId"), true, "text")}

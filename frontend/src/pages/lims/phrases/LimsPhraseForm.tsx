@@ -9,6 +9,7 @@ import TextArea from "@/components/common/form/input/TextArea";
 import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import SubFormGrid from "@/components/data/SubFormGrid";
+import FormHeader from "@/components/data/FormHeader";
 import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
 import { isPayloadEqual } from "@/lib/formChangeDetection";
 import {
@@ -120,15 +121,17 @@ const LimsPhraseForm = ({
         })}
         className="min-w-0 space-y-4"
       >
-        <h2 className="text-xl font-semibold">
-          {isReadOnly
-            ? t("view", { entity: t("limsPhrase") })
-            : mode === "copy"
-              ? `${t("copyEntity", { entity: t("limsPhrase") })}${stepLabel ?? ""}`
-              : initialData
-                ? `${t("update", { entity: t("limsPhrase") })}${stepLabel ?? ""}`
-                : t("create", { entity: t("limsPhrase") })}
-        </h2>
+        <FormHeader
+          title={
+            isReadOnly
+              ? t("view", { entity: t("limsPhrase") })
+              : mode === "copy"
+                ? `${t("copyEntity", { entity: t("limsPhrase") })}${stepLabel ?? ""}`
+                : initialData
+                  ? `${t("update", { entity: t("limsPhrase") })}${stepLabel ?? ""}`
+                  : t("create", { entity: t("limsPhrase") })
+          }
+        />
 
         {isSystem ? (
           <p className="rounded-lg bg-warning-50 px-3 py-2 text-xs text-warning-800 dark:bg-warning-500/10 dark:text-warning-300">

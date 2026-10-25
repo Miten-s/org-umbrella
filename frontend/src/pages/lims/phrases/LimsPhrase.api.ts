@@ -38,7 +38,8 @@ export const PHRASE_CODES = {
   ANALYSIS_TYPE: "ANALYSIS_TYPE",
   APPROVAL_STATUS: "APPROVAL_STATUS",
   SAMPLE_TYPE: "SAMPLE_TYPE",
-  UNIT: "UNIT"
+  UNIT: "UNIT",
+  BOOLEAN_ANSWERS: "BOOLEAN_ANSWERS"
 } as const;
 
 export type PhraseCode = (typeof PHRASE_CODES)[keyof typeof PHRASE_CODES];

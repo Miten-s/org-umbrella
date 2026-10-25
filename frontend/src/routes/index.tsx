@@ -58,6 +58,9 @@ const LIMSInspectionPlansPage = lazy(
   () => import("../pages/lims/inspection-plans")
 );
 const LIMSAnalysesPage = lazy(() => import("../pages/lims/analyses"));
+const LIMSAnalysisWorkspacePage = lazy(
+  () => import("../pages/lims/analyses/LimsAnalysisWorkspacePage")
+);
 const LIMSSpecificationsPage = lazy(
   () => import("../pages/lims/specifications")
 );
@@ -66,6 +69,9 @@ const LIMSLotsPage = lazy(() => import("../pages/lims/lots"));
 const LIMSSamplesPage = lazy(() => import("../pages/lims/samples"));
 const LIMSSamplesBulkPage = lazy(
   () => import("../pages/lims/samples/LimsSampleBulkPage")
+);
+const LIMSSampleWorkspacePage = lazy(
+  () => import("../pages/lims/samples/LimsSampleWorkspacePage")
 );
 const LIMSTestsPage = lazy(() => import("../pages/lims/tests"));
 const LIMSResultsPage = lazy(() => import("../pages/lims/results"));
@@ -155,6 +161,11 @@ const LIMS_ROUTES: [
   ],
   [PageUrl.LIMSAnalyses, LIMS_PERMISSIONS.VIEW_ANALYSIS, <LIMSAnalysesPage />],
   [
+    PageUrl.LIMSAnalysisWorkspace,
+    LIMS_PERMISSIONS.VIEW_ANALYSIS,
+    <LIMSAnalysisWorkspacePage />
+  ],
+  [
     PageUrl.LIMSTestGroups,
     LIMS_PERMISSIONS.VIEW_TEST_GROUP,
     <LIMSTestGroupsPage />
@@ -176,6 +187,11 @@ const LIMS_ROUTES: [
     PageUrl.LIMSSamplesBulk,
     LIMS_PERMISSIONS.VIEW_SAMPLE,
     <LIMSSamplesBulkPage />
+  ],
+  [
+    PageUrl.LIMSSampleWorkspace,
+    LIMS_PERMISSIONS.VIEW_SAMPLE,
+    <LIMSSampleWorkspacePage />
   ],
   [PageUrl.LIMSTests, LIMS_PERMISSIONS.VIEW_TEST, <LIMSTestsPage />],
   [PageUrl.LIMSResults, LIMS_PERMISSIONS.VIEW_RESULT, <LIMSResultsPage />],

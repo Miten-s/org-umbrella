@@ -103,6 +103,7 @@ export const sampleConfig: CrudConfig<Sample> = {
         "testName",
         "status",
         "analysisId",
+        "repeatNumber",
         "sourceTestGroupId",
         [
           sequelize.literal(

@@ -17,6 +17,7 @@ import {
 import { authorize } from "../middlewares/authorize.middleware";
 import { validateDto } from "../middlewares/validate-dto.middleware";
 import { saveComponentChanges } from "../services/test-components.service";
+import { withComputedCalculations } from "../services/calculations.service";
 import { attachCancelRoutes } from "../utils/cancel-routes";
 import { TEST_BUSINESS_ID } from "../configs/business-ids";
 
@@ -62,6 +63,8 @@ export const testConfig: CrudConfig<Test> = {
   // The list table doesn't render anything from the Components grid —
   // Edit/View-only.
   listExcludeRelations: ["components"],
+
+  preparePayload: withComputedCalculations,
 
   children: [
     {

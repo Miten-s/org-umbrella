@@ -43,7 +43,8 @@ const FORMATS = {
 } as const;
 
 interface DateFieldProps {
-  mode?: keyof typeof FORMATS;
+  /** "datetime" is a date field and a time field side by side; its value is YYYY-MM-DDTHH:mm. */
+  mode?: keyof typeof FORMATS | "datetime";
   value?: string;
   onChange?: (value: string) => void;
   onBlur?: () => void;
@@ -54,8 +55,8 @@ interface DateFieldProps {
   className?: string;
 }
 
-const DateField: FC<DateFieldProps> = ({
-  mode = "date",
+const SingleField: FC<DateFieldProps & { mode: keyof typeof FORMATS }> = ({
+  mode,
   value,
   onChange,
   onBlur,
@@ -66,6 +67,7 @@ const DateField: FC<DateFieldProps> = ({
   className = ""
 }) => {
   const fmt = FORMATS[mode];
+  const hasCalendar = mode === "date";
   const parsed = value ? dayjs(value, fmt.value) : null;
   const selected = parsed?.isValid() ? parsed.toDate() : null;
 
@@ -133,7 +135,7 @@ const DateField: FC<DateFieldProps> = ({
         timeIntervals={mode === "time" ? 15 : undefined}
         timeCaption={mode === "time" ? "Time" : undefined}
         renderCustomHeader={
-          mode === "date"
+          hasCalendar
             ? ({
                 date,
                 changeYear,
@@ -197,5 +199,46 @@ const DateField: FC<DateFieldProps> = ({
     </div>
   );
 };
+
+/** Date (calendar) and time (its own dropdown) side by side. A time picked before the date is
+ * held until a date is chosen; a date-only value saved earlier still opens. */
+const DateTimeField: FC<DateFieldProps> = ({ value, onChange, ...rest }) => {
+  const [datePart, timePart = ""] = (value ?? "").split("T");
+  const [pendingTime, setPendingTime] = useState("");
+  const time = timePart || pendingTime;
+  const emit = (date: string, nextTime: string) =>
+    onChange?.(date ? (nextTime ? `${date}T${nextTime}` : date) : "");
+  return (
+    <div className="flex gap-2">
+      <div className="min-w-0 flex-[3]">
+        <SingleField
+          {...rest}
+          mode="date"
+          value={datePart}
+          onChange={(date) => emit(date, time)}
+        />
+      </div>
+      <div className="min-w-0 flex-[2]">
+        <SingleField
+          {...rest}
+          hint={undefined}
+          mode="time"
+          value={time}
+          onChange={(nextTime) => {
+            setPendingTime(nextTime);
+            if (datePart) emit(datePart, nextTime);
+          }}
+        />
+      </div>
+    </div>
+  );
+};
+
+const DateField: FC<DateFieldProps> = ({ mode = "date", ...props }) =>
+  mode === "datetime" ? (
+    <DateTimeField {...props} />
+  ) : (
+    <SingleField {...props} mode={mode} />
+  );
 
 export default DateField;
