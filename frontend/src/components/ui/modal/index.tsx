@@ -1,4 +1,5 @@
 import { useRef, useEffect } from "react";
+import { FormHeaderProvider } from "@/components/data/FormHeader";
 
 interface ModalProps {
   isOpen: boolean;
@@ -110,7 +111,8 @@ export const Modal: React.FC<ModalProps> = ({
             </svg>
           </button>
         )}
-        {children}
+        {/* Sub-lists inside a form register their Add buttons with its FormHeader. */}
+        <FormHeaderProvider>{children}</FormHeaderProvider>
       </div>
     </div>
   );

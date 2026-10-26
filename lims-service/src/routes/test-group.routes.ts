@@ -223,6 +223,7 @@ const expandTestSources = asyncHandler(async (req: Request, res: Response) => {
         "unit",
         "list",
         "option",
+        "formula",
         "min",
         "max",
         "sortOrder"

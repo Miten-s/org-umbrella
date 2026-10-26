@@ -32,6 +32,8 @@ export interface LimsSampleTest {
   testName?: string;
   status?: string;
   analysisId?: string;
+  /** 1 for the template's first run on the sample, 2+ for repeats. */
+  repeatNumber?: number;
   sourceTestGroupId?: string | null;
   sourceTestGroup?: { id: string; testGroupId?: string; name?: string } | null;
   /** Returned instead of `components` on the sample detail; those load when a test is opened. */
@@ -98,6 +100,7 @@ export interface LimsSamplePayload {
   /** Test Templates to assign as new Tests. */
   testTemplates?: {
     analysisId: string;
+    repeatNumber?: number;
     sourceTestGroupId?: string;
     values?: Record<string, string>;
   }[];

@@ -9,7 +9,7 @@ import {
   CrudConfig
 } from "../utils/crud-factory";
 import { CreateAnalysisDto, UpdateAnalysisDto } from "../dtos/analytical.dto";
-import { approvalStatusWhere } from "../utils/approval-status";
+import { approvalStatusWhere, defaultToDraft } from "../utils/approval-status";
 import {
   normalizeComponents,
   validateComponents
@@ -60,6 +60,7 @@ export const analysisConfig: CrudConfig<Analysis> = {
 
   normalizePayload: normalizeComponents,
   validatePayload: validateComponents,
+  beforeCreate: defaultToDraft,
 
   // The list column only shows a count (LimsAnalysis.columns.tsx:
   // `components?.length`) — no row content needed for the list at all.

@@ -10,6 +10,7 @@ import TextArea from "@/components/common/form/input/TextArea";
 import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import SubFormGrid from "@/components/data/SubFormGrid";
+import FormHeader from "@/components/data/FormHeader";
 import SampleTestsPicker from "./SampleTestsPicker";
 import type { PendingTemplate } from "./sampleTests";
 import { useBulkStep, useSampleBulkTests } from "./sampleBulkStore";
@@ -62,6 +63,12 @@ interface LimsSampleFormProps {
   stepLabel?: string;
   /** Position in a bulk stepper — ties this form's tests to the cross-sample compare grid. */
   stepIndex?: number;
+  /** Set on the sample workspace page: no modal frame or buttons, only this section shows
+   * (the other stays mounted, so one Save covers both), and tests live on the Execution tab. */
+  pageSection?: "details" | "other" | "none";
+  onDirtyChange?: (dirty: boolean) => void;
+  /** Fired when Save finds an invalid field — the page switches to the tab that holds it. */
+  onInvalid?: () => void;
 }
 
 /** Seeds a dropdown label from the record's nested ref — no extra fetch. */
@@ -79,8 +86,12 @@ const LimsSampleForm = ({
   disabled = false,
   formId,
   stepLabel,
-  stepIndex
+  stepIndex,
+  pageSection,
+  onDirtyChange,
+  onInvalid
 }: LimsSampleFormProps) => {
+  const onPage = pageSection !== undefined;
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
   const attachments = useAttachments(initialData?.attachments);
@@ -108,6 +119,7 @@ const LimsSampleForm = ({
             .map((test) => ({
               id: String(test.analysisId),
               name: String(test.testName ?? ""),
+              repeatNumber: test.repeatNumber,
               componentCount: test.componentCount ?? test.components?.length,
               sourceGroupId: test.sourceTestGroupId ?? undefined,
               sourceGroupName: test.sourceTestGroup?.name
@@ -174,6 +186,14 @@ const LimsSampleForm = ({
       ? bulk.store.setPending(new Map([[stepIndex, next]]))
       : setLocalPendingTests(next);
 
+  const watched = useWatch({ control });
+  const dirty =
+    attachments.isDirty ||
+    !isPayloadEqual({ ...initialValues, ...watched }, initialValues) ||
+    !isPayloadEqual(testWindows, initialTestWindowsRef.current) ||
+    pendingTests.length > 0;
+  useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange]);
+
   const description = useWatch({ control, name: "description" });
   const comments = useWatch({ control, name: "comments" });
   const busy = submitting || isSubmitting;
@@ -217,7 +237,13 @@ const LimsSampleForm = ({
   );
 
   return (
-    <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+    <div
+      className={
+        onPage
+          ? "text-gray-900 dark:text-gray-100"
+          : "modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100"
+      }
+    >
       <form
         id={formId}
         onSubmit={handleSubmit((values) => {
@@ -239,28 +265,35 @@ const LimsSampleForm = ({
               testWindows,
               testTemplates: pendingTests.map((tpl) => ({
                 analysisId: tpl.id,
+                repeatNumber: tpl.repeatNumber,
                 sourceTestGroupId: tpl.sourceGroupId
               })),
               keptAttachmentIds: attachments.keptIds
             },
             attachments.newFiles
           );
-        })}
+        }, onInvalid)}
         className="min-w-0 space-y-4"
       >
-        <h2 className="text-xl font-semibold">
-          {isReadOnly
-            ? t("view", { entity: t("limsSample") })
-            : mode === "bulk-create"
-              ? `${t("create", { entity: t("limsSample") })}${stepLabel ?? ""}`
-              : mode === "copy"
-                ? `${t("copyEntity", { entity: t("limsSample") })}${stepLabel ?? ""}`
-                : initialData
-                  ? `${t("update", { entity: t("limsSample") })}${stepLabel ?? ""}`
-                  : t("create", { entity: t("limsSample") })}
-        </h2>
+        {onPage ? null : (
+          <FormHeader
+            title={
+              isReadOnly
+                ? t("view", { entity: t("limsSample") })
+                : mode === "bulk-create"
+                  ? `${t("create", { entity: t("limsSample") })}${stepLabel ?? ""}`
+                  : mode === "copy"
+                    ? `${t("copyEntity", { entity: t("limsSample") })}${stepLabel ?? ""}`
+                    : initialData
+                      ? `${t("update", { entity: t("limsSample") })}${stepLabel ?? ""}`
+                      : t("create", { entity: t("limsSample") })
+            }
+          />
+        )}
 
-        <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
+        <div
+          className={`grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 ${onPage && pageSection !== "details" ? "hidden" : ""}`}
+        >
           <div className="min-w-0">
             {/* Server-locked (crud-factory drops any client value), same as idNumeric — blank on Copy. */}
             <Label>{t("limsSampleId")}</Label>
@@ -406,12 +439,15 @@ const LimsSampleForm = ({
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
-          <div className="col-span-full min-w-0">
+        </div>
+        <div className="space-y-4">
+          <div className={onPage ? "hidden" : "min-w-0"}>
             <SampleTestsPicker
               existing={existingTests}
               pending={pendingTests}
               onChange={setPendingTests}
               disabled={isReadOnly}
+              allowRepeats
               actions={
                 bulk && bulk.total > 1 && !isReadOnly ? (
                   <Button
@@ -426,7 +462,9 @@ const LimsSampleForm = ({
               }
             />
           </div>
-          <div className="col-span-full min-w-0">
+          <div
+            className={onPage && pageSection !== "other" ? "hidden" : "min-w-0"}
+          >
             <SubFormGrid<LimsTestWindowRow>
               label={t("limsTestWindows")}
               rows={testWindows}
@@ -463,14 +501,16 @@ const LimsSampleForm = ({
           </div>
           {/* Batch saves (Copy, Create-N) post JSON only — no file upload path. */}
           {mode !== "bulk-edit" && !isNewRecord && (
-            <LimsAttachmentsField
-              attachments={attachments}
-              disabled={isReadOnly}
-            />
+            <div className={onPage && pageSection !== "other" ? "hidden" : ""}>
+              <LimsAttachmentsField
+                attachments={attachments}
+                disabled={isReadOnly}
+              />
+            </div>
           )}
         </div>
 
-        <div className="mt-4 flex justify-end gap-2">
+        <div className={onPage ? "hidden" : "mt-4 flex justify-end gap-2"}>
           <Button
             variant="outline"
             type="button"

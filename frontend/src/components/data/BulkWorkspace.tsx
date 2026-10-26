@@ -17,7 +17,7 @@ import { createAgTableTheme } from "@/components/common/table/tableTheme";
 import { useTheme } from "@/context/ThemeContext";
 import { toast } from "@/lib/toast";
 import { useCloseEditorOnScroll } from "./useCloseEditorOnScroll";
-import { useWarnBeforeUnload } from "./useWarnBeforeUnload";
+import UnsavedChangesGuard from "./UnsavedChangesGuard";
 import { useSpreadsheet } from "./spreadsheet";
 import TextCellEditor from "./TextCellEditor";
 import LongTextCellEditor from "./LongTextCellEditor";
@@ -86,6 +86,8 @@ interface BulkWorkspaceProps<R extends { id: string }> {
   extraColumns?: ColDef[];
   /** Changes held outside the grid (e.g. picked tests) — they count toward Save. */
   extraChanges?: number;
+  /** Ask before leaving with unsaved edits. Off when the page guards its own wider state. */
+  guardUnsaved?: boolean;
   actions?: ReactNode;
   /** Fires when the grid gains or loses unsaved edits. */
   onDirtyChange?: (dirty: boolean) => void;
@@ -194,6 +196,7 @@ function BulkWorkspace<R extends { id: string }>({
   touchedIds,
   extraColumns = [],
   extraChanges = 0,
+  guardUnsaved = true,
   actions,
   valuesRef,
   onDirtyChange,
@@ -330,7 +333,6 @@ function BulkWorkspace<R extends { id: string }>({
     () => onDirtyChange?.(changedCells > 0),
     [changedCells, onDirtyChange]
   );
-  useWarnBeforeUnload(changedCells + extraChanges > 0);
   const savedRows = skipUntouched
     ? rowData.filter((row) => row.__touched)
     : rowData;
@@ -613,6 +615,12 @@ function BulkWorkspace<R extends { id: string }>({
 
   return (
     <div className="flex h-[calc(100dvh-7.5rem)] min-h-[32rem] flex-col gap-3">
+      {guardUnsaved ? (
+        <UnsavedChangesGuard
+          when={changedCells + extraChanges > 0 && !saving}
+          count={changedCells + extraChanges}
+        />
+      ) : null}
       <div className="flex flex-wrap items-center gap-3">
         {header}
         <label

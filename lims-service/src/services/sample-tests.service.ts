@@ -9,6 +9,7 @@ import AuditLog from "../models/audit-log.model";
 import { APPROVED_ENTRY_KEY } from "../utils/approval-status";
 import { TEST_BUSINESS_ID } from "../configs/business-ids";
 import type { CrudContext } from "../utils/crud-factory";
+import { computeCalculations } from "../utils/formula";
 
 /** Keeps each multi-row INSERT well under Postgres' 65,535 bind-parameter limit. */
 const CHUNK = 1000;
@@ -26,9 +27,9 @@ const reject = (message: string) =>
   Object.assign(new Error(message), { statusCode: 400 });
 
 /**
- * Creates one Test per Test Template in `payload.testTemplates`, each with a pending result
- * row per component — a snapshot at login, so later template edits don't touch this sample.
- * A template already tested on the sample (and not cancelled) is skipped, so re-sending the
+ * Creates one Test per (Test Template, repeat number) in `payload.testTemplates`, each with a
+ * pending result row per component — a snapshot at login, so later template edits don't touch
+ * this sample. A run already on the sample (and not cancelled) is skipped, so re-sending the
  * list on edit is harmless. Runs in the sample's own transaction: all-or-nothing.
  */
 export const assignSampleTests = async ({
@@ -42,40 +43,59 @@ export const assignSampleTests = async ({
   ctx: CrudContext;
   transaction: Transaction;
 }) => {
-  // First occurrence wins, so a template picked through two groups keeps the first one.
-  const sourceGroupOf = new Map<string, string | null>();
-  const valuesOf = new Map<string, Record<string, unknown>>();
+  // One slot per run; first occurrence wins, so a run picked through two groups keeps the first.
+  const slotOf = (analysisId: string, repeat: unknown) =>
+    `${analysisId}#${Number(repeat) > 1 ? Number(repeat) : 1}`;
+  const requests = new Map<
+    string,
+    {
+      analysisId: string;
+      repeatNumber: number;
+      sourceTestGroupId: string | null;
+      values?: Record<string, unknown>;
+    }
+  >();
   for (const item of Array.isArray(payload.testTemplates)
     ? payload.testTemplates
     : []) {
-    if (item?.analysisId && !sourceGroupOf.has(item.analysisId)) {
-      sourceGroupOf.set(item.analysisId, item.sourceTestGroupId ?? null);
-      if (item.values && typeof item.values === "object")
-        valuesOf.set(item.analysisId, item.values);
-    }
+    if (!item?.analysisId) continue;
+    const slot = slotOf(item.analysisId, item.repeatNumber);
+    if (requests.has(slot)) continue;
+    requests.set(slot, {
+      analysisId: item.analysisId,
+      repeatNumber: Number(slot.split("#")[1]),
+      sourceTestGroupId: item.sourceTestGroupId ?? null,
+      values:
+        item.values && typeof item.values === "object" ? item.values : undefined
+    });
   }
-  const requested = [...sourceGroupOf.keys()];
-  if (!requested.length) return;
+  if (!requests.size) return;
+  const requestedIds = [
+    ...new Set([...requests.values()].map((r) => r.analysisId))
+  ];
 
   const already = new Set(
     (
       await Test.findAll({
         where: {
           sampleId: record.id,
-          analysisId: { [Op.in]: requested },
+          analysisId: { [Op.in]: requestedIds },
           isDeleted: false,
           status: { [Op.ne]: "Cancelled" }
         },
-        attributes: ["analysisId"],
+        attributes: ["analysisId", "repeatNumber"],
         transaction
       })
-    ).map((test) => test.analysisId)
+    ).map((test) => slotOf(test.analysisId!, test.repeatNumber))
   );
-  const toAdd = requested.filter((id) => !already.has(id));
+  const toAdd = [...requests]
+    .filter(([slot]) => !already.has(slot))
+    .map(([, request]) => request);
   if (!toAdd.length) return;
+  const toAddIds = [...new Set(toAdd.map((r) => r.analysisId))];
 
   const analyses = await Analysis.findAll({
-    where: { id: { [Op.in]: toAdd }, isDeleted: false },
+    where: { id: { [Op.in]: toAddIds }, isDeleted: false },
     include: [
       {
         model: PhraseEntry,
@@ -89,7 +109,7 @@ export const assignSampleTests = async ({
   });
   const byId = new Map(analyses.map((a) => [a.id, a]));
 
-  for (const id of toAdd) {
+  for (const id of toAddIds) {
     const analysis = byId.get(id);
     if (!analysis) throw reject("A selected Test Template no longer exists.");
     if ((analysis as any).approvalStatus?.phraseEntryId !== APPROVED_ENTRY_KEY)
@@ -107,12 +127,13 @@ export const assignSampleTests = async ({
     transaction
   );
   const tests = await Test.bulkCreate(
-    toAdd.map((id, index) => ({
+    toAdd.map((request, index) => ({
       testId: testIds[index],
-      testName: byId.get(id)!.name,
+      testName: byId.get(request.analysisId)!.name,
       sampleId: record.id,
-      analysisId: id,
-      sourceTestGroupId: sourceGroupOf.get(id) ?? null,
+      analysisId: request.analysisId,
+      repeatNumber: request.repeatNumber,
+      sourceTestGroupId: request.sourceTestGroupId,
       groupId: record.groupId ?? null,
       loginDate: record.loginDate ?? null,
       loginBy: record.loginBy ?? null,
@@ -136,13 +157,30 @@ export const assignSampleTests = async ({
         unit: component.unit,
         // Values typed on the bulk page before this test existed.
         value: textOrNull(
-          valuesOf.get(analysis.id)?.[String(component.componentId)]
+          requests.get(slotOf(analysis.id, test.repeatNumber))?.values?.[
+            String(component.componentId)
+          ]
         ),
         componentType: component.type,
         componentList: component.list,
-        componentOption: component.option
+        componentOption: component.option,
+        componentFormula: component.formula
       }));
   });
+  // Values typed before the test existed can already feed its Calculations.
+  const pendingByTest = new Map<string, typeof pendingRows>();
+  pendingRows.forEach((row) =>
+    pendingByTest.set(row.testId, [
+      ...(pendingByTest.get(row.testId) ?? []),
+      row
+    ])
+  );
+  for (const testRows of pendingByTest.values()) {
+    const computed = computeCalculations(testRows);
+    for (const row of testRows)
+      if (row.componentType === "CALCULATION")
+        row.value = computed.get(String(row.componentId)) || null;
+  }
   for (const chunk of chunks(pendingRows)) {
     for (const row of await TestWindow.bulkCreate(chunk as any[], {
       transaction,

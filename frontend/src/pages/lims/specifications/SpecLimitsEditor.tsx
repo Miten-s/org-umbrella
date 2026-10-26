@@ -9,16 +9,13 @@ import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
 import { ChevronDownIcon, TrashBinIcon } from "@/public/icons";
 import { toast } from "@/lib/toast";
 import { usePickLists } from "@/pages/lims/analyses/usePickListOptions";
-import {
-  BOOLEAN_OPTIONS,
-  TYPE_LABELS,
-  isTyped
-} from "@/pages/lims/analyses/componentTypes";
+import { booleanLabels } from "@/pages/lims/analyses/componentValue";
+import { TYPE_LABELS, isTyped } from "@/pages/lims/analyses/componentTypes";
 import type { LimsComponentRow } from "@/pages/lims/analyses/LimsAnalysis.types";
 import {
   GROUP_PREFIX,
   TEMPLATE_PREFIX,
-  useTestSourceOptions
+  useTemplateSourceOptions
 } from "@/pages/lims/analyses/testSources";
 import {
   expandLimsTestSources,
@@ -582,10 +579,7 @@ const SpecLimitsEditor = ({
         );
       }
       case "BOOLEAN": {
-        const [yes, no] = (
-          BOOLEAN_OPTIONS.find((o) => o.value === component.option)?.label ??
-          "Yes / No"
-        ).split(" / ");
+        const { yes, no } = booleanLabels(str(component.option), pickLists);
         const value = str(row.boolean);
         return editing ? (
           <SelectDropdown
@@ -794,11 +788,11 @@ const SpecLimitsEditor = ({
           <div className="min-w-[16rem] flex-1">
             <AsyncSelect
               multi
-              useOptions={useTestSourceOptions}
+              useOptions={useTemplateSourceOptions}
               value={staged}
               onChange={setStaged}
               disabled={adding}
-              placeholder={t("limsAddTestsPlaceholder")}
+              placeholder={t("limsSpecAddTemplatesPlaceholder")}
             />
           </div>
           <Button
@@ -811,9 +805,9 @@ const SpecLimitsEditor = ({
           >
             {staged.length
               ? t("limsAddCount", { count: staged.length })
-              : t("limsAddTests")}
+              : t("limsSpecAddTemplates")}
           </Button>
-          <HelpTooltip content={t("limsAddTestsHint")} />
+          <HelpTooltip content={t("limsSpecAddTemplatesHint")} />
         </div>
       ) : null}
 
@@ -940,7 +934,7 @@ const SpecLimitsEditor = ({
         </div>
       ) : (
         <div className="rounded-lg border border-gray-200 px-3 py-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
-          {t("limsNoLimits")}
+          {t("limsSpecNoLimits")}
         </div>
       )}
 

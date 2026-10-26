@@ -9,7 +9,9 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Max,
   MaxLength,
+  Min,
   ValidateNested
 } from "class-validator";
 import { Type } from "class-transformer";
@@ -71,6 +73,8 @@ export class UpdateLotDto {
 export class TestAssignmentDto {
   @IsUUID("4") analysisId!: string;
   @IsOptional() @IsUUID("4") sourceTestGroupId?: string;
+  /** Which run of this template on the sample: 1 (default), or 2+ for a repeat. */
+  @IsOptional() @IsInt() @Min(1) @Max(99) repeatNumber?: number;
   /** Initial result values by component ID, entered before the test existed. */
   @IsOptional() @IsObject() values?: Record<string, string>;
 }

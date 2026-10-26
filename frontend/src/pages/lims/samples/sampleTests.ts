@@ -8,12 +8,34 @@ import type { LimsSampleTest } from "./LimsSample.types";
 export interface PendingTemplate {
   id: string;
   name: string;
+  /** 2+ for a repeat run (Avg Wt/2); unset means the first run. */
+  repeatNumber?: number;
   /** Unknown when the row came back from a save (only the template's name is returned). */
   componentCount?: number;
   /** The Test Group it was picked through; unset for a template picked on its own. */
   sourceGroupId?: string;
   sourceGroupName?: string;
 }
+
+/** One run of a template on a sample: the template id for the first run, `id#n` for a repeat —
+ * so everything keyed by template id before repeats existed keeps working unchanged. */
+export const slotKey = (analysisId: string, repeatNumber?: number | null) =>
+  (repeatNumber ?? 1) > 1 ? `${analysisId}#${repeatNumber}` : analysisId;
+
+export const slotOfPending = (tpl: PendingTemplate) =>
+  slotKey(tpl.id, tpl.repeatNumber);
+
+export const slotOfTest = (test: LimsSampleTest) =>
+  slotKey(String(test.analysisId ?? ""), test.repeatNumber);
+
+export const parseSlot = (slot: string) => {
+  const [analysisId, repeat] = slot.split("#");
+  return { analysisId, repeatNumber: Number(repeat) || 1 };
+};
+
+/** "Avg Wt/2"; the first run gets "/1" only once the template has repeats. */
+export const runLabel = (name: string, repeatNumber = 1, hasRepeats = false) =>
+  hasRepeats || repeatNumber > 1 ? `${name}/${repeatNumber}` : name;
 
 /** Template ids a sample already carries — saved (not cancelled) or picked on the form. */
 export const takenTemplateIds = (
@@ -26,6 +48,27 @@ export const takenTemplateIds = (
       .map((test) => String(test.analysisId)),
     ...pending.map((tpl) => tpl.id)
   ]);
+
+/** Queues the next run of a template the sample already has (or has picked). */
+export const addRepeat = (
+  existing: LimsSampleTest[],
+  pending: PendingTemplate[],
+  template: Omit<PendingTemplate, "repeatNumber">
+) => {
+  const runs = [
+    ...existing
+      .filter((test) => test.analysisId === template.id)
+      .map((test) => test.repeatNumber ?? 1),
+    ...pending
+      .filter((tpl) => tpl.id === template.id)
+      .map((tpl) => tpl.repeatNumber ?? 1)
+  ];
+  const repeatNumber = Math.max(0, ...runs) + 1;
+  return {
+    pending: [...pending, { ...template, repeatNumber }],
+    repeatNumber
+  };
+};
 
 /** Appends `templates` to `pending`, skipping ones the sample already has and non-Approved ones.
  * A template reached through two groups stays under the first. */

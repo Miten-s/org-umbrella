@@ -8,6 +8,7 @@ import Sample from "../models/sample.model";
 import Test from "../models/test.model";
 import TestWindow from "../models/test-window.model";
 import { contextFromRequest, groupWhere } from "../utils/crud-factory";
+import { recomputeTests } from "./calculations.service";
 import type {
   BulkComponentChangesDto,
   SampleComponentsQueryDto
@@ -59,6 +60,7 @@ export const listSampleComponents = asyncHandler(
             "componentType",
             "componentList",
             "componentOption",
+            "componentFormula",
             "outOfRange",
             "enteredOn",
             "enteredBy",
@@ -68,7 +70,7 @@ export const listSampleComponents = asyncHandler(
             {
               model: Test,
               as: "test",
-              attributes: ["testId", "status", "analysisId"],
+              attributes: ["testId", "status", "analysisId", "repeatNumber"],
               where: { isDeleted: false },
               required: true
             },
@@ -102,6 +104,7 @@ export const listSampleComponents = asyncHandler(
           testId: plain.test?.testId,
           testStatus: plain.test?.status,
           analysisId: plain.test?.analysisId,
+          repeatNumber: plain.test?.repeatNumber ?? 1,
           analysisName: plain.analysisName,
           componentId: plain.componentId,
           componentName: plain.componentName,
@@ -110,6 +113,7 @@ export const listSampleComponents = asyncHandler(
           componentType: plain.componentType,
           componentList: plain.componentList,
           componentOption: plain.componentOption,
+          componentFormula: plain.componentFormula,
           outOfRange: plain.outOfRange,
           enteredOn: plain.enteredOn,
           enteredBy: plain.enteredBy,
@@ -184,6 +188,8 @@ export const saveComponentChanges = asyncHandler(
         const from: Record<string, unknown> = {};
         for (const key of EDITABLE) {
           if (!(key in change)) continue;
+          // Calculation results are computed below, never typed.
+          if (key === "value" && row.componentType === "CALCULATION") continue;
           const next = (change as any)[key] ?? null;
           const before = row.get(key) ?? null;
           const same =
@@ -207,6 +213,17 @@ export const saveComponentChanges = asyncHandler(
         const list = deltas.get(row.testId!) ?? [];
         list.push({ key: row.componentId, from, to: patch });
         deltas.set(row.testId!, list);
+      }
+
+      for (const computed of await recomputeTests(testIds, transaction)) {
+        updated += 1;
+        const list = deltas.get(computed.testId) ?? [];
+        list.push({
+          key: computed.componentId,
+          from: { value: computed.from },
+          to: { value: computed.to }
+        });
+        deltas.set(computed.testId, list);
       }
 
       const entries = [...deltas].map(([testId, changed]) => ({

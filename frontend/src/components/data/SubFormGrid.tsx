@@ -8,7 +8,8 @@ import type { useAsyncOptions } from "@/hooks/useAsyncOptions";
 import type { AsyncOption } from "@/lib/query/listTypes";
 import { PlusIcon, TrashBinIcon } from "@/public/icons";
 import { useTranslation } from "react-i18next";
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
+import { useFormHeaderAction } from "./formHeaderContext";
 
 /** "number" coerces to a real JS number, for an actual numeric DB column. "numeric-text" keeps
  * a plain string, for a loosely-typed STRING column (e.g. Spec Limit's `min`/`max`) — a real number there 400s. */
@@ -121,6 +122,26 @@ function SubFormGrid<R extends Record<string, unknown>>({
   };
 
   const addRow = () => onChange([...rows, newRow ? newRow() : ({} as R)]);
+  useFormHeaderAction(
+    editable && allowAdd
+      ? {
+          label: addLabel ?? label,
+          title: `${t("limsAddRow")} — ${label}`,
+          onClick: addRow
+        }
+      : null
+  );
+  // A row added from the form header lands at the bottom — bring it into view.
+  const containerRef = useRef<HTMLDivElement>(null);
+  const rowCount = useRef(rows.length);
+  useEffect(() => {
+    if (rows.length > rowCount.current)
+      containerRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "end"
+      });
+    rowCount.current = rows.length;
+  }, [rows.length]);
 
   const removeRow = (rowIndex: number) =>
     onChange(rows.filter((_, index) => index !== rowIndex));
@@ -277,7 +298,7 @@ function SubFormGrid<R extends Record<string, unknown>>({
   );
 
   return (
-    <div className="min-w-0">
+    <div ref={containerRef} className="min-w-0">
       <div className="mb-2 flex items-center justify-between gap-3">
         <Label className="mb-0">{label}</Label>
         {editable && allowAdd ? (

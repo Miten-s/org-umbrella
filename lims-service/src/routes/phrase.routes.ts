@@ -12,6 +12,10 @@ import { CreatePhraseDto, UpdatePhraseDto } from "../dtos/master-data.dto";
 import { authorize } from "../middlewares/authorize.middleware";
 import { getPaginationOptions } from "../utils/pagination.util";
 import asyncHandler from "../middlewares/error.middleware";
+import {
+  BOOLEAN_ANSWERS_PHRASE,
+  splitBooleanPair
+} from "../configs/component-types";
 
 /** Pick Lists — the reference entity for the factory (config only, no bespoke code).
  * `entries[]` is a nested sub-form, saved in the same transaction as one audit entry. */
@@ -42,6 +46,21 @@ export const phraseConfig: CrudConfig<Phrase> = {
     }
   ],
   relationFields: { group: "groupId" },
+  validatePayload: async (payload, _transaction, existing) => {
+    const code = payload.phrase ?? existing?.phrase;
+    if (code !== BOOLEAN_ANSWERS_PHRASE || !Array.isArray(payload.entries))
+      return;
+    const bad = payload.entries.find(
+      (entry: { name?: unknown }) => !splitBooleanPair(String(entry.name ?? ""))
+    );
+    if (bad)
+      throw Object.assign(
+        new Error(
+          `"${bad.name ?? ""}" must be two answers separated by "/", e.g. "Pass / Fail".`
+        ),
+        { statusCode: 400 }
+      );
+  },
   children: [
     {
       field: "entries",

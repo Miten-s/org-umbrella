@@ -6,7 +6,7 @@ import {
   isEnterable,
   type ComponentSpec
 } from "./componentValue";
-import { usePickListOptions } from "./usePickListOptions";
+import { usePickListOptions, usePickLists } from "./usePickListOptions";
 
 const inputClasses =
   "h-9 w-full rounded-lg border border-gray-300 bg-transparent px-2.5 text-sm text-gray-900 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 disabled:bg-gray-50 disabled:text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90";
@@ -32,6 +32,7 @@ const ComponentValueEditor = ({
   label
 }: ComponentValueEditorProps) => {
   const { t } = useTranslation();
+  const { data: pickLists } = usePickLists(spec.type === "BOOLEAN");
   const listOptions = usePickListOptions(
     spec.type === "LIST" ? spec.list : null
   );
@@ -57,7 +58,7 @@ const ComponentValueEditor = ({
         />
       );
     case "BOOLEAN": {
-      const { yes, no } = booleanLabels(spec.option);
+      const { yes, no } = booleanLabels(spec.option, pickLists);
       return (
         <SelectDropdown
           options={[
@@ -77,7 +78,7 @@ const ComponentValueEditor = ({
     case "DATETIME":
       return (
         <DateField
-          mode="date"
+          mode="datetime"
           value={value}
           onChange={(next) => onChange(next ?? "")}
           disabled={disabled}

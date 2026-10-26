@@ -77,12 +77,16 @@ export const TYPE_SPECIFIC_KEYS = [
   "max"
 ] as const;
 
-export const BOOLEAN_OPTIONS = [
-  { value: "YES_NO", label: "Yes / No" },
-  { value: "PASS_FAIL", label: "Pass / Fail" },
-  { value: "COMPLIES", label: "Complies / Does not comply" },
-  { value: "PRESENT_ABSENT", label: "Present / Absent" }
-];
+/** Pick list of Boolean answer pairs. Each entry's name is "true answer / false answer". */
+export const BOOLEAN_ANSWERS_LIST = "BOOLEAN_ANSWERS";
+
+/** "Pass / Fail" → ["Pass", "Fail"]; null unless it is exactly two non-empty answers. */
+export const splitBooleanPair = (name: string): [string, string] | null => {
+  const parts = name.split("/").map((part) => part.trim());
+  return parts.length === 2 && parts[0] && parts[1]
+    ? [parts[0], parts[1]]
+    : null;
+};
 
 type OptionsHook = (args: {
   search: string;
@@ -253,6 +257,55 @@ export const isFormulaWellFormed = (formula: string): boolean => {
 const text = (value: unknown) =>
   value === undefined || value === null ? "" : String(value).trim();
 
+/** Row indexes whose Component ID or Name (case-insensitive) repeats another row's. */
+export const duplicateRows = (rows: LimsComponentRow[]) => {
+  const repeats = (keyOf: (row: LimsComponentRow) => string) => {
+    const counts = new Map<string, number>();
+    rows.forEach((row) => {
+      const key = keyOf(row);
+      if (key) counts.set(key, (counts.get(key) ?? 0) + 1);
+    });
+    return new Set(
+      rows.flatMap((row, i) => ((counts.get(keyOf(row)) ?? 0) > 1 ? [i] : []))
+    );
+  };
+  return {
+    ids: repeats((row) => text(row.componentId)),
+    names: repeats((row) => text(row.name).toLowerCase())
+  };
+};
+
+/** Components a Calculation may refer to: the template's other Value/Calculation rows. */
+export const formulaTargets = (rows: LimsComponentRow[], selfId: string) =>
+  rows
+    .filter(isTyped)
+    .filter(
+      (row) =>
+        ["VALUE", "CALCULATION"].includes(row.type) &&
+        text(row.componentId) &&
+        text(row.componentId) !== selfId
+    );
+
+/** What's wrong with a Calculation's formula, or undefined when it is valid. */
+export const formulaProblem = (
+  formula: string,
+  selfId: string,
+  rows: LimsComponentRow[]
+): string | undefined => {
+  if (!formula.trim()) return "Formula is required.";
+  if (!isFormulaWellFormed(formula))
+    return "the formula may only use numbers, + - * / ( ) and {Component ID}.";
+  const targets = new Set(
+    formulaTargets(rows, selfId).map((row) => text(row.componentId))
+  );
+  for (const ref of formulaReferences(formula)) {
+    if (ref === selfId) return "a formula can't refer to itself.";
+    if (!targets.has(ref))
+      return `{${ref}} must be a Value or Calculation component in this template.`;
+  }
+  return undefined;
+};
+
 /** A saved row from before component types existed — shown read-only until given a Type. */
 export const isLegacy = (row: LimsComponentRow) =>
   Boolean(row.id) && !isTyped(row);
@@ -262,9 +315,8 @@ export const isLegacy = (row: LimsComponentRow) =>
 export const validateComponentRows = (
   rows: LimsComponentRow[]
 ): string | undefined => {
-  const typed = rows.filter(isTyped);
-  const byId = new Map(typed.map((row) => [text(row.componentId), row]));
   const seen = new Set<string>();
+  const seenNames = new Set<string>();
 
   for (const row of rows) {
     const id = text(row.componentId);
@@ -272,6 +324,10 @@ export const validateComponentRows = (
     if (!id) return "Every component needs a Component ID.";
     if (seen.has(id)) return `Component ID "${id}" is used more than once.`;
     seen.add(id);
+    const lowerName = text(row.name).toLowerCase();
+    if (lowerName && seenNames.has(lowerName))
+      return `Component name "${text(row.name)}" is used more than once.`;
+    seenNames.add(lowerName);
 
     if (isLegacy(row)) continue;
     if (!isTyped(row)) return `${name}: pick a Type.`;
@@ -289,16 +345,8 @@ export const validateComponentRows = (
     }
 
     if (row.type === "CALCULATION") {
-      const formula = text(row.formula);
-      if (!formula) return `${name}: Formula is required.`;
-      if (!isFormulaWellFormed(formula))
-        return `${name}: the formula may only use numbers, + - * / ( ) and {Component ID}.`;
-      for (const ref of formulaReferences(formula)) {
-        if (ref === id) return `${name}: a formula can't refer to itself.`;
-        const target = byId.get(ref);
-        if (!target || !["VALUE", "CALCULATION"].includes(target.type))
-          return `${name}: {${ref}} must be a Value or Calculation component in this template.`;
-      }
+      const problem = formulaProblem(text(row.formula), id, rows);
+      if (problem) return `${name}: ${problem}`;
     }
 
     if (row.type === "LIST" && !text(row.list)) return `${name}: pick a List.`;

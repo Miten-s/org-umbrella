@@ -11,6 +11,7 @@ import Button from "@/components/ui/button/Button";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import { seedRefOption } from "@/utils/refLabel";
 import SubFormGrid from "@/components/data/SubFormGrid";
+import FormHeader from "@/components/data/FormHeader";
 import LimsAttachmentsField from "@/components/lims/LimsAttachmentsField";
 import InstrumentCalibrations from "./InstrumentCalibrations";
 import { useAttachments } from "@/hooks/useAttachments";
@@ -207,15 +208,17 @@ const LimsInstrumentForm = ({
         })}
         className="min-w-0 space-y-4"
       >
-        <h2 className="text-xl font-semibold">
-          {isReadOnly
-            ? t("view", { entity: t("limsInstrument") })
-            : mode === "copy"
-              ? `${t("copyEntity", { entity: t("limsInstrument") })}${stepLabel ?? ""}`
-              : initialData
-                ? `${t("update", { entity: t("limsInstrument") })}${stepLabel ?? ""}`
-                : t("create", { entity: t("limsInstrument") })}
-        </h2>
+        <FormHeader
+          title={
+            isReadOnly
+              ? t("view", { entity: t("limsInstrument") })
+              : mode === "copy"
+                ? `${t("copyEntity", { entity: t("limsInstrument") })}${stepLabel ?? ""}`
+                : initialData
+                  ? `${t("update", { entity: t("limsInstrument") })}${stepLabel ?? ""}`
+                  : t("create", { entity: t("limsInstrument") })
+          }
+        />
 
         <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
           {text("instrumentId", t("limsInstrumentId"), true, "text")}

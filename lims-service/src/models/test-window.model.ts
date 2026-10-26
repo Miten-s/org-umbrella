@@ -18,6 +18,7 @@ export interface ITestWindow {
   componentType?: string | null;
   componentList?: string | null;
   componentOption?: string | null;
+  componentFormula?: string | null;
   outOfRange: boolean;
   enteredOn?: Date | string | null;
   enteredBy?: string | null;
@@ -38,6 +39,7 @@ export class TestWindow extends Model<ITestWindow> implements ITestWindow {
   public componentType!: string | null;
   public componentList!: string | null;
   public componentOption!: string | null;
+  public componentFormula!: string | null;
   public outOfRange!: boolean;
   public enteredOn!: Date | string | null;
   public enteredBy!: string | null;
@@ -87,6 +89,11 @@ TestWindow.init(
       type: DataTypes.STRING(255),
       allowNull: true,
       field: "component_option"
+    },
+    componentFormula: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: "component_formula"
     },
     outOfRange: {
       type: DataTypes.BOOLEAN,

@@ -7,6 +7,7 @@ export interface SampleComponentRow {
   testUuid: string;
   /** The test's Test Template. */
   analysisId?: string;
+  repeatNumber?: number;
   testId?: string;
   testStatus?: string;
   analysisName?: string;
@@ -18,6 +19,7 @@ export interface SampleComponentRow {
   componentType?: string | null;
   componentList?: string | null;
   componentOption?: string | null;
+  componentFormula?: string | null;
   outOfRange?: boolean;
   enteredOn?: string | null;
   enteredBy?: string | null;

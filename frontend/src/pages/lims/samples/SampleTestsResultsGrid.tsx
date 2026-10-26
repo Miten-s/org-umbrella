@@ -39,6 +39,7 @@ import {
   parseValue
 } from "@/pages/lims/analyses/componentValueText";
 import { TYPE_LABELS, isTyped } from "@/pages/lims/analyses/componentTypes";
+import { computeCalculations } from "@/pages/lims/analyses/formula";
 import { usePickLists } from "@/pages/lims/analyses/usePickListOptions";
 import {
   GROUP_PREFIX,
@@ -55,7 +56,16 @@ import {
   type SampleComponentRow
 } from "./sampleComponents.api";
 import { valueKey, type BulkTestsStore } from "./sampleBulkStore";
-import { addTemplates, applyExpansion } from "./sampleTests";
+import {
+  addRepeat,
+  addTemplates,
+  applyExpansion,
+  parseSlot,
+  runLabel,
+  slotKey,
+  slotOfPending,
+  slotOfTest
+} from "./sampleTests";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -122,7 +132,7 @@ const PickCellEditor = (
   const typing = () =>
     document.activeElement instanceof HTMLInputElement &&
     Boolean(box.current?.contains(document.activeElement));
-  // Enter takes what was typed in the search or date box: "Pass", a list answer, dd-mm-yyyy.
+  // Enter takes what was typed in the search or date box: "Pass", a list answer, dd-mm-yyyy hh:mm.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Enter" || !typing()) return;
@@ -147,7 +157,7 @@ const PickCellEditor = (
   return (
     <div
       ref={box}
-      className="w-64 rounded-lg bg-white p-2 shadow-lg dark:bg-gray-900"
+      className={`${props.spec.type === "DATETIME" ? "w-80" : "w-64"} rounded-lg bg-white p-2 shadow-lg dark:bg-gray-900`}
     >
       <ComponentValueEditor
         spec={props.spec}
@@ -156,8 +166,11 @@ const PickCellEditor = (
         onChange={(next) => {
           setValue(next);
           props.onValueChange(next);
-          // A date being typed parses midway ("07-10-2"); wait for Enter or a calendar pick.
-          if (!(props.spec.type === "DATETIME" && typing()))
+          // Date + time stays open until the time is picked; Enter or clicking away also commits.
+          if (!(
+            props.spec.type === "DATETIME" &&
+            (typing() || !next.includes("T"))
+          ))
             finishPopupEdit(props);
         }}
       />
@@ -313,22 +326,28 @@ const SampleTestsResultsGrid = ({
       const cancelled = new Set<string>();
       for (const test of step?.existing ?? []) {
         if (!test.analysisId) continue;
-        if (test.status === "Cancelled") cancelled.add(test.analysisId);
+        const slot = slotOfTest(test);
+        if (test.status === "Cancelled") cancelled.add(slot);
         else {
-          has.set(test.analysisId, "saved");
-          under.set(test.analysisId, test.sourceTestGroupId || INDIVIDUAL);
+          has.set(slot, "saved");
+          under.set(slot, test.sourceTestGroupId || INDIVIDUAL);
         }
       }
-      for (const tpl of step?.pending ?? [])
-        if (!has.has(tpl.id)) {
-          has.set(tpl.id, "new");
-          under.set(tpl.id, tpl.sourceGroupId || INDIVIDUAL);
+      for (const tpl of step?.pending ?? []) {
+        const slot = slotOfPending(tpl);
+        if (!has.has(slot)) {
+          has.set(slot, "new");
+          under.set(slot, tpl.sourceGroupId || INDIVIDUAL);
         }
+      }
       const saved = new Map<string, SampleComponentRow>();
       for (const row of rowsBySample.get(sample.id) ?? [])
         if (row.analysisId)
           saved.set(
-            valueKey(row.analysisId, String(row.componentId ?? "")),
+            valueKey(
+              slotKey(row.analysisId, row.repeatNumber),
+              String(row.componentId ?? "")
+            ),
             row
           );
       return { has, under, cancelled, saved, values: step?.values ?? {} };
@@ -363,32 +382,47 @@ const SampleTestsResultsGrid = ({
     steps.forEach((step) => {
       for (const test of step.existing)
         if (test.analysisId) {
+          const slot = slotOfTest(test);
           const g = groupOf(test.sourceTestGroupId, test.sourceTestGroup?.name);
-          if (!g.templateIds.includes(test.analysisId))
-            g.templateIds.push(test.analysisId);
-          g.names.set(test.analysisId, test.testName ?? "");
+          if (!g.templateIds.includes(slot)) g.templateIds.push(slot);
+          g.names.set(slot, test.testName ?? "");
         }
       for (const tpl of step.pending) {
+        const slot = slotOfPending(tpl);
         const g = groupOf(tpl.sourceGroupId, tpl.sourceGroupName);
-        if (!g.templateIds.includes(tpl.id)) g.templateIds.push(tpl.id);
-        g.names.set(tpl.id, tpl.name);
+        if (!g.templateIds.includes(slot)) g.templateIds.push(slot);
+        g.names.set(slot, tpl.name);
       }
     });
-    for (const g of groups.values())
-      if (g.id && groupDefs.has(g.id)) {
-        const def = groupDefs.get(g.id)!.templateIds;
-        g.templateIds = [
-          ...def,
-          ...g.templateIds.filter((id) => !def.includes(id))
-        ];
-      }
+    // Templates in the group's own order (else first seen), each run right after the one before.
+    const repeated = new Set<string>();
+    for (const g of groups.values()) {
+      const def = g.id ? groupDefs.get(g.id)?.templateIds : undefined;
+      const bases = [
+        ...(def ?? []),
+        ...g.templateIds.map((slot) => parseSlot(slot).analysisId)
+      ].filter((id, i, all) => all.indexOf(id) === i);
+      const slots = new Set(g.templateIds);
+      g.templateIds = bases.flatMap((base) => {
+        const runs = [...slots]
+          .filter((slot) => parseSlot(slot).analysisId === base)
+          .sort(
+            (a, b) => parseSlot(a).repeatNumber - parseSlot(b).repeatNumber
+          );
+        if (runs.some((slot) => parseSlot(slot).repeatNumber > 1))
+          repeated.add(base);
+        return def?.includes(base) && !runs.includes(base)
+          ? [base, ...runs]
+          : runs;
+      });
+    }
     const ordered = [...groups.entries()].sort(([a], [b]) =>
       a === INDIVIDUAL ? 1 : b === INDIVIDUAL ? -1 : 0
     );
 
     const componentsOf = (analysisId: string): ComponentDef[] => {
       const list: ComponentDef[] = (
-        templateDefs.get(analysisId)?.components ?? []
+        templateDefs.get(parseSlot(analysisId).analysisId)?.components ?? []
       ).map((c) => ({
         componentId: String(c.componentId ?? ""),
         name: String(c.name ?? c.componentId ?? ""),
@@ -396,7 +430,8 @@ const SampleTestsResultsGrid = ({
           type: c.type as string,
           list: c.list as string,
           option: c.option as string,
-          unit: c.unit as string
+          unit: c.unit as string,
+          formula: c.formula as string
         }
       }));
       // A saved test keeps its own snapshot even if the template has changed since.
@@ -413,7 +448,8 @@ const SampleTestsResultsGrid = ({
                 type: row.componentType,
                 list: row.componentList,
                 option: row.componentOption,
-                unit: row.unit
+                unit: row.unit,
+                formula: row.componentFormula
               }
             });
       return list;
@@ -461,13 +497,35 @@ const SampleTestsResultsGrid = ({
     for (const [key, g] of ordered) {
       const groupRows: GridRow[] = [];
       for (const analysisId of g.templateIds) {
-        const name =
-          templateDefs.get(analysisId)?.name ?? g.names.get(analysisId) ?? "";
+        const run = parseSlot(analysisId);
+        const name = runLabel(
+          templateDefs.get(run.analysisId)?.name ??
+            g.names.get(analysisId) ??
+            "",
+          run.repeatNumber,
+          repeated.has(run.analysisId)
+        );
         const comps = componentsOf(analysisId);
         const compRows: GridRow[] = [];
+        // A Calculation shows what its inputs give right now, saved or not.
+        const calculatedCell = (i: number, c: ComponentDef) => {
+          const cell = valueCell(i, key, analysisId, c.componentId);
+          if (!cell.state) return cell;
+          const computed = computeCalculations(
+            comps.map((d) => ({
+              componentId: d.componentId,
+              componentType: d.spec.type,
+              componentFormula: d.spec.formula,
+              value: valueCell(i, key, analysisId, d.componentId).value
+            }))
+          ).get(c.componentId);
+          return { ...cell, value: computed ?? "" };
+        };
         for (const c of comps) {
           const cells = samples.map((_, i) =>
-            valueCell(i, key, analysisId, c.componentId)
+            c.spec.type === "CALCULATION"
+              ? calculatedCell(i, c)
+              : valueCell(i, key, analysisId, c.componentId)
           );
           const entered = cells.flatMap((cell, i) =>
             cell.state && cell.value ? [[i, cell.value] as const] : []
@@ -587,6 +645,7 @@ const SampleTestsResultsGrid = ({
   // Adding/removing picks — read through a ref so the column definitions stay stable.
   const actions = useRef({
     add: (_i: number, _row: GridRow) => {},
+    repeat: (_i: number, _row: GridRow) => {},
     remove: (_i: number, _analysisId: string) => {},
     toggle: (_id: string, _open: boolean) => {}
   });
@@ -594,15 +653,40 @@ const SampleTestsResultsGrid = ({
     add: (i, row) => {
       const step = store.getStep(i);
       if (!step) return;
+      const group = row.groupId
+        ? { id: row.groupId, name: row.groupName ?? "" }
+        : undefined;
+      const run = parseSlot(row.analysisId ?? "");
+      // A repeat row adds that same run to a sample that lacks it.
+      if (row.kind === "template" && run.repeatNumber > 1) {
+        const def = templateDefs.get(run.analysisId);
+        if (!def) return;
+        store.setPending(
+          new Map([
+            [
+              i,
+              [
+                ...step.pending,
+                {
+                  id: def.id,
+                  name: def.name,
+                  componentCount: def.componentCount,
+                  repeatNumber: run.repeatNumber,
+                  sourceGroupId: group?.id,
+                  sourceGroupName: group?.name
+                }
+              ]
+            ]
+          ])
+        );
+        return;
+      }
       const ids =
-        row.kind === "group" ? (row.templateIds ?? []) : [row.analysisId!];
+        row.kind === "group" ? (row.templateIds ?? []) : [run.analysisId];
       const templates = ids.flatMap((id) =>
         templateDefs.has(id) ? [templateDefs.get(id)!] : []
       );
       if (!templates.length) return;
-      const group = row.groupId
-        ? { id: row.groupId, name: row.groupName ?? "" }
-        : undefined;
       const result = addTemplates(
         step.existing,
         step.pending,
@@ -616,11 +700,26 @@ const SampleTestsResultsGrid = ({
         );
       store.setPending(new Map([[i, result.pending]]));
     },
+    repeat: (i, row) => {
+      const step = store.getStep(i);
+      const def = templateDefs.get(parseSlot(row.analysisId ?? "").analysisId);
+      if (!step || !def) return;
+      const result = addRepeat(step.existing, step.pending, {
+        id: def.id,
+        name: def.name,
+        componentCount: def.componentCount,
+        sourceGroupId: row.groupId,
+        sourceGroupName: row.groupName
+      });
+      store.setPending(new Map([[i, result.pending]]));
+    },
     remove: (i, analysisId) => {
       const step = store.getStep(i);
       if (step)
         store.setPending(
-          new Map([[i, step.pending.filter((tpl) => tpl.id !== analysisId)]])
+          new Map([
+            [i, step.pending.filter((tpl) => slotOfPending(tpl) !== analysisId)]
+          ])
         );
     },
     toggle: (id, isOpen) => setOpen((prev) => new Map(prev).set(id, !isOpen))
@@ -692,7 +791,7 @@ const SampleTestsResultsGrid = ({
       headerTooltip: sample.label,
       wrapHeaderText: true,
       autoHeaderHeight: true,
-      width: 180,
+      width: 220,
       cellDataType: false,
       valueGetter: (p) => {
         const cell = p.data?.cells[i];
@@ -744,7 +843,7 @@ const SampleTestsResultsGrid = ({
           isEnterable(row.spec?.type)
         );
       },
-      // Typing starts plain text (parsed on commit: "Pass", a list name, dd-mm-yyyy); click/F2 opens the picker.
+      // Typing starts plain text (parsed on commit: "Pass", a list name, dd-mm-yyyy hh:mm); click/F2 opens the picker.
       cellEditorSelector: (p) =>
         PICKER_TYPES.includes(String(p.data?.spec?.type)) &&
         !(p.eventKey && p.eventKey.length === 1)
@@ -832,12 +931,22 @@ const SampleTestsResultsGrid = ({
               >
                 {t("bulkFilledOf", { filled: cell.filled, total: cell.total })}
               </span>
+              {!readOnly ? (
+                <button
+                  type="button"
+                  title={t("limsAddRepeatHint")}
+                  onClick={() => actions.current.repeat(i, row)}
+                  className="ml-auto inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-brand-600 hover:bg-brand-50 dark:text-brand-400"
+                >
+                  <PlusIcon className="h-3 w-3" /> {t("limsAddRepeat")}
+                </button>
+              ) : null}
               {cell.state === "new" && !readOnly ? (
                 <button
                   type="button"
                   aria-label={t("delete")}
                   onClick={() => actions.current.remove(i, row.analysisId!)}
-                  className="ml-auto rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-error-600 dark:hover:bg-gray-800"
+                  className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-error-600 dark:hover:bg-gray-800"
                 >
                   <CloseLineIcon className="h-3.5 w-3.5" />
                 </button>
@@ -853,7 +962,7 @@ const SampleTestsResultsGrid = ({
           row.spec?.type === "LIST" || row.spec?.type === "BOOLEAN"
             ? t("bulkHintSelect")
             : row.spec?.type === "DATETIME"
-              ? "dd-mm-yyyy"
+              ? "dd-mm-yyyy hh:mm"
               : (row.spec?.unit ?? "");
         return <span className="text-gray-300 dark:text-gray-600">{hint}</span>;
       },
@@ -892,6 +1001,7 @@ const SampleTestsResultsGrid = ({
         ReturnType<typeof applyExpansion>["pending"]
       >();
       let added = 0;
+      let duplicates = 0;
       const skipped = new Set<string>();
       samples.forEach((_, i) => {
         const step = store.getStep(i);
@@ -899,14 +1009,18 @@ const SampleTestsResultsGrid = ({
         const result = applyExpansion(step.existing, step.pending, expansion);
         if (result.added) updates.set(i, result.pending);
         added += result.added;
+        duplicates += result.duplicates;
         result.skipped.forEach((name) => skipped.add(name));
       });
       store.setPending(updates);
       setStaged([]);
-      toast(
-        t("limsAddedAcrossSamples", { count: added, samples: updates.size }),
-        added ? "success" : "info"
-      );
+      if (added)
+        toast(
+          t("limsAddedAcrossSamples", { count: added, samples: updates.size }),
+          "success"
+        );
+      else if (duplicates)
+        toast(t("limsAlreadyOnSamplesUseRepeat"), "info", { duration: 6000 });
       if (skipped.size)
         toast(
           t("limsSkippedNotApproved", { names: [...skipped].join(", ") }),

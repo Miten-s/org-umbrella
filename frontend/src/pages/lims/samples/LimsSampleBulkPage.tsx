@@ -14,7 +14,7 @@ import BulkWorkspace, {
   type WorkspaceHandle,
   type WorkspaceStatus
 } from "@/components/data/BulkWorkspace";
-import { useWarnBeforeUnload } from "@/components/data/useWarnBeforeUnload";
+import UnsavedChangesGuard from "@/components/data/UnsavedChangesGuard";
 import TourButton from "@/components/tour/TourButton";
 import { useProductTour, type TourStep } from "@/components/tour/productTour";
 import { ConfirmDialog } from "@/components/data/ConfirmDialog";
@@ -49,9 +49,10 @@ import {
 import type { LimsSample, LimsSamplePayload } from "./LimsSample.types";
 import { createBulkTestsStore } from "./sampleBulkStore";
 import { sampleFromTemplate } from "./sampleFromTemplate";
-import { takenTemplateIds, type PendingTemplate } from "./sampleTests";
+import { slotOfPending, type PendingTemplate } from "./sampleTests";
 import SampleTestsResultsGrid from "./SampleTestsResultsGrid";
 import { saveSampleComponentChanges } from "./sampleComponents.api";
+import { workspaceUrl } from "./sampleRoutes";
 
 const day = (value?: string | null) => (value ? value.slice(0, 10) : "");
 
@@ -65,6 +66,7 @@ const picksFrom = (record: LimsSample): PendingTemplate[] =>
     .map((test) => ({
       id: String(test.analysisId),
       name: String(test.testName ?? ""),
+      repeatNumber: test.repeatNumber,
       componentCount: test.componentCount ?? test.components?.length,
       sourceGroupId: test.sourceTestGroupId ?? undefined,
       sourceGroupName: test.sourceTestGroup?.name
@@ -182,12 +184,10 @@ const SampleBulkWorkspacePage = () => {
       new Set(
         records.flatMap((record, i) => {
           const start = isNew
-            ? picksFrom(record)
-                .map((p) => p.id)
-                .join()
+            ? picksFrom(record).map(slotOfPending).join()
             : "";
           const step = steps.get(i);
-          const now = (step?.pending ?? []).map((p) => p.id).join();
+          const now = (step?.pending ?? []).map(slotOfPending).join();
           const typed = Object.values(step?.values ?? {}).some(Boolean);
           return now !== start || typed ? [record.id] : [];
         })
@@ -207,7 +207,7 @@ const SampleBulkWorkspacePage = () => {
     (sum, step) =>
       sum +
       Object.keys(step.values ?? {}).filter((key) =>
-        step.pending.some((tpl) => key.startsWith(`${tpl.id}|`))
+        step.pending.some((tpl) => key.startsWith(`${slotOfPending(tpl)}|`))
       ).length,
     0
   );
@@ -369,7 +369,9 @@ const SampleBulkWorkspacePage = () => {
           const index = records.findIndex((r) => r.id === p.data?.id);
           const step = steps.get(index);
           if (!step) return "";
-          const total = takenTemplateIds(step.existing, step.pending).size;
+          const total =
+            step.existing.filter((test) => test.status !== "Cancelled").length +
+            step.pending.length;
           return step.pending.length && !isNew
             ? `${t("limsTestsCount", { count: total })} · ${t("limsNewCount", { count: step.pending.length })}`
             : t("limsTestsCount", { count: total });
@@ -396,7 +398,7 @@ const SampleBulkWorkspacePage = () => {
   const picksOf = (index: number) => {
     const step = steps.get(index);
     return (step?.pending ?? []).map((tpl) => {
-      const prefix = `${tpl.id}|`;
+      const prefix = `${slotOfPending(tpl)}|`;
       const values = Object.fromEntries(
         Object.entries(step?.values ?? {})
           .filter(([key, value]) => key.startsWith(prefix) && value)
@@ -404,6 +406,7 @@ const SampleBulkWorkspacePage = () => {
       );
       return {
         analysisId: tpl.id,
+        repeatNumber: tpl.repeatNumber,
         sourceTestGroupId: tpl.sourceGroupId,
         ...(Object.keys(values).length ? { values } : {})
       };
@@ -416,7 +419,6 @@ const SampleBulkWorkspacePage = () => {
   const dirty = isNew
     ? status.changedCells > 0 || pendingCount > 0
     : changeCount > 0;
-  useWarnBeforeUnload(dirty && !saving);
 
   const saveAll = async () => {
     const changes = workspace.current?.collect() ?? [];
@@ -439,7 +441,10 @@ const SampleBulkWorkspacePage = () => {
         const created = result.results.flatMap((r) =>
           "id" in r && r.id ? [r.id] : []
         );
-        if (created.length)
+        // One new sample opens in its own workspace; several stay side by side here.
+        if (created.length === 1)
+          navigate(`${workspaceUrl(created[0])}?tab=execution`);
+        else if (created.length)
           reopen(`mode=edit&ids=${created.join(",")}&tab=tests`);
       } finally {
         setSaving(false);
@@ -652,9 +657,11 @@ const SampleBulkWorkspacePage = () => {
 
   return (
     <>
+      <UnsavedChangesGuard when={dirty && !saving} count={changeCount} />
       {/* Both tabs stay mounted so switching never loses work; one Save covers both. */}
       <div className={tab === "fields" ? "" : "hidden"}>
         <BulkWorkspace<LimsSample>
+          guardUnsaved={false}
           header={header}
           records={records}
           fields={fields}

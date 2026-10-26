@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageUrl } from "@/types/utils.types";
+import { NEW_SAMPLE, workspaceUrl } from "./sampleRoutes";
 import { useTranslation } from "react-i18next";
 
 import DataTable, {
@@ -107,15 +108,6 @@ const LimsSampleList = () => {
 
   const columnDefs = useMemo(() => getLimsSampleColumns({ t }), [t]);
 
-  const openForm = useCallback(
-    (mode: LimsSampleFormMode, row: LimsSample | null) => {
-      setFormMode(mode);
-      setActiveId(row?.id ?? null);
-      openModal();
-    },
-    [openModal]
-  );
-
   const bulkPage = (query: string) =>
     navigate(`${PageUrl.LIMSSamplesBulk.path}?${query}`);
 
@@ -129,34 +121,25 @@ const LimsSampleList = () => {
 
   const openView = useCallback(
     (ids: string[]) => {
-      // Several samples open side by side on their own page; one keeps the modal.
-      if (ids.length > 1) {
-        navigate(
-          `${PageUrl.LIMSSamplesBulk.path}?mode=view&ids=${ids.join(",")}`
-        );
-        return;
-      }
-      setFormMode("view");
-      setActiveId(ids[0]);
-      openModal();
+      // Several samples open side by side; one opens its own workspace page.
+      navigate(
+        ids.length > 1
+          ? `${PageUrl.LIMSSamplesBulk.path}?mode=view&ids=${ids.join(",")}`
+          : `${workspaceUrl(ids[0])}?mode=view`
+      );
     },
-    [openModal, navigate]
+    [navigate]
   );
 
   const openEdit = useCallback(
     (ids: string[]) => {
-      // Several samples open side by side on their own page; one keeps the modal.
-      if (ids.length > 1) {
-        navigate(
-          `${PageUrl.LIMSSamplesBulk.path}?mode=edit&ids=${ids.join(",")}`
-        );
-        return;
-      }
-      setFormMode("edit");
-      setActiveId(ids[0]);
-      openModal();
+      navigate(
+        ids.length > 1
+          ? `${PageUrl.LIMSSamplesBulk.path}?mode=edit&ids=${ids.join(",")}`
+          : workspaceUrl(ids[0])
+      );
     },
-    [openModal, navigate]
+    [navigate]
   );
 
   const handleCloseForm = () => {
@@ -167,12 +150,12 @@ const LimsSampleList = () => {
     setTemplateId("");
   };
 
-  // "How many?" → 1 with no template is the ordinary single form (keeps attachments);
+  // "How many?" → 1 with no template opens the sample's own page (keeps attachments);
   // anything else opens the full-page grid with that many new rows.
   const confirmCreateCount = (count: number) => {
     if (count === 1 && !templateId) {
-      bulkFlow.reset();
-      openForm("create", null);
+      handleCloseForm();
+      navigate(workspaceUrl(NEW_SAMPLE));
       return;
     }
     const template = templateId ? `&template=${templateId}` : "";
@@ -318,7 +301,7 @@ const LimsSampleList = () => {
         icon: EyeIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_SAMPLE,
-        onClick: (row) => openForm("view", row)
+        onClick: (row) => openView([row.id])
       },
       {
         key: "edit",
@@ -326,7 +309,7 @@ const LimsSampleList = () => {
         icon: PencilIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.UPDATE_SAMPLE,
-        onClick: (row) => openForm("edit", row)
+        onClick: (row) => openEdit([row.id])
       },
       {
         key: "audit",
@@ -370,7 +353,7 @@ const LimsSampleList = () => {
           ])
       }
     ],
-    [askCopy, compliance, openModal, openForm, t]
+    [askCopy, compliance, openEdit, openModal, openView, t]
   );
 
   return (

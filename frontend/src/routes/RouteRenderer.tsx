@@ -1,10 +1,11 @@
-import { Route, Routes } from "react-router-dom";
+import type { ReactNode } from "react";
+import {
+  createBrowserRouter,
+  createRoutesFromElements,
+  Route
+} from "react-router-dom";
 import type { AppRoute } from "./types";
 import ProtectedRoute from "@/components/common/Protected";
-
-interface Props {
-  routes: AppRoute[];
-}
 
 const renderRoutes = (routes: AppRoute[]) =>
   routes.map(({ path, element, children, protection, index }) => {
@@ -42,8 +43,10 @@ const renderRoutes = (routes: AppRoute[]) =>
     );
   });
 
-const RouteRenderer = ({ routes }: Props) => {
-  return <Routes>{renderRoutes(routes)}</Routes>;
-};
-
-export default RouteRenderer;
+/** A data router (needed for `useBlocker`, the unsaved-changes guard); `root` wraps every page. */
+export const createAppRouter = (routes: AppRoute[], root: ReactNode) =>
+  createBrowserRouter(
+    createRoutesFromElements(
+      <Route element={root}>{renderRoutes(routes)}</Route>
+    )
+  );
