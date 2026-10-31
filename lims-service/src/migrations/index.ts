@@ -8,6 +8,10 @@ import * as m006 from "./006-result-row-component-type";
 import * as m007 from "./007-boolean-answers-pick-list";
 import * as m008 from "./008-calculation-formula-snapshot";
 import * as m009 from "./009-test-repeat-number";
+import * as m010 from "./010-result-verdict";
+import * as m011 from "./011-result-status";
+import * as m012 from "./012-sample-template-fields";
+import * as m013 from "./013-entity-templates";
 
 export const migrations: Migration[] = [
   { name: "001-initial-schema", up: m001.up },
@@ -18,7 +22,11 @@ export const migrations: Migration[] = [
   { name: "006-result-row-component-type", up: m006.up },
   { name: "007-boolean-answers-pick-list", up: m007.up },
   { name: "008-calculation-formula-snapshot", up: m008.up },
-  { name: "009-test-repeat-number", up: m009.up }
+  { name: "009-test-repeat-number", up: m009.up },
+  { name: "010-result-verdict", up: m010.up },
+  { name: "011-result-status", up: m011.up },
+  { name: "012-sample-template-fields", up: m012.up },
+  { name: "013-entity-templates", up: m013.up }
 ];
 
 export { runMigrations, checkMigrations } from "./runner";

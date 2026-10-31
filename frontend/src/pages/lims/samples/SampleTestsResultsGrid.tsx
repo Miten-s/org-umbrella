@@ -7,6 +7,7 @@ import {
   useSyncExternalStore,
   type ReactNode
 } from "react";
+import { useQueries } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { AgGridReact, type CustomCellEditorProps } from "ag-grid-react";
 import {
@@ -40,6 +41,15 @@ import {
 } from "@/pages/lims/analyses/componentValueText";
 import { TYPE_LABELS, isTyped } from "@/pages/lims/analyses/componentTypes";
 import { computeCalculations } from "@/pages/lims/analyses/formula";
+import {
+  hasLimit,
+  limitProblem,
+  typeProblem,
+  statusOf,
+  type ResultLimit,
+  type ResultStatus
+} from "@/pages/lims/analyses/resultCheck";
+import { fetchLimsSpecificationById } from "@/pages/lims/specifications/LimsSpecification.api";
 import { usePickLists } from "@/pages/lims/analyses/usePickListOptions";
 import {
   GROUP_PREFIX,
@@ -78,6 +88,8 @@ export interface SampleColumn {
   label: string;
   /** Saved samples have result rows on the server; new ones only have picks. */
   saved: boolean;
+  /** Its limits judge the tests that are in this Specification. */
+  specificationId?: string;
 }
 
 type Presence = "saved" | "new" | null;
@@ -93,6 +105,8 @@ interface Cell {
   present?: number;
   /** The heading this sample's test sits under, when it isn't this row's. */
   elsewhere?: string;
+  limit?: ResultLimit;
+  status?: ResultStatus;
 }
 
 interface GridRow {
@@ -113,20 +127,47 @@ interface GridRow {
 }
 
 interface ComponentDef {
+  /** The template component's row id, which Specification limits point at. */
+  rowId?: string;
   componentId: string;
   name: string;
   spec: ComponentSpec;
 }
 
 /** Popup editor for answers picked from a list, a yes/no or a date. */
-const PICKER_TYPES = ["LIST", "BOOLEAN", "DATETIME"];
+const PICKER_TYPES = ["LIST", "BOOLEAN", "DATETIME", "ENTITY"];
+
+const STATUS_TONES: Record<ResultStatus, string> = {
+  Unentered: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
+  Report: "bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300",
+  Pass: "bg-success-100 text-success-800 dark:bg-success-500/15 dark:text-success-300",
+  Fail: "bg-error-100 text-error-700 dark:bg-error-500/15 dark:text-error-300"
+};
+
+const StatusChip = ({ status }: { status?: ResultStatus }) =>
+  status ? (
+    <span
+      className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_TONES[status]}`}
+    >
+      {status}
+    </span>
+  ) : null;
+
+/** "1 – 10", "≥ 1" or "≤ 10"; empty when the limit isn't a range. */
+const limitRange = ({ min, max }: ResultLimit) => {
+  const low = min === undefined || min === null ? "" : String(min);
+  const high = max === undefined || max === null ? "" : String(max);
+  if (low && high) return `${low} – ${high}`;
+  return low ? `≥ ${low}` : high ? `≤ ${high}` : "";
+};
 
 const PickCellEditor = (
   props: CustomCellEditorProps & { spec: ComponentSpec; label: string }
 ) => {
   useEscapeCancelsEdit(props);
+  const { t } = useTranslation();
   const box = useRef<HTMLDivElement>(null);
-  const isSelect = props.spec.type === "LIST" || props.spec.type === "BOOLEAN";
+  const isSelect = props.spec.type !== "DATETIME";
   const [value, setValue] = useState(String(props.value ?? ""));
   const { data: pickLists } = usePickLists();
   const typing = () =>
@@ -135,10 +176,20 @@ const PickCellEditor = (
   // Enter takes what was typed in the search or date box: "Pass", a list answer, dd-mm-yyyy hh:mm.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key !== "Enter" || !typing()) return;
+      if (event.key !== "Enter" || !typing() || props.spec.type === "ENTITY")
+        return;
       const text = (document.activeElement as HTMLInputElement).value;
       const parsed = text ? parseValue(props.spec, text, pickLists) : null;
-      if (!parsed) return;
+      if (!parsed) {
+        if (text)
+          toast(
+            `${props.label}: ${
+              typeProblem(props.spec.type, text) ?? t("limsInvalidEntry")
+            }`,
+            "error"
+          );
+        return;
+      }
       event.preventDefault();
       event.stopPropagation();
       props.onValueChange(parsed);
@@ -146,11 +197,16 @@ const PickCellEditor = (
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [props, pickLists]);
+  }, [props, pickLists, t]);
   useLayoutEffect(() => {
     if (isSelect)
       box.current?.querySelector<HTMLButtonElement>("button")?.click();
-    else box.current?.querySelector<HTMLInputElement>("input")?.focus();
+    else {
+      // Selected, so typing replaces the value rather than adding to it.
+      const input = box.current?.querySelector<HTMLInputElement>("input");
+      input?.focus();
+      input?.select();
+    }
     // Runs once, when the editor opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -316,6 +372,31 @@ const SampleTestsResultsGrid = ({
   const [onlyEmpty, setOnlyEmpty] = useState(false);
   const [onlyDiff, setOnlyDiff] = useState(false);
 
+  // Limits of each column's Specification, by template + component row id.
+  const specIds = [...new Set(samples.flatMap((s) => s.specificationId ?? []))];
+  const specQueries = useQueries({
+    queries: specIds.map((id) => ({
+      queryKey: ["limsSpecification", "limits", id],
+      queryFn: ({ signal }: { signal: AbortSignal }) =>
+        fetchLimsSpecificationById(id, signal),
+      staleTime: 60_000
+    }))
+  });
+  const specKey = specQueries.map((q) => q.dataUpdatedAt).join();
+  const limitsBySpec = useMemo(() => {
+    const out = new Map<string, Map<string, ResultLimit>>();
+    specQueries.forEach((q, index) => {
+      const map = new Map<string, ResultLimit>();
+      for (const limit of q.data?.limits ?? [])
+        if (limit.analysisId && limit.componentId)
+          map.set(`${limit.analysisId}|${limit.componentId}`, limit);
+      out.set(specIds[index], map);
+    });
+    return out;
+    // Rebuilt when a fetch lands, not on every render's new `specQueries` array.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [specKey, specIds.join()]);
+
   const rows = useMemo<GridRow[]>(() => {
     // What each sample has: template → saved/new, and its saved rows by template|component.
     const presence = samples.map((sample, i) => {
@@ -424,6 +505,7 @@ const SampleTestsResultsGrid = ({
       const list: ComponentDef[] = (
         templateDefs.get(parseSlot(analysisId).analysisId)?.components ?? []
       ).map((c) => ({
+        rowId: c.id,
         componentId: String(c.componentId ?? ""),
         name: String(c.name ?? c.componentId ?? ""),
         spec: {
@@ -431,16 +513,21 @@ const SampleTestsResultsGrid = ({
           list: c.list as string,
           option: c.option as string,
           unit: c.unit as string,
-          formula: c.formula as string
+          formula: c.formula as string,
+          entityTemplateId: c.entityTemplateId as string
         }
       }));
       // A saved test keeps its own snapshot even if the template has changed since.
       for (const p of presence)
-        for (const [key, row] of p.saved)
-          if (
-            key.startsWith(`${analysisId}|`) &&
-            !list.some((c) => c.componentId === String(row.componentId))
-          )
+        for (const [key, row] of p.saved) {
+          if (!key.startsWith(`${analysisId}|`)) continue;
+          const known = list.find(
+            (c) => c.componentId === String(row.componentId)
+          );
+          if (known) {
+            if (row.componentEntityTemplateId)
+              known.spec.entityTemplateId = row.componentEntityTemplateId;
+          } else
             list.push({
               componentId: String(row.componentId ?? ""),
               name: String(row.componentName ?? ""),
@@ -449,9 +536,11 @@ const SampleTestsResultsGrid = ({
                 list: row.componentList,
                 option: row.componentOption,
                 unit: row.unit,
-                formula: row.componentFormula
+                formula: row.componentFormula,
+                entityTemplateId: row.componentEntityTemplateId
               }
             });
+        }
       return list;
     };
 
@@ -521,12 +610,26 @@ const SampleTestsResultsGrid = ({
           ).get(c.componentId);
           return { ...cell, value: computed ?? "" };
         };
-        for (const c of comps) {
-          const cells = samples.map((_, i) =>
+        const judgedCell = (i: number, c: ComponentDef): Cell => {
+          const cell =
             c.spec.type === "CALCULATION"
               ? calculatedCell(i, c)
-              : valueCell(i, key, analysisId, c.componentId)
-          );
+              : valueCell(i, key, analysisId, c.componentId);
+          const specId = samples[i].specificationId;
+          const limit =
+            specId && c.rowId
+              ? limitsBySpec.get(specId)?.get(`${run.analysisId}|${c.rowId}`)
+              : undefined;
+          return cell.state
+            ? {
+                ...cell,
+                limit,
+                status: statusOf(c.spec.type, limit, cell.value)
+              }
+            : cell;
+        };
+        for (const c of comps) {
+          const cells = samples.map((_, i) => judgedCell(i, c));
           const entered = cells.flatMap((cell, i) =>
             cell.state && cell.value ? [[i, cell.value] as const] : []
           );
@@ -577,9 +680,20 @@ const SampleTestsResultsGrid = ({
               value: "",
               elsewhere: groups.get(at)?.name ?? t("limsIndividualTemplates")
             };
+          const judged = comps
+            .map((c) => ({ cell: judgedCell(i, c), type: c.spec.type }))
+            .filter(
+              ({ cell, type }) => cell.limit && hasLimit(type, cell.limit)
+            )
+            .map(({ cell }) => cell);
           return {
             state: presence[i].has.get(analysisId) ?? null,
             value: "",
+            status: judged.some((x) => x.status === "Fail")
+              ? "Fail"
+              : judged.length && judged.every((x) => x.status === "Pass")
+                ? "Pass"
+                : undefined,
             filled: enterable.filter(
               (c) => valueCell(i, key, analysisId, c.componentId).value
             ).length,
@@ -634,6 +748,7 @@ const SampleTestsResultsGrid = ({
     rowsBySample,
     groupDefs,
     templateDefs,
+    limitsBySpec,
     edits,
     open,
     search,
@@ -813,16 +928,28 @@ const SampleTestsResultsGrid = ({
           pickLists
         );
         if (parsed === null) {
+          const problem = typeProblem(row.spec?.type, p.newValue);
           toast(
-            t("bulkValueInvalid", {
-              value: String(p.newValue ?? ""),
-              field: row.name
-            }),
+            problem
+              ? `${row.name}: ${problem}`
+              : t("bulkValueInvalid", {
+                  value: String(p.newValue ?? ""),
+                  field: row.name
+                }),
             "error",
             { id: `value-${row.id}` }
           );
           return false;
         }
+        const missed = cell.limit
+          ? limitProblem(row.spec?.type, cell.limit, parsed)
+          : null;
+        if (missed)
+          toast(
+            t("limsOutOfSpecMessage", { field: row.name, problem: missed }),
+            "error",
+            { id: `limit-${row.id}` }
+          );
         if (cell.state === "saved" && cell.rowId) onEdit(cell.rowId, parsed);
         else
           store.setValue(
@@ -845,8 +972,9 @@ const SampleTestsResultsGrid = ({
       },
       // Typing starts plain text (parsed on commit: "Pass", a list name, dd-mm-yyyy hh:mm); click/F2 opens the picker.
       cellEditorSelector: (p) =>
-        PICKER_TYPES.includes(String(p.data?.spec?.type)) &&
-        !(p.eventKey && p.eventKey.length === 1)
+        p.data?.spec?.type === "ENTITY" ||
+        (PICKER_TYPES.includes(String(p.data?.spec?.type)) &&
+          !(p.eventKey && p.eventKey.length === 1))
           ? {
               component: PickCellEditor,
               popup: true,
@@ -931,6 +1059,7 @@ const SampleTestsResultsGrid = ({
               >
                 {t("bulkFilledOf", { filled: cell.filled, total: cell.total })}
               </span>
+              <StatusChip status={cell.status} />
               {!readOnly ? (
                 <button
                   type="button"
@@ -956,15 +1085,42 @@ const SampleTestsResultsGrid = ({
         }
         if (!cell.state) return <span className="text-gray-300">—</span>;
         if (cell.value)
-          return displayValue(row.spec ?? {}, cell.value, pickLists);
-        if (readOnly || !isEnterable(row.spec?.type)) return "";
-        const hint =
-          row.spec?.type === "LIST" || row.spec?.type === "BOOLEAN"
-            ? t("bulkHintSelect")
-            : row.spec?.type === "DATETIME"
-              ? "dd-mm-yyyy hh:mm"
-              : (row.spec?.unit ?? "");
-        return <span className="text-gray-300 dark:text-gray-600">{hint}</span>;
+          return (
+            <div
+              className="flex h-full items-center justify-between gap-2"
+              title={
+                (cell.limit &&
+                  limitProblem(row.spec?.type, cell.limit, cell.value)) ||
+                undefined
+              }
+            >
+              <span className="truncate">
+                {displayValue(row.spec ?? {}, cell.value, pickLists)}
+              </span>
+              <StatusChip status={cell.status} />
+            </div>
+          );
+        const hasResult =
+          isEnterable(row.spec?.type) || row.spec?.type === "CALCULATION";
+        if (!hasResult) return "";
+        const range = cell.limit ? limitRange(cell.limit) : "";
+        const hint = readOnly
+          ? ""
+          : range
+            ? range
+            : row.spec?.type === "LIST" || row.spec?.type === "BOOLEAN"
+              ? t("bulkHintSelect")
+              : row.spec?.type === "DATETIME"
+                ? "dd-mm-yyyy hh:mm"
+                : (row.spec?.unit ?? "");
+        return (
+          <div className="flex h-full items-center justify-between gap-2">
+            <span className="truncate text-gray-300 dark:text-gray-600">
+              {hint}
+            </span>
+            <StatusChip status={cell.status} />
+          </div>
+        );
       },
       cellClassRules: {
         "bg-gray-50 dark:bg-gray-800/40": (p) =>

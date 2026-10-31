@@ -10,6 +10,8 @@ export const limsSampleTemplateSchema = z.object({
     .string()
     .min(1, "Name is required")
     .max(200, "Name must not exceed 200 characters"),
+  sampleName: z.string().max(200).optional(),
+  idText: z.string().max(255).optional(),
   sampleType: z.string().optional(),
   project: z.string().optional(),
   specification: z.string().optional(),

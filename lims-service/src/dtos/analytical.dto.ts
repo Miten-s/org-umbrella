@@ -32,6 +32,7 @@ export class ComponentRowDto {
   @IsOptional() @IsString() list?: string;
   @IsOptional() @IsString() @MaxLength(150) entity?: string;
   @IsOptional() @IsString() entityCriteria?: string;
+  @IsOptional() @IsString() entityTemplateId?: string;
   @IsOptional() @IsString() @MaxLength(100) min?: string;
   @IsOptional() @IsString() @MaxLength(100) max?: string;
   @IsOptional() @IsInt() sortOrder?: number;

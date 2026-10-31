@@ -15,6 +15,7 @@ import {
   TrashBinIcon
 } from "@/public/icons";
 import { fetchLimsPhraseList } from "@/pages/lims/phrases/LimsPhrase.api";
+import { fetchTemplatesForEntity } from "@/pages/lims/entity-templates/LimsEntityTemplate.api";
 import { useUnitOptions } from "@/pages/lims/phrases/LimsPhrase.queries";
 import type { LimsComponentRow } from "./LimsAnalysis.types";
 import FormulaBuilder from "./FormulaBuilder";
@@ -28,7 +29,6 @@ import {
   duplicateRows,
   isLegacy,
   isTyped,
-  parseCriteria,
   type ComponentType
 } from "./componentTypes";
 
@@ -47,11 +47,6 @@ const errorBorder = "border-red-500 dark:border-red-500";
 const typeOptions = COMPONENT_TYPES.map((value) => ({
   value,
   label: TYPE_LABELS[value]
-}));
-
-const entityOptions = COMPONENT_ENTITIES.map(({ value, label }) => ({
-  value,
-  label
 }));
 
 const str = (value: unknown) =>
@@ -77,6 +72,40 @@ const Cell = ({
     {children}
   </div>
 );
+
+/** The Entity Templates set up for this component's table. */
+const EntityTemplateSelect = ({
+  entity,
+  value,
+  onChange,
+  disabled
+}: {
+  entity: string;
+  value: string;
+  onChange: (value: string) => void;
+  disabled: boolean;
+}) => {
+  const { t } = useTranslation();
+  const { data } = useQuery({
+    queryKey: ["limsEntityTemplate", "for-entity", entity],
+    queryFn: ({ signal }) => fetchTemplatesForEntity(entity, signal),
+    enabled: Boolean(entity)
+  });
+  return (
+    <SelectDropdown
+      options={(data ?? []).map((row) => ({
+        value: row.id,
+        label: row.name
+      }))}
+      value={value}
+      onChange={onChange}
+      placeholder={t("select", { entity: t("limsEntityTemplate") })}
+      disabled={disabled || !entity}
+      ariaLabel={t("limsEntityTemplate")}
+      portal
+    />
+  );
+};
 
 /** Test Template components — one line per component. The Type decides which inputs follow
  * it; changing the Type clears the old type's values so nothing stale is saved. */
@@ -295,10 +324,10 @@ const ComponentRowsEditor = ({
         return (
           <Cell key={field} label={t("limsEntity")} width="w-44">
             <SelectDropdown
-              options={entityOptions}
+              options={COMPONENT_ENTITIES}
               value={str(row.entity)}
               onChange={(value) =>
-                patchRow(index, { entity: value, entityCriteria: "" })
+                patchRow(index, { entity: value, entityTemplateId: "" })
               }
               placeholder={t("select", { entity: t("limsEntity") })}
               disabled={disabled}
@@ -307,76 +336,22 @@ const ComponentRowsEditor = ({
             />
           </Cell>
         );
-      case "entityCriteria": {
-        const entity = COMPONENT_ENTITIES.find((e) => e.value === row.entity);
-        const criteria = parseCriteria(row.entityCriteria);
-        const criteriaField = entity?.criteria.find(
-          (c) => c.field === criteria?.field
-        );
-        const writeCriteria = (next: {
-          field: string;
-          value: string;
-          label?: string;
-        }) =>
-          patchRow(index, {
-            entityCriteria: next.field ? JSON.stringify(next) : ""
-          });
+      case "entityTemplateId":
         return (
-          <div key={field} className="flex shrink-0 gap-2">
-            <Cell
-              label={t("limsCriteriaField")}
-              width="w-40"
-              tooltip={t("limsEntityCriteriaHint")}
-            >
-              <SelectDropdown
-                options={[
-                  { value: "", label: "—" },
-                  ...(entity?.criteria ?? []).map((c) => ({
-                    value: c.field,
-                    label: c.label
-                  }))
-                ]}
-                value={criteria?.field ?? ""}
-                onChange={(value) => writeCriteria({ field: value, value: "" })}
-                placeholder={t("limsCriteriaField")}
-                disabled={disabled || !entity}
-                ariaLabel={t("limsCriteriaField")}
-                portal
-              />
-            </Cell>
-            <Cell label={t("limsCriteriaValue")} width="w-48">
-              {criteriaField ? (
-                <AsyncSelect
-                  useOptions={criteriaField.useOptions}
-                  value={criteria?.value ?? ""}
-                  onChange={() => undefined}
-                  onChangeOption={(option) =>
-                    writeCriteria({
-                      field: criteriaField.field,
-                      value: option?.value ?? "",
-                      label: option?.label
-                    })
-                  }
-                  disabled={disabled}
-                  placeholder={t("select", { entity: criteriaField.label })}
-                  initialSelectedOptions={
-                    criteria?.value && criteria.label
-                      ? [{ value: criteria.value, label: criteria.label }]
-                      : undefined
-                  }
-                />
-              ) : (
-                <input
-                  className={`${inputClasses} ${okBorder}`}
-                  disabled
-                  value=""
-                  readOnly
-                />
-              )}
-            </Cell>
-          </div>
+          <Cell
+            key={field}
+            label={t("limsEntityTemplate")}
+            width="w-64"
+            tooltip={t("limsEntityTemplateHint")}
+          >
+            <EntityTemplateSelect
+              entity={str(row.entity)}
+              value={str(row.entityTemplateId)}
+              onChange={(value) => patchRow(index, { entityTemplateId: value })}
+              disabled={disabled}
+            />
+          </Cell>
         );
-      }
     }
   };
 
@@ -389,7 +364,6 @@ const ComponentRowsEditor = ({
       ["List", row.list],
       ["Option", row.option],
       ["Entity", row.entity],
-      ["Criteria", row.entityCriteria],
       ["Min", row.min],
       ["Max", row.max]
     ]

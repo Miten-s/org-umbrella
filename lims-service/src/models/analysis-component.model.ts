@@ -19,6 +19,7 @@ export interface IAnalysisComponent {
   list?: string | null;
   entity?: string | null;
   entityCriteria?: string | null;
+  entityTemplateId?: string | null;
   min?: string | null;
   max?: string | null;
   sortOrder?: number | null;
@@ -41,6 +42,7 @@ export class AnalysisComponent
   public list!: string | null;
   public entity!: string | null;
   public entityCriteria!: string | null;
+  public entityTemplateId!: string | null;
   public min!: string | null;
   public max!: string | null;
   public sortOrder!: number | null;
@@ -76,6 +78,11 @@ AnalysisComponent.init(
       type: DataTypes.TEXT,
       allowNull: true,
       field: "entity_criteria"
+    },
+    entityTemplateId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: "entity_template_id"
     },
     min: { type: DataTypes.STRING(100), allowNull: true },
     max: { type: DataTypes.STRING(100), allowNull: true },

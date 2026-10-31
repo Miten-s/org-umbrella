@@ -36,7 +36,9 @@ import Batch from "./batch.model";
 import Lot from "./lot.model";
 import Sample from "./sample.model";
 import SampleTemplate from "./sample-template.model";
+import EntityTemplate from "./entity-template.model";
 import SampleTemplateTest from "./sample-template-test.model";
+import SampleTemplateField from "./sample-template-field.model";
 import Test from "./test.model";
 import Result from "./result.model";
 import Scheduler from "./scheduler.model";
@@ -391,6 +393,7 @@ export const registerAssociations = () => {
   });
   Scheduler.belongsTo(LimsUser, { as: "owner", foreignKey: "ownerId" });
 
+  EntityTemplate.belongsTo(Group, { as: "group", foreignKey: "groupId" });
   SampleTemplate.belongsTo(Group, { as: "group", foreignKey: "groupId" });
   SampleTemplate.belongsTo(PhraseEntry, {
     as: "sampleType",
@@ -404,6 +407,10 @@ export const registerAssociations = () => {
   SampleTemplate.belongsTo(Location, {
     as: "location",
     foreignKey: "locationId"
+  });
+  SampleTemplate.hasMany(SampleTemplateField, {
+    as: "fieldRows",
+    foreignKey: "sampleTemplateId"
   });
   SampleTemplate.hasMany(SampleTemplateTest, {
     as: "tests",

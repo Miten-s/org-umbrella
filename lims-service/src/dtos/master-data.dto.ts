@@ -3,6 +3,7 @@ import {
   IsBoolean,
   IsIn,
   IsNotEmpty,
+  IsObject,
   IsOptional,
   IsString,
   IsUUID,
@@ -13,6 +14,27 @@ import { Type } from "class-transformer";
 
 /** Field names are the frontend's payload names verbatim; a relation arrives as a bare id
  * under its own name (`relationFields` maps it to the FK column). Update DTOs don't extend Create. */
+
+// ─── Entity Templates ───────────────────────────────────────────────────────
+
+class EntityTemplateFieldsDto {
+  @IsOptional() @IsString() @MaxLength(50) entityTemplateId?: string;
+  @IsOptional() @IsString() description?: string;
+  @IsOptional() @IsUUID("4") group?: string;
+}
+
+export class CreateEntityTemplateDto extends EntityTemplateFieldsDto {
+  @IsString() @IsNotEmpty() @MaxLength(200) name!: string;
+  @IsString() @IsNotEmpty() @MaxLength(50) entity!: string;
+  @IsObject() query!: Record<string, unknown>;
+}
+
+export class UpdateEntityTemplateDto extends EntityTemplateFieldsDto {
+  @IsOptional() @IsString() @MaxLength(200) name?: string;
+  @IsOptional() @IsString() @MaxLength(50) entity?: string;
+  @IsOptional() @IsObject() query?: Record<string, unknown>;
+  @IsOptional() @IsString() changeReason?: string;
+}
 
 // ─── Phrases (Pick Lists) ───────────────────────────────────────────────────
 

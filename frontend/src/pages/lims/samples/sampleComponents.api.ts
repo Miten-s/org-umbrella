@@ -1,4 +1,5 @@
 import limsApi from "@/utils/lims.axios.interceptor";
+import { rememberEntityLabel } from "@/pages/lims/analyses/componentValue";
 
 /** One test component row of a sample, as the bulk components page shows it. */
 export interface SampleComponentRow {
@@ -20,6 +21,10 @@ export interface SampleComponentRow {
   componentList?: string | null;
   componentOption?: string | null;
   componentFormula?: string | null;
+  componentEntity?: string | null;
+  componentEntityTemplateId?: string | null;
+  /** An Entity result's record name; `value` holds its id. */
+  valueLabel?: string | null;
   outOfRange?: boolean;
   enteredOn?: string | null;
   enteredBy?: string | null;
@@ -41,7 +46,9 @@ export const fetchSampleComponents = async (
     { sampleIds },
     { signal }
   );
-  return response.data as SampleComponentsResponse;
+  const data = response.data as SampleComponentsResponse;
+  data.data.forEach((row) => rememberEntityLabel(row.value, row.valueLabel));
+  return data;
 };
 
 export type ComponentChange = { id: string } & Partial<

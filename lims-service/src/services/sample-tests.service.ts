@@ -10,6 +10,8 @@ import { APPROVED_ENTRY_KEY } from "../utils/approval-status";
 import { TEST_BUSINESS_ID } from "../configs/business-ids";
 import type { CrudContext } from "../utils/crud-factory";
 import { computeCalculations } from "../utils/formula";
+import { typeProblem } from "../utils/result-check";
+import { entityPickLabel } from "./entity-records.service";
 
 /** Keeps each multi-row INSERT well under Postgres' 65,535 bind-parameter limit. */
 const CHUNK = 1000;
@@ -164,9 +166,23 @@ export const assignSampleTests = async ({
         componentType: component.type,
         componentList: component.list,
         componentOption: component.option,
-        componentFormula: component.formula
+        componentFormula: component.formula,
+        componentEntity: component.entity,
+        componentEntityTemplateId: component.entityTemplateId,
+        valueLabel: null as string | null
       }));
   });
+  for (const row of pendingRows) {
+    const problem = typeProblem(row.componentType, row.value);
+    if (problem) throw reject(`${row.componentName}: ${problem}`);
+    if (row.componentType === "ENTITY")
+      row.valueLabel = await entityPickLabel(
+        row,
+        row.value,
+        ctx.scope,
+        transaction
+      );
+  }
   // Values typed before the test existed can already feed its Calculations.
   const pendingByTest = new Map<string, typeof pendingRows>();
   pendingRows.forEach((row) =>

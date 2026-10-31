@@ -131,7 +131,7 @@ const SampleBulkWorkspacePage = () => {
     if (loading) return [];
     if (mode === "create") {
       const base = templateQuery.data
-        ? sampleFromTemplate(templateQuery.data)
+        ? sampleFromTemplate(templateQuery.data, t)
         : ({} as LimsSample);
       return Array.from(
         { length: count },
@@ -357,6 +357,29 @@ const SampleBulkWorkspacePage = () => {
     ];
   }, [t]);
 
+  // Samples sharing a template's layout show only its fields, under its names.
+  const layout =
+    records.length &&
+    records.every(
+      (r) =>
+        JSON.stringify(r.fieldLayout ?? null) ===
+        JSON.stringify(records[0].fieldLayout ?? null)
+    )
+      ? records[0].fieldLayout
+      : null;
+  const layoutKey = JSON.stringify(layout ?? null);
+  const shownFields = useMemo(() => {
+    if (!layout?.length) return fields;
+    const labels = new Map(layout.map((row) => [row.key, row.label]));
+    return fields
+      .filter((field) => field.key === "sampleName" || labels.has(field.key))
+      .map((field) => ({
+        ...field,
+        label: labels.get(field.key) ?? field.label
+      }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fields, layoutKey]);
+
   const testsColumn = useMemo<ColDef[]>(
     () => [
       {
@@ -432,6 +455,12 @@ const SampleBulkWorkspacePage = () => {
         const tests = picksOf(records.findIndex((r) => r.id === record.id));
         return {
           ...filled,
+          ...(record.fieldLayout?.length
+            ? {
+                fieldLayout: record.fieldLayout,
+                sampleTemplate: record.sampleTemplateId ?? undefined
+              }
+            : {}),
           ...(tests.length ? { testTemplates: tests } : {})
         } as LimsSamplePayload;
       });
@@ -625,6 +654,7 @@ const SampleBulkWorkspacePage = () => {
   const sampleColumns = records.map((r, i) => ({
     id: r.id,
     saved: !isNew,
+    specificationId: r.specification?.id,
     label: [
       isNew ? t("bulkNewRow", { n: i + 1 }) : r.sampleId,
       isNew
@@ -664,9 +694,11 @@ const SampleBulkWorkspacePage = () => {
           guardUnsaved={false}
           header={header}
           records={records}
-          fields={fields}
+          fields={shownFields}
           idColumn={{
-            label: t("limsSampleId"),
+            label:
+              layout?.find((row) => row.key === "sampleId")?.label ??
+              t("limsSampleId"),
             get: (r) =>
               r.sampleId || t("bulkNewRow", { n: records.indexOf(r) + 1 })
           }}

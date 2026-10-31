@@ -23,7 +23,7 @@ export const TYPE_FIELDS: Record<ComponentType, string[]> = {
   CALCULATION: ["unit", "formula", "min", "max"],
   LIST: ["list", "option"],
   BOOLEAN: ["option"],
-  ENTITY: ["entity", "entityCriteria"],
+  ENTITY: ["entity", "entityTemplateId"],
   DATETIME: []
 };
 
@@ -34,7 +34,7 @@ export const TYPE_SPECIFIC_FIELDS = [
   "option",
   "list",
   "entity",
-  "entityCriteria",
+  "entityTemplateId",
   "min",
   "max"
 ];
@@ -48,55 +48,6 @@ export const splitBooleanPair = (name: string): [string, string] | null => {
   return parts.length === 2 && parts[0] && parts[1]
     ? [parts[0], parts[1]]
     : null;
-};
-
-export type CriteriaSource =
-  { phrase: string } | { entity: "GROUP" | "LOCATION" | "STOCK" | "BATCH" };
-
-/** Records a component can point at, and the columns its criteria may filter on. */
-export const COMPONENT_ENTITIES: Record<
-  string,
-  Record<string, CriteriaSource>
-> = {
-  INSTRUMENT: {
-    typeId: { phrase: "INSTRUMENT_TYPE" },
-    measurementTypeId: { phrase: "MEASUREMENT_TYPE" },
-    statusId: { phrase: "INSTRUMENT_STATUS" },
-    locationId: { entity: "LOCATION" },
-    groupId: { entity: "GROUP" }
-  },
-  STOCK: {
-    stockTypeId: { phrase: "STOCK_TYPE" },
-    groupId: { entity: "GROUP" }
-  },
-  STOCK_BATCH: {
-    statusId: { phrase: "STOCK_BATCH_STATUS" },
-    stockId: { entity: "STOCK" },
-    groupId: { entity: "GROUP" }
-  },
-  LIMS_USER: {
-    groupId: { entity: "GROUP" },
-    locationId: { entity: "LOCATION" }
-  },
-  LOCATION: {
-    locationTypeId: { phrase: "LOCATION_TYPE" },
-    groupId: { entity: "GROUP" }
-  },
-  SUPPLIER: {
-    ratingId: { phrase: "RATING" },
-    groupId: { entity: "GROUP" }
-  },
-  CUSTOMER: {
-    ratingId: { phrase: "RATING" },
-    groupId: { entity: "GROUP" }
-  },
-  LOT: {
-    batchId: { entity: "BATCH" },
-    groupId: { entity: "GROUP" }
-  },
-  BATCH: {
-    groupId: { entity: "GROUP" }
-  }
 };
 
 /** `{TITRE} * {FACTOR} / {WEIGHT} * 100` → ["TITRE", "FACTOR", "WEIGHT"]. */

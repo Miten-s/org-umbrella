@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import { NEW_SAMPLE_TEMPLATE, sampleTemplateUrl } from "./sampleTemplateRoutes";
 
 import DataTable, {
   type DataTableBulkAction
@@ -56,6 +58,7 @@ import type {
  * or cloned (hidden per row); their values can still be edited. */
 const LimsSampleTemplateList = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { isOpen, openModal, closeModal } = useModal();
 
   // Full record (incl. attachments) is fetched fresh from this id, not the list row.
@@ -113,37 +116,43 @@ const LimsSampleTemplateList = () => {
 
   const columnDefs = useMemo(() => getLimsSampleTemplateColumns({ t }), [t]);
 
-  const openForm = useCallback(
-    (mode: LimsSampleTemplateFormMode, phrase: LimsSampleTemplate | null) => {
-      setFormMode(mode);
-      setActiveId(phrase?.id ?? null);
-      openModal();
-    },
-    [openModal]
-  );
-
+  // One template opens on its own page; several are reviewed side by side in the modal.
   const openCopy = useCallback(
     (ids: string[]) => {
+      if (ids.length === 1) {
+        navigate(
+          `${sampleTemplateUrl(NEW_SAMPLE_TEMPLATE)}?copyFrom=${ids[0]}`
+        );
+        return;
+      }
       setCopyIds(ids);
       openModal();
     },
-    [openModal]
+    [openModal, navigate]
   );
 
   const openView = useCallback(
     (ids: string[]) => {
+      if (ids.length === 1) {
+        navigate(`${sampleTemplateUrl(ids[0])}?mode=view`);
+        return;
+      }
       setViewIds(ids);
       openModal();
     },
-    [openModal]
+    [openModal, navigate]
   );
 
   const openEdit = useCallback(
     (ids: string[]) => {
+      if (ids.length === 1) {
+        navigate(sampleTemplateUrl(ids[0]));
+        return;
+      }
       setEditIds(ids);
       openModal();
     },
-    [openModal]
+    [openModal, navigate]
   );
 
   const handleCloseForm = () => {
@@ -290,7 +299,7 @@ const LimsSampleTemplateList = () => {
         icon: EyeIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_SAMPLE_TEMPLATE,
-        onClick: (phrase) => openForm("view", phrase)
+        onClick: (phrase) => openView([phrase.id])
       },
       {
         key: "edit",
@@ -298,7 +307,7 @@ const LimsSampleTemplateList = () => {
         icon: PencilIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.UPDATE_SAMPLE_TEMPLATE,
-        onClick: (phrase) => openForm("edit", phrase)
+        onClick: (phrase) => openEdit([phrase.id])
       },
       {
         key: "audit",
@@ -339,7 +348,7 @@ const LimsSampleTemplateList = () => {
           ])
       }
     ],
-    [compliance, openCopy, openForm, t]
+    [compliance, openCopy, openEdit, openView, t]
   );
 
   return (
@@ -368,7 +377,7 @@ const LimsSampleTemplateList = () => {
             icon: PlusIcon,
             variant: "primary",
             permission: LIMS_PERMISSIONS.CREATE_SAMPLE_TEMPLATE,
-            onClick: () => openForm("create", null)
+            onClick: () => navigate(sampleTemplateUrl(NEW_SAMPLE_TEMPLATE))
           }
         ]}
         emptyState={{ title: t("limsNoSampleTemplates") }}

@@ -15,6 +15,9 @@ export interface ISample {
   projectId?: string | null;
   sampleTypeId?: string | null;
   specificationId?: string | null;
+  /** The template it was created from, and a copy of that template's fields and names. */
+  sampleTemplateId?: string | null;
+  fieldLayout?: { key: string; label: string }[] | null;
   testGroupId?: string | null;
   locationId?: string | null;
   stockBatchId?: string | null;
@@ -27,6 +30,8 @@ export interface ISample {
   description?: string | null;
   comments?: string | null;
   status: string;
+  /** Pass/Fail against the Specification, set by the server; null until judged. */
+  result?: string | null;
   cancelledAt?: Date | null;
   cancelledBy?: string | null;
   groupId?: string | null;
@@ -46,6 +51,8 @@ export class Sample extends Model<ISample> implements ISample {
   public projectId!: string | null;
   public sampleTypeId!: string | null;
   public specificationId!: string | null;
+  public sampleTemplateId!: string | null;
+  public fieldLayout!: { key: string; label: string }[] | null;
   public testGroupId!: string | null;
   public locationId!: string | null;
   public stockBatchId!: string | null;
@@ -58,6 +65,7 @@ export class Sample extends Model<ISample> implements ISample {
   public description!: string | null;
   public comments!: string | null;
   public status!: string;
+  public result!: string | null;
   public cancelledAt!: Date | null;
   public cancelledBy!: string | null;
   public groupId!: string | null;
@@ -138,11 +146,22 @@ Sample.init(
     },
     description: { type: DataTypes.TEXT, allowNull: true },
     comments: { type: DataTypes.TEXT, allowNull: true },
+    sampleTemplateId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: "sample_template_id"
+    },
+    fieldLayout: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      field: "field_layout"
+    },
     status: {
       type: DataTypes.STRING(20),
       allowNull: false,
       defaultValue: "Open"
     },
+    result: { type: DataTypes.STRING(10), allowNull: true },
     cancelledAt: {
       type: DataTypes.DATE,
       allowNull: true,

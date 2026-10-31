@@ -1,5 +1,11 @@
 import type { LimsPhrase } from "@/pages/lims/phrases/LimsPhrase.types";
-import { booleanLabels, type ComponentSpec } from "./componentValue";
+import {
+  booleanLabels,
+  entityLabel,
+  entityValueFor,
+  type ComponentSpec
+} from "./componentValue";
+import { typeProblem } from "./resultCheck";
 
 type PickLists = { rows: LimsPhrase[] } | undefined;
 
@@ -23,6 +29,7 @@ export const displayValue = (
         (entry) => String(entry.phraseEntryId) === value
       )?.name ?? value
     );
+  if (spec.type === "ENTITY") return entityLabel(value) ?? value;
   if (spec.type === "DATETIME") {
     const m = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}:\d{2}))?/.exec(value);
     return m ? `${m[3]}-${m[2]}-${m[1]}${m[4] ? ` ${m[4]}` : ""}` : value;
@@ -55,6 +62,7 @@ export const parseValue = (
     );
     return entry ? String(entry.phraseEntryId) : null;
   }
+  if (spec.type === "ENTITY") return entityValueFor(value) ?? null;
   if (spec.type === "DATETIME") {
     const m =
       /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})(?:[ T](\d{1,2}):(\d{2}))?$/.exec(
@@ -64,12 +72,10 @@ export const parseValue = (
       ? `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}` +
         (m[4] ? `T${m[4].padStart(2, "0")}:${m[5]}` : "")
       : value.replace(" ", "T");
-    const parts = /^(\d{4})-\d{2}-\d{2}(?:T(\d{2}):(\d{2}))?$/.exec(iso);
-    if (!parts) return null;
-    const year = Number(parts[1]);
-    const validTime =
-      !parts[2] || (Number(parts[2]) < 24 && Number(parts[3]) < 60);
-    return year >= 1900 && year <= 2100 && validTime ? iso : null;
+    const year = Number(iso.slice(0, 4));
+    return !typeProblem("DATETIME", iso) && year >= 1900 && year <= 2100
+      ? iso
+      : null;
   }
-  return value;
+  return typeProblem(spec.type, value) ? null : value;
 };

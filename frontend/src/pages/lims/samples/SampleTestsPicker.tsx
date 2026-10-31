@@ -24,6 +24,7 @@ import {
   type PendingTemplate
 } from "./sampleTests";
 import { displayValue } from "@/pages/lims/analyses/componentValueText";
+import { rememberEntityLabel } from "@/pages/lims/analyses/componentValue";
 import { usePickLists } from "@/pages/lims/analyses/usePickListOptions";
 
 const BADGE_TONES = {
@@ -469,6 +470,10 @@ const SampleTestsPicker = ({
         );
       case "component": {
         const { component } = row;
+        rememberEntityLabel(
+          component.value as string | null,
+          component.valueLabel as string | null
+        );
         return (
           <div className="grid h-full grid-cols-[8rem_1fr_6rem_6rem] items-center gap-2 border-b border-gray-100 pl-16 pr-3 text-xs dark:border-gray-800">
             <span className="truncate text-gray-500">

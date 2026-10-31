@@ -18,6 +18,7 @@ import { authorize } from "../middlewares/authorize.middleware";
 import { validateDto } from "../middlewares/validate-dto.middleware";
 import { saveComponentChanges } from "../services/test-components.service";
 import { withComputedCalculations } from "../services/calculations.service";
+import { evaluateAndAudit } from "../services/result-evaluation.service";
 import { attachCancelRoutes } from "../utils/cancel-routes";
 import { TEST_BUSINESS_ID } from "../configs/business-ids";
 
@@ -65,6 +66,13 @@ export const testConfig: CrudConfig<Test> = {
   listExcludeRelations: ["components"],
 
   preparePayload: withComputedCalculations,
+  afterSave: ({ record, payload, ctx, transaction }) =>
+    evaluateAndAudit({
+      sampleId: record.sampleId,
+      actor: ctx.actor,
+      changeReason: payload.changeReason,
+      transaction
+    }),
 
   children: [
     {
@@ -76,6 +84,7 @@ export const testConfig: CrudConfig<Test> = {
         "componentName",
         "description",
         "value",
+        "valueLabel",
         "unit",
         "outOfRange",
         "enteredOn",

@@ -9,6 +9,9 @@ import Test from "../models/test.model";
 import TestWindow from "../models/test-window.model";
 import { contextFromRequest, groupWhere } from "../utils/crud-factory";
 import { recomputeTests } from "./calculations.service";
+import { evaluateSamples } from "./result-evaluation.service";
+import { typeProblem } from "../utils/result-check";
+import { entityPickLabel } from "./entity-records.service";
 import type {
   BulkComponentChangesDto,
   SampleComponentsQueryDto
@@ -61,7 +64,11 @@ export const listSampleComponents = asyncHandler(
             "componentList",
             "componentOption",
             "componentFormula",
+            "componentEntity",
+            "componentEntityTemplateId",
+            "valueLabel",
             "outOfRange",
+            "resultStatus",
             "enteredOn",
             "enteredBy",
             "instrumentId"
@@ -114,7 +121,11 @@ export const listSampleComponents = asyncHandler(
           componentList: plain.componentList,
           componentOption: plain.componentOption,
           componentFormula: plain.componentFormula,
+          componentEntity: plain.componentEntity,
+          componentEntityTemplateId: plain.componentEntityTemplateId,
+          valueLabel: plain.valueLabel,
           outOfRange: plain.outOfRange,
+          resultStatus: plain.resultStatus,
           enteredOn: plain.enteredOn,
           enteredBy: plain.enteredBy,
           instrumentId: plain.instrumentId,
@@ -178,6 +189,20 @@ export const saveComponentChanges = asyncHandler(
       );
 
     const rowById = new Map(rows.map((row) => [row.id, row]));
+    for (const change of changes) {
+      const row = rowById.get(change.id)!;
+      const problem =
+        "value" in change ? typeProblem(row.componentType, change.value) : null;
+      if (problem) return reject(res, 400, `${row.componentName}: ${problem}`);
+    }
+
+    const pickLabels = new Map<string, string | null>();
+    for (const change of changes) {
+      const row = rowById.get(change.id)!;
+      if (row.componentType === "ENTITY" && "value" in change)
+        pickLabels.set(row.id, await entityPickLabel(row, change.value, scope));
+    }
+
     const deltas = new Map<string, Record<string, any>[]>();
     let updated = 0;
 
@@ -205,6 +230,8 @@ export const saveComponentChanges = asyncHandler(
           from[key] = before;
         }
         if (!Object.keys(patch).length) continue;
+        if ("value" in patch && pickLabels.has(row.id))
+          patch.valueLabel = pickLabels.get(row.id);
         await TestWindow.update(patch as any, {
           where: { id: row.id },
           transaction
@@ -224,6 +251,18 @@ export const saveComponentChanges = asyncHandler(
           to: { value: computed.to }
         });
         deltas.set(computed.testId, list);
+      }
+
+      const sampleIds = rows.map((row) => row.sampleId);
+      for (const range of await evaluateSamples(sampleIds, transaction)) {
+        updated += 1;
+        const list = deltas.get(range.testId) ?? [];
+        list.push({
+          key: range.componentId,
+          from: { outOfRange: range.from },
+          to: { outOfRange: range.to }
+        });
+        deltas.set(range.testId, list);
       }
 
       const entries = [...deltas].map(([testId, changed]) => ({

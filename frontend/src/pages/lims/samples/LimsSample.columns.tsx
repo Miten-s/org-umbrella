@@ -37,6 +37,13 @@ export const getLimsSampleColumns = ({
       ) : null
   },
   {
+    colId: "result",
+    headerName: t("limsResult"),
+    flex: 0.5,
+    minWidth: 110,
+    valueGetter: (params) => params.data?.result ?? "-"
+  },
+  {
     colId: "project",
     headerName: t("limsProject"),
     flex: 0.9,

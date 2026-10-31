@@ -132,7 +132,8 @@ export interface CrudConfig<M extends Model> {
   preparePayload?: (
     payload: Record<string, any>,
     transaction: Transaction,
-    existing?: M
+    existing?: M,
+    ctx?: CrudContext
   ) => Promise<Record<string, any>>;
   /** Runs inside the create/update transaction after the record and its children are saved —
    * for writes that must succeed or fail together with it (Sample → its Tests). */
@@ -802,7 +803,7 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     if (config.validatePayload)
       await config.validatePayload(normalized, transaction);
     const payload = config.preparePayload
-      ? await config.preparePayload(normalized, transaction)
+      ? await config.preparePayload(normalized, transaction, undefined, ctx)
       : normalized;
     if (opts?.bulk)
       await assertChildrenUnclaimed(config.children, payload, transaction);
@@ -1087,7 +1088,7 @@ export const buildCrudService = <M extends Model>(config: CrudConfig<M>) => {
     if (config.validatePayload)
       await config.validatePayload(normalized, transaction, existing);
     const payload = config.preparePayload
-      ? await config.preparePayload(normalized, transaction, existing)
+      ? await config.preparePayload(normalized, transaction, existing, ctx)
       : normalized;
     const oldValue = existing.toJSON();
     const mapped = toColumns(config, payload);

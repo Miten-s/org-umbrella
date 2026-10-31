@@ -739,6 +739,14 @@ const SpecLimitsEditor = ({
             event.stopPropagation();
             setActive(null);
           }
+          // Enter finishes the cell; it must not submit the whole form.
+          if (
+            event.key === "Enter" &&
+            event.target instanceof HTMLInputElement
+          ) {
+            event.preventDefault();
+            setActive(null);
+          }
         }}
       >
         {disabled ? (

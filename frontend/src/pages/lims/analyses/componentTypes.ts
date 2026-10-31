@@ -1,19 +1,5 @@
 /** Test Template component types. Mirrors lims-service `configs/component-types.ts` —
  * separate deployables, keep the two in step. */
-import type { useAsyncOptions } from "@/hooks/useAsyncOptions";
-import {
-  useInstrumentStatusOptions,
-  useInstrumentTypeOptions,
-  useLocationTypeOptions,
-  useMeasurementTypeOptions,
-  useRatingOptions,
-  useStockBatchStatusOptions,
-  useStockTypeOptions
-} from "@/pages/lims/phrases/LimsPhrase.queries";
-import { useLimsGroupOptions } from "@/pages/lims/groups/LimsGroup.queries";
-import { useLimsLocationOptions } from "@/pages/lims/locations/LimsLocation.queries";
-import { useLimsStockOptions } from "@/pages/lims/stocks/LimsStock.queries";
-import { useLimsBatchOptions } from "@/pages/lims/batches/LimsBatch.queries";
 import type { LimsComponentRow } from "./LimsAnalysis.types";
 
 export const COMPONENT_TYPES = [
@@ -49,7 +35,7 @@ export type TypeField =
   | "list"
   | "option"
   | "entity"
-  | "entityCriteria";
+  | "entityTemplateId";
 
 /** Which extra inputs a row shows after its Type — in this order. */
 export const TYPE_FIELDS: Record<ComponentType, TypeField[]> = {
@@ -60,7 +46,7 @@ export const TYPE_FIELDS: Record<ComponentType, TypeField[]> = {
   CALCULATION: ["unit", "formula", "min", "max"],
   LIST: ["list", "option"],
   BOOLEAN: ["option"],
-  ENTITY: ["entity", "entityCriteria"],
+  ENTITY: ["entity", "entityTemplateId"],
   DATETIME: []
 };
 
@@ -72,7 +58,7 @@ export const TYPE_SPECIFIC_KEYS = [
   "option",
   "list",
   "entity",
-  "entityCriteria",
+  "entityTemplateId",
   "min",
   "max"
 ] as const;
@@ -88,150 +74,18 @@ export const splitBooleanPair = (name: string): [string, string] | null => {
     : null;
 };
 
-type OptionsHook = (args: {
-  search: string;
-  enabled?: boolean;
-  selectedValues?: string[];
-}) => ReturnType<typeof useAsyncOptions>;
-
-export interface CriteriaField {
-  field: string;
-  label: string;
-  useOptions: OptionsHook;
-}
-
-export interface ComponentEntity {
-  value: string;
-  label: string;
-  criteria: CriteriaField[];
-}
-
-const labGroup: CriteriaField = {
-  field: "groupId",
-  label: "Lab Group",
-  useOptions: useLimsGroupOptions
-};
-
-export const COMPONENT_ENTITIES: ComponentEntity[] = [
-  {
-    value: "INSTRUMENT",
-    label: "Instrument",
-    criteria: [
-      { field: "typeId", label: "Type", useOptions: useInstrumentTypeOptions },
-      {
-        field: "measurementTypeId",
-        label: "Measurement type",
-        useOptions: useMeasurementTypeOptions
-      },
-      {
-        field: "statusId",
-        label: "Status",
-        useOptions: useInstrumentStatusOptions
-      },
-      {
-        field: "locationId",
-        label: "Location",
-        useOptions: useLimsLocationOptions
-      },
-      labGroup
-    ]
-  },
-  {
-    value: "STOCK",
-    label: "Stock Item",
-    criteria: [
-      {
-        field: "stockTypeId",
-        label: "Stock type",
-        useOptions: useStockTypeOptions
-      },
-      labGroup
-    ]
-  },
-  {
-    value: "STOCK_BATCH",
-    label: "Stock Batch",
-    criteria: [
-      {
-        field: "statusId",
-        label: "Status",
-        useOptions: useStockBatchStatusOptions
-      },
-      {
-        field: "stockId",
-        label: "Stock Item",
-        useOptions: useLimsStockOptions
-      },
-      labGroup
-    ]
-  },
-  {
-    value: "LIMS_USER",
-    label: "Lab User",
-    criteria: [
-      labGroup,
-      {
-        field: "locationId",
-        label: "Location",
-        useOptions: useLimsLocationOptions
-      }
-    ]
-  },
-  {
-    value: "LOCATION",
-    label: "Storage Location",
-    criteria: [
-      {
-        field: "locationTypeId",
-        label: "Location type",
-        useOptions: useLocationTypeOptions
-      },
-      labGroup
-    ]
-  },
-  {
-    value: "SUPPLIER",
-    label: "Supplier",
-    criteria: [
-      { field: "ratingId", label: "Rating", useOptions: useRatingOptions },
-      labGroup
-    ]
-  },
-  {
-    value: "CUSTOMER",
-    label: "Customer",
-    criteria: [
-      { field: "ratingId", label: "Rating", useOptions: useRatingOptions },
-      labGroup
-    ]
-  },
-  {
-    value: "LOT",
-    label: "Lot",
-    criteria: [
-      { field: "batchId", label: "Batch", useOptions: useLimsBatchOptions },
-      labGroup
-    ]
-  },
-  { value: "BATCH", label: "Batch", criteria: [labGroup] }
+/** The tables an Entity component can point at. */
+export const COMPONENT_ENTITIES = [
+  { value: "INSTRUMENT", label: "Instrument" },
+  { value: "STOCK", label: "Stock Item" },
+  { value: "STOCK_BATCH", label: "Stock Batch" },
+  { value: "LIMS_USER", label: "Lab User" },
+  { value: "LOCATION", label: "Storage Location" },
+  { value: "SUPPLIER", label: "Supplier" },
+  { value: "CUSTOMER", label: "Customer" },
+  { value: "LOT", label: "Lot" },
+  { value: "BATCH", label: "Batch" }
 ];
-
-/** Stored in `entityCriteria` as JSON; `label` is kept only so the cell can show it. */
-export interface EntityCriteria {
-  field: string;
-  value: string;
-  label?: string;
-}
-
-export const parseCriteria = (raw: unknown): EntityCriteria | null => {
-  if (typeof raw !== "string" || !raw.trim()) return null;
-  try {
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed.field === "string" ? parsed : null;
-  } catch {
-    return null;
-  }
-};
 
 export const isTyped = (
   row: LimsComponentRow
@@ -354,9 +208,8 @@ export const validateComponentRows = (
       return `${name}: pick an answer pair.`;
     if (row.type === "ENTITY") {
       if (!text(row.entity)) return `${name}: pick an Entity.`;
-      const criteria = parseCriteria(row.entityCriteria);
-      if (criteria && !criteria.value)
-        return `${name}: pick a value for the criteria, or clear it.`;
+      if (!text(row.entityTemplateId))
+        return `${name}: pick an Entity Template.`;
     }
   }
   return undefined;

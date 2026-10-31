@@ -120,6 +120,9 @@ export class CreateSampleDto {
   @IsOptional() @IsString() @MaxLength(200) sampleStartBy?: string;
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsString() comments?: string;
+  /** Set at creation from a Sample Template; its fields and names stay with the sample. */
+  @IsOptional() @IsUUID("4") sampleTemplate?: string;
+  @IsOptional() @IsArray() fieldLayout?: { key: string; label: string }[];
 
   @IsOptional()
   @IsArray()
@@ -252,9 +255,24 @@ export class SampleTemplateTestRowDto {
   @IsOptional() @IsInt() sortOrder?: number;
 }
 
+export class SampleTemplateFieldRowDto {
+  @IsString() @IsNotEmpty() @MaxLength(50) fieldKey!: string;
+  @IsOptional() @IsString() @MaxLength(100) displayName?: string;
+  @IsOptional() @IsInt() sortOrder?: number;
+}
+
 /** Fields shared by create and update — everything optional; create adds the required name. */
 class SampleTemplateFieldsDto {
   @IsOptional() @IsString() @MaxLength(100) sampleTemplateId?: string;
+  @IsOptional() @IsString() @MaxLength(200) sampleName?: string;
+  @IsOptional() @IsString() @MaxLength(255) idText?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SampleTemplateFieldRowDto)
+  fieldRows?: SampleTemplateFieldRowDto[];
+
   @IsOptional() @IsUUID("4") sampleType?: string;
   @IsOptional() @IsUUID("4") project?: string;
   @IsOptional() @IsUUID("4") specification?: string;

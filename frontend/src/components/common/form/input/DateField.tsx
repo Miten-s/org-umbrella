@@ -122,6 +122,8 @@ const SingleField: FC<DateFieldProps & { mode: keyof typeof FORMATS }> = ({
             ? [fmt.display, "dd-MM-yyyy", "dd.MM.yyyy"]
             : fmt.display
         }
+        // Half-typed dates ("31-1") stay text; only a complete one becomes the value.
+        strictParsing
         placeholderText={fmt.placeholder}
         className={inputClasses}
         autoComplete="off"
