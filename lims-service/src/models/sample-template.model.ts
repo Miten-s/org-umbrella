@@ -6,6 +6,9 @@ export interface ISampleTemplate {
   id?: string;
   sampleTemplateId: string;
   name: string;
+  /** Defaults for a new sample's name and ID text. */
+  sampleName?: string | null;
+  idText?: string | null;
   sampleTypeId?: string | null;
   projectId?: string | null;
   specificationId?: string | null;
@@ -32,6 +35,8 @@ export class SampleTemplate
   public id!: string;
   public sampleTemplateId!: string;
   public name!: string;
+  public sampleName!: string | null;
+  public idText!: string | null;
   public sampleTypeId!: string | null;
   public projectId!: string | null;
   public specificationId!: string | null;
@@ -65,6 +70,12 @@ SampleTemplate.init(
       field: "sample_template_id"
     },
     name: { type: DataTypes.STRING(200), allowNull: false },
+    sampleName: {
+      type: DataTypes.STRING(200),
+      allowNull: true,
+      field: "sample_name"
+    },
+    idText: { type: DataTypes.STRING(255), allowNull: true, field: "id_text" },
     sampleTypeId: {
       type: DataTypes.UUID,
       allowNull: true,

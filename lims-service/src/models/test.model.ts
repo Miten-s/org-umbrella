@@ -20,6 +20,8 @@ export interface ITest {
   loginBy?: string | null;
   description?: string | null;
   status: string;
+  /** Pass/Fail against the Specification, set by the server; null until judged. */
+  result?: string | null;
   cancelledAt?: Date | null;
   cancelledBy?: string | null;
   groupId?: string | null;
@@ -43,6 +45,7 @@ export class Test extends Model<ITest> implements ITest {
   public loginBy!: string | null;
   public description!: string | null;
   public status!: string;
+  public result!: string | null;
   public cancelledAt!: Date | null;
   public cancelledBy!: string | null;
   public groupId!: string | null;
@@ -105,6 +108,7 @@ Test.init(
       allowNull: false,
       defaultValue: "Open"
     },
+    result: { type: DataTypes.STRING(10), allowNull: true },
     cancelledAt: {
       type: DataTypes.DATE,
       allowNull: true,

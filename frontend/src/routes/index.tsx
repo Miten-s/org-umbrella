@@ -45,6 +45,9 @@ const LIMSTestGroupsPage = lazy(() => import("../pages/lims/test-groups"));
 const LIMSSampleTemplatesPage = lazy(
   () => import("../pages/lims/sample-templates")
 );
+const LIMSSampleTemplateWorkspacePage = lazy(
+  () => import("../pages/lims/sample-templates/LimsSampleTemplateWorkspacePage")
+);
 const LIMSInstrumentPartsPage = lazy(
   () => import("../pages/lims/instrument-parts")
 );
@@ -179,6 +182,11 @@ const LIMS_ROUTES: [
     PageUrl.LIMSSampleTemplates,
     LIMS_PERMISSIONS.VIEW_SAMPLE_TEMPLATE,
     <LIMSSampleTemplatesPage />
+  ],
+  [
+    PageUrl.LIMSSampleTemplateWorkspace,
+    LIMS_PERMISSIONS.VIEW_SAMPLE_TEMPLATE,
+    <LIMSSampleTemplateWorkspacePage />
   ],
   [PageUrl.LIMSBatches, LIMS_PERMISSIONS.VIEW_BATCH, <LIMSBatchesPage />],
   [PageUrl.LIMSLots, LIMS_PERMISSIONS.VIEW_LOT, <LIMSLotsPage />],

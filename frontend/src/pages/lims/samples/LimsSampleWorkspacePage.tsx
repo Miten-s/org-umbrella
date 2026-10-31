@@ -180,7 +180,26 @@ const Workspace = ({
   return (
     <>
       <RecordWorkspace
-        title={isNew ? t("create", { entity: t("limsSample") }) : label}
+        title={
+          isNew ? (
+            t("create", { entity: t("limsSample") })
+          ) : (
+            <span className="inline-flex items-center gap-2">
+              {label}
+              {sample?.result ? (
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                    sample.result === "Pass"
+                      ? "bg-success-100 text-success-800 dark:bg-success-500/15 dark:text-success-300"
+                      : "bg-error-100 text-error-700 dark:bg-error-500/15 dark:text-error-300"
+                  }`}
+                >
+                  {sample.result}
+                </span>
+              ) : null}
+            </span>
+          )
+        }
         subtitle={
           readOnly
             ? t("workspaceViewing")
@@ -257,7 +276,12 @@ const Workspace = ({
             <div className={active === "execution" ? "" : "hidden"}>
               <SampleTestsResultsGrid
                 samples={[
-                  { id: sample?.id ?? NEW_SAMPLE, saved: !isNew, label }
+                  {
+                    id: sample?.id ?? NEW_SAMPLE,
+                    saved: !isNew,
+                    label,
+                    specificationId: sample?.specification?.id
+                  }
                 ]}
                 store={store}
                 readOnly={readOnly}

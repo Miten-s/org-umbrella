@@ -10,6 +10,7 @@ import { APPROVED_ENTRY_KEY } from "../utils/approval-status";
 import { TEST_BUSINESS_ID } from "../configs/business-ids";
 import type { CrudContext } from "../utils/crud-factory";
 import { computeCalculations } from "../utils/formula";
+import { typeProblem } from "../utils/result-check";
 
 /** Keeps each multi-row INSERT well under Postgres' 65,535 bind-parameter limit. */
 const CHUNK = 1000;
@@ -167,6 +168,10 @@ export const assignSampleTests = async ({
         componentFormula: component.formula
       }));
   });
+  for (const row of pendingRows) {
+    const problem = typeProblem(row.componentType, row.value);
+    if (problem) throw reject(`${row.componentName}: ${problem}`);
+  }
   // Values typed before the test existed can already feed its Calculations.
   const pendingByTest = new Map<string, typeof pendingRows>();
   pendingRows.forEach((row) =>

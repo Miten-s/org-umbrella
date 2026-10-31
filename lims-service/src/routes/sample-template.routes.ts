@@ -1,6 +1,11 @@
 import { Transaction } from "sequelize";
 import SampleTemplate from "../models/sample-template.model";
 import SampleTemplateTest from "../models/sample-template-test.model";
+import SampleTemplateField from "../models/sample-template-field.model";
+import {
+  MANDATORY_SAMPLE_FIELDS,
+  SAMPLE_FIELD_KEYS
+} from "../configs/sample-template-fields";
 import Analysis from "../models/analysis.model";
 import Group from "../models/group.model";
 import PhraseEntry from "../models/phrase-entry.model";
@@ -36,6 +41,20 @@ const validateTests = async (
     new Set(attached.map((row) => row.analysisId)),
     transaction
   );
+};
+
+/** Every field is a known one, used once, and the mandatory fields are always there. */
+const assertFieldRows = (payload: Record<string, any>) => {
+  if (!Array.isArray(payload.fieldRows)) return;
+  const keys: string[] = payload.fieldRows.map((row: any) => row.fieldKey);
+  const fail = (message: string) =>
+    Object.assign(new Error(message), { statusCode: 400 });
+  if (keys.some((key) => !SAMPLE_FIELD_KEYS.includes(key)))
+    throw fail("A selected field no longer exists.");
+  if (new Set(keys).size !== keys.length)
+    throw fail("Each field can only be added once.");
+  if (MANDATORY_SAMPLE_FIELDS.some((key) => !keys.includes(key)))
+    throw fail("ID, Name and ID Text are required in every Sample Template.");
 };
 
 /** Sample Templates — saved defaults that pre-fill new Sample forms. */
@@ -78,6 +97,7 @@ export const sampleTemplateConfig: CrudConfig<SampleTemplate> = {
       ],
       required: false
     },
+    { model: SampleTemplateField, as: "fieldRows", required: false },
     {
       model: SampleTemplateTest,
       as: "tests",
@@ -99,8 +119,18 @@ export const sampleTemplateConfig: CrudConfig<SampleTemplate> = {
     specification: "specificationId",
     location: "locationId"
   },
-  validatePayload: validateTests,
+  validatePayload: async (payload, transaction, existing) => {
+    assertFieldRows(payload);
+    await validateTests(payload, transaction, existing);
+  },
   children: [
+    {
+      field: "fieldRows",
+      model: SampleTemplateField,
+      foreignKey: "sampleTemplateId",
+      fields: ["fieldKey", "displayName", "sortOrder"],
+      matchKey: "fieldKey"
+    },
     {
       field: "tests",
       model: SampleTemplateTest,

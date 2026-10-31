@@ -1,9 +1,17 @@
 import type { LimsSampleTemplate } from "@/pages/lims/sample-templates/LimsSampleTemplate.types";
 import type { LimsSample } from "./LimsSample.types";
+import { layoutFromRows } from "./sampleFields";
 
 /** A new sample pre-filled from a Sample Template — fields plus its tests as fresh picks. */
-export const sampleFromTemplate = (tpl: LimsSampleTemplate): LimsSample =>
+export const sampleFromTemplate = (
+  tpl: LimsSampleTemplate,
+  t: (key: string) => string
+): LimsSample =>
   ({
+    sampleTemplateId: tpl.id,
+    fieldLayout: layoutFromRows(tpl.fieldRows, t),
+    sampleName: tpl.sampleName ?? "",
+    idText: tpl.idText ?? "",
     sampleType: tpl.sampleType ?? null,
     project: tpl.project ?? null,
     specification: tpl.specification ?? null,

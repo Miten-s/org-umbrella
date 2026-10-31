@@ -1,3 +1,4 @@
+import type { SampleFieldLayout } from "./sampleFields";
 /** LimsSample types (STANDARDS.md §1). See LIMS_BACKEND_SPEC.md §5. */
 
 export interface LimsRef {
@@ -34,6 +35,7 @@ export interface LimsSampleTest {
   analysisId?: string;
   /** 1 for the template's first run on the sample, 2+ for repeats. */
   repeatNumber?: number;
+  result?: string | null;
   sourceTestGroupId?: string | null;
   sourceTestGroup?: { id: string; testGroupId?: string; name?: string } | null;
   /** Returned instead of `components` on the sample detail; those load when a test is opened. */
@@ -70,6 +72,11 @@ export interface LimsSample {
   sampleStartBy?: string;
   description?: string;
   comments?: string;
+  /** Pass/Fail against the Specification, set by the server; null until judged. */
+  result?: string | null;
+  sampleTemplateId?: string | null;
+  /** The fields and names of its Sample Template; empty means every field shows. */
+  fieldLayout?: SampleFieldLayout[] | null;
   testWindows?: LimsTestWindowRow[];
   tests?: LimsSampleTest[];
   attachments?: LimsAttachment[];
@@ -96,6 +103,8 @@ export interface LimsSamplePayload {
   sampleStartBy?: string;
   description?: string;
   comments?: string;
+  sampleTemplate?: string;
+  fieldLayout?: SampleFieldLayout[];
   testWindows?: LimsTestWindowRow[];
   /** Test Templates to assign as new Tests. */
   testTemplates?: {

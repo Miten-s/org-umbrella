@@ -1,3 +1,5 @@
+import type { SampleFieldRow } from "@/pages/lims/samples/sampleFields";
+
 /** LIMS Sample Template types — saved defaults that pre-fill new Sample forms. */
 
 export interface LimsRef {
@@ -18,6 +20,11 @@ export interface LimsSampleTemplate {
   _id: string;
   sampleTemplateId: string;
   name: string;
+  /** Default values for a new sample's name and ID text. */
+  sampleName?: string;
+  idText?: string;
+  /** Which sample fields this template uses and what it calls them. */
+  fieldRows?: SampleFieldRow[];
   sampleType?: LimsRef | null;
   project?: LimsRef | null;
   specification?: LimsRef | null;
@@ -40,6 +47,9 @@ export interface LimsSampleTemplate {
 export interface LimsSampleTemplatePayload {
   sampleTemplateId: string;
   name: string;
+  sampleName?: string;
+  idText?: string;
+  fieldRows?: SampleFieldRow[];
   sampleType?: string;
   project?: string;
   specification?: string;

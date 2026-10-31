@@ -277,6 +277,11 @@ export const PageUrl: PageUrlType = {
     matchPattern: /^\/lims\/sample-templates$/i,
     pageTitle: "Sample Templates"
   },
+  LIMSSampleTemplateWorkspace: {
+    path: "/lims/sample-templates/:id",
+    matchPattern: /^\/lims\/sample-templates\/[^/]+$/i,
+    pageTitle: "Sample Templates"
+  },
   LIMSBatches: {
     path: "/lims/batches",
     matchPattern: /^\/lims\/batches$/i,

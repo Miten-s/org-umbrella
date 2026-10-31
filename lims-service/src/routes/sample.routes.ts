@@ -23,6 +23,7 @@ import { validateDto } from "../middlewares/validate-dto.middleware";
 import { listSampleComponents } from "../services/test-components.service";
 import { attachCancelRoutes } from "../utils/cancel-routes";
 import Test from "../models/test.model";
+import { evaluateAndAudit } from "../services/result-evaluation.service";
 import { assignSampleTests } from "../services/sample-tests.service";
 import { sequelize } from "../configs/db.sequelize";
 
@@ -164,6 +165,7 @@ export const sampleConfig: CrudConfig<Sample> = {
     project: "projectId",
     sampleType: "sampleTypeId",
     specification: "specificationId",
+    sampleTemplate: "sampleTemplateId",
     testGroup: "testGroupId",
     location: "locationId",
     stockBatch: "stockBatchId"
@@ -174,7 +176,15 @@ export const sampleConfig: CrudConfig<Sample> = {
   listExcludeRelations: ["testWindows", "tests"],
 
   // `testTemplates: {analysisId, sourceTestGroupId?}[]` → one Test (+ result rows) per template, in this save's transaction.
-  afterSave: assignSampleTests
+  afterSave: async (args) => {
+    await assignSampleTests(args);
+    await evaluateAndAudit({
+      sampleId: args.record.id,
+      actor: args.ctx.actor,
+      changeReason: args.payload.changeReason,
+      transaction: args.transaction
+    });
+  }
 };
 
 const service = buildCrudService(sampleConfig);

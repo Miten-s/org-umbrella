@@ -20,6 +20,8 @@ export interface ITestWindow {
   componentOption?: string | null;
   componentFormula?: string | null;
   outOfRange: boolean;
+  /** Unentered, Pass, Fail or Report — set by the server on every save. */
+  resultStatus?: string;
   enteredOn?: Date | string | null;
   enteredBy?: string | null;
   instrumentId?: string | null;
@@ -41,6 +43,7 @@ export class TestWindow extends Model<ITestWindow> implements ITestWindow {
   public componentOption!: string | null;
   public componentFormula!: string | null;
   public outOfRange!: boolean;
+  public resultStatus!: string;
   public enteredOn!: Date | string | null;
   public enteredBy!: string | null;
   public instrumentId!: string | null;
@@ -100,6 +103,12 @@ TestWindow.init(
       allowNull: false,
       defaultValue: false,
       field: "out_of_range"
+    },
+    resultStatus: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      defaultValue: "Unentered",
+      field: "result_status"
     },
     enteredOn: { type: DataTypes.DATE, allowNull: true, field: "entered_on" },
     enteredBy: {

@@ -1,6 +1,7 @@
 import { Op, Transaction } from "sequelize";
 import TestWindow from "../models/test-window.model";
 import { computeCalculations } from "../utils/formula";
+import { typeProblem } from "../utils/result-check";
 
 export interface ComputedChange {
   testId: string;
@@ -69,14 +70,23 @@ export const withComputedCalculations = async (
     (row) => (row.toJSON ? row.toJSON() : row) as Record<string, any>
   );
   const snapshot = new Map(stored.map((row) => [String(row.componentId), row]));
-  const rows = payload.components.map((row: Record<string, any>) => {
-    const saved = snapshot.get(String(row.componentId));
-    return {
-      ...row,
-      componentType: saved?.componentType,
-      componentFormula: saved?.componentFormula
-    };
-  });
+  const rows: Record<string, any>[] = payload.components.map(
+    (row: Record<string, any>) => {
+      const saved = snapshot.get(String(row.componentId));
+      return {
+        ...row,
+        componentType: saved?.componentType,
+        componentFormula: saved?.componentFormula
+      };
+    }
+  );
+  for (const row of rows) {
+    const problem = typeProblem(row.componentType, row.value);
+    if (problem)
+      throw Object.assign(new Error(`${row.componentName}: ${problem}`), {
+        statusCode: 400
+      });
+  }
   if (
     !rows.some(
       (row: Record<string, any>) => row.componentType === "CALCULATION"

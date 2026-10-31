@@ -92,6 +92,18 @@ const LimsSampleForm = ({
   onInvalid
 }: LimsSampleFormProps) => {
   const onPage = pageSection !== undefined;
+  // A sample from a Sample Template shows only that template's fields, under its names.
+  const layout = useMemo(
+    () =>
+      initialData?.fieldLayout?.length
+        ? new Map(initialData.fieldLayout.map((row) => [row.key, row.label]))
+        : null,
+    [initialData]
+  );
+  const shows = (key: string) =>
+    !layout || key === "sampleName" || layout.has(key);
+  const labelOf = (key: string, fallback: string) =>
+    layout?.get(key) ?? fallback;
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
   const attachments = useAttachments(initialData?.attachments);
@@ -203,38 +215,39 @@ const LimsSampleForm = ({
     label: string,
     required = false,
     type = "text"
-  ) => (
-    <div className="min-w-0">
-      <Label required={required}>{label}</Label>
-      {type === "date" || type === "time" ? (
-        <Controller
-          name={name}
-          control={control}
-          render={({ field }) => (
-            <DateField
-              mode={type}
-              value={field.value as string}
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-              disabled={isReadOnly}
-              error={!!errors[name]}
-              hint={errors[name]?.message as string}
-              className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-            />
-          )}
-        />
-      ) : (
-        <Input
-          {...register(name)}
-          type={type}
-          disabled={isReadOnly}
-          error={!!errors[name]}
-          hint={errors[name]?.message as string}
-          className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-        />
-      )}
-    </div>
-  );
+  ) =>
+    !shows(name) ? null : (
+      <div className="min-w-0">
+        <Label required={required}>{labelOf(name, label)}</Label>
+        {type === "date" || type === "time" ? (
+          <Controller
+            name={name}
+            control={control}
+            render={({ field }) => (
+              <DateField
+                mode={type}
+                value={field.value as string}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                disabled={isReadOnly}
+                error={!!errors[name]}
+                hint={errors[name]?.message as string}
+                className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              />
+            )}
+          />
+        ) : (
+          <Input
+            {...register(name)}
+            type={type}
+            disabled={isReadOnly}
+            error={!!errors[name]}
+            hint={errors[name]?.message as string}
+            className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+          />
+        )}
+      </div>
+    );
 
   return (
     <div
@@ -296,12 +309,12 @@ const LimsSampleForm = ({
         >
           <div className="min-w-0">
             {/* Server-locked (crud-factory drops any client value), same as idNumeric — blank on Copy. */}
-            <Label>{t("limsSampleId")}</Label>
+            <Label>{labelOf("sampleId", t("limsSampleId"))}</Label>
             <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
               {isNewRecord ? "—" : (initialData?.sampleId ?? "—")}
             </p>
           </div>
-          <div className="min-w-0">
+          <div className={layout ? "hidden" : "min-w-0"}>
             <Label>{t("limsIdNumeric")}</Label>
             <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
               {isNewRecord ? "—" : String(initialData?.idNumeric ?? "—")}
@@ -309,116 +322,144 @@ const LimsSampleForm = ({
           </div>
           {text("idText", t("limsIdText"), false, "text")}
           {text("sampleName", t("limsSampleName"), true, "text")}
-          <div className="min-w-0">
-            <Label required={false}>{t("limsProject")}</Label>
-            <Controller
-              name="project"
-              control={control}
-              render={({ field }) => (
-                <AsyncSelect
-                  useOptions={useLimsProjectOptions}
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={isReadOnly}
-                  placeholder={t("select", { entity: t("limsProject") })}
-                  initialSelectedOptions={seedOne(initialData?.project)}
-                />
-              )}
-            />
-          </div>
-          <div className="min-w-0">
-            <Label required={false}>{t("limsSampleType")}</Label>
-            <Controller
-              name="sampleType"
-              control={control}
-              render={({ field }) => (
-                <AsyncSelect
-                  useOptions={useSampleTypeOptions}
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={isReadOnly}
-                  placeholder={t("select", { entity: t("limsSampleType") })}
-                  initialSelectedOptions={seedOne(initialData?.sampleType)}
-                />
-              )}
-            />
-          </div>
-          <div className="min-w-0">
-            <Label required={false}>{t("limsSpecification")}</Label>
-            <Controller
-              name="specification"
-              control={control}
-              render={({ field }) => (
-                <AsyncSelect
-                  useOptions={useLimsSpecificationOptions}
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={isReadOnly}
-                  placeholder={t("select", { entity: t("limsSpecification") })}
-                  initialSelectedOptions={seedOne(initialData?.specification)}
-                />
-              )}
-            />
-          </div>
-          <div className="min-w-0">
-            <Label required={false}>{t("limsLocation")}</Label>
-            <Controller
-              name="location"
-              control={control}
-              render={({ field }) => (
-                <AsyncSelect
-                  useOptions={useLimsLocationOptions}
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={isReadOnly}
-                  placeholder={t("select", { entity: t("limsLocation") })}
-                  initialSelectedOptions={seedOne(initialData?.location)}
-                />
-              )}
-            />
-          </div>
-          <div className="min-w-0">
-            <Label required={false}>{t("limsGroup")}</Label>
-            <Controller
-              name="group"
-              control={control}
-              render={({ field }) => (
-                <AsyncSelect
-                  useOptions={useLimsGroupOptions}
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={isReadOnly}
-                  placeholder={t("select", { entity: t("limsGroup") })}
-                  initialSelectedOptions={seedOne(initialData?.group)}
-                />
-              )}
-            />
-          </div>
-          <div className="min-w-0">
-            <Label required={false}>{t("limsStockBatch")}</Label>
-            <Controller
-              name="stockBatch"
-              control={control}
-              render={({ field }) => (
-                <AsyncSelect
-                  useOptions={useLimsStockBatchOptions}
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={isReadOnly}
-                  placeholder={t("select", { entity: t("limsStockBatch") })}
-                  initialSelectedOptions={seedOne(initialData?.stockBatch)}
-                />
-              )}
-            />
-          </div>
+          {shows("project") ? (
+            <div className="min-w-0">
+              <Label required={false}>
+                {labelOf("project", t("limsProject"))}
+              </Label>
+              <Controller
+                name="project"
+                control={control}
+                render={({ field }) => (
+                  <AsyncSelect
+                    useOptions={useLimsProjectOptions}
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={isReadOnly}
+                    placeholder={t("select", { entity: t("limsProject") })}
+                    initialSelectedOptions={seedOne(initialData?.project)}
+                  />
+                )}
+              />
+            </div>
+          ) : null}
+          {shows("sampleType") ? (
+            <div className="min-w-0">
+              <Label required={false}>
+                {labelOf("sampleType", t("limsSampleType"))}
+              </Label>
+              <Controller
+                name="sampleType"
+                control={control}
+                render={({ field }) => (
+                  <AsyncSelect
+                    useOptions={useSampleTypeOptions}
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={isReadOnly}
+                    placeholder={t("select", { entity: t("limsSampleType") })}
+                    initialSelectedOptions={seedOne(initialData?.sampleType)}
+                  />
+                )}
+              />
+            </div>
+          ) : null}
+          {shows("specification") ? (
+            <div className="min-w-0">
+              <Label required={false}>
+                {labelOf("specification", t("limsSpecification"))}
+              </Label>
+              <Controller
+                name="specification"
+                control={control}
+                render={({ field }) => (
+                  <AsyncSelect
+                    useOptions={useLimsSpecificationOptions}
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={isReadOnly}
+                    placeholder={t("select", {
+                      entity: t("limsSpecification")
+                    })}
+                    initialSelectedOptions={seedOne(initialData?.specification)}
+                  />
+                )}
+              />
+            </div>
+          ) : null}
+          {shows("location") ? (
+            <div className="min-w-0">
+              <Label required={false}>
+                {labelOf("location", t("limsLocation"))}
+              </Label>
+              <Controller
+                name="location"
+                control={control}
+                render={({ field }) => (
+                  <AsyncSelect
+                    useOptions={useLimsLocationOptions}
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={isReadOnly}
+                    placeholder={t("select", { entity: t("limsLocation") })}
+                    initialSelectedOptions={seedOne(initialData?.location)}
+                  />
+                )}
+              />
+            </div>
+          ) : null}
+          {shows("group") ? (
+            <div className="min-w-0">
+              <Label required={false}>{labelOf("group", t("limsGroup"))}</Label>
+              <Controller
+                name="group"
+                control={control}
+                render={({ field }) => (
+                  <AsyncSelect
+                    useOptions={useLimsGroupOptions}
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={isReadOnly}
+                    placeholder={t("select", { entity: t("limsGroup") })}
+                    initialSelectedOptions={seedOne(initialData?.group)}
+                  />
+                )}
+              />
+            </div>
+          ) : null}
+          {shows("stockBatch") ? (
+            <div className="min-w-0">
+              <Label required={false}>
+                {labelOf("stockBatch", t("limsStockBatch"))}
+              </Label>
+              <Controller
+                name="stockBatch"
+                control={control}
+                render={({ field }) => (
+                  <AsyncSelect
+                    useOptions={useLimsStockBatchOptions}
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={isReadOnly}
+                    placeholder={t("select", { entity: t("limsStockBatch") })}
+                    initialSelectedOptions={seedOne(initialData?.stockBatch)}
+                  />
+                )}
+              />
+            </div>
+          ) : null}
           {text("lotNumber", t("limsLotNumber"), false, "text")}
           {text("serialNumber", t("limsSerialNumber"), false, "text")}
           {text("loginDate", t("limsLoginDate"), false, "date")}
           {text("loginBy", t("limsLoginBy"), false, "text")}
           {text("sampleStartDate", t("limsSampleStartDate"), false, "date")}
           {text("sampleStartBy", t("limsSampleStartBy"), false, "text")}
-          <div className="col-span-full min-w-0">
-            <Label>{t("description")}</Label>
+          <div
+            className={
+              shows("description") ? "col-span-full min-w-0" : "hidden"
+            }
+          >
+            <Label>{labelOf("description", t("description"))}</Label>
             <TextArea
               disabled={isReadOnly}
               value={description || ""}
@@ -428,8 +469,10 @@ const LimsSampleForm = ({
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
-          <div className="col-span-full min-w-0">
-            <Label>{t("comments")}</Label>
+          <div
+            className={shows("comments") ? "col-span-full min-w-0" : "hidden"}
+          >
+            <Label>{labelOf("comments", t("comments"))}</Label>
             <TextArea
               disabled={isReadOnly}
               value={comments || ""}
