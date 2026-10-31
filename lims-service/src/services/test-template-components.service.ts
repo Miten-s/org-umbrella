@@ -2,14 +2,10 @@ import { Transaction } from "sequelize";
 import AnalysisComponent from "../models/analysis-component.model";
 import Phrase from "../models/phrase.model";
 import PhraseEntry from "../models/phrase-entry.model";
-import Group from "../models/group.model";
-import Location from "../models/location.model";
-import Stock from "../models/stock.model";
-import Batch from "../models/batch.model";
+import EntityTemplate from "../models/entity-template.model";
 import Analysis from "../models/analysis.model";
 import {
   BOOLEAN_ANSWERS_PHRASE,
-  COMPONENT_ENTITIES,
   COMPONENT_TYPES,
   ComponentType,
   TYPE_FIELDS,
@@ -18,6 +14,7 @@ import {
   isFormulaWellFormed
 } from "../configs/component-types";
 import { UNIT_PHRASE } from "../configs/pick-list-units";
+import { ENTITY_TABLES } from "../configs/entity-template-catalog";
 
 type Row = Record<string, any>;
 
@@ -34,13 +31,6 @@ const label = (row: Row) => `"${text(row.componentId) || text(row.name)}"`;
 
 /** A row saved before types existed — compared field by field to decide "untouched". */
 const LEGACY_FIELDS = ["name", "description", "type", ...TYPE_SPECIFIC_FIELDS];
-
-const ENTITY_MODELS = {
-  GROUP: Group,
-  LOCATION: Location,
-  STOCK: Stock,
-  BATCH: Batch
-} as const;
 
 /** Clears every column a typed row's type doesn't use, so no stray value is ever stored.
  * Legacy (untyped) rows pass through untouched. */
@@ -91,41 +81,6 @@ const assertNoCycles = (rows: Row[]) => {
     done.add(id);
   };
   for (const id of refs.keys()) visit(id, []);
-};
-
-const assertCriteria = async (row: Row, transaction: Transaction) => {
-  const raw = text(row.entityCriteria);
-  if (!raw) return;
-  let criteria: { field?: string; value?: string };
-  try {
-    criteria = JSON.parse(raw);
-  } catch {
-    throw reject(`${label(row)}: Entity criteria is not valid.`);
-  }
-  const source = COMPONENT_ENTITIES[row.entity]?.[criteria.field ?? ""];
-  if (!source || !criteria.value)
-    throw reject(`${label(row)}: pick both a criteria field and a value.`);
-
-  const exists =
-    "phrase" in source
-      ? await PhraseEntry.findOne({
-          where: { id: criteria.value },
-          include: [
-            {
-              model: Phrase,
-              as: "phrase",
-              where: { phrase: source.phrase },
-              required: true
-            }
-          ],
-          transaction
-        })
-      : await (ENTITY_MODELS[source.entity] as any).findOne({
-          where: { id: criteria.value, isDeleted: false },
-          transaction
-        });
-  if (!exists)
-    throw reject(`${label(row)}: the criteria value no longer exists.`);
 };
 
 /** Validates the Components grid of a Test Template. Untyped rows saved before component
@@ -263,9 +218,22 @@ export const validateComponents = async (
     }
 
     if (row.type === "ENTITY") {
-      if (!COMPONENT_ENTITIES[text(row.entity)])
+      if (!ENTITY_TABLES[text(row.entity)])
         throw reject(`${label(row)}: pick an Entity.`);
-      await assertCriteria(row, transaction);
+      if (!text(row.entityTemplateId))
+        throw reject(`${label(row)}: pick an Entity Template.`);
+      const template = await EntityTemplate.findOne({
+        where: {
+          id: text(row.entityTemplateId),
+          entity: text(row.entity),
+          isDeleted: false
+        },
+        transaction
+      });
+      if (!template)
+        throw reject(
+          `${label(row)}: that Entity Template no longer exists for this Entity.`
+        );
     }
   }
 

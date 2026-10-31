@@ -22,6 +22,9 @@ export interface ITestWindow {
   outOfRange: boolean;
   /** Unentered, Pass, Fail or Report — set by the server on every save. */
   resultStatus?: string;
+  componentEntity?: string | null;
+  componentEntityTemplateId?: string | null;
+  valueLabel?: string | null;
   enteredOn?: Date | string | null;
   enteredBy?: string | null;
   instrumentId?: string | null;
@@ -44,6 +47,9 @@ export class TestWindow extends Model<ITestWindow> implements ITestWindow {
   public componentFormula!: string | null;
   public outOfRange!: boolean;
   public resultStatus!: string;
+  public componentEntity!: string | null;
+  public componentEntityTemplateId!: string | null;
+  public valueLabel!: string | null;
   public enteredOn!: Date | string | null;
   public enteredBy!: string | null;
   public instrumentId!: string | null;
@@ -97,6 +103,22 @@ TestWindow.init(
       type: DataTypes.TEXT,
       allowNull: true,
       field: "component_formula"
+    },
+    componentEntity: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      field: "component_entity"
+    },
+    componentEntityTemplateId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: "component_entity_template_id"
+    },
+    // An Entity result's value is the record's id; this is its name when it was picked.
+    valueLabel: {
+      type: DataTypes.STRING(300),
+      allowNull: true,
+      field: "value_label"
     },
     outOfRange: {
       type: DataTypes.BOOLEAN,

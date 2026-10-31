@@ -20,6 +20,7 @@ export interface LimsComponentRow extends Record<string, unknown> {
   list?: string | number;
   entity?: string | number;
   entityCriteria?: string | number;
+  entityTemplateId?: string;
   min?: string | number;
   max?: string | number;
 }

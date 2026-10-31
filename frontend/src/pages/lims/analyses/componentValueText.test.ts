@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { LimsPhrase } from "@/pages/lims/phrases/LimsPhrase.types";
 import { splitBooleanPair } from "./componentTypes";
 import { booleanLabels } from "./componentValue";
+import { rememberEntityLabel } from "./componentValue";
 import { displayValue, parseValue } from "./componentValueText";
 
 const pickLists = {
@@ -70,5 +71,16 @@ describe("DATETIME values", () => {
     expect(displayValue(spec, "2026-10-07T09:05", undefined)).toBe(
       "07-10-2026 09:05"
     );
+  });
+});
+
+describe("Entity results", () => {
+  const spec = { type: "ENTITY" };
+
+  it("reads as the picked record's name, and parses only known records", () => {
+    rememberEntityLabel("record-1", "Balance 01");
+    expect(displayValue(spec, "record-1", undefined)).toBe("Balance 01");
+    expect(parseValue(spec, "balance 01", undefined)).toBe("record-1");
+    expect(parseValue(spec, "Unknown", undefined)).toBeNull();
   });
 });

@@ -1,9 +1,14 @@
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import AsyncSelect from "@/components/data/AsyncSelect";
 import DateField from "@/components/common/form/input/DateField";
 import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
+import { entityRecordsHook } from "@/pages/lims/entity-templates/LimsEntityTemplate.queries";
 import {
   booleanLabels,
+  entityLabel,
   isEnterable,
+  rememberEntityLabel,
   type ComponentSpec
 } from "./componentValue";
 import { usePickListOptions, usePickLists } from "./usePickListOptions";
@@ -20,6 +25,37 @@ interface ComponentValueEditorProps {
   /** Accessible name — a grid cell has no visible label of its own. */
   label?: string;
 }
+
+/** One record from those the component's Entity Template matches right now. */
+const EntityRecordSelect = ({
+  templateId,
+  value,
+  onChange,
+  disabled
+}: {
+  templateId: string;
+  value: string;
+  onChange: (value: string) => void;
+  disabled: boolean;
+}) => {
+  const { t } = useTranslation();
+  const useOptions = useMemo(() => entityRecordsHook(templateId), [templateId]);
+  const label = entityLabel(value);
+  return (
+    <AsyncSelect
+      useOptions={useOptions}
+      value={value}
+      onChange={() => undefined}
+      onChangeOption={(option) => {
+        rememberEntityLabel(option?.value, option?.label);
+        onChange(option?.value ?? "");
+      }}
+      disabled={disabled}
+      placeholder={t("limsPickRecord")}
+      initialSelectedOptions={value && label ? [{ value, label }] : undefined}
+    />
+  );
+};
 
 /** The one input for a result value: number, pick-list answer, yes/no, text or date, chosen by
  * the component's type. Calculated and description-only components are shown, not edited. */
@@ -75,6 +111,15 @@ const ComponentValueEditor = ({
         />
       );
     }
+    case "ENTITY":
+      return (
+        <EntityRecordSelect
+          templateId={String(spec.entityTemplateId ?? "")}
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+        />
+      );
     case "DATETIME":
       return (
         <DateField

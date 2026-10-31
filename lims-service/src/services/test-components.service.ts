@@ -11,6 +11,7 @@ import { contextFromRequest, groupWhere } from "../utils/crud-factory";
 import { recomputeTests } from "./calculations.service";
 import { evaluateSamples } from "./result-evaluation.service";
 import { typeProblem } from "../utils/result-check";
+import { entityPickLabel } from "./entity-records.service";
 import type {
   BulkComponentChangesDto,
   SampleComponentsQueryDto
@@ -63,6 +64,9 @@ export const listSampleComponents = asyncHandler(
             "componentList",
             "componentOption",
             "componentFormula",
+            "componentEntity",
+            "componentEntityTemplateId",
+            "valueLabel",
             "outOfRange",
             "resultStatus",
             "enteredOn",
@@ -117,6 +121,9 @@ export const listSampleComponents = asyncHandler(
           componentList: plain.componentList,
           componentOption: plain.componentOption,
           componentFormula: plain.componentFormula,
+          componentEntity: plain.componentEntity,
+          componentEntityTemplateId: plain.componentEntityTemplateId,
+          valueLabel: plain.valueLabel,
           outOfRange: plain.outOfRange,
           resultStatus: plain.resultStatus,
           enteredOn: plain.enteredOn,
@@ -189,6 +196,13 @@ export const saveComponentChanges = asyncHandler(
       if (problem) return reject(res, 400, `${row.componentName}: ${problem}`);
     }
 
+    const pickLabels = new Map<string, string | null>();
+    for (const change of changes) {
+      const row = rowById.get(change.id)!;
+      if (row.componentType === "ENTITY" && "value" in change)
+        pickLabels.set(row.id, await entityPickLabel(row, change.value, scope));
+    }
+
     const deltas = new Map<string, Record<string, any>[]>();
     let updated = 0;
 
@@ -216,6 +230,8 @@ export const saveComponentChanges = asyncHandler(
           from[key] = before;
         }
         if (!Object.keys(patch).length) continue;
+        if ("value" in patch && pickLabels.has(row.id))
+          patch.valueLabel = pickLabels.get(row.id);
         await TestWindow.update(patch as any, {
           where: { id: row.id },
           transaction

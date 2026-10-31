@@ -82,7 +82,7 @@ export const analysisConfig: CrudConfig<Analysis> = {
         "option",
         "list",
         "entity",
-        "entityCriteria",
+        "entityTemplateId",
         "min",
         "max",
         "sortOrder"

@@ -23,6 +23,7 @@ import inspectionPlanRoutes from "./inspection-plan.routes";
 import analysisRoutes from "./analysis.routes";
 import testGroupRoutes from "./test-group.routes";
 import sampleTemplateRoutes from "./sample-template.routes";
+import entityTemplateRoutes from "./entity-template.routes";
 import specificationRoutes from "./specification.routes";
 import batchRoutes from "./batch.routes";
 import lotRoutes from "./lot.routes";
@@ -67,6 +68,7 @@ commonRouter.use(API_ROUTES.INSPECTION_PLANS, inspectionPlanRoutes);
 commonRouter.use(API_ROUTES.ANALYSES, analysisRoutes);
 commonRouter.use(API_ROUTES.TEST_GROUPS, testGroupRoutes);
 commonRouter.use(API_ROUTES.SAMPLE_TEMPLATES, sampleTemplateRoutes);
+commonRouter.use(API_ROUTES.ENTITY_TEMPLATES, entityTemplateRoutes);
 commonRouter.use(API_ROUTES.SPECIFICATIONS, specificationRoutes);
 
 // ─── Lab Executions ─────────────────────────────────────────────────────────

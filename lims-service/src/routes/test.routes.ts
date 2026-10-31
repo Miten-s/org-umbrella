@@ -84,6 +84,7 @@ export const testConfig: CrudConfig<Test> = {
         "componentName",
         "description",
         "value",
+        "valueLabel",
         "unit",
         "outOfRange",
         "enteredOn",

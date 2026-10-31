@@ -33,6 +33,7 @@ const API_ROUTES = {
   ANALYSES: "/lims-analyses",
   TEST_GROUPS: "/lims-test-groups",
   SAMPLE_TEMPLATES: "/lims-sample-templates",
+  ENTITY_TEMPLATES: "/lims-entity-templates",
   SPECIFICATIONS: "/lims-specifications",
 
   // Lab Executions

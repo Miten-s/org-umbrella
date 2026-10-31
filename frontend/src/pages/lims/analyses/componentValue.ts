@@ -11,11 +11,35 @@ export interface ComponentSpec {
   unit?: string | null;
   /** CALCULATION formula, e.g. {TITRE} * 100. */
   formula?: string | null;
+  /** ENTITY: the template whose matching records can be picked. */
+  entityTemplateId?: string | null;
 }
 
 /** Types whose value is entered by hand; the rest are computed or carry no result. */
 export const isEnterable = (type?: string | null) =>
-  !type || ["VALUE", "LIST", "BOOLEAN", "TEXT", "DATETIME"].includes(type);
+  !type ||
+  ["VALUE", "LIST", "BOOLEAN", "TEXT", "DATETIME", "ENTITY"].includes(type);
+
+const entityLabels = new Map<string, string>();
+
+/** An Entity result stores the record's id; this keeps the name it should read as. */
+export const rememberEntityLabel = (
+  value?: string | null,
+  label?: string | null
+) => {
+  if (value && label) entityLabels.set(value, label);
+};
+
+export const entityLabel = (value: string) => entityLabels.get(value);
+
+/** The id of an already-seen record, from its name or id. */
+export const entityValueFor = (text: string) => {
+  if (entityLabels.has(text)) return text;
+  const lower = text.toLowerCase();
+  return [...entityLabels].find(
+    ([, label]) => label.toLowerCase() === lower
+  )?.[0];
+};
 
 /** "Pass" / "Fail" etc. for a BOOLEAN component's stored "true" / "false". */
 export const booleanLabels = (

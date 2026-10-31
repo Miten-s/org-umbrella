@@ -1,5 +1,10 @@
 import type { LimsPhrase } from "@/pages/lims/phrases/LimsPhrase.types";
-import { booleanLabels, type ComponentSpec } from "./componentValue";
+import {
+  booleanLabels,
+  entityLabel,
+  entityValueFor,
+  type ComponentSpec
+} from "./componentValue";
 import { typeProblem } from "./resultCheck";
 
 type PickLists = { rows: LimsPhrase[] } | undefined;
@@ -24,6 +29,7 @@ export const displayValue = (
         (entry) => String(entry.phraseEntryId) === value
       )?.name ?? value
     );
+  if (spec.type === "ENTITY") return entityLabel(value) ?? value;
   if (spec.type === "DATETIME") {
     const m = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}:\d{2}))?/.exec(value);
     return m ? `${m[3]}-${m[2]}-${m[1]}${m[4] ? ` ${m[4]}` : ""}` : value;
@@ -56,6 +62,7 @@ export const parseValue = (
     );
     return entry ? String(entry.phraseEntryId) : null;
   }
+  if (spec.type === "ENTITY") return entityValueFor(value) ?? null;
   if (spec.type === "DATETIME") {
     const m =
       /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})(?:[ T](\d{1,2}):(\d{2}))?$/.exec(

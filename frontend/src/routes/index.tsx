@@ -42,6 +42,12 @@ const LIMSProjectsPage = lazy(() => import("../pages/lims/projects"));
 const LIMSStudiesPage = lazy(() => import("../pages/lims/studies"));
 const LIMSRolesPage = lazy(() => import("../pages/lims/roles"));
 const LIMSTestGroupsPage = lazy(() => import("../pages/lims/test-groups"));
+const LIMSEntityTemplatesPage = lazy(
+  () => import("../pages/lims/entity-templates")
+);
+const LIMSEntityTemplateWorkspacePage = lazy(
+  () => import("../pages/lims/entity-templates/LimsEntityTemplateWorkspacePage")
+);
 const LIMSSampleTemplatesPage = lazy(
   () => import("../pages/lims/sample-templates")
 );
@@ -187,6 +193,16 @@ const LIMS_ROUTES: [
     PageUrl.LIMSSampleTemplateWorkspace,
     LIMS_PERMISSIONS.VIEW_SAMPLE_TEMPLATE,
     <LIMSSampleTemplateWorkspacePage />
+  ],
+  [
+    PageUrl.LIMSEntityTemplates,
+    LIMS_PERMISSIONS.VIEW_ENTITY_TEMPLATE,
+    <LIMSEntityTemplatesPage />
+  ],
+  [
+    PageUrl.LIMSEntityTemplateWorkspace,
+    LIMS_PERMISSIONS.VIEW_ENTITY_TEMPLATE,
+    <LIMSEntityTemplateWorkspacePage />
   ],
   [PageUrl.LIMSBatches, LIMS_PERMISSIONS.VIEW_BATCH, <LIMSBatchesPage />],
   [PageUrl.LIMSLots, LIMS_PERMISSIONS.VIEW_LOT, <LIMSLotsPage />],

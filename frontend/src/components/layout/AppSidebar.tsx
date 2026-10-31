@@ -371,6 +371,11 @@ const AppSidebar: React.FC = () => {
                 name: t("limsSampleTemplates"),
                 path: PageUrl.LIMSSampleTemplates.path,
                 permissions: [LIMS_PERMISSIONS.VIEW_SAMPLE_TEMPLATE]
+              },
+              {
+                name: t("limsEntityTemplates"),
+                path: PageUrl.LIMSEntityTemplates.path,
+                permissions: [LIMS_PERMISSIONS.VIEW_ENTITY_TEMPLATE]
               }
             ]
           },

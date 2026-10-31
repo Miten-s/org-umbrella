@@ -135,7 +135,7 @@ interface ComponentDef {
 }
 
 /** Popup editor for answers picked from a list, a yes/no or a date. */
-const PICKER_TYPES = ["LIST", "BOOLEAN", "DATETIME"];
+const PICKER_TYPES = ["LIST", "BOOLEAN", "DATETIME", "ENTITY"];
 
 const STATUS_TONES: Record<ResultStatus, string> = {
   Unentered: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
@@ -167,7 +167,7 @@ const PickCellEditor = (
   useEscapeCancelsEdit(props);
   const { t } = useTranslation();
   const box = useRef<HTMLDivElement>(null);
-  const isSelect = props.spec.type === "LIST" || props.spec.type === "BOOLEAN";
+  const isSelect = props.spec.type !== "DATETIME";
   const [value, setValue] = useState(String(props.value ?? ""));
   const { data: pickLists } = usePickLists();
   const typing = () =>
@@ -176,7 +176,8 @@ const PickCellEditor = (
   // Enter takes what was typed in the search or date box: "Pass", a list answer, dd-mm-yyyy hh:mm.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key !== "Enter" || !typing()) return;
+      if (event.key !== "Enter" || !typing() || props.spec.type === "ENTITY")
+        return;
       const text = (document.activeElement as HTMLInputElement).value;
       const parsed = text ? parseValue(props.spec, text, pickLists) : null;
       if (!parsed) {
@@ -512,16 +513,21 @@ const SampleTestsResultsGrid = ({
           list: c.list as string,
           option: c.option as string,
           unit: c.unit as string,
-          formula: c.formula as string
+          formula: c.formula as string,
+          entityTemplateId: c.entityTemplateId as string
         }
       }));
       // A saved test keeps its own snapshot even if the template has changed since.
       for (const p of presence)
-        for (const [key, row] of p.saved)
-          if (
-            key.startsWith(`${analysisId}|`) &&
-            !list.some((c) => c.componentId === String(row.componentId))
-          )
+        for (const [key, row] of p.saved) {
+          if (!key.startsWith(`${analysisId}|`)) continue;
+          const known = list.find(
+            (c) => c.componentId === String(row.componentId)
+          );
+          if (known) {
+            if (row.componentEntityTemplateId)
+              known.spec.entityTemplateId = row.componentEntityTemplateId;
+          } else
             list.push({
               componentId: String(row.componentId ?? ""),
               name: String(row.componentName ?? ""),
@@ -530,9 +536,11 @@ const SampleTestsResultsGrid = ({
                 list: row.componentList,
                 option: row.componentOption,
                 unit: row.unit,
-                formula: row.componentFormula
+                formula: row.componentFormula,
+                entityTemplateId: row.componentEntityTemplateId
               }
             });
+        }
       return list;
     };
 
@@ -964,8 +972,9 @@ const SampleTestsResultsGrid = ({
       },
       // Typing starts plain text (parsed on commit: "Pass", a list name, dd-mm-yyyy hh:mm); click/F2 opens the picker.
       cellEditorSelector: (p) =>
-        PICKER_TYPES.includes(String(p.data?.spec?.type)) &&
-        !(p.eventKey && p.eventKey.length === 1)
+        p.data?.spec?.type === "ENTITY" ||
+        (PICKER_TYPES.includes(String(p.data?.spec?.type)) &&
+          !(p.eventKey && p.eventKey.length === 1))
           ? {
               component: PickCellEditor,
               popup: true,
