@@ -67,6 +67,9 @@ const LIMSInspectionPlansPage = lazy(
   () => import("../pages/lims/inspection-plans")
 );
 const LIMSAnalysesPage = lazy(() => import("../pages/lims/analyses"));
+const LIMSSpecificationWorkspacePage = lazy(
+  () => import("../pages/lims/specifications/LimsSpecificationWorkspacePage")
+);
 const LIMSAnalysisWorkspacePage = lazy(
   () => import("../pages/lims/analyses/LimsAnalysisWorkspacePage")
 );
@@ -183,6 +186,11 @@ const LIMS_ROUTES: [
     PageUrl.LIMSSpecifications,
     LIMS_PERMISSIONS.VIEW_SPECIFICATION,
     <LIMSSpecificationsPage />
+  ],
+  [
+    PageUrl.LIMSSpecificationWorkspace,
+    LIMS_PERMISSIONS.VIEW_SPECIFICATION,
+    <LIMSSpecificationWorkspacePage />
   ],
   [
     PageUrl.LIMSSampleTemplates,

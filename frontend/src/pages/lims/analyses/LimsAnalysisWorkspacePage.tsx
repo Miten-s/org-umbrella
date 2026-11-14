@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import RecordWorkspace from "@/components/data/RecordWorkspace";
+import RecordInfoPanel from "@/components/lims/RecordInfoPanel";
 import { useWorkspaceTab } from "@/components/data/useWorkspaceTab";
 import { ConfirmDialog } from "@/components/data/ConfirmDialog";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
@@ -75,11 +76,14 @@ const Workspace = ({
     }
   };
 
-  const confirmUpdate = async (reason: string) => {
-    if (!pending || !record) return;
+  const confirmUpdate = async (
+    payload: LimsAnalysisPayload,
+    reason: string
+  ) => {
+    if (!record) return;
     setSaving(true);
     try {
-      await updateLimsAnalysis(record.id, { ...pending, changeReason: reason });
+      await updateLimsAnalysis(record.id, { ...payload, changeReason: reason });
       toast(t("workspaceTemplateSaved"), "success");
       setPending(null);
       await queryClient.invalidateQueries({ queryKey: ["limsAnalysis"] });
@@ -91,10 +95,13 @@ const Workspace = ({
     }
   };
 
+  const additiveOnly = useRef(false);
   const handleSubmit = (payload: LimsAnalysisPayload) => {
     if (!saveRequested.current) return;
     saveRequested.current = false;
     if (isNew) void create(payload);
+    // Only adding components changes nothing that exists, so no reason is asked for.
+    else if (additiveOnly.current) void confirmUpdate(payload, "");
     else setPending(payload);
   };
 
@@ -156,8 +163,18 @@ const Workspace = ({
                 saveRequested.current = false;
                 toast(t("workspaceNoChanges"), "info");
               }}
+              onAdditiveOnly={(value) => {
+                additiveOnly.current = value;
+              }}
               onSubmit={handleSubmit}
             />
+            {tab === "details" && record && !isNew ? (
+              <RecordInfoPanel
+                route="/lims-analyses"
+                recordId={record.id}
+                group={record.group?.name}
+              />
+            ) : null}
           </div>
         )}
       </RecordWorkspace>
@@ -170,7 +187,9 @@ const Workspace = ({
         requireReason
         title={t("limsConfirmChangesTitle")}
         description={t("workspaceTemplateConfirmBody")}
-        onConfirm={(reason) => confirmUpdate(reason ?? "")}
+        onConfirm={(reason) =>
+          pending ? confirmUpdate(pending, reason ?? "") : undefined
+        }
       />
     </>
   );

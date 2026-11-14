@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
@@ -53,6 +53,14 @@ interface LimsSpecificationFormProps {
   /** " (2 of 5)" appended after the title when Copy is reviewing more
    * than one record — undefined otherwise. */
   stepLabel?: string;
+  /** Set on the Specification page: no modal frame or buttons, and only this tab's part shows
+   * (the others stay mounted, so one Save covers all three). */
+  pageSection?: "details" | "limits" | "other";
+  onDirtyChange?: (dirty: boolean) => void;
+  /** Save found a problem — the page switches to the tab that holds it. */
+  onInvalid?: (section: "details" | "limits" | "other") => void;
+  /** Number of limits, for the page's tab badge. */
+  onLimitCount?: (count: number) => void;
 }
 
 /** Seeds a dropdown label from the record's nested ref — no extra fetch. */
@@ -69,11 +77,19 @@ const LimsSpecificationForm = ({
   submitLabel,
   disabled = false,
   formId,
-  stepLabel
+  stepLabel,
+  pageSection,
+  onDirtyChange,
+  onInvalid,
+  onLimitCount
 }: LimsSpecificationFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
-  const attachments = useAttachments(initialData?.attachments);
+  const onPage = pageSection !== undefined;
+  // A copy starts with none of the source's attachments.
+  const attachments = useAttachments(
+    mode === "copy" ? undefined : initialData?.attachments
+  );
   const initialLimitsRef = useRef(initialData?.limits ?? []);
   const [limits, setLimits] = useState<LimsLimitRow[]>(
     initialLimitsRef.current
@@ -106,7 +122,17 @@ const LimsSpecificationForm = ({
     defaultValues: initialValues
   });
 
+  const watched = useWatch({ control });
+  const dirty =
+    !isPayloadEqual({ ...initialValues, ...watched }, initialValues) ||
+    !isPayloadEqual(limits, initialLimitsRef.current) ||
+    attachments.isDirty;
+  useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange]);
+  useEffect(() => onLimitCount?.(limits.length), [limits.length, onLimitCount]);
+
   const description = useWatch({ control, name: "description" });
+  const hide = (section: "details" | "limits" | "other") =>
+    onPage && pageSection !== section ? "hidden" : "";
   const busy = submitting || isSubmitting;
 
   const text = (
@@ -130,38 +156,52 @@ const LimsSpecificationForm = ({
   );
 
   return (
-    <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+    <div
+      className={
+        onPage
+          ? "text-gray-900 dark:text-gray-100"
+          : "modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100"
+      }
+    >
       <form
         id={formId}
-        onSubmit={handleSubmit((values) => {
-          // Bad Min/Max blocks Save the same way an invalid top-level field
-          // would — the grid's own error banner (below) says why.
-          if (limitsError) return;
+        onSubmit={handleSubmit(
+          (values) => {
+            // Bad Min/Max blocks Save the same way an invalid top-level field
+            // would — the grid's own error banner (below) says why.
+            if (limitsError) {
+              onInvalid?.("limits");
+              return;
+            }
 
-          // Edit + nothing actually changed: skip the reason modal, update
-          // call, and audit entry entirely — a no-op Save just closes.
-          if (
-            (mode === "edit" || mode === "bulk-edit") &&
-            !attachments.isDirty &&
-            isPayloadEqual(values, initialValues) &&
-            isPayloadEqual(limits, initialLimitsRef.current)
-          ) {
-            (onUnchanged ?? onClose)();
-            return;
-          }
-          onSubmit(
-            {
-              ...values,
-              // The group's name is display-only; only its id is saved.
-              limits: limits.map(({ sourceTestGroup: _group, ...row }) => row),
-              keptAttachmentIds: attachments.keptIds
-            },
-            attachments.newFiles
-          );
-        })}
+            // Edit + nothing actually changed: skip the reason modal, update
+            // call, and audit entry entirely — a no-op Save just closes.
+            if (
+              (mode === "edit" || mode === "bulk-edit") &&
+              !attachments.isDirty &&
+              isPayloadEqual(values, initialValues) &&
+              isPayloadEqual(limits, initialLimitsRef.current)
+            ) {
+              (onUnchanged ?? onClose)();
+              return;
+            }
+            onSubmit(
+              {
+                ...values,
+                // The group's name is display-only; only its id is saved.
+                limits: limits.map(
+                  ({ sourceTestGroup: _group, ...row }) => row
+                ),
+                keptAttachmentIds: attachments.keptIds
+              },
+              attachments.newFiles
+            );
+          },
+          () => onInvalid?.("details")
+        )}
         className="min-w-0 space-y-4"
       >
-        <h2 className="text-xl font-semibold">
+        <h2 className={onPage ? "hidden" : "text-xl font-semibold"}>
           {isReadOnly
             ? t("view", { entity: t("limsSpecification") })
             : mode === "copy"
@@ -171,7 +211,9 @@ const LimsSpecificationForm = ({
                 : t("create", { entity: t("limsSpecification") })}
         </h2>
 
-        <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
+        <div
+          className={`grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 ${hide("details")}`}
+        >
           {text("specId", t("limsSpecId"), true, "text")}
           {text("name", t("name"), true, "text")}
           <div className="min-w-0">
@@ -202,23 +244,27 @@ const LimsSpecificationForm = ({
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
-          <div className="col-span-full min-w-0">
-            <SpecLimitsEditor
-              rows={limits}
-              onChange={setLimits}
-              disabled={isReadOnly}
-              error={limitsError}
-            />
-          </div>
-          {mode !== "copy" && mode !== "bulk-edit" && (
+        </div>
+        <div className={`min-w-0 ${hide("limits")}`}>
+          <SpecLimitsEditor
+            rows={limits}
+            onChange={setLimits}
+            disabled={isReadOnly}
+            error={limitsError}
+          />
+        </div>
+        {(onPage
+          ? mode !== "bulk-edit"
+          : mode !== "copy" && mode !== "bulk-edit") && (
+          <div className={`min-w-0 ${hide("other")}`}>
             <LimsAttachmentsField
               attachments={attachments}
               disabled={isReadOnly}
             />
-          )}
-        </div>
+          </div>
+        )}
 
-        <div className="mt-4 flex justify-end gap-2">
+        <div className={onPage ? "hidden" : "mt-4 flex justify-end gap-2"}>
           <Button
             variant="outline"
             type="button"

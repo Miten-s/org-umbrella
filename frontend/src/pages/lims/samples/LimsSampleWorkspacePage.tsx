@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import RecordWorkspace from "@/components/data/RecordWorkspace";
+import RecordInfoPanel from "@/components/lims/RecordInfoPanel";
 import { useWorkspaceTab } from "@/components/data/useWorkspaceTab";
 import { ConfirmDialog } from "@/components/data/ConfirmDialog";
 import { AuditTrailTable } from "@/components/data/AuditTrailDialog";
@@ -257,6 +258,13 @@ const Workspace = ({
                 onUnchanged={() => collect(null)}
                 onSubmit={(payload, files) => collect({ payload, files })}
               />
+              {active === "details" && sample ? (
+                <RecordInfoPanel
+                  route="/lims-samples"
+                  recordId={sample.id}
+                  group={sample.group?.name}
+                />
+              ) : null}
               {active === "other" && sample ? (
                 <div className="mt-6">
                   <h2 className="mb-3 text-base font-semibold">

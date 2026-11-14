@@ -272,6 +272,11 @@ export const PageUrl: PageUrlType = {
     matchPattern: /^\/lims\/specifications$/i,
     pageTitle: "Specifications"
   },
+  LIMSSpecificationWorkspace: {
+    path: "/lims/specifications/:id",
+    matchPattern: /^\/lims\/specifications\/[^/]+$/i,
+    pageTitle: "Specifications"
+  },
   LIMSSampleTemplates: {
     path: "/lims/sample-templates",
     matchPattern: /^\/lims\/sample-templates$/i,

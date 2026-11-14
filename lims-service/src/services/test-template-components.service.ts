@@ -11,7 +11,7 @@ import {
   TYPE_FIELDS,
   TYPE_SPECIFIC_FIELDS,
   formulaReferences,
-  isFormulaWellFormed
+  formulaSyntaxError
 } from "../configs/component-types";
 import { UNIT_PHRASE } from "../configs/pick-list-units";
 import { ENTITY_TABLES } from "../configs/entity-template-catalog";
@@ -163,10 +163,8 @@ export const validateComponents = async (
     if (row.type === "CALCULATION") {
       const formula = text(row.formula);
       if (!formula) throw reject(`${label(row)}: Formula is required.`);
-      if (!isFormulaWellFormed(formula))
-        throw reject(
-          `${label(row)}: the formula may only use numbers, + - * / ( ) and {Component ID}.`
-        );
+      const syntax = formulaSyntaxError(formula);
+      if (syntax) throw reject(`${label(row)}: ${syntax}.`);
       for (const ref of formulaReferences(formula)) {
         const target = byId.get(ref);
         if (ref === text(row.componentId))

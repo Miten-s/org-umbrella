@@ -31,7 +31,9 @@ const Login = () => {
       const response = await loginUser(data);
 
       if (response?.accessToken) {
-        sessionStorage.setItem(AUTH_TOKEN_KEY, response.accessToken);
+        // localStorage, so a module opened in a new tab stays signed in.
+        localStorage.setItem(AUTH_TOKEN_KEY, response.accessToken);
+        sessionStorage.removeItem(AUTH_TOKEN_KEY);
 
         setIsAuthenticated(true);
 

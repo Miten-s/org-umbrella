@@ -47,7 +47,7 @@ describe("FormulaBuilder", () => {
   it("offers only the template's other Value/Calculation components", () => {
     renderBuilder();
     expect(screen.getByRole("button", { name: /Titre/ })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Weight/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^WeightWEIGHT/ })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Note/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /^Assay/ })).toBeNull();
   });
@@ -56,7 +56,7 @@ describe("FormulaBuilder", () => {
     const { onApply } = renderBuilder();
     fireEvent.click(screen.getByRole("button", { name: /Titre/ }));
     fireEvent.click(screen.getByRole("button", { name: "/" }));
-    fireEvent.click(screen.getByRole("button", { name: /Weight/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^WeightWEIGHT/ }));
     fireEvent.click(screen.getByRole("button", { name: "*" }));
     fireEvent.click(screen.getByRole("button", { name: "1" }));
     fireEvent.click(screen.getByRole("button", { name: "0" }));

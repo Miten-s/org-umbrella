@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button/Button";
 import type { LimsComponentRow } from "./LimsAnalysis.types";
 import { formulaProblem, formulaTargets } from "./componentTypes";
+import { FORMULA_FUNCTIONS } from "./formula";
 
 interface FormulaBuilderProps {
   formula: string;
@@ -21,8 +22,13 @@ const OPERATORS = [
   { insert: " * ", label: "×" },
   { insert: " / ", label: "÷" },
   { insert: "(", label: "(" },
-  { insert: ")", label: ")" }
+  { insert: ")", label: ")" },
+  { insert: ", ", label: "," },
+  { insert: " < ", label: "<" },
+  { insert: " > ", label: ">" },
+  { insert: " = ", label: "=" }
 ];
+const GROUPS = ["All", ...new Set(FORMULA_FUNCTIONS.map((fn) => fn.group))];
 const DIGITS = ["7", "8", "9", "4", "5", "6", "1", "2", "3", "0", "."];
 
 const keyClasses =
@@ -40,6 +46,8 @@ const FormulaBuilder = ({
 }: FormulaBuilderProps) => {
   const { t } = useTranslation();
   const [draft, setDraft] = useState(formula);
+  const [fnSearch, setFnSearch] = useState("");
+  const [fnGroup, setFnGroup] = useState("All");
   const input = useRef<HTMLInputElement>(null);
   const targets = useMemo(() => formulaTargets(rows, selfId), [rows, selfId]);
   const nameById = useMemo(
@@ -67,7 +75,7 @@ const FormulaBuilder = ({
   useEffect(() => input.current?.focus(), []);
 
   /** Inserts at the cursor, then puts the cursor after what was inserted. */
-  const insert = (text: string) => {
+  const insert = (text: string, cursorBack = 0) => {
     const el = input.current;
     const start = el?.selectionStart ?? draft.length;
     const end = el?.selectionEnd ?? draft.length;
@@ -75,9 +83,16 @@ const FormulaBuilder = ({
     setDraft(next);
     requestAnimationFrame(() => {
       el?.focus();
-      el?.setSelectionRange(start + text.length, start + text.length);
+      const at = start + text.length - cursorBack;
+      el?.setSelectionRange(at, at);
     });
   };
+
+  const visibleFunctions = FORMULA_FUNCTIONS.filter(
+    (fn) =>
+      (fnGroup === "All" || fn.group === fnGroup) &&
+      fn.name.toLowerCase().includes(fnSearch.trim().toLowerCase())
+  );
 
   /** Removes the component reference, operator or character just before the cursor. */
   const backspace = () => {
@@ -129,7 +144,7 @@ const FormulaBuilder = ({
         role="dialog"
         aria-modal="true"
         aria-label={t("limsFormulaBuilderTitle", { name: selfName })}
-        className="w-full max-w-2xl rounded-2xl bg-white p-6 text-gray-900 shadow-theme-xl dark:bg-gray-900 dark:text-gray-100"
+        className="w-full max-w-3xl rounded-2xl bg-white p-6 text-gray-900 shadow-theme-xl dark:bg-gray-900 dark:text-gray-100"
         onClick={(event) => event.stopPropagation()}
       >
         <h3 className="mb-4 text-lg font-semibold">
@@ -199,7 +214,7 @@ const FormulaBuilder = ({
             <p className="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">
               {t("limsFormulaOperators")}
             </p>
-            <div className="mb-2 flex gap-1.5">
+            <div className="mb-2 flex max-w-[15rem] flex-wrap gap-1.5">
               {OPERATORS.map((op) => (
                 <button
                   key={op.label}
@@ -233,6 +248,50 @@ const FormulaBuilder = ({
                 ⌫
               </button>
             </div>
+          </div>
+        </div>
+
+        <div className="mt-5">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+              {t("limsFormulaFunctions")}
+            </p>
+            <input
+              aria-label={t("limsFormulaSearchFunctions")}
+              placeholder={t("limsFormulaSearchFunctions")}
+              value={fnSearch}
+              onChange={(event) => setFnSearch(event.target.value)}
+              className="h-8 w-40 rounded-lg border border-gray-300 bg-transparent px-2 text-xs focus:outline-hidden dark:border-gray-700"
+            />
+            <div className="flex flex-wrap gap-1">
+              {GROUPS.map((group) => (
+                <button
+                  key={group}
+                  type="button"
+                  onClick={() => setFnGroup(group)}
+                  className={`rounded-full px-2.5 py-1 text-xs ${
+                    fnGroup === group
+                      ? "bg-brand-500 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300"
+                  }`}
+                >
+                  {group}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex max-h-32 flex-wrap gap-1.5 overflow-y-auto">
+            {visibleFunctions.map((fn) => (
+              <button
+                key={fn.key}
+                type="button"
+                title={`${fn.signature} — ${fn.description}`}
+                onClick={() => insert(`${fn.name}()`, 1)}
+                className="rounded-lg border border-gray-300 px-2 py-1 font-mono text-xs text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-white/5"
+              >
+                {fn.name}()
+              </button>
+            ))}
           </div>
         </div>
 

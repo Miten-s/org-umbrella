@@ -56,6 +56,17 @@ export const previewEntityQuery = async (entity: string, query: QueryGroup) => {
   return response.data as EntityRecordPage;
 };
 
+/** Every Entity Template with its table — what a Test Template's Entity component picks from. */
+export const fetchAllTemplatesForEntities = async (signal?: AbortSignal) => {
+  const response = await limsApi.get(`${ROUTE}/for-entity`, { signal });
+  return response.data.data as {
+    id: string;
+    entityTemplateId: string;
+    name: string;
+    entity: string;
+  }[];
+};
+
 /** The templates a Test Template component on this table can use. */
 export const fetchTemplatesForEntity = async (
   entity: string,

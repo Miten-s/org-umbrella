@@ -1,6 +1,7 @@
 /** Test Template component types. Mirrors lims-service `configs/component-types.ts` —
  * separate deployables, keep the two in step. */
 import type { LimsComponentRow } from "./LimsAnalysis.types";
+import { formulaSyntaxProblem } from "./formula";
 
 export const COMPONENT_TYPES = [
   "BLANK",
@@ -46,7 +47,7 @@ export const TYPE_FIELDS: Record<ComponentType, TypeField[]> = {
   CALCULATION: ["unit", "formula", "min", "max"],
   LIST: ["list", "option"],
   BOOLEAN: ["option"],
-  ENTITY: ["entity", "entityTemplateId"],
+  ENTITY: ["entityTemplateId"],
   DATETIME: []
 };
 
@@ -96,17 +97,8 @@ export const isTyped = (
 export const formulaReferences = (formula: string): string[] =>
   [...formula.matchAll(/\{([^{}]+)\}/g)].map((m) => m[1].trim());
 
-export const isFormulaWellFormed = (formula: string): boolean => {
-  const outside = formula.replace(/\{[^{}]+\}/g, "0");
-  if (!/^[0-9+\-*/().\s]+$/.test(outside)) return false;
-  let depth = 0;
-  for (const ch of outside) {
-    if (ch === "(") depth += 1;
-    if (ch === ")") depth -= 1;
-    if (depth < 0) return false;
-  }
-  return depth === 0;
-};
+export const isFormulaWellFormed = (formula: string): boolean =>
+  formulaSyntaxProblem(formula.replace(/\{[^{}]+\}/g, "0")) === undefined;
 
 const text = (value: unknown) =>
   value === undefined || value === null ? "" : String(value).trim();
@@ -147,8 +139,8 @@ export const formulaProblem = (
   rows: LimsComponentRow[]
 ): string | undefined => {
   if (!formula.trim()) return "Formula is required.";
-  if (!isFormulaWellFormed(formula))
-    return "the formula may only use numbers, + - * / ( ) and {Component ID}.";
+  const syntax = formulaSyntaxProblem(formula.replace(/\{[^{}]+\}/g, "0"));
+  if (syntax) return `${syntax}.`;
   const targets = new Set(
     formulaTargets(rows, selfId).map((row) => text(row.componentId))
   );
@@ -167,21 +159,29 @@ export const isLegacy = (row: LimsComponentRow) =>
 /** Mirrors the server's checks so the user sees the problem before saving. Returns the
  * first problem found, or undefined when every row is valid. */
 export const validateComponentRows = (
-  rows: LimsComponentRow[]
+  rows: LimsComponentRow[],
+  only?: number
 ): string | undefined => {
+  if (only !== undefined && duplicateRows(rows).ids.has(only))
+    return `Component ID "${text(rows[only]?.componentId)}" is used more than once.`;
+  if (only !== undefined && duplicateRows(rows).names.has(only))
+    return `Component name "${text(rows[only]?.name)}" is used more than once.`;
   const seen = new Set<string>();
   const seenNames = new Set<string>();
 
-  for (const row of rows) {
+  for (const [rowIndex, row] of rows.entries()) {
+    if (only !== undefined && rowIndex !== only) continue;
     const id = text(row.componentId);
     const name = `"${id || text(row.name) || "new component"}"`;
     if (!id) return "Every component needs a Component ID.";
-    if (seen.has(id)) return `Component ID "${id}" is used more than once.`;
-    seen.add(id);
-    const lowerName = text(row.name).toLowerCase();
-    if (lowerName && seenNames.has(lowerName))
-      return `Component name "${text(row.name)}" is used more than once.`;
-    seenNames.add(lowerName);
+    if (only === undefined) {
+      if (seen.has(id)) return `Component ID "${id}" is used more than once.`;
+      seen.add(id);
+      const lowerName = text(row.name).toLowerCase();
+      if (lowerName && seenNames.has(lowerName))
+        return `Component name "${text(row.name)}" is used more than once.`;
+      seenNames.add(lowerName);
+    }
 
     if (isLegacy(row)) continue;
     if (!isTyped(row)) return `${name}: pick a Type.`;
@@ -206,11 +206,8 @@ export const validateComponentRows = (
     if (row.type === "LIST" && !text(row.list)) return `${name}: pick a List.`;
     if (row.type === "BOOLEAN" && !text(row.option))
       return `${name}: pick an answer pair.`;
-    if (row.type === "ENTITY") {
-      if (!text(row.entity)) return `${name}: pick an Entity.`;
-      if (!text(row.entityTemplateId))
-        return `${name}: pick an Entity Template.`;
-    }
+    if (row.type === "ENTITY" && !text(row.entityTemplateId))
+      return `${name}: pick an Entity Template.`;
   }
   return undefined;
 };

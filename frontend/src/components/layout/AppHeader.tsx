@@ -27,6 +27,22 @@ const AppHeader: React.FC = () => {
   };
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
+
+  // Workspace pages pin their own header just below this bar, whatever height it has.
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const publish = () =>
+      document.documentElement.style.setProperty(
+        "--app-header-h",
+        `${el.offsetHeight}px`
+      );
+    publish();
+    const observer = new ResizeObserver(publish);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -45,7 +61,10 @@ const AppHeader: React.FC = () => {
 
   return (
     //I  remove z-index from header
-    <header className="sticky top-0 flex w-full bg-white border-gray-200 z-[9] dark:border-gray-800 dark:bg-gray-900 lg:border-b">
+    <header
+      ref={headerRef}
+      className="sticky top-0 flex w-full bg-white border-gray-200 z-[9] dark:border-gray-800 dark:bg-gray-900 lg:border-b"
+    >
       <div className="flex w-full grow flex-col items-center justify-between lg:flex-row lg:px-6">
         <div className="flex items-center justify-between w-full gap-2 px-3 py-3 border-b border-gray-200 dark:border-gray-800 sm:gap-4 lg:justify-normal lg:border-b-0 lg:px-0 lg:py-4">
           <button

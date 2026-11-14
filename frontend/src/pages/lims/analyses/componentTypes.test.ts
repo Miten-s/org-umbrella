@@ -93,7 +93,7 @@ describe("validateComponentRows", () => {
           formula: "{A}; drop"
         }
       ])
-    ).toMatch(/may only use/);
+    ).toMatch(/unexpected character/);
   });
 
   it("checks ids, limits and per-type requirements", () => {
