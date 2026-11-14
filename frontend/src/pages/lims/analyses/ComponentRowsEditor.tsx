@@ -11,11 +11,13 @@ import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
 import {
   ChevronDownIcon,
   ChevronUpIcon,
+  EyeIcon,
+  PencilIcon,
   PlusIcon,
   TrashBinIcon
 } from "@/public/icons";
 import { fetchLimsPhraseList } from "@/pages/lims/phrases/LimsPhrase.api";
-import { fetchTemplatesForEntity } from "@/pages/lims/entity-templates/LimsEntityTemplate.api";
+import { fetchAllTemplatesForEntities } from "@/pages/lims/entity-templates/LimsEntityTemplate.api";
 import { useUnitOptions } from "@/pages/lims/phrases/LimsPhrase.queries";
 import type { LimsComponentRow } from "./LimsAnalysis.types";
 import FormulaBuilder from "./FormulaBuilder";
@@ -29,6 +31,7 @@ import {
   duplicateRows,
   isLegacy,
   isTyped,
+  validateComponentRows,
   type ComponentType
 } from "./componentTypes";
 
@@ -73,34 +76,38 @@ const Cell = ({
   </div>
 );
 
-/** The Entity Templates set up for this component's table. */
+const entityLabel = (value: string) =>
+  COMPONENT_ENTITIES.find((entity) => entity.value === value)?.label ?? value;
+
+/** One dropdown of every Entity Template; each option names its table, which is then the
+ * component's Entity. */
 const EntityTemplateSelect = ({
-  entity,
   value,
   onChange,
   disabled
 }: {
-  entity: string;
   value: string;
-  onChange: (value: string) => void;
+  onChange: (templateId: string, entity: string) => void;
   disabled: boolean;
 }) => {
   const { t } = useTranslation();
   const { data } = useQuery({
-    queryKey: ["limsEntityTemplate", "for-entity", entity],
-    queryFn: ({ signal }) => fetchTemplatesForEntity(entity, signal),
-    enabled: Boolean(entity)
+    queryKey: ["limsEntityTemplate", "for-entity", "all"],
+    queryFn: ({ signal }) => fetchAllTemplatesForEntities(signal)
   });
+  const templates = data ?? [];
   return (
     <SelectDropdown
-      options={(data ?? []).map((row) => ({
+      options={templates.map((row) => ({
         value: row.id,
-        label: row.name
+        label: `${row.name} · ${entityLabel(row.entity)}`
       }))}
       value={value}
-      onChange={onChange}
+      onChange={(id) =>
+        onChange(id, templates.find((row) => row.id === id)?.entity ?? "")
+      }
       placeholder={t("select", { entity: t("limsEntityTemplate") })}
-      disabled={disabled || !entity}
+      disabled={disabled}
       ariaLabel={t("limsEntityTemplate")}
       portal
     />
@@ -144,8 +151,31 @@ const ComponentRowsEditor = ({
       .filter((option) => option.value) ?? [];
 
   const duplicates = useMemo(() => duplicateRows(rows), [rows]);
-  const addRow = () =>
+  // Rows being edited / peeked at (by index), the values to restore on Cancel, and each
+  // entry's own validation message.
+  const [editing, setEditing] = useState<Set<number>>(() => new Set());
+  const [viewing, setViewing] = useState<Set<number>>(() => new Set());
+  const [rowErrors, setRowErrors] = useState<Map<number, string>>(
+    () => new Map()
+  );
+  const snapshots = useRef(new Map<number, LimsComponentRow>());
+  const withIndex = (set: Set<number>, index: number, on: boolean) => {
+    const next = new Set(set);
+    if (on) next.add(index);
+    else next.delete(index);
+    return next;
+  };
+  const shiftDown = (set: Set<number>, removed: number) =>
+    new Set(
+      [...set]
+        .filter((i) => i !== removed)
+        .map((i) => (i > removed ? i - 1 : i))
+    );
+
+  const addRow = () => {
+    setEditing((prev) => withIndex(prev, rows.length, true));
     onChange([...rows, { componentId: "", name: "", description: "" }]);
+  };
   useFormHeaderAction(
     disabled ? null : { label: t("limsAddComponent"), onClick: addRow }
   );
@@ -170,8 +200,15 @@ const ComponentRowsEditor = ({
       return next;
     });
 
-  const patchRow = (index: number, patch: Partial<LimsComponentRow>) =>
+  const patchRow = (index: number, patch: Partial<LimsComponentRow>) => {
+    setRowErrors((prev) => {
+      if (!prev.has(index)) return prev;
+      const next = new Map(prev);
+      next.delete(index);
+      return next;
+    });
     onChange(rows.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+  };
 
   const changeType = (index: number, type: string) => {
     const cleared = Object.fromEntries(
@@ -180,8 +217,79 @@ const ComponentRowsEditor = ({
     patchRow(index, { ...cleared, type });
   };
 
-  const removeRow = (index: number) =>
+  const removeRow = (index: number) => {
+    setEditing((prev) => shiftDown(prev, index));
+    setViewing((prev) => shiftDown(prev, index));
+    setRowErrors((prev) => {
+      const next = new Map<number, string>();
+      prev.forEach((message, i) => {
+        if (i !== index) next.set(i > index ? i - 1 : i, message);
+      });
+      return next;
+    });
+    const kept = new Map<number, LimsComponentRow>();
+    snapshots.current.forEach((row, i) => {
+      if (i !== index) kept.set(i > index ? i - 1 : i, row);
+    });
+    snapshots.current = kept;
     onChange(rows.filter((_, i) => i !== index));
+  };
+
+  const startEdit = (index: number) => {
+    snapshots.current.set(index, rows[index]);
+    setViewing((prev) => withIndex(prev, index, false));
+    setEditing((prev) => withIndex(prev, index, true));
+  };
+
+  const saveEntry = (index: number) => {
+    const problem = validateComponentRows(rows, index);
+    setRowErrors((prev) => {
+      const next = new Map(prev);
+      if (problem) next.set(index, problem);
+      else next.delete(index);
+      return next;
+    });
+    if (problem) return;
+    snapshots.current.delete(index);
+    setEditing((prev) => withIndex(prev, index, false));
+  };
+
+  const cancelEntry = (index: number) => {
+    const before = snapshots.current.get(index);
+    if (!before) return removeRow(index);
+    snapshots.current.delete(index);
+    setRowErrors((prev) => {
+      const next = new Map(prev);
+      next.delete(index);
+      return next;
+    });
+    setEditing((prev) => withIndex(prev, index, false));
+    onChange(rows.map((row, i) => (i === index ? before : row)));
+  };
+
+  /** One-line digest of a saved entry: what its Type needs, in plain words. */
+  const entryDetail = (row: LimsComponentRow) => {
+    const parts: string[] = [];
+    if (str(row.unit)) parts.push(str(row.unit));
+    if (str(row.min) || str(row.max))
+      parts.push(`${str(row.min) || "…"} – ${str(row.max) || "…"}`);
+    if (str(row.formula)) parts.push(`ƒ ${str(row.formula)}`);
+    if (row.type === "LIST" && str(row.list))
+      parts.push(
+        listOptions.find((list) => list.value === row.list)?.label ??
+          str(row.list)
+      );
+    if (str(row.option)) {
+      const code =
+        row.type === "BOOLEAN" ? BOOLEAN_ANSWERS_LIST : str(row.list);
+      parts.push(
+        entryOptionsFor(code).find((o) => o.value === row.option)?.label ??
+          str(row.option)
+      );
+    }
+    if (str(row.entity)) parts.push(entityLabel(str(row.entity)));
+    return parts.join(" · ");
+  };
 
   const textCell = (
     row: LimsComponentRow,
@@ -214,7 +322,8 @@ const ComponentRowsEditor = ({
   const renderTypeField = (
     row: LimsComponentRow & { type: ComponentType },
     index: number,
-    field: (typeof TYPE_FIELDS)[ComponentType][number]
+    field: (typeof TYPE_FIELDS)[ComponentType][number],
+    ro: boolean
   ) => {
     switch (field) {
       case "unit":
@@ -224,7 +333,7 @@ const ComponentRowsEditor = ({
               useOptions={useUnitOptions}
               value={str(row.unit)}
               onChange={(value) => patchRow(index, { unit: value })}
-              disabled={disabled}
+              disabled={ro}
               placeholder={t("select", { entity: t("limsUnit") })}
               initialSelectedOptions={
                 row.unit
@@ -248,12 +357,12 @@ const ComponentRowsEditor = ({
                 className={`${inputClasses} ${okBorder} font-mono`}
                 value={str(row.formula)}
                 placeholder="{TITRE} * {FACTOR} / {WEIGHT} * 100"
-                disabled={disabled}
+                disabled={ro}
                 onChange={(event) =>
                   patchRow(index, { formula: event.target.value })
                 }
               />
-              {!disabled ? (
+              {!ro ? (
                 <button
                   type="button"
                   aria-label={t("limsBuildFormula")}
@@ -268,11 +377,11 @@ const ComponentRowsEditor = ({
           </Cell>
         );
       case "min":
-        return textCell(row, index, "min", t("limsMin"), "w-24", false, {
+        return textCell(row, index, "min", t("limsMin"), "w-24", ro, {
           inputMode: "decimal"
         });
       case "max":
-        return textCell(row, index, "max", t("limsMax"), "w-24", false, {
+        return textCell(row, index, "max", t("limsMax"), "w-24", ro, {
           inputMode: "decimal"
         });
       case "list":
@@ -283,7 +392,7 @@ const ComponentRowsEditor = ({
               value={str(row.list)}
               onChange={(value) => patchRow(index, { list: value, option: "" })}
               placeholder={t("select", { entity: t("limsList") })}
-              disabled={disabled}
+              disabled={ro}
               ariaLabel={t("limsList")}
               portal
             />
@@ -291,13 +400,18 @@ const ComponentRowsEditor = ({
         );
       case "option":
         return row.type === "BOOLEAN" ? (
-          <Cell key={field} label={t("limsAnswers")} width="w-56">
+          <Cell
+            key={field}
+            label={t("limsAnswers")}
+            width="w-56"
+            tooltip={t("limsAnswersHint")}
+          >
             <SelectDropdown
               options={entryOptionsFor(BOOLEAN_ANSWERS_LIST)}
               value={str(row.option)}
               onChange={(value) => patchRow(index, { option: value })}
               placeholder={t("select", { entity: t("limsAnswers") })}
-              disabled={disabled}
+              disabled={ro}
               ariaLabel={t("limsAnswers")}
               portal
             />
@@ -314,24 +428,8 @@ const ComponentRowsEditor = ({
               value={str(row.option)}
               onChange={(value) => patchRow(index, { option: value })}
               placeholder={t("select", { entity: t("limsOption") })}
-              disabled={disabled || !row.list}
+              disabled={ro || !row.list}
               ariaLabel={t("limsDefaultOption")}
-              portal
-            />
-          </Cell>
-        );
-      case "entity":
-        return (
-          <Cell key={field} label={t("limsEntity")} width="w-44">
-            <SelectDropdown
-              options={COMPONENT_ENTITIES}
-              value={str(row.entity)}
-              onChange={(value) =>
-                patchRow(index, { entity: value, entityTemplateId: "" })
-              }
-              placeholder={t("select", { entity: t("limsEntity") })}
-              disabled={disabled}
-              ariaLabel={t("limsEntity")}
               portal
             />
           </Cell>
@@ -341,14 +439,15 @@ const ComponentRowsEditor = ({
           <Cell
             key={field}
             label={t("limsEntityTemplate")}
-            width="w-64"
+            width="w-72"
             tooltip={t("limsEntityTemplateHint")}
           >
             <EntityTemplateSelect
-              entity={str(row.entity)}
               value={str(row.entityTemplateId)}
-              onChange={(value) => patchRow(index, { entityTemplateId: value })}
-              disabled={disabled}
+              onChange={(value, entity) =>
+                patchRow(index, { entityTemplateId: value, entity })
+              }
+              disabled={ro}
             />
           </Cell>
         );
@@ -394,99 +493,161 @@ const ComponentRowsEditor = ({
             const legacy = isLegacy(row);
             const rowKey = row.id ?? `new-${index}`;
             const isExpanded = expanded.has(rowKey);
+            const isEditing = editing.has(index) && !legacy && !disabled;
+            const open = isEditing || (viewing.has(index) && !legacy);
+            const ro = !isEditing;
             const duplicateId = duplicates.ids.has(index);
             const duplicateName = duplicates.names.has(index);
+            const rowError = rowErrors.get(index);
+            const actions = (
+              <div className="ml-auto flex shrink-0 items-center gap-1 self-end">
+                {!legacy && !isEditing ? (
+                  <button
+                    type="button"
+                    aria-label={`${t("limsEntryView")} ${index + 1}`}
+                    title={t("limsEntryView")}
+                    onClick={() =>
+                      setViewing((prev) => withIndex(prev, index, !open))
+                    }
+                    className="rounded p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5"
+                  >
+                    <EyeIcon className="h-4 w-4" />
+                  </button>
+                ) : null}
+                {!legacy && !disabled && !isEditing ? (
+                  <button
+                    type="button"
+                    aria-label={`${t("edit")} ${index + 1}`}
+                    title={t("edit")}
+                    onClick={() => startEdit(index)}
+                    className="rounded p-2 text-brand-600 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-500/10"
+                  >
+                    <PencilIcon className="h-4 w-4" />
+                  </button>
+                ) : null}
+                {!disabled ? (
+                  <button
+                    type="button"
+                    aria-label={`${t("delete")} ${index + 1}`}
+                    title={t("delete")}
+                    onClick={() => removeRow(index)}
+                    className="rounded p-2 text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10"
+                  >
+                    <TrashBinIcon className="h-4 w-4" />
+                  </button>
+                ) : null}
+              </div>
+            );
             return (
               <div
                 key={rowKey}
-                className="rounded-lg border border-gray-200 dark:border-gray-700"
+                className={`rounded-lg border ${
+                  isEditing
+                    ? "border-brand-300 bg-brand-50/30 dark:border-brand-500/40 dark:bg-brand-500/5"
+                    : "border-gray-200 dark:border-gray-700"
+                }`}
               >
-                {/* One line per component; scrolls sideways rather than wrapping. */}
-                <div className="flex items-end gap-2 overflow-x-auto p-3">
-                  <span className="w-6 shrink-0 pb-2.5 text-xs font-medium text-gray-400">
-                    {index + 1}
-                  </span>
-                  {textCell(
-                    row,
-                    index,
-                    "componentId",
-                    `${t("limsComponentId")} *`,
-                    "w-32",
-                    legacy,
-                    { invalid: duplicateId }
-                  )}
-                  {textCell(
-                    row,
-                    index,
-                    "name",
-                    `${t("name")} *`,
-                    "w-44",
-                    legacy,
-                    { invalid: duplicateName }
-                  )}
-                  <Cell label={`${t("description")} *`} width="w-64">
-                    <div className="flex gap-1">
-                      <input
-                        aria-label={t("description")}
-                        className={`${inputClasses} ${okBorder}`}
-                        value={str(row.description)}
-                        disabled={disabled || legacy}
-                        onChange={(event) =>
-                          patchRow(index, { description: event.target.value })
-                        }
-                      />
-                      <button
-                        type="button"
-                        aria-label={t("limsExpandDescription")}
-                        aria-expanded={isExpanded}
-                        title={t("limsExpandDescription")}
-                        onClick={() => toggleExpanded(rowKey)}
-                        className="shrink-0 rounded-lg border border-gray-300 px-2 text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-white/5"
-                      >
-                        {isExpanded ? (
-                          <ChevronUpIcon className="h-4 w-4" />
-                        ) : (
-                          <ChevronDownIcon className="h-4 w-4" />
-                        )}
-                      </button>
-                    </div>
-                  </Cell>
-                  <Cell
-                    label={`${t("limsType")} *`}
-                    width="w-40"
-                    tooltip={t("limsTypeHint")}
-                  >
-                    <SelectDropdown
-                      options={typeOptions}
-                      value={isTyped(row) ? row.type : ""}
-                      onChange={(value) => changeType(index, value)}
-                      placeholder={t("limsPickType")}
-                      disabled={disabled}
-                      ariaLabel={t("limsType")}
-                      portal
-                    />
-                  </Cell>
-                  {isTyped(row) &&
-                    TYPE_FIELDS[row.type].map((field) =>
-                      renderTypeField(row, index, field)
+                {!open ? (
+                  <div className="flex items-center gap-3 p-3">
+                    <span className="w-6 shrink-0 text-xs font-medium text-gray-400">
+                      {index + 1}
+                    </span>
+                    <span className="w-28 shrink-0 truncate font-mono text-sm text-gray-900 dark:text-white">
+                      {str(row.componentId)}
+                    </span>
+                    <span className="w-40 shrink-0 truncate text-sm font-medium text-gray-900 dark:text-white">
+                      {str(row.name)}
+                    </span>
+                    <span className="shrink-0 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                      {isTyped(row) ? TYPE_LABELS[row.type] : t("limsLegacy")}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-sm text-gray-500 dark:text-gray-400">
+                      {legacy
+                        ? legacySummary(row)
+                        : [entryDetail(row), str(row.description)]
+                            .filter(Boolean)
+                            .join(" — ")}
+                    </span>
+                    {actions}
+                  </div>
+                ) : (
+                  <div className="flex items-end gap-2 overflow-x-auto p-3">
+                    <span className="w-6 shrink-0 pb-2.5 text-xs font-medium text-gray-400">
+                      {index + 1}
+                    </span>
+                    {textCell(
+                      row,
+                      index,
+                      "componentId",
+                      `${t("limsComponentId")} *`,
+                      "w-32",
+                      ro,
+                      { invalid: duplicateId }
                     )}
-                  {!disabled ? (
-                    <button
-                      type="button"
-                      aria-label={`${t("delete")} ${index + 1}`}
-                      onClick={() => removeRow(index)}
-                      className="ml-auto shrink-0 self-end rounded p-2 text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10"
+                    {textCell(
+                      row,
+                      index,
+                      "name",
+                      `${t("name")} *`,
+                      "w-44",
+                      ro,
+                      { invalid: duplicateName }
+                    )}
+                    <Cell label={`${t("description")} *`} width="w-64">
+                      <div className="flex gap-1">
+                        <input
+                          aria-label={t("description")}
+                          className={`${inputClasses} ${okBorder}`}
+                          value={str(row.description)}
+                          disabled={ro}
+                          onChange={(event) =>
+                            patchRow(index, { description: event.target.value })
+                          }
+                        />
+                        <button
+                          type="button"
+                          aria-label={t("limsExpandDescription")}
+                          aria-expanded={isExpanded}
+                          title={t("limsExpandDescription")}
+                          onClick={() => toggleExpanded(rowKey)}
+                          className="shrink-0 rounded-lg border border-gray-300 px-2 text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-white/5"
+                        >
+                          {isExpanded ? (
+                            <ChevronUpIcon className="h-4 w-4" />
+                          ) : (
+                            <ChevronDownIcon className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
+                    </Cell>
+                    <Cell
+                      label={`${t("limsType")} *`}
+                      width="w-40"
+                      tooltip={t("limsTypeHint")}
                     >
-                      <TrashBinIcon className="h-4 w-4" />
-                    </button>
-                  ) : null}
-                </div>
-                {isExpanded ? (
+                      <SelectDropdown
+                        options={typeOptions}
+                        value={isTyped(row) ? row.type : ""}
+                        onChange={(value) => changeType(index, value)}
+                        placeholder={t("limsPickType")}
+                        disabled={ro}
+                        ariaLabel={t("limsType")}
+                        portal
+                      />
+                    </Cell>
+                    {isTyped(row) &&
+                      TYPE_FIELDS[row.type].map((field) =>
+                        renderTypeField(row, index, field, ro)
+                      )}
+                    {actions}
+                  </div>
+                )}
+                {open && isExpanded ? (
                   <div className="px-3 pb-3 pl-11">
                     <TextArea
                       rows={8}
                       value={str(row.description)}
-                      disabled={disabled || legacy}
+                      disabled={ro}
                       onChange={(value) =>
                         patchRow(index, { description: value })
                       }
@@ -494,7 +655,26 @@ const ComponentRowsEditor = ({
                     />
                   </div>
                 ) : null}
-                {duplicateId || duplicateName ? (
+                {isEditing ? (
+                  <div className="flex items-center justify-end gap-2 border-t border-brand-100 px-3 py-2 dark:border-brand-500/20">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => cancelEntry(index)}
+                    >
+                      {t("cancel")}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => saveEntry(index)}
+                    >
+                      {t("save")}
+                    </Button>
+                  </div>
+                ) : null}
+                {open && (duplicateId || duplicateName) ? (
                   <p className="px-3 pb-2 pl-11 text-xs text-red-500">
                     {[
                       duplicateId && t("limsDuplicateComponentId"),
@@ -504,14 +684,13 @@ const ComponentRowsEditor = ({
                       .join(" · ")}
                   </p>
                 ) : null}
+                {rowError ? (
+                  <p className="px-3 pb-2 pl-11 text-xs text-red-500">
+                    {rowError}
+                  </p>
+                ) : null}
                 {legacy ? (
                   <div className="flex items-center gap-2 border-t border-dashed border-gray-200 px-3 py-2 text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400">
-                    <span className="rounded bg-warning-100 px-1.5 py-0.5 font-semibold text-warning-800 dark:bg-warning-500/15 dark:text-warning-300">
-                      {t("limsLegacy")}
-                    </span>
-                    <span className="truncate">
-                      {legacySummary(row) || "—"}
-                    </span>
                     <HelpTooltip content={t("limsLegacyComponentHint")} />
                   </div>
                 ) : null}

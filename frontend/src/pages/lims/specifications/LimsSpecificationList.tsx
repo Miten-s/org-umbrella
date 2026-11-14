@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import DataTable, {
@@ -47,6 +48,10 @@ import {
 import LimsSpecificationForm, {
   type LimsSpecificationFormMode
 } from "./LimsSpecificationForm";
+import {
+  NEW_SPECIFICATION,
+  specificationWorkspaceUrl
+} from "./specificationRoutes";
 import type {
   LimsSpecification,
   LimsSpecificationPayload
@@ -55,6 +60,7 @@ import type {
 /** LimsSpecification list — built to STANDARDS.md and the MIGRATION.md §5 definition of done. */
 const LimsSpecificationList = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { isOpen, openModal, closeModal } = useModal();
 
   // Full record (incl. attachments) is fetched fresh from this id, not the list row.
@@ -111,37 +117,58 @@ const LimsSpecificationList = () => {
 
   const columnDefs = useMemo(() => getLimsSpecificationColumns({ t }), [t]);
 
+  // One specification opens on its own page; several are reviewed side by side in the modal.
   const openForm = useCallback(
     (mode: LimsSpecificationFormMode, row: LimsSpecification | null) => {
-      setFormMode(mode);
-      setActiveId(row?.id ?? null);
-      openModal();
+      if (mode === "create" || !row) {
+        navigate(specificationWorkspaceUrl(NEW_SPECIFICATION));
+        return;
+      }
+      navigate(
+        mode === "view"
+          ? `${specificationWorkspaceUrl(row.id)}?mode=view`
+          : specificationWorkspaceUrl(row.id)
+      );
     },
-    [openModal]
+    [navigate]
   );
 
   const openCopy = useCallback(
     (ids: string[]) => {
+      if (ids.length === 1) {
+        navigate(
+          `${specificationWorkspaceUrl(NEW_SPECIFICATION)}?copyFrom=${ids[0]}`
+        );
+        return;
+      }
       setCopyIds(ids);
       openModal();
     },
-    [openModal]
+    [openModal, navigate]
   );
 
   const openView = useCallback(
     (ids: string[]) => {
+      if (ids.length === 1) {
+        navigate(`${specificationWorkspaceUrl(ids[0])}?mode=view`);
+        return;
+      }
       setViewIds(ids);
       openModal();
     },
-    [openModal]
+    [openModal, navigate]
   );
 
   const openEdit = useCallback(
     (ids: string[]) => {
+      if (ids.length === 1) {
+        navigate(specificationWorkspaceUrl(ids[0]));
+        return;
+      }
       setEditIds(ids);
       openModal();
     },
-    [openModal]
+    [openModal, navigate]
   );
 
   const handleCloseForm = () => {

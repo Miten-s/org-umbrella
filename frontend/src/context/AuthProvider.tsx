@@ -7,7 +7,7 @@ import type {
   CurrentCompany,
   UserRole
 } from "@/types/common.types";
-import { SYSTEM_ROUTES } from "@/utils/common.constants";
+import { AUTH_TOKEN_KEY, SYSTEM_ROUTES } from "@/utils/common.constants";
 import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { useDispatch } from "react-redux";
 import { AuthContext, AuthContextType } from "./AuthContext";
@@ -115,6 +115,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     void fetchUser();
+  }, [fetchUser]);
+
+  // Signing out (or in) in one tab is followed by the others.
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== AUTH_TOKEN_KEY) return;
+      if (event.newValue) void fetchUser();
+      else window.location.assign("/login");
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, [fetchUser]);
 
   const value = useMemo<AuthContextType>(

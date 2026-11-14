@@ -137,6 +137,21 @@ router.post(
   })
 );
 
+/** Every template with its table, for the Test Template's single Entity Template dropdown. */
+router.get(
+  "/for-entity",
+  authorize("ANALYSIS", "VIEW"),
+  asyncHandler(async (req: Request, res: Response) => {
+    const { scope } = contextFromRequest(req);
+    const rows = await EntityTemplate.findAll({
+      where: { isDeleted: false, ...groupWhere(EntityTemplate, scope) } as any,
+      attributes: ["id", "entityTemplateId", "name", "entity"],
+      order: [["name", "ASC"]]
+    });
+    res.status(200).json({ data: rows });
+  })
+);
+
 /** Whoever builds a Test Template picks from these without managing Entity Templates. */
 router.get(
   "/for-entity/:entity",

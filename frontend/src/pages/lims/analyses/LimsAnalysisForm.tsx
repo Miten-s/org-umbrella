@@ -43,6 +43,9 @@ interface LimsAnalysisFormProps {
   /** Fires instead of `onClose` when "edit"/"bulk-edit" finds nothing changed — EditStepper uses this to skip the record instead of closing the whole review. */
   onUnchanged?: () => void;
   onSubmit: (payload: LimsAnalysisPayload) => Promise<void> | void;
+  /** Called just before `onSubmit`: true when the save only adds components, changing nothing
+   * that exists. */
+  onAdditiveOnly?: (additiveOnly: boolean) => void;
   submitting?: boolean;
   /** Overrides the submit button's label — CopyStepper uses this to say
    * "Next" on every step but the last, where the batch actually saves. */
@@ -76,6 +79,7 @@ const LimsAnalysisForm = ({
   onClose,
   onUnchanged,
   onSubmit,
+  onAdditiveOnly,
   submitting = false,
   submitLabel,
   disabled = false,
@@ -189,6 +193,14 @@ const LimsAnalysisForm = ({
               return;
             }
             setComponentsError(undefined);
+            const additiveOnly =
+              isPayloadEqual(values, initialValues) &&
+              initialComponentsRef.current.every((before) =>
+                components.some(
+                  (now) => now.id === before.id && isPayloadEqual(now, before)
+                )
+              );
+            onAdditiveOnly?.(additiveOnly);
             onSubmit({ ...values, components });
           },
           () => onInvalid?.("details")

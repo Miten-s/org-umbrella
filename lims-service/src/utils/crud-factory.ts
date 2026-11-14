@@ -1819,6 +1819,38 @@ export const buildCrudRouter = <M extends Model>(params: {
     controller.getAuditLogs
   );
 
+  // Who made the record and who last changed it, read from the audit trail.
+  router.get(
+    API_ROUTES.PARAMS + "/record-info",
+    can("VIEW"),
+    asyncHandler(async (req: Request, res: Response) => {
+      const id = req.params.id as string;
+      const record = await service.getById(id, contextFromRequest(req));
+      if (!record)
+        return res.status(404).json({ message: `${entityName} not found` });
+      const AuditLog = (await import("../models/audit-log.model")).default;
+      const where = { entityName, entityId: id };
+      const [created, changed] = await Promise.all([
+        AuditLog.findOne({
+          where: { ...where, action: "CREATE" },
+          order: [["performedAt", "ASC"]]
+        }),
+        AuditLog.findOne({
+          where: { ...where, action: ["UPDATE", "RESTORE"] },
+          order: [["performedAt", "DESC"]]
+        })
+      ]);
+      const json = (record as any).toJSON?.() ?? record;
+      res.status(200).json({
+        createdBy: created?.performedByName ?? null,
+        createdById: created?.performedBy ?? null,
+        createdOn: created?.performedAt ?? json.createdAt ?? null,
+        modifiedBy: changed?.performedByName ?? null,
+        modifiedOn: changed?.performedAt ?? null
+      });
+    })
+  );
+
   // One-item-at-a-time relation management — see `children` doc above. Each call is its
   // own transaction against just this one child, so a "manage" UI showing only a capped
   // preview of a large relation can never accidentally wipe the rest on save.

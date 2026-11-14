@@ -1,5 +1,6 @@
 /** Test Template component types and what each one uses. Mirrored in the frontend's
  * `pages/lims/analyses/componentTypes.ts` — separate deployables, keep the two in step. */
+import { formulaSyntaxProblem } from "../utils/formula";
 
 export const COMPONENT_TYPES = [
   "BLANK",
@@ -54,15 +55,6 @@ export const splitBooleanPair = (name: string): [string, string] | null => {
 export const formulaReferences = (formula: string): string[] =>
   [...formula.matchAll(/\{([^{}]+)\}/g)].map((m) => m[1].trim());
 
-/** A formula may only hold numbers, + - * / ( ) and `{component}` references. */
-export const isFormulaWellFormed = (formula: string): boolean => {
-  const outside = formula.replace(/\{[^{}]+\}/g, "0");
-  if (!/^[0-9+\-*/().\s]+$/.test(outside)) return false;
-  let depth = 0;
-  for (const ch of outside) {
-    if (ch === "(") depth += 1;
-    if (ch === ")") depth -= 1;
-    if (depth < 0) return false;
-  }
-  return depth === 0;
-};
+/** Parses with the formula engine: known functions, right argument counts, balanced brackets. */
+export const formulaSyntaxError = (formula: string): string | undefined =>
+  formulaSyntaxProblem(formula.replace(/\{[^{}]+\}/g, "0"));
