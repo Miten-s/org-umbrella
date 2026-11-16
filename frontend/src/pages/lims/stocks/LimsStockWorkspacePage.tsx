@@ -1,6 +1,7 @@
 import ModuleWorkspacePage, {
   type ModuleWorkspaceConfig
 } from "@/components/data/ModuleWorkspacePage";
+import { withSelectedRecords } from "@/components/data/SelectedRecordsPage";
 import { PageUrl } from "@/types/utils.types";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
 import {
@@ -10,6 +11,11 @@ import {
 } from "./LimsStock.api";
 import type { LimsStock, LimsStockPayload } from "./LimsStock.types";
 import LimsStockForm from "./LimsStockForm";
+import {
+  useBulkCloneLimsStock,
+  useBulkCopyLimsStock,
+  useBulkUpdateLimsStock
+} from "./LimsStock.queries";
 
 const config: ModuleWorkspaceConfig<LimsStock, LimsStockPayload> = {
   entityKey: "limsStock",
@@ -35,7 +41,17 @@ const config: ModuleWorkspaceConfig<LimsStock, LimsStockPayload> = {
     (record as { group?: { name?: string } | null }).group?.name
 };
 
-/** One record on its own page: Details plus a tab per sub-list. */
-const LimsStockWorkspacePage = () => <ModuleWorkspacePage config={config} />;
+/** One record on its own page (Details plus a tab per sub-list), or several selected ones stepped through. */
+const LimsStockWorkspacePage = withSelectedRecords<LimsStock, LimsStockPayload>(
+  () => <ModuleWorkspacePage config={config} />,
+  {
+    ...config,
+    entityPluralKey: "limsStocks",
+    Form: LimsStockForm,
+    useBulkUpdate: useBulkUpdateLimsStock,
+    useBulkCopy: useBulkCopyLimsStock,
+    useBulkClone: useBulkCloneLimsStock
+  }
+);
 
 export default LimsStockWorkspacePage;

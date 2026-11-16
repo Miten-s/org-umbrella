@@ -10,6 +10,7 @@ import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import Button from "@/components/ui/button/Button";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/lib/toast";
+import { withSelectedRecords } from "@/components/data/SelectedRecordsPage";
 import { PageUrl } from "@/types/utils.types";
 import { LIMS_PERMISSIONS, hasPermission } from "@/utils/permissions";
 import {
@@ -22,6 +23,11 @@ import type {
   LimsSpecificationPayload
 } from "./LimsSpecification.types";
 import LimsSpecificationForm from "./LimsSpecificationForm";
+import {
+  useBulkCloneLimsSpecification,
+  useBulkCopyLimsSpecification,
+  useBulkUpdateLimsSpecification
+} from "./LimsSpecification.queries";
 import {
   NEW_SPECIFICATION,
   specificationWorkspaceUrl
@@ -192,7 +198,7 @@ const Workspace = ({
 /** One Specification on its own page: Details · Limits · Other information (attachments).
  * `new` creates (or copies with ?copyFrom=), an id edits — or views with ?mode=view or
  * without update permission. */
-const LimsSpecificationWorkspacePage = () => {
+const RecordPage = () => {
   const { t } = useTranslation();
   const { id = "" } = useParams();
   const [params] = useSearchParams();
@@ -246,5 +252,21 @@ const LimsSpecificationWorkspacePage = () => {
     />
   );
 };
+
+const LimsSpecificationWorkspacePage = withSelectedRecords<
+  LimsSpecification,
+  LimsSpecificationPayload
+>(RecordPage, {
+  entityKey: "limsSpecification",
+  entityPluralKey: "limsSpecifications",
+  listPath: PageUrl.LIMSSpecifications.path,
+  fetchById: fetchLimsSpecificationById,
+  Form: LimsSpecificationForm,
+  useBulkUpdate: useBulkUpdateLimsSpecification,
+  useBulkCopy: useBulkCopyLimsSpecification,
+  useBulkClone: useBulkCloneLimsSpecification,
+  createPermission: LIMS_PERMISSIONS.CREATE_SPECIFICATION,
+  updatePermission: LIMS_PERMISSIONS.UPDATE_SPECIFICATION
+});
 
 export default LimsSpecificationWorkspacePage;

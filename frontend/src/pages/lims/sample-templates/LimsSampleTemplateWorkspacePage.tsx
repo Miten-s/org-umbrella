@@ -10,6 +10,7 @@ import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import Button from "@/components/ui/button/Button";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/lib/toast";
+import { withSelectedRecords } from "@/components/data/SelectedRecordsPage";
 import { PageUrl } from "@/types/utils.types";
 import { LIMS_PERMISSIONS, hasPermission } from "@/utils/permissions";
 import {
@@ -22,6 +23,11 @@ import type {
   LimsSampleTemplatePayload
 } from "./LimsSampleTemplate.types";
 import LimsSampleTemplateForm from "./LimsSampleTemplateForm";
+import {
+  useBulkCloneLimsSampleTemplate,
+  useBulkCopyLimsSampleTemplate,
+  useBulkUpdateLimsSampleTemplate
+} from "./LimsSampleTemplate.queries";
 import { NEW_SAMPLE_TEMPLATE, sampleTemplateUrl } from "./sampleTemplateRoutes";
 
 const TABS = ["details", "fields", "tests"];
@@ -178,7 +184,7 @@ const Workspace = ({
 
 /** One Sample Template on its own page: Template details · Fields · Tests. `new` creates (or
  * copies with ?copyFrom=), an id edits — or views with ?mode=view or without permission. */
-const LimsSampleTemplateWorkspacePage = () => {
+const RecordPage = () => {
   const { t } = useTranslation();
   const { id = "" } = useParams();
   const [params] = useSearchParams();
@@ -232,5 +238,21 @@ const LimsSampleTemplateWorkspacePage = () => {
     />
   );
 };
+
+const LimsSampleTemplateWorkspacePage = withSelectedRecords<
+  LimsSampleTemplate,
+  LimsSampleTemplatePayload
+>(RecordPage, {
+  entityKey: "limsSampleTemplate",
+  entityPluralKey: "limsSampleTemplates",
+  listPath: PageUrl.LIMSSampleTemplates.path,
+  fetchById: fetchLimsSampleTemplateById,
+  Form: LimsSampleTemplateForm,
+  useBulkUpdate: useBulkUpdateLimsSampleTemplate,
+  useBulkCopy: useBulkCopyLimsSampleTemplate,
+  useBulkClone: useBulkCloneLimsSampleTemplate,
+  createPermission: LIMS_PERMISSIONS.CREATE_SAMPLE_TEMPLATE,
+  updatePermission: LIMS_PERMISSIONS.UPDATE_SAMPLE_TEMPLATE
+});
 
 export default LimsSampleTemplateWorkspacePage;

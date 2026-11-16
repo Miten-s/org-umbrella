@@ -1,25 +1,20 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { PageUrl } from "@/types/utils.types";
+import { recordsActionUrl } from "@/components/data/recordPage";
 import { analysisWorkspaceUrl, NEW_ANALYSIS } from "./analysisRoutes";
 
 import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
-import CopyStepper from "@/components/data/CopyStepper";
-import ViewStepper from "@/components/data/ViewStepper";
-import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
-import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
-import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
-import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
 import { toast } from "@/lib/toast";
-import { idsSelection } from "@/lib/query/listTypes";
 import {
   CopyIcon,
   EyeIcon,
@@ -28,50 +23,28 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import {
-  fetchLimsAnalysisById,
-  fetchLimsAnalysisList
-} from "./LimsAnalysis.api";
+import { fetchLimsAnalysisList } from "./LimsAnalysis.api";
 import { getLimsAnalysisColumns } from "./LimsAnalysis.columns";
 import {
   limsAnalysisKeys,
   useBulkCloneLimsAnalysis,
-  useBulkCopyLimsAnalysis,
   useBulkDeleteLimsAnalysis,
   useBulkUpdateLimsAnalysis,
-  useCreateLimsAnalysis,
   useLimsAnalysisAudit,
   useRestoreLimsAnalysis,
-  useBulkRestoreLimsAnalysis,
-  useUpdateLimsAnalysis,
-  useLimsAnalysisById
+  useBulkRestoreLimsAnalysis
 } from "./LimsAnalysis.queries";
-import LimsAnalysisForm, {
-  type LimsAnalysisFormMode
-} from "./LimsAnalysisForm";
 import type { LimsAnalysis, LimsAnalysisPayload } from "./LimsAnalysis.types";
 
 /** LimsAnalysis list — built to STANDARDS.md and the MIGRATION.md §5 definition of done. */
 const LimsAnalysisList = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { isOpen, openModal, closeModal } = useModal();
 
-  // Full record (incl. attachments) is fetched fresh from this id, not the list row.
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [formMode, setFormMode] = useState<LimsAnalysisFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
-  // Set instead of activeId/formMode while the multi-record Copy/View/Edit steppers are open.
-  const [copyIds, setCopyIds] = useState<string[] | null>(null);
-  const [viewIds, setViewIds] = useState<string[] | null>(null);
-  const [editIds, setEditIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsAnalysis, LimsAnalysisPayload>();
   const auditQuery = useLimsAnalysisAudit(compliance.auditRow?.id);
-  const detailQuery = useLimsAnalysisById(
-    activeId ?? undefined,
-    isOpen && formMode !== "create"
-  );
 
   const fetchList = useCallback(
     (
@@ -87,20 +60,14 @@ const LimsAnalysisList = () => {
     fetchList
   });
 
-  const create = useCreateLimsAnalysis();
-  const update = useUpdateLimsAnalysis();
   const bulkClone = useBulkCloneLimsAnalysis();
-  const bulkCopy = useBulkCopyLimsAnalysis();
   const bulkDelete = useBulkDeleteLimsAnalysis();
   const bulkUpdate = useBulkUpdateLimsAnalysis();
   const restore = useRestoreLimsAnalysis();
   const bulkRestoreAnalysis = useBulkRestoreLimsAnalysis();
 
   const busy =
-    create.isPending ||
-    update.isPending ||
     bulkClone.isPending ||
-    bulkCopy.isPending ||
     bulkDelete.isPending ||
     bulkUpdate.isPending ||
     restore.isPending ||
@@ -111,91 +78,30 @@ const LimsAnalysisList = () => {
     [t, includeRemoved]
   );
 
-  // One template opens on its own page; several are reviewed side by side in the modal.
+  // View/Edit/Copy always open a page: one record its own page, several the selected-records page.
   const openCopy = useCallback(
-    (ids: string[]) => {
-      if (ids.length === 1) {
-        navigate(`${analysisWorkspaceUrl(NEW_ANALYSIS)}?copyFrom=${ids[0]}`);
-        return;
-      }
-      setCopyIds(ids);
-      openModal();
-    },
-    [openModal, navigate]
+    (ids: string[]) =>
+      navigate(
+        recordsActionUrl(PageUrl.LIMSAnalysisWorkspace.path, "copy", ids)
+      ),
+    [navigate]
   );
 
   const openView = useCallback(
-    (ids: string[]) => {
-      if (ids.length === 1) {
-        navigate(`${analysisWorkspaceUrl(ids[0])}?mode=view`);
-        return;
-      }
-      setViewIds(ids);
-      openModal();
-    },
-    [openModal, navigate]
+    (ids: string[]) =>
+      navigate(
+        recordsActionUrl(PageUrl.LIMSAnalysisWorkspace.path, "view", ids)
+      ),
+    [navigate]
   );
 
   const openEdit = useCallback(
-    (ids: string[]) => {
-      if (ids.length === 1) {
-        navigate(analysisWorkspaceUrl(ids[0]));
-        return;
-      }
-      setEditIds(ids);
-      openModal();
-    },
-    [openModal, navigate]
+    (ids: string[]) =>
+      navigate(
+        recordsActionUrl(PageUrl.LIMSAnalysisWorkspace.path, "edit", ids)
+      ),
+    [navigate]
   );
-
-  const handleCloseForm = () => {
-    closeModal();
-    setActiveId(null);
-    setFormMode("create");
-    setCopyIds(null);
-    setViewIds(null);
-    setEditIds(null);
-  };
-
-  const handleSaveCopies = async (payloads: LimsAnalysisPayload[]) => {
-    await bulkCopy.mutateAsync(payloads);
-    handleCloseForm();
-    table.clearSelection();
-  };
-
-  // Shared change-reason comes from LimsComplianceDialogs, not EditStepper itself.
-  const handleSaveEdits = (
-    updates: { id: string; payload: LimsAnalysisPayload }[]
-  ) => {
-    handleCloseForm();
-    compliance.requestBulkUpdate(updates);
-  };
-
-  const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
-    await bulkClone.mutateAsync(idsSelection(unreviewedIds));
-  };
-
-  const handleSave = async (payload: LimsAnalysisPayload) => {
-    if (activeId) {
-      compliance.requestUpdate(activeId, payload);
-      closeModal();
-      return;
-    }
-    await create.mutateAsync(payload);
-    handleCloseForm();
-  };
-
-  const confirmUpdate = async (reason: string) => {
-    const pending = compliance.pendingUpdate;
-    if (!pending) return;
-    await update.mutateAsync({
-      id: pending.id,
-      payload: { ...pending.payload, changeReason: reason }
-    });
-    compliance.clearUpdate();
-    setActiveId(null);
-    setFormMode("create");
-  };
 
   const label = (row: LimsAnalysis) => String(row.analysisId ?? row.name ?? "");
 
@@ -381,66 +287,11 @@ const LimsAnalysisList = () => {
         emptyState={{ title: t("limsNoAnalyses") }}
       />
 
-      <Modal
-        isOpen={isOpen}
-        onClose={handleCloseForm}
-        className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
-        disableOuterScroll
-      >
-        {copyIds ? (
-          <CopyStepper<LimsAnalysis, LimsAnalysisPayload>
-            ids={copyIds}
-            fetchById={fetchLimsAnalysisById}
-            FormComponent={LimsAnalysisForm}
-            onSaveAll={handleSaveCopies}
-            onDuplicateUnreviewed={handleDuplicateUnreviewedCopies}
-            onClose={handleCloseForm}
-            saving={bulkCopy.isPending || bulkClone.isPending}
-            entityLabel={t("limsAnalysis")}
-          />
-        ) : viewIds ? (
-          <ViewStepper<LimsAnalysis>
-            ids={viewIds}
-            fetchById={fetchLimsAnalysisById}
-            FormComponent={LimsAnalysisForm}
-            onClose={handleCloseForm}
-            entityLabel={t("limsAnalysis")}
-          />
-        ) : editIds ? (
-          <EditStepper<LimsAnalysis, LimsAnalysisPayload>
-            ids={editIds}
-            fetchById={fetchLimsAnalysisById}
-            FormComponent={LimsAnalysisForm}
-            onSaveAll={handleSaveEdits}
-            onClose={handleCloseForm}
-            saving={bulkUpdate.isPending}
-            entityLabel={t("limsAnalysis")}
-          />
-        ) : formMode !== "create" && detailQuery.isLoading ? (
-          // isLoading only — isFetching would unmount this form (and any modal
-          // inside it, e.g. Manage) on every background refetch from invalidateAllLims.
-          <div className="flex min-h-[300px] items-center justify-center p-10">
-            <LoadingSpinner fullScreen={false} />
-          </div>
-        ) : (
-          <LimsAnalysisForm
-            mode={formMode}
-            initialData={
-              formMode === "create" ? null : (detailQuery.data ?? null)
-            }
-            onClose={handleCloseForm}
-            onSubmit={handleSave}
-            submitting={create.isPending || update.isPending}
-          />
-        )}
-      </Modal>
-
       <LimsComplianceDialogs
         compliance={compliance}
         entityLabel={t("limsAnalysis")}
         entityLabelPlural={t("limsAnalyses")}
         getRecordLabel={label}
-        updating={update.isPending}
         deleting={bulkDelete.isPending}
         restoring={restore.isPending}
         bulkRestoring={bulkRestoreAnalysis.isPending}
@@ -454,7 +305,6 @@ const LimsAnalysisList = () => {
         auditFetchingNextPage={auditQuery.isFetchingNextPage}
 
         onAuditLoadMore={auditQuery.fetchNextPage}
-        onUpdate={confirmUpdate}
         onBulkUpdate={async (reason) => {
           const pending = compliance.pendingBulkUpdate;
           if (pending) {

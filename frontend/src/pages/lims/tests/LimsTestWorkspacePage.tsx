@@ -1,6 +1,7 @@
 import ModuleWorkspacePage, {
   type ModuleWorkspaceConfig
 } from "@/components/data/ModuleWorkspacePage";
+import { withSelectedRecords } from "@/components/data/SelectedRecordsPage";
 import { PageUrl } from "@/types/utils.types";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
 import {
@@ -10,6 +11,11 @@ import {
 } from "./LimsTest.api";
 import type { LimsTest, LimsTestPayload } from "./LimsTest.types";
 import LimsTestForm from "./LimsTestForm";
+import {
+  useBulkCloneLimsTest,
+  useBulkCopyLimsTest,
+  useBulkUpdateLimsTest
+} from "./LimsTest.queries";
 
 const config: ModuleWorkspaceConfig<LimsTest, LimsTestPayload> = {
   entityKey: "limsTest",
@@ -33,7 +39,17 @@ const config: ModuleWorkspaceConfig<LimsTest, LimsTestPayload> = {
     (record as { group?: { name?: string } | null }).group?.name
 };
 
-/** One record on its own page: Details plus a tab per sub-list. */
-const LimsTestWorkspacePage = () => <ModuleWorkspacePage config={config} />;
+/** One record on its own page (Details plus a tab per sub-list), or several selected ones stepped through. */
+const LimsTestWorkspacePage = withSelectedRecords<LimsTest, LimsTestPayload>(
+  () => <ModuleWorkspacePage config={config} />,
+  {
+    ...config,
+    entityPluralKey: "limsTests",
+    Form: LimsTestForm,
+    useBulkUpdate: useBulkUpdateLimsTest,
+    useBulkCopy: useBulkCopyLimsTest,
+    useBulkClone: useBulkCloneLimsTest
+  }
+);
 
 export default LimsTestWorkspacePage;

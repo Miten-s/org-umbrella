@@ -1,6 +1,7 @@
 import ModuleWorkspacePage, {
   type ModuleWorkspaceConfig
 } from "@/components/data/ModuleWorkspacePage";
+import { withSelectedRecords } from "@/components/data/SelectedRecordsPage";
 import { PageUrl } from "@/types/utils.types";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
 import {
@@ -13,6 +14,11 @@ import type {
   LimsStockBatchPayload
 } from "./LimsStockBatch.types";
 import LimsStockBatchForm from "./LimsStockBatchForm";
+import {
+  useBulkCloneLimsStockBatch,
+  useBulkCopyLimsStockBatch,
+  useBulkUpdateLimsStockBatch
+} from "./LimsStockBatch.queries";
 
 const config: ModuleWorkspaceConfig<LimsStockBatch, LimsStockBatchPayload> = {
   entityKey: "limsStockBatch",
@@ -38,9 +44,17 @@ const config: ModuleWorkspaceConfig<LimsStockBatch, LimsStockBatchPayload> = {
     (record as { group?: { name?: string } | null }).group?.name
 };
 
-/** One record on its own page: Details plus a tab per sub-list. */
-const LimsStockBatchWorkspacePage = () => (
-  <ModuleWorkspacePage config={config} />
-);
+/** One record on its own page (Details plus a tab per sub-list), or several selected ones stepped through. */
+const LimsStockBatchWorkspacePage = withSelectedRecords<
+  LimsStockBatch,
+  LimsStockBatchPayload
+>(() => <ModuleWorkspacePage config={config} />, {
+  ...config,
+  entityPluralKey: "limsStockBatches",
+  Form: LimsStockBatchForm,
+  useBulkUpdate: useBulkUpdateLimsStockBatch,
+  useBulkCopy: useBulkCopyLimsStockBatch,
+  useBulkClone: useBulkCloneLimsStockBatch
+});
 
 export default LimsStockBatchWorkspacePage;

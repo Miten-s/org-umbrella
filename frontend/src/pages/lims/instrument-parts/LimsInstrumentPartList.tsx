@@ -1,25 +1,23 @@
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { NEW_RECORD, recordPageUrl } from "@/components/data/recordPage";
+import {
+  NEW_RECORD,
+  recordPageUrl,
+  recordsActionUrl
+} from "@/components/data/recordPage";
 import { PageUrl } from "@/types/utils.types";
 
 import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
-import CopyStepper from "@/components/data/CopyStepper";
-import ViewStepper from "@/components/data/ViewStepper";
-import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
-import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
-import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
 import { toast } from "@/lib/toast";
-import { idsSelection } from "@/lib/query/listTypes";
 import {
   CopyIcon,
   EyeIcon,
@@ -28,24 +26,17 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import {
-  fetchLimsInstrumentPartById,
-  fetchLimsInstrumentPartList
-} from "./LimsInstrumentPart.api";
+import { fetchLimsInstrumentPartList } from "./LimsInstrumentPart.api";
 import { getLimsInstrumentPartColumns } from "./LimsInstrumentPart.columns";
 import {
   limsInstrumentPartKeys,
   useBulkCloneLimsInstrumentPart,
-  useBulkCopyLimsInstrumentPart,
   useBulkDeleteLimsInstrumentPart,
   useBulkUpdateLimsInstrumentPart,
   useLimsInstrumentPartAudit,
   useRestoreLimsInstrumentPart,
   useBulkRestoreLimsInstrumentPart
 } from "./LimsInstrumentPart.queries";
-import LimsInstrumentPartForm, {
-  type LimsInstrumentPartFormMode
-} from "./LimsInstrumentPartForm";
 import type {
   LimsInstrumentPart,
   LimsInstrumentPartPayload
@@ -55,13 +46,8 @@ import type {
 const LimsInstrumentPartList = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { isOpen, openModal, closeModal } = useModal();
 
   const [includeRemoved, setIncludeRemoved] = useState(false);
-  // Set instead of activeId/formMode while the Copy review flow is open.
-  const [copyIds, setCopyIds] = useState<string[] | null>(null);
-  const [viewIds, setViewIds] = useState<string[] | null>(null);
-  const [editIds, setEditIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<
     LimsInstrumentPart,
@@ -84,7 +70,6 @@ const LimsInstrumentPartList = () => {
   });
 
   const bulkClone = useBulkCloneLimsInstrumentPart();
-  const bulkCopy = useBulkCopyLimsInstrumentPart();
   const bulkDelete = useBulkDeleteLimsInstrumentPart();
   const bulkUpdate = useBulkUpdateLimsInstrumentPart();
   const restore = useRestoreLimsInstrumentPart();
@@ -92,7 +77,6 @@ const LimsInstrumentPartList = () => {
 
   const busy =
     bulkClone.isPending ||
-    bulkCopy.isPending ||
     bulkDelete.isPending ||
     bulkUpdate.isPending ||
     restore.isPending ||
@@ -103,79 +87,30 @@ const LimsInstrumentPartList = () => {
     [t, includeRemoved]
   );
 
-  // One record opens on its own page; several are reviewed side by side in the modal.
-  const page = (id: string) =>
-    recordPageUrl(PageUrl.LIMSInstrumentPartsWorkspace.path, id);
-  const openForm = useCallback(
-    (mode: LimsInstrumentPartFormMode, row: LimsInstrumentPart | null) => {
-      if (mode === "create" || !row) {
-        navigate(page(NEW_RECORD));
-        return;
-      }
-      navigate(mode === "view" ? `${page(row.id)}?mode=view` : page(row.id));
-    },
+  // View/Edit/Copy always open a page: one record its own page, several the selected-records page.
+  const openCopy = useCallback(
+    (ids: string[]) =>
+      navigate(
+        recordsActionUrl(PageUrl.LIMSInstrumentPartsWorkspace.path, "copy", ids)
+      ),
     [navigate]
   );
 
-  const openCopy = useCallback(
-    (ids: string[]) => {
-      if (ids.length === 1) {
-        navigate(`${page(NEW_RECORD)}?copyFrom=${ids[0]}`);
-        return;
-      }
-      setCopyIds(ids);
-      openModal();
-    },
-    [openModal, navigate]
-  );
-
   const openView = useCallback(
-    (ids: string[]) => {
-      if (ids.length === 1) {
-        navigate(`${page(ids[0])}?mode=view`);
-        return;
-      }
-      setViewIds(ids);
-      openModal();
-    },
-    [openModal, navigate]
+    (ids: string[]) =>
+      navigate(
+        recordsActionUrl(PageUrl.LIMSInstrumentPartsWorkspace.path, "view", ids)
+      ),
+    [navigate]
   );
 
   const openEdit = useCallback(
-    (ids: string[]) => {
-      if (ids.length === 1) {
-        navigate(page(ids[0]));
-        return;
-      }
-      setEditIds(ids);
-      openModal();
-    },
-    [openModal, navigate]
+    (ids: string[]) =>
+      navigate(
+        recordsActionUrl(PageUrl.LIMSInstrumentPartsWorkspace.path, "edit", ids)
+      ),
+    [navigate]
   );
-
-  const handleCloseForm = () => {
-    closeModal();
-    setCopyIds(null);
-    setViewIds(null);
-    setEditIds(null);
-  };
-
-  const handleSaveCopies = async (payloads: LimsInstrumentPartPayload[]) => {
-    await bulkCopy.mutateAsync(payloads);
-    handleCloseForm();
-    table.clearSelection();
-  };
-
-  const handleSaveEdits = (
-    updates: { id: string; payload: LimsInstrumentPartPayload }[]
-  ) => {
-    handleCloseForm();
-    compliance.requestBulkUpdate(updates);
-  };
-
-  const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
-    await bulkClone.mutateAsync(idsSelection(unreviewedIds));
-  };
 
   const label = (row: LimsInstrumentPart) =>
     String(row.partId ?? row.partName ?? "");
@@ -276,7 +211,7 @@ const LimsInstrumentPartList = () => {
         icon: EyeIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_INSTRUMENT_PART,
-        onClick: (row) => openForm("view", row)
+        onClick: (row) => openView([row.id])
       },
       {
         key: "edit",
@@ -284,7 +219,7 @@ const LimsInstrumentPartList = () => {
         icon: PencilIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.UPDATE_INSTRUMENT_PART,
-        onClick: (row) => openForm("edit", row)
+        onClick: (row) => openEdit([row.id])
       },
       {
         key: "audit",
@@ -325,7 +260,7 @@ const LimsInstrumentPartList = () => {
           ])
       }
     ],
-    [compliance, openCopy, openForm, t]
+    [compliance, openCopy, openEdit, openView, t]
   );
 
   return (
@@ -354,49 +289,17 @@ const LimsInstrumentPartList = () => {
             icon: PlusIcon,
             variant: "primary",
             permission: LIMS_PERMISSIONS.CREATE_INSTRUMENT_PART,
-            onClick: () => openForm("create", null)
+            onClick: () =>
+              navigate(
+                recordPageUrl(
+                  PageUrl.LIMSInstrumentPartsWorkspace.path,
+                  NEW_RECORD
+                )
+              )
           }
         ]}
         emptyState={{ title: t("limsNoInstrumentParts") }}
       />
-
-      <Modal
-        isOpen={isOpen}
-        onClose={handleCloseForm}
-        className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
-        disableOuterScroll
-      >
-        {copyIds ? (
-          <CopyStepper<LimsInstrumentPart, LimsInstrumentPartPayload>
-            ids={copyIds}
-            fetchById={fetchLimsInstrumentPartById}
-            FormComponent={LimsInstrumentPartForm}
-            onSaveAll={handleSaveCopies}
-            onDuplicateUnreviewed={handleDuplicateUnreviewedCopies}
-            onClose={handleCloseForm}
-            saving={bulkCopy.isPending || bulkClone.isPending}
-            entityLabel={t("limsInstrumentPart")}
-          />
-        ) : viewIds ? (
-          <ViewStepper<LimsInstrumentPart>
-            ids={viewIds}
-            fetchById={fetchLimsInstrumentPartById}
-            FormComponent={LimsInstrumentPartForm}
-            onClose={handleCloseForm}
-            entityLabel={t("limsInstrumentPart")}
-          />
-        ) : editIds ? (
-          <EditStepper<LimsInstrumentPart, LimsInstrumentPartPayload>
-            ids={editIds}
-            fetchById={fetchLimsInstrumentPartById}
-            FormComponent={LimsInstrumentPartForm}
-            onSaveAll={handleSaveEdits}
-            onClose={handleCloseForm}
-            saving={bulkUpdate.isPending}
-            entityLabel={t("limsInstrumentPart")}
-          />
-        ) : null}
-      </Modal>
 
       <LimsComplianceDialogs
         compliance={compliance}

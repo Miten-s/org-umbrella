@@ -1,6 +1,7 @@
 import ModuleWorkspacePage, {
   type ModuleWorkspaceConfig
 } from "@/components/data/ModuleWorkspacePage";
+import { withSelectedRecords } from "@/components/data/SelectedRecordsPage";
 import { PageUrl } from "@/types/utils.types";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
 import {
@@ -10,6 +11,11 @@ import {
 } from "./LimsPhrase.api";
 import type { LimsPhrase, LimsPhrasePayload } from "./LimsPhrase.types";
 import LimsPhraseForm from "./LimsPhraseForm";
+import {
+  useBulkCloneLimsPhrase,
+  useBulkCopyLimsPhrase,
+  useBulkUpdateLimsPhrase
+} from "./LimsPhrase.queries";
 
 const config: ModuleWorkspaceConfig<LimsPhrase, LimsPhrasePayload> = {
   entityKey: "limsPhrase",
@@ -35,7 +41,17 @@ const config: ModuleWorkspaceConfig<LimsPhrase, LimsPhrasePayload> = {
     (record as { group?: { name?: string } | null }).group?.name
 };
 
-/** One record on its own page: Details plus a tab per sub-list. */
-const LimsPhraseWorkspacePage = () => <ModuleWorkspacePage config={config} />;
+/** One record on its own page (Details plus a tab per sub-list), or several selected ones stepped through. */
+const LimsPhraseWorkspacePage = withSelectedRecords<
+  LimsPhrase,
+  LimsPhrasePayload
+>(() => <ModuleWorkspacePage config={config} />, {
+  ...config,
+  entityPluralKey: "limsPhrases",
+  Form: LimsPhraseForm,
+  useBulkUpdate: useBulkUpdateLimsPhrase,
+  useBulkCopy: useBulkCopyLimsPhrase,
+  useBulkClone: useBulkCloneLimsPhrase
+});
 
 export default LimsPhraseWorkspacePage;
