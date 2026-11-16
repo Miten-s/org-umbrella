@@ -1,25 +1,23 @@
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageUrl } from "@/types/utils.types";
-import { NEW_RECORD, recordPageUrl } from "@/components/data/recordPage";
+import {
+  NEW_RECORD,
+  recordPageUrl,
+  recordsActionUrl
+} from "@/components/data/recordPage";
 import { useTranslation } from "react-i18next";
 
 import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
-import CopyStepper from "@/components/data/CopyStepper";
-import ViewStepper from "@/components/data/ViewStepper";
-import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
-import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
-import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
 import { toast } from "@/lib/toast";
-import { idsSelection } from "@/lib/query/listTypes";
 import {
   CopyIcon,
   EyeIcon,
@@ -28,32 +26,25 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsTestById, fetchLimsTestList } from "./LimsTest.api";
+import { fetchLimsTestList } from "./LimsTest.api";
 import { getLimsTestColumns } from "./LimsTest.columns";
 import {
   limsTestKeys,
   useBulkCloneLimsTest,
-  useBulkCopyLimsTest,
   useBulkDeleteLimsTest,
   useBulkUpdateLimsTest,
   useLimsTestAudit,
   useRestoreLimsTest,
   useBulkRestoreLimsTest
 } from "./LimsTest.queries";
-import LimsTestForm, { type LimsTestFormMode } from "./LimsTestForm";
 import type { LimsTest, LimsTestPayload } from "./LimsTest.types";
 
 /** LimsTest list — built to STANDARDS.md and the MIGRATION.md §5 definition of done. */
 const LimsTestList = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { isOpen, openModal, closeModal } = useModal();
 
   const [includeRemoved, setIncludeRemoved] = useState(false);
-  // Set instead of activeId/formMode while the Copy review flow is open.
-  const [copyIds, setCopyIds] = useState<string[] | null>(null);
-  const [viewIds, setViewIds] = useState<string[] | null>(null);
-  const [editIds, setEditIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsTest, LimsTestPayload>();
   const auditQuery = useLimsTestAudit(compliance.auditRow?.id);
@@ -71,7 +62,6 @@ const LimsTestList = () => {
   });
 
   const bulkClone = useBulkCloneLimsTest();
-  const bulkCopy = useBulkCopyLimsTest();
   const bulkDelete = useBulkDeleteLimsTest();
   const bulkUpdate = useBulkUpdateLimsTest();
   const restore = useRestoreLimsTest();
@@ -79,7 +69,6 @@ const LimsTestList = () => {
 
   const busy =
     bulkClone.isPending ||
-    bulkCopy.isPending ||
     bulkDelete.isPending ||
     bulkUpdate.isPending ||
     restore.isPending ||
@@ -90,79 +79,24 @@ const LimsTestList = () => {
     [t, includeRemoved]
   );
 
-  // One record opens on its own page; several are reviewed side by side in the modal.
-  const page = (id: string) =>
-    recordPageUrl(PageUrl.LIMSTestsWorkspace.path, id);
-  const openForm = useCallback(
-    (mode: LimsTestFormMode, row: LimsTest | null) => {
-      if (mode === "create" || !row) {
-        navigate(page(NEW_RECORD));
-        return;
-      }
-      navigate(mode === "view" ? `${page(row.id)}?mode=view` : page(row.id));
-    },
+  // View/Edit/Copy always open a page: one record its own page, several the selected-records page.
+  const openCopy = useCallback(
+    (ids: string[]) =>
+      navigate(recordsActionUrl(PageUrl.LIMSTestsWorkspace.path, "copy", ids)),
     [navigate]
   );
 
-  const openCopy = useCallback(
-    (ids: string[]) => {
-      if (ids.length === 1) {
-        navigate(`${page(NEW_RECORD)}?copyFrom=${ids[0]}`);
-        return;
-      }
-      setCopyIds(ids);
-      openModal();
-    },
-    [openModal, navigate]
-  );
-
   const openView = useCallback(
-    (ids: string[]) => {
-      if (ids.length === 1) {
-        navigate(`${page(ids[0])}?mode=view`);
-        return;
-      }
-      setViewIds(ids);
-      openModal();
-    },
-    [openModal, navigate]
+    (ids: string[]) =>
+      navigate(recordsActionUrl(PageUrl.LIMSTestsWorkspace.path, "view", ids)),
+    [navigate]
   );
 
   const openEdit = useCallback(
-    (ids: string[]) => {
-      if (ids.length === 1) {
-        navigate(page(ids[0]));
-        return;
-      }
-      setEditIds(ids);
-      openModal();
-    },
-    [openModal, navigate]
+    (ids: string[]) =>
+      navigate(recordsActionUrl(PageUrl.LIMSTestsWorkspace.path, "edit", ids)),
+    [navigate]
   );
-
-  const handleCloseForm = () => {
-    closeModal();
-    setCopyIds(null);
-    setViewIds(null);
-    setEditIds(null);
-  };
-
-  const handleSaveCopies = async (payloads: LimsTestPayload[]) => {
-    await bulkCopy.mutateAsync(payloads);
-    handleCloseForm();
-    table.clearSelection();
-  };
-
-  const handleSaveEdits = (
-    updates: { id: string; payload: LimsTestPayload }[]
-  ) => {
-    handleCloseForm();
-    compliance.requestBulkUpdate(updates);
-  };
-
-  const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
-    await bulkClone.mutateAsync(idsSelection(unreviewedIds));
-  };
 
   const label = (row: LimsTest) => String(row.testId ?? row.testName ?? "");
 
@@ -262,7 +196,7 @@ const LimsTestList = () => {
         icon: EyeIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_TEST,
-        onClick: (row) => openForm("view", row)
+        onClick: (row) => openView([row.id])
       },
       {
         key: "edit",
@@ -270,7 +204,7 @@ const LimsTestList = () => {
         icon: PencilIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.UPDATE_TEST,
-        onClick: (row) => openForm("edit", row)
+        onClick: (row) => openEdit([row.id])
       },
       {
         key: "audit",
@@ -311,7 +245,7 @@ const LimsTestList = () => {
           ])
       }
     ],
-    [compliance, openCopy, openForm, t]
+    [compliance, openCopy, openEdit, openView, t]
   );
 
   return (
@@ -340,49 +274,14 @@ const LimsTestList = () => {
             icon: PlusIcon,
             variant: "primary",
             permission: LIMS_PERMISSIONS.CREATE_TEST,
-            onClick: () => openForm("create", null)
+            onClick: () =>
+              navigate(
+                recordPageUrl(PageUrl.LIMSTestsWorkspace.path, NEW_RECORD)
+              )
           }
         ]}
         emptyState={{ title: t("limsNoTests2") }}
       />
-
-      <Modal
-        isOpen={isOpen}
-        onClose={handleCloseForm}
-        className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
-        disableOuterScroll
-      >
-        {copyIds ? (
-          <CopyStepper<LimsTest, LimsTestPayload>
-            ids={copyIds}
-            fetchById={fetchLimsTestById}
-            FormComponent={LimsTestForm}
-            onSaveAll={handleSaveCopies}
-            onDuplicateUnreviewed={handleDuplicateUnreviewedCopies}
-            onClose={handleCloseForm}
-            saving={bulkCopy.isPending || bulkClone.isPending}
-            entityLabel={t("limsTest")}
-          />
-        ) : viewIds ? (
-          <ViewStepper<LimsTest>
-            ids={viewIds}
-            fetchById={fetchLimsTestById}
-            FormComponent={LimsTestForm}
-            onClose={handleCloseForm}
-            entityLabel={t("limsTest")}
-          />
-        ) : editIds ? (
-          <EditStepper<LimsTest, LimsTestPayload>
-            ids={editIds}
-            fetchById={fetchLimsTestById}
-            FormComponent={LimsTestForm}
-            onSaveAll={handleSaveEdits}
-            onClose={handleCloseForm}
-            saving={bulkUpdate.isPending}
-            entityLabel={t("limsTest")}
-          />
-        ) : null}
-      </Modal>
 
       <LimsComplianceDialogs
         compliance={compliance}

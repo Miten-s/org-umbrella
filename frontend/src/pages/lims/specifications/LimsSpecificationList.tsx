@@ -1,23 +1,19 @@
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { PageUrl } from "@/types/utils.types";
+import { recordsActionUrl } from "@/components/data/recordPage";
 import { useTranslation } from "react-i18next";
 
 import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
-import CopyStepper from "@/components/data/CopyStepper";
-import ViewStepper from "@/components/data/ViewStepper";
-import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
-import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
-import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
 import { toast } from "@/lib/toast";
-import { idsSelection } from "@/lib/query/listTypes";
 import {
   CopyIcon,
   EyeIcon,
@@ -26,24 +22,17 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import {
-  fetchLimsSpecificationById,
-  fetchLimsSpecificationList
-} from "./LimsSpecification.api";
+import { fetchLimsSpecificationList } from "./LimsSpecification.api";
 import { getLimsSpecificationColumns } from "./LimsSpecification.columns";
 import {
   limsSpecificationKeys,
   useBulkCloneLimsSpecification,
-  useBulkCopyLimsSpecification,
   useBulkDeleteLimsSpecification,
   useBulkUpdateLimsSpecification,
   useLimsSpecificationAudit,
   useRestoreLimsSpecification,
   useBulkRestoreLimsSpecification
 } from "./LimsSpecification.queries";
-import LimsSpecificationForm, {
-  type LimsSpecificationFormMode
-} from "./LimsSpecificationForm";
 import {
   NEW_SPECIFICATION,
   specificationWorkspaceUrl
@@ -57,13 +46,8 @@ import type {
 const LimsSpecificationList = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { isOpen, openModal, closeModal } = useModal();
 
   const [includeRemoved, setIncludeRemoved] = useState(false);
-  // Set instead of activeId/formMode while the Copy review flow is open.
-  const [copyIds, setCopyIds] = useState<string[] | null>(null);
-  const [viewIds, setViewIds] = useState<string[] | null>(null);
-  const [editIds, setEditIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<
     LimsSpecification,
@@ -86,7 +70,6 @@ const LimsSpecificationList = () => {
   });
 
   const bulkClone = useBulkCloneLimsSpecification();
-  const bulkCopy = useBulkCopyLimsSpecification();
   const bulkDelete = useBulkDeleteLimsSpecification();
   const bulkUpdate = useBulkUpdateLimsSpecification();
   const restore = useRestoreLimsSpecification();
@@ -94,7 +77,6 @@ const LimsSpecificationList = () => {
 
   const busy =
     bulkClone.isPending ||
-    bulkCopy.isPending ||
     bulkDelete.isPending ||
     bulkUpdate.isPending ||
     restore.isPending ||
@@ -105,83 +87,30 @@ const LimsSpecificationList = () => {
     [t, includeRemoved]
   );
 
-  // One specification opens on its own page; several are reviewed side by side in the modal.
-  const openForm = useCallback(
-    (mode: LimsSpecificationFormMode, row: LimsSpecification | null) => {
-      if (mode === "create" || !row) {
-        navigate(specificationWorkspaceUrl(NEW_SPECIFICATION));
-        return;
-      }
+  // View/Edit/Copy always open a page: one record its own page, several the selected-records page.
+  const openCopy = useCallback(
+    (ids: string[]) =>
       navigate(
-        mode === "view"
-          ? `${specificationWorkspaceUrl(row.id)}?mode=view`
-          : specificationWorkspaceUrl(row.id)
-      );
-    },
+        recordsActionUrl(PageUrl.LIMSSpecificationWorkspace.path, "copy", ids)
+      ),
     [navigate]
   );
 
-  const openCopy = useCallback(
-    (ids: string[]) => {
-      if (ids.length === 1) {
-        navigate(
-          `${specificationWorkspaceUrl(NEW_SPECIFICATION)}?copyFrom=${ids[0]}`
-        );
-        return;
-      }
-      setCopyIds(ids);
-      openModal();
-    },
-    [openModal, navigate]
-  );
-
   const openView = useCallback(
-    (ids: string[]) => {
-      if (ids.length === 1) {
-        navigate(`${specificationWorkspaceUrl(ids[0])}?mode=view`);
-        return;
-      }
-      setViewIds(ids);
-      openModal();
-    },
-    [openModal, navigate]
+    (ids: string[]) =>
+      navigate(
+        recordsActionUrl(PageUrl.LIMSSpecificationWorkspace.path, "view", ids)
+      ),
+    [navigate]
   );
 
   const openEdit = useCallback(
-    (ids: string[]) => {
-      if (ids.length === 1) {
-        navigate(specificationWorkspaceUrl(ids[0]));
-        return;
-      }
-      setEditIds(ids);
-      openModal();
-    },
-    [openModal, navigate]
+    (ids: string[]) =>
+      navigate(
+        recordsActionUrl(PageUrl.LIMSSpecificationWorkspace.path, "edit", ids)
+      ),
+    [navigate]
   );
-
-  const handleCloseForm = () => {
-    closeModal();
-    setCopyIds(null);
-    setViewIds(null);
-    setEditIds(null);
-  };
-
-  const handleSaveCopies = async (payloads: LimsSpecificationPayload[]) => {
-    await bulkCopy.mutateAsync(payloads);
-    handleCloseForm();
-    table.clearSelection();
-  };
-
-  const handleSaveEdits = (
-    updates: { id: string; payload: LimsSpecificationPayload }[]
-  ) => {
-    handleCloseForm();
-    compliance.requestBulkUpdate(updates);
-  };
-
-  const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
-    await bulkClone.mutateAsync(idsSelection(unreviewedIds));
-  };
 
   const label = (row: LimsSpecification) =>
     String(row.specId ?? row.name ?? "");
@@ -282,7 +211,7 @@ const LimsSpecificationList = () => {
         icon: EyeIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_SPECIFICATION,
-        onClick: (row) => openForm("view", row)
+        onClick: (row) => openView([row.id])
       },
       {
         key: "edit",
@@ -290,7 +219,7 @@ const LimsSpecificationList = () => {
         icon: PencilIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.UPDATE_SPECIFICATION,
-        onClick: (row) => openForm("edit", row)
+        onClick: (row) => openEdit([row.id])
       },
       {
         key: "audit",
@@ -331,7 +260,7 @@ const LimsSpecificationList = () => {
           ])
       }
     ],
-    [compliance, openCopy, openForm, t]
+    [compliance, openCopy, openEdit, openView, t]
   );
 
   return (
@@ -360,49 +289,12 @@ const LimsSpecificationList = () => {
             icon: PlusIcon,
             variant: "primary",
             permission: LIMS_PERMISSIONS.CREATE_SPECIFICATION,
-            onClick: () => openForm("create", null)
+            onClick: () =>
+              navigate(specificationWorkspaceUrl(NEW_SPECIFICATION))
           }
         ]}
         emptyState={{ title: t("limsNoSpecifications") }}
       />
-
-      <Modal
-        isOpen={isOpen}
-        onClose={handleCloseForm}
-        className="m-4 max-w-[1100px] overflow-x-hidden dark:bg-gray-900"
-        disableOuterScroll
-      >
-        {copyIds ? (
-          <CopyStepper<LimsSpecification, LimsSpecificationPayload>
-            ids={copyIds}
-            fetchById={fetchLimsSpecificationById}
-            FormComponent={LimsSpecificationForm}
-            onSaveAll={handleSaveCopies}
-            onDuplicateUnreviewed={handleDuplicateUnreviewedCopies}
-            onClose={handleCloseForm}
-            saving={bulkCopy.isPending || bulkClone.isPending}
-            entityLabel={t("limsSpecification")}
-          />
-        ) : viewIds ? (
-          <ViewStepper<LimsSpecification>
-            ids={viewIds}
-            fetchById={fetchLimsSpecificationById}
-            FormComponent={LimsSpecificationForm}
-            onClose={handleCloseForm}
-            entityLabel={t("limsSpecification")}
-          />
-        ) : editIds ? (
-          <EditStepper<LimsSpecification, LimsSpecificationPayload>
-            ids={editIds}
-            fetchById={fetchLimsSpecificationById}
-            FormComponent={LimsSpecificationForm}
-            onSaveAll={handleSaveEdits}
-            onClose={handleCloseForm}
-            saving={bulkUpdate.isPending}
-            entityLabel={t("limsSpecification")}
-          />
-        ) : null}
-      </Modal>
 
       <LimsComplianceDialogs
         compliance={compliance}

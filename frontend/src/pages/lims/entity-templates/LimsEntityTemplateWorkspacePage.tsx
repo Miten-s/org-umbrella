@@ -9,6 +9,7 @@ import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import Button from "@/components/ui/button/Button";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/lib/toast";
+import { withSelectedRecords } from "@/components/data/SelectedRecordsPage";
 import { PageUrl } from "@/types/utils.types";
 import { LIMS_PERMISSIONS, hasPermission } from "@/utils/permissions";
 import {
@@ -21,6 +22,11 @@ import type {
   LimsEntityTemplatePayload
 } from "./LimsEntityTemplate.types";
 import LimsEntityTemplateForm from "./LimsEntityTemplateForm";
+import {
+  useBulkCloneLimsEntityTemplate,
+  useBulkCopyLimsEntityTemplate,
+  useBulkUpdateLimsEntityTemplate
+} from "./LimsEntityTemplate.queries";
 import { NEW_ENTITY_TEMPLATE, entityTemplateUrl } from "./entityTemplateRoutes";
 
 const TABS = ["details", "conditions"];
@@ -169,7 +175,7 @@ const Workspace = ({
 
 /** One Entity Template on its own page: Details · Conditions. `new` creates (or
  * copies with ?copyFrom=), an id edits — or views with ?mode=view or without permission. */
-const LimsEntityTemplateWorkspacePage = () => {
+const RecordPage = () => {
   const { t } = useTranslation();
   const { id = "" } = useParams();
   const [params] = useSearchParams();
@@ -223,5 +229,21 @@ const LimsEntityTemplateWorkspacePage = () => {
     />
   );
 };
+
+const LimsEntityTemplateWorkspacePage = withSelectedRecords<
+  LimsEntityTemplate,
+  LimsEntityTemplatePayload
+>(RecordPage, {
+  entityKey: "limsEntityTemplate",
+  entityPluralKey: "limsEntityTemplates",
+  listPath: PageUrl.LIMSEntityTemplates.path,
+  fetchById: fetchLimsEntityTemplateById,
+  Form: LimsEntityTemplateForm,
+  useBulkUpdate: useBulkUpdateLimsEntityTemplate,
+  useBulkCopy: useBulkCopyLimsEntityTemplate,
+  useBulkClone: useBulkCloneLimsEntityTemplate,
+  createPermission: LIMS_PERMISSIONS.CREATE_ENTITY_TEMPLATE,
+  updatePermission: LIMS_PERMISSIONS.UPDATE_ENTITY_TEMPLATE
+});
 
 export default LimsEntityTemplateWorkspacePage;

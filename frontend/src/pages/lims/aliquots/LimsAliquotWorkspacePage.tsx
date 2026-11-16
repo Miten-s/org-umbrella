@@ -1,6 +1,7 @@
 import ModuleWorkspacePage, {
   type ModuleWorkspaceConfig
 } from "@/components/data/ModuleWorkspacePage";
+import { withSelectedRecords } from "@/components/data/SelectedRecordsPage";
 import { PageUrl } from "@/types/utils.types";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
 import {
@@ -10,6 +11,11 @@ import {
 } from "./LimsAliquot.api";
 import type { LimsAliquot, LimsAliquotPayload } from "./LimsAliquot.types";
 import LimsAliquotForm from "./LimsAliquotForm";
+import {
+  useBulkCloneLimsAliquot,
+  useBulkCopyLimsAliquot,
+  useBulkUpdateLimsAliquot
+} from "./LimsAliquot.queries";
 
 const config: ModuleWorkspaceConfig<LimsAliquot, LimsAliquotPayload> = {
   entityKey: "limsAliquot",
@@ -35,7 +41,17 @@ const config: ModuleWorkspaceConfig<LimsAliquot, LimsAliquotPayload> = {
     (record as { group?: { name?: string } | null }).group?.name
 };
 
-/** One record on its own page: Details plus a tab per sub-list. */
-const LimsAliquotWorkspacePage = () => <ModuleWorkspacePage config={config} />;
+/** One record on its own page (Details plus a tab per sub-list), or several selected ones stepped through. */
+const LimsAliquotWorkspacePage = withSelectedRecords<
+  LimsAliquot,
+  LimsAliquotPayload
+>(() => <ModuleWorkspacePage config={config} />, {
+  ...config,
+  entityPluralKey: "limsAliquots",
+  Form: LimsAliquotForm,
+  useBulkUpdate: useBulkUpdateLimsAliquot,
+  useBulkCopy: useBulkCopyLimsAliquot,
+  useBulkClone: useBulkCloneLimsAliquot
+});
 
 export default LimsAliquotWorkspacePage;

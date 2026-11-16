@@ -1,25 +1,20 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { PageUrl } from "@/types/utils.types";
+import { recordsActionUrl } from "@/components/data/recordPage";
 import { NEW_ENTITY_TEMPLATE, entityTemplateUrl } from "./entityTemplateRoutes";
 
 import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
-import CopyStepper from "@/components/data/CopyStepper";
-import ViewStepper from "@/components/data/ViewStepper";
-import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
-import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
-import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
-import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
 import { toast } from "@/lib/toast";
-import { idsSelection } from "@/lib/query/listTypes";
 import {
   CopyIcon,
   EyeIcon,
@@ -28,27 +23,17 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import {
-  fetchLimsEntityTemplateById,
-  fetchLimsEntityTemplateList
-} from "./LimsEntityTemplate.api";
+import { fetchLimsEntityTemplateList } from "./LimsEntityTemplate.api";
 import { getLimsEntityTemplateColumns } from "./LimsEntityTemplate.columns";
 import {
   limsEntityTemplateKeys,
   useBulkCloneLimsEntityTemplate,
-  useBulkCopyLimsEntityTemplate,
   useBulkDeleteLimsEntityTemplate,
   useBulkUpdateLimsEntityTemplate,
-  useCreateLimsEntityTemplate,
   useLimsEntityTemplateAudit,
   useRestoreLimsEntityTemplate,
-  useBulkRestoreLimsEntityTemplate,
-  useUpdateLimsEntityTemplate,
-  useLimsEntityTemplateById
+  useBulkRestoreLimsEntityTemplate
 } from "./LimsEntityTemplate.queries";
-import LimsEntityTemplateForm, {
-  type LimsEntityTemplateFormMode
-} from "./LimsEntityTemplateForm";
 import type {
   LimsEntityTemplate,
   LimsEntityTemplatePayload
@@ -58,27 +43,14 @@ import type {
 const LimsEntityTemplateList = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { isOpen, openModal, closeModal } = useModal();
 
-  // Full record (incl. attachments) is fetched fresh from this id, not the list row.
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [formMode, setFormMode] =
-    useState<LimsEntityTemplateFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
-  // Set instead of activeId/formMode while the Copy review flow is open.
-  const [copyIds, setCopyIds] = useState<string[] | null>(null);
-  const [viewIds, setViewIds] = useState<string[] | null>(null);
-  const [editIds, setEditIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<
     LimsEntityTemplate,
     LimsEntityTemplatePayload
   >();
   const auditQuery = useLimsEntityTemplateAudit(compliance.auditRow?.id);
-  const detailQuery = useLimsEntityTemplateById(
-    activeId ?? undefined,
-    isOpen && formMode !== "create"
-  );
 
   const fetchList = useCallback(
     (
@@ -94,20 +66,14 @@ const LimsEntityTemplateList = () => {
     fetchList
   });
 
-  const createPhrase = useCreateLimsEntityTemplate();
-  const updatePhrase = useUpdateLimsEntityTemplate();
   const bulkClone = useBulkCloneLimsEntityTemplate();
-  const bulkCopy = useBulkCopyLimsEntityTemplate();
   const bulkDelete = useBulkDeleteLimsEntityTemplate();
   const bulkUpdate = useBulkUpdateLimsEntityTemplate();
   const restorePhrase = useRestoreLimsEntityTemplate();
   const bulkRestoreSampleTemplate = useBulkRestoreLimsEntityTemplate();
 
   const busy =
-    createPhrase.isPending ||
-    updatePhrase.isPending ||
     bulkClone.isPending ||
-    bulkCopy.isPending ||
     bulkDelete.isPending ||
     bulkUpdate.isPending ||
     restorePhrase.isPending ||
@@ -118,92 +84,30 @@ const LimsEntityTemplateList = () => {
     [t, includeRemoved]
   );
 
-  // One template opens on its own page; several are reviewed side by side in the modal.
+  // View/Edit/Copy always open a page: one record its own page, several the selected-records page.
   const openCopy = useCallback(
-    (ids: string[]) => {
-      if (ids.length === 1) {
-        navigate(
-          `${entityTemplateUrl(NEW_ENTITY_TEMPLATE)}?copyFrom=${ids[0]}`
-        );
-        return;
-      }
-      setCopyIds(ids);
-      openModal();
-    },
-    [openModal, navigate]
+    (ids: string[]) =>
+      navigate(
+        recordsActionUrl(PageUrl.LIMSEntityTemplateWorkspace.path, "copy", ids)
+      ),
+    [navigate]
   );
 
   const openView = useCallback(
-    (ids: string[]) => {
-      if (ids.length === 1) {
-        navigate(`${entityTemplateUrl(ids[0])}?mode=view`);
-        return;
-      }
-      setViewIds(ids);
-      openModal();
-    },
-    [openModal, navigate]
+    (ids: string[]) =>
+      navigate(
+        recordsActionUrl(PageUrl.LIMSEntityTemplateWorkspace.path, "view", ids)
+      ),
+    [navigate]
   );
 
   const openEdit = useCallback(
-    (ids: string[]) => {
-      if (ids.length === 1) {
-        navigate(entityTemplateUrl(ids[0]));
-        return;
-      }
-      setEditIds(ids);
-      openModal();
-    },
-    [openModal, navigate]
+    (ids: string[]) =>
+      navigate(
+        recordsActionUrl(PageUrl.LIMSEntityTemplateWorkspace.path, "edit", ids)
+      ),
+    [navigate]
   );
-
-  const handleCloseForm = () => {
-    closeModal();
-    setActiveId(null);
-    setFormMode("create");
-    setCopyIds(null);
-    setViewIds(null);
-    setEditIds(null);
-  };
-
-  const handleSaveCopies = async (payloads: LimsEntityTemplatePayload[]) => {
-    await bulkCopy.mutateAsync(payloads);
-    handleCloseForm();
-    table.clearSelection();
-  };
-
-  const handleSaveEdits = (
-    updates: { id: string; payload: LimsEntityTemplatePayload }[]
-  ) => {
-    handleCloseForm();
-    compliance.requestBulkUpdate(updates);
-  };
-
-  const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
-    await bulkClone.mutateAsync(idsSelection(unreviewedIds));
-  };
-
-  const handleSave = async (payload: LimsEntityTemplatePayload) => {
-    if (activeId) {
-      compliance.requestUpdate(activeId, payload);
-      closeModal();
-      return;
-    }
-    await createPhrase.mutateAsync(payload);
-    handleCloseForm();
-  };
-
-  const confirmUpdate = async (reason: string) => {
-    const pending = compliance.pendingUpdate;
-    if (!pending) return;
-    await updatePhrase.mutateAsync({
-      id: pending.id,
-      payload: { ...pending.payload, changeReason: reason }
-    });
-    compliance.clearUpdate();
-    setActiveId(null);
-    setFormMode("create");
-  };
 
   const bulkActions = useMemo<DataTableBulkAction[]>(
     () => [
@@ -385,65 +289,11 @@ const LimsEntityTemplateList = () => {
         emptyState={{ title: t("limsNoSampleTemplates") }}
       />
 
-      <Modal
-        isOpen={isOpen}
-        onClose={handleCloseForm}
-        className="m-4 max-w-[1000px] overflow-x-hidden dark:bg-gray-900"
-        disableOuterScroll
-      >
-        {copyIds ? (
-          <CopyStepper<LimsEntityTemplate, LimsEntityTemplatePayload>
-            ids={copyIds}
-            fetchById={fetchLimsEntityTemplateById}
-            FormComponent={LimsEntityTemplateForm}
-            onSaveAll={handleSaveCopies}
-            onDuplicateUnreviewed={handleDuplicateUnreviewedCopies}
-            onClose={handleCloseForm}
-            saving={bulkCopy.isPending || bulkClone.isPending}
-            entityLabel={t("limsEntityTemplate")}
-          />
-        ) : viewIds ? (
-          <ViewStepper<LimsEntityTemplate>
-            ids={viewIds}
-            fetchById={fetchLimsEntityTemplateById}
-            FormComponent={LimsEntityTemplateForm}
-            onClose={handleCloseForm}
-            entityLabel={t("limsEntityTemplate")}
-          />
-        ) : editIds ? (
-          <EditStepper<LimsEntityTemplate, LimsEntityTemplatePayload>
-            ids={editIds}
-            fetchById={fetchLimsEntityTemplateById}
-            FormComponent={LimsEntityTemplateForm}
-            onSaveAll={handleSaveEdits}
-            onClose={handleCloseForm}
-            saving={bulkUpdate.isPending}
-            entityLabel={t("limsEntityTemplate")}
-          />
-        ) : formMode !== "create" &&
-          (detailQuery.isLoading || detailQuery.isFetching) ? (
-          <div className="flex min-h-[300px] items-center justify-center p-10">
-            <LoadingSpinner fullScreen={false} />
-          </div>
-        ) : (
-          <LimsEntityTemplateForm
-            mode={formMode}
-            initialData={
-              formMode === "create" ? null : (detailQuery.data ?? null)
-            }
-            onClose={handleCloseForm}
-            onSubmit={handleSave}
-            submitting={createPhrase.isPending || updatePhrase.isPending}
-          />
-        )}
-      </Modal>
-
       <LimsComplianceDialogs
         compliance={compliance}
         entityLabel="entity template"
         entityLabelPlural="entity templates"
         getRecordLabel={(row) => row.entityTemplateId || row.name}
-        updating={updatePhrase.isPending}
         deleting={bulkDelete.isPending}
         restoring={restorePhrase.isPending}
         bulkRestoring={bulkRestoreSampleTemplate.isPending}
@@ -457,7 +307,6 @@ const LimsEntityTemplateList = () => {
         auditFetchingNextPage={auditQuery.isFetchingNextPage}
 
         onAuditLoadMore={auditQuery.fetchNextPage}
-        onUpdate={confirmUpdate}
         onBulkUpdate={async (reason) => {
           const pending = compliance.pendingBulkUpdate;
           if (pending) {

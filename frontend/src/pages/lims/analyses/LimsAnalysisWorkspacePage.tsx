@@ -10,6 +10,7 @@ import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import Button from "@/components/ui/button/Button";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/lib/toast";
+import { withSelectedRecords } from "@/components/data/SelectedRecordsPage";
 import { PageUrl } from "@/types/utils.types";
 import { LIMS_PERMISSIONS, hasPermission } from "@/utils/permissions";
 import {
@@ -19,6 +20,11 @@ import {
 } from "./LimsAnalysis.api";
 import type { LimsAnalysis, LimsAnalysisPayload } from "./LimsAnalysis.types";
 import LimsAnalysisForm from "./LimsAnalysisForm";
+import {
+  useBulkCloneLimsAnalysis,
+  useBulkCopyLimsAnalysis,
+  useBulkUpdateLimsAnalysis
+} from "./LimsAnalysis.queries";
 import { analysisWorkspaceUrl, NEW_ANALYSIS } from "./analysisRoutes";
 
 const TABS = ["details", "components"] as const;
@@ -198,7 +204,7 @@ const Workspace = ({
 
 /** One Test Template on its own page: Template details · Components. `new` creates (or copies
  * with ?copyFrom=), an id edits — or views with ?mode=view or without update permission. */
-const LimsAnalysisWorkspacePage = () => {
+const RecordPage = () => {
   const { t } = useTranslation();
   const { id = "" } = useParams();
   const [params] = useSearchParams();
@@ -252,5 +258,21 @@ const LimsAnalysisWorkspacePage = () => {
     />
   );
 };
+
+const LimsAnalysisWorkspacePage = withSelectedRecords<
+  LimsAnalysis,
+  LimsAnalysisPayload
+>(RecordPage, {
+  entityKey: "limsAnalysis",
+  entityPluralKey: "limsAnalyses",
+  listPath: PageUrl.LIMSAnalyses.path,
+  fetchById: fetchLimsAnalysisById,
+  Form: LimsAnalysisForm,
+  useBulkUpdate: useBulkUpdateLimsAnalysis,
+  useBulkCopy: useBulkCopyLimsAnalysis,
+  useBulkClone: useBulkCloneLimsAnalysis,
+  createPermission: LIMS_PERMISSIONS.CREATE_ANALYSIS,
+  updatePermission: LIMS_PERMISSIONS.UPDATE_ANALYSIS
+});
 
 export default LimsAnalysisWorkspacePage;

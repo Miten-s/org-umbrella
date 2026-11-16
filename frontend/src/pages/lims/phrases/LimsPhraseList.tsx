@@ -2,24 +2,22 @@ import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageUrl } from "@/types/utils.types";
 import { useTranslation } from "react-i18next";
-import { NEW_RECORD, recordPageUrl } from "@/components/data/recordPage";
+import {
+  NEW_RECORD,
+  recordPageUrl,
+  recordsActionUrl
+} from "@/components/data/recordPage";
 
 import DataTable, {
   type DataTableBulkAction
 } from "@/components/data/DataTable";
 import LimsComplianceDialogs from "@/components/data/LimsComplianceDialogs";
-import CopyStepper from "@/components/data/CopyStepper";
-import ViewStepper from "@/components/data/ViewStepper";
-import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
-import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
-import { useModal } from "@/hooks/useModal";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
 import { toast } from "@/lib/toast";
-import { idsSelection } from "@/lib/query/listTypes";
 import {
   CopyIcon,
   EyeIcon,
@@ -28,19 +26,17 @@ import {
   TimeIcon,
   TrashBinIcon
 } from "@/public/icons";
-import { fetchLimsPhraseById, fetchLimsPhraseList } from "./LimsPhrase.api";
+import { fetchLimsPhraseList } from "./LimsPhrase.api";
 import { getLimsPhraseColumns } from "./LimsPhrase.columns";
 import {
   limsPhraseKeys,
   useBulkCloneLimsPhrase,
-  useBulkCopyLimsPhrase,
   useBulkDeleteLimsPhrase,
   useBulkUpdateLimsPhrase,
   useLimsPhraseAudit,
   useRestoreLimsPhrase,
   useBulkRestoreLimsPhrase
 } from "./LimsPhrase.queries";
-import LimsPhraseForm, { type LimsPhraseFormMode } from "./LimsPhraseForm";
 import type { LimsPhrase, LimsPhrasePayload } from "./LimsPhrase.types";
 
 /** LIMS Pick Lists (Phrases) — system pick lists are seeded by the backend and must not be
@@ -48,13 +44,8 @@ import type { LimsPhrase, LimsPhrasePayload } from "./LimsPhrase.types";
 const LimsPhraseList = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { isOpen, openModal, closeModal } = useModal();
 
   const [includeRemoved, setIncludeRemoved] = useState(false);
-  // Set instead of activeId/formMode while the Copy review flow is open.
-  const [copyIds, setCopyIds] = useState<string[] | null>(null);
-  const [viewIds, setViewIds] = useState<string[] | null>(null);
-  const [editIds, setEditIds] = useState<string[] | null>(null);
 
   const compliance = useLimsCompliance<LimsPhrase, LimsPhrasePayload>();
   const auditQuery = useLimsPhraseAudit(compliance.auditRow?.id);
@@ -72,7 +63,6 @@ const LimsPhraseList = () => {
   });
 
   const bulkClone = useBulkCloneLimsPhrase();
-  const bulkCopy = useBulkCopyLimsPhrase();
   const bulkDelete = useBulkDeleteLimsPhrase();
   const bulkUpdate = useBulkUpdateLimsPhrase();
   const restorePhrase = useRestoreLimsPhrase();
@@ -80,7 +70,6 @@ const LimsPhraseList = () => {
 
   const busy =
     bulkClone.isPending ||
-    bulkCopy.isPending ||
     bulkDelete.isPending ||
     bulkUpdate.isPending ||
     restorePhrase.isPending ||
@@ -91,79 +80,30 @@ const LimsPhraseList = () => {
     [t, includeRemoved]
   );
 
-  // One record opens on its own page; several are reviewed side by side in the modal.
-  const page = (id: string) =>
-    recordPageUrl(PageUrl.LIMSPhrasesWorkspace.path, id);
-  const openForm = useCallback(
-    (mode: LimsPhraseFormMode, row: LimsPhrase | null) => {
-      if (mode === "create" || !row) {
-        navigate(page(NEW_RECORD));
-        return;
-      }
-      navigate(mode === "view" ? `${page(row.id)}?mode=view` : page(row.id));
-    },
+  // View/Edit/Copy always open a page: one record its own page, several the selected-records page.
+  const openCopy = useCallback(
+    (ids: string[]) =>
+      navigate(
+        recordsActionUrl(PageUrl.LIMSPhrasesWorkspace.path, "copy", ids)
+      ),
     [navigate]
   );
 
-  const openCopy = useCallback(
-    (ids: string[]) => {
-      if (ids.length === 1) {
-        navigate(`${page(NEW_RECORD)}?copyFrom=${ids[0]}`);
-        return;
-      }
-      setCopyIds(ids);
-      openModal();
-    },
-    [openModal, navigate]
-  );
-
   const openView = useCallback(
-    (ids: string[]) => {
-      if (ids.length === 1) {
-        navigate(`${page(ids[0])}?mode=view`);
-        return;
-      }
-      setViewIds(ids);
-      openModal();
-    },
-    [openModal, navigate]
+    (ids: string[]) =>
+      navigate(
+        recordsActionUrl(PageUrl.LIMSPhrasesWorkspace.path, "view", ids)
+      ),
+    [navigate]
   );
 
   const openEdit = useCallback(
-    (ids: string[]) => {
-      if (ids.length === 1) {
-        navigate(page(ids[0]));
-        return;
-      }
-      setEditIds(ids);
-      openModal();
-    },
-    [openModal, navigate]
+    (ids: string[]) =>
+      navigate(
+        recordsActionUrl(PageUrl.LIMSPhrasesWorkspace.path, "edit", ids)
+      ),
+    [navigate]
   );
-
-  const handleCloseForm = () => {
-    closeModal();
-    setCopyIds(null);
-    setViewIds(null);
-    setEditIds(null);
-  };
-
-  const handleSaveCopies = async (payloads: LimsPhrasePayload[]) => {
-    await bulkCopy.mutateAsync(payloads);
-    handleCloseForm();
-    table.clearSelection();
-  };
-
-  const handleSaveEdits = (
-    updates: { id: string; payload: LimsPhrasePayload }[]
-  ) => {
-    handleCloseForm();
-    compliance.requestBulkUpdate(updates);
-  };
-
-  const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
-    await bulkClone.mutateAsync(idsSelection(unreviewedIds));
-  };
 
   const bulkActions = useMemo<DataTableBulkAction[]>(
     () => [
@@ -261,7 +201,7 @@ const LimsPhraseList = () => {
         icon: EyeIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.VIEW_PHRASE,
-        onClick: (phrase) => openForm("view", phrase)
+        onClick: (phrase) => openView([phrase.id])
       },
       {
         key: "edit",
@@ -269,7 +209,7 @@ const LimsPhraseList = () => {
         icon: PencilIcon,
         placement: "inline",
         permission: LIMS_PERMISSIONS.UPDATE_PHRASE,
-        onClick: (phrase) => openForm("edit", phrase)
+        onClick: (phrase) => openEdit([phrase.id])
       },
       {
         key: "audit",
@@ -314,7 +254,7 @@ const LimsPhraseList = () => {
           ])
       }
     ],
-    [compliance, openCopy, openForm, t]
+    [compliance, openCopy, openEdit, openView, t]
   );
 
   return (
@@ -343,49 +283,14 @@ const LimsPhraseList = () => {
             icon: PlusIcon,
             variant: "primary",
             permission: LIMS_PERMISSIONS.CREATE_PHRASE,
-            onClick: () => openForm("create", null)
+            onClick: () =>
+              navigate(
+                recordPageUrl(PageUrl.LIMSPhrasesWorkspace.path, NEW_RECORD)
+              )
           }
         ]}
         emptyState={{ title: t("limsNoPhrases") }}
       />
-
-      <Modal
-        isOpen={isOpen}
-        onClose={handleCloseForm}
-        className="m-4 max-w-[1000px] overflow-x-hidden dark:bg-gray-900"
-        disableOuterScroll
-      >
-        {copyIds ? (
-          <CopyStepper<LimsPhrase, LimsPhrasePayload>
-            ids={copyIds}
-            fetchById={fetchLimsPhraseById}
-            FormComponent={LimsPhraseForm}
-            onSaveAll={handleSaveCopies}
-            onDuplicateUnreviewed={handleDuplicateUnreviewedCopies}
-            onClose={handleCloseForm}
-            saving={bulkCopy.isPending || bulkClone.isPending}
-            entityLabel={t("limsPhrase")}
-          />
-        ) : viewIds ? (
-          <ViewStepper<LimsPhrase>
-            ids={viewIds}
-            fetchById={fetchLimsPhraseById}
-            FormComponent={LimsPhraseForm}
-            onClose={handleCloseForm}
-            entityLabel={t("limsPhrase")}
-          />
-        ) : editIds ? (
-          <EditStepper<LimsPhrase, LimsPhrasePayload>
-            ids={editIds}
-            fetchById={fetchLimsPhraseById}
-            FormComponent={LimsPhraseForm}
-            onSaveAll={handleSaveEdits}
-            onClose={handleCloseForm}
-            saving={bulkUpdate.isPending}
-            entityLabel={t("limsPhrase")}
-          />
-        ) : null}
-      </Modal>
 
       <LimsComplianceDialogs
         compliance={compliance}

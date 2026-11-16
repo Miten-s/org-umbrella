@@ -1,6 +1,7 @@
 import ModuleWorkspacePage, {
   type ModuleWorkspaceConfig
 } from "@/components/data/ModuleWorkspacePage";
+import { withSelectedRecords } from "@/components/data/SelectedRecordsPage";
 import { PageUrl } from "@/types/utils.types";
 import { LIMS_PERMISSIONS } from "@/utils/permissions";
 import {
@@ -13,6 +14,11 @@ import type {
   LimsInstrumentPayload
 } from "./LimsInstrument.types";
 import LimsInstrumentForm from "./LimsInstrumentForm";
+import {
+  useBulkCloneLimsInstrument,
+  useBulkCopyLimsInstrument,
+  useBulkUpdateLimsInstrument
+} from "./LimsInstrument.queries";
 
 const config: ModuleWorkspaceConfig<LimsInstrument, LimsInstrumentPayload> = {
   entityKey: "limsInstrument",
@@ -38,9 +44,17 @@ const config: ModuleWorkspaceConfig<LimsInstrument, LimsInstrumentPayload> = {
     (record as { group?: { name?: string } | null }).group?.name
 };
 
-/** One record on its own page: Details plus a tab per sub-list. */
-const LimsInstrumentWorkspacePage = () => (
-  <ModuleWorkspacePage config={config} />
-);
+/** One record on its own page (Details plus a tab per sub-list), or several selected ones stepped through. */
+const LimsInstrumentWorkspacePage = withSelectedRecords<
+  LimsInstrument,
+  LimsInstrumentPayload
+>(() => <ModuleWorkspacePage config={config} />, {
+  ...config,
+  entityPluralKey: "limsInstruments",
+  Form: LimsInstrumentForm,
+  useBulkUpdate: useBulkUpdateLimsInstrument,
+  useBulkCopy: useBulkCopyLimsInstrument,
+  useBulkClone: useBulkCloneLimsInstrument
+});
 
 export default LimsInstrumentWorkspacePage;
