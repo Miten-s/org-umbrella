@@ -4,7 +4,8 @@ import {
   ListQueryParams,
   PaginationMetadata,
   extractList,
-  extractPaginationMetadata
+  extractPaginationMetadata,
+  LIST_PAGE_SIZE_OPTIONS
 } from "@/utils/listResponse";
 import {
   DependencyList,
@@ -173,7 +174,7 @@ export const useServerPagination = <T>({
     () => ({
       onSearchChange: handleSearchChange,
       pageSize,
-      pageSizeOptions: [5, 10, 20, 50],
+      pageSizeOptions: LIST_PAGE_SIZE_OPTIONS,
       serverPagination,
       totalLabel: `${pagination.totalCount} total`
     }),

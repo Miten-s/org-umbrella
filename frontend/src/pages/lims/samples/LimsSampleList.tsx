@@ -106,7 +106,10 @@ const LimsSampleList = () => {
     restore.isPending ||
     bulkRestoreSample.isPending;
 
-  const columnDefs = useMemo(() => getLimsSampleColumns({ t }), [t]);
+  const columnDefs = useMemo(
+    () => getLimsSampleColumns({ t, includeRemoved }),
+    [t, includeRemoved]
+  );
 
   const bulkPage = (query: string) =>
     navigate(`${PageUrl.LIMSSamplesBulk.path}?${query}`);

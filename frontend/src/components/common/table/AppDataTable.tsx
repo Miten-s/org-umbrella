@@ -29,6 +29,10 @@ import {
   useRef,
   useState
 } from "react";
+import {
+  DEFAULT_LIST_PAGE_SIZE,
+  LIST_PAGE_SIZE_OPTIONS
+} from "@/utils/listResponse";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -437,8 +441,8 @@ const AppDataTable = <T extends object>({
   errorMessage,
   enableSelection = false,
   defaultColDef: defaultColDefInput,
-  pageSize = 10,
-  pageSizeOptions = [10, 20, 50, 100],
+  pageSize = DEFAULT_LIST_PAGE_SIZE,
+  pageSizeOptions = LIST_PAGE_SIZE_OPTIONS,
   paginateChildRows = true,
   serverPagination,
   onSearchChange,

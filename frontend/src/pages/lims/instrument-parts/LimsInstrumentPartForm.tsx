@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
+import { usePageForm, type PageFormProps } from "@/components/data/pageForm";
 
 import Input from "@/components/common/form/input/InputField";
 import DateField from "@/components/common/form/input/DateField";
@@ -37,7 +38,7 @@ import type {
 export type LimsInstrumentPartFormMode =
   "create" | "edit" | "view" | "copy" | "bulk-edit";
 
-interface LimsInstrumentPartFormProps {
+interface LimsInstrumentPartFormProps extends PageFormProps {
   mode?: LimsInstrumentPartFormMode;
   initialData?: LimsInstrumentPart | null;
   onClose: () => void;
@@ -75,7 +76,10 @@ const LimsInstrumentPartForm = ({
   submitLabel,
   disabled = false,
   formId,
-  stepLabel
+  stepLabel,
+  pageSection,
+  onDirtyChange,
+  onInvalid
 }: LimsInstrumentPartFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
@@ -119,6 +123,13 @@ const LimsInstrumentPartForm = ({
     ),
     defaultValues: initialValues
   });
+  const watched = useWatch({ control });
+  const page = usePageForm(
+    { pageSection, onDirtyChange },
+    !isPayloadEqual({ ...initialValues, ...watched }, initialValues) ||
+      !isPayloadEqual(maintenance, initialMaintenanceRef.current) ||
+      attachments.isDirty
+  );
 
   const measuringInformation = useWatch({
     control,
@@ -167,41 +178,53 @@ const LimsInstrumentPartForm = ({
   );
 
   return (
-    <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+    <div className={page.frameClass}>
       <form
         id={formId}
-        onSubmit={handleSubmit((values) => {
-          // Edit + nothing actually changed: skip the reason modal, update
-          // call, and audit entry entirely — a no-op Save just closes.
-          if (
-            (mode === "edit" || mode === "bulk-edit") &&
-            !attachments.isDirty &&
-            isPayloadEqual(values, initialValues) &&
-            isPayloadEqual(maintenance, initialMaintenanceRef.current)
-          ) {
-            (onUnchanged ?? onClose)();
-            return;
-          }
-          onSubmit(
-            { ...values, maintenance, keptAttachmentIds: attachments.keptIds },
-            attachments.newFiles
-          );
-        })}
+        onSubmit={handleSubmit(
+          (values) => {
+            // Edit + nothing actually changed: skip the reason modal, update
+            // call, and audit entry entirely — a no-op Save just closes.
+            if (
+              (mode === "edit" || mode === "bulk-edit") &&
+              !attachments.isDirty &&
+              isPayloadEqual(values, initialValues) &&
+              isPayloadEqual(maintenance, initialMaintenanceRef.current)
+            ) {
+              (onUnchanged ?? onClose)();
+              return;
+            }
+            onSubmit(
+              {
+                ...values,
+                maintenance,
+                keptAttachmentIds: attachments.keptIds
+              },
+              attachments.newFiles
+            );
+          },
+          () => onInvalid?.("details")
+        )}
         className="min-w-0 space-y-4"
       >
-        <FormHeader
-          title={
-            isReadOnly
-              ? t("view", { entity: t("limsInstrumentPart") })
-              : mode === "copy"
-                ? `${t("copyEntity", { entity: t("limsInstrumentPart") })}${stepLabel ?? ""}`
-                : initialData
-                  ? `${t("update", { entity: t("limsInstrumentPart") })}${stepLabel ?? ""}`
-                  : t("create", { entity: t("limsInstrumentPart") })
-          }
-        />
+        {page.onPage ? null : (
+          <FormHeader
+            title={
+              isReadOnly
+                ? t("view", { entity: t("limsInstrumentPart") })
+                : mode === "copy"
+                  ? `${t("copyEntity", { entity: t("limsInstrumentPart") })}${stepLabel ?? ""}`
+                  : initialData
+                    ? `${t("update", { entity: t("limsInstrumentPart") })}${stepLabel ?? ""}`
+                    : t("create", { entity: t("limsInstrumentPart") })
+            }
+          />
+        )}
 
-        <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
+        <div
+          data-section="details"
+          className={`grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 ${page.hide("details")}`}
+        >
           {text("partId", t("limsPartId"), true, "text")}
           {text("partName", t("limsPartName"), true, "text")}
           <div className="min-w-0">
@@ -322,24 +345,6 @@ const LimsInstrumentPartForm = ({
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
-          <div className="col-span-full min-w-0">
-            <SubFormGrid<LimsMaintenanceRow>
-              label={t("limsMaintenance")}
-              rows={maintenance}
-              onChange={setMaintenance}
-              disabled={isReadOnly}
-              columns={[
-                { key: "maintenanceName", header: t("name") },
-                {
-                  key: "performedOn",
-                  header: t("limsPerformedOn"),
-                  type: "date"
-                },
-                { key: "performedBy", header: t("limsPerformedBy") },
-                { key: "remarks", header: t("limsRemarks") }
-              ]}
-            />
-          </div>
           {mode !== "copy" && mode !== "bulk-edit" && (
             <LimsAttachmentsField
               attachments={attachments}
@@ -348,7 +353,29 @@ const LimsInstrumentPartForm = ({
           )}
         </div>
 
-        <div className="mt-4 flex justify-end gap-2">
+        <div
+          data-section="limsMaintenance"
+          className={`min-w-0 ${page.hide("limsMaintenance")}`}
+        >
+          <SubFormGrid<LimsMaintenanceRow>
+            label={t("limsMaintenance")}
+            rows={maintenance}
+            onChange={setMaintenance}
+            disabled={isReadOnly}
+            columns={[
+              { key: "maintenanceName", header: t("name") },
+              {
+                key: "performedOn",
+                header: t("limsPerformedOn"),
+                type: "date"
+              },
+              { key: "performedBy", header: t("limsPerformedBy") },
+              { key: "remarks", header: t("limsRemarks") }
+            ]}
+          />
+        </div>
+
+        <div className={page.onPage ? "hidden" : "mt-4 flex justify-end gap-2"}>
           <Button
             variant="outline"
             type="button"

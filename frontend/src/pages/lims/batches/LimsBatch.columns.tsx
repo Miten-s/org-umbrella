@@ -1,19 +1,22 @@
 import { AvatarCell } from "@/components/data/cells/AvatarCell";
-import { StatusPill } from "@/components/data/cells/StatusPill";
 import { TagListCell } from "@/components/data/cells/TagListCell";
 import { TruncateCell } from "@/components/data/cells/TruncateCell";
 import { fetchLimsLotList } from "@/pages/lims/lots/LimsLot.api";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import type { TFunction } from "i18next";
+import { removedColumn } from "@/components/data/cells/removedColumn";
 import type { LimsBatch, LimsRef } from "./LimsBatch.types";
 
 const refLabel = (ref: LimsRef | null | undefined) => ref?.name ?? "";
 
 /** Column factory (STANDARDS.md §8). */
 export const getLimsBatchColumns = ({
-  t
+  t,
+  includeRemoved = false
 }: {
   t: TFunction;
+  /** Adds the Removed column while removed records are listed. */
+  includeRemoved?: boolean;
 }): ColDef<LimsBatch>[] => [
   {
     field: "batchId",
@@ -80,17 +83,5 @@ export const getLimsBatchColumns = ({
       />
     )
   },
-  {
-    field: "isRemoved",
-    headerName: t("status"),
-    flex: 0.6,
-    minWidth: 130,
-    sortable: false,
-    cellRenderer: (params: ICellRendererParams<LimsBatch>) =>
-      params.data?.isRemoved ? (
-        <StatusPill label={t("limsRemoved")} tone="error" />
-      ) : (
-        <StatusPill label={t("active")} tone="success" />
-      )
-  }
+  ...(includeRemoved ? [removedColumn<LimsBatch>(t)] : [])
 ];

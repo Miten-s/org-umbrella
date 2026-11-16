@@ -217,6 +217,11 @@ export const PageUrl: PageUrlType = {
     matchPattern: /^\/lims\/stocks$/i,
     pageTitle: "Stock Items"
   },
+  LIMSStocksWorkspace: {
+    path: "/lims/stocks/:id",
+    matchPattern: /^\/lims\/stocks\/[^/]+$/i,
+    pageTitle: "Stock Items"
+  },
   LIMSParameters: {
     path: "/lims/parameters",
     matchPattern: /^\/lims\/parameters$/i,
@@ -227,9 +232,19 @@ export const PageUrl: PageUrlType = {
     matchPattern: /^\/lims\/stock-batches$/i,
     pageTitle: "Stock Batches"
   },
+  LIMSStockBatchesWorkspace: {
+    path: "/lims/stock-batches/:id",
+    matchPattern: /^\/lims\/stock-batches\/[^/]+$/i,
+    pageTitle: "Stock Batches"
+  },
   LIMSAliquots: {
     path: "/lims/aliquots",
     matchPattern: /^\/lims\/aliquots$/i,
+    pageTitle: "Aliquots"
+  },
+  LIMSAliquotsWorkspace: {
+    path: "/lims/aliquots/:id",
+    matchPattern: /^\/lims\/aliquots\/[^/]+$/i,
     pageTitle: "Aliquots"
   },
   LIMSInstruments: {
@@ -237,9 +252,19 @@ export const PageUrl: PageUrlType = {
     matchPattern: /^\/lims\/instruments$/i,
     pageTitle: "Instruments"
   },
+  LIMSInstrumentsWorkspace: {
+    path: "/lims/instruments/:id",
+    matchPattern: /^\/lims\/instruments\/[^/]+$/i,
+    pageTitle: "Instruments"
+  },
   LIMSInstrumentParts: {
     path: "/lims/instrument-parts",
     matchPattern: /^\/lims\/instrument-parts$/i,
+    pageTitle: "Instrument Parts"
+  },
+  LIMSInstrumentPartsWorkspace: {
+    path: "/lims/instrument-parts/:id",
+    matchPattern: /^\/lims\/instrument-parts\/[^/]+$/i,
     pageTitle: "Instrument Parts"
   },
   LIMSCalibrations: {
@@ -250,6 +275,11 @@ export const PageUrl: PageUrlType = {
   LIMSInspectionPlans: {
     path: "/lims/inspection-plans",
     matchPattern: /^\/lims\/inspection-plans$/i,
+    pageTitle: "Inspection Plans"
+  },
+  LIMSInspectionPlansWorkspace: {
+    path: "/lims/inspection-plans/:id",
+    matchPattern: /^\/lims\/inspection-plans\/[^/]+$/i,
     pageTitle: "Inspection Plans"
   },
   LIMSAnalyses: {
@@ -265,6 +295,11 @@ export const PageUrl: PageUrlType = {
   LIMSTestGroups: {
     path: "/lims/test-groups",
     matchPattern: /^\/lims\/test-groups$/i,
+    pageTitle: "Test Groups"
+  },
+  LIMSTestGroupsWorkspace: {
+    path: "/lims/test-groups/:id",
+    matchPattern: /^\/lims\/test-groups\/[^/]+$/i,
     pageTitle: "Test Groups"
   },
   LIMSSpecifications: {
@@ -327,6 +362,11 @@ export const PageUrl: PageUrlType = {
     matchPattern: /^\/lims\/tests$/i,
     pageTitle: "Tests"
   },
+  LIMSTestsWorkspace: {
+    path: "/lims/tests/:id",
+    matchPattern: /^\/lims\/tests\/[^/]+$/i,
+    pageTitle: "Tests"
+  },
   LIMSResults: {
     path: "/lims/results",
     matchPattern: /^\/lims\/results$/i,
@@ -340,6 +380,11 @@ export const PageUrl: PageUrlType = {
   LIMSPhrases: {
     path: "/lims/phrases",
     matchPattern: /^\/lims\/phrases$/i,
+    pageTitle: "Pick Lists"
+  },
+  LIMSPhrasesWorkspace: {
+    path: "/lims/phrases/:id",
+    matchPattern: /^\/lims\/phrases\/[^/]+$/i,
     pageTitle: "Pick Lists"
   }
   // #endregion

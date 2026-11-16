@@ -1,9 +1,9 @@
 import { AvatarCell } from "@/components/data/cells/AvatarCell";
-import { StatusPill } from "@/components/data/cells/StatusPill";
 import { TagListCell } from "@/components/data/cells/TagListCell";
 import { TruncateCell } from "@/components/data/cells/TruncateCell";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import type { TFunction } from "i18next";
+import { removedColumn } from "@/components/data/cells/removedColumn";
 import type { LimsLocation, LimsRef } from "./LimsLocation.types";
 
 /** Label for a relation the server returns nested as `{ id, name }`. */
@@ -15,9 +15,12 @@ const refLabel = (ref: LimsRef | string | null | undefined): string => {
 
 /** Column factory (STANDARDS.md §8) — no inline cell JSX in module files. */
 export const getLimsLocationColumns = ({
-  t
+  t,
+  includeRemoved = false
 }: {
   t: TFunction;
+  /** Adds the Removed column while removed records are listed. */
+  includeRemoved?: boolean;
 }): ColDef<LimsLocation>[] => [
   {
     field: "locationId",
@@ -84,17 +87,5 @@ export const getLimsLocationColumns = ({
       <TruncateCell value={params.value} />
     )
   },
-  {
-    field: "isRemoved",
-    headerName: t("status"),
-    flex: 0.6,
-    minWidth: 130,
-    sortable: false,
-    cellRenderer: (params: ICellRendererParams<LimsLocation>) =>
-      params.data?.isRemoved ? (
-        <StatusPill label={t("limsRemoved")} tone="error" />
-      ) : (
-        <StatusPill label={t("active")} tone="success" />
-      )
-  }
+  ...(includeRemoved ? [removedColumn<LimsLocation>(t)] : [])
 ];

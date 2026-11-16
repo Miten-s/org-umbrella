@@ -1,5 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { NEW_RECORD, recordPageUrl } from "@/components/data/recordPage";
+import { PageUrl } from "@/types/utils.types";
 
 import DataTable, {
   type DataTableBulkAction
@@ -11,7 +14,6 @@ import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
-import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
@@ -37,12 +39,9 @@ import {
   useBulkCopyLimsInstrumentPart,
   useBulkDeleteLimsInstrumentPart,
   useBulkUpdateLimsInstrumentPart,
-  useCreateLimsInstrumentPart,
   useLimsInstrumentPartAudit,
   useRestoreLimsInstrumentPart,
-  useBulkRestoreLimsInstrumentPart,
-  useUpdateLimsInstrumentPart,
-  useLimsInstrumentPartById
+  useBulkRestoreLimsInstrumentPart
 } from "./LimsInstrumentPart.queries";
 import LimsInstrumentPartForm, {
   type LimsInstrumentPartFormMode
@@ -55,12 +54,9 @@ import type {
 /** LimsInstrumentPart list — built to STANDARDS.md and the MIGRATION.md §5 definition of done. */
 const LimsInstrumentPartList = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { isOpen, openModal, closeModal } = useModal();
 
-  // Full record (incl. attachments) is fetched fresh from this id, not the list row.
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [formMode, setFormMode] =
-    useState<LimsInstrumentPartFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
   // Set instead of activeId/formMode while the Copy review flow is open.
   const [copyIds, setCopyIds] = useState<string[] | null>(null);
@@ -72,10 +68,6 @@ const LimsInstrumentPartList = () => {
     LimsInstrumentPartPayload
   >();
   const auditQuery = useLimsInstrumentPartAudit(compliance.auditRow?.id);
-  const detailQuery = useLimsInstrumentPartById(
-    activeId ?? undefined,
-    isOpen && formMode !== "create"
-  );
 
   const fetchList = useCallback(
     (
@@ -91,8 +83,6 @@ const LimsInstrumentPartList = () => {
     fetchList
   });
 
-  const create = useCreateLimsInstrumentPart();
-  const update = useUpdateLimsInstrumentPart();
   const bulkClone = useBulkCloneLimsInstrumentPart();
   const bulkCopy = useBulkCopyLimsInstrumentPart();
   const bulkDelete = useBulkDeleteLimsInstrumentPart();
@@ -101,8 +91,6 @@ const LimsInstrumentPartList = () => {
   const bulkRestoreInstrumentPart = useBulkRestoreLimsInstrumentPart();
 
   const busy =
-    create.isPending ||
-    update.isPending ||
     bulkClone.isPending ||
     bulkCopy.isPending ||
     bulkDelete.isPending ||
@@ -110,45 +98,63 @@ const LimsInstrumentPartList = () => {
     restore.isPending ||
     bulkRestoreInstrumentPart.isPending;
 
-  const columnDefs = useMemo(() => getLimsInstrumentPartColumns({ t }), [t]);
+  const columnDefs = useMemo(
+    () => getLimsInstrumentPartColumns({ t, includeRemoved }),
+    [t, includeRemoved]
+  );
 
+  // One record opens on its own page; several are reviewed side by side in the modal.
+  const page = (id: string) =>
+    recordPageUrl(PageUrl.LIMSInstrumentPartsWorkspace.path, id);
   const openForm = useCallback(
     (mode: LimsInstrumentPartFormMode, row: LimsInstrumentPart | null) => {
-      setFormMode(mode);
-      setActiveId(row?.id ?? null);
-      openModal();
+      if (mode === "create" || !row) {
+        navigate(page(NEW_RECORD));
+        return;
+      }
+      navigate(mode === "view" ? `${page(row.id)}?mode=view` : page(row.id));
     },
-    [openModal]
+    [navigate]
   );
 
   const openCopy = useCallback(
     (ids: string[]) => {
+      if (ids.length === 1) {
+        navigate(`${page(NEW_RECORD)}?copyFrom=${ids[0]}`);
+        return;
+      }
       setCopyIds(ids);
       openModal();
     },
-    [openModal]
+    [openModal, navigate]
   );
 
   const openView = useCallback(
     (ids: string[]) => {
+      if (ids.length === 1) {
+        navigate(`${page(ids[0])}?mode=view`);
+        return;
+      }
       setViewIds(ids);
       openModal();
     },
-    [openModal]
+    [openModal, navigate]
   );
 
   const openEdit = useCallback(
     (ids: string[]) => {
+      if (ids.length === 1) {
+        navigate(page(ids[0]));
+        return;
+      }
       setEditIds(ids);
       openModal();
     },
-    [openModal]
+    [openModal, navigate]
   );
 
   const handleCloseForm = () => {
     closeModal();
-    setActiveId(null);
-    setFormMode("create");
     setCopyIds(null);
     setViewIds(null);
     setEditIds(null);
@@ -169,32 +175,6 @@ const LimsInstrumentPartList = () => {
 
   const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
     await bulkClone.mutateAsync(idsSelection(unreviewedIds));
-  };
-
-  const handleSave = async (
-    payload: LimsInstrumentPartPayload,
-    files: File[]
-  ) => {
-    if (activeId) {
-      compliance.requestUpdate(activeId, payload, files);
-      closeModal();
-      return;
-    }
-    await create.mutateAsync({ payload, files });
-    handleCloseForm();
-  };
-
-  const confirmUpdate = async (reason: string) => {
-    const pending = compliance.pendingUpdate;
-    if (!pending) return;
-    await update.mutateAsync({
-      id: pending.id,
-      payload: { ...pending.payload, changeReason: reason },
-      files: pending.files
-    });
-    compliance.clearUpdate();
-    setActiveId(null);
-    setFormMode("create");
   };
 
   const label = (row: LimsInstrumentPart) =>
@@ -415,23 +395,7 @@ const LimsInstrumentPartList = () => {
             saving={bulkUpdate.isPending}
             entityLabel={t("limsInstrumentPart")}
           />
-        ) : formMode !== "create" && detailQuery.isLoading ? (
-          // isLoading only — isFetching would unmount this form (and any modal
-          // inside it, e.g. Manage) on every background refetch from invalidateAllLims.
-          <div className="flex min-h-[300px] items-center justify-center p-10">
-            <LoadingSpinner fullScreen={false} />
-          </div>
-        ) : (
-          <LimsInstrumentPartForm
-            mode={formMode}
-            initialData={
-              formMode === "create" ? null : (detailQuery.data ?? null)
-            }
-            onClose={handleCloseForm}
-            onSubmit={handleSave}
-            submitting={create.isPending || update.isPending}
-          />
-        )}
+        ) : null}
       </Modal>
 
       <LimsComplianceDialogs
@@ -439,7 +403,6 @@ const LimsInstrumentPartList = () => {
         entityLabel={t("limsInstrumentPart")}
         entityLabelPlural={t("limsInstrumentParts")}
         getRecordLabel={label}
-        updating={update.isPending}
         deleting={bulkDelete.isPending}
         restoring={restore.isPending}
         bulkRestoring={bulkRestoreInstrumentPart.isPending}
@@ -453,7 +416,6 @@ const LimsInstrumentPartList = () => {
         auditFetchingNextPage={auditQuery.isFetchingNextPage}
 
         onAuditLoadMore={auditQuery.fetchNextPage}
-        onUpdate={confirmUpdate}
         onBulkUpdate={async (reason) => {
           const pending = compliance.pendingBulkUpdate;
           if (pending) {

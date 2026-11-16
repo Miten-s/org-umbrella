@@ -6,10 +6,11 @@ import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import type { useAsyncOptions } from "@/hooks/useAsyncOptions";
 import type { AsyncOption } from "@/lib/query/listTypes";
-import { PlusIcon, TrashBinIcon } from "@/public/icons";
 import { useTranslation } from "react-i18next";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { useFormHeaderAction } from "./formHeaderContext";
+import { useEntryEditorState } from "./entryEditorContext";
+import EntryTable, { type EntryTableColumn } from "./EntryTable";
 
 /** "number" coerces to a real JS number, for an actual numeric DB column. "numeric-text" keeps
  * a plain string, for a loosely-typed STRING column (e.g. Spec Limit's `min`/`max`) — a real number there 400s. */
@@ -43,7 +44,7 @@ export interface SubFormColumn<R> {
     row?: R
   ) => ReturnType<typeof useAsyncOptions>;
   placeholder?: string;
-  /** Tailwind width class, e.g. "w-40". Defaults to an even share. */
+  /** Tailwind width class, e.g. "w-40". */
   className?: string;
   /** Only for "async-select": fires after a selection, alongside the normal write of
    * `column.key`, to populate other cells on the same row (e.g. a Component's Min/Max/Unit). */
@@ -51,8 +52,7 @@ export interface SubFormColumn<R> {
   /** Only for "async-select": the saved value's known label, so it shows even when that
    * option isn't in the loaded (or filtered) option list. */
   selectedOption?: (row: R) => AsyncOption | undefined;
-  /** Locks this cell per-row, on top of the grid-wide `disabled` — e.g. only rows populated
-   * via a picker are read-only; a manually-typed row's same columns stay editable. */
+  /** Locks this cell per-row, on top of the grid-wide `disabled`. */
   readOnly?: (row: R) => boolean;
   /** Extra cells to write alongside this one when its value changes — e.g. clearing a
    * sibling cell that the new value makes irrelevant. */
@@ -66,26 +66,28 @@ export interface SubFormGridProps<R extends Record<string, unknown>> {
   onChange: (rows: R[]) => void;
   /** Factory for a blank row; defaults to `{}`. */
   newRow?: () => R;
-  /** View mode — renders read-only, no add/remove. */
+  /** View mode — read-only table, no entry form. */
   disabled?: boolean;
   /** Off for lists that can only be pruned (e.g. uploaded attachments). */
   allowAdd?: boolean;
   addLabel?: string;
   emptyLabel?: string;
   error?: string;
-  /** "table" is one row per record (breaks down past a handful of columns); "stacked" gives
-   * each record a card instead. "auto" (default) picks stacked past `STACK_THRESHOLD`. */
+  /** What's wrong with an entry before it is added; undefined when it is fine. */
+  validateRow?: (row: R) => string | undefined;
+  /** @deprecated kept for callers; every grid now uses the entry form + table layout. */
   layout?: "table" | "stacked" | "auto";
 }
-
-/** Columns beyond which a table row stops being readable. */
-const STACK_THRESHOLD = 6;
 
 const inputClasses =
   "w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 disabled:bg-gray-100 disabled:text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90 dark:disabled:bg-gray-900";
 
-/** Repeatable rows inside a form (the LIMS spec's "sub form" grids). This is FORM STATE, not
- * a data table — no server paging/sorting/selection; use `DataTable` for anything server-driven. */
+const isBlank = (value: unknown) =>
+  value === undefined || value === null || String(value).trim() === "";
+
+/** Repeatable rows inside a form: one entry form with its own Save on top, and the added rows in
+ * a paged table below (View · Edit · Delete). Form state only — nothing is sent until the page's
+ * own Save; use `DataTable` for server-driven lists. */
 function SubFormGrid<R extends Record<string, unknown>>({
   label,
   columns,
@@ -97,88 +99,133 @@ function SubFormGrid<R extends Record<string, unknown>>({
   addLabel,
   emptyLabel,
   error,
-  layout = "auto"
+  validateRow
 }: SubFormGridProps<R>) {
   const { t } = useTranslation();
-  const editable = !disabled;
-  // An async-select cell needs real room (search box, label chip, chevron), so "auto" forces
-  // the stacked layout whenever any column is async-select, regardless of column count.
-  const hasAsyncSelect = columns.some(
-    (column) => column.type === "async-select"
-  );
-  const stacked =
-    layout === "stacked" ||
-    (layout === "auto" && (columns.length > STACK_THRESHOLD || hasAsyncSelect));
+  const blank = () => (newRow ? newRow() : ({} as R));
+  const [draft, setDraft] = useState<R>(blank);
+  // Which row the entry form holds: null = a new entry; `viewing` shows it read-only.
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [viewing, setViewing] = useState(false);
+  const [entryError, setEntryError] = useState<string>();
+  // Labels picked in async dropdowns, so the table can show names rather than ids.
+  const labels = useRef(new WeakMap<object, Record<string, string>>());
+  const [draftLabels, setDraftLabels] = useState<Record<string, string>>({});
+  const formRef = useRef<HTMLDivElement>(null);
+  // Rows added or edited here, and saved rows removed, since the page last saved.
+  const touched = useRef(new WeakSet<object>());
+  const [removedSaved, setRemovedSaved] = useState(0);
+  const [entryDirty, setEntryDirty] = useState(false);
 
-  const updateCell = (rowIndex: number, key: string, value: unknown) => {
-    const column = columns.find((c) => c.key === key);
-    onChange(
-      rows.map((row, index) =>
-        index === rowIndex
-          ? { ...row, ...column?.onChangeValue?.(row, value), [key]: value }
-          : row
-      )
-    );
+  const showForm = (!disabled && allowAdd) || editIndex !== null;
+
+  const reset = () => {
+    setEntryDirty(false);
+    setDraft(blank());
+    setDraftLabels({});
+    setEditIndex(null);
+    setViewing(false);
+    setEntryError(undefined);
   };
 
-  const addRow = () => onChange([...rows, newRow ? newRow() : ({} as R)]);
+  const focusForm = () => {
+    reset();
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
   useFormHeaderAction(
-    editable && allowAdd
+    !disabled && allowAdd
       ? {
           label: addLabel ?? label,
           title: `${t("limsAddRow")} — ${label}`,
-          onClick: addRow
+          onClick: focusForm
         }
       : null
   );
-  // A row added from the form header lands at the bottom — bring it into view.
-  const containerRef = useRef<HTMLDivElement>(null);
-  const rowCount = useRef(rows.length);
-  useEffect(() => {
-    if (rows.length > rowCount.current)
-      containerRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "end"
-      });
-    rowCount.current = rows.length;
-  }, [rows.length]);
 
-  const removeRow = (rowIndex: number) =>
-    onChange(rows.filter((_, index) => index !== rowIndex));
+  const patchDraft = (patch: Partial<R>) => {
+    setEntryError(undefined);
+    setEntryDirty(true);
+    setDraft((prev) => ({ ...prev, ...patch }));
+  };
 
-  const renderCell = (row: R, rowIndex: number, column: SubFormColumn<R>) => {
-    const value = row[column.key];
-    const cellDisabled = disabled || Boolean(column.readOnly?.(row));
+  const setCell = (column: SubFormColumn<R>, value: unknown) =>
+    patchDraft({
+      ...column.onChangeValue?.(draft, value),
+      [column.key]: value
+    } as Partial<R>);
+
+  const save = () => {
+    if (columns.every((column) => isBlank(draft[column.key]))) {
+      setEntryError(t("subFormEntryEmpty"));
+      return;
+    }
+    const problem = validateRow?.(draft);
+    if (problem) {
+      setEntryError(problem);
+      return;
+    }
+    const saved = { ...draft };
+    touched.current.add(saved);
+    labels.current.set(saved, {
+      ...(editIndex !== null ? labels.current.get(rows[editIndex]) : {}),
+      ...draftLabels
+    });
+    onChange(
+      editIndex === null
+        ? [...rows, saved]
+        : rows.map((row, i) => (i === editIndex ? saved : row))
+    );
+    reset();
+  };
+
+  const open = (index: number, readOnly: boolean) => {
+    setEntryDirty(false);
+    setDraft({ ...rows[index] });
+    setDraftLabels({});
+    setEditIndex(index);
+    setViewing(readOnly);
+    setEntryError(undefined);
+    requestAnimationFrame(() =>
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+    );
+  };
+
+  const remove = (index: number) => {
+    if (!touched.current.has(rows[index])) setRemovedSaved((n) => n + 1);
+    if (editIndex === index) reset();
+    else if (editIndex !== null && editIndex > index)
+      setEditIndex(editIndex - 1);
+    onChange(rows.filter((_, i) => i !== index));
+  };
+
+  const renderInput = (column: SubFormColumn<R>, locked: boolean) => {
+    const value = draft[column.key];
+    const cellDisabled = locked || Boolean(column.readOnly?.(draft));
 
     if (column.type === "async-select") {
+      const known = column.selectedOption?.(draft);
       return (
         <AsyncSelect
-          useOptions={(args) => column.useOptions!(args, row)}
+          useOptions={(args) => column.useOptions!(args, draft)}
           value={String(value ?? "")}
-          onChange={(next) => updateCell(rowIndex, column.key, next)}
-          onChangeOption={
-            column.onSelectOption
-              ? (option) => {
-                  if (!option) return;
-                  const patch = column.onSelectOption!(row, option);
-                  onChange(
-                    rows.map((r, index) =>
-                      index === rowIndex
-                        ? { ...r, ...patch, [column.key]: option.value }
-                        : r
-                    )
-                  );
-                }
-              : undefined
-          }
+          onChange={(next) => setCell(column, next)}
+          onChangeOption={(option) => {
+            if (!option) return;
+            setDraftLabels((prev) => ({
+              ...prev,
+              [column.key]: option.label
+            }));
+            if (column.onSelectOption)
+              patchDraft({
+                ...column.onSelectOption(draft, option),
+                [column.key]: option.value
+              } as Partial<R>);
+          }}
           placeholder={
             column.placeholder ?? t("select", { entity: column.header })
           }
           disabled={cellDisabled}
-          initialSelectedOptions={(() => {
-            const known = column.selectedOption?.(row);
-            return known ? [known] : undefined;
-          })()}
+          initialSelectedOptions={known ? [known] : undefined}
         />
       );
     }
@@ -188,13 +235,12 @@ function SubFormGrid<R extends Record<string, unknown>>({
         <SelectDropdown
           options={column.options ?? []}
           value={String(value ?? "")}
-          onChange={(next) => updateCell(rowIndex, column.key, next)}
+          onChange={(next) => setCell(column, next)}
           placeholder={
             column.placeholder ?? t("select", { entity: column.header })
           }
           disabled={cellDisabled}
           ariaLabel={column.header}
-          // Portal: a grid cell sits inside both the table's and modal's overflow containers, either would clip the menu.
           portal
         />
       );
@@ -205,7 +251,7 @@ function SubFormGrid<R extends Record<string, unknown>>({
         <DateField
           mode="date"
           value={String(value ?? "")}
-          onChange={(next) => updateCell(rowIndex, column.key, next)}
+          onChange={(next) => setCell(column, next)}
           disabled={cellDisabled}
         />
       );
@@ -219,9 +265,7 @@ function SubFormGrid<R extends Record<string, unknown>>({
           className="h-4 w-4 rounded border-gray-300 dark:border-gray-700"
           checked={Boolean(value)}
           disabled={cellDisabled}
-          onChange={(event) =>
-            updateCell(rowIndex, column.key, event.target.checked)
-          }
+          onChange={(event) => setCell(column, event.target.checked)}
         />
       );
     }
@@ -237,9 +281,8 @@ function SubFormGrid<R extends Record<string, unknown>>({
         value={String(value ?? "")}
         disabled={cellDisabled}
         onChange={(event) =>
-          updateCell(
-            rowIndex,
-            column.key,
+          setCell(
+            column,
             column.type === "number"
               ? event.target.value === ""
                 ? ""
@@ -251,136 +294,104 @@ function SubFormGrid<R extends Record<string, unknown>>({
     );
   };
 
-  /** One card per record; the column header becomes each field's own label, since there's
-   * no header row to carry it. */
-  const renderStacked = () => (
-    <div className="space-y-3">
-      {rows.map((row, rowIndex) => (
-        <div
-          key={rowIndex}
-          className="rounded-lg border border-gray-200 p-3 dark:border-gray-700"
-        >
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-              {`${label} ${rowIndex + 1}`}
-            </span>
-            {editable ? (
-              <button
-                type="button"
-                aria-label={`${t("delete")} ${rowIndex + 1}`}
-                onClick={() => removeRow(rowIndex)}
-                className="rounded p-1 text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10"
-              >
-                <TrashBinIcon className="h-4 w-4" />
-              </button>
-            ) : null}
-          </div>
+  /** What a saved cell reads as in the table. */
+  const display = (row: R, column: SubFormColumn<R>): ReactNode => {
+    const value = row[column.key];
+    if (column.type === "checkbox") return value ? t("yes") : t("no");
+    if (isBlank(value)) return "—";
+    if (column.type === "select")
+      return (
+        column.options?.find((o) => o.value === String(value))?.label ??
+        String(value)
+      );
+    if (column.type === "async-select")
+      return (
+        labels.current.get(row)?.[column.key] ??
+        column.selectedOption?.(row)?.label ??
+        String(value)
+      );
+    if (column.type === "date") return String(value).slice(0, 10);
+    return String(value);
+  };
 
+  useEntryEditorState({
+    unsaved:
+      rows.filter((row) => touched.current.has(row)).length + removedSaved,
+    pendingEntry: entryDirty && !viewing,
+    label,
+    focus: () =>
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }),
+    clearEntry: reset
+  });
+
+  const tableColumns: EntryTableColumn<R>[] = columns.map((column) => ({
+    key: column.key,
+    header: column.header,
+    tooltip: column.tooltip,
+    render: (row) => display(row, column)
+  }));
+
+  return (
+    <div className="min-w-0 space-y-4">
+      {showForm ? (
+        <div
+          ref={formRef}
+          className="rounded-lg border border-gray-200 p-4 dark:border-gray-700"
+        >
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <Label className="mb-0">
+              {editIndex === null
+                ? (addLabel ?? `${t("limsAddRow")} — ${label}`)
+                : `${label} ${editIndex + 1}`}
+            </Label>
+          </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {columns.map((column) => (
-              <div
-                key={column.key}
-                className={`min-w-0 ${column.className ?? ""}`}
-              >
+              <div key={column.key} className="min-w-0">
                 <span className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
                   {column.header}
                   {column.tooltip ? (
                     <HelpTooltip content={column.tooltip} />
                   ) : null}
                 </span>
-                {renderCell(row, rowIndex, column)}
+                {renderInput(column, viewing)}
               </div>
             ))}
           </div>
-        </div>
-      ))}
-    </div>
-  );
-
-  return (
-    <div ref={containerRef} className="min-w-0">
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <Label className="mb-0">{label}</Label>
-        {editable && allowAdd ? (
-          <Button
-            size="sm"
-            variant="outline"
-            type="button"
-            startIcon={<PlusIcon className="h-4 w-4" />}
-            onClick={addRow}
-          >
-            {addLabel ?? t("limsAddRow")}
-          </Button>
-        ) : null}
-      </div>
-
-      {stacked ? (
-        rows.length ? (
-          renderStacked()
-        ) : (
-          <div className="rounded-lg border border-gray-200 px-3 py-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
-            {emptyLabel ?? t("limsNoRows")}
+          {entryError ? (
+            <p className="mt-2 text-xs text-red-500">{entryError}</p>
+          ) : null}
+          <div className="mt-3 flex items-center justify-end gap-2">
+            {!viewing ? (
+              <span className="mr-auto text-xs text-gray-500 dark:text-gray-400">
+                {t("entryAddedHint")}
+              </span>
+            ) : null}
+            {editIndex !== null ? (
+              <Button type="button" size="sm" variant="outline" onClick={reset}>
+                {viewing ? t("close") : t("cancel")}
+              </Button>
+            ) : null}
+            {!viewing ? (
+              <Button type="button" size="sm" onClick={save}>
+                {t("save")}
+              </Button>
+            ) : null}
           </div>
-        )
-      ) : (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-800">
-              <tr>
-                {columns.map((column) => (
-                  <th
-                    key={column.key}
-                    scope="col"
-                    className={`whitespace-nowrap px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300 ${column.className ?? ""}`}
-                  >
-                    {column.header}
-                    {column.tooltip ? (
-                      <HelpTooltip content={column.tooltip} />
-                    ) : null}
-                  </th>
-                ))}
-                {editable ? (
-                  <th scope="col" className="w-16 px-3 py-2" />
-                ) : null}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-900">
-              {rows.length ? (
-                rows.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
-                    {columns.map((column) => (
-                      <td key={column.key} className="px-3 py-2 align-top">
-                        {renderCell(row, rowIndex, column)}
-                      </td>
-                    ))}
-                    {editable ? (
-                      <td className="px-3 py-2 text-right align-top">
-                        <button
-                          type="button"
-                          aria-label={`${t("delete")} ${rowIndex + 1}`}
-                          onClick={() => removeRow(rowIndex)}
-                          className="rounded p-1 text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10"
-                        >
-                          <TrashBinIcon className="h-4 w-4" />
-                        </button>
-                      </td>
-                    ) : null}
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan={columns.length + (editable ? 1 : 0)}
-                    className="px-3 py-6 text-center text-sm text-gray-500 dark:text-gray-400"
-                  >
-                    {emptyLabel ?? t("limsNoRows")}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
         </div>
-      )}
+      ) : null}
+
+      <EntryTable
+        label={label}
+        columns={tableColumns}
+        rows={rows}
+        emptyLabel={emptyLabel ?? t("limsNoRows")}
+        activeIndex={editIndex}
+        onView={(index) => open(index, true)}
+        onEdit={disabled ? undefined : (index) => open(index, false)}
+        onDelete={disabled ? undefined : remove}
+        isUnsaved={(row) => touched.current.has(row)}
+      />
 
       {error ? <p className="mt-1 text-xs text-red-500">{error}</p> : null}
     </div>

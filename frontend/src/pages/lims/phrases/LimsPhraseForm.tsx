@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
+import { usePageForm, type PageFormProps } from "@/components/data/pageForm";
 
 import Input from "@/components/common/form/input/InputField";
 import Label from "@/components/common/form/Label";
@@ -28,7 +29,7 @@ import type {
 export type LimsPhraseFormMode =
   "create" | "edit" | "view" | "copy" | "bulk-edit";
 
-interface LimsPhraseFormProps {
+interface LimsPhraseFormProps extends PageFormProps {
   mode?: LimsPhraseFormMode;
   initialData?: LimsPhrase | null;
   onClose: () => void;
@@ -62,7 +63,10 @@ const LimsPhraseForm = ({
   submitLabel,
   disabled = false,
   formId,
-  stepLabel
+  stepLabel,
+  pageSection,
+  onDirtyChange,
+  onInvalid
 }: LimsPhraseFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
@@ -98,40 +102,51 @@ const LimsPhraseForm = ({
     resolver: zodResolver(limsPhraseSchema),
     defaultValues: initialValues
   });
+  const watched = useWatch({ control });
+  const page = usePageForm(
+    { pageSection, onDirtyChange },
+    !isPayloadEqual({ ...initialValues, ...watched }, initialValues) ||
+      !isPayloadEqual(entries, initialEntriesRef.current)
+  );
 
   const description = useWatch({ control, name: "description" });
   const busy = submitting || isSubmitting;
 
   return (
-    <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+    <div className={page.frameClass}>
       <form
         id={formId}
-        onSubmit={handleSubmit((values) => {
-          // Edit + nothing actually changed: skip the reason modal, update
-          // call, and audit entry entirely — a no-op Save just closes.
-          if (
-            (mode === "edit" || mode === "bulk-edit") &&
-            isPayloadEqual(values, initialValues) &&
-            isPayloadEqual(entries, initialEntriesRef.current)
-          ) {
-            (onUnchanged ?? onClose)();
-            return;
-          }
-          onSubmit({ ...values, entries });
-        })}
+        onSubmit={handleSubmit(
+          (values) => {
+            // Edit + nothing actually changed: skip the reason modal, update
+            // call, and audit entry entirely — a no-op Save just closes.
+            if (
+              (mode === "edit" || mode === "bulk-edit") &&
+              isPayloadEqual(values, initialValues) &&
+              isPayloadEqual(entries, initialEntriesRef.current)
+            ) {
+              (onUnchanged ?? onClose)();
+              return;
+            }
+            onSubmit({ ...values, entries });
+          },
+          () => onInvalid?.("details")
+        )}
         className="min-w-0 space-y-4"
       >
-        <FormHeader
-          title={
-            isReadOnly
-              ? t("view", { entity: t("limsPhrase") })
-              : mode === "copy"
-                ? `${t("copyEntity", { entity: t("limsPhrase") })}${stepLabel ?? ""}`
-                : initialData
-                  ? `${t("update", { entity: t("limsPhrase") })}${stepLabel ?? ""}`
-                  : t("create", { entity: t("limsPhrase") })
-          }
-        />
+        {page.onPage ? null : (
+          <FormHeader
+            title={
+              isReadOnly
+                ? t("view", { entity: t("limsPhrase") })
+                : mode === "copy"
+                  ? `${t("copyEntity", { entity: t("limsPhrase") })}${stepLabel ?? ""}`
+                  : initialData
+                    ? `${t("update", { entity: t("limsPhrase") })}${stepLabel ?? ""}`
+                    : t("create", { entity: t("limsPhrase") })
+            }
+          />
+        )}
 
         {isSystem ? (
           <p className="rounded-lg bg-warning-50 px-3 py-2 text-xs text-warning-800 dark:bg-warning-500/10 dark:text-warning-300">
@@ -139,7 +154,10 @@ const LimsPhraseForm = ({
           </p>
         ) : null}
 
-        <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
+        <div
+          data-section="details"
+          className={`grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 ${page.hide("details")}`}
+        >
           <div className="min-w-0">
             <Label required>{t("limsPhraseCode")}</Label>
             <Input
@@ -201,24 +219,28 @@ const LimsPhraseForm = ({
           </div>
 
           {/* The selectable values — added even on system pick lists. */}
-          <div className="min-w-0 md:col-span-2">
-            <SubFormGrid<LimsPhraseEntry>
-              label={t("limsPhraseEntries")}
-              rows={entries}
-              onChange={setEntries}
-              disabled={isReadOnly}
-              addLabel={t("limsAddValue")}
-              emptyLabel={t("limsNoPhraseEntries")}
-              columns={[
-                { key: "phraseEntryId", header: t("limsPhraseId") },
-                { key: "name", header: t("name") },
-                { key: "description", header: t("description") }
-              ]}
-            />
-          </div>
         </div>
 
-        <div className="mt-4 flex justify-end gap-2">
+        <div
+          data-section="limsPhraseEntries"
+          className={`min-w-0 ${page.hide("limsPhraseEntries")}`}
+        >
+          <SubFormGrid<LimsPhraseEntry>
+            label={t("limsPhraseEntries")}
+            rows={entries}
+            onChange={setEntries}
+            disabled={isReadOnly}
+            addLabel={t("limsAddValue")}
+            emptyLabel={t("limsNoPhraseEntries")}
+            columns={[
+              { key: "phraseEntryId", header: t("limsPhraseId") },
+              { key: "name", header: t("name") },
+              { key: "description", header: t("description") }
+            ]}
+          />
+        </div>
+
+        <div className={page.onPage ? "hidden" : "mt-4 flex justify-end gap-2"}>
           <Button
             variant="outline"
             type="button"

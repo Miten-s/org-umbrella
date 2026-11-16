@@ -1,4 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { PageUrl } from "@/types/utils.types";
+import { NEW_RECORD, recordPageUrl } from "@/components/data/recordPage";
 import { useTranslation } from "react-i18next";
 
 import DataTable, {
@@ -11,7 +14,6 @@ import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
-import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
@@ -34,12 +36,9 @@ import {
   useBulkCopyLimsTest,
   useBulkDeleteLimsTest,
   useBulkUpdateLimsTest,
-  useCreateLimsTest,
   useLimsTestAudit,
-  useLimsTestById,
   useRestoreLimsTest,
-  useBulkRestoreLimsTest,
-  useUpdateLimsTest
+  useBulkRestoreLimsTest
 } from "./LimsTest.queries";
 import LimsTestForm, { type LimsTestFormMode } from "./LimsTestForm";
 import type { LimsTest, LimsTestPayload } from "./LimsTest.types";
@@ -47,11 +46,9 @@ import type { LimsTest, LimsTestPayload } from "./LimsTest.types";
 /** LimsTest list — built to STANDARDS.md and the MIGRATION.md §5 definition of done. */
 const LimsTestList = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { isOpen, openModal, closeModal } = useModal();
 
-  // List rows lack attachments (see LimsTest.api.ts); full record is fetched by id on demand.
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [formMode, setFormMode] = useState<LimsTestFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
   // Set instead of activeId/formMode while the Copy review flow is open.
   const [copyIds, setCopyIds] = useState<string[] | null>(null);
@@ -60,10 +57,6 @@ const LimsTestList = () => {
 
   const compliance = useLimsCompliance<LimsTest, LimsTestPayload>();
   const auditQuery = useLimsTestAudit(compliance.auditRow?.id);
-  const detailQuery = useLimsTestById(
-    activeId ?? undefined,
-    isOpen && formMode !== "create"
-  );
 
   const fetchList = useCallback(
     (params: Parameters<typeof fetchLimsTestList>[1], signal?: AbortSignal) =>
@@ -77,8 +70,6 @@ const LimsTestList = () => {
     fetchList
   });
 
-  const create = useCreateLimsTest();
-  const update = useUpdateLimsTest();
   const bulkClone = useBulkCloneLimsTest();
   const bulkCopy = useBulkCopyLimsTest();
   const bulkDelete = useBulkDeleteLimsTest();
@@ -87,8 +78,6 @@ const LimsTestList = () => {
   const bulkRestoreTest = useBulkRestoreLimsTest();
 
   const busy =
-    create.isPending ||
-    update.isPending ||
     bulkClone.isPending ||
     bulkCopy.isPending ||
     bulkDelete.isPending ||
@@ -96,45 +85,63 @@ const LimsTestList = () => {
     restore.isPending ||
     bulkRestoreTest.isPending;
 
-  const columnDefs = useMemo(() => getLimsTestColumns({ t }), [t]);
+  const columnDefs = useMemo(
+    () => getLimsTestColumns({ t, includeRemoved }),
+    [t, includeRemoved]
+  );
 
+  // One record opens on its own page; several are reviewed side by side in the modal.
+  const page = (id: string) =>
+    recordPageUrl(PageUrl.LIMSTestsWorkspace.path, id);
   const openForm = useCallback(
     (mode: LimsTestFormMode, row: LimsTest | null) => {
-      setFormMode(mode);
-      setActiveId(row?.id ?? null);
-      openModal();
+      if (mode === "create" || !row) {
+        navigate(page(NEW_RECORD));
+        return;
+      }
+      navigate(mode === "view" ? `${page(row.id)}?mode=view` : page(row.id));
     },
-    [openModal]
+    [navigate]
   );
 
   const openCopy = useCallback(
     (ids: string[]) => {
+      if (ids.length === 1) {
+        navigate(`${page(NEW_RECORD)}?copyFrom=${ids[0]}`);
+        return;
+      }
       setCopyIds(ids);
       openModal();
     },
-    [openModal]
+    [openModal, navigate]
   );
 
   const openView = useCallback(
     (ids: string[]) => {
+      if (ids.length === 1) {
+        navigate(`${page(ids[0])}?mode=view`);
+        return;
+      }
       setViewIds(ids);
       openModal();
     },
-    [openModal]
+    [openModal, navigate]
   );
 
   const openEdit = useCallback(
     (ids: string[]) => {
+      if (ids.length === 1) {
+        navigate(page(ids[0]));
+        return;
+      }
       setEditIds(ids);
       openModal();
     },
-    [openModal]
+    [openModal, navigate]
   );
 
   const handleCloseForm = () => {
     closeModal();
-    setActiveId(null);
-    setFormMode("create");
     setCopyIds(null);
     setViewIds(null);
     setEditIds(null);
@@ -155,29 +162,6 @@ const LimsTestList = () => {
 
   const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
     await bulkClone.mutateAsync(idsSelection(unreviewedIds));
-  };
-
-  const handleSave = async (payload: LimsTestPayload, files: File[]) => {
-    if (activeId) {
-      compliance.requestUpdate(activeId, payload, files);
-      closeModal();
-      return;
-    }
-    await create.mutateAsync({ payload, files });
-    handleCloseForm();
-  };
-
-  const confirmUpdate = async (reason: string) => {
-    const pending = compliance.pendingUpdate;
-    if (!pending) return;
-    await update.mutateAsync({
-      id: pending.id,
-      payload: { ...pending.payload, changeReason: reason },
-      files: pending.files
-    });
-    compliance.clearUpdate();
-    setActiveId(null);
-    setFormMode("create");
   };
 
   const label = (row: LimsTest) => String(row.testId ?? row.testName ?? "");
@@ -397,23 +381,7 @@ const LimsTestList = () => {
             saving={bulkUpdate.isPending}
             entityLabel={t("limsTest")}
           />
-        ) : formMode !== "create" && detailQuery.isLoading ? (
-          // isLoading only — isFetching would unmount this form (and any modal
-          // inside it, e.g. Manage) on every background refetch from invalidateAllLims.
-          <div className="flex min-h-[300px] items-center justify-center p-10">
-            <LoadingSpinner fullScreen={false} />
-          </div>
-        ) : (
-          <LimsTestForm
-            mode={formMode}
-            initialData={
-              formMode === "create" ? null : (detailQuery.data ?? null)
-            }
-            onClose={handleCloseForm}
-            onSubmit={handleSave}
-            submitting={create.isPending || update.isPending}
-          />
-        )}
+        ) : null}
       </Modal>
 
       <LimsComplianceDialogs
@@ -421,7 +389,6 @@ const LimsTestList = () => {
         entityLabel={t("limsTest")}
         entityLabelPlural={t("limsTests")}
         getRecordLabel={label}
-        updating={update.isPending}
         deleting={bulkDelete.isPending}
         restoring={restore.isPending}
         bulkRestoring={bulkRestoreTest.isPending}
@@ -435,7 +402,6 @@ const LimsTestList = () => {
         auditFetchingNextPage={auditQuery.isFetchingNextPage}
 
         onAuditLoadMore={auditQuery.fetchNextPage}
-        onUpdate={confirmUpdate}
         onBulkUpdate={async (reason) => {
           const pending = compliance.pendingBulkUpdate;
           if (pending) {

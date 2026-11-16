@@ -1,17 +1,20 @@
 import { AvatarCell } from "@/components/data/cells/AvatarCell";
-import { StatusPill } from "@/components/data/cells/StatusPill";
 import { TruncateCell } from "@/components/data/cells/TruncateCell";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import type { TFunction } from "i18next";
+import { removedColumn } from "@/components/data/cells/removedColumn";
 import type { LimsGroup, LimsGroupRef } from "./LimsGroup.types";
 
 const refLabel = (ref: LimsGroupRef | null | undefined) => ref?.name ?? "";
 
 /** Column factory (STANDARDS.md §8). */
 export const getLimsGroupColumns = ({
-  t
+  t,
+  includeRemoved = false
 }: {
   t: TFunction;
+  /** Adds the Removed column while removed records are listed. */
+  includeRemoved?: boolean;
 }): ColDef<LimsGroup>[] => [
   {
     field: "groupId",
@@ -63,17 +66,5 @@ export const getLimsGroupColumns = ({
       <TruncateCell value={params.value} />
     )
   },
-  {
-    field: "isRemoved",
-    headerName: t("status"),
-    flex: 0.6,
-    minWidth: 130,
-    sortable: false,
-    cellRenderer: (params: ICellRendererParams<LimsGroup>) =>
-      params.data?.isRemoved ? (
-        <StatusPill label={t("limsRemoved")} tone="error" />
-      ) : (
-        <StatusPill label={t("active")} tone="success" />
-      )
-  }
+  ...(includeRemoved ? [removedColumn<LimsGroup>(t)] : [])
 ];

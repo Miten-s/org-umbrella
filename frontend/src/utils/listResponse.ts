@@ -1,7 +1,9 @@
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
-export const DEFAULT_LIST_PAGE_SIZE = 10;
+export const DEFAULT_LIST_PAGE_SIZE = 50;
+/** Page sizes every list offers; the backends cap `limit` at the largest. */
+export const LIST_PAGE_SIZE_OPTIONS = [50, 100, 200, 500];
 
 export interface ListQueryParams {
   page?: number;

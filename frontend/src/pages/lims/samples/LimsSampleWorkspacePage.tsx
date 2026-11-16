@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import RecordWorkspace from "@/components/data/RecordWorkspace";
+import { ALL_SECTIONS } from "@/components/data/recordPage";
 import RecordInfoPanel from "@/components/lims/RecordInfoPanel";
 import { useWorkspaceTab } from "@/components/data/useWorkspaceTab";
 import { ConfirmDialog } from "@/components/data/ConfirmDialog";
@@ -64,7 +65,7 @@ const Workspace = ({
   const hasRunningTests = (sample?.tests ?? []).some(
     (test) => test.status !== "Cancelled"
   );
-  const [tab, setTab] = useWorkspaceTab(
+  const [, setTab] = useWorkspaceTab(
     [...TABS],
     hasRunningTests ? "execution" : "details"
   );
@@ -171,9 +172,7 @@ const Workspace = ({
     }
   };
 
-  const audit = useLimsSampleAudit(
-    tab === "other" && sample ? sample.id : undefined
-  );
+  const audit = useLimsSampleAudit(sample?.id);
   const label = sample
     ? [sample.sampleId, sample.sampleName].filter(Boolean).join(" · ")
     : t("workspaceNewSample");
@@ -217,6 +216,7 @@ const Workspace = ({
         ]}
         defaultTab={hasRunningTests ? "execution" : "details"}
         readOnly={readOnly}
+        stacked={!isNew}
         dirty={dirty}
         saving={saving}
         onSave={() => {
@@ -227,46 +227,66 @@ const Workspace = ({
         }}
         onDiscard={onReload}
       >
-        {(active) => (
-          <>
-            {/* Every tab stays mounted, so moving between them never loses work. */}
-            <div
-              className={
-                active === "details" || active === "other"
-                  ? "rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900"
-                  : "hidden"
-              }
-            >
-              <LimsSampleForm
-                mode={readOnly ? "view" : isNew ? "create" : "edit"}
-                initialData={sample}
-                formId={FORM_ID}
-                pageSection={
-                  active === "other"
-                    ? "other"
-                    : active === "details"
-                      ? "details"
-                      : "none"
-                }
-                onDirtyChange={setFormDirty}
-                onInvalid={() => {
-                  saveRequested.current = false;
-                  setTab("details");
-                  toast(t("workspaceFixFields"), "error");
-                }}
-                onClose={() => undefined}
-                onUnchanged={() => collect(null)}
-                onSubmit={(payload, files) => collect({ payload, files })}
-              />
-              {active === "details" && sample ? (
-                <RecordInfoPanel
-                  route="/lims-samples"
-                  recordId={sample.id}
-                  group={sample.group?.name}
+        {(section) => {
+          // Stacked shows every section; on Create each tab shows only its own part.
+          const shows = (key: string) =>
+            section === ALL_SECTIONS || section === key;
+          return (
+            <div className="space-y-6">
+              {/* Every section shows, one below another, so the whole sample reads and prints as a page. */}
+              <div
+                className={`rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900 ${shows("details") || shows("other") ? "" : "hidden"}`}
+              >
+                <LimsSampleForm
+                  mode={readOnly ? "view" : isNew ? "create" : "edit"}
+                  initialData={sample}
+                  formId={FORM_ID}
+                  pageSection={section}
+                  onDirtyChange={setFormDirty}
+                  onInvalid={() => {
+                    saveRequested.current = false;
+                    setTab("details");
+                    toast(t("workspaceFixFields"), "error");
+                  }}
+                  onClose={() => undefined}
+                  onUnchanged={() => collect(null)}
+                  onSubmit={(payload, files) => collect({ payload, files })}
                 />
-              ) : null}
-              {active === "other" && sample ? (
-                <div className="mt-6">
+              </div>
+
+              <section
+                data-section="execution"
+                className={`space-y-3 ${shows("execution") ? "" : "hidden"}`}
+              >
+                <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+                  {t("workspaceTabExecution")}
+                </h2>
+                <SampleTestsResultsGrid
+                  samples={[
+                    {
+                      id: sample?.id ?? NEW_SAMPLE,
+                      saved: !isNew,
+                      label,
+                      specificationId: sample?.specification?.id
+                    }
+                  ]}
+                  store={store}
+                  readOnly={readOnly}
+                  header={null}
+                  edits={edits}
+                  onEdit={(rowId, value) =>
+                    setEdits((prev) => {
+                      const next = new Map(prev);
+                      if (value === null) next.delete(rowId);
+                      else next.set(rowId, value);
+                      return next;
+                    })
+                  }
+                />
+              </section>
+
+              {sample ? (
+                <section className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
                   <h2 className="mb-3 text-base font-semibold">
                     {t("workspaceAuditTrail")}
                   </h2>
@@ -277,45 +297,34 @@ const Workspace = ({
                     isFetchingNextPage={audit.isFetchingNextPage}
                     onLoadMore={audit.fetchNextPage}
                   />
-                </div>
+                </section>
               ) : null}
-            </div>
 
-            <div className={active === "execution" ? "" : "hidden"}>
-              <SampleTestsResultsGrid
-                samples={[
-                  {
-                    id: sample?.id ?? NEW_SAMPLE,
-                    saved: !isNew,
-                    label,
-                    specificationId: sample?.specification?.id
-                  }
-                ]}
-                store={store}
-                readOnly={readOnly}
-                header={null}
-                edits={edits}
-                onEdit={(rowId, value) =>
-                  setEdits((prev) => {
-                    const next = new Map(prev);
-                    if (value === null) next.delete(rowId);
-                    else next.set(rowId, value);
-                    return next;
-                  })
-                }
-              />
-            </div>
-
-            {active === "approvals" ? (
-              <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
+              <section
+                data-section="approvals"
+                className={`${shows("approvals") ? "" : "hidden"} rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900`}
+              >
+                <h2 className="mb-3 text-base font-semibold">
+                  {t("workspaceTabApprovals")}
+                </h2>
                 <EmptyState
                   title={t("workspaceApprovalsTitle")}
                   message={t("workspaceApprovalsBody")}
                 />
-              </div>
-            ) : null}
-          </>
-        )}
+              </section>
+
+              {sample ? (
+                <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
+                  <RecordInfoPanel
+                    route="/lims-samples"
+                    recordId={sample.id}
+                    group={sample.group?.name}
+                  />
+                </div>
+              ) : null}
+            </div>
+          );
+        }}
       </RecordWorkspace>
 
       <ConfirmDialog

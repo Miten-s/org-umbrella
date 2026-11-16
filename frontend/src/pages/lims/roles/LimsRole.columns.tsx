@@ -1,9 +1,9 @@
 import { AvatarCell } from "@/components/data/cells/AvatarCell";
-import { StatusPill } from "@/components/data/cells/StatusPill";
 import { TagListCell } from "@/components/data/cells/TagListCell";
 import { TruncateCell } from "@/components/data/cells/TruncateCell";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import type { TFunction } from "i18next";
+import { removedColumn } from "@/components/data/cells/removedColumn";
 import {
   getLimsRolePermissionNames,
   type LimsRole,
@@ -15,9 +15,12 @@ const refLabel = (ref: LimsRef | null | undefined) => ref?.name ?? "";
 /** Column factory (STANDARDS.md §8). */
 export const getLimsRoleColumns = ({
   t,
-  permissionLabels = {}
+  permissionLabels = {},
+  includeRemoved = false
 }: {
   t: TFunction;
+  /** Adds the Removed column while removed records are listed. */
+  includeRemoved?: boolean;
   /** Permission code → display name from the catalogue; codes are never shown as-is. */
   permissionLabels?: Record<string, string>;
 }): ColDef<LimsRole>[] => [
@@ -78,17 +81,5 @@ export const getLimsRoleColumns = ({
       <TruncateCell value={params.value} />
     )
   },
-  {
-    field: "isRemoved",
-    headerName: t("status"),
-    flex: 0.6,
-    minWidth: 130,
-    sortable: false,
-    cellRenderer: (params: ICellRendererParams<LimsRole>) =>
-      params.data?.isRemoved ? (
-        <StatusPill label={t("limsRemoved")} tone="error" />
-      ) : (
-        <StatusPill label={t("active")} tone="success" />
-      )
-  }
+  ...(includeRemoved ? [removedColumn<LimsRole>(t)] : [])
 ];

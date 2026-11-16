@@ -23,6 +23,7 @@ export interface LimsResultRow extends Record<string, unknown> {
 }
 
 export interface LimsTest {
+  status?: string;
   id: string;
   /** @deprecated compatibility shim — read `id`. */
   _id: string;

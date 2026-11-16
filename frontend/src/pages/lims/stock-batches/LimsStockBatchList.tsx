@@ -1,5 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { NEW_RECORD, recordPageUrl } from "@/components/data/recordPage";
+import { PageUrl } from "@/types/utils.types";
 
 import DataTable, {
   type DataTableBulkAction
@@ -11,7 +14,6 @@ import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
-import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
@@ -37,12 +39,9 @@ import {
   useBulkCopyLimsStockBatch,
   useBulkDeleteLimsStockBatch,
   useBulkUpdateLimsStockBatch,
-  useCreateLimsStockBatch,
   useLimsStockBatchAudit,
   useRestoreLimsStockBatch,
-  useBulkRestoreLimsStockBatch,
-  useUpdateLimsStockBatch,
-  useLimsStockBatchById
+  useBulkRestoreLimsStockBatch
 } from "./LimsStockBatch.queries";
 import LimsStockBatchForm, {
   type LimsStockBatchFormMode
@@ -55,11 +54,9 @@ import type {
 /** LimsStockBatch list — built to STANDARDS.md and the MIGRATION.md §5 definition of done. */
 const LimsStockBatchList = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { isOpen, openModal, closeModal } = useModal();
 
-  // Full record (incl. attachments) is fetched fresh from this id, not the list row.
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [formMode, setFormMode] = useState<LimsStockBatchFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
   // Set instead of activeId/formMode while the Copy review flow is open.
   const [copyIds, setCopyIds] = useState<string[] | null>(null);
@@ -68,10 +65,6 @@ const LimsStockBatchList = () => {
 
   const compliance = useLimsCompliance<LimsStockBatch, LimsStockBatchPayload>();
   const auditQuery = useLimsStockBatchAudit(compliance.auditRow?.id);
-  const detailQuery = useLimsStockBatchById(
-    activeId ?? undefined,
-    isOpen && formMode !== "create"
-  );
 
   const fetchList = useCallback(
     (
@@ -87,8 +80,6 @@ const LimsStockBatchList = () => {
     fetchList
   });
 
-  const create = useCreateLimsStockBatch();
-  const update = useUpdateLimsStockBatch();
   const bulkClone = useBulkCloneLimsStockBatch();
   const bulkCopy = useBulkCopyLimsStockBatch();
   const bulkDelete = useBulkDeleteLimsStockBatch();
@@ -97,8 +88,6 @@ const LimsStockBatchList = () => {
   const bulkRestoreStockBatch = useBulkRestoreLimsStockBatch();
 
   const busy =
-    create.isPending ||
-    update.isPending ||
     bulkClone.isPending ||
     bulkCopy.isPending ||
     bulkDelete.isPending ||
@@ -106,45 +95,63 @@ const LimsStockBatchList = () => {
     restore.isPending ||
     bulkRestoreStockBatch.isPending;
 
-  const columnDefs = useMemo(() => getLimsStockBatchColumns({ t }), [t]);
+  const columnDefs = useMemo(
+    () => getLimsStockBatchColumns({ t, includeRemoved }),
+    [t, includeRemoved]
+  );
 
+  // One record opens on its own page; several are reviewed side by side in the modal.
+  const page = (id: string) =>
+    recordPageUrl(PageUrl.LIMSStockBatchesWorkspace.path, id);
   const openForm = useCallback(
     (mode: LimsStockBatchFormMode, row: LimsStockBatch | null) => {
-      setFormMode(mode);
-      setActiveId(row?.id ?? null);
-      openModal();
+      if (mode === "create" || !row) {
+        navigate(page(NEW_RECORD));
+        return;
+      }
+      navigate(mode === "view" ? `${page(row.id)}?mode=view` : page(row.id));
     },
-    [openModal]
+    [navigate]
   );
 
   const openCopy = useCallback(
     (ids: string[]) => {
+      if (ids.length === 1) {
+        navigate(`${page(NEW_RECORD)}?copyFrom=${ids[0]}`);
+        return;
+      }
       setCopyIds(ids);
       openModal();
     },
-    [openModal]
+    [openModal, navigate]
   );
 
   const openView = useCallback(
     (ids: string[]) => {
+      if (ids.length === 1) {
+        navigate(`${page(ids[0])}?mode=view`);
+        return;
+      }
       setViewIds(ids);
       openModal();
     },
-    [openModal]
+    [openModal, navigate]
   );
 
   const openEdit = useCallback(
     (ids: string[]) => {
+      if (ids.length === 1) {
+        navigate(page(ids[0]));
+        return;
+      }
       setEditIds(ids);
       openModal();
     },
-    [openModal]
+    [openModal, navigate]
   );
 
   const handleCloseForm = () => {
     closeModal();
-    setActiveId(null);
-    setFormMode("create");
     setCopyIds(null);
     setViewIds(null);
     setEditIds(null);
@@ -165,29 +172,6 @@ const LimsStockBatchList = () => {
 
   const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
     await bulkClone.mutateAsync(idsSelection(unreviewedIds));
-  };
-
-  const handleSave = async (payload: LimsStockBatchPayload, files: File[]) => {
-    if (activeId) {
-      compliance.requestUpdate(activeId, payload, files);
-      closeModal();
-      return;
-    }
-    await create.mutateAsync({ payload, files });
-    handleCloseForm();
-  };
-
-  const confirmUpdate = async (reason: string) => {
-    const pending = compliance.pendingUpdate;
-    if (!pending) return;
-    await update.mutateAsync({
-      id: pending.id,
-      payload: { ...pending.payload, changeReason: reason },
-      files: pending.files
-    });
-    compliance.clearUpdate();
-    setActiveId(null);
-    setFormMode("create");
   };
 
   const label = (row: LimsStockBatch) =>
@@ -408,23 +392,7 @@ const LimsStockBatchList = () => {
             saving={bulkUpdate.isPending}
             entityLabel={t("limsStockBatch")}
           />
-        ) : formMode !== "create" && detailQuery.isLoading ? (
-          // isLoading only — isFetching would unmount this form (and any modal
-          // inside it, e.g. Manage) on every background refetch from invalidateAllLims.
-          <div className="flex min-h-[300px] items-center justify-center p-10">
-            <LoadingSpinner fullScreen={false} />
-          </div>
-        ) : (
-          <LimsStockBatchForm
-            mode={formMode}
-            initialData={
-              formMode === "create" ? null : (detailQuery.data ?? null)
-            }
-            onClose={handleCloseForm}
-            onSubmit={handleSave}
-            submitting={create.isPending || update.isPending}
-          />
-        )}
+        ) : null}
       </Modal>
 
       <LimsComplianceDialogs
@@ -432,7 +400,6 @@ const LimsStockBatchList = () => {
         entityLabel={t("limsStockBatch")}
         entityLabelPlural={t("limsStockBatches")}
         getRecordLabel={label}
-        updating={update.isPending}
         deleting={bulkDelete.isPending}
         restoring={restore.isPending}
         bulkRestoring={bulkRestoreStockBatch.isPending}
@@ -446,7 +413,6 @@ const LimsStockBatchList = () => {
         auditFetchingNextPage={auditQuery.isFetchingNextPage}
 
         onAuditLoadMore={auditQuery.fetchNextPage}
-        onUpdate={confirmUpdate}
         onBulkUpdate={async (reason) => {
           const pending = compliance.pendingBulkUpdate;
           if (pending) {

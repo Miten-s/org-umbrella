@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
+import { sectionHidden } from "@/components/data/recordPage";
 
 import Input from "@/components/common/form/input/InputField";
 import DateField from "@/components/common/form/input/DateField";
@@ -65,7 +66,7 @@ interface LimsSampleFormProps {
   stepIndex?: number;
   /** Set on the sample workspace page: no modal frame or buttons, only this section shows
    * (the other stays mounted, so one Save covers both), and tests live on the Execution tab. */
-  pageSection?: "details" | "other" | "none";
+  pageSection?: string;
   onDirtyChange?: (dirty: boolean) => void;
   /** Fired when Save finds an invalid field — the page switches to the tab that holds it. */
   onInvalid?: () => void;
@@ -305,7 +306,8 @@ const LimsSampleForm = ({
         )}
 
         <div
-          className={`grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 ${onPage && pageSection !== "details" ? "hidden" : ""}`}
+          data-section="details"
+          className={`grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 ${sectionHidden(pageSection, "details") ? "hidden" : ""}`}
         >
           <div className="min-w-0">
             {/* Server-locked (crud-factory drops any client value), same as idNumeric — blank on Copy. */}
@@ -506,7 +508,10 @@ const LimsSampleForm = ({
             />
           </div>
           <div
-            className={onPage && pageSection !== "other" ? "hidden" : "min-w-0"}
+            data-section="other"
+            className={
+              sectionHidden(pageSection, "other") ? "hidden" : "min-w-0"
+            }
           >
             <SubFormGrid<LimsTestWindowRow>
               label={t("limsTestWindows")}
@@ -544,7 +549,10 @@ const LimsSampleForm = ({
           </div>
           {/* Batch saves (Copy, Create-N) post JSON only — no file upload path. */}
           {mode !== "bulk-edit" && !isNewRecord && (
-            <div className={onPage && pageSection !== "other" ? "hidden" : ""}>
+            <div
+              data-section="other"
+              className={sectionHidden(pageSection, "other") ? "hidden" : ""}
+            >
               <LimsAttachmentsField
                 attachments={attachments}
                 disabled={isReadOnly}

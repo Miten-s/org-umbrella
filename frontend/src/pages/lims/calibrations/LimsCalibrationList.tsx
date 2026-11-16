@@ -109,7 +109,10 @@ const LimsCalibrationList = () => {
     restore.isPending ||
     bulkRestoreCalibration.isPending;
 
-  const columnDefs = useMemo(() => getLimsCalibrationColumns({ t }), [t]);
+  const columnDefs = useMemo(
+    () => getLimsCalibrationColumns({ t, includeRemoved }),
+    [t, includeRemoved]
+  );
 
   const openForm = useCallback(
     (mode: LimsCalibrationFormMode, row: LimsCalibration | null) => {

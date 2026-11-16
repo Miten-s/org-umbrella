@@ -19,8 +19,8 @@ export const getPaginationOptions = (query: any): PaginationOptions => {
   if (isNaN(limit) || limit <= 0) {
     limit = 10;
   }
-  if (limit > 100) {
-    limit = 100; // Hard cap
+  if (limit > 500) {
+    limit = 500; // Hard cap — matches the largest page-size option in the UI
   }
 
   const skip = (page - 1) * limit;

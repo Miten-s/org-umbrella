@@ -114,7 +114,10 @@ const LimsSampleTemplateList = () => {
     restorePhrase.isPending ||
     bulkRestoreSampleTemplate.isPending;
 
-  const columnDefs = useMemo(() => getLimsSampleTemplateColumns({ t }), [t]);
+  const columnDefs = useMemo(
+    () => getLimsSampleTemplateColumns({ t, includeRemoved }),
+    [t, includeRemoved]
+  );
 
   // One template opens on its own page; several are reviewed side by side in the modal.
   const openCopy = useCallback(

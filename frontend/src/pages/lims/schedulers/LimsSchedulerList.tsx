@@ -106,7 +106,10 @@ const LimsSchedulerList = () => {
     restore.isPending ||
     bulkRestoreScheduler.isPending;
 
-  const columnDefs = useMemo(() => getLimsSchedulerColumns({ t }), [t]);
+  const columnDefs = useMemo(
+    () => getLimsSchedulerColumns({ t, includeRemoved }),
+    [t, includeRemoved]
+  );
 
   const openForm = useCallback(
     (mode: LimsSchedulerFormMode, row: LimsScheduler | null) => {

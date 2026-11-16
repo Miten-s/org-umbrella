@@ -1,5 +1,6 @@
 import { ChevronLeftIcon } from "@/public/icons";
 import type { ReactNode } from "react";
+import { LIST_PAGE_SIZE_OPTIONS } from "@/utils/listResponse";
 
 const PagerButton = ({
   label,
@@ -46,7 +47,7 @@ export const ServerPaginationFooter = ({
   pageSize,
   totalRows,
   disabled = false,
-  pageSizeOptions = [5, 10, 20, 50],
+  pageSizeOptions = LIST_PAGE_SIZE_OPTIONS,
   onPageChange,
   onPageSizeChange
 }: ServerPaginationFooterProps) => {

@@ -67,6 +67,33 @@ const LIMSInspectionPlansPage = lazy(
   () => import("../pages/lims/inspection-plans")
 );
 const LIMSAnalysesPage = lazy(() => import("../pages/lims/analyses"));
+const LIMSPhraseWorkspacePage = lazy(
+  () => import("../pages/lims/phrases/LimsPhraseWorkspacePage")
+);
+const LIMSInspectionPlanWorkspacePage = lazy(
+  () => import("../pages/lims/inspection-plans/LimsInspectionPlanWorkspacePage")
+);
+const LIMSInstrumentWorkspacePage = lazy(
+  () => import("../pages/lims/instruments/LimsInstrumentWorkspacePage")
+);
+const LIMSInstrumentPartWorkspacePage = lazy(
+  () => import("../pages/lims/instrument-parts/LimsInstrumentPartWorkspacePage")
+);
+const LIMSStockWorkspacePage = lazy(
+  () => import("../pages/lims/stocks/LimsStockWorkspacePage")
+);
+const LIMSStockBatchWorkspacePage = lazy(
+  () => import("../pages/lims/stock-batches/LimsStockBatchWorkspacePage")
+);
+const LIMSAliquotWorkspacePage = lazy(
+  () => import("../pages/lims/aliquots/LimsAliquotWorkspacePage")
+);
+const LIMSTestGroupWorkspacePage = lazy(
+  () => import("../pages/lims/test-groups/LimsTestGroupWorkspacePage")
+);
+const LIMSTestWorkspacePage = lazy(
+  () => import("../pages/lims/tests/LimsTestWorkspacePage")
+);
 const LIMSSpecificationWorkspacePage = lazy(
   () => import("../pages/lims/specifications/LimsSpecificationWorkspacePage")
 );
@@ -141,6 +168,11 @@ const LIMS_ROUTES: [
   ],
   [PageUrl.LIMSStocks, LIMS_PERMISSIONS.VIEW_STOCK, <LIMSStocksPage />],
   [
+    PageUrl.LIMSStocksWorkspace,
+    LIMS_PERMISSIONS.VIEW_STOCK,
+    <LIMSStockWorkspacePage />
+  ],
+  [
     PageUrl.LIMSParameters,
     LIMS_PERMISSIONS.VIEW_PARAMETER,
     <LIMSParametersPage />
@@ -150,16 +182,36 @@ const LIMS_ROUTES: [
     LIMS_PERMISSIONS.VIEW_STOCK_BATCH,
     <LIMSStockBatchesPage />
   ],
+  [
+    PageUrl.LIMSStockBatchesWorkspace,
+    LIMS_PERMISSIONS.VIEW_STOCK_BATCH,
+    <LIMSStockBatchWorkspacePage />
+  ],
   [PageUrl.LIMSAliquots, LIMS_PERMISSIONS.VIEW_ALIQUOT, <LIMSAliquotsPage />],
+  [
+    PageUrl.LIMSAliquotsWorkspace,
+    LIMS_PERMISSIONS.VIEW_ALIQUOT,
+    <LIMSAliquotWorkspacePage />
+  ],
   [
     PageUrl.LIMSInstruments,
     LIMS_PERMISSIONS.VIEW_INSTRUMENT,
     <LIMSInstrumentsPage />
   ],
   [
+    PageUrl.LIMSInstrumentsWorkspace,
+    LIMS_PERMISSIONS.VIEW_INSTRUMENT,
+    <LIMSInstrumentWorkspacePage />
+  ],
+  [
     PageUrl.LIMSInstrumentParts,
     LIMS_PERMISSIONS.VIEW_INSTRUMENT_PART,
     <LIMSInstrumentPartsPage />
+  ],
+  [
+    PageUrl.LIMSInstrumentPartsWorkspace,
+    LIMS_PERMISSIONS.VIEW_INSTRUMENT_PART,
+    <LIMSInstrumentPartWorkspacePage />
   ],
   [
     PageUrl.LIMSCalibrations,
@@ -171,6 +223,11 @@ const LIMS_ROUTES: [
     LIMS_PERMISSIONS.VIEW_INSPECTION_PLAN,
     <LIMSInspectionPlansPage />
   ],
+  [
+    PageUrl.LIMSInspectionPlansWorkspace,
+    LIMS_PERMISSIONS.VIEW_INSPECTION_PLAN,
+    <LIMSInspectionPlanWorkspacePage />
+  ],
   [PageUrl.LIMSAnalyses, LIMS_PERMISSIONS.VIEW_ANALYSIS, <LIMSAnalysesPage />],
   [
     PageUrl.LIMSAnalysisWorkspace,
@@ -181,6 +238,11 @@ const LIMS_ROUTES: [
     PageUrl.LIMSTestGroups,
     LIMS_PERMISSIONS.VIEW_TEST_GROUP,
     <LIMSTestGroupsPage />
+  ],
+  [
+    PageUrl.LIMSTestGroupsWorkspace,
+    LIMS_PERMISSIONS.VIEW_TEST_GROUP,
+    <LIMSTestGroupWorkspacePage />
   ],
   [
     PageUrl.LIMSSpecifications,
@@ -226,13 +288,23 @@ const LIMS_ROUTES: [
     <LIMSSampleWorkspacePage />
   ],
   [PageUrl.LIMSTests, LIMS_PERMISSIONS.VIEW_TEST, <LIMSTestsPage />],
+  [
+    PageUrl.LIMSTestsWorkspace,
+    LIMS_PERMISSIONS.VIEW_TEST,
+    <LIMSTestWorkspacePage />
+  ],
   [PageUrl.LIMSResults, LIMS_PERMISSIONS.VIEW_RESULT, <LIMSResultsPage />],
   [
     PageUrl.LIMSSchedulers,
     LIMS_PERMISSIONS.VIEW_SCHEDULER,
     <LIMSSchedulersPage />
   ],
-  [PageUrl.LIMSPhrases, LIMS_PERMISSIONS.VIEW_PHRASE, <LIMSPhrasesPage />]
+  [PageUrl.LIMSPhrases, LIMS_PERMISSIONS.VIEW_PHRASE, <LIMSPhrasesPage />],
+  [
+    PageUrl.LIMSPhrasesWorkspace,
+    LIMS_PERMISSIONS.VIEW_PHRASE,
+    <LIMSPhraseWorkspacePage />
+  ]
 ];
 
 const limsChildren: AppRoute[] = LIMS_ROUTES.map(

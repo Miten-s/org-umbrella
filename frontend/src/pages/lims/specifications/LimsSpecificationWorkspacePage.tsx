@@ -125,6 +125,7 @@ const Workspace = ({
           { key: "other", label: t("workspaceTabOtherInformation") }
         ]}
         readOnly={readOnly}
+        stacked={!isNew}
         dirty={dirty || (isCopy && isNew)}
         saving={saving}
         onSave={() => {
@@ -143,7 +144,7 @@ const Workspace = ({
               }
               initialData={record}
               formId={FORM_ID}
-              pageSection={tab as (typeof TABS)[number]}
+              pageSection={tab}
               onDirtyChange={setDirty}
               onLimitCount={setLimitCount}
               onInvalid={(section) => {
@@ -163,7 +164,7 @@ const Workspace = ({
                 else setPending({ payload, files });
               }}
             />
-            {tab === "details" && record && !isNew ? (
+            {record && !isNew ? (
               <RecordInfoPanel
                 route="/lims-specifications"
                 recordId={record.id}

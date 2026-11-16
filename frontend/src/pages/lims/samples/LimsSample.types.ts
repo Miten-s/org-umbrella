@@ -50,6 +50,7 @@ export interface LimsSampleTest {
 }
 
 export interface LimsSample {
+  status?: string;
   id: string;
   /** @deprecated compatibility shim — read `id`. */
   _id: string;

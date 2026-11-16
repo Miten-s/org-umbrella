@@ -106,7 +106,10 @@ const LimsAnalysisList = () => {
     restore.isPending ||
     bulkRestoreAnalysis.isPending;
 
-  const columnDefs = useMemo(() => getLimsAnalysisColumns({ t }), [t]);
+  const columnDefs = useMemo(
+    () => getLimsAnalysisColumns({ t, includeRemoved }),
+    [t, includeRemoved]
+  );
 
   // One template opens on its own page; several are reviewed side by side in the modal.
   const openCopy = useCallback(

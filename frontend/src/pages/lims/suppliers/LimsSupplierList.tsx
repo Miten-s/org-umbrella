@@ -103,7 +103,10 @@ const LimsSupplierList = () => {
     restoreSupplier.isPending ||
     bulkRestoreSupplier.isPending;
 
-  const columnDefs = useMemo(() => getLimsSupplierColumns({ t }), [t]);
+  const columnDefs = useMemo(
+    () => getLimsSupplierColumns({ t, includeRemoved }),
+    [t, includeRemoved]
+  );
 
   const openForm = useCallback(
     (mode: LimsSupplierFormMode, supplier: LimsSupplier | null) => {

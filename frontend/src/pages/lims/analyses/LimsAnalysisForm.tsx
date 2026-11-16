@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
+import { sectionHidden } from "@/components/data/recordPage";
 
 import Input from "@/components/common/form/input/InputField";
 import Label from "@/components/common/form/Label";
@@ -61,7 +62,7 @@ interface LimsAnalysisFormProps {
   stepLabel?: string;
   /** Set on the Test Template page: no modal frame or buttons, and only this tab's part shows
    * (the other stays mounted, so one Save covers both). */
-  pageSection?: "details" | "components";
+  pageSection?: string;
   onDirtyChange?: (dirty: boolean) => void;
   /** Save found a problem — the page switches to the tab that holds it. */
   onInvalid?: (section: "details" | "components") => void;
@@ -222,7 +223,8 @@ const LimsAnalysisForm = ({
         )}
 
         <div
-          className={`grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 ${onPage && pageSection !== "details" ? "hidden" : ""}`}
+          data-section="details"
+          className={`grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 ${sectionHidden(pageSection, "details") ? "hidden" : ""}`}
         >
           {text("analysisId", t("limsAnalysisId"), true, "text")}
           {text("name", t("name"), true, "text")}
@@ -326,7 +328,10 @@ const LimsAnalysisForm = ({
             />
           </div>
         </div>
-        <div className={onPage && pageSection !== "components" ? "hidden" : ""}>
+        <div
+          data-section="components"
+          className={sectionHidden(pageSection, "components") ? "hidden" : ""}
+        >
           <div className="min-w-0">
             <ComponentRowsEditor
               rows={components}

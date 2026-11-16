@@ -12,7 +12,6 @@ import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
-import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
@@ -38,12 +37,9 @@ import {
   useBulkCopyLimsSpecification,
   useBulkDeleteLimsSpecification,
   useBulkUpdateLimsSpecification,
-  useCreateLimsSpecification,
   useLimsSpecificationAudit,
   useRestoreLimsSpecification,
-  useBulkRestoreLimsSpecification,
-  useUpdateLimsSpecification,
-  useLimsSpecificationById
+  useBulkRestoreLimsSpecification
 } from "./LimsSpecification.queries";
 import LimsSpecificationForm, {
   type LimsSpecificationFormMode
@@ -63,9 +59,6 @@ const LimsSpecificationList = () => {
   const navigate = useNavigate();
   const { isOpen, openModal, closeModal } = useModal();
 
-  // Full record (incl. attachments) is fetched fresh from this id, not the list row.
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [formMode, setFormMode] = useState<LimsSpecificationFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
   // Set instead of activeId/formMode while the Copy review flow is open.
   const [copyIds, setCopyIds] = useState<string[] | null>(null);
@@ -77,10 +70,6 @@ const LimsSpecificationList = () => {
     LimsSpecificationPayload
   >();
   const auditQuery = useLimsSpecificationAudit(compliance.auditRow?.id);
-  const detailQuery = useLimsSpecificationById(
-    activeId ?? undefined,
-    isOpen && formMode !== "create"
-  );
 
   const fetchList = useCallback(
     (
@@ -96,8 +85,6 @@ const LimsSpecificationList = () => {
     fetchList
   });
 
-  const create = useCreateLimsSpecification();
-  const update = useUpdateLimsSpecification();
   const bulkClone = useBulkCloneLimsSpecification();
   const bulkCopy = useBulkCopyLimsSpecification();
   const bulkDelete = useBulkDeleteLimsSpecification();
@@ -106,8 +93,6 @@ const LimsSpecificationList = () => {
   const bulkRestoreSpecification = useBulkRestoreLimsSpecification();
 
   const busy =
-    create.isPending ||
-    update.isPending ||
     bulkClone.isPending ||
     bulkCopy.isPending ||
     bulkDelete.isPending ||
@@ -115,7 +100,10 @@ const LimsSpecificationList = () => {
     restore.isPending ||
     bulkRestoreSpecification.isPending;
 
-  const columnDefs = useMemo(() => getLimsSpecificationColumns({ t }), [t]);
+  const columnDefs = useMemo(
+    () => getLimsSpecificationColumns({ t, includeRemoved }),
+    [t, includeRemoved]
+  );
 
   // One specification opens on its own page; several are reviewed side by side in the modal.
   const openForm = useCallback(
@@ -173,8 +161,6 @@ const LimsSpecificationList = () => {
 
   const handleCloseForm = () => {
     closeModal();
-    setActiveId(null);
-    setFormMode("create");
     setCopyIds(null);
     setViewIds(null);
     setEditIds(null);
@@ -195,32 +181,6 @@ const LimsSpecificationList = () => {
 
   const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
     await bulkClone.mutateAsync(idsSelection(unreviewedIds));
-  };
-
-  const handleSave = async (
-    payload: LimsSpecificationPayload,
-    files: File[]
-  ) => {
-    if (activeId) {
-      compliance.requestUpdate(activeId, payload, files);
-      closeModal();
-      return;
-    }
-    await create.mutateAsync({ payload, files });
-    handleCloseForm();
-  };
-
-  const confirmUpdate = async (reason: string) => {
-    const pending = compliance.pendingUpdate;
-    if (!pending) return;
-    await update.mutateAsync({
-      id: pending.id,
-      payload: { ...pending.payload, changeReason: reason },
-      files: pending.files
-    });
-    compliance.clearUpdate();
-    setActiveId(null);
-    setFormMode("create");
   };
 
   const label = (row: LimsSpecification) =>
@@ -441,23 +401,7 @@ const LimsSpecificationList = () => {
             saving={bulkUpdate.isPending}
             entityLabel={t("limsSpecification")}
           />
-        ) : formMode !== "create" && detailQuery.isLoading ? (
-          // isLoading only — isFetching would unmount this form (and any modal
-          // inside it, e.g. Manage) on every background refetch from invalidateAllLims.
-          <div className="flex min-h-[300px] items-center justify-center p-10">
-            <LoadingSpinner fullScreen={false} />
-          </div>
-        ) : (
-          <LimsSpecificationForm
-            mode={formMode}
-            initialData={
-              formMode === "create" ? null : (detailQuery.data ?? null)
-            }
-            onClose={handleCloseForm}
-            onSubmit={handleSave}
-            submitting={create.isPending || update.isPending}
-          />
-        )}
+        ) : null}
       </Modal>
 
       <LimsComplianceDialogs
@@ -465,7 +409,6 @@ const LimsSpecificationList = () => {
         entityLabel={t("limsSpecification")}
         entityLabelPlural={t("limsSpecifications")}
         getRecordLabel={label}
-        updating={update.isPending}
         deleting={bulkDelete.isPending}
         restoring={restore.isPending}
         bulkRestoring={bulkRestoreSpecification.isPending}
@@ -479,7 +422,6 @@ const LimsSpecificationList = () => {
         auditFetchingNextPage={auditQuery.isFetchingNextPage}
 
         onAuditLoadMore={auditQuery.fetchNextPage}
-        onUpdate={confirmUpdate}
         onBulkUpdate={async (reason) => {
           const pending = compliance.pendingBulkUpdate;
           if (pending) {

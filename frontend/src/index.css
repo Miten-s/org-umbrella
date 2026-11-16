@@ -1011,3 +1011,8 @@ layer(base);
     animation-duration: 0.01ms;
   }
 }
+
+/* Sections of a record page land below the pinned app bar and page header. */
+[data-section] {
+  scroll-margin-top: calc(var(--app-header-h, 77px) + 10rem);
+}

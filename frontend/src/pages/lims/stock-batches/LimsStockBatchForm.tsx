@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
+import { usePageForm, type PageFormProps } from "@/components/data/pageForm";
 
 import Input from "@/components/common/form/input/InputField";
 import DateField from "@/components/common/form/input/DateField";
@@ -37,7 +38,7 @@ import type {
 export type LimsStockBatchFormMode =
   "create" | "edit" | "view" | "copy" | "bulk-edit";
 
-interface LimsStockBatchFormProps {
+interface LimsStockBatchFormProps extends PageFormProps {
   mode?: LimsStockBatchFormMode;
   initialData?: LimsStockBatch | null;
   onClose: () => void;
@@ -75,7 +76,10 @@ const LimsStockBatchForm = ({
   submitLabel,
   disabled = false,
   formId,
-  stepLabel
+  stepLabel,
+  pageSection,
+  onDirtyChange,
+  onInvalid
 }: LimsStockBatchFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
@@ -121,6 +125,14 @@ const LimsStockBatchForm = ({
     resolver: zodResolver(limsStockBatchSchema),
     defaultValues: initialValues
   });
+  const watched = useWatch({ control });
+  const page = usePageForm(
+    { pageSection, onDirtyChange },
+    !isPayloadEqual({ ...initialValues, ...watched }, initialValues) ||
+      !isPayloadEqual(consumptions, initialConsumptionsRef.current) ||
+      !isPayloadEqual(parameters, initialParametersRef.current) ||
+      attachments.isDirty
+  );
 
   const description = useWatch({ control, name: "description" });
   const busy = submitting || isSubmitting;
@@ -164,47 +176,55 @@ const LimsStockBatchForm = ({
   );
 
   return (
-    <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+    <div className={page.frameClass}>
       <form
         id={formId}
-        onSubmit={handleSubmit((values) => {
-          // Edit + nothing actually changed: skip the reason modal, update
-          // call, and audit entry entirely — a no-op Save just closes.
-          if (
-            (mode === "edit" || mode === "bulk-edit") &&
-            !attachments.isDirty &&
-            isPayloadEqual(values, initialValues) &&
-            isPayloadEqual(consumptions, initialConsumptionsRef.current) &&
-            isPayloadEqual(parameters, initialParametersRef.current)
-          ) {
-            (onUnchanged ?? onClose)();
-            return;
-          }
-          onSubmit(
-            {
-              ...values,
-              consumptions,
-              parameters,
-              keptAttachmentIds: attachments.keptIds
-            },
-            attachments.newFiles
-          );
-        })}
+        onSubmit={handleSubmit(
+          (values) => {
+            // Edit + nothing actually changed: skip the reason modal, update
+            // call, and audit entry entirely — a no-op Save just closes.
+            if (
+              (mode === "edit" || mode === "bulk-edit") &&
+              !attachments.isDirty &&
+              isPayloadEqual(values, initialValues) &&
+              isPayloadEqual(consumptions, initialConsumptionsRef.current) &&
+              isPayloadEqual(parameters, initialParametersRef.current)
+            ) {
+              (onUnchanged ?? onClose)();
+              return;
+            }
+            onSubmit(
+              {
+                ...values,
+                consumptions,
+                parameters,
+                keptAttachmentIds: attachments.keptIds
+              },
+              attachments.newFiles
+            );
+          },
+          () => onInvalid?.("details")
+        )}
         className="min-w-0 space-y-4"
       >
-        <FormHeader
-          title={
-            isReadOnly
-              ? t("view", { entity: t("limsStockBatch") })
-              : mode === "copy"
-                ? `${t("copyEntity", { entity: t("limsStockBatch") })}${stepLabel ?? ""}`
-                : initialData
-                  ? `${t("update", { entity: t("limsStockBatch") })}${stepLabel ?? ""}`
-                  : t("create", { entity: t("limsStockBatch") })
-          }
-        />
+        {page.onPage ? null : (
+          <FormHeader
+            title={
+              isReadOnly
+                ? t("view", { entity: t("limsStockBatch") })
+                : mode === "copy"
+                  ? `${t("copyEntity", { entity: t("limsStockBatch") })}${stepLabel ?? ""}`
+                  : initialData
+                    ? `${t("update", { entity: t("limsStockBatch") })}${stepLabel ?? ""}`
+                    : t("create", { entity: t("limsStockBatch") })
+            }
+          />
+        )}
 
-        <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
+        <div
+          data-section="details"
+          className={`grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 ${page.hide("details")}`}
+        >
           <div className="min-w-0">
             <Label required={true}>{t("limsStock")}</Label>
             <Controller
@@ -320,38 +340,6 @@ const LimsStockBatchForm = ({
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
-          <div className="col-span-full min-w-0">
-            <SubFormGrid<LimsConsumptionRow>
-              label={t("limsConsumptionRecords")}
-              rows={consumptions}
-              onChange={setConsumptions}
-              disabled={isReadOnly}
-              columns={[
-                {
-                  key: "consumedOn",
-                  header: t("limsConsumedOn"),
-                  type: "date"
-                },
-                { key: "consumedBy", header: t("limsConsumedBy") },
-                { key: "amount", header: t("limsAmount"), type: "number" },
-                { key: "unit", header: t("limsUnit") },
-                { key: "remarks", header: t("limsRemarks") }
-              ]}
-            />
-          </div>
-          <div className="col-span-full min-w-0">
-            <SubFormGrid<LimsParameterValue>
-              label={t("limsParameters")}
-              rows={parameters}
-              onChange={setParameters}
-              disabled={isReadOnly}
-              columns={[
-                { key: "identity", header: t("limsIdentity") },
-                { key: "value", header: t("limsValue") },
-                { key: "unit", header: t("limsUnit") }
-              ]}
-            />
-          </div>
           {mode !== "copy" && mode !== "bulk-edit" && (
             <LimsAttachmentsField
               attachments={attachments}
@@ -360,7 +348,47 @@ const LimsStockBatchForm = ({
           )}
         </div>
 
-        <div className="mt-4 flex justify-end gap-2">
+        <div
+          data-section="limsConsumptionRecords"
+          className={`min-w-0 ${page.hide("limsConsumptionRecords")}`}
+        >
+          <SubFormGrid<LimsConsumptionRow>
+            label={t("limsConsumptionRecords")}
+            rows={consumptions}
+            onChange={setConsumptions}
+            disabled={isReadOnly}
+            columns={[
+              {
+                key: "consumedOn",
+                header: t("limsConsumedOn"),
+                type: "date"
+              },
+              { key: "consumedBy", header: t("limsConsumedBy") },
+              { key: "amount", header: t("limsAmount"), type: "number" },
+              { key: "unit", header: t("limsUnit") },
+              { key: "remarks", header: t("limsRemarks") }
+            ]}
+          />
+        </div>
+
+        <div
+          data-section="limsParameters"
+          className={`min-w-0 ${page.hide("limsParameters")}`}
+        >
+          <SubFormGrid<LimsParameterValue>
+            label={t("limsParameters")}
+            rows={parameters}
+            onChange={setParameters}
+            disabled={isReadOnly}
+            columns={[
+              { key: "identity", header: t("limsIdentity") },
+              { key: "value", header: t("limsValue") },
+              { key: "unit", header: t("limsUnit") }
+            ]}
+          />
+        </div>
+
+        <div className={page.onPage ? "hidden" : "mt-4 flex justify-end gap-2"}>
           <Button
             variant="outline"
             type="button"

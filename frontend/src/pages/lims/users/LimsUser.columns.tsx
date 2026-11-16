@@ -4,14 +4,18 @@ import { TagListCell } from "@/components/data/cells/TagListCell";
 import { TruncateCell } from "@/components/data/cells/TruncateCell";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import type { TFunction } from "i18next";
+import { removedColumn } from "@/components/data/cells/removedColumn";
 import { refLabel } from "@/utils/refLabel";
 import type { LimsRef, LimsUser } from "./LimsUser.types";
 
 /** Column factory (STANDARDS.md §8). */
 export const getLimsUserColumns = ({
-  t
+  t,
+  includeRemoved = false
 }: {
   t: TFunction;
+  /** Adds the Removed column while removed records are listed. */
+  includeRemoved?: boolean;
 }): ColDef<LimsUser>[] => [
   {
     colId: "user",
@@ -76,17 +80,5 @@ export const getLimsUserColumns = ({
         <StatusPill label={t("no")} tone="neutral" />
       )
   },
-  {
-    field: "isRemoved",
-    headerName: t("status"),
-    flex: 0.6,
-    minWidth: 130,
-    sortable: false,
-    cellRenderer: (params: ICellRendererParams<LimsUser>) =>
-      params.data?.isRemoved ? (
-        <StatusPill label={t("limsRemoved")} tone="error" />
-      ) : (
-        <StatusPill label={t("active")} tone="success" />
-      )
-  }
+  ...(includeRemoved ? [removedColumn<LimsUser>(t)] : [])
 ];
