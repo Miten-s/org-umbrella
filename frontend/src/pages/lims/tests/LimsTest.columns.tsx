@@ -1,17 +1,21 @@
 import { AvatarCell } from "@/components/data/cells/AvatarCell";
-import { StatusPill } from "@/components/data/cells/StatusPill";
 import { TruncateCell } from "@/components/data/cells/TruncateCell";
 import { DateCell } from "@/components/data/cells/DateCell";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import type { TFunction } from "i18next";
+import { removedColumn } from "@/components/data/cells/removedColumn";
+import { lifecycleStatusColumn } from "@/components/data/cells/lifecycleStatusColumn";
 import { refLabel } from "@/utils/refLabel";
 import type { LimsTest } from "./LimsTest.types";
 
 /** Column factory (STANDARDS.md §8). */
 export const getLimsTestColumns = ({
-  t
+  t,
+  includeRemoved = false
 }: {
   t: TFunction;
+  /** Adds the Removed column while removed records are listed. */
+  includeRemoved?: boolean;
 }): ColDef<LimsTest>[] => [
   {
     field: "testId",
@@ -74,17 +78,6 @@ export const getLimsTestColumns = ({
       <DateCell value={params.value} />
     )
   },
-  {
-    field: "isRemoved",
-    headerName: t("status"),
-    flex: 0.6,
-    minWidth: 130,
-    sortable: false,
-    cellRenderer: (params: ICellRendererParams<LimsTest>) =>
-      params.data?.isRemoved ? (
-        <StatusPill label={t("limsRemoved")} tone="error" />
-      ) : (
-        <StatusPill label={t("active")} tone="success" />
-      )
-  }
+  lifecycleStatusColumn<LimsTest>(t),
+  ...(includeRemoved ? [removedColumn<LimsTest>(t)] : [])
 ];

@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
+import { usePageForm, type PageFormProps } from "@/components/data/pageForm";
 
 import Input from "@/components/common/form/input/InputField";
 import Label from "@/components/common/form/Label";
@@ -34,7 +35,7 @@ import type {
 export type LimsInspectionPlanFormMode =
   "create" | "edit" | "view" | "copy" | "bulk-edit";
 
-interface LimsInspectionPlanFormProps {
+interface LimsInspectionPlanFormProps extends PageFormProps {
   mode?: LimsInspectionPlanFormMode;
   initialData?: LimsInspectionPlan | null;
   onClose: () => void;
@@ -77,7 +78,10 @@ const LimsInspectionPlanForm = ({
   submitLabel,
   disabled = false,
   formId,
-  stepLabel
+  stepLabel,
+  pageSection,
+  onDirtyChange,
+  onInvalid
 }: LimsInspectionPlanFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
@@ -122,6 +126,12 @@ const LimsInspectionPlanForm = ({
     ),
     defaultValues: initialValues
   });
+  const watched = useWatch({ control });
+  const page = usePageForm(
+    { pageSection, onDirtyChange },
+    !isPayloadEqual({ ...initialValues, ...watched }, initialValues) ||
+      !isPayloadEqual(personnel, initialPersonnelRef.current)
+  );
 
   const description = useWatch({ control, name: "description" });
   const details = useWatch({ control, name: "details" });
@@ -148,37 +158,45 @@ const LimsInspectionPlanForm = ({
   );
 
   return (
-    <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+    <div className={page.frameClass}>
       <form
         id={formId}
-        onSubmit={handleSubmit((values) => {
-          // Edit + nothing actually changed: skip the reason modal, update
-          // call, and audit entry entirely — a no-op Save just closes.
-          if (
-            (mode === "edit" || mode === "bulk-edit") &&
-            isPayloadEqual(values, initialValues) &&
-            isPayloadEqual(personnel, initialPersonnelRef.current)
-          ) {
-            (onUnchanged ?? onClose)();
-            return;
-          }
-          onSubmit({ ...values, personnel: personnel.map(keepChosenEntry) });
-        })}
+        onSubmit={handleSubmit(
+          (values) => {
+            // Edit + nothing actually changed: skip the reason modal, update
+            // call, and audit entry entirely — a no-op Save just closes.
+            if (
+              (mode === "edit" || mode === "bulk-edit") &&
+              isPayloadEqual(values, initialValues) &&
+              isPayloadEqual(personnel, initialPersonnelRef.current)
+            ) {
+              (onUnchanged ?? onClose)();
+              return;
+            }
+            onSubmit({ ...values, personnel: personnel.map(keepChosenEntry) });
+          },
+          () => onInvalid?.("details")
+        )}
         className="min-w-0 space-y-4"
       >
-        <FormHeader
-          title={
-            isReadOnly
-              ? t("view", { entity: t("limsInspectionPlan") })
-              : mode === "copy"
-                ? `${t("copyEntity", { entity: t("limsInspectionPlan") })}${stepLabel ?? ""}`
-                : initialData
-                  ? `${t("update", { entity: t("limsInspectionPlan") })}${stepLabel ?? ""}`
-                  : t("create", { entity: t("limsInspectionPlan") })
-          }
-        />
+        {page.onPage ? null : (
+          <FormHeader
+            title={
+              isReadOnly
+                ? t("view", { entity: t("limsInspectionPlan") })
+                : mode === "copy"
+                  ? `${t("copyEntity", { entity: t("limsInspectionPlan") })}${stepLabel ?? ""}`
+                  : initialData
+                    ? `${t("update", { entity: t("limsInspectionPlan") })}${stepLabel ?? ""}`
+                    : t("create", { entity: t("limsInspectionPlan") })
+            }
+          />
+        )}
 
-        <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
+        <div
+          data-section="details"
+          className={`grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 ${page.hide("details")}`}
+        >
           {text("inspectionId", t("limsInspectionId"), true, "text")}
           {text("name", t("name"), true, "text")}
           <div className="min-w-0">
@@ -238,50 +256,54 @@ const LimsInspectionPlanForm = ({
               className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             />
           </div>
-          <div className="col-span-full min-w-0">
-            <SubFormGrid<LimsPersonnelRow>
-              label={t("limsPersonnel")}
-              rows={personnel}
-              onChange={setPersonnel}
-              disabled={isReadOnly}
-              columns={[
-                {
-                  key: "inspectionType",
-                  header: t("limsInspectionEntryType"),
-                  type: "select",
-                  // Spec §B.13.h: the entry type decides whether the row names
-                  // a person or a role.
-                  options: [
-                    { label: t("limsPerson"), value: "User" },
-                    { label: t("limsRole"), value: "Role" }
-                  ],
-                  onChangeValue: (_row, value) =>
-                    value === "User"
-                      ? { role: "" }
-                      : value === "Role"
-                        ? { person: "" }
-                        : {}
-                },
-                {
-                  key: "person",
-                  header: t("limsPerson"),
-                  type: "async-select",
-                  useOptions: useLimsUserOptions,
-                  readOnly: (row) => row.inspectionType !== "User"
-                },
-                {
-                  key: "role",
-                  header: t("limsRole"),
-                  type: "async-select",
-                  useOptions: useLimsRoleOptions,
-                  readOnly: (row) => row.inspectionType !== "Role"
-                }
-              ]}
-            />
-          </div>
         </div>
 
-        <div className="mt-4 flex justify-end gap-2">
+        <div
+          data-section="limsPersonnel"
+          className={`min-w-0 ${page.hide("limsPersonnel")}`}
+        >
+          <SubFormGrid<LimsPersonnelRow>
+            label={t("limsPersonnel")}
+            rows={personnel}
+            onChange={setPersonnel}
+            disabled={isReadOnly}
+            columns={[
+              {
+                key: "inspectionType",
+                header: t("limsInspectionEntryType"),
+                type: "select",
+                // Spec §B.13.h: the entry type decides whether the row names
+                // a person or a role.
+                options: [
+                  { label: t("limsPerson"), value: "User" },
+                  { label: t("limsRole"), value: "Role" }
+                ],
+                onChangeValue: (_row, value) =>
+                  value === "User"
+                    ? { role: "" }
+                    : value === "Role"
+                      ? { person: "" }
+                      : {}
+              },
+              {
+                key: "person",
+                header: t("limsPerson"),
+                type: "async-select",
+                useOptions: useLimsUserOptions,
+                readOnly: (row) => row.inspectionType !== "User"
+              },
+              {
+                key: "role",
+                header: t("limsRole"),
+                type: "async-select",
+                useOptions: useLimsRoleOptions,
+                readOnly: (row) => row.inspectionType !== "Role"
+              }
+            ]}
+          />
+        </div>
+
+        <div className={page.onPage ? "hidden" : "mt-4 flex justify-end gap-2"}>
           <Button
             variant="outline"
             type="button"

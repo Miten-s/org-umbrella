@@ -104,7 +104,10 @@ const LimsLotList = () => {
     restore.isPending ||
     bulkRestoreLot.isPending;
 
-  const columnDefs = useMemo(() => getLimsLotColumns({ t }), [t]);
+  const columnDefs = useMemo(
+    () => getLimsLotColumns({ t, includeRemoved }),
+    [t, includeRemoved]
+  );
 
   const openForm = useCallback(
     (mode: LimsLotFormMode, row: LimsLot | null) => {

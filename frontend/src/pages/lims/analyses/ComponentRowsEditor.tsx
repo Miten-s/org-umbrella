@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import Label from "@/components/common/form/Label";
@@ -8,14 +8,11 @@ import TextArea from "@/components/common/form/input/TextArea";
 import HelpTooltip from "@/components/common/HelpTooltip";
 import AsyncSelect from "@/components/data/AsyncSelect";
 import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
-import {
-  ChevronDownIcon,
-  ChevronUpIcon,
-  EyeIcon,
-  PencilIcon,
-  PlusIcon,
-  TrashBinIcon
-} from "@/public/icons";
+import { ChevronDownIcon, ChevronUpIcon } from "@/public/icons";
+import { useEntryEditorState } from "@/components/data/entryEditorContext";
+import EntryTable, {
+  type EntryTableColumn
+} from "@/components/data/EntryTable";
 import { fetchLimsPhraseList } from "@/pages/lims/phrases/LimsPhrase.api";
 import { fetchAllTemplatesForEntities } from "@/pages/lims/entity-templates/LimsEntityTemplate.api";
 import { useUnitOptions } from "@/pages/lims/phrases/LimsPhrase.queries";
@@ -51,6 +48,8 @@ const typeOptions = COMPONENT_TYPES.map((value) => ({
   value,
   label: TYPE_LABELS[value]
 }));
+
+const BLANK: LimsComponentRow = { componentId: "", name: "", description: "" };
 
 const str = (value: unknown) =>
   value === undefined || value === null ? "" : String(value);
@@ -114,8 +113,9 @@ const EntityTemplateSelect = ({
   );
 };
 
-/** Test Template components — one line per component. The Type decides which inputs follow
- * it; changing the Type clears the old type's values so nothing stale is saved. */
+/** Test Template components: one entry form with its own Save on top, and the saved components
+ * in a paged table below (View · Edit · Delete). The Type decides which inputs the form shows;
+ * changing it clears the old type's values so nothing stale is saved. */
 const ComponentRowsEditor = ({
   rows,
   onChange,
@@ -150,64 +150,53 @@ const ComponentRowsEditor = ({
       }))
       .filter((option) => option.value) ?? [];
 
-  const duplicates = useMemo(() => duplicateRows(rows), [rows]);
-  // Rows being edited / peeked at (by index), the values to restore on Cancel, and each
-  // entry's own validation message.
-  const [editing, setEditing] = useState<Set<number>>(() => new Set());
-  const [viewing, setViewing] = useState<Set<number>>(() => new Set());
-  const [rowErrors, setRowErrors] = useState<Map<number, string>>(
-    () => new Map()
-  );
-  const snapshots = useRef(new Map<number, LimsComponentRow>());
-  const withIndex = (set: Set<number>, index: number, on: boolean) => {
-    const next = new Set(set);
-    if (on) next.add(index);
-    else next.delete(index);
-    return next;
-  };
-  const shiftDown = (set: Set<number>, removed: number) =>
-    new Set(
-      [...set]
-        .filter((i) => i !== removed)
-        .map((i) => (i > removed ? i - 1 : i))
-    );
+  // The entry form holds a new component (editIndex null) or a copy of the one being edited.
+  const [draft, setDraft] = useState<LimsComponentRow>(BLANK);
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [viewing, setViewing] = useState(false);
+  const [entryError, setEntryError] = useState<string>();
+  const [expanded, setExpanded] = useState(false);
+  const [builderOpen, setBuilderOpen] = useState(false);
+  const formRef = useRef<HTMLDivElement>(null);
+  const touched = useRef(new WeakSet<object>());
+  const [removedSaved, setRemovedSaved] = useState(0);
+  const [entryDirty, setEntryDirty] = useState(false);
 
-  const addRow = () => {
-    setEditing((prev) => withIndex(prev, rows.length, true));
-    onChange([...rows, { componentId: "", name: "", description: "" }]);
+  // What the rows would be if this entry were saved — validation and the formula need it.
+  const candidate = useMemo(
+    () =>
+      editIndex === null
+        ? [...rows, draft]
+        : rows.map((row, i) => (i === editIndex ? draft : row)),
+    [rows, draft, editIndex]
+  );
+  const draftIndex = editIndex ?? rows.length;
+  const duplicates = useMemo(() => duplicateRows(candidate), [candidate]);
+  const draftStarted = Boolean(
+    str(draft.componentId) || str(draft.name) || str(draft.type)
+  );
+
+  const reset = () => {
+    setEntryDirty(false);
+    setDraft(BLANK);
+    setEditIndex(null);
+    setViewing(false);
+    setEntryError(undefined);
+    setExpanded(false);
+  };
+
+  const focusForm = () => {
+    reset();
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
   useFormHeaderAction(
-    disabled ? null : { label: t("limsAddComponent"), onClick: addRow }
+    disabled ? null : { label: t("limsAddComponent"), onClick: focusForm }
   );
-  // A row added from the modal header lands at the bottom — bring it into view.
-  const listRef = useRef<HTMLDivElement>(null);
-  const rowCount = useRef(rows.length);
-  useEffect(() => {
-    if (rows.length > rowCount.current)
-      listRef.current?.lastElementChild?.scrollIntoView({
-        behavior: "smooth",
-        block: "center"
-      });
-    rowCount.current = rows.length;
-  }, [rows.length]);
-  const [builderRow, setBuilderRow] = useState<number | null>(null);
-  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
-  const toggleExpanded = (key: string) =>
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
 
-  const patchRow = (index: number, patch: Partial<LimsComponentRow>) => {
-    setRowErrors((prev) => {
-      if (!prev.has(index)) return prev;
-      const next = new Map(prev);
-      next.delete(index);
-      return next;
-    });
-    onChange(rows.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+  const patchRow = (_index: number, patch: Partial<LimsComponentRow>) => {
+    setEntryError(undefined);
+    setEntryDirty(true);
+    setDraft((prev) => ({ ...prev, ...patch }));
   };
 
   const changeType = (index: number, type: string) => {
@@ -217,78 +206,77 @@ const ComponentRowsEditor = ({
     patchRow(index, { ...cleared, type });
   };
 
+  const saveEntry = () => {
+    const problem = validateComponentRows(candidate, draftIndex);
+    if (problem) {
+      setEntryError(problem);
+      return;
+    }
+    touched.current.add(draft);
+    onChange(candidate);
+    reset();
+  };
+
+  const open = (index: number, readOnly: boolean) => {
+    setEntryDirty(false);
+    setDraft({ ...rows[index] });
+    setEditIndex(index);
+    setViewing(readOnly || isLegacy(rows[index]));
+    setEntryError(undefined);
+    setExpanded(false);
+    requestAnimationFrame(() =>
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+    );
+  };
+
   const removeRow = (index: number) => {
-    setEditing((prev) => shiftDown(prev, index));
-    setViewing((prev) => shiftDown(prev, index));
-    setRowErrors((prev) => {
-      const next = new Map<number, string>();
-      prev.forEach((message, i) => {
-        if (i !== index) next.set(i > index ? i - 1 : i, message);
-      });
-      return next;
-    });
-    const kept = new Map<number, LimsComponentRow>();
-    snapshots.current.forEach((row, i) => {
-      if (i !== index) kept.set(i > index ? i - 1 : i, row);
-    });
-    snapshots.current = kept;
+    if (!touched.current.has(rows[index])) setRemovedSaved((n) => n + 1);
+    if (editIndex === index) reset();
+    else if (editIndex !== null && editIndex > index)
+      setEditIndex(editIndex - 1);
     onChange(rows.filter((_, i) => i !== index));
   };
 
-  const startEdit = (index: number) => {
-    snapshots.current.set(index, rows[index]);
-    setViewing((prev) => withIndex(prev, index, false));
-    setEditing((prev) => withIndex(prev, index, true));
+  const optionLabel = (row: LimsComponentRow) => {
+    const code = row.type === "BOOLEAN" ? BOOLEAN_ANSWERS_LIST : str(row.list);
+    return (
+      entryOptionsFor(code).find((o) => o.value === row.option)?.label ??
+      str(row.option)
+    );
   };
 
-  const saveEntry = (index: number) => {
-    const problem = validateComponentRows(rows, index);
-    setRowErrors((prev) => {
-      const next = new Map(prev);
-      if (problem) next.set(index, problem);
-      else next.delete(index);
-      return next;
-    });
-    if (problem) return;
-    snapshots.current.delete(index);
-    setEditing((prev) => withIndex(prev, index, false));
-  };
-
-  const cancelEntry = (index: number) => {
-    const before = snapshots.current.get(index);
-    if (!before) return removeRow(index);
-    snapshots.current.delete(index);
-    setRowErrors((prev) => {
-      const next = new Map(prev);
-      next.delete(index);
-      return next;
-    });
-    setEditing((prev) => withIndex(prev, index, false));
-    onChange(rows.map((row, i) => (i === index ? before : row)));
-  };
-
-  /** One-line digest of a saved entry: what its Type needs, in plain words. */
+  /** What a component's Type is set up with, in plain words. */
   const entryDetail = (row: LimsComponentRow) => {
     const parts: string[] = [];
     if (str(row.unit)) parts.push(str(row.unit));
-    if (str(row.min) || str(row.max))
-      parts.push(`${str(row.min) || "…"} – ${str(row.max) || "…"}`);
     if (str(row.formula)) parts.push(`ƒ ${str(row.formula)}`);
     if (row.type === "LIST" && str(row.list))
       parts.push(
         listOptions.find((list) => list.value === row.list)?.label ??
           str(row.list)
       );
-    if (str(row.option)) {
-      const code =
-        row.type === "BOOLEAN" ? BOOLEAN_ANSWERS_LIST : str(row.list);
-      parts.push(
-        entryOptionsFor(code).find((o) => o.value === row.option)?.label ??
-          str(row.option)
-      );
-    }
+    if (row.type === "LIST" && str(row.option))
+      parts.push(`${t("limsDefaultOption")}: ${optionLabel(row)}`);
     if (str(row.entity)) parts.push(entityLabel(str(row.entity)));
     return parts.join(" · ");
+  };
+
+  /** The rules a result is checked against: limits, allowed answers, allowed list entries. */
+  const validationText = (row: LimsComponentRow) => {
+    const parts: string[] = [];
+    if (str(row.min)) parts.push(`${t("limsMin")}: ${str(row.min)}`);
+    if (str(row.max)) parts.push(`${t("limsMax")}: ${str(row.max)}`);
+    if (row.type === "BOOLEAN" && str(row.option))
+      parts.push(`${t("limsAnswers")}: ${optionLabel(row)}`);
+    if (row.type === "LIST" && str(row.list))
+      parts.push(
+        t("validationFromList", {
+          list:
+            listOptions.find((list) => list.value === row.list)?.label ??
+            str(row.list)
+        })
+      );
+    return parts.join(", ") || "—";
   };
 
   const textCell = (
@@ -313,7 +301,7 @@ const ComponentRowsEditor = ({
         value={str(row[key])}
         placeholder={extra?.placeholder}
         inputMode={extra?.inputMode}
-        disabled={disabled || locked}
+        disabled={locked}
         onChange={(event) => patchRow(index, { [key]: event.target.value })}
       />
     </Cell>
@@ -367,7 +355,7 @@ const ComponentRowsEditor = ({
                   type="button"
                   aria-label={t("limsBuildFormula")}
                   title={t("limsBuildFormula")}
-                  onClick={() => setBuilderRow(index)}
+                  onClick={() => setBuilderOpen(true)}
                   className="shrink-0 rounded-lg border border-gray-300 px-2.5 text-sm font-semibold italic text-brand-600 hover:bg-brand-50 dark:border-gray-700 dark:text-brand-400 dark:hover:bg-brand-500/10"
                 >
                   ƒx
@@ -470,255 +458,209 @@ const ComponentRowsEditor = ({
       .map(([key, value]) => `${key}: ${str(value)}`)
       .join(" · ");
 
-  return (
-    <div className="min-w-0">
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <Label className="mb-0">{t("limsComponents")}</Label>
-        {!disabled ? (
-          <Button
-            size="sm"
-            variant="outline"
-            type="button"
-            startIcon={<PlusIcon className="h-4 w-4" />}
-            onClick={addRow}
-          >
-            {t("limsAddComponent")}
-          </Button>
-        ) : null}
-      </div>
+  const ro = viewing || disabled;
+  const duplicateId = duplicates.ids.has(draftIndex);
+  const duplicateName = duplicates.names.has(draftIndex);
+  const showForm = !disabled || editIndex !== null;
 
-      {rows.length ? (
-        <div ref={listRef} className="space-y-2">
-          {rows.map((row, index) => {
-            const legacy = isLegacy(row);
-            const rowKey = row.id ?? `new-${index}`;
-            const isExpanded = expanded.has(rowKey);
-            const isEditing = editing.has(index) && !legacy && !disabled;
-            const open = isEditing || (viewing.has(index) && !legacy);
-            const ro = !isEditing;
-            const duplicateId = duplicates.ids.has(index);
-            const duplicateName = duplicates.names.has(index);
-            const rowError = rowErrors.get(index);
-            const actions = (
-              <div className="ml-auto flex shrink-0 items-center gap-1 self-end">
-                {!legacy && !isEditing ? (
-                  <button
-                    type="button"
-                    aria-label={`${t("limsEntryView")} ${index + 1}`}
-                    title={t("limsEntryView")}
-                    onClick={() =>
-                      setViewing((prev) => withIndex(prev, index, !open))
-                    }
-                    className="rounded p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5"
-                  >
-                    <EyeIcon className="h-4 w-4" />
-                  </button>
-                ) : null}
-                {!legacy && !disabled && !isEditing ? (
-                  <button
-                    type="button"
-                    aria-label={`${t("edit")} ${index + 1}`}
-                    title={t("edit")}
-                    onClick={() => startEdit(index)}
-                    className="rounded p-2 text-brand-600 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-500/10"
-                  >
-                    <PencilIcon className="h-4 w-4" />
-                  </button>
-                ) : null}
-                {!disabled ? (
-                  <button
-                    type="button"
-                    aria-label={`${t("delete")} ${index + 1}`}
-                    title={t("delete")}
-                    onClick={() => removeRow(index)}
-                    className="rounded p-2 text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10"
-                  >
-                    <TrashBinIcon className="h-4 w-4" />
-                  </button>
-                ) : null}
+  useEntryEditorState({
+    unsaved:
+      rows.filter((row) => touched.current.has(row)).length + removedSaved,
+    pendingEntry: entryDirty && !viewing,
+    label: t("limsComponents"),
+    focus: () =>
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }),
+    clearEntry: reset
+  });
+
+  const columns: EntryTableColumn<LimsComponentRow>[] = [
+    {
+      key: "componentId",
+      header: t("limsComponentId"),
+      render: (row) => <span className="font-mono">{str(row.componentId)}</span>
+    },
+    { key: "name", header: t("name"), render: (row) => str(row.name) },
+    {
+      key: "type",
+      header: t("limsType"),
+      render: (row) => (
+        <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+          {isTyped(row) ? TYPE_LABELS[row.type] : t("limsLegacy")}
+        </span>
+      )
+    },
+    {
+      key: "details",
+      header: t("componentDetails"),
+      render: (row) =>
+        (isLegacy(row) ? legacySummary(row) : entryDetail(row)) || "—"
+    },
+    {
+      key: "validation",
+      header: t("componentValidation"),
+      tooltip: t("componentValidationHint"),
+      render: (row) => validationText(row)
+    },
+    {
+      key: "description",
+      header: t("description"),
+      render: (row) => str(row.description) || "—"
+    }
+  ];
+
+  return (
+    <div className="min-w-0 space-y-4">
+      <Label className="mb-0">{t("limsComponents")}</Label>
+
+      {showForm ? (
+        <div
+          ref={formRef}
+          className="rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900"
+        >
+          <p className="px-3 pt-3 text-xs font-medium text-gray-500 dark:text-gray-400">
+            {editIndex === null
+              ? t("limsAddComponent")
+              : `${viewing ? t("limsEntryView") : t("edit")} · ${str(draft.componentId) || editIndex + 1}`}
+          </p>
+          <div className="flex items-end gap-2 overflow-x-auto p-3">
+            {textCell(
+              draft,
+              draftIndex,
+              "componentId",
+              `${t("limsComponentId")} *`,
+              "w-32",
+              ro,
+              { invalid: duplicateId && draftStarted }
+            )}
+            {textCell(draft, draftIndex, "name", `${t("name")} *`, "w-44", ro, {
+              invalid: duplicateName && draftStarted
+            })}
+            <Cell label={`${t("description")} *`} width="w-64">
+              <div className="flex gap-1">
+                <input
+                  aria-label={t("description")}
+                  className={`${inputClasses} ${okBorder}`}
+                  value={str(draft.description)}
+                  disabled={ro}
+                  onChange={(event) =>
+                    patchRow(draftIndex, { description: event.target.value })
+                  }
+                />
+                <button
+                  type="button"
+                  aria-label={t("limsExpandDescription")}
+                  aria-expanded={expanded}
+                  title={t("limsExpandDescription")}
+                  onClick={() => setExpanded((prev) => !prev)}
+                  className="shrink-0 rounded-lg border border-gray-300 px-2 text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-white/5"
+                >
+                  {expanded ? (
+                    <ChevronUpIcon className="h-4 w-4" />
+                  ) : (
+                    <ChevronDownIcon className="h-4 w-4" />
+                  )}
+                </button>
               </div>
-            );
-            return (
-              <div
-                key={rowKey}
-                className={`rounded-lg border ${
-                  isEditing
-                    ? "border-brand-300 bg-brand-50/30 dark:border-brand-500/40 dark:bg-brand-500/5"
-                    : "border-gray-200 dark:border-gray-700"
-                }`}
-              >
-                {!open ? (
-                  <div className="flex items-center gap-3 p-3">
-                    <span className="w-6 shrink-0 text-xs font-medium text-gray-400">
-                      {index + 1}
-                    </span>
-                    <span className="w-28 shrink-0 truncate font-mono text-sm text-gray-900 dark:text-white">
-                      {str(row.componentId)}
-                    </span>
-                    <span className="w-40 shrink-0 truncate text-sm font-medium text-gray-900 dark:text-white">
-                      {str(row.name)}
-                    </span>
-                    <span className="shrink-0 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                      {isTyped(row) ? TYPE_LABELS[row.type] : t("limsLegacy")}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-sm text-gray-500 dark:text-gray-400">
-                      {legacy
-                        ? legacySummary(row)
-                        : [entryDetail(row), str(row.description)]
-                            .filter(Boolean)
-                            .join(" — ")}
-                    </span>
-                    {actions}
-                  </div>
-                ) : (
-                  <div className="flex items-end gap-2 overflow-x-auto p-3">
-                    <span className="w-6 shrink-0 pb-2.5 text-xs font-medium text-gray-400">
-                      {index + 1}
-                    </span>
-                    {textCell(
-                      row,
-                      index,
-                      "componentId",
-                      `${t("limsComponentId")} *`,
-                      "w-32",
-                      ro,
-                      { invalid: duplicateId }
-                    )}
-                    {textCell(
-                      row,
-                      index,
-                      "name",
-                      `${t("name")} *`,
-                      "w-44",
-                      ro,
-                      { invalid: duplicateName }
-                    )}
-                    <Cell label={`${t("description")} *`} width="w-64">
-                      <div className="flex gap-1">
-                        <input
-                          aria-label={t("description")}
-                          className={`${inputClasses} ${okBorder}`}
-                          value={str(row.description)}
-                          disabled={ro}
-                          onChange={(event) =>
-                            patchRow(index, { description: event.target.value })
-                          }
-                        />
-                        <button
-                          type="button"
-                          aria-label={t("limsExpandDescription")}
-                          aria-expanded={isExpanded}
-                          title={t("limsExpandDescription")}
-                          onClick={() => toggleExpanded(rowKey)}
-                          className="shrink-0 rounded-lg border border-gray-300 px-2 text-gray-500 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-white/5"
-                        >
-                          {isExpanded ? (
-                            <ChevronUpIcon className="h-4 w-4" />
-                          ) : (
-                            <ChevronDownIcon className="h-4 w-4" />
-                          )}
-                        </button>
-                      </div>
-                    </Cell>
-                    <Cell
-                      label={`${t("limsType")} *`}
-                      width="w-40"
-                      tooltip={t("limsTypeHint")}
-                    >
-                      <SelectDropdown
-                        options={typeOptions}
-                        value={isTyped(row) ? row.type : ""}
-                        onChange={(value) => changeType(index, value)}
-                        placeholder={t("limsPickType")}
-                        disabled={ro}
-                        ariaLabel={t("limsType")}
-                        portal
-                      />
-                    </Cell>
-                    {isTyped(row) &&
-                      TYPE_FIELDS[row.type].map((field) =>
-                        renderTypeField(row, index, field, ro)
-                      )}
-                    {actions}
-                  </div>
-                )}
-                {open && isExpanded ? (
-                  <div className="px-3 pb-3 pl-11">
-                    <TextArea
-                      rows={8}
-                      value={str(row.description)}
-                      disabled={ro}
-                      onChange={(value) =>
-                        patchRow(index, { description: value })
-                      }
-                      className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    />
-                  </div>
-                ) : null}
-                {isEditing ? (
-                  <div className="flex items-center justify-end gap-2 border-t border-brand-100 px-3 py-2 dark:border-brand-500/20">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => cancelEntry(index)}
-                    >
-                      {t("cancel")}
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => saveEntry(index)}
-                    >
-                      {t("save")}
-                    </Button>
-                  </div>
-                ) : null}
-                {open && (duplicateId || duplicateName) ? (
-                  <p className="px-3 pb-2 pl-11 text-xs text-red-500">
-                    {[
-                      duplicateId && t("limsDuplicateComponentId"),
-                      duplicateName && t("limsDuplicateComponentName")
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
-                ) : null}
-                {rowError ? (
-                  <p className="px-3 pb-2 pl-11 text-xs text-red-500">
-                    {rowError}
-                  </p>
-                ) : null}
-                {legacy ? (
-                  <div className="flex items-center gap-2 border-t border-dashed border-gray-200 px-3 py-2 text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400">
-                    <HelpTooltip content={t("limsLegacyComponentHint")} />
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
+            </Cell>
+            <Cell
+              label={`${t("limsType")} *`}
+              width="w-40"
+              tooltip={t("limsTypeHint")}
+            >
+              <SelectDropdown
+                options={typeOptions}
+                value={isTyped(draft) ? draft.type : ""}
+                onChange={(value) => changeType(draftIndex, value)}
+                placeholder={t("limsPickType")}
+                disabled={ro}
+                ariaLabel={t("limsType")}
+                portal
+              />
+            </Cell>
+            {isTyped(draft) &&
+              TYPE_FIELDS[draft.type].map((field) =>
+                renderTypeField(draft, draftIndex, field, ro)
+              )}
+          </div>
+          {expanded ? (
+            <div className="px-3 pb-3">
+              <TextArea
+                rows={6}
+                value={str(draft.description)}
+                disabled={ro}
+                onChange={(value) =>
+                  patchRow(draftIndex, { description: value })
+                }
+                className="dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              />
+            </div>
+          ) : null}
+          {draftStarted && (duplicateId || duplicateName) ? (
+            <p className="px-3 pb-2 text-xs text-red-500">
+              {[
+                duplicateId && t("limsDuplicateComponentId"),
+                duplicateName && t("limsDuplicateComponentName")
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          ) : null}
+          {entryError ? (
+            <p className="px-3 pb-2 text-xs text-red-500">{entryError}</p>
+          ) : null}
+          {editIndex !== null && isLegacy(rows[editIndex] ?? {}) ? (
+            <p className="flex items-center gap-1 px-3 pb-2 text-xs text-gray-500">
+              {t("limsLegacy")}
+              <HelpTooltip content={t("limsLegacyComponentHint")} />
+            </p>
+          ) : null}
+          <div className="flex items-center justify-end gap-2 border-t border-gray-100 px-3 py-2 dark:border-gray-800">
+            {!viewing ? (
+              <span className="mr-auto text-xs text-gray-500 dark:text-gray-400">
+                {t("entryAddedHint")}
+              </span>
+            ) : null}
+            {editIndex !== null || draftStarted ? (
+              <Button type="button" size="sm" variant="outline" onClick={reset}>
+                {viewing ? t("close") : t("cancel")}
+              </Button>
+            ) : null}
+            {!viewing ? (
+              <Button type="button" size="sm" onClick={saveEntry}>
+                {t("save")}
+              </Button>
+            ) : null}
+          </div>
         </div>
-      ) : (
-        <div className="rounded-lg border border-gray-200 px-3 py-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
-          {t("limsNoComponents")}
-        </div>
-      )}
+      ) : null}
+
+      <EntryTable
+        label={t("limsComponents")}
+        columns={columns}
+        rows={rows}
+        emptyLabel={t("limsNoComponents")}
+        activeIndex={editIndex}
+        onView={(index) => open(index, true)}
+        onEdit={
+          disabled ? undefined : (index) => open(index, isLegacy(rows[index]))
+        }
+        onDelete={disabled ? undefined : removeRow}
+        isUnsaved={(row) => touched.current.has(row)}
+      />
 
       {error ? <p className="mt-1 text-xs text-red-500">{error}</p> : null}
 
-      {builderRow !== null && rows[builderRow] ? (
+      {builderOpen ? (
         <FormulaBuilder
-          formula={str(rows[builderRow].formula)}
-          selfId={str(rows[builderRow].componentId).trim()}
-          selfName={
-            str(rows[builderRow].name) || str(rows[builderRow].componentId)
-          }
-          rows={rows}
+          formula={str(draft.formula)}
+          selfId={str(draft.componentId).trim()}
+          selfName={str(draft.name) || str(draft.componentId)}
+          rows={candidate}
           onApply={(formula) => {
-            patchRow(builderRow, { formula });
-            setBuilderRow(null);
+            patchRow(draftIndex, { formula });
+            setBuilderOpen(false);
           }}
-          onClose={() => setBuilderRow(null)}
+          onClose={() => setBuilderOpen(false)}
         />
       ) : null}
     </div>

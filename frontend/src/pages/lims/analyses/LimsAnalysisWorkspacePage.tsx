@@ -132,6 +132,7 @@ const Workspace = ({
           }
         ]}
         readOnly={readOnly}
+        stacked={!isNew}
         dirty={dirty || (isCopy && isNew)}
         saving={saving}
         onSave={() => {
@@ -150,7 +151,7 @@ const Workspace = ({
               }
               initialData={record}
               formId={FORM_ID}
-              pageSection={tab === "components" ? "components" : "details"}
+              pageSection={tab}
               onDirtyChange={setDirty}
               onComponentCount={setComponentCount}
               onInvalid={(section) => {
@@ -168,7 +169,7 @@ const Workspace = ({
               }}
               onSubmit={handleSubmit}
             />
-            {tab === "details" && record && !isNew ? (
+            {record && !isNew ? (
               <RecordInfoPanel
                 route="/lims-analyses"
                 recordId={record.id}

@@ -1,4 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { PageUrl } from "@/types/utils.types";
+import { NEW_RECORD, recordPageUrl } from "@/components/data/recordPage";
 import { useTranslation } from "react-i18next";
 
 import DataTable, {
@@ -11,7 +14,6 @@ import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
-import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
@@ -37,12 +39,9 @@ import {
   useBulkCopyLimsTestGroup,
   useBulkDeleteLimsTestGroup,
   useBulkUpdateLimsTestGroup,
-  useCreateLimsTestGroup,
   useLimsTestGroupAudit,
   useRestoreLimsTestGroup,
-  useBulkRestoreLimsTestGroup,
-  useUpdateLimsTestGroup,
-  useLimsTestGroupById
+  useBulkRestoreLimsTestGroup
 } from "./LimsTestGroup.queries";
 import LimsTestGroupForm, {
   type LimsTestGroupFormMode
@@ -56,11 +55,9 @@ import type {
  * or cloned (hidden per row); their values can still be edited. */
 const LimsTestGroupList = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { isOpen, openModal, closeModal } = useModal();
 
-  // Full record (incl. attachments) is fetched fresh from this id, not the list row.
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [formMode, setFormMode] = useState<LimsTestGroupFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
   // Set instead of activeId/formMode while the Copy review flow is open.
   const [copyIds, setCopyIds] = useState<string[] | null>(null);
@@ -69,10 +66,6 @@ const LimsTestGroupList = () => {
 
   const compliance = useLimsCompliance<LimsTestGroup, LimsTestGroupPayload>();
   const auditQuery = useLimsTestGroupAudit(compliance.auditRow?.id);
-  const detailQuery = useLimsTestGroupById(
-    activeId ?? undefined,
-    isOpen && formMode !== "create"
-  );
 
   const fetchList = useCallback(
     (
@@ -88,8 +81,6 @@ const LimsTestGroupList = () => {
     fetchList
   });
 
-  const createPhrase = useCreateLimsTestGroup();
-  const updatePhrase = useUpdateLimsTestGroup();
   const bulkClone = useBulkCloneLimsTestGroup();
   const bulkCopy = useBulkCopyLimsTestGroup();
   const bulkDelete = useBulkDeleteLimsTestGroup();
@@ -98,8 +89,6 @@ const LimsTestGroupList = () => {
   const bulkRestoreTestGroup = useBulkRestoreLimsTestGroup();
 
   const busy =
-    createPhrase.isPending ||
-    updatePhrase.isPending ||
     bulkClone.isPending ||
     bulkCopy.isPending ||
     bulkDelete.isPending ||
@@ -107,45 +96,63 @@ const LimsTestGroupList = () => {
     restorePhrase.isPending ||
     bulkRestoreTestGroup.isPending;
 
-  const columnDefs = useMemo(() => getLimsTestGroupColumns({ t }), [t]);
+  const columnDefs = useMemo(
+    () => getLimsTestGroupColumns({ t, includeRemoved }),
+    [t, includeRemoved]
+  );
 
+  // One record opens on its own page; several are reviewed side by side in the modal.
+  const page = (id: string) =>
+    recordPageUrl(PageUrl.LIMSTestGroupsWorkspace.path, id);
   const openForm = useCallback(
-    (mode: LimsTestGroupFormMode, phrase: LimsTestGroup | null) => {
-      setFormMode(mode);
-      setActiveId(phrase?.id ?? null);
-      openModal();
+    (mode: LimsTestGroupFormMode, row: LimsTestGroup | null) => {
+      if (mode === "create" || !row) {
+        navigate(page(NEW_RECORD));
+        return;
+      }
+      navigate(mode === "view" ? `${page(row.id)}?mode=view` : page(row.id));
     },
-    [openModal]
+    [navigate]
   );
 
   const openCopy = useCallback(
     (ids: string[]) => {
+      if (ids.length === 1) {
+        navigate(`${page(NEW_RECORD)}?copyFrom=${ids[0]}`);
+        return;
+      }
       setCopyIds(ids);
       openModal();
     },
-    [openModal]
+    [openModal, navigate]
   );
 
   const openView = useCallback(
     (ids: string[]) => {
+      if (ids.length === 1) {
+        navigate(`${page(ids[0])}?mode=view`);
+        return;
+      }
       setViewIds(ids);
       openModal();
     },
-    [openModal]
+    [openModal, navigate]
   );
 
   const openEdit = useCallback(
     (ids: string[]) => {
+      if (ids.length === 1) {
+        navigate(page(ids[0]));
+        return;
+      }
       setEditIds(ids);
       openModal();
     },
-    [openModal]
+    [openModal, navigate]
   );
 
   const handleCloseForm = () => {
     closeModal();
-    setActiveId(null);
-    setFormMode("create");
     setCopyIds(null);
     setViewIds(null);
     setEditIds(null);
@@ -166,28 +173,6 @@ const LimsTestGroupList = () => {
 
   const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
     await bulkClone.mutateAsync(idsSelection(unreviewedIds));
-  };
-
-  const handleSave = async (payload: LimsTestGroupPayload) => {
-    if (activeId) {
-      compliance.requestUpdate(activeId, payload);
-      closeModal();
-      return;
-    }
-    await createPhrase.mutateAsync(payload);
-    handleCloseForm();
-  };
-
-  const confirmUpdate = async (reason: string) => {
-    const pending = compliance.pendingUpdate;
-    if (!pending) return;
-    await updatePhrase.mutateAsync({
-      id: pending.id,
-      payload: { ...pending.payload, changeReason: reason }
-    });
-    compliance.clearUpdate();
-    setActiveId(null);
-    setFormMode("create");
   };
 
   const bulkActions = useMemo<DataTableBulkAction[]>(
@@ -405,23 +390,7 @@ const LimsTestGroupList = () => {
             saving={bulkUpdate.isPending}
             entityLabel={t("limsTestGroup")}
           />
-        ) : formMode !== "create" && detailQuery.isLoading ? (
-          // isLoading only — isFetching would unmount this form (and any modal
-          // inside it, e.g. Manage) on every background refetch from invalidateAllLims.
-          <div className="flex min-h-[300px] items-center justify-center p-10">
-            <LoadingSpinner fullScreen={false} />
-          </div>
-        ) : (
-          <LimsTestGroupForm
-            mode={formMode}
-            initialData={
-              formMode === "create" ? null : (detailQuery.data ?? null)
-            }
-            onClose={handleCloseForm}
-            onSubmit={handleSave}
-            submitting={createPhrase.isPending || updatePhrase.isPending}
-          />
-        )}
+        ) : null}
       </Modal>
 
       <LimsComplianceDialogs
@@ -429,7 +398,6 @@ const LimsTestGroupList = () => {
         entityLabel="test group"
         entityLabelPlural="test groups"
         getRecordLabel={(row) => row.testGroupId || row.name}
-        updating={updatePhrase.isPending}
         deleting={bulkDelete.isPending}
         restoring={restorePhrase.isPending}
         bulkRestoring={bulkRestoreTestGroup.isPending}
@@ -443,7 +411,6 @@ const LimsTestGroupList = () => {
         auditFetchingNextPage={auditQuery.isFetchingNextPage}
 
         onAuditLoadMore={auditQuery.fetchNextPage}
-        onUpdate={confirmUpdate}
         onBulkUpdate={async (reason) => {
           const pending = compliance.pendingBulkUpdate;
           if (pending) {

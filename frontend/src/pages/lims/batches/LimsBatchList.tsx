@@ -104,7 +104,10 @@ const LimsBatchList = () => {
     restore.isPending ||
     bulkRestoreBatch.isPending;
 
-  const columnDefs = useMemo(() => getLimsBatchColumns({ t }), [t]);
+  const columnDefs = useMemo(
+    () => getLimsBatchColumns({ t, includeRemoved }),
+    [t, includeRemoved]
+  );
 
   const openForm = useCallback(
     (mode: LimsBatchFormMode, row: LimsBatch | null) => {

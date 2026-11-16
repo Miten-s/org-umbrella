@@ -110,6 +110,7 @@ const Workspace = ({
           { key: "conditions", label: t("limsConditions"), count: ruleCount }
         ]}
         readOnly={readOnly}
+        stacked={!isNew}
         dirty={dirty || (isCopy && isNew)}
         saving={saving}
         onSave={() => {
@@ -128,7 +129,7 @@ const Workspace = ({
               }
               initialData={record}
               formId={FORM_ID}
-              pageSection={tab as "details" | "conditions"}
+              pageSection={tab}
               onDirtyChange={setDirty}
               onRuleCount={setRuleCount}
               onInvalid={(section) => {

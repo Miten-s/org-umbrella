@@ -103,7 +103,10 @@ const LimsCustomerList = () => {
     restoreCustomer.isPending ||
     bulkRestoreCustomer.isPending;
 
-  const columnDefs = useMemo(() => getLimsCustomerColumns({ t }), [t]);
+  const columnDefs = useMemo(
+    () => getLimsCustomerColumns({ t, includeRemoved }),
+    [t, includeRemoved]
+  );
 
   const openForm = useCallback(
     (mode: LimsCustomerFormMode, customer: LimsCustomer | null) => {

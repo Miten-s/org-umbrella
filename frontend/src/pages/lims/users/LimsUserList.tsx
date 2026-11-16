@@ -104,7 +104,10 @@ const LimsUserList = () => {
     restore.isPending ||
     bulkRestoreUser.isPending;
 
-  const columnDefs = useMemo(() => getLimsUserColumns({ t }), [t]);
+  const columnDefs = useMemo(
+    () => getLimsUserColumns({ t, includeRemoved }),
+    [t, includeRemoved]
+  );
 
   const openForm = useCallback(
     (mode: LimsUserFormMode, row: LimsUser | null) => {

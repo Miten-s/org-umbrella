@@ -107,7 +107,10 @@ const LimsLocationList = () => {
     restoreLocation.isPending ||
     bulkRestoreLocation.isPending;
 
-  const columnDefs = useMemo(() => getLimsLocationColumns({ t }), [t]);
+  const columnDefs = useMemo(
+    () => getLimsLocationColumns({ t, includeRemoved }),
+    [t, includeRemoved]
+  );
 
   const openForm = useCallback(
     (mode: LimsLocationFormMode, location: LimsLocation | null) => {

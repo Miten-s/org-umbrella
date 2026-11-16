@@ -112,6 +112,7 @@ const Workspace = ({
           { key: "tests", label: t("limsSampleTests") }
         ]}
         readOnly={readOnly}
+        stacked={!isNew}
         dirty={dirty || (isCopy && isNew)}
         saving={saving}
         onSave={() => {
@@ -130,7 +131,7 @@ const Workspace = ({
               }
               initialData={record}
               formId={FORM_ID}
-              pageSection={tab as "details" | "fields" | "tests"}
+              pageSection={tab}
               onDirtyChange={setDirty}
               onFieldCount={setFieldCount}
               onInvalid={(section) => {
@@ -150,7 +151,7 @@ const Workspace = ({
                 else setPending(payload);
               }}
             />
-            {tab === "details" && record && !isNew ? (
+            {record && !isNew ? (
               <RecordInfoPanel
                 route="/lims-sample-templates"
                 recordId={record.id}

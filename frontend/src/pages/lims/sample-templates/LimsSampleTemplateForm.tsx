@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch, type Path } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
+import { sectionHidden } from "@/components/data/recordPage";
 
 import Input from "@/components/common/form/input/InputField";
 import DateField from "@/components/common/form/input/DateField";
@@ -22,7 +23,8 @@ import SampleTestsPicker, {
 import { SelectDropdown } from "@/components/ui/dropdown/SelectDropdown";
 import FormHeader from "@/components/data/FormHeader";
 import { useFormHeaderAction } from "@/components/data/formHeaderContext";
-import { PlusIcon, TrashBinIcon } from "@/public/icons";
+import { useEntryEditorState } from "@/components/data/entryEditorContext";
+import EntryTable from "@/components/data/EntryTable";
 import {
   SAMPLE_FIELDS,
   fieldDef,
@@ -58,7 +60,7 @@ interface LimsSampleTemplateFormProps {
   /** " (2 of 5)" when stepping through several records. */
   stepLabel?: string;
   /** Set on the template's page: no modal frame or buttons, only this tab's part shows. */
-  pageSection?: "details" | "fields" | "tests";
+  pageSection?: string;
   onDirtyChange?: (dirty: boolean) => void;
   /** Save found a problem — the page switches to the tab that holds it. */
   onInvalid?: (section: "details" | "fields") => void;
@@ -138,6 +140,7 @@ const LimsSampleTemplateForm = ({
     control,
     handleSubmit,
     setValue,
+    getValues,
     formState: { errors, isSubmitting }
   } = useForm<LimsSampleTemplateFormValues>({
     resolver: zodResolver(
@@ -154,17 +157,112 @@ const LimsSampleTemplateForm = ({
   useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange]);
   useEffect(() => onFieldCount?.(rows.length), [rows.length, onFieldCount]);
 
-  const addRow = () => {
-    setRows((prev) => [...prev, { fieldKey: "", displayName: "" }]);
+  // The entry form: which field (new, or the one being edited) and its display name. A field's
+  // default value is a form value, edited in place; Cancel puts it back.
+  const [draftKey, setDraftKey] = useState("");
+  const [draftName, setDraftName] = useState("");
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [viewing, setViewing] = useState(false);
+  const [entryDirty, setEntryDirty] = useState(false);
+  const valueBefore = useRef<unknown>(undefined);
+  const formRef = useRef<HTMLDivElement>(null);
+  const touched = useRef(new WeakSet<object>());
+  const [removedSaved, setRemovedSaved] = useState(0);
+  const [refLabels, setRefLabels] = useState<Record<string, string>>(() => {
+    const labels: Record<string, string> = {};
+    for (const key of [
+      "sampleType",
+      "project",
+      "specification",
+      "location",
+      "group"
+    ] as const) {
+      const name = initialData?.[key]?.name;
+      if (name) labels[key] = name;
+    }
+    return labels;
+  });
+
+  const resetEntry = () => {
+    setDraftKey("");
+    setDraftName("");
+    setEditIndex(null);
+    setViewing(false);
+    setEntryDirty(false);
     setRowsError(undefined);
   };
+  const cancelEntry = () => {
+    const key = editIndex !== null ? draftKey : "";
+    if (key && key in initialValues && !viewing)
+      setValue(
+        key as Path<LimsSampleTemplateFormValues>,
+        valueBefore.current as string
+      );
+    else if (editIndex === null) clearValue(draftKey);
+    resetEntry();
+  };
+  const focusEntry = () =>
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   useFormHeaderAction(
-    isReadOnly ? null : { label: t("limsAddRow"), onClick: addRow }
+    isReadOnly
+      ? null
+      : {
+          label: t("limsAddRow"),
+          onClick: () => {
+            cancelEntry();
+            focusEntry();
+          }
+        }
   );
-  const patchRow = (index: number, patch: SampleFieldRow) =>
+  const openRow = (index: number, readOnly: boolean) => {
+    const row = rows[index];
+    const key = String(row.fieldKey ?? "");
+    valueBefore.current =
+      key in initialValues
+        ? getValues(key as Path<LimsSampleTemplateFormValues>)
+        : undefined;
+    setDraftKey(key);
+    setDraftName(String(row.displayName ?? ""));
+    setEditIndex(index);
+    setViewing(readOnly);
+    setEntryDirty(false);
+    setRowsError(undefined);
+    requestAnimationFrame(focusEntry);
+  };
+  const saveEntry = () => {
+    if (!draftKey) {
+      setRowsError(t("limsPickField"));
+      return;
+    }
+    const saved: SampleFieldRow = {
+      fieldKey: draftKey,
+      displayName: draftName
+    };
+    touched.current.add(saved);
     setRows((prev) =>
-      prev.map((row, i) => (i === index ? { ...row, ...patch } : row))
+      editIndex === null
+        ? [...prev, saved]
+        : prev.map((row, i) => (i === editIndex ? saved : row))
     );
+    resetEntry();
+  };
+  const removeRow = (index: number) => {
+    const row = rows[index];
+    if (!touched.current.has(row)) setRemovedSaved((n) => n + 1);
+    clearValue(String(row.fieldKey ?? ""));
+    if (editIndex === index) resetEntry();
+    else if (editIndex !== null && editIndex > index)
+      setEditIndex(editIndex - 1);
+    setRows((prev) => prev.filter((_, i) => i !== index));
+  };
+  useEntryEditorState({
+    unsaved:
+      rows.filter((row) => touched.current.has(row)).length + removedSaved,
+    pendingEntry: entryDirty && !viewing,
+    label: t("limsTemplateFields"),
+    focus: focusEntry,
+    clearEntry: cancelEntry
+  });
   const clearValue = (key?: string) => {
     if (key && key in initialValues)
       setValue(key as Path<LimsSampleTemplateFormValues>, "");
@@ -228,8 +326,15 @@ const LimsSampleTemplateForm = ({
           <AsyncSelect
             useOptions={useOptions}
             value={f.value as string}
-            onChange={f.onChange}
-            disabled={isReadOnly}
+            onChange={(value) => {
+              setEntryDirty(true);
+              f.onChange(value);
+            }}
+            onChangeOption={(option) =>
+              option &&
+              setRefLabels((prev) => ({ ...prev, [name]: option.label }))
+            }
+            disabled={isReadOnly || viewing}
             placeholder={t("select", { entity: label })}
             initialSelectedOptions={seed}
           />
@@ -323,6 +428,20 @@ const LimsSampleTemplateForm = ({
     }
   };
 
+  const takenKeys = new Set(rows.map((row) => String(row.fieldKey ?? "")));
+  const draftDef = fieldDef(draftKey);
+  const draftLabel = draftDef ? t(draftDef.labelKey) : "";
+  const values = watched as Record<string, unknown>;
+  /** A field's default value as the table shows it. */
+  const defaultValueText = (key: string) => {
+    if (key === "sampleId") return t("limsGeneratedId");
+    if (key in refLabels && values[key]) return refLabels[key];
+    const value = values[key];
+    return value === undefined || value === null || value === ""
+      ? "—"
+      : String(value);
+  };
+
   return (
     <div
       className={
@@ -340,7 +459,6 @@ const LimsSampleTemplateForm = ({
               onInvalid?.("fields");
               return;
             }
-            setRowsError(undefined);
             if (
               (mode === "edit" || mode === "bulk-edit") &&
               isPayloadEqual(values, initialValues) &&
@@ -382,98 +500,165 @@ const LimsSampleTemplateForm = ({
         )}
 
         <div
-          className={`grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 ${onPage && pageSection !== "details" ? "hidden" : ""}`}
+          data-section="details"
+          className={`grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 ${sectionHidden(pageSection, "details") ? "hidden" : ""}`}
         >
           {field("sampleTemplateId", t("limsSampleTemplateId"), "text", true)}
           {field("name", t("name"), "text", true)}
         </div>
 
-        <div className={onPage && pageSection !== "fields" ? "hidden" : ""}>
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <Label className="mb-0">{t("limsTemplateFields")}</Label>
-            {!isReadOnly ? (
-              <Button
-                size="sm"
-                variant="outline"
-                type="button"
-                startIcon={<PlusIcon className="h-4 w-4" />}
-                onClick={addRow}
-              >
-                {t("limsAddRow")}
-              </Button>
-            ) : null}
-          </div>
-          <div className="space-y-2">
-            {rows.map((row, index) => {
-              const key = String(row.fieldKey ?? "");
-              const def = fieldDef(key);
-              const label = def ? t(def.labelKey) : "";
-              const taken = new Set(rows.map((r) => r.fieldKey));
-              return (
-                <div
-                  key={key || `new-${index}`}
-                  className="grid grid-cols-1 items-center gap-2 rounded-lg border border-gray-200 p-3 md:grid-cols-[14rem_minmax(0,1fr)_14rem_2rem] dark:border-gray-700"
-                >
-                  {def?.mandatory ? (
-                    <span className="text-sm font-medium">
-                      {label}
+        <div
+          data-section="fields"
+          className={`space-y-4 ${sectionHidden(pageSection, "fields") ? "hidden" : ""}`}
+        >
+          <Label className="mb-0">{t("limsTemplateFields")}</Label>
+          {!isReadOnly || editIndex !== null ? (
+            <div
+              ref={formRef}
+              className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900"
+            >
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-[14rem_minmax(0,1fr)_14rem]">
+                <div className="min-w-0">
+                  <span className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
+                    {t("limsTemplateField")} *
+                  </span>
+                  {draftDef?.mandatory ? (
+                    <p className="flex h-11 items-center text-sm font-medium">
+                      {t(draftDef.labelKey)}
                       <span className="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">
                         {t("limsRequiredField")}
                       </span>
-                    </span>
+                    </p>
                   ) : (
                     <SelectDropdown
                       options={SAMPLE_FIELDS.filter(
-                        (f) => f.key === key || !taken.has(f.key)
+                        (f) => f.key === draftKey || !takenKeys.has(f.key)
                       ).map((f) => ({ value: f.key, label: t(f.labelKey) }))}
-                      value={key}
+                      value={draftKey}
                       onChange={(next) => {
-                        clearValue(key);
-                        patchRow(index, { fieldKey: next });
+                        if (editIndex === null) clearValue(draftKey);
+                        setDraftKey(next);
+                        setEntryDirty(true);
+                        setRowsError(undefined);
                       }}
                       placeholder={t("limsPickField")}
                       ariaLabel={t("limsTemplateField")}
-                      disabled={isReadOnly}
+                      disabled={isReadOnly || viewing || editIndex !== null}
                       portal
                     />
                   )}
-                  <div className="min-w-0">{valueInput(key, label)}</div>
-                  <input
-                    aria-label={t("limsDisplayName")}
-                    placeholder={label || t("limsDisplayName")}
-                    value={String(row.displayName ?? "")}
-                    maxLength={100}
-                    disabled={isReadOnly}
-                    onChange={(event) =>
-                      patchRow(index, { displayName: event.target.value })
-                    }
-                    className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-3 text-sm focus:border-brand-300 focus:outline-hidden disabled:bg-gray-100 dark:border-gray-700 dark:bg-gray-800"
-                  />
-                  {!isReadOnly && !def?.mandatory ? (
-                    <button
-                      type="button"
-                      aria-label={`${t("delete")} ${label}`}
-                      onClick={() => {
-                        clearValue(key);
-                        setRows((prev) => prev.filter((_, i) => i !== index));
-                      }}
-                      className="justify-self-end rounded p-1.5 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                </div>
+                <div className="min-w-0">
+                  <span className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
+                    {t("limsDefaultValue")}
+                  </span>
+                  {draftKey ? (
+                    <fieldset
+                      disabled={isReadOnly || viewing}
+                      onInput={() => setEntryDirty(true)}
                     >
-                      <TrashBinIcon className="h-4 w-4" />
-                    </button>
+                      {valueInput(draftKey, draftLabel)}
+                    </fieldset>
                   ) : (
-                    <span />
+                    <p className="flex h-11 items-center text-sm text-gray-400">
+                      —
+                    </p>
                   )}
                 </div>
-              );
-            })}
-          </div>
-          {rowsError ? (
-            <p className="mt-1 text-xs text-red-500">{rowsError}</p>
+                <div className="min-w-0">
+                  <span className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
+                    {t("limsDisplayName")}
+                  </span>
+                  <input
+                    aria-label={t("limsDisplayName")}
+                    placeholder={draftLabel || t("limsDisplayName")}
+                    value={draftName}
+                    maxLength={100}
+                    disabled={isReadOnly || viewing}
+                    onChange={(event) => {
+                      setDraftName(event.target.value);
+                      setEntryDirty(true);
+                    }}
+                    className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-3 text-sm focus:border-brand-300 focus:outline-hidden disabled:bg-gray-100 dark:border-gray-700 dark:bg-gray-800"
+                  />
+                </div>
+              </div>
+              {rowsError ? (
+                <p className="mt-2 text-xs text-red-500">{rowsError}</p>
+              ) : null}
+              <div className="mt-3 flex items-center justify-end gap-2">
+                {!viewing ? (
+                  <span className="mr-auto text-xs text-gray-500 dark:text-gray-400">
+                    {t("entryAddedHint")}
+                  </span>
+                ) : null}
+                {editIndex !== null || entryDirty ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={cancelEntry}
+                  >
+                    {viewing ? t("close") : t("cancel")}
+                  </Button>
+                ) : null}
+                {!viewing ? (
+                  <Button type="button" size="sm" onClick={saveEntry}>
+                    {t("save")}
+                  </Button>
+                ) : null}
+              </div>
+            </div>
           ) : null}
+
+          <EntryTable
+            label={t("limsTemplateFields")}
+            rows={rows}
+            emptyLabel={t("limsNoRows")}
+            activeIndex={editIndex}
+            columns={[
+              {
+                key: "field",
+                header: t("limsTemplateField"),
+                render: (row) => {
+                  const def = fieldDef(String(row.fieldKey ?? ""));
+                  return (
+                    <span>
+                      {def ? t(def.labelKey) : String(row.fieldKey ?? "")}
+                      {def?.mandatory ? (
+                        <span className="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                          {t("limsRequiredField")}
+                        </span>
+                      ) : null}
+                    </span>
+                  );
+                }
+              },
+              {
+                key: "value",
+                header: t("limsDefaultValue"),
+                render: (row) => defaultValueText(String(row.fieldKey ?? ""))
+              },
+              {
+                key: "displayName",
+                header: t("limsDisplayName"),
+                render: (row) => String(row.displayName ?? "") || "—"
+              }
+            ]}
+            onView={(index) => openRow(index, true)}
+            onEdit={isReadOnly ? undefined : (index) => openRow(index, false)}
+            onDelete={isReadOnly ? undefined : removeRow}
+            canDelete={(row) =>
+              !fieldDef(String(row.fieldKey ?? ""))?.mandatory
+            }
+            isUnsaved={(row) => touched.current.has(row)}
+          />
         </div>
 
-        <div className={onPage && pageSection !== "tests" ? "hidden" : ""}>
+        <div
+          data-section="tests"
+          className={sectionHidden(pageSection, "tests") ? "hidden" : ""}
+        >
           <SampleTestsPicker
             existing={[]}
             pending={tests}

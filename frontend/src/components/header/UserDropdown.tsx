@@ -8,6 +8,7 @@ import { AUTH_TOKEN_KEY, SYSTEM_ROUTES } from "@/utils/common.constants";
 import { useAuth } from "@/context/AuthContext";
 import { useTranslation } from "react-i18next";
 import { PageUrl } from "@/types/utils.types";
+import { useNavItems } from "@/components/layout/navConfig";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -41,6 +42,12 @@ export default function UserDropdown() {
   };
 
   const { user } = useAuth();
+  // Platform areas that are not services of their own open from here.
+  const adminAreas = useNavItems().filter(
+    (item) =>
+      (item.service === "admin" || item.service === "company") &&
+      item.subItems?.length
+  );
 
   return (
     <div className="relative">
@@ -54,7 +61,7 @@ export default function UserDropdown() {
           {user?.name?.charAt(0)?.toUpperCase()}
         </span>
 
-        <span className="block mr-1 font-medium text-theme-sm">
+        <span className="mr-1 hidden font-medium text-theme-sm xl:block">
           {user?.name}
         </span>
         <svg
@@ -117,6 +124,21 @@ export default function UserDropdown() {
               View profiles
             </DropdownItem>
           </li>
+          {adminAreas.map((area) => (
+            <li key={area.service}>
+              <DropdownItem
+                onItemClick={closeDropdown}
+                tag="a"
+                to={area.subItems![0].path}
+                className="flex items-center gap-3 px-3 py-2 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+              >
+                <span className="flex h-6 w-6 items-center justify-center [&>svg]:h-5 [&>svg]:w-5">
+                  {area.icon}
+                </span>
+                {area.name}
+              </DropdownItem>
+            </li>
+          ))}
           {/* Uncomment the following block if you want to add an "Account Settings" option */}
           {/* <li>
             <DropdownItem

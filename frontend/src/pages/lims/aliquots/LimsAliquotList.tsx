@@ -1,5 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { NEW_RECORD, recordPageUrl } from "@/components/data/recordPage";
+import { PageUrl } from "@/types/utils.types";
 
 import DataTable, {
   type DataTableBulkAction
@@ -11,7 +14,6 @@ import EditStepper from "@/components/data/EditStepper";
 import { type AppDataTableRowAction } from "@/components/common/table/AppDataTable";
 import { Modal } from "@/components/ui/modal";
 import Switch from "@/components/common/form/switch/Switch";
-import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useServerTable } from "@/hooks/useServerTable";
 import { useLimsCompliance } from "@/hooks/useLimsCompliance";
 import { useModal } from "@/hooks/useModal";
@@ -34,12 +36,9 @@ import {
   useBulkCopyLimsAliquot,
   useBulkDeleteLimsAliquot,
   useBulkUpdateLimsAliquot,
-  useCreateLimsAliquot,
   useLimsAliquotAudit,
   useRestoreLimsAliquot,
-  useBulkRestoreLimsAliquot,
-  useUpdateLimsAliquot,
-  useLimsAliquotById
+  useBulkRestoreLimsAliquot
 } from "./LimsAliquot.queries";
 import LimsAliquotForm, { type LimsAliquotFormMode } from "./LimsAliquotForm";
 import type { LimsAliquot, LimsAliquotPayload } from "./LimsAliquot.types";
@@ -47,11 +46,9 @@ import type { LimsAliquot, LimsAliquotPayload } from "./LimsAliquot.types";
 /** LimsAliquot list — built to STANDARDS.md and the MIGRATION.md §5 definition of done. */
 const LimsAliquotList = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { isOpen, openModal, closeModal } = useModal();
 
-  // Full record (incl. attachments) is fetched fresh from this id, not the list row.
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [formMode, setFormMode] = useState<LimsAliquotFormMode>("create");
   const [includeRemoved, setIncludeRemoved] = useState(false);
   // Set instead of activeId/formMode while the Copy review flow is open.
   const [copyIds, setCopyIds] = useState<string[] | null>(null);
@@ -60,10 +57,6 @@ const LimsAliquotList = () => {
 
   const compliance = useLimsCompliance<LimsAliquot, LimsAliquotPayload>();
   const auditQuery = useLimsAliquotAudit(compliance.auditRow?.id);
-  const detailQuery = useLimsAliquotById(
-    activeId ?? undefined,
-    isOpen && formMode !== "create"
-  );
 
   const fetchList = useCallback(
     (
@@ -79,8 +72,6 @@ const LimsAliquotList = () => {
     fetchList
   });
 
-  const create = useCreateLimsAliquot();
-  const update = useUpdateLimsAliquot();
   const bulkClone = useBulkCloneLimsAliquot();
   const bulkCopy = useBulkCopyLimsAliquot();
   const bulkDelete = useBulkDeleteLimsAliquot();
@@ -89,8 +80,6 @@ const LimsAliquotList = () => {
   const bulkRestoreAliquot = useBulkRestoreLimsAliquot();
 
   const busy =
-    create.isPending ||
-    update.isPending ||
     bulkClone.isPending ||
     bulkCopy.isPending ||
     bulkDelete.isPending ||
@@ -98,45 +87,63 @@ const LimsAliquotList = () => {
     restore.isPending ||
     bulkRestoreAliquot.isPending;
 
-  const columnDefs = useMemo(() => getLimsAliquotColumns({ t }), [t]);
+  const columnDefs = useMemo(
+    () => getLimsAliquotColumns({ t, includeRemoved }),
+    [t, includeRemoved]
+  );
 
+  // One record opens on its own page; several are reviewed side by side in the modal.
+  const page = (id: string) =>
+    recordPageUrl(PageUrl.LIMSAliquotsWorkspace.path, id);
   const openForm = useCallback(
     (mode: LimsAliquotFormMode, row: LimsAliquot | null) => {
-      setFormMode(mode);
-      setActiveId(row?.id ?? null);
-      openModal();
+      if (mode === "create" || !row) {
+        navigate(page(NEW_RECORD));
+        return;
+      }
+      navigate(mode === "view" ? `${page(row.id)}?mode=view` : page(row.id));
     },
-    [openModal]
+    [navigate]
   );
 
   const openCopy = useCallback(
     (ids: string[]) => {
+      if (ids.length === 1) {
+        navigate(`${page(NEW_RECORD)}?copyFrom=${ids[0]}`);
+        return;
+      }
       setCopyIds(ids);
       openModal();
     },
-    [openModal]
+    [openModal, navigate]
   );
 
   const openView = useCallback(
     (ids: string[]) => {
+      if (ids.length === 1) {
+        navigate(`${page(ids[0])}?mode=view`);
+        return;
+      }
       setViewIds(ids);
       openModal();
     },
-    [openModal]
+    [openModal, navigate]
   );
 
   const openEdit = useCallback(
     (ids: string[]) => {
+      if (ids.length === 1) {
+        navigate(page(ids[0]));
+        return;
+      }
       setEditIds(ids);
       openModal();
     },
-    [openModal]
+    [openModal, navigate]
   );
 
   const handleCloseForm = () => {
     closeModal();
-    setActiveId(null);
-    setFormMode("create");
     setCopyIds(null);
     setViewIds(null);
     setEditIds(null);
@@ -157,28 +164,6 @@ const LimsAliquotList = () => {
 
   const handleDuplicateUnreviewedCopies = async (unreviewedIds: string[]) => {
     await bulkClone.mutateAsync(idsSelection(unreviewedIds));
-  };
-
-  const handleSave = async (payload: LimsAliquotPayload) => {
-    if (activeId) {
-      compliance.requestUpdate(activeId, payload);
-      closeModal();
-      return;
-    }
-    await create.mutateAsync(payload);
-    handleCloseForm();
-  };
-
-  const confirmUpdate = async (reason: string) => {
-    const pending = compliance.pendingUpdate;
-    if (!pending) return;
-    await update.mutateAsync({
-      id: pending.id,
-      payload: { ...pending.payload, changeReason: reason }
-    });
-    compliance.clearUpdate();
-    setActiveId(null);
-    setFormMode("create");
   };
 
   const label = (row: LimsAliquot) =>
@@ -399,23 +384,7 @@ const LimsAliquotList = () => {
             saving={bulkUpdate.isPending}
             entityLabel={t("limsAliquot")}
           />
-        ) : formMode !== "create" && detailQuery.isLoading ? (
-          // isLoading only — isFetching would unmount this form (and any modal
-          // inside it, e.g. Manage) on every background refetch from invalidateAllLims.
-          <div className="flex min-h-[300px] items-center justify-center p-10">
-            <LoadingSpinner fullScreen={false} />
-          </div>
-        ) : (
-          <LimsAliquotForm
-            mode={formMode}
-            initialData={
-              formMode === "create" ? null : (detailQuery.data ?? null)
-            }
-            onClose={handleCloseForm}
-            onSubmit={handleSave}
-            submitting={create.isPending || update.isPending}
-          />
-        )}
+        ) : null}
       </Modal>
 
       <LimsComplianceDialogs
@@ -423,7 +392,6 @@ const LimsAliquotList = () => {
         entityLabel={t("limsAliquot")}
         entityLabelPlural={t("limsAliquots")}
         getRecordLabel={label}
-        updating={update.isPending}
         deleting={bulkDelete.isPending}
         restoring={restore.isPending}
         bulkRestoring={bulkRestoreAliquot.isPending}
@@ -437,7 +405,6 @@ const LimsAliquotList = () => {
         auditFetchingNextPage={auditQuery.isFetchingNextPage}
 
         onAuditLoadMore={auditQuery.fetchNextPage}
-        onUpdate={confirmUpdate}
         onBulkUpdate={async (reason) => {
           const pending = compliance.pendingBulkUpdate;
           if (pending) {

@@ -1,7 +1,8 @@
 import { useMemo, useRef, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
+import { usePageForm, type PageFormProps } from "@/components/data/pageForm";
 
 import Input from "@/components/common/form/input/InputField";
 import Label from "@/components/common/form/Label";
@@ -29,7 +30,7 @@ import type {
 export type LimsAliquotFormMode =
   "create" | "edit" | "view" | "copy" | "bulk-edit";
 
-interface LimsAliquotFormProps {
+interface LimsAliquotFormProps extends PageFormProps {
   mode?: LimsAliquotFormMode;
   initialData?: LimsAliquot | null;
   onClose: () => void;
@@ -60,7 +61,10 @@ const LimsAliquotForm = ({
   submitLabel,
   disabled = false,
   formId,
-  stepLabel
+  stepLabel,
+  pageSection,
+  onDirtyChange,
+  onInvalid
 }: LimsAliquotFormProps) => {
   const { t } = useTranslation();
   const isReadOnly = mode === "view";
@@ -91,6 +95,12 @@ const LimsAliquotForm = ({
     ),
     defaultValues: initialValues
   });
+  const watched = useWatch({ control });
+  const page = usePageForm(
+    { pageSection, onDirtyChange },
+    !isPayloadEqual({ ...initialValues, ...watched }, initialValues) ||
+      !isPayloadEqual(aliquots, initialAliquotsRef.current)
+  );
 
   const busy = submitting || isSubmitting;
 
@@ -115,37 +125,45 @@ const LimsAliquotForm = ({
   );
 
   return (
-    <div className="modal-scrollbar max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl bg-white p-6 pr-7 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+    <div className={page.frameClass}>
       <form
         id={formId}
-        onSubmit={handleSubmit((values) => {
-          // Edit + nothing actually changed: skip the reason modal, update
-          // call, and audit entry entirely — a no-op Save just closes.
-          if (
-            (mode === "edit" || mode === "bulk-edit") &&
-            isPayloadEqual(values, initialValues) &&
-            isPayloadEqual(aliquots, initialAliquotsRef.current)
-          ) {
-            (onUnchanged ?? onClose)();
-            return;
-          }
-          onSubmit({ ...values, aliquots });
-        })}
+        onSubmit={handleSubmit(
+          (values) => {
+            // Edit + nothing actually changed: skip the reason modal, update
+            // call, and audit entry entirely — a no-op Save just closes.
+            if (
+              (mode === "edit" || mode === "bulk-edit") &&
+              isPayloadEqual(values, initialValues) &&
+              isPayloadEqual(aliquots, initialAliquotsRef.current)
+            ) {
+              (onUnchanged ?? onClose)();
+              return;
+            }
+            onSubmit({ ...values, aliquots });
+          },
+          () => onInvalid?.("details")
+        )}
         className="min-w-0 space-y-4"
       >
-        <FormHeader
-          title={
-            isReadOnly
-              ? t("view", { entity: t("limsAliquot") })
-              : mode === "copy"
-                ? `${t("copyEntity", { entity: t("limsAliquot") })}${stepLabel ?? ""}`
-                : initialData
-                  ? `${t("update", { entity: t("limsAliquot") })}${stepLabel ?? ""}`
-                  : t("create", { entity: t("limsAliquot") })
-          }
-        />
+        {page.onPage ? null : (
+          <FormHeader
+            title={
+              isReadOnly
+                ? t("view", { entity: t("limsAliquot") })
+                : mode === "copy"
+                  ? `${t("copyEntity", { entity: t("limsAliquot") })}${stepLabel ?? ""}`
+                  : initialData
+                    ? `${t("update", { entity: t("limsAliquot") })}${stepLabel ?? ""}`
+                    : t("create", { entity: t("limsAliquot") })
+            }
+          />
+        )}
 
-        <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
+        <div
+          data-section="details"
+          className={`grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 ${page.hide("details")}`}
+        >
           {text("aliquotSetId", t("limsAliquotSetId"), true, "text")}
           <div className="min-w-0">
             <Label required={true}>{t("limsStockBatch")}</Label>
@@ -167,23 +185,27 @@ const LimsAliquotForm = ({
             />
           </div>
           {text("aliquotsNumber", t("limsAliquotsNumber"), false, "number")}
-          <div className="col-span-full min-w-0">
-            <SubFormGrid<LimsAliquotRow>
-              label={t("limsAliquotsList")}
-              rows={aliquots}
-              onChange={setAliquots}
-              disabled={isReadOnly}
-              columns={[
-                { key: "aliquotId", header: t("limsAliquotId") },
-                { key: "description", header: t("description") },
-                { key: "quantity", header: t("limsQuantity"), type: "number" },
-                { key: "unit", header: t("limsUnit") }
-              ]}
-            />
-          </div>
         </div>
 
-        <div className="mt-4 flex justify-end gap-2">
+        <div
+          data-section="limsAliquotsList"
+          className={`min-w-0 ${page.hide("limsAliquotsList")}`}
+        >
+          <SubFormGrid<LimsAliquotRow>
+            label={t("limsAliquotsList")}
+            rows={aliquots}
+            onChange={setAliquots}
+            disabled={isReadOnly}
+            columns={[
+              { key: "aliquotId", header: t("limsAliquotId") },
+              { key: "description", header: t("description") },
+              { key: "quantity", header: t("limsQuantity"), type: "number" },
+              { key: "unit", header: t("limsUnit") }
+            ]}
+          />
+        </div>
+
+        <div className={page.onPage ? "hidden" : "mt-4 flex justify-end gap-2"}>
           <Button
             variant="outline"
             type="button"

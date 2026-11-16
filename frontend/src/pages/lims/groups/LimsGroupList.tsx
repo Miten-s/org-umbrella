@@ -96,7 +96,10 @@ const LimsGroupList = () => {
     restoreGroup.isPending ||
     bulkRestoreGroup.isPending;
 
-  const columnDefs = useMemo(() => getLimsGroupColumns({ t }), [t]);
+  const columnDefs = useMemo(
+    () => getLimsGroupColumns({ t, includeRemoved }),
+    [t, includeRemoved]
+  );
 
   const openForm = useCallback(
     (mode: LimsGroupFormMode, group: LimsGroup | null) => {

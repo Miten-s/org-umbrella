@@ -3,6 +3,7 @@ import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { sectionHidden } from "@/components/data/recordPage";
 
 import Input from "@/components/common/form/input/InputField";
 import Label from "@/components/common/form/Label";
@@ -45,7 +46,7 @@ interface LimsEntityTemplateFormProps {
   /** " (2 of 5)" when stepping through several records. */
   stepLabel?: string;
   /** Set on the template's page: no modal frame or buttons, only this tab's part shows. */
-  pageSection?: "details" | "conditions";
+  pageSection?: string;
   onDirtyChange?: (dirty: boolean) => void;
   /** Save found a problem — the page switches to the tab that holds it. */
   onInvalid?: (section: "details" | "conditions") => void;
@@ -165,8 +166,9 @@ const LimsEntityTemplateForm = ({
         className="space-y-4"
       >
         <div
+          data-section="details"
           className={
-            onPage && pageSection !== "details"
+            sectionHidden(pageSection, "details")
               ? "hidden"
               : "grid gap-4 md:grid-cols-2"
           }
@@ -264,7 +266,10 @@ const LimsEntityTemplateForm = ({
           </div>
         </div>
 
-        <div className={onPage && pageSection !== "conditions" ? "hidden" : ""}>
+        <div
+          data-section="conditions"
+          className={sectionHidden(pageSection, "conditions") ? "hidden" : ""}
+        >
           {onPage ? null : <Label>{t("limsConditions")}</Label>}
           {catalog ? (
             <QueryBuilder

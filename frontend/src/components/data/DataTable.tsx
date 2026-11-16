@@ -34,6 +34,7 @@ import {
   useRef,
   useState
 } from "react";
+import { LIST_PAGE_SIZE_OPTIONS } from "@/utils/listResponse";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -127,7 +128,7 @@ export function DataTable<T extends { id: string }>({
   enableSelection = false,
   emptyState,
   defaultColDef,
-  pageSizeOptions = [5, 10, 20, 50],
+  pageSizeOptions = LIST_PAGE_SIZE_OPTIONS,
   rowHeight = 54,
   headerHeight = 46,
   fontSize = 13,

@@ -106,7 +106,10 @@ const LimsParameterList = () => {
     restoreParameter.isPending ||
     bulkRestoreParameter.isPending;
 
-  const columnDefs = useMemo(() => getLimsParameterColumns({ t }), [t]);
+  const columnDefs = useMemo(
+    () => getLimsParameterColumns({ t, includeRemoved }),
+    [t, includeRemoved]
+  );
 
   const openForm = useCallback(
     (mode: LimsParameterFormMode, parameter: LimsParameter | null) => {

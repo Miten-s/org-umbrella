@@ -6,6 +6,7 @@ export interface LimsRef {
 }
 
 export interface LimsResult {
+  status?: string;
   id: string;
   /** @deprecated compatibility shim — read `id`. */
   _id: string;

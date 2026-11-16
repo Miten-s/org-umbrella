@@ -96,7 +96,10 @@ const LimsResultList = () => {
     restore.isPending ||
     bulkRestoreResult.isPending;
 
-  const columnDefs = useMemo(() => getLimsResultColumns({ t }), [t]);
+  const columnDefs = useMemo(
+    () => getLimsResultColumns({ t, includeRemoved }),
+    [t, includeRemoved]
+  );
 
   const openForm = useCallback(
     (mode: LimsResultFormMode, row: LimsResult | null) => {

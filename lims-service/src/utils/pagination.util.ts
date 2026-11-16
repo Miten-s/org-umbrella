@@ -11,7 +11,7 @@ export const getPaginationOptions = (query: any): PaginationOptions => {
 
   let limit = parseInt(query.limit as string, 10);
   if (isNaN(limit) || limit <= 0) limit = 10;
-  if (limit > 200) limit = 200; // Hard cap — spec calls for high daily volume, not huge single pages.
+  if (limit > 500) limit = 500; // Hard cap — matches the largest page-size option in the UI.
 
   const skip = (page - 1) * limit;
   const search = (query.search as string) || "";

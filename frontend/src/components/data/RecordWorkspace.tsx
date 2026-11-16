@@ -1,9 +1,21 @@
-import type { ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Button from "@/components/ui/button/Button";
 import UnsavedChangesGuard from "./UnsavedChangesGuard";
+import ConfirmDialog from "./ConfirmDialog";
+import {
+  EntryEditorContext,
+  type EntryEditorState
+} from "./entryEditorContext";
 import { useWorkspaceTab } from "./useWorkspaceTab";
+import { ALL_SECTIONS } from "./recordPage";
 
 export interface WorkspaceTab {
   key: string;
@@ -25,7 +37,11 @@ interface RecordWorkspaceProps {
   saving?: boolean;
   onSave: () => void;
   onDiscard: () => void;
-  /** Every tab's content, given the active tab — keep them all mounted so no work is lost. */
+  /** Viewing or editing one record shows every section stacked (the bar scrolls to them);
+   * otherwise — e.g. Create — each section is its own tab. */
+  stacked?: boolean;
+  /** The page's content for `tab`: ALL_SECTIONS when stacked, else the open tab. Stacked, the
+   * section bar scrolls to the element marked `data-section="<key>"`. */
   children: (tab: string) => ReactNode;
 }
 
@@ -38,6 +54,7 @@ const RecordWorkspace = ({
   tabs,
   defaultTab,
   readOnly = false,
+  stacked = true,
   dirty,
   saving = false,
   onSave,
@@ -51,9 +68,67 @@ const RecordWorkspace = ({
     defaultTab
   );
 
+  // Entry editors on the page report unsaved rows and entries typed but not yet added.
+  const [editors, setEditors] = useState<Map<string, EntryEditorState>>(
+    () => new Map()
+  );
+  const setEditor = useCallback(
+    (id: string, state: EntryEditorState | null) =>
+      setEditors((prev) => {
+        const next = new Map(prev);
+        if (state) next.set(id, state);
+        else next.delete(id);
+        return next;
+      }),
+    []
+  );
+  const registry = useMemo(() => ({ set: setEditor }), [setEditor]);
+  const unsavedRows = [...editors.values()].reduce(
+    (sum, editor) => sum + editor.unsaved,
+    0
+  );
+  const pending = [...editors.values()].filter((e) => e.pendingEntry);
+  const [askPending, setAskPending] = useState(false);
+
+  // The section bar jumps to its section; ?tab= (also set when Save finds a problem) does too.
+  useEffect(() => {
+    if (!stacked) return;
+    const target = document.querySelector(`[data-section="${tab}"]`);
+    if (target && tab !== tabs[0]?.key)
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    else if (target) window.scrollTo({ top: 0, behavior: "smooth" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
+  const save = () => {
+    if (pending.length) setAskPending(true);
+    else onSave();
+  };
+
   return (
     <div className="space-y-4">
-      <UnsavedChangesGuard when={dirty && !saving} />
+      <UnsavedChangesGuard
+        when={(dirty || pending.length > 0) && !saving}
+        count={unsavedRows || undefined}
+      />
+      <ConfirmDialog
+        isOpen={askPending}
+        onClose={() => {
+          setAskPending(false);
+          pending[0]?.focus();
+        }}
+        onConfirm={() => {
+          setAskPending(false);
+          pending.forEach((editor) => editor.clearEntry());
+          onSave();
+        }}
+        title={t("entryPendingTitle")}
+        description={t("entryPendingBody", {
+          lists: pending.map((editor) => editor.label).join(", ")
+        })}
+        confirmLabel={t("entryPendingDiscard")}
+        cancelLabel={t("entryPendingKeep")}
+      />
       {/* Pinned under the app bar so Save and the tabs stay in reach while scrolling. */}
       <div className="sticky top-[var(--app-header-h,77px)] z-[8] -mx-4 -mt-4 space-y-3 bg-gray-50 px-4 pt-4 dark:bg-gray-900 md:-mx-6 md:-mt-6 md:px-6 md:pt-6">
         <div className="flex flex-wrap items-center gap-3">
@@ -77,7 +152,11 @@ const RecordWorkspace = ({
           {!readOnly ? (
             <div className="ml-auto flex items-center gap-3">
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                {dirty ? t("workspaceUnsaved") : t("workspaceAllSaved")}
+                {unsavedRows
+                  ? t("workspaceUnsavedRows", { count: unsavedRows })
+                  : dirty
+                    ? t("workspaceUnsaved")
+                    : t("workspaceAllSaved")}
               </span>
               <Button
                 type="button"
@@ -89,7 +168,7 @@ const RecordWorkspace = ({
               </Button>
               <Button
                 type="button"
-                onClick={onSave}
+                onClick={save}
                 disabled={saving}
                 loading={saving}
               >
@@ -100,15 +179,17 @@ const RecordWorkspace = ({
         </div>
 
         <div
-          role="tablist"
+          role={stacked ? undefined : "tablist"}
+          aria-label={t("workspaceSections")}
           className="flex gap-1 overflow-x-auto border-b border-gray-200 dark:border-gray-700"
         >
           {tabs.map((item) => (
             <button
               key={item.key}
               type="button"
-              role="tab"
-              aria-selected={tab === item.key}
+              role={stacked ? undefined : "tab"}
+              aria-selected={stacked ? undefined : tab === item.key}
+              aria-current={stacked && tab === item.key ? "true" : undefined}
               onClick={() => setTab(item.key)}
               className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium ${
                 tab === item.key
@@ -127,7 +208,9 @@ const RecordWorkspace = ({
         </div>
       </div>
 
-      {children(tab)}
+      <EntryEditorContext.Provider value={registry}>
+        {children(stacked ? ALL_SECTIONS : tab)}
+      </EntryEditorContext.Provider>
     </div>
   );
 };

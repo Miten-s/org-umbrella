@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
+import { sectionHidden } from "@/components/data/recordPage";
 
 import Input from "@/components/common/form/input/InputField";
 import Label from "@/components/common/form/Label";
@@ -55,7 +56,7 @@ interface LimsSpecificationFormProps {
   stepLabel?: string;
   /** Set on the Specification page: no modal frame or buttons, and only this tab's part shows
    * (the others stay mounted, so one Save covers all three). */
-  pageSection?: "details" | "limits" | "other";
+  pageSection?: string;
   onDirtyChange?: (dirty: boolean) => void;
   /** Save found a problem — the page switches to the tab that holds it. */
   onInvalid?: (section: "details" | "limits" | "other") => void;
@@ -132,7 +133,7 @@ const LimsSpecificationForm = ({
 
   const description = useWatch({ control, name: "description" });
   const hide = (section: "details" | "limits" | "other") =>
-    onPage && pageSection !== section ? "hidden" : "";
+    sectionHidden(pageSection, section) ? "hidden" : "";
   const busy = submitting || isSubmitting;
 
   const text = (
@@ -212,6 +213,7 @@ const LimsSpecificationForm = ({
         </h2>
 
         <div
+          data-section="details"
           className={`grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 ${hide("details")}`}
         >
           {text("specId", t("limsSpecId"), true, "text")}
@@ -245,7 +247,7 @@ const LimsSpecificationForm = ({
             />
           </div>
         </div>
-        <div className={`min-w-0 ${hide("limits")}`}>
+        <div data-section="limits" className={`min-w-0 ${hide("limits")}`}>
           <SpecLimitsEditor
             rows={limits}
             onChange={setLimits}
@@ -256,7 +258,7 @@ const LimsSpecificationForm = ({
         {(onPage
           ? mode !== "bulk-edit"
           : mode !== "copy" && mode !== "bulk-edit") && (
-          <div className={`min-w-0 ${hide("other")}`}>
+          <div data-section="other" className={`min-w-0 ${hide("other")}`}>
             <LimsAttachmentsField
               attachments={attachments}
               disabled={isReadOnly}

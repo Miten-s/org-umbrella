@@ -96,7 +96,10 @@ const LimsStudyList = () => {
     restoreStudy.isPending ||
     bulkRestoreStudy.isPending;
 
-  const columnDefs = useMemo(() => getLimsStudyColumns({ t }), [t]);
+  const columnDefs = useMemo(
+    () => getLimsStudyColumns({ t, includeRemoved }),
+    [t, includeRemoved]
+  );
 
   const openForm = useCallback(
     (mode: LimsStudyFormMode, study: LimsStudy | null) => {

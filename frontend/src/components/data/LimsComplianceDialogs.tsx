@@ -12,7 +12,8 @@ interface LimsComplianceDialogsProps<TRow extends { id: string }, TPayload> {
   /** Business key of the audited record, shown in the audit heading. */
   getRecordLabel: (row: TRow) => string;
 
-  onUpdate: (reason: string) => Promise<void> | void;
+  /** Single-record update; omit where a record is edited on its own page. */
+  onUpdate?: (reason: string) => Promise<void> | void;
   onDelete: (reason: string) => Promise<void> | void;
   onRestore: (reason: string) => Promise<void> | void;
   /** Bulk Edit's one shared reason for the whole reviewed batch — optional, unmigrated callers are unaffected. */
@@ -71,7 +72,7 @@ function LimsComplianceDialogs<TRow extends { id: string }, TPayload>({
         requireReason
         title={t("limsConfirmChangesTitle")}
         description={t("limsConfirmChangesBody")}
-        onConfirm={(reason) => onUpdate(reason ?? "")}
+        onConfirm={(reason) => onUpdate?.(reason ?? "")}
       />
 
       {/* Bulk Edit: one reason, recorded once, applied to every reviewed record's own audit row. */}

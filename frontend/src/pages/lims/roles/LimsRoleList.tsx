@@ -112,11 +112,12 @@ const LimsRoleList = () => {
     () =>
       getLimsRoleColumns({
         t,
+        includeRemoved,
         permissionLabels: Object.fromEntries(
           permissionCatalogue.map((p) => [p.name, p.label])
         )
       }),
-    [permissionCatalogue, t]
+    [permissionCatalogue, t, includeRemoved]
   );
 
   const openForm = useCallback(

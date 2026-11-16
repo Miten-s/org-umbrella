@@ -1,40 +1,14 @@
-import { useSidebar } from "../../context/SidebarContext";
-import { SidebarProvider } from "../../context/SidebarProvider";
 import { Outlet } from "react-router-dom";
 import AppHeader from "./AppHeader";
-import Backdrop from "./Backdrop";
-import AppSidebar from "./AppSidebar";
 
-const LayoutContent: React.FC = () => {
-  const { isExpanded, isHovered, isMobileOpen } = useSidebar();
-
-  return (
-    <div className="mx-auto min-h-screen max-w-[2400px] xl:flex">
-      <div>
-        <AppSidebar />
-        <Backdrop />
-      </div>
-      <div
-        className={`min-w-0 flex-1 transition-all duration-300 ease-in-out ${
-          isExpanded || isHovered ? "lg:ml-[290px]" : "lg:ml-[90px]"
-        } ${isMobileOpen ? "ml-0" : ""}`}
-      >
-        <AppHeader />
-        {/* i REMOVE THIS BECAUSE ITS CAUSING ISSUE WITH OUTSIDE TOOLTIPDESIGN (OVERFLOW-HIDDEN) */}
-        <div className="p-4 md:p-6 ">
-          <Outlet />
-        </div>
-      </div>
+/** Every signed-in page: the app bar with the current service's menus, then the page. */
+const AppLayout: React.FC = () => (
+  <div className="mx-auto min-h-screen max-w-[2400px]">
+    <AppHeader />
+    <div className="p-4 md:p-6">
+      <Outlet />
     </div>
-  );
-};
-
-const AppLayout: React.FC = () => {
-  return (
-    <SidebarProvider>
-      <LayoutContent />
-    </SidebarProvider>
-  );
-};
+  </div>
+);
 
 export default AppLayout;

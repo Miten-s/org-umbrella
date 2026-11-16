@@ -98,7 +98,10 @@ const LimsProjectList = () => {
     restoreProject.isPending ||
     bulkRestoreProject.isPending;
 
-  const columnDefs = useMemo(() => getLimsProjectColumns({ t }), [t]);
+  const columnDefs = useMemo(
+    () => getLimsProjectColumns({ t, includeRemoved }),
+    [t, includeRemoved]
+  );
 
   const openForm = useCallback(
     (mode: LimsProjectFormMode, project: LimsProject | null) => {
