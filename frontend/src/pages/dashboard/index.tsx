@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ComponentType, SVGProps } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRightIcon, BoltIcon, CalenderIcon, FlaskIcon } from "@/public/icons";
+import {
+  ArrowRightIcon,
+  BoltIcon,
+  CalenderIcon,
+  FlaskIcon
+} from "@/public/icons";
 import { useAuth } from "@/context/AuthContext";
 import { getImageUrl } from "@/services/utils.service";
 import { PageUrl } from "@/types/utils.types";
@@ -77,12 +82,21 @@ const getDayPart = (hour: number): DayPart => {
 };
 
 const pickGreeting = (name: string) => {
-  const pool = [...greetings[getDayPart(new Date().getHours())], ...greetings.any];
+  const pool = [
+    ...greetings[getDayPart(new Date().getHours())],
+    ...greetings.any
+  ];
   return pool[Math.floor(Math.random() * pool.length)].replace("{name}", name);
 };
 
 const SearchIcon = (props: SVGProps<SVGSVGElement>) => (
-  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.8} {...props}>
+  <svg
+    viewBox="0 0 20 20"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.8}
+    {...props}
+  >
     <circle cx="9" cy="9" r="6" />
     <path d="m17 17-3.5-3.5" strokeLinecap="round" />
   </svg>
@@ -97,7 +111,9 @@ const Dashboard = () => {
 
   const userName = user?.fullName || user?.name || "there";
   const companyName = currentCompany?.name || "Your company";
-  const companyLogoUrl = currentCompany?.logo ? getImageUrl(currentCompany.logo) : "";
+  const companyLogoUrl = currentCompany?.logo
+    ? getImageUrl(currentCompany.logo)
+    : "";
   const showLogo = Boolean(companyLogoUrl) && !logoFailed;
 
   const greeting = useMemo(() => pickGreeting(userName), [userName]);
@@ -108,13 +124,17 @@ const Dashboard = () => {
   });
 
   const filtered = modules.filter((m) =>
-    `${m.title} ${m.description}`.toLowerCase().includes(query.trim().toLowerCase())
+    `${m.title} ${m.description}`
+      .toLowerCase()
+      .includes(query.trim().toLowerCase())
   );
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
-      const typing = ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) || target.isContentEditable;
+      const typing =
+        ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) ||
+        target.isContentEditable;
       if (e.key === "/" && !typing) {
         e.preventDefault();
         searchRef.current?.focus();
@@ -181,7 +201,8 @@ const Dashboard = () => {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Escape") setQuery("");
-                if (e.key === "Enter" && filtered.length === 1) navigate(filtered[0].route);
+                if (e.key === "Enter" && filtered.length === 1)
+                  navigate(filtered[0].route);
               }}
               placeholder="Search services"
               className="h-10 w-full rounded-xl border border-gray-200 bg-white pl-9 pr-9 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:ring-blue-500/20"
@@ -205,12 +226,20 @@ const Dashboard = () => {
                 onClick={() => navigate(mod.route)}
                 className={`group flex flex-col items-start rounded-2xl border border-gray-200 bg-white p-6 text-left transition-all hover:-translate-y-0.5 hover:shadow-lg dark:border-gray-700 dark:bg-gray-800 ${mod.accent.border}`}
               >
-                <span className={`mb-4 flex h-11 w-11 items-center justify-center rounded-xl ${mod.accent.tile}`}>
+                <span
+                  className={`mb-4 flex h-11 w-11 items-center justify-center rounded-xl ${mod.accent.tile}`}
+                >
                   <mod.icon className="h-5 w-5" />
                 </span>
-                <span className="text-lg font-semibold text-gray-900 dark:text-white">{mod.title}</span>
-                <span className="mt-1 text-sm text-gray-600 dark:text-gray-300">{mod.description}</span>
-                <span className={`mt-6 inline-flex items-center gap-1.5 text-sm font-semibold ${mod.accent.link}`}>
+                <span className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {mod.title}
+                </span>
+                <span className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                  {mod.description}
+                </span>
+                <span
+                  className={`mt-6 inline-flex items-center gap-1.5 text-sm font-semibold ${mod.accent.link}`}
+                >
                   Open {mod.title}
                   <ArrowRightIcon className="h-4 w-4 fill-current transition-transform group-hover:translate-x-1" />
                 </span>
