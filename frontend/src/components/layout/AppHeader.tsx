@@ -5,7 +5,6 @@ import NotificationDropdown from "../../components/header/NotificationDropdown";
 import { ThemeToggleButton } from "../common/ThemeToggleButton";
 import UserDropdown from "../header/UserDropdown";
 import LanguageDropdown from "../header/LanguageDropdown";
-import appLogo from "../../public/images/logo-transparant.png";
 import { PageUrl } from "@/types/utils.types";
 import { GridIcon } from "@/public/icons";
 import { useAuth } from "@/context/AuthContext";
@@ -52,10 +51,26 @@ const AppHeader: React.FC = () => {
       <div className="flex items-center gap-3 px-4 py-3 md:px-6">
         <Link
           to={canSeeDashboard ? PageUrl.Dashboard.path : "/"}
-          className="shrink-0"
+          className="flex shrink-0 items-center gap-2.5"
           aria-label={t("dashboard")}
         >
-          <img src={appLogo} alt="Logo" className="h-8 w-auto" />
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.8}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-5 w-5"
+              aria-hidden
+            >
+              <path d="M3 13a9 9 0 0 1 18 0H3Zm9 0v5a2.5 2.5 0 1 1-5 0M12 3v1" />
+            </svg>
+          </span>
+          <span className="hidden text-sm font-bold tracking-[0.12em] text-gray-900 dark:text-white sm:inline">
+            UMBRELLA
+          </span>
         </Link>
 
         {current ? (
