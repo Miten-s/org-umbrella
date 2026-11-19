@@ -10,12 +10,47 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { getImageUrl } from "@/services/utils.service";
 import { PageUrl } from "@/types/utils.types";
+import { formatToday, pickGreeting } from "@/utils/greeting";
+
+const lineIcon =
+  (...paths: string[]) =>
+  (props: SVGProps<SVGSVGElement>) => (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.7}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      {paths.map((d) => (
+        <path key={d} d={d} />
+      ))}
+    </svg>
+  );
+
+const QmsIcon = lineIcon(
+  "M9 3h6a1 1 0 0 1 1 1v1H8V4a1 1 0 0 1 1-1Z",
+  "M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2",
+  "m9 14 2 2 4-4"
+);
+const ErpIcon = lineIcon(
+  "M3 7l9-4 9 4-9 4-9-4Z",
+  "M3 12l9 4 9-4",
+  "M3 17l9 4 9-4"
+);
+const MesIcon = lineIcon(
+  "M3 21V10l5 3V10l5 3V10l5 3V5h3v16H3Z",
+  "M7 17h2m4 0h2"
+);
+const CsvIcon = lineIcon("M4 5h16v10H4z", "M9 19h6m-3-4v4", "m9 10 2 2 4-4");
 
 interface DashboardModule {
   id: string;
   title: string;
   description: string;
-  route: string;
+  route?: string;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
   accent: { tile: string; link: string; border: string };
 }
@@ -25,7 +60,7 @@ const modules: DashboardModule[] = [
     id: "gxp",
     title: "GxP Services",
     description: "Manage GxP compliance activities.",
-    route: "/gxp-service/create-new-service-request",
+    route: PageUrl.GXPDashboard.path,
     icon: BoltIcon,
     accent: {
       tile: "bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400",
@@ -37,57 +72,61 @@ const modules: DashboardModule[] = [
     id: "lims",
     title: "LIMS",
     description: "Manage lab setup, stock, instruments, and specifications.",
-    route: PageUrl.LIMSTests.path,
+    route: PageUrl.LIMSDashboard.path,
     icon: FlaskIcon,
     accent: {
       tile: "bg-teal-50 text-teal-600 dark:bg-teal-500/15 dark:text-teal-400",
       link: "text-teal-700 dark:text-teal-400",
       border: "hover:border-teal-400 dark:hover:border-teal-500"
     }
+  },
+  {
+    id: "qms",
+    title: "QMS",
+    description:
+      "Quality management: deviations, CAPA, change control, and audits.",
+    icon: QmsIcon,
+    accent: {
+      tile: "bg-violet-50 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400",
+      link: "text-violet-700 dark:text-violet-400",
+      border: "hover:border-violet-400 dark:hover:border-violet-500"
+    }
+  },
+  {
+    id: "erp",
+    title: "ERP",
+    description: "Plan resources, procurement, inventory, and finance.",
+    icon: ErpIcon,
+    accent: {
+      tile: "bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400",
+      link: "text-amber-700 dark:text-amber-400",
+      border: "hover:border-amber-400 dark:hover:border-amber-500"
+    }
+  },
+  {
+    id: "mes",
+    title: "MES",
+    description:
+      "Manufacturing execution: batch records and shop-floor production.",
+    icon: MesIcon,
+    accent: {
+      tile: "bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400",
+      link: "text-rose-700 dark:text-rose-400",
+      border: "hover:border-rose-400 dark:hover:border-rose-500"
+    }
+  },
+  {
+    id: "csv",
+    title: "CSV",
+    description: "Computer system validation for GxP-compliant software.",
+    icon: CsvIcon,
+    accent: {
+      tile: "bg-sky-50 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400",
+      link: "text-sky-700 dark:text-sky-400",
+      border: "hover:border-sky-400 dark:hover:border-sky-500"
+    }
   }
 ];
-
-type DayPart = "morning" | "afternoon" | "evening" | "night";
-
-const greetings: Record<DayPart | "any", string[]> = {
-  morning: [
-    "Good morning, {name}",
-    "Rise and shine, {name}",
-    "Morning, {name}. Fresh start today",
-    "Coffee and compliance, {name}?"
-  ],
-  afternoon: [
-    "Good afternoon, {name}",
-    "Afternoon, {name}. Let's keep it moving",
-    "Hope your day's going well, {name}"
-  ],
-  evening: [
-    "Good evening, {name}",
-    "Evening, {name}. Wrapping things up?",
-    "Nice to see you this evening, {name}"
-  ],
-  night: [
-    "Working late, {name}?",
-    "Hello, night owl",
-    "Burning the midnight oil, {name}?"
-  ],
-  any: ["Welcome back, {name}", "Hey there, {name}", "Good to see you, {name}"]
-};
-
-const getDayPart = (hour: number): DayPart => {
-  if (hour >= 5 && hour < 12) return "morning";
-  if (hour >= 12 && hour < 17) return "afternoon";
-  if (hour >= 17 && hour < 22) return "evening";
-  return "night";
-};
-
-const pickGreeting = (name: string) => {
-  const pool = [
-    ...greetings[getDayPart(new Date().getHours())],
-    ...greetings.any
-  ];
-  return pool[Math.floor(Math.random() * pool.length)].replace("{name}", name);
-};
 
 const SearchIcon = (props: SVGProps<SVGSVGElement>) => (
   <svg
@@ -117,11 +156,7 @@ const Dashboard = () => {
   const showLogo = Boolean(companyLogoUrl) && !logoFailed;
 
   const greeting = useMemo(() => pickGreeting(userName), [userName]);
-  const today = new Date().toLocaleDateString(undefined, {
-    weekday: "long",
-    day: "numeric",
-    month: "short"
-  });
+  const today = formatToday();
 
   const filtered = modules.filter((m) =>
     `${m.title} ${m.description}`
@@ -201,8 +236,8 @@ const Dashboard = () => {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Escape") setQuery("");
-                if (e.key === "Enter" && filtered.length === 1)
-                  navigate(filtered[0].route);
+                const only = filtered.length === 1 ? filtered[0] : null;
+                if (e.key === "Enter" && only?.route) navigate(only.route);
               }}
               placeholder="Search services"
               className="h-10 w-full rounded-xl border border-gray-200 bg-white pl-9 pr-9 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:ring-blue-500/20"
@@ -218,16 +253,26 @@ const Dashboard = () => {
             No services match "{query}".
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map((mod) => (
               <button
                 key={mod.id}
                 type="button"
-                onClick={() => navigate(mod.route)}
-                className={`group flex flex-col items-start rounded-2xl border border-gray-200 bg-white p-6 text-left transition-all hover:-translate-y-0.5 hover:shadow-lg dark:border-gray-700 dark:bg-gray-800 ${mod.accent.border}`}
+                disabled={!mod.route}
+                onClick={() => mod.route && navigate(mod.route)}
+                className={`group relative flex flex-col items-start rounded-2xl border border-gray-200 bg-white p-6 text-left transition-all dark:border-gray-700 dark:bg-gray-800 ${
+                  mod.route
+                    ? `hover:-translate-y-0.5 hover:shadow-lg ${mod.accent.border}`
+                    : "cursor-default"
+                }`}
               >
+                {!mod.route && (
+                  <span className="absolute right-4 top-4 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-500 dark:bg-gray-700 dark:text-gray-300">
+                    Coming soon
+                  </span>
+                )}
                 <span
-                  className={`mb-4 flex h-11 w-11 items-center justify-center rounded-xl ${mod.accent.tile}`}
+                  className={`mb-4 flex h-11 w-11 items-center justify-center rounded-xl ${mod.accent.tile} ${mod.route ? "" : "opacity-70"}`}
                 >
                   <mod.icon className="h-5 w-5" />
                 </span>
@@ -237,12 +282,18 @@ const Dashboard = () => {
                 <span className="mt-1 text-sm text-gray-600 dark:text-gray-300">
                   {mod.description}
                 </span>
-                <span
-                  className={`mt-6 inline-flex items-center gap-1.5 text-sm font-semibold ${mod.accent.link}`}
-                >
-                  Open {mod.title}
-                  <ArrowRightIcon className="h-4 w-4 fill-current transition-transform group-hover:translate-x-1" />
-                </span>
+                {mod.route ? (
+                  <span
+                    className={`mt-6 inline-flex items-center gap-1.5 text-sm font-semibold ${mod.accent.link}`}
+                  >
+                    Open {mod.title}
+                    <ArrowRightIcon className="h-4 w-4 fill-current transition-transform group-hover:translate-x-1" />
+                  </span>
+                ) : (
+                  <span className="mt-6 text-sm font-medium text-gray-400 dark:text-gray-500">
+                    Available soon
+                  </span>
+                )}
               </button>
             ))}
           </div>
