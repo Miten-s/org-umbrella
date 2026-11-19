@@ -1,4 +1,5 @@
 import { lazy } from "react";
+import { Navigate } from "react-router-dom";
 import AppLayout from "../components/layout/AppLayout";
 import Login from "@/components/sign-in/Login";
 import { PageUrl } from "@/types/utils.types";
@@ -12,6 +13,7 @@ import type { AppRoute } from "./types";
 // Dashboard & Access Management
 const Home = lazy(() => import("../pages/home"));
 const Dashboard = lazy(() => import("../pages/dashboard"));
+const ServiceDashboard = lazy(() => import("../pages/service-dashboard"));
 const RolesAndPermissions = lazy(
   () => import("../pages/access-management/roles-and-permissions")
 );
@@ -459,6 +461,15 @@ const routes: AppRoute[] = [
         path: PageUrl.GXPService.path,
         children: [
           {
+            path: "",
+            element: <Navigate to={PageUrl.GXPDashboard.path} replace />
+          },
+          {
+            path: "dashboard",
+            element: <ServiceDashboard service="gxp" />,
+            meta: { title: PageUrl.GXPDashboard.pageTitle }
+          },
+          {
             path: PageUrl.GXPUsers.path.replace(
               `${PageUrl.GXPService.path}/`,
               ""
@@ -590,7 +601,18 @@ const routes: AppRoute[] = [
       // LIMS
       {
         path: PageUrl.LIMS.path,
-        children: limsChildren
+        children: [
+          {
+            path: "",
+            element: <Navigate to={PageUrl.LIMSDashboard.path} replace />
+          },
+          {
+            path: "dashboard",
+            element: <ServiceDashboard service="lims" />,
+            meta: { title: PageUrl.LIMSDashboard.pageTitle }
+          },
+          ...limsChildren
+        ]
       }
     ]
   },

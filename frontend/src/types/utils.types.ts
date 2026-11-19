@@ -115,6 +115,11 @@ export const PageUrl: PageUrlType = {
     matchPattern: /^\/gxp-service$/i,
     pageTitle: "GXP Service"
   },
+  GXPDashboard: {
+    path: "/gxp-service/dashboard",
+    matchPattern: /^\/gxp-service\/dashboard$/i,
+    pageTitle: "GxP Dashboard"
+  },
   GXPUsers: {
     path: "/gxp-service/users",
     matchPattern: /^\/gxp-service\/users$/i,
@@ -167,6 +172,11 @@ export const PageUrl: PageUrlType = {
     path: "/lims",
     matchPattern: /^\/lims$/i,
     pageTitle: "LIMS"
+  },
+  LIMSDashboard: {
+    path: "/lims/dashboard",
+    matchPattern: /^\/lims\/dashboard$/i,
+    pageTitle: "LIMS Dashboard"
   },
 
   // LIMS → Lab Access

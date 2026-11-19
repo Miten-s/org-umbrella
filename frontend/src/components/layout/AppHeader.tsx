@@ -11,6 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { ADMIN_PERMISSIONS, hasPermission } from "@/utils/permissions";
 import { HeaderNav, MobileNav } from "./HeaderNav";
 import { serviceOf, useNavItems } from "./navConfig";
+import CommandPalette from "./CommandPalette";
 
 /** The app bar: logo and the current service's name, that service's menus, and a Dashboard
  * switch for choosing another service. Other services' menus stay out of the way. */
@@ -23,6 +24,12 @@ const AppHeader: React.FC = () => {
   const current = service
     ? navItems.find((item) => item.service === service)
     : undefined;
+  const serviceHome =
+    service === "lims"
+      ? PageUrl.LIMSDashboard.path
+      : service === "gxp"
+        ? PageUrl.GXPDashboard.path
+        : undefined;
   const canSeeDashboard = hasPermission(user, ADMIN_PERMISSIONS.VIEW_DASHBOARD);
   const [mobileOpen, setMobileOpen] = useState(false);
   useEffect(() => setMobileOpen(false), [pathname]);
@@ -74,9 +81,18 @@ const AppHeader: React.FC = () => {
         </Link>
 
         {current ? (
-          <span className="shrink-0 rounded-lg bg-brand-50 px-3 py-1.5 text-sm font-semibold text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
-            {current.name}
-          </span>
+          serviceHome ? (
+            <Link
+              to={serviceHome}
+              className="shrink-0 rounded-lg bg-brand-50 px-3 py-1.5 text-sm font-semibold text-brand-700 hover:bg-brand-100 dark:bg-brand-500/15 dark:text-brand-300 dark:hover:bg-brand-500/25"
+            >
+              {current.name}
+            </Link>
+          ) : (
+            <span className="shrink-0 rounded-lg bg-brand-50 px-3 py-1.5 text-sm font-semibold text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
+              {current.name}
+            </span>
+          )
         ) : null}
 
         <div className="min-w-0 flex-1">
@@ -84,6 +100,7 @@ const AppHeader: React.FC = () => {
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
+          <CommandPalette />
           {canSeeDashboard ? (
             <Link
               to={PageUrl.Dashboard.path}
